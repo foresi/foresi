@@ -25,6 +25,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Payments | Payments recorded by hand or paired from the bank's payment e-mails | [bank-pairing.md](docs/bank-pairing.md) |
 | Received documents | Supplier invoices, receipts and credit notes beside the original file, with VAT treatments and foreign currencies | [purchasing.md](docs/purchasing.md) |
 | Cash flow | How much money the firm will have, by weeks and months, twelve months ahead | [cash-flow.md](docs/cash-flow.md) |
+| Calendar | Secret iCal addresses that show what Foresi plans for you in your own calendar app | [calendar.md](docs/calendar.md) |
 | Taxes and contributions | The owner profile with dated statuses, the base of the estimate of taxes and contributions | [taxes-and-contributions.md](docs/taxes-and-contributions.md) |
 | Projects and tasks | Projects with your own workflow, tasks with subtasks, a board, comments and attachments | [projects.md](docs/projects.md) |
 | People | Owners, team members and guests who see only what is shared with them | [people.md](docs/people.md) |

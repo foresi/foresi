@@ -86,6 +86,10 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. Owner only. |
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
+| `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
+| `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
+| `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
+| `foresi_revoke_calendar_feed` | **Write, destructive.** Revokes one of your calendar feeds (`feed_id`): its address stops working for good. Not for guests. |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
 | `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |

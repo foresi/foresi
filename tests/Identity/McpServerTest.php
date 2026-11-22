@@ -24,6 +24,7 @@ final class McpServerTest extends ApiTestCase
 {
     /** The tools of each module: the server lists those of the installed ones. */
     private const array TOOLS = [
+        'calendar' => ['foresi_create_calendar_feed', 'foresi_list_calendar_feeds', 'foresi_rename_calendar_feed', 'foresi_revoke_calendar_feed'],
         'cash-flow' => ['foresi_cash_flow_forecast', 'foresi_change_planned_item', 'foresi_clear_expected_date', 'foresi_create_planned_item', 'foresi_delete_planned_item', 'foresi_end_planned_item', 'foresi_list_planned_items', 'foresi_record_balance_checkpoint', 'foresi_set_expected_date', 'foresi_set_minimum_balance', 'foresi_skip_planned_occurrence'],
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
         'identity' => ['foresi_whoami'],
@@ -39,12 +40,13 @@ final class McpServerTest extends ApiTestCase
     /** The tools that change data, with whether they destroy: every other tool only reads. */
     private const array WRITE_TOOLS = [
         'foresi_add_received_document_payment' => false,
-        'foresi_add_tax_status' => false,
         'foresi_add_task_comment' => false,
+        'foresi_add_tax_status' => false,
         'foresi_archive_contact' => false,
         'foresi_archive_project' => false,
         'foresi_change_planned_item' => false,
         'foresi_clear_expected_date' => false,
+        'foresi_create_calendar_feed' => false,
         'foresi_create_contact' => false,
         'foresi_create_invoice' => false,
         'foresi_create_planned_item' => false,
@@ -65,11 +67,13 @@ final class McpServerTest extends ApiTestCase
         'foresi_redeliver_webhook' => false,
         'foresi_remove_received_document_payment' => true,
         'foresi_remove_tax_status' => true,
+        'foresi_rename_calendar_feed' => false,
         'foresi_restore_contact' => false,
         'foresi_restore_default_views' => false,
         'foresi_restore_invoice' => false,
         'foresi_restore_project' => false,
         'foresi_restore_task' => false,
+        'foresi_revoke_calendar_feed' => true,
         'foresi_rotate_webhook_secret' => true,
         'foresi_set_expected_date' => false,
         'foresi_set_minimum_balance' => false,
