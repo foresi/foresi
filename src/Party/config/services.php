@@ -18,14 +18,17 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
+use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
+use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
 use Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability;
+use Foresi\Tests\Party\Infrastructure\Support\ExampleContactTab;
 use Foresi\Tests\Party\Infrastructure\Support\RejectingParties;
 use Foresi\Tests\Support\Registry\FakeCompanyRegistry;
 use Foresi\Tests\Support\Registry\FakeVatPayerReliability;
@@ -72,6 +75,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(VatPayerReliability::class, CollectedVatPayerReliability::class);
     // An import module tells which contacts an import wrote; without one, no list is narrowed to an import.
     $services->alias(ContactImports::class, CollectedContactImports::class);
+    // Other modules read contacts through the contract (Sales, Outreach).
+    $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));
@@ -92,6 +97,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
         // Lets a test make storing a party fail with a domain error after it was written.
         $services->set(RejectingParties::class)->decorate(Parties::class);
+        // Lets a test add a module's tab to a contact.
+        $services->set(ExampleContactTab::class);
+        $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class)->public();
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();
