@@ -37,9 +37,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
     private Connection $connection;
     private InMemoryTransport $queue;
 
-    /** @var list<string> the files other tests left in the shared directory */
-    private array $before = [];
-
     protected function setUp(): void
     {
         self::bootKernel();
@@ -51,7 +48,6 @@ final class ReceiveInboundMailTest extends KernelTestCase
         $queue = $container->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $queue);
         $this->queue = $queue;
-        $this->before = $this->storedFiles();
     }
 
     protected function tearDown(): void
@@ -125,10 +121,12 @@ final class ReceiveInboundMailTest extends KernelTestCase
 
     public function testAnUnknownTokenStoresNothing(): void
     {
-        $raw = InboundMailKit::mail($this->kit->unknownAddress());
+        // Marked with the token of this test, so a leaked file is told from those of other test processes.
+        $marked = ['X-Test-Run' => $this->kit->token];
+        $raw = InboundMailKit::mail($this->kit->unknownAddress(), headers: $marked);
 
         self::assertSame(ReceiveOutcome::UnknownRecipient, $this->receive->receive($raw, InboundChannel::Webhook));
-        self::assertSame(ReceiveOutcome::UnknownRecipient, $this->receive->receive(InboundMailKit::mail('accounts@firm.example.com'), InboundChannel::Imap));
+        self::assertSame(ReceiveOutcome::UnknownRecipient, $this->receive->receive(InboundMailKit::mail('accounts@firm.example.com', headers: $marked), InboundChannel::Imap));
 
         self::assertSame(0, $this->rowCount());
         self::assertSame([], $this->queue->getSent());
@@ -273,7 +271,18 @@ final class ReceiveInboundMailTest extends KernelTestCase
     {
         $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
         $names = is_dir($directory) ? scandir($directory) : false;
+        if (false === $names) {
+            return [];
+        }
 
-        return false === $names ? [] : array_values(array_filter($names, fn (string $name): bool => str_ends_with($name, '.eml') && !\in_array($name, $this->before, true)));
+        // ParaTest runs other banking tests in the same directory at the same time, so the files are the ones that
+        // carry the random token of this test's seeded feed, in an address or in a marker header.
+        $own = function (string $name) use ($directory): bool {
+            $raw = str_ends_with($name, '.eml') ? @file_get_contents($directory.'/'.$name) : false;
+
+            return \is_string($raw) && (false !== stripos($raw, $this->kit->token));
+        };
+
+        return array_values(array_filter($names, $own));
     }
 }
