@@ -54,6 +54,8 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_cashflow.checkpoints.record', 'api_v1_operation_cashflow.expected_dates.clear', 'api_v1_operation_cashflow.expected_dates.set',
         'api_v1_operation_cashflow.minimum_balance.set', 'api_v1_operation_cashflow.planned_items.change', 'api_v1_operation_cashflow.planned_items.create',
         'api_v1_operation_cashflow.planned_items.delete', 'api_v1_operation_cashflow.planned_items.end', 'api_v1_operation_cashflow.planned_items.skip',
+        'api_v1_catalog_products', 'api_v1_catalog_product', 'api_v1_operation_catalog.products.create', 'api_v1_operation_catalog.products.update',
+        'api_v1_operation_catalog.products.archive', 'api_v1_operation_catalog.products.restore',
         'api_v1_received_documents', 'api_v1_received_document', 'api_v1_received_document_payments',
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',

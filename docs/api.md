@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -137,6 +137,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of the firm, oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
+| `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
+| `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
@@ -469,6 +471,39 @@ Your own calendar feeds (see [calendar](calendar.md)): secret iCal addresses for
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "Phone"}' "https://app.example.com/api/v1/calendar/feeds"
 ```
+
+## Catalog
+
+The products of the catalog: what the firm sells, with its unit, an optional price per unit and how it is billed. What each field means is in [catalog.md](catalog.md). The writes need `catalog:write`, the reads `catalog:read`; only the owners and members of the organisation may use them, never a guest. Bodies are JSON with snake case fields.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/catalog/products` | `201` with the new product and `Location`. |
+| `PATCH /api/v1/catalog/products/{productId}` | The product as it is now. A field left out keeps its value; an optional field sent as `null` is cleared, so `"unit_price": null` leaves it without a price. Making it `one_off` clears its period. |
+| `POST /api/v1/catalog/products/{productId}/archive` | The archived product. Archiving it again changes nothing. |
+| `POST /api/v1/catalog/products/{productId}/restore` | The product, no longer archived. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"name": "Marketing retainer", "billing_kind": "recurring", "unit": "month", "unit_price": "25000.00", "recurrence_unit": "month", "interval": 1, "cycles": 12}' \
+  "https://app.example.com/api/v1/catalog/products"
+```
+
+Fields of a product:
+
+| Field | Value |
+| --- | --- |
+| `name` | Required on create, up to 200 characters. |
+| `billing_kind` | `one_off` (the default) or `recurring`. |
+| `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. |
+| `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. |
+| `currency` | `CZK` (the default), `EUR` or `USD`. |
+| `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off`. |
+| `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off`. |
+| `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off`. |
+| `description` | Up to 2,000 characters. |
+
+A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence` or `cycles_invalid`.
 
 ## Taxes and contributions
 

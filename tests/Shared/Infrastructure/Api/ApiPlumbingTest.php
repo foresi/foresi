@@ -99,6 +99,12 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertIsArray($paths);
         // Each path with its operations and the status each answers when it succeeds, by the module that serves it.
         $byModule = [
+            'catalog' => [
+                '/api/v1/catalog/products' => ['get' => '200', 'post' => '201'],
+                '/api/v1/catalog/products/{productId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/catalog/products/{productId}/archive' => ['post' => '200'],
+                '/api/v1/catalog/products/{productId}/restore' => ['post' => '200'],
+            ],
             'calendar' => [
                 '/api/v1/calendar/feeds' => ['get' => '200', 'post' => '201'],
                 '/api/v1/calendar/feeds/{feedId}' => ['patch' => '200'],

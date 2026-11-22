@@ -47,6 +47,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\CashFlow\\Contract\\.*
+    - name: catalog
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Catalog\\(?!Contract\\|Integration\\).*
+    - name: catalog_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Catalog\\Contract\\.*
     - name: country
       collectors:
         - type: classLike
@@ -349,6 +357,28 @@ deptrac:
       - instance_contract
       - party
       - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    catalog:
+      - audit
+      - audit_contract
+      - catalog_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    catalog_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
       - shared
       - shared_contract
       - ui_contract

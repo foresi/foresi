@@ -1,0 +1,50 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One product, a record (docs/design/overlays.md): a row of the list opens it in the side sheet, where Edit
+    swaps to the form in place; the same URL is a page, where Edit is a dialog. Archive and restore are in
+    the header menu, as the address book has them. Variables: product, details.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'catalog.products.title'|trans, href: path('app_catalog_products')}, {label: product.name}] %}
+{% set token = csrf_token(constant('Foresi\\Catalog\\Infrastructure\\Controller\\ProductController::TOKEN')) %}
+{% set record_reload = true %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="product-actions" :menuSize="record_action_size">
+        <twig:block name="primary">
+            <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_catalog_product_edit', {id: product.id})" data-dialog aria-haspopup="dialog" data-in-place data-product-edit>{{ 'catalog.product.edit'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="last">
+            {% if product.archived %}
+                <form method="post" action="{{ path('app_catalog_product_restore', {id: product.id}) }}" role="none" data-product-restore>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="archive-restore">{{ 'catalog.product.restore'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% else %}
+                <form method="post" action="{{ path('app_catalog_product_archive', {id: product.id}) }}" role="none" data-product-archive>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="archive">{{ 'catalog.product.archive'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {% for tone in ['success', 'error'] %}
+            {% for message in app.flashes(tone) %}
+                <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
+            {% endfor %}
+        {% endfor %}
+        {% if product.archived %}
+            <div><twig:Ui:Badge tone="gray" data-product-archived>{{ 'catalog.product.archived'|trans }}</twig:Ui:Badge></div>
+        {% endif %}
+        <twig:Ui:Card :title="'catalog.product.detail'|trans" icon="tag">
+            <twig:Ui:DescriptionList :items="details" />
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

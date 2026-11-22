@@ -1,0 +1,49 @@
+{
+    "name": "foresi/catalog",
+    "description": "Products with a one-off or recurring way of billing, which other modules snapshot onto their lines.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
+        "doctrine/persistence": "^4.2",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4",
+        "symfony/translation-contracts": "^3.8",
+        "zircote/swagger-php": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Catalog\\": ""
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
+    },
+    "extra": {
+        "foresi": {
+            "module": "catalog",
+            "kind": "module",
+            "namespace": "Foresi\\Catalog\\",
+            "bundle": "Foresi\\Catalog\\CatalogBundle",
+            "optional": [],
+            "scopes": [
+                "catalog"
+            ]
+        }
+    }
+}

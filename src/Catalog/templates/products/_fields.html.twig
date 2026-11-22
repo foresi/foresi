@@ -1,0 +1,27 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The fields of a product, in the order of the product libraries of HubSpot and Pipedrive: name, unit and
+    price, how it is billed, and what it holds. The period (every N units, the cycles) shows only for a
+    recurring product (product-billing); without JavaScript it always shows and a one-off product ignores it.
+    No VAT: the document that bills the product decides it.
+#}
+{% set column = 'sm:col-span-2' %}
+<div class="grid gap-4 sm:grid-cols-2" data-controller="product-billing">
+    <div class="{{ column }}"><twig:Ui:TextInput name="name" id="name" :label="'catalog.product.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" autocomplete="off" required /></div>
+    <twig:Ui:TextInput name="unit" id="unit" :label="'catalog.product.field.unit'|trans" :help="'catalog.product.field.unit_help'|trans" :value="values.unit" :error="errors.unit|default(null)" maxlength="32" autocomplete="off" />
+    <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+        <twig:Ui:TextInput name="unitPrice" id="unitPrice" :label="'catalog.product.field.unit_price'|trans" :help="'catalog.product.field.unit_price_help'|trans" :value="values.unitPrice" :error="errors.unitPrice|default(null)" inputmode="decimal" autocomplete="off" />
+        <twig:Ui:Select name="currency" id="currency" :label="'catalog.product.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />
+    </div>
+    <div class="{{ column }}">
+        <twig:Ui:Select name="billingKind" id="billingKind" :label="'catalog.product.field.billing_kind'|trans" :options="billingKinds" :value="values.billingKind" :error="errors.billingKind|default(null)" data-product-billing-target="kind" data-action="change->product-billing#changed" required />
+    </div>
+    <div class="{{ column }} grid gap-4 sm:grid-cols-3" data-product-billing-target="period">
+        <twig:Ui:TextInput name="interval" id="interval" :label="'catalog.product.field.interval'|trans" :value="values.interval" :error="errors.interval|default(null)" inputmode="numeric" autocomplete="off" maxlength="2" />
+        <twig:Ui:Select name="recurrenceUnit" id="recurrenceUnit" :label="'catalog.product.field.recurrence_unit'|trans" :options="units" :value="values.recurrenceUnit" :error="errors.recurrenceUnit|default(null)" />
+        <twig:Ui:TextInput name="cycles" id="cycles" :label="'catalog.product.field.cycles'|trans" :help="'catalog.product.field.cycles_help'|trans" :value="values.cycles" :error="errors.cycles|default(null)" inputmode="numeric" autocomplete="off" maxlength="3" />
+    </div>
+    <div class="{{ column }}">
+        <twig:Ui:Textarea name="description" id="description" :label="'catalog.product.field.description'|trans" :value="values.description" :error="errors.description|default(null)" :rows="3" />
+    </div>
+</div>
