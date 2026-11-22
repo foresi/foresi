@@ -29,6 +29,6 @@ final readonly class StartNavigation implements NavigationItemProvider
         if ($this->guest->isGuest()) {
             return;
         }
-        yield new NavigationItem('main', 'nav.item.dashboard', 'layout-grid', 'app_dashboard', weight: 10, area: CoreNavigationAreas::OVERVIEW);
+        yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.dashboard', 'layout-grid', 'app_dashboard', weight: 10);
     }
 }

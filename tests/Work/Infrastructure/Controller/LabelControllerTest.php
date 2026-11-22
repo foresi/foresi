@@ -50,7 +50,7 @@ final class LabelControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Labels');
-        self::assertContains('/settings/labels', $crawler->filter('#sidebar [data-nav-group="settings"] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        self::assertContains('/settings/labels', $crawler->filter('#sidebar [data-nav-area="settings"] [data-nav-section] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
         self::assertSelectorTextContains('main', 'No labels yet');
         self::assertCount(2, $crawler->filter('main a[href="/settings/labels/new"][data-dialog]'));
     }

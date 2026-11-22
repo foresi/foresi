@@ -132,15 +132,31 @@ final class AppShellTest extends WebTestCase
         $this->client->request('GET', '/');
 
         $registry = self::getContainer()->get(NavigationRegistry::class);
-        $all = self::entries($registry->groups('app_dashboard', false));
         $areas = $registry->areas('app_dashboard', false);
-        $inAreas = array_merge(...array_map(static fn (array $area): array => self::entries($area['groups']), $areas));
+        $inAreas = array_merge(...array_map(static fn (array $area): array => self::entries($area['sections']), $areas));
 
-        self::assertGreaterThan(15, \count($all), 'The owner should see the full navigation.');
-        sort($all);
-        sort($inAreas);
-        self::assertSame($all, $inAreas);
+        self::assertGreaterThan(15, \count($inAreas), 'The owner should see the full navigation.');
+        self::assertSame($inAreas, array_values(array_unique($inAreas)), 'No item is listed twice.');
         self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
+    }
+
+    public function testSalesShowsItsSectionHeadingsAndASmallAreaStaysFlat(): void
+    {
+        $this->browser->seed();
+        $this->browser->signIn();
+
+        $crawler = $this->client->request('GET', '/');
+
+        $sales = $crawler->filter('#sidebar [data-nav-area="sales"]');
+        self::assertSame(['selling', 'billing'], $sales->filter('[data-nav-section]')->each(static fn ($s): string => (string) $s->attr('data-nav-section')));
+        self::assertSame(['Selling', 'Billing'], $sales->filter('[data-nav-section] > h3')->each(static fn ($h): string => trim($h->text())));
+        self::assertSame(['/documents', '/catalog/products'], $sales->filter('[data-nav-section="selling"] a')->each(static fn ($a): string => (string) $a->attr('href')));
+        self::assertSame('nav-section-sales-billing', $sales->filter('[data-nav-section="billing"]')->attr('aria-labelledby'));
+        self::assertCount(0, $crawler->filter('#sidebar [data-nav-area="projects"] h3'));
+        self::assertNull($crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section]')->attr('aria-labelledby'));
+        // The command palette groups the items of an area with headings by the same sections.
+        $groups = $crawler->filter('[data-controller="command-palette"] ul[role="group"]')->each(static fn ($g): string => trim($g->filter('li[role="presentation"]')->first()->text()));
+        self::assertSame(['Go to', 'Selling', 'Billing', 'Firm', 'Connections'], $groups);
     }
 
     public function testARegisteredProviderItemAppearsInTheExtensionsGroupWithItsCount(): void
@@ -153,7 +169,7 @@ final class AppShellTest extends WebTestCase
         $area = $crawler->filter('#sidebar [data-nav-area="extensions"]');
         self::assertCount(1, $area);
         self::assertSame('Extensions', $area->filter('h2')->text());
-        $group = $area->filter('[data-nav-group="extensions"]');
+        $group = $area->filter('[data-nav-section]');
         self::assertCount(1, $group);
         self::assertStringContainsString('Pergola configurator', $group->text());
         self::assertSame('4', trim($group->filter('[data-nav-count]')->text()));
@@ -170,7 +186,7 @@ final class AppShellTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('#sidebar [data-nav-count]');
-        self::assertSelectorExists('#sidebar [data-nav-group="extensions"]');
+        self::assertSelectorExists('#sidebar [data-nav-section]');
     }
 
     public function testRailHasASearchOpeningTheCommandPaletteThatListsTheNavigation(): void
@@ -304,12 +320,12 @@ final class AppShellTest extends WebTestCase
     }
 
     /**
-     * @param list<array{key: string, labelKey: string, items: list<NavigationEntry>}> $groups
+     * @param list<array{key: string, labelKey: string, items: list<NavigationEntry>}> $sections
      *
      * @return list<string>
      */
-    private static function entries(array $groups): array
+    private static function entries(array $sections): array
     {
-        return array_merge(...array_map(static fn (array $group): array => array_map(static fn (NavigationEntry $entry): string => $entry->labelKey.' '.$entry->route, $group['items']), $groups));
+        return array_merge(...array_map(static fn (array $section): array => array_map(static fn (NavigationEntry $entry): string => $entry->labelKey.' '.$entry->route, $section['items']), $sections));
     }
 }

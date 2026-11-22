@@ -61,7 +61,7 @@ final class TimePagesControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/time');
         self::assertResponseIsSuccessful();
-        self::assertSame('/time', $crawler->filter('#sidebar [data-nav-group="work"] li > a[href="/time"]')->attr('href'));
+        self::assertSame('/time', $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a[href="/time"]')->attr('href'));
         self::assertSame('page', $crawler->filter('#sidebar a[href="/time"]')->attr('aria-current'));
         self::assertCount(7, $crawler->filter('[data-time-day]'));
         $day = $crawler->filter('[data-time-day="'.$today->format('Y-m-d').'"]');

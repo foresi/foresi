@@ -15,8 +15,8 @@ use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
- * Stands in for a plugin: registers an area of its own and an item in it, in
- * the Extensions group (test env only).
+ * Stands in for a plugin: registers an area of its own and an item in it
+ * (test env only).
  */
 final readonly class TestNavigationProvider implements NavigationItemProvider, NavigationAreaProvider
 {
@@ -29,11 +29,11 @@ final readonly class TestNavigationProvider implements NavigationItemProvider, N
 
     public function items(): iterable
     {
-        yield new NavigationItem('extensions', 'Pergola configurator', 'puzzle', 'app_people_invitations', new class implements NavigationCountProvider {
+        yield new NavigationItem(self::AREA, 'Pergola configurator', 'puzzle', 'app_people_invitations', new class implements NavigationCountProvider {
             public function count(): int
             {
                 return 4;
             }
-        }, area: self::AREA);
+        });
     }
 }

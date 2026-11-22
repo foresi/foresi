@@ -10,6 +10,7 @@ namespace Foresi\Identity\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Infrastructure\Controller\PeopleController;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
@@ -26,7 +27,7 @@ final readonly class PeopleNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.people', 'user', PeopleController::ROUTE, weight: 5, routePrefixes: ['app_people'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.people', 'user', PeopleController::ROUTE, weight: 12, routePrefixes: ['app_people'], section: CoreNavigationAreas::SECTION_FIRM);
         }
     }
 }

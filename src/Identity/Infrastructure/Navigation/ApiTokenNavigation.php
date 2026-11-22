@@ -30,9 +30,9 @@ final readonly class ApiTokenNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token', ApiTokenController::CONNECT_ROUTE], area: NavigationArea::SETTINGS);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.api', 'key-round', ApiTokenController::ROUTE, weight: 17, routePrefixes: ['app_api_token', ApiTokenController::CONNECT_ROUTE], section: CoreNavigationAreas::SECTION_CONNECTIONS);
         } elseif ($this->guest->isGuest()) {
-            yield new NavigationItem('main', 'nav.item.connected_apps', 'key-round', ApiTokenController::GUEST_ROUTE, weight: 40, routePrefixes: ['app_connected_app'], area: CoreNavigationAreas::OVERVIEW);
+            yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.connected_apps', 'key-round', ApiTokenController::GUEST_ROUTE, weight: 40, routePrefixes: ['app_connected_app']);
         }
     }
 }

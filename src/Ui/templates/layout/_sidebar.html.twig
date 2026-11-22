@@ -2,8 +2,9 @@
 {#
     The area sidebar. Every area is rendered: on a wide screen only the one that holds the page is
     shown (data-shown), with its title, caption and sections; in the phone drawer every area is a row
-    and only that one is open. A page in no area shows the first one. Group headings appear only
-    when an area has more than one group.
+    and only that one is open, with the same sections. A page in no area shows the first one. Section
+    headings appear only when the area asks for them (headings: at least 7 items and more than one
+    section); below that the sections read as one flat list.
     Variables: areas (nav_areas()).
 #}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
@@ -21,8 +22,8 @@
 <nav aria-label="{{ 'shell.sidebar_label'|trans }}">
     {% for entry in areas %}
         {% set area = entry.area %}
-        {% set first = (entry.groups|first).items|first %}
-        {% set many = entry.groups|length > 1 %}
+        {% set first = (entry.sections|first).items|first %}
+        {% set headings = entry.headings %}
         <section data-nav-area="{{ area.id }}" data-nav-sync{% if area.id == shownId %} data-shown{% endif %} aria-labelledby="nav-area-{{ area.id }}">
             {# Phone: a row that opens the area at its first section. #}
             <a href="{{ path(first.route) }}" data-nav-sync{% if entry.current %} aria-current="true"{% endif %} class="group flex h-control-lg items-center gap-2.5 rounded-control px-2.5 font-medium text-ink no-underline hover:bg-frame-hover shell:hidden {{ focus }}">
@@ -33,12 +34,13 @@
                 <h2 id="nav-area-{{ area.id }}" class="m-0 text-title font-semibold text-ink">{{ area.labelKey|trans }}</h2>
                 <p class="m-0 mt-0.5 text-caption text-muted">{{ area.captionKey|trans }}</p>
             </div>
-            <div data-nav-sections class="max-shell:mb-2 max-shell:ml-4">
-                {% for group in entry.groups %}
-                    <section data-nav-group="{{ group.key }}"{% if many %} aria-labelledby="nav-group-{{ area.id }}-{{ group.key }}"{% endif %}>
-                        {% if many %}<h3 id="nav-group-{{ area.id }}-{{ group.key }}" class="mx-2.5 mb-1 mt-3.5 text-caption font-semibold uppercase tracking-wide text-muted">{{ group.labelKey|trans }}</h3>{% endif %}
+            {# Without headings the sections keep the gap of one list, so they read as one. #}
+            <div data-nav-sections class="max-shell:mb-2 max-shell:ml-4{% if not headings %} grid gap-0.5{% endif %}">
+                {% for section in entry.sections %}
+                    <section data-nav-section="{{ section.key }}"{% if headings %} aria-labelledby="nav-section-{{ area.id }}-{{ section.key }}"{% endif %}>
+                        {% if headings %}<h3 id="nav-section-{{ area.id }}-{{ section.key }}" class="mx-2.5 mb-1 mt-3.5 text-caption font-semibold uppercase tracking-wide text-muted">{{ section.labelKey|trans }}</h3>{% endif %}
                         <ul class="m-0 grid list-none gap-0.5 p-0">
-                            {% for item in group.items %}<li>{{ _self.item(item, focus) }}</li>{% endfor %}
+                            {% for item in section.items %}<li>{{ _self.item(item, focus) }}</li>{% endfor %}
                         </ul>
                     </section>
                 {% endfor %}

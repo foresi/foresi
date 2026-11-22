@@ -29,7 +29,7 @@ final readonly class PurchasingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('money', 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE], area: CoreNavigationAreas::PURCHASING);
+            yield new NavigationItem(CoreNavigationAreas::PURCHASING, 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE]);
         }
     }
 }

@@ -55,7 +55,7 @@ final class ProjectControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Projects');
-        self::assertContains('/projects', $crawler->filter('#sidebar [data-nav-group="work"] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        self::assertContains('/projects', $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
         self::assertSelectorTextContains('main', 'No projects yet');
         // The empty state and the header both open the dialog of a new project.
         self::assertCount(2, $crawler->filter('main a[href="/projects/new"][data-dialog]'));

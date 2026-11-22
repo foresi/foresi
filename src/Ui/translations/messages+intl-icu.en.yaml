@@ -56,6 +56,11 @@ nav:
     work: Work
     extensions: Extensions
     settings: Settings
+  section:
+    selling: Selling
+    billing: Billing
+    firm: Firm
+    connections: Connections
   item:
     people: People
     api: API and MCP

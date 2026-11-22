@@ -53,7 +53,7 @@ test.describe('screens', () => {
 test.describe('the inbox', () => {
   test('counts the unread rows in the sidebar and lists one row per task, newest first', async ({ page }) => {
     await page.goto('/');
-    const link = page.locator('#sidebar [data-nav-group="main"]').getByRole('link', { name: /Oznámení/ });
+    const link = page.locator('#sidebar [data-nav-area="overview"] [data-nav-section]').getByRole('link', { name: /Oznámení/ });
     await expect(link).toBeVisible();
     expect(await unreadCount(page)).toBeGreaterThanOrEqual(2);
     // The rail marks Overview, where the inbox lives, with a dot.
@@ -151,7 +151,7 @@ test.describe('the guest', () => {
     await page.goto('/notifications');
     await expect(page.locator('main h1')).toHaveText('Oznámení');
     await expect(row(page, 'Sign the lease')).toContainText('Projects Example: Úkol sdílen s vámi');
-    await expect(page.locator('#sidebar [data-nav-group="main"]').getByRole('link')).toHaveText([/Sdíleno se mnou/, /Oznámení/, /Připojené aplikace/]);
+    await expect(page.locator('#sidebar [data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Sdíleno se mnou/, /Oznámení/, /Připojené aplikace/]);
     await row(page, 'Sign the lease').getByRole('link', { name: 'Sign the lease', exact: true }).click();
     const sheet = page.getByRole('dialog', { name: 'Sign the lease' });
     await expect(sheet).toBeVisible();

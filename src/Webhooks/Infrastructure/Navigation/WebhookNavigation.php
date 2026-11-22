@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Navigation;
 
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
@@ -27,7 +28,7 @@ final readonly class WebhookNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ([] !== $this->access->readableModules()) {
-            yield new NavigationItem('settings', 'nav.item.webhooks', 'send', WebhookEndpointController::ROUTE, weight: 18, routePrefixes: ['app_webhook'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.webhooks', 'send', WebhookEndpointController::ROUTE, weight: 18, routePrefixes: ['app_webhook'], section: CoreNavigationAreas::SECTION_CONNECTIONS);
         }
     }
 }
