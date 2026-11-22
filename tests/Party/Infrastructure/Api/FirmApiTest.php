@@ -37,7 +37,7 @@ final class FirmApiTest extends ApiTestCase
 
     public function testATokenWithoutTheContactsReadScopeReadsNoFirm(): void
     {
-        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('invoices:write')]));
+        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('webhooks:write')]));
 
         $this->assertProblem(403, 'insufficient_scope');
     }
