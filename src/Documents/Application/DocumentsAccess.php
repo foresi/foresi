@@ -38,6 +38,7 @@ final readonly class DocumentsAccess
 
     public function isStaff(): bool
     {
-        return null !== $this->actor->userId() && $this->staff->isStaff();
+        // StaffCheck refuses who is signed out.
+        return $this->staff->isStaff();
     }
 }

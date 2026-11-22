@@ -258,7 +258,7 @@ final readonly class DocumentWrites
             $document = $this->document($input->documentId);
 
             DocumentsInvalid::unless('documentId', static fn () => $document->checkSignersEditable());
-            if (false === $this->store->type($document->typeId())?->needsSigning()) {
+            if (!$this->type($document)->needsSigning()) {
                 throw DocumentsRefused::conflict('signing_not_needed', 'Documents of this type are not signed, so they take no signers. Change the type to one that needs signing.');
             }
             $signer = DocumentsInvalid::unless('name', static fn (): Signer => new Signer($document, $input->name, $input->email, $input->partyPersonId, $side, $input->order));
@@ -394,7 +394,12 @@ final readonly class DocumentWrites
 
     private function typeCode(Document $document): string
     {
-        return $this->store->type($document->typeId())?->code() ?? throw new \LogicException('A document has its type.');
+        return $this->type($document)->code();
+    }
+
+    private function type(Document $document): DocumentType
+    {
+        return $this->store->type($document->typeId()) ?? throw new \LogicException('A document has its type.');
     }
 
     /**

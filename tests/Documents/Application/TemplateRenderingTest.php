@@ -118,4 +118,52 @@ final class TemplateRenderingTest extends TestCase
             new TemplateRenderer()->variables('{{ firm.name }}{% for p in client.persons %}{{ p.name }}{% endfor %}{{ client.name }}{{ deal.title }}{{ firm.name }}'),
         );
     }
+
+    #[Test]
+    public function aGuardedVariableLeavesTheOthersMissing(): void
+    {
+        try {
+            new TemplateRenderer()->render('{% if deal is defined %}{{ deal.title }}{% endif %}{{ dealer.name }}{{ client.name }}', self::VALUES);
+            self::fail('A template with a missing variable was rendered.');
+        } catch (DocumentsRefused $refused) {
+            self::assertSame(['missing' => ['dealer.name']], $refused->details());
+        }
+    }
+
+    #[Test]
+    public function aValueThatFailsWhileRenderingIsRefused(): void
+    {
+        try {
+            new TemplateRenderer()->render('{% for person in client.persons %}{{ person.phone }}{% endfor %}', self::VALUES);
+            self::fail('A template that reads a key its values lack was rendered.');
+        } catch (DocumentsRefused $refused) {
+            self::assertSame('template_failed', $refused->reason());
+            self::assertSame('body', $refused->field());
+        }
+    }
+
+    #[Test]
+    public function aSyntaxErrorIsRefusedWhenChecked(): void
+    {
+        try {
+            new TemplateRenderer()->check('<p>{{ client.name </p>');
+            self::fail('A template with a syntax error passed the check.');
+        } catch (DocumentsRefused $refused) {
+            self::assertSame('template_not_allowed', $refused->reason());
+            self::assertSame(['construct' => 'syntax'], $refused->details());
+        }
+    }
+
+    #[Test]
+    public function theVariablesOfLoopsKeysAndExpressionsAreListed(): void
+    {
+        $renderer = new TemplateRenderer();
+
+        self::assertSame([], $renderer->variables('<p>No variables</p>'));
+        self::assertSame(['client.persons'], $renderer->variables('{% for p in client.persons %}{{ loop.index }}{% endfor %}'));
+        self::assertSame(['client.name'], $renderer->variables('{% if client %}{{ client.name }}{% endif %}'));
+        self::assertSame(['client', 'deal.key'], $renderer->variables('{{ client[deal.key] }}'));
+        self::assertSame(['client.name'], $renderer->variables('{{ ("a" ~ client.name).length }}'));
+        self::assertSame(['client.persons'], $renderer->variables('{{ client.persons[0] }}'));
+    }
 }

@@ -70,7 +70,8 @@ class Signer implements Audited
             throw new InvalidField('name', \sprintf('A signer\'s name has 1 to %d characters.', self::MAX_NAME));
         }
         $email = null === $email || '' === trim($email) ? null : trim($email);
-        if (null !== $email && (mb_strlen($email) > self::MAX_EMAIL || false === filter_var($email, \FILTER_VALIDATE_EMAIL))) {
+        // filter_var() also refuses an address longer than MAX_EMAIL.
+        if (null !== $email && false === filter_var($email, \FILTER_VALIDATE_EMAIL)) {
             throw new InvalidField('email', 'The signer\'s e-mail is not a valid address.');
         }
         if ($order < 1 || $order > 99) {

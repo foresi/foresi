@@ -119,6 +119,28 @@ final class DocumentVariableSourcesTest extends ContactTestCase
         self::assertSame('Název klienta', $definitions['client'][0]->label);
     }
 
+    public function testTheFirstContactLinkGivesTheClient(): void
+    {
+        $first = $this->contact('Alpha Example', PartyKind::Person, [], null);
+        $second = $this->contact('Beta Example', PartyKind::Person, [], null);
+
+        $values = $this->client()->values([new RecordLink('contact', $first->id()), new RecordLink('contact', $second->id())]);
+
+        self::assertNotNull($values);
+        self::assertSame('Alpha Example', $values['name']);
+    }
+
+    public function testTheExamplesShowWholeAddressesAndPersons(): void
+    {
+        $firm = $this->examples($this->firm()->definitions());
+        $client = $this->examples($this->client()->definitions());
+
+        self::assertSame([['line' => 'Example Street 1'], ['line' => '100 00 Example City'], ['line' => 'CZ']], $firm['address_lines']);
+        self::assertSame([['line' => 'Client Street 2'], ['line' => '200 00 Client City'], ['line' => 'CZ']], $client['address_lines']);
+        self::assertSame([['name' => 'Jana Example', 'position' => 'Director', 'email' => 'jana@example.com', 'phone' => '+420 000 000 000']], $client['persons']);
+        self::assertSame('Název firmy', $this->firm()->definitions()[0]->label);
+    }
+
     public function testExamplesFillEveryDefinition(): void
     {
         foreach ([...$this->firm()->definitions(), ...$this->client()->definitions()] as $definition) {
@@ -135,6 +157,16 @@ final class DocumentVariableSourcesTest extends ContactTestCase
     private function names(array $definitions): array
     {
         return array_map(static fn (VariableDefinition $definition): string => $definition->name, $definitions);
+    }
+
+    /**
+     * @param list<VariableDefinition> $definitions
+     *
+     * @return array<string, string|list<array<string, string>>>
+     */
+    private function examples(array $definitions): array
+    {
+        return array_combine($this->names($definitions), array_map(static fn (VariableDefinition $definition): string|array => $definition->example, $definitions));
     }
 
     private function firm(): FirmVariables

@@ -43,7 +43,7 @@ class DocumentTemplate implements Audited
         $this->rename($name);
     }
 
-    public function rename(string $name): void
+    private function rename(string $name): void
     {
         $name = trim($name);
         if ('' === $name || mb_strlen($name) > self::MAX_NAME) {
@@ -75,6 +75,11 @@ class DocumentTemplate implements Audited
     public function isArchived(): bool
     {
         return $this->archivedAt instanceof \DateTimeImmutable;
+    }
+
+    public function archivedAt(): ?\DateTimeImmutable
+    {
+        return $this->archivedAt;
     }
 
     public function createdAt(): \DateTimeImmutable

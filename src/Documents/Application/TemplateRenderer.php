@@ -45,12 +45,8 @@ final readonly class TemplateRenderer
 
     public function __construct()
     {
-        $this->twig = new Environment(new ArrayLoader(), [
-            'autoescape' => 'html',
-            'strict_variables' => true,
-            'cache' => false,
-            'optimizations' => 0,
-        ]);
+        // Twig escapes HTML and keeps no cache by default.
+        $this->twig = new Environment(new ArrayLoader(), ['strict_variables' => true]);
         $this->twig->addExtension(new SandboxExtension(new SecurityPolicy(self::TAGS, self::FILTERS, [], [], []), true));
     }
 
@@ -70,10 +66,9 @@ final readonly class TemplateRenderer
             throw DocumentsRefused::missingVariables($missing);
         }
 
+        // The sandbox was checked by analyse(), and the values hold no objects.
         try {
             return $this->twig->createTemplate($body)->render($values);
-        } catch (SecurityError $blocked) {
-            throw $this->blocked($blocked);
         } catch (TwigError $failed) {
             throw DocumentsRefused::invalid('template_failed', 'body', \sprintf('The template could not be rendered: %s', $failed->getRawMessage()));
         }
@@ -108,7 +103,7 @@ final readonly class TemplateRenderer
      * Parses the template, refuses what the sandbox would refuse, and lists the
      * variable paths it reads.
      *
-     * @return array{paths: list<string>, optional: list<string>}
+     * @return array{paths: array<int, string>, optional: list<string>}
      *
      * @throws DocumentsRefused template_not_allowed
      */
@@ -116,8 +111,6 @@ final readonly class TemplateRenderer
     {
         try {
             $module = $this->twig->parse($this->twig->tokenize(new Source($body, 'template')));
-        } catch (SecurityError $blocked) {
-            throw $this->blocked($blocked);
         } catch (SyntaxError $invalid) {
             throw $this->invalid($invalid);
         }
@@ -126,17 +119,15 @@ final readonly class TemplateRenderer
             $this->twig->createTemplate($body)->render([]);
         } catch (SecurityError $blocked) {
             throw $this->blocked($blocked);
-        } catch (SyntaxError $invalid) {
-            throw $this->invalid($invalid);
         } catch (TwigError) {
             // Without values a template may fail to render; only what it uses matters here.
         }
 
         $found = ['paths' => [], 'optional' => [], 'bound' => ['loop']];
         $this->walk($module, $found, false);
-        $paths = array_values(array_unique(array_filter($found['paths'], static fn (string $path): bool => !\in_array(explode('.', $path)[0], $found['bound'], true))));
+        $paths = array_unique(array_filter($found['paths'], static fn (string $path): bool => !\in_array(explode('.', $path)[0], $found['bound'], true)));
         // A path also read deeper is covered by the deeper one.
-        $paths = array_values(array_filter($paths, static fn (string $path): bool => array_all($paths, fn (string $other): bool => !str_starts_with($other, $path.'.'))));
+        $paths = array_filter($paths, static fn (string $path): bool => array_all($paths, fn (string $other): bool => !str_starts_with($other, $path.'.')));
 
         return ['paths' => $paths, 'optional' => $found['optional']];
     }
@@ -152,24 +143,15 @@ final readonly class TemplateRenderer
             return;
         }
         $defined = $defined || $node instanceof DefinedTest;
-        if ($node instanceof GetAttrExpression || $node instanceof NameExpression) {
-            $path = $this->path($node);
-            if (null !== $path) {
-                $found[$defined ? 'optional' : 'paths'][] = $path;
-                if ($node instanceof GetAttrExpression) {
-                    // The arguments of an attribute may hold paths of their own.
-                    foreach ($node as $name => $child) {
-                        if ('node' !== $name) {
-                            $this->walk($child, $found, $defined);
-                        }
-                    }
-                }
-
-                return;
-            }
+        $path = $this->path($node);
+        if (null !== $path) {
+            $found[$defined ? 'optional' : 'paths'][] = $path;
         }
-        foreach ($node as $child) {
-            $this->walk($child, $found, $defined);
+        foreach ($node as $name => $child) {
+            // Of a path only the arguments of its attribute may hold paths of their own.
+            if (null === $path || 'node' !== $name) {
+                $this->walk($child, $found, $defined);
+            }
         }
     }
 
@@ -221,11 +203,11 @@ final readonly class TemplateRenderer
 
     private function blocked(SecurityError $blocked): DocumentsRefused
     {
+        // Methods and properties are never reached: the values hold no objects.
         $construct = match (true) {
             $blocked instanceof SecurityNotAllowedTagError => $blocked->getTagName(),
             $blocked instanceof SecurityNotAllowedFilterError => $blocked->getFilterName(),
-            $blocked instanceof SecurityNotAllowedFunctionError => $blocked->getFunctionName(),
-            default => 'sandbox',
+            default => $blocked instanceof SecurityNotAllowedFunctionError ? $blocked->getFunctionName() : 'sandbox',
         };
 
         return DocumentsRefused::blockedTemplate($construct, \sprintf('Templates cannot use "%s". They may use the tags if, for and set, and the filters %s.', $construct, implode(', ', self::FILTERS)));

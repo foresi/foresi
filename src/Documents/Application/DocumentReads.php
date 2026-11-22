@@ -108,7 +108,8 @@ final readonly class DocumentReads
     }
 
     /**
-     * The attachment id of a stored file of a document: pdf, signed or certificate.
+     * The attachment id of a stored file of a document: pdf or signed. A certificate
+     * comes only from a signature provider, so a manually signed document has none.
      *
      * @throws DocumentsRefused not found when the document has no such file
      */
@@ -118,7 +119,6 @@ final readonly class DocumentReads
         $attachmentId = match ($file) {
             'pdf' => $document->pdfAttachmentId(),
             'signed' => $document->signedAttachmentId(),
-            'certificate' => $document->certificateAttachmentId(),
             default => null,
         };
 

@@ -92,19 +92,19 @@ abstract class DocumentsTestCase extends KernelTestCase
         return $membership;
     }
 
-    protected function documents(): DocumentWrites
+    protected function documents(?DocumentFiles $files = null, ?DocumentsStore $store = null): DocumentWrites
     {
         $container = self::getContainer();
 
         return new DocumentWrites(
             $container->get(DocumentsAccess::class),
-            $container->get(DocumentsStore::class),
+            $store ?? $container->get(DocumentsStore::class),
             $container->get(DocumentsTransaction::class),
             new LinkTargets([$this->contacts]),
             new DocumentVariables([$this->firm, new FakeClientVariables($this->contacts)]),
             new TemplateRenderer(),
             $this->pdf,
-            $container->get(DocumentFiles::class),
+            $files ?? $container->get(DocumentFiles::class),
             $container->get(EventRecorder::class),
             $this->clock,
         );

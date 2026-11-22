@@ -35,7 +35,7 @@ final readonly class TemplateWrites
     public function create(CreateDocumentTemplateInput $input): TemplateVersion
     {
         $this->access->denyUnlessStaff();
-        $page = self::page($input->paper, $input->landscape, $input->marginTop, $input->marginRight, $input->marginBottom, $input->marginLeft);
+        $page = $this->page($input->paper, $input->landscape, $input->marginTop, $input->marginRight, $input->marginBottom, $input->marginLeft);
         $this->renderer->check($input->body);
 
         return $this->transaction->run(function () use ($input, $page): TemplateVersion {
@@ -62,7 +62,7 @@ final readonly class TemplateWrites
     public function saveVersion(SaveTemplateVersionInput $input): TemplateVersion
     {
         $this->access->denyUnlessStaff();
-        $page = self::page($input->paper, $input->landscape, $input->marginTop, $input->marginRight, $input->marginBottom, $input->marginLeft);
+        $page = $this->page($input->paper, $input->landscape, $input->marginTop, $input->marginRight, $input->marginBottom, $input->marginLeft);
         $this->renderer->check($input->body);
 
         return $this->transaction->run(function () use ($input, $page): TemplateVersion {
@@ -98,7 +98,7 @@ final readonly class TemplateWrites
     /**
      * @throws DocumentsRefused
      */
-    public static function page(string $paper, bool $landscape, float $top, float $right, float $bottom, float $left): PageSettings
+    private function page(string $paper, bool $landscape, float $top, float $right, float $bottom, float $left): PageSettings
     {
         $size = PaperSize::tryFrom($paper) ?? throw DocumentsRefused::invalid('paper_unknown', 'paper', 'The paper is a4 or letter.');
 
