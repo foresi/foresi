@@ -75,7 +75,7 @@ final readonly class ActivityWrites
         $plannedAt = $input->plannedAt instanceof Omitted ? $input->plannedAt : $this->times->dateTime($input->plannedAt, 'plannedAt');
 
         return $this->transaction->run(function () use ($input, $links, $owner, $plannedOn, $plannedAt): Activity {
-            $activity = $this->visible($input->activityId, true);
+            $activity = $this->visible($input->activityId);
             $type = $input->typeId instanceof Omitted ? $this->typeOf($activity) : $this->activeType($input->typeId, 'typeId');
             $now = $this->times->now();
             // A date given clears the time, and the other way round.
@@ -119,7 +119,7 @@ final readonly class ActivityWrites
             : $this->schedule($input->nextPlannedOn, $input->nextPlannedAt, $input->nextDurationMinutes, 'nextPlannedOn', 'nextPlannedAt');
 
         return $this->transaction->run(function () use ($input, $doneAt, $next, $userId): array {
-            $activity = $this->visible($input->activityId, true);
+            $activity = $this->visible($input->activityId);
             $now = $this->times->now();
             ActivitiesInvalid::unless(static fn () => $activity->complete($doneAt ?? $now, $input->outcome, $now));
             $type = $this->typeOf($activity);
@@ -143,7 +143,7 @@ final readonly class ActivityWrites
         $userId = $this->access->denyUnlessStaff();
 
         return $this->transaction->run(function () use ($input, $userId): Activity {
-            $activity = $this->visible($input->activityId, true);
+            $activity = $this->visible($input->activityId);
             if ($activity->trash($userId, $this->times->now())) {
                 $this->events->record(new ActivityTrashed($activity->id(), $this->typeOf($activity)->key(), $this->linkNames($activity), $activity->ownerUserId()));
             }
@@ -160,7 +160,7 @@ final readonly class ActivityWrites
         $this->access->denyUnlessStaff();
 
         return $this->transaction->run(function () use ($input): Activity {
-            $activity = $this->visible($input->activityId, true);
+            $activity = $this->visible($input->activityId);
             if ($activity->restore($this->times->now())) {
                 $this->events->record(new ActivityRestored($activity->id(), $this->typeOf($activity)->key(), $this->linkNames($activity), $activity->ownerUserId()));
             }
@@ -264,15 +264,15 @@ final readonly class ActivityWrites
     }
 
     /**
-     * An activity the person sees; one in the trash only when asked for, so
-     * that a change to it is refused as trashed rather than unknown.
+     * An activity the person sees, also one in the trash, so that a change to
+     * it is refused as trashed rather than unknown.
      *
      * @throws ActivitiesRefused not_found
      */
-    private function visible(string $id, bool $trashed = false): Activity
+    private function visible(string $id): Activity
     {
         $activity = $this->store->activity($id);
-        if (!$activity instanceof Activity || ($activity->isTrashed() && !$trashed) || !$this->targets->canSee($activity, $this->links($activity), $this->access->userId())) {
+        if (!$activity instanceof Activity || !$this->targets->canSee($activity, $this->links($activity), $this->access->userId())) {
             throw ActivitiesRefused::notFound('There is no activity with this id that you may see. Find it on a record\'s timeline with foresi_list_activities.');
         }
 

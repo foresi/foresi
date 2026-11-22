@@ -40,6 +40,25 @@ final class TimelineTest extends ActivitiesTestCase
         self::assertSame([$task->id(), $later->id(), $sooner->id(), $trashed->id(), $recent->id(), $old->id()], $this->ids($this->reads()->timeline('contact', $this->contactId)), 'Done now is the latest done.');
     }
 
+    public function testPlannedAtTheSameMomentGoByTheirIds(): void
+    {
+        $ids = [];
+        for ($at = 0; $at < 6; ++$at) {
+            $ids[] = $this->planned('Kick-off meeting '.$at, '2026-11-25T10:00:00+01:00')->id();
+        }
+        sort($ids);
+
+        self::assertSame($ids, $this->ids($this->reads()->timeline('contact', $this->contactId)));
+    }
+
+    public function testADayIsDueAtTheStartOfItsDayNotWhenItWasWritten(): void
+    {
+        $late = $this->planned('Send the NDA', '2026-11-30', type: 'task');
+        $soon = $this->planned('Kick-off meeting', '2026-11-25T09:00:00+01:00');
+
+        self::assertSame([$soon->id(), $late->id()], $this->ids($this->reads()->timeline('contact', $this->contactId)));
+    }
+
     public function testSameActivityOnDealAndContact(): void
     {
         $dealId = Id::generate();

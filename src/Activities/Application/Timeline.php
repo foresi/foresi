@@ -23,8 +23,8 @@ final class Timeline
      */
     public static function order(array $activities): array
     {
-        $planned = array_values(array_filter($activities, static fn (Activity $activity): bool => !$activity->isDone()));
-        $done = array_values(array_filter($activities, static fn (Activity $activity): bool => $activity->isDone()));
+        $planned = array_filter($activities, static fn (Activity $activity): bool => !$activity->isDone());
+        $done = array_filter($activities, static fn (Activity $activity): bool => $activity->isDone());
         usort($planned, static fn (Activity $a, Activity $b): int => [self::plannedFor($a), $a->id()] <=> [self::plannedFor($b), $b->id()]);
         usort($done, static fn (Activity $a, Activity $b): int => [$b->doneAt(), $b->id()] <=> [$a->doneAt(), $a->id()]);
 
