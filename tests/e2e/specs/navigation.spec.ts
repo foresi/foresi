@@ -72,11 +72,11 @@ test.describe('navigation', () => {
     await shot(page, 'sidebar');
 
     for (const [label, area, links] of [
-      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/]],
+      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/, 'Dokumenty']],
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
-      ['Nastavení', 'settings', ['Lidé', 'Firma', 'Štítky', 'API a MCP', 'Webhooky', 'Import a export']],
+      ['Nastavení', 'settings', ['Lidé', 'Firma', 'Štítky', 'API a MCP', 'Webhooky', 'Import a export', 'Dokumenty']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);
