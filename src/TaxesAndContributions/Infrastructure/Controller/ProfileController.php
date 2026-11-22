@@ -85,7 +85,7 @@ final class ProfileController extends AbstractController
     public function newStatus(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $values = ['change' => 'vat_payer:yes', 'validFrom' => '', 'base' => ''];
+        $values = ['change' => 'activity:main', 'validFrom' => '', 'base' => ''];
         if (!$request->isMethod('POST')) {
             return $this->statusForm($values, [], Response::HTTP_OK);
         }

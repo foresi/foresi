@@ -46,6 +46,7 @@ use Foresi\TaxesAndContributions\Contract\VatShare;
 use Foresi\Tests\TaxesAndContributions\Support\FakeAmountSource;
 use Foresi\Tests\TaxesAndContributions\Support\FakeForecastSource;
 use Foresi\Tests\TaxesAndContributions\Support\FakeLevyPayments;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\RecordingLogger;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\NullLogger;
@@ -63,7 +64,7 @@ final class EstimatesTest extends TaxesTestCase
     public function testYearEndIsToDatePlusForecastAndShowsBoth(): void
     {
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-01-01'));
+        FirmVat::from($this->em, 'yes', '2026-01-01');
         $forecast = new FakeForecastSource([$this->expected('a', '2026-12-15', 605_000)]);
         $invoices = new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-11-10', 605_000, 500_000)], shares: ['a' => new VatShare(1_000_000, 1_210_000)]);
 
@@ -89,7 +90,7 @@ final class EstimatesTest extends TaxesTestCase
 
     public function testAPlannedIncomeCountsAsStatedAndIsFlagged(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-01-01'));
+        FirmVat::from($this->em, 'yes', '2026-01-01');
         $invoices = new FakeAmountSource('invoicing.payments', [], shares: ['p' => new VatShare(1_000_000, 1_210_000)]);
         $forecast = new FakeForecastSource([
             $this->expected('p', '2026-12-01', 1_000_000, ForecastCertainty::Plan, source: 'cash-flow.planned_items'),
@@ -121,7 +122,7 @@ final class EstimatesTest extends TaxesTestCase
 
     public function testADocumentWithoutARatioOrWithoutItsRecordsCountsGrossAndARefundSplitsLikeAPayment(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-12-01'));
+        FirmVat::from($this->em, 'yes', '2026-12-01');
         $invoices = new FakeAmountSource('invoicing.payments', [], shares: ['n' => new VatShare(1_000_000, 1_210_000), 'b' => new VatShare(1_000_000, 1_210_000)]);
         $forecast = new FakeForecastSource([
             $this->expected('u', '2026-12-05', 121_000),
@@ -278,7 +279,7 @@ final class EstimatesTest extends TaxesTestCase
     public function testTheVatPayerDayCountsGrossBeforeAndNetAfterInTheEstimate(): void
     {
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
 
         $estimate = $this->estimates([
             new FakeAmountSource('invoicing.payments', [

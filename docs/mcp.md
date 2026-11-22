@@ -90,10 +90,12 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_tax_profile` | The owner profile the taxes and contributions are estimated from: the dated statuses, the inputs of each year and the authority accounts. Owner only. |
 | `foresi_tax_amounts` | The actual income and costs of a year to date (`year`, this one by default), in CZK, by month, kind and source, with net, VAT and what the records count. Owner only. |
 | `foresi_tax_estimate` | The estimate of a year (`year`, this one by default): to date and year end apart, the expense methods with their steps, and the payments of the year by due day with their state, expected, paid by a bank movement or overdue. Owner only. |
-| `foresi_add_tax_status` | **Write.** Adds a status of the owner from a day on (`kind`, `value`, `valid_from`), until the next of its kind. Owner only. |
-| `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. Owner only. |
+| `foresi_add_tax_status` | **Write.** Adds a status of the owner from a day on (`kind`, `value`, `valid_from`), until the next of its kind. `vat_payer` is refused with `vat_payer_on_firm`: it follows the firm's VAT statuses (`foresi_add_firm_vat_status`). Owner only. |
+| `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. A `vat_payer` status is the firm's and is refused with `vat_payer_on_firm`. Owner only. |
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
+| `foresi_vat_periods` | The VAT periods of the firm (`from`, `to`, months or quarters), an estimate: each with its days, due date, expected refund date and amounts, the reason when there is nothing to compute, the warnings, the unverified rules, the known gaps, and the payment details in `settings`. |
+| `foresi_set_vat_settings` | **Write.** Sets where the firm pays its VAT: `office_account` and `variable_symbol` (empty takes the suggested one). |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
@@ -121,6 +123,18 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_remove_document_signer` | **Write, destructive.** Removes a signer (`signer_id`). Staff only. |
 | `foresi_mark_document_signer_signed` | **Write.** Records that a signer signed; the document completes once all signed and the signed copy is attached. Staff only. |
 | `foresi_mark_document_signer_declined` | **Write, destructive.** Records that a signer declined, which declines the document. Staff only. |
+| `foresi_list_activities` | The timeline of a record (`linked_kind`, `linked_id`): planned activities first, the soonest on top, then the done ones, the latest first. Staff only. |
+| `foresi_list_planned_activities` | Your own planned activities that are not done, `from` a day up to the day before `to`. Staff only. |
+| `foresi_get_activity` | One activity (`activity_id`) with its records and files. Staff only. |
+| `foresi_list_activity_types` | The activity types with their timing; archived ones with `include_archived`. Staff only. |
+| `foresi_create_activity` | **Write.** Logs or plans an activity: `type_id`, `subject`, `body`, `planned_on` or `planned_at` with `duration_minutes`, or `done` with `done_at` and `outcome`; `links`, `owner_user_id`. Staff only. |
+| `foresi_update_activity` | **Write.** Changes the fields given of an activity (`activity_id`). Staff only. |
+| `foresi_complete_activity` | **Write.** Marks an activity done with its `outcome` and plans the next one (`next_type_id`, `next_subject`, `next_planned_on` or `next_planned_at`) in one transaction. Staff only. |
+| `foresi_trash_activity` | **Write, destructive.** Puts an activity in the trash. Staff only. |
+| `foresi_restore_activity` | **Write.** Brings an activity back from the trash. Staff only. |
+| `foresi_create_activity_type` | **Write.** Creates an activity type: `name`, `key`, `timing`, `default_duration_minutes`. Staff only. |
+| `foresi_update_activity_type` | **Write.** Changes a type (`type_id`): `name`, `timing`, `default_duration_minutes`. Staff only. |
+| `foresi_archive_activity_type` | **Write, destructive.** Archives a type (`type_id`). Staff only. |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
 | `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |
@@ -141,6 +155,8 @@ The cash-flow tools take the fields and parameters of the [REST cash flow](api.m
 The catalog tools take the fields of the [REST catalog](api.md#catalog), with the id of a product as `product_id`, and answer what the REST API answers. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden` and `not_found`. See [catalog.md](catalog.md).
 
 The tax tools take the fields of the [REST taxes and contributions](api.md#taxes-and-contributions), with the id of a status as `status_id`, and answer what the REST API answers. Only the owner of the organisation may call them; anyone else is refused with `owner_only`. They also refuse with `invalid_argument` (it names the argument and the `reason`), `not_found` and `status_day_taken`. See [taxes-and-contributions.md](taxes-and-contributions.md).
+
+The VAT tools take the fields of the [REST VAT](api.md#vat) and answer what the REST API answers; the read needs `vat:read`, the write `vat:write`. The owners and members may call them, and a guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `range_too_long`). See [vat.md](vat.md).
 
 The document tools take the fields of the [REST documents](api.md#documents), with the ids as `type_id`, `template_id`, `document_id` and `signer_id`, and answer what the REST API answers; the reads need `documents:read`, the writes `documents:write`. A guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `template_variables_missing` with `missing`), `not_found` and the conflicts of the document's status. The stored files are not sent over MCP: download them from `GET /api/v1/documents/{document_id}/files/{file}`. See [documents.md](documents.md).
 

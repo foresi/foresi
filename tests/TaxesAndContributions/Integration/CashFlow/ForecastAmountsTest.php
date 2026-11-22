@@ -28,11 +28,9 @@ use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\Amounts;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
-use Foresi\TaxesAndContributions\Application\ProfileWrites;
 use Foresi\TaxesAndContributions\Application\YearEndForecast;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
@@ -44,6 +42,7 @@ use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Integration\CashFlow\ForecastAmounts;
 use Foresi\Tests\CashFlow\Support\FakeSource;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
@@ -63,7 +62,7 @@ final class ForecastAmountsTest extends AdvanceTestCase
         $this->em->persist(new Membership($user, Role::Owner));
         $this->em->flush();
         self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), $user->email(), 'hash'), 'main', ['ROLE_USER']));
-        self::getContainer()->get(ProfileWrites::class)->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-01-01'));
+        FirmVat::from($this->em, 'yes', '2026-01-01');
     }
 
     public function testAPartlyPaidInvoiceCountsItsPaidPartToDateAndItsRestInTheForecast(): void

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "260bf2328ac2942c9366b6ceac241198",
+    "content-hash": "d219ed3ef2890458ac5a1e6d7184db74",
     "packages": [
         {
             "name": "brick/math",
@@ -1597,12 +1597,79 @@
             "time": "2025-03-06T22:45:56+00:00"
         },
         {
+            "name": "foresi/activities",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Activities",
+                "reference": "26bbc8847cea68f6ab4d628758b4c3bf47e8a166"
+            },
+            "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
+                "foresi/attachment": "self.version",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/uid": "7.4.*",
+                "zircote/swagger-php": "^7.5"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "activities",
+                    "kind": "module",
+                    "namespace": "Foresi\\Activities\\",
+                    "bundle": "Foresi\\Activities\\ActivitiesBundle",
+                    "optional": [
+                        "calendar"
+                    ],
+                    "scopes": [
+                        "activities"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Activities\\": ""
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Meetings, calls, notes and tasks logged or planned on any record, on its timeline and in the calendar.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/attachment",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "17f7f580232e24cdc65743663232f323761baf2d"
+                "reference": "c8554ffde56850e112230d1874d96d90ea660f4d"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1659,7 +1726,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "737dda8fe3585f1ccd796da3bf653c7d7f0b0690"
+                "reference": "1ecf74f441394f0ce0e1b6c16953409e29ed6561"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1709,7 +1776,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "af91fa367e8f7a40f3bb29c4bd9ccb7ee6a602bb"
+                "reference": "157dc0812dc1fca914e97769a875f407a7796d29"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -1778,7 +1845,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Calendar",
-                "reference": "6700676798a4291713edc660fdd2181f2c21c6f7"
+                "reference": "169c12c075aa60a6daca99b15965fab8b8bebbd7"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1840,7 +1907,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "2d50eef16ac8c2d8b91a3f3cc4b1607265120a5f"
+                "reference": "be2c743c4d52c973f8f6e7465d65741e8333def0"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1905,7 +1972,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "0565864db331f2efcc4e046150b3cbd32506de12"
+                "reference": "874a1e8d7ee6efbd79e92af616e50dd90a869b84"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1998,7 +2065,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "9a5b210719c351e20ce3bff86d0e5fcbe2076981"
+                "reference": "c7a084c42f55d19d1ac39b567132563d292e60a1"
             },
             "require": {
                 "foresi/party": "self.version",
@@ -2017,7 +2084,8 @@
                         "banking",
                         "exchange-rate",
                         "invoicing",
-                        "taxes-and-contributions"
+                        "taxes-and-contributions",
+                        "vat"
                     ]
                 }
             },
@@ -2046,7 +2114,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Documents",
-                "reference": "2133f0ab38bbccc053beb06f5ceeb24e3f245189"
+                "reference": "d0dc613164fb86d145dbf0f65da3c1249df96223"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2112,7 +2180,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "ca486f0f88b0b1f8ab85d988d5c6a79a96729412"
+                "reference": "dc4b92219c2df302aa3cd594562349c17b8fb736"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2178,7 +2246,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "f82453a5cbd0309502ccac28dc6fd05fecdb5e64"
+                "reference": "0191f4ec457796adc31999c626027564115c8962"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2228,7 +2296,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "9f35ea0ad5b0b8b7c6d91bb036d921b757e1a499"
+                "reference": "ac60a827cef3ddb0028383198fc070608e05133c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2301,7 +2369,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "cad5accf3194a5ea4dbd0c2b0a492f205e7129a9"
+                "reference": "9845d12216ba2d451c0e4e9f5873b7bd1888e3ac"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2365,7 +2433,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "d16509139d64641b9ee1c081ebbc9c8f6a3ef456"
+                "reference": "a8bef460392f4fc184facfb9a4d304c7f1e53248"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2429,7 +2497,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "c523199c20e54b5ebd8a7b1e6386644efdb568f6"
+                "reference": "94901ccf8fb4d1075012842dea54146e31599c17"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2489,7 +2557,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "57f70fd692bd1f3049ea040d88863174fddfbc41"
+                "reference": "79bc532a2ba8443f103ac4b09ed338398c71fcb8"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2572,7 +2640,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "3da9630d362771b3f890cf0aa7208ef005c06a2b"
+                "reference": "7547ad0fe2a48b4fb5d59f7a8d332e6b3b8b1e6e"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2642,7 +2710,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "794c6d5d2ed672d007fa5c76ff7b5c22df8d3a9f"
+                "reference": "8677cf284f7f71402faa7439e487a4760d7a7821"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2714,7 +2782,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "383738232eb5395fdbd1b97882ffa40b12a4de92"
+                "reference": "a25b2fd83300e52b8f345bae20f5f1e290162bcb"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2819,7 +2887,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "82e77cde2d4dc8fc1b3f6d0a823672bf926984fc"
+                "reference": "fd5092a4d44e20df08bbfcef4f2e5754cefaf95a"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2833,6 +2901,7 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/log": "^3.0",
+                "symfony/clock": "^7.4 || ^8.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
@@ -2887,7 +2956,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "f9cb5392ea9add98ecf83c981c99ba540fb2fc18"
+                "reference": "1418b6f9d0a1fb576c914d9036ae0aaf0cbde225"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2947,7 +3016,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "003bf0fd1ea5138504e7c69100a246bdac21f550"
+                "reference": "d6d74b690d3e010a35c6840f34b6cbb07d1223ed"
             },
             "require": {
                 "foresi/shared": "self.version",
@@ -3006,12 +3075,75 @@
             }
         },
         {
+            "name": "foresi/vat",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Vat",
+                "reference": "e627e3c576d22a09e7c4731ce52f7cfe3b238701"
+            },
+            "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "zircote/swagger-php": "^7.5"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "vat",
+                    "kind": "module",
+                    "namespace": "Foresi\\Vat\\",
+                    "bundle": "Foresi\\Vat\\VatBundle",
+                    "optional": [
+                        "cash-flow",
+                        "invoicing",
+                        "purchasing"
+                    ],
+                    "scopes": [
+                        "vat"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Vat\\": ""
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules, and where it pays its VAT.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/webhooks",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "dbd725591bceaf25ce53b69e9db885c3b00c2a84"
+                "reference": "7adf3c06f02d4215770c8518d6ffa6e866a72766"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3084,7 +3216,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "dc1887c05f42eaaa7064121a1f18a302d33312e7"
+                "reference": "568ccffc90bb404430d6a85ba2b4850a98b741f3"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -19638,6 +19770,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "foresi/activities": 20,
         "foresi/attachment": 20,
         "foresi/audit": 20,
         "foresi/banking": 20,
@@ -19660,6 +19793,7 @@
         "foresi/taxes-and-contributions": 20,
         "foresi/timesheet": 20,
         "foresi/ui": 20,
+        "foresi/vat": 20,
         "foresi/webhooks": 20,
         "foresi/work": 20
     },

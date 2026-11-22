@@ -12,6 +12,8 @@ namespace Foresi\TaxesAndContributions\Contract;
  * A status of the owner that changes on a day and holds until the next change
  * of its kind: the legal form, the activity, VAT registration, the flat-rate
  * band, voluntary sickness insurance and an exemption from the health minimum.
+ * VAT registration is the firm's: it comes from its VAT statuses in Party,
+ * and only the other kinds are written here.
  */
 enum StatusKind: string
 {
@@ -21,6 +23,17 @@ enum StatusKind: string
     case FlatRateBand = 'flat_rate_band';
     case SicknessInsurance = 'sickness_insurance';
     case HealthMinimumExempt = 'health_minimum_exempt';
+
+    /**
+     * The kinds the owner profile stores and writes: all but VatPayer, which
+     * is read from the firm's VAT statuses.
+     *
+     * @return non-empty-list<self>
+     */
+    public static function writable(): array
+    {
+        return [self::LegalForm, self::Activity, self::FlatRateBand, self::SicknessInsurance, self::HealthMinimumExempt];
+    }
 
     /**
      * The values a status of this kind takes.

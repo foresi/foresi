@@ -3,6 +3,18 @@ deptrac:
   paths:
     - src
   layers:
+    - name: activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\(?!Contract\\|Integration\\).*
+    - name: activities_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\Contract\\.*
+    - name: activities_integration_calendar
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\Integration\\Calendar\\.*
     - name: attachment
       collectors:
         - type: classLike
@@ -79,6 +91,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\TaxesAndContributions\\.*
+    - name: country_integration_vat
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\Vat\\.*
     - name: documents
       collectors:
         - type: classLike
@@ -159,6 +175,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Contract\\.*
+    - name: party_integration_activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Party\\Integration\\Activities\\.*
     - name: party_integration_documents
       collectors:
         - type: classLike
@@ -227,6 +247,26 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Ui\\Contract\\.*
+    - name: vat
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Vat\\(?!Contract\\|Integration\\).*
+    - name: vat_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Vat\\Contract\\.*
+    - name: vat_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Vat\\Integration\\CashFlow\\.*
+    - name: vat_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Vat\\Integration\\Invoicing\\.*
+    - name: vat_integration_purchasing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Vat\\Integration\\Purchasing\\.*
     - name: webhooks
       collectors:
         - type: classLike
@@ -244,6 +284,48 @@ deptrac:
         - type: classLike
           value: ^Foresi\\Work\\Contract\\.*
   ruleset:
+    activities:
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    activities_contract:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    activities_integration_calendar:
+      - activities
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - calendar_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     attachment:
       - attachment_contract
       - audit
@@ -437,6 +519,14 @@ deptrac:
       - shared
       - shared_contract
       - taxes_and_contributions_contract
+    country_integration_vat:
+      - country
+      - country_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - vat_contract
     documents:
       - attachment
       - attachment_contract
@@ -644,6 +734,18 @@ deptrac:
       - instance_contract
       - shared
       - shared_contract
+      - ui_contract
+    party_integration_activities:
+      - activities_contract
+      - audit
+      - audit_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
       - ui_contract
     party_integration_documents:
       - audit
@@ -867,6 +969,80 @@ deptrac:
     ui_contract:
       - shared
       - shared_contract
+    vat:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat_contract
+    vat_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    vat_integration_cash_flow:
+      - audit
+      - audit_contract
+      - cash_flow_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat
+      - vat_contract
+    vat_integration_invoicing:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat
+      - vat_contract
+    vat_integration_purchasing:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - vat
+      - vat_contract
     webhooks:
       - audit
       - audit_contract

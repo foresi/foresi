@@ -743,6 +743,49 @@ nelmio_api_doc:
                         authority: { type: string, enum: [social, health, sickness, income_tax, flat_rate] }
                         account: { type: string }
                         variable_symbol: { type: string }
+                VatPeriods:
+                    type: object
+                    description: The VAT periods of the firm, always an estimate. With nothing to compute, periods is empty and reason says why.
+                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps]
+                    properties:
+                        estimate: { type: boolean, enum: [true] }
+                        reason: { type: string, nullable: true, enum: [payer_date_missing, not_a_payer, country_not_supported, null], description: 'payer_date_missing when the firm is a payer but the day it became one is not stated: nothing is computed before a stated day.' }
+                        country: { type: string, nullable: true, description: 'The country whose rules apply, ISO 3166-1 alpha-2; null without them.' }
+                        from: { type: string, nullable: true, example: '2026-11', description: 'The first month asked for, null for the first period.' }
+                        to: { type: string, example: '2027-11', description: The last month; the period that holds it is the last one. }
+                        periods: { type: array, items: { $ref: '#/components/schemas/VatPeriod' } }
+                        warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
+                        unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
+                        known_gaps: { type: array, items: { type: string }, example: [documents_not_counted, schedules_not_counted, plans_not_counted], description: What the amounts do not count yet. }
+                VatPeriod:
+                    type: object
+                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, warnings]
+                    properties:
+                        key: { type: string, example: '2026-11', description: 'The calendar month, or the quarter such as "2026-Q4".' }
+                        length: { type: string, enum: [month, quarter] }
+                        start: { type: string, format: date, description: 'The first day; the day the firm became a payer in its first period.' }
+                        end: { type: string, format: date, description: 'The last day; the last day as a payer in its last period.' }
+                        due_on: { type: string, format: date, description: The day the return and the payment of the whole period are due. }
+                        refund_expected_on: { type: string, format: date, description: 'The day a refund is expected at the earliest (unverified: refund_timing).' }
+                        output: { $ref: '#/components/schemas/Money' }
+                        input: { $ref: '#/components/schemas/Money' }
+                        result: { $ref: '#/components/schemas/Money', description: 'Output minus input; positive to pay, negative to get back.' }
+                        warnings: { type: array, items: { type: string } }
+                VatSettings:
+                    type: object
+                    required: [office_account, variable_symbol, suggestion]
+                    properties:
+                        office_account: { type: string, nullable: true, description: The account of the tax office; null until it is set. }
+                        variable_symbol: { type: string, nullable: true }
+                        suggestion:
+                            type: object
+                            nullable: true
+                            description: How the country of the firm suggests paying; null without its rules.
+                            required: [account_hint, variable_symbol, source_url]
+                            properties:
+                                account_hint: { type: string, example: '705-<number of your tax office>/0710' }
+                                variable_symbol: { type: string, example: '12345678' }
+                                source_url: { type: string, format: uri }
                 CalendarFeed:
                     type: object
                     description: One of your calendar feeds. Its address is never shown again after it is created.
@@ -1220,6 +1263,65 @@ nelmio_api_doc:
                     properties:
                         data: { type: array, items: { $ref: '#/components/schemas/WebhookDelivery' } }
                         next_cursor: { type: string, nullable: true }
+                ActivitiesType:
+                    type: object
+                    description: A kind of activity, such as a meeting, and the time it has.
+                    properties:
+                        id: { type: string, format: uuid }
+                        key: { type: string, example: meeting, description: 'Unique; it never changes.' }
+                        name: { type: string, example: Meeting, description: 'A seeded type that was never renamed shows under its name in the language of the caller.' }
+                        timing: { type: string, enum: [timed, date, none], description: 'timed: at a time with a duration; date: on a day; none: no time, done when written.' }
+                        default_duration_minutes: { type: integer, nullable: true, example: 60 }
+                        archived: { type: boolean }
+                ActivitiesActivity:
+                    type: object
+                    description: A meeting, call, note or task, planned ahead or logged as done, with the records it is about and its files.
+                    properties:
+                        id: { type: string, format: uuid }
+                        type:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                key: { type: string, example: meeting }
+                                name: { type: string, example: Meeting }
+                                timing: { type: string, enum: [timed, date, none] }
+                        subject: { type: string, example: Kick-off meeting }
+                        body: { type: string, description: 'Notes, in Markdown.' }
+                        planned_on: { type: string, format: date, nullable: true }
+                        planned_at: { type: string, format: date-time, nullable: true }
+                        duration_minutes: { type: integer, nullable: true }
+                        done: { type: boolean }
+                        done_at: { type: string, format: date-time, nullable: true }
+                        outcome: { type: string, nullable: true }
+                        owner_user_id: { type: string, format: uuid }
+                        created_by: { type: string, format: uuid }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+                        trashed: { type: boolean }
+                        links:
+                            type: array
+                            description: 'The records it is about; one that is gone or not the caller''s to see is available: false, without its label.'
+                            items:
+                                type: object
+                                properties:
+                                    kind: { type: string, example: contact }
+                                    id: { type: string, format: uuid }
+                                    available: { type: boolean }
+                                    label: { type: string, nullable: true }
+                        files:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    name: { type: string, example: recording.m4a }
+                                    media_type: { type: string }
+                                    size: { type: integer }
+                                    url: { type: string, format: uri }
+                        next:
+                            description: 'Only in the answer of activities.complete: the next activity it planned, or null.'
+                            nullable: true
+                            allOf: [{ $ref: '#/components/schemas/ActivitiesActivity' }]
                 DocumentsType:
                     type: object
                     description: A kind of document, such as an NDA, and whether and how it is signed.

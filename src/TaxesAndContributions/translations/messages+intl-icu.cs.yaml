@@ -88,12 +88,15 @@ taxes:
     title: Profil
     description: Z čeho se počítají daně a odvody. Každý stav platí od svého dne do další změny stejného druhu. Profil obsahuje osobní údaje, proto ho vidí jen vlastník.
     statuses: Stavy
-    statuses_note: Každý stav platí od svého dne do další změny stejného druhu. Mění se jen výjimečně, třeba když se stanete plátcem DPH.
+    statuses_note: Každý stav platí od svého dne do další změny stejného druhu. Mění se jen výjimečně, třeba když se činnost stane hlavní.
     years: Roky
     authorities: Účty úřadů
     authorities_note: Kam platíte zálohy. Podle účtu a variabilního symbolu se platby spárují s odhadem.
-    empty_text: Přidejte, odkdy jste OSVČ, jakou máte činnost a odkdy jste plátce DPH.
+    empty_text: Přidejte, odkdy jste OSVČ a jakou máte činnost.
     until_next: do další změny
+    from_the_start: Od začátku
+    firm_vat_note: Zda jste plátce DPH, se řídí stavy DPH firmy a mění se tam.
+    firm_vat_link: Stavy DPH firmy
     column:
       value: Stav
       from: Platí od
@@ -195,6 +198,7 @@ taxes:
       flash: 'Účet pro {authority} je uložený.'
     error:
       kind_invalid: Vyberte změnu ze seznamu.
+      vat_payer_on_firm: Plátcovství DPH se řídí stavy DPH firmy. Změňte ho ve Firma, DPH.
       value_invalid: Vyberte změnu ze seznamu.
       date_invalid: Zadejte platné datum.
       base_required: Zadejte měsíční vyměřovací základ.

@@ -20,6 +20,7 @@
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
+        "foresi/activities": "dev-main",
         "foresi/attachment": "dev-main",
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
@@ -42,6 +43,7 @@
         "foresi/taxes-and-contributions": "dev-main",
         "foresi/timesheet": "dev-main",
         "foresi/ui": "dev-main",
+        "foresi/vat": "dev-main",
         "foresi/webhooks": "dev-main",
         "foresi/work": "dev-main",
         "guzzlehttp/psr7": "^3.2",
@@ -220,6 +222,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
+                    "foresi/activities": "dev-main",
                     "foresi/attachment": "dev-main",
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",
@@ -241,6 +244,7 @@
                     "foresi/taxes-and-contributions": "dev-main",
                     "foresi/timesheet": "dev-main",
                     "foresi/ui": "dev-main",
+                    "foresi/vat": "dev-main",
                     "foresi/webhooks": "dev-main",
                     "foresi/work": "dev-main"
                 }

@@ -99,6 +99,17 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertIsArray($paths);
         // Each path with its operations and the status each answers when it succeeds, by the module that serves it.
         $byModule = [
+            'activities' => [
+                '/api/v1/activities' => ['get' => '200', 'post' => '201'],
+                '/api/v1/activities/planned' => ['get' => '200'],
+                '/api/v1/activities/{activityId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/activities/{activityId}/complete' => ['post' => '200'],
+                '/api/v1/activities/{activityId}/trash' => ['post' => '200'],
+                '/api/v1/activities/{activityId}/restore' => ['post' => '200'],
+                '/api/v1/activity-types' => ['get' => '200', 'post' => '201'],
+                '/api/v1/activity-types/{typeId}' => ['patch' => '200'],
+                '/api/v1/activity-types/{typeId}/archive' => ['post' => '200'],
+            ],
             'catalog' => [
                 '/api/v1/catalog/products' => ['get' => '200', 'post' => '201'],
                 '/api/v1/catalog/products/{productId}' => ['get' => '200', 'patch' => '200'],
@@ -184,6 +195,10 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/taxes-and-contributions/profile/statuses/{statusId}' => ['delete' => '200'],
                 '/api/v1/taxes-and-contributions/profile/years/{year}' => ['put' => '200'],
                 '/api/v1/taxes-and-contributions/profile/authorities/{authority}' => ['put' => '200'],
+            ],
+            'vat' => [
+                '/api/v1/vat/periods' => ['get' => '200'],
+                '/api/v1/vat/settings' => ['get' => '200', 'put' => '200'],
             ],
             'shared' => [
                 '/api/v1/lists' => ['get' => '200'],

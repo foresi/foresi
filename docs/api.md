@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -141,6 +141,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
+| `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates, an estimate; see [VAT](#vat). |
+| `/api/v1/vat/settings` | `vat:read` | Where the firm pays its VAT; see [VAT](#vat). |
 | `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
 | `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |
 | `/api/v1/documents/{documentId}/files/{file}` | `documents:read` | The bytes of a stored file of a document: `pdf`, `signed` or `certificate`. |
@@ -364,7 +366,7 @@ The writes need the `contacts:write` scope, and only the **owner** of the organi
 | Method and path | Answer |
 | --- | --- |
 | `POST /api/v1/firm/vat-statuses` | `201` with the status: `id`, `status`, `period_length` and `valid_from`, which is required. |
-| `DELETE /api/v1/firm/vat-statuses/{vatStatusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+| `DELETE /api/v1/firm/vat-statuses/{vatStatusId}` | `{"id": ..., "removed": true}`. The status before it holds again. A `vat_payer` status (its id starts with `firm-vat:`) is `400 invalid_parameter` with the reason `vat_payer_on_firm`. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
@@ -550,15 +552,29 @@ The owner profile the taxes and contributions are estimated from: the dated stat
 | `GET /api/v1/taxes-and-contributions/profile` | `{statuses, years, authorities}`. |
 | `GET /api/v1/taxes-and-contributions/amounts?year=2026` | The actual income and costs of the year to date in CZK: `totals` and `months` (by month, `kind` and `source`) with `gross`, `net`, `vat` and `counted`, the payments themselves in `amounts`, and `unavailable_sources`, `restricted_sources`, `missing_rates`, `unverified` and `known_gaps`. Without `year`, this year. A year after this one or before 2000 is `400 invalid_parameter` with the reason `invalid_year`. |
 | `GET /api/v1/taxes-and-contributions/estimate?year=2026` | The estimate of the year: `to_date` and `year_end` apart, each method with its totals and steps, the `forecast` part, `accruals`, and the `payments` of the year by due day, each with its `authority`, `kind` (`advance`, `settlement`, `overpayment`), `period`, `due_on`, `amount`, `state` (`expected`, `paid`, `overdue`), `match_rule` and the bank movement in `paid_by`. `possible_duplicates` names the planned items for taxes and insurance it may count twice. Without `year`, this year; from 2000 to next year. See [Payments](taxes-and-contributions.md#payments). |
-| `POST /api/v1/taxes-and-contributions/profile/statuses` | `201` with the status: `kind`, `value`, `valid_from` and, for sickness insurance that is on, `base`. A second status of one kind on one day is `409 status_day_taken`. |
-| `DELETE /api/v1/taxes-and-contributions/profile/statuses/{statusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+| `POST /api/v1/taxes-and-contributions/profile/statuses` | `201` with the status: `kind`, `value`, `valid_from` and, for sickness insurance that is on, `base`. A second status of one kind on one day is `409 status_day_taken`. The kind `vat_payer` is `400 invalid_parameter` with the reason `vat_payer_on_firm`: it follows the [VAT statuses of the firm](#firm-vat-statuses). |
+| `DELETE /api/v1/taxes-and-contributions/profile/statuses/{statusId}` | `{"id": ..., "removed": true}`. The status before it holds again. A `vat_payer` status (its id starts with `firm-vat:`) is `400 invalid_parameter` with the reason `vat_payer_on_firm`. |
 | `PUT /api/v1/taxes-and-contributions/profile/years/{year}` | The inputs of the year as they are now. The whole year is replaced: a field left out is cleared. `previous_activity_months` (1 to 12, or `null`) is the months of the previous year with an activity, which divide its bases for the advances; `null` counts the activity statuses of that year, or twelve, flagged `previous_activity_months`. Out of range is `400 invalid_parameter` with the reason `activity_months_invalid`. It reads back as `previous_year.activity_months`. |
 | `PUT /api/v1/taxes-and-contributions/profile/authorities/{authority}` | The account of `social`, `health`, `sickness` or `income_tax`: `account` and `variable_symbol`. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"kind": "vat_payer", "value": "yes", "valid_from": "2026-11-12"}' \
+  -d '{"kind": "activity", "value": "main", "valid_from": "2026-07-01"}' \
   "https://app.example.com/api/v1/taxes-and-contributions/profile/statuses"
+```
+
+## VAT
+
+The VAT periods of the firm and where it pays its VAT. What a period is and how its dates come about is in [vat.md](vat.md). The reads need `vat:read`, the write `vat:write`, and the owners and members of the organisation may use them: a guest's token is never accepted. Every answer about periods is an estimate: it carries `estimate: true`, `unverified` (the rules nobody has confirmed yet) and `known_gaps` (what the amounts do not count yet).
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/vat/periods?from=2026-11&to=2027-12` | The periods from the day the firm became a payer, oldest first, each with `key` (`2026-11` or `2026-Q4`), `length`, `start` and `end` (clipped to the days the firm is a payer), `due_on`, `refund_expected_on`, `output`, `input`, `result` and `warnings`; and `reason`, `country`, `from`, `to`, `warnings`, `unverified` and `known_gaps`. `from` and `to` are months or quarters; without `from` the list starts with the first period, without `to` it ends with the period that holds the twelfth month after this one. A `to` more than 24 months ahead is `400 invalid_parameter` with the reason `range_too_long`; a month that cannot be read is `from_invalid` or `to_invalid`, and a `from` after `to` is `range_invalid`. With nothing to compute, `periods` is empty and `reason` is `payer_date_missing`, `not_a_payer` or `country_not_supported`. The amounts are zero until the documents are counted. |
+| `GET /api/v1/vat/settings` | `{office_account, variable_symbol, suggestion}`: the account of the tax office and the variable symbol, `null` until they are set, and the country's `suggestion` (`account_hint`, `variable_symbol`, `source_url`), `null` without its rules. |
+| `PUT /api/v1/vat/settings` | Replaces them: `office_account` (required, up to 64 characters) and `variable_symbol` (up to 35; empty takes the suggested one). Answers as the read. |
+
+```bash
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v1/vat/periods?from=2026-11&to=2027-03"
 ```
 
 ## Documents
@@ -595,6 +611,32 @@ Contracts and other documents made from templates, their signers and their signe
 ```bash
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" -o nda.pdf \
   "https://app.example.com/api/v1/documents/$DOCUMENT_ID/files/pdf"
+```
+
+## Activities
+
+Meetings, calls, notes and tasks, planned ahead or logged as done, on the records they are about. What the timings mean and who sees an activity is in [activities.md](activities.md). The reads need `activities:read`, the writes `activities:write`, and only the owners and members of the organisation may use them: a guest's token is never accepted. Bodies are JSON with snake case fields; times are ISO 8601, returned in UTC.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/activities?linked_kind=contact&linked_id=...` | The timeline of a record: the planned activities first, the soonest on top, then the done ones, the latest first, each with its `type`, times, `outcome`, `links` (each with `available`) and `files`. The trash is left out. |
+| `GET /api/v1/activities/planned` | Your own planned activities that are not done, from `from` (a day; today when left out) up to the day before `to` (30 days later when left out, at most 400). |
+| `GET /api/v1/activities/{activityId}` | One activity, also one in the trash (`trashed: true`). |
+| `GET /api/v1/activity-types` | The types in the order they were created; archived ones with `include_archived=true`. |
+| `POST /api/v1/activities` | `201` with the activity: `type_id`, `subject`, `body`, and `planned_on` (a dated type) or `planned_at` with `duration_minutes` (a timed type), or `done: true` with `done_at` and `outcome`; `links`, a list of `{kind, id}`; `owner_user_id`. A time of the wrong kind for the type is `400 invalid_parameter` naming the field. |
+| `PATCH /api/v1/activities/{activityId}` | The activity with what was given changed: `type_id`, `subject`, `body`, `planned_on`, `planned_at`, `duration_minutes`, `outcome`, `links` (replaces them), `owner_user_id`. |
+| `POST /api/v1/activities/{activityId}/complete` | The activity done (`done_at`, `outcome`) with the next one it planned under `next`: `next_type_id`, `next_subject`, `next_planned_on` or `next_planned_at`, `next_duration_minutes`. Both or neither are saved. Done already is `409 already_done`. |
+| `POST /api/v1/activities/{activityId}/trash` | The activity in the trash. |
+| `POST /api/v1/activities/{activityId}/restore` | The activity back from the trash. |
+| `POST /api/v1/activity-types` | `201` with the type: `name`, `key` (unique, never changes), `timing` (`timed`, `date`, `none`), `default_duration_minutes`. |
+| `PATCH /api/v1/activity-types/{typeId}` | The type with its new `name`, `timing` or `default_duration_minutes`. |
+| `POST /api/v1/activity-types/{typeId}/archive` | The archived type. |
+
+```bash
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" -X POST \
+  -d '{"outcome": "Agreed on an audit", "next_type_id": "'$TASK_TYPE_ID'", "next_subject": "Send the offer", "next_planned_on": "2026-12-01"}' \
+  "https://app.example.com/api/v1/activities/$ACTIVITY_ID/complete"
 ```
 
 ## Received documents

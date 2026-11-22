@@ -33,6 +33,7 @@ use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\SwitchAdjustment;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\TaxesAndContributions\Support\DatedAmountSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\RecordingLogger;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\LoggerInterface;
@@ -108,7 +109,7 @@ final class SwitchAdjustmentTest extends TaxesTestCase
 
     public function testAVatPayerOnTheLastDayCountsTheOpenDocumentsWithoutVat(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
         $this->writes()->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
         $this->writes()->setYear(new SetYearInputsInput('2027', ['lump_60'], 'lump_60'));
 

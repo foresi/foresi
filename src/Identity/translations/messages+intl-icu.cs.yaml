@@ -174,10 +174,12 @@ api_tokens:
     payments: Platby
     webhooks: Webhooky
     events: Události
+    activities: Aktivity
     calendar: Kalendář
     cashflow: Cash flow
     catalog: Katalog
     taxes: Daně a odvody
+    vat: DPH
     received_documents: Přijaté doklady
     views: Uložené pohledy
     projects: Projekty

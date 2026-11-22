@@ -15,6 +15,7 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\TaxesAndContributions\Domain\OwnerProfile;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -56,7 +57,8 @@ final class ProfileControllerTest extends WebTestCase
         // A rare change is a small action in the header, not a primary one, and no empty state.
         self::assertCount(1, $crawler->filter('header a[data-taxes-statuses-open][data-dialog][href="/taxes-and-contributions/profile/statuses"]'));
         self::assertCount(0, $crawler->filter('header [data-taxes-status-new]'));
-        self::assertSelectorTextContains('[data-taxes-status-summary]', 'None yet');
+        // Before anything is entered, only the firm's VAT status holds, from the start.
+        self::assertSame('Statuses: not a VAT payer', preg_replace('/\s+/', ' ', trim($crawler->filter('[data-taxes-status-summary]')->text())));
         self::assertCount(2, $crawler->filter('[data-taxes-year]'));
         self::assertCount(5, $crawler->filter('[data-taxes-authority]'));
 
@@ -64,16 +66,27 @@ final class ProfileControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses', server: [$this->dialogHeader() => '1']);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('dialog[data-overlay-record] a[data-taxes-status-new][data-in-place]'));
-        self::assertCount(1, $crawler->filter('[data-taxes-statuses-empty]'));
+        self::assertCount(0, $crawler->filter('[data-taxes-statuses-empty]'));
+        // VAT payer is the firm's: read-only, with the way to the firm's VAT statuses.
+        self::assertSame('/settings/firm/vat', $crawler->filter('[data-taxes-kind="vat_payer"] [data-taxes-firm-vat] a')->attr('href'));
+        self::assertStringContainsString('From the start', $crawler->filter('[data-taxes-kind="vat_payer"] tbody tr')->text());
+        self::assertCount(0, $crawler->filter('[data-taxes-kind="vat_payer"] form'));
 
         $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
+        self::assertSame('activity:main', $values['change'], 'The dialog starts on a change it may make.');
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses/new', server: [$this->dialogHeader() => '1']);
+        self::assertCount(0, $crawler->filter('#taxes-status-form option[value^="vat_payer:"]'));
+        self::assertCount(1, $crawler->filter('#taxes-status-form option[value="activity:main"]'));
         $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'legal_form:sole_trader', 'validFrom' => '2024-03-01'] + $values);
         $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2024-03-01'] + $values);
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:no', 'validFrom' => '2026-01-01'] + $values);
         // Saved, the dialog shows the statuses again.
         self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
-        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
-        self::assertSame('{"location":"\\/taxes-and-contributions\\/profile\\/statuses"}', $this->client->getResponse()->getContent());
+        // A VAT payer day sent anyway is refused at the change, naming the firm.
+        $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('VAT payer follows the VAT statuses of the firm', $crawler->filter('#taxes-status-form')->text());
+        FirmVat::from($this->browser->em(), 'no', '2026-01-01');
+        FirmVat::from($this->browser->em(), 'yes', '2026-11-12');
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses');
         self::assertSelectorTextContains('[data-taxes-statuses]', 'VAT payer');
@@ -82,7 +95,8 @@ final class ProfileControllerTest extends WebTestCase
         self::assertStringContainsString('Not a VAT payer', $rows->eq(0)->text());
         self::assertStringContainsString('Nov 11, 2026', $rows->eq(0)->text());
         self::assertStringContainsString('until the next change', $rows->eq(1)->text());
-        self::assertSame('confirm-submit', $rows->eq(0)->filter('form')->attr('data-controller'));
+        self::assertCount(0, $rows->filter('form'), 'The firm\'s VAT statuses are removed on the firm.');
+        self::assertSame('confirm-submit', $crawler->filter('[data-taxes-kind="activity"] tbody tr form')->attr('data-controller'));
 
         // The page: one line of what holds today, and the change in the year it falls in.
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
@@ -91,7 +105,7 @@ final class ProfileControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-taxes-year="2027"] [data-taxes-year-changes]'));
 
         // The same day again is refused in the dialog, at the day.
-        $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12'] + $values);
+        $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:secondary', 'validFrom' => '2024-03-01'] + $values);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('already starts on this day', $crawler->filter('#taxes-status-form')->text());
         $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'sickness_insurance:on', 'validFrom' => '2026-01-01', 'base' => ''] + $values);
@@ -199,7 +213,7 @@ final class ProfileControllerTest extends WebTestCase
             $this->client->request('GET', $page);
             self::assertResponseStatusCodeSame(403, $page);
         }
-        $this->client->request('POST', '/taxes-and-contributions/profile/statuses/new', ['change' => 'vat_payer:yes', 'validFrom' => '2026-11-12']);
+        $this->client->request('POST', '/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2026-11-12']);
         self::assertResponseStatusCodeSame(403);
 
         $crawler = $this->client->request('GET', '/cash-flow');
@@ -213,7 +227,7 @@ final class ProfileControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->browser->signIn();
         $em = $this->browser->em();
-        $em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, ''));
+        $em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $em->flush();
     }
 

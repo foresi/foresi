@@ -20,6 +20,7 @@
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "psr/log": "^3.0",
+        "symfony/clock": "^7.4 || ^8.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/framework-bundle": "7.4.*",
         "symfony/http-foundation": "^7.4 || ^8.0",
