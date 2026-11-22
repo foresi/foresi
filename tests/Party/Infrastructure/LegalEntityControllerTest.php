@@ -81,7 +81,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/people People', '/settings/firm Firm', '/settings/labels Labels', '/settings/api API and MCP', '/settings/webhooks Webhooks', '/imports Import and export'], $links);
+        self::assertSame(['/settings/people People', '/settings/firm Firm', '/settings/labels Labels', '/settings/api API and MCP', '/settings/webhooks Webhooks', '/imports Import and export', '/settings/documents Documents'], $links);
     }
 
     public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsTheFirmMarkedInTheSidebar(): void

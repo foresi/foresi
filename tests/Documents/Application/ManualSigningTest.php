@@ -76,7 +76,13 @@ final class ManualSigningTest extends DocumentsTestCase
         self::assertSame(DocumentStatus::OutForSignature, $this->reload($first)->status());
         $this->documents()->markSigned(new MarkSignerSignedInput($first->id(), $b->id()));
         self::assertSame(DocumentStatus::Completed, $this->reload($first)->status());
+        $this->assertCompletedOnce($first, $b->id());
+        self::assertCount(2, $this->eventData('documents.signer.signed'));
+    }
 
+    #[Test]
+    public function completesOnceWhenTheCopyComesLast(): void
+    {
         // Every signature first, then the signed copy.
         $second = $this->ready();
         $c = $this->signer($second, 'Jana Example', 1);
@@ -84,11 +90,18 @@ final class ManualSigningTest extends DocumentsTestCase
         self::assertSame(DocumentStatus::OutForSignature, $this->reload($second)->status());
         $this->documents()->attachSignedCopy(new AttachSignedCopyInput($second->id(), 'signed.pdf', base64_encode(self::PDF)));
         self::assertSame(DocumentStatus::Completed, $this->reload($second)->status());
+        $this->assertCompletedOnce($second, $c->id());
+        self::assertCount(1, $this->eventData('documents.signer.signed'));
+    }
 
-        // Doing either again changes nothing and completes nothing again.
+    /**
+     * Doing either again changes nothing, and the document completed exactly once.
+     */
+    private function assertCompletedOnce(Document $document, string $signerId): void
+    {
         foreach ([
-            fn (): \Foresi\Documents\Domain\Document => $this->documents()->markSigned(new MarkSignerSignedInput($first->id(), $b->id())),
-            fn (): \Foresi\Documents\Domain\Document => $this->documents()->attachSignedCopy(new AttachSignedCopyInput($second->id(), 'signed.pdf', base64_encode(self::PDF))),
+            fn (): Document => $this->documents()->markSigned(new MarkSignerSignedInput($document->id(), $signerId)),
+            fn (): Document => $this->documents()->attachSignedCopy(new AttachSignedCopyInput($document->id(), 'signed.pdf', base64_encode(self::PDF))),
         ] as $again) {
             try {
                 $again();
@@ -98,9 +111,12 @@ final class ManualSigningTest extends DocumentsTestCase
             }
         }
 
-        $completed = array_map(static fn (string $data): string => (string) json_decode($data, true, flags: \JSON_THROW_ON_ERROR)['document_id'], $this->eventData('documents.document.completed'));
-        self::assertSame([$first->id(), $second->id()], $completed);
-        self::assertCount(3, $this->eventData('documents.signer.signed'));
+        $completed = array_map(static function (string $data): string {
+            $payload = json_decode($data, true, flags: \JSON_THROW_ON_ERROR);
+
+            return \is_array($payload) && \is_string($payload['document_id'] ?? null) ? $payload['document_id'] : '';
+        }, $this->eventData('documents.document.completed'));
+        self::assertSame([$document->id()], $completed);
     }
 
     #[Test]

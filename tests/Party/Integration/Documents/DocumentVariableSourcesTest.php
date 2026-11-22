@@ -61,7 +61,6 @@ final class DocumentVariableSourcesTest extends ContactTestCase
         $firm->update('Renamed Firm s.r.o.', $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, '');
         $this->em->flush();
         $values = $source->values([new RecordLink('contact', '0192f1a4-0000-7000-8000-000000000000')]);
-        self::assertNotNull($values);
         self::assertSame('Renamed Firm s.r.o.', $values['name']);
         self::assertSame('', $values['vat_id']);
     }

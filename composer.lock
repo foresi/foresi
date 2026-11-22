@@ -1985,12 +1985,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Documents",
-                "reference": "237c7961b331f2723612029f61a401454931b4e5"
+                "reference": "8a86e17fce3ec9a391abf6c25b1fafb018409d83"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/attachment": "self.version",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
@@ -2005,6 +2006,7 @@
                 "symfony/routing": "^7.4",
                 "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
+                "symfony/uid": "7.4.*",
                 "twig/twig": "^3.30",
                 "zircote/swagger-php": "^7.5"
             },
@@ -2509,7 +2511,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "3e7b561b1de3815e8e5ef9b6019d3cce123eb3e2"
+                "reference": "0528fd57ce7ca57f944dc420007bcbf754873053"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2543,6 +2545,7 @@
                     "namespace": "Foresi\\Party\\",
                     "bundle": "Foresi\\Party\\PartyBundle",
                     "optional": [
+                        "documents",
                         "import"
                     ],
                     "scopes": [

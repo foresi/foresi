@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Documents\Support;
 
 use Foresi\Documents\Contract\DocumentVariableSource;
-use Foresi\Documents\Contract\RecordLink;
 use Foresi\Documents\Contract\VariableDefinition;
 
 /**
@@ -34,7 +33,7 @@ final readonly class FakeClientVariables implements DocumentVariableSource
     public function values(array $links): ?array
     {
         foreach ($links as $link) {
-            if ($link instanceof RecordLink && 'contact' === $link->kind) {
+            if ('contact' === $link->kind) {
                 return ['name' => $this->contacts->name($link->id) ?? ''];
             }
         }

@@ -22,8 +22,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class PdfRendererTest extends TestCase
 {
-    /** @var list<string> the footers drawn, in page order */
-    private array $footers = [];
+    /** @var \ArrayObject<int, string> the footers drawn, in page order */
+    private \ArrayObject $footers;
 
     private const array VALUES = [
         'firm' => ['name' => 'Příkladná firma s.r.o.', 'address_lines' => ['Žižkova 1234/5', '602 00 Brno'], 'registration_number' => '12345678', 'vat_id' => 'CZ12345678'],
@@ -43,7 +43,7 @@ final class PdfRendererTest extends TestCase
             self::assertMatchesRegularExpression('~/BaseFont /[A-Z]{6}\+'.$font.'~', $pdf);
         }
         self::assertStringContainsString('/FontFile2', $pdf);
-        self::assertSame(['Page 1 of 2', 'Page 2 of 2'], $this->footers);
+        self::assertSame(['Page 1 of 2', 'Page 2 of 2'], $this->footers->getArrayCopy());
         VeraPdf::assertConforms($pdf, '3a');
     }
 
@@ -58,17 +58,22 @@ final class PdfRendererTest extends TestCase
 
     private function renderer(): TcpdfDocumentRenderer
     {
+        $this->footers = new \ArrayObject();
         $translator = new class($this->footers) implements TranslatorInterface {
-            /** @param list<string> $footers */
-            public function __construct(private array &$footers)
+            /** @param \ArrayObject<int, string> $footers */
+            public function __construct(private readonly \ArrayObject $footers)
             {
             }
 
+            /** @param array<array-key, mixed> $parameters */
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 \assert(\is_int($parameters['page']) && \is_int($parameters['pages']));
 
-                return $this->footers[] = \sprintf('Page %d of %d', $parameters['page'], $parameters['pages']);
+                $footer = \sprintf('Page %d of %d', $parameters['page'], $parameters['pages']);
+                $this->footers[] = $footer;
+
+                return $footer;
             }
 
             public function getLocale(): string

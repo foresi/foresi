@@ -132,7 +132,7 @@ abstract class DocumentsTestCase extends KernelTestCase
     {
         $version ??= $this->template();
         $template = $this->store()->template($version->templateId());
-        $this->assertInstanceOf(\Foresi\Documents\Domain\DocumentTemplate::class, $template);
+        self::assertInstanceOf(\Foresi\Documents\Domain\DocumentTemplate::class, $template);
 
         return $this->documents()->create(new CreateDocumentInput($template->typeId(), $template->id(), 'NDA with Example Client', [['kind' => 'contact', 'id' => $contactId ?? $this->contactId]]));
     }
@@ -146,7 +146,7 @@ abstract class DocumentsTestCase extends KernelTestCase
     {
         $this->em->clear();
         $fresh = $this->store()->document($document->id());
-        $this->assertInstanceOf(\Foresi\Documents\Domain\Document::class, $fresh);
+        self::assertInstanceOf(\Foresi\Documents\Domain\Document::class, $fresh);
 
         return $fresh;
     }
