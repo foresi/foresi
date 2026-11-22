@@ -70,17 +70,17 @@ class Signer implements Audited
     {
         $name = trim($name);
         if ('' === $name || mb_strlen($name) > self::MAX_NAME) {
-            throw new \InvalidArgumentException(\sprintf('A signer\'s name has 1 to %d characters.', self::MAX_NAME));
+            throw new InvalidField('name', \sprintf('A signer\'s name has 1 to %d characters.', self::MAX_NAME));
         }
         $email = null === $email || '' === trim($email) ? null : trim($email);
         if (null !== $email && (mb_strlen($email) > self::MAX_EMAIL || false === filter_var($email, \FILTER_VALIDATE_EMAIL))) {
-            throw new \InvalidArgumentException('The signer\'s e-mail is not a valid address.');
+            throw new InvalidField('email', 'The signer\'s e-mail is not a valid address.');
         }
         if ($order < 1 || $order > 99) {
-            throw new \InvalidArgumentException('A signing order is between 1 and 99.');
+            throw new InvalidField('order', 'A signing order is between 1 and 99.');
         }
         if (null !== $partyPersonId && !Id::isValid($partyPersonId)) {
-            throw new \InvalidArgumentException('The person id is not a valid id.');
+            throw new InvalidField('partyPersonId', 'The person id is not a valid id.');
         }
         $this->name = $name;
         $this->email = $email;

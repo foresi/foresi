@@ -47,7 +47,7 @@ final readonly class ClientVariables implements DocumentVariableSource
     {
         $contact = null;
         foreach ($links as $link) {
-            if ($link instanceof RecordLink && ContactLinkTarget::KIND === $link->kind) {
+            if (ContactLinkTarget::KIND === $link->kind) {
                 $contact = $this->directory->find($link->id);
                 break;
             }

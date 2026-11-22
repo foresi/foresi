@@ -258,6 +258,9 @@ final readonly class DocumentWrites
             $document = $this->document($input->documentId);
 
             DocumentsInvalid::unless('documentId', static fn () => $document->checkSignersEditable());
+            if (false === $this->store->type($document->typeId())?->needsSigning()) {
+                throw DocumentsRefused::conflict('signing_not_needed', 'Documents of this type are not signed, so they take no signers. Change the type to one that needs signing.');
+            }
             $signer = DocumentsInvalid::unless('name', static fn (): Signer => new Signer($document, $input->name, $input->email, $input->partyPersonId, $side, $input->order));
             $this->store->add($signer);
 

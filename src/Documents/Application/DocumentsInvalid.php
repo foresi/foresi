@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Documents\Application;
 
 use Foresi\Documents\Domain\DocumentConflict;
+use Foresi\Documents\Domain\InvalidField;
 
 /**
  * Turns what the domain refuses into the refusals of the use cases.
@@ -16,6 +17,9 @@ use Foresi\Documents\Domain\DocumentConflict;
 final class DocumentsInvalid
 {
     /**
+     * A refusal of the domain that names its field (InvalidField) is reported at
+     * that field, any other at the given one.
+     *
      * @template T
      *
      * @param callable(): T $change
@@ -28,6 +32,8 @@ final class DocumentsInvalid
     {
         try {
             return $change();
+        } catch (InvalidField $invalid) {
+            throw DocumentsRefused::invalid('invalid', $invalid->field, $invalid->getMessage());
         } catch (\InvalidArgumentException $invalid) {
             throw DocumentsRefused::invalid('invalid', $field, $invalid->getMessage());
         } catch (DocumentConflict $conflict) {

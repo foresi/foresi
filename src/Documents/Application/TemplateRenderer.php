@@ -116,17 +116,20 @@ final readonly class TemplateRenderer
     {
         try {
             $module = $this->twig->parse($this->twig->tokenize(new Source($body, 'template')));
+        } catch (SecurityError $blocked) {
+            throw self::blocked($blocked);
+        } catch (SyntaxError $invalid) {
+            throw self::invalid($invalid);
+        }
+        try {
             // The sandbox policy is checked when the template starts to display.
             $this->twig->createTemplate($body)->render([]);
         } catch (SecurityError $blocked) {
             throw self::blocked($blocked);
         } catch (SyntaxError $invalid) {
-            throw DocumentsRefused::blockedTemplate('syntax', \sprintf('The template is not valid on line %d: %s', $invalid->getTemplateLine(), $invalid->getRawMessage()));
+            throw self::invalid($invalid);
         } catch (TwigError) {
             // Without values a template may fail to render; only what it uses matters here.
-        }
-        if (!isset($module)) {
-            throw new \LogicException('A template that parsed has its module.');
         }
 
         $found = ['paths' => [], 'optional' => [], 'bound' => ['loop']];
@@ -152,7 +155,7 @@ final readonly class TemplateRenderer
     private function walk(Node $node, array &$found, bool $defined): void
     {
         if ($node instanceof AssignContextVariable) {
-            $found['bound'][] = (string) $node->getAttribute('name');
+            $found['bound'][] = self::name($node);
 
             return;
         }
@@ -179,6 +182,21 @@ final readonly class TemplateRenderer
     }
 
     /**
+     * The name of a variable node; Twig keeps it as a string attribute.
+     */
+    private static function name(Node $node): string
+    {
+        $name = $node->getAttribute('name');
+
+        return \is_string($name) ? $name : '';
+    }
+
+    private static function invalid(SyntaxError $invalid): DocumentsRefused
+    {
+        return DocumentsRefused::blockedTemplate('syntax', \sprintf('The template is not valid on line %d: %s', $invalid->getTemplateLine(), $invalid->getRawMessage()));
+    }
+
+    /**
      * "client.name" for {{ client.name }}; null when the expression is not a
      * plain path of names, such as client[key].
      *
@@ -187,7 +205,7 @@ final readonly class TemplateRenderer
     private function path(Node $node): ?string
     {
         if ($node instanceof NameExpression) {
-            $name = (string) $node->getAttribute('name');
+            $name = self::name($node);
             if (str_starts_with($name, '_')) {
                 throw DocumentsRefused::blockedTemplate($name, \sprintf('Templates cannot use %s; use the variables listed beside the editor.', $name));
             }

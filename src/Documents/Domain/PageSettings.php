@@ -24,9 +24,9 @@ final readonly class PageSettings
         public float $marginBottomMm = 20.0,
         public float $marginLeftMm = 20.0,
     ) {
-        foreach ([$marginTopMm, $marginRightMm, $marginBottomMm, $marginLeftMm] as $margin) {
+        foreach (['marginTop' => $marginTopMm, 'marginRight' => $marginRightMm, 'marginBottom' => $marginBottomMm, 'marginLeft' => $marginLeftMm] as $field => $margin) {
             if ($margin < 0.0 || $margin > self::MAX_MARGIN_MM) {
-                throw new \InvalidArgumentException(\sprintf('A page margin is between 0 and %d mm.', (int) self::MAX_MARGIN_MM));
+                throw new InvalidField($field, \sprintf('A page margin is between 0 and %d mm.', (int) self::MAX_MARGIN_MM));
             }
         }
     }

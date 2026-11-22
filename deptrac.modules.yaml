@@ -151,6 +151,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Contract\\.*
+    - name: party_integration_documents
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Party\\Integration\\Documents\\.*
     - name: party_integration_import
       collectors:
         - type: classLike
@@ -610,6 +614,18 @@ deptrac:
       - instance_contract
       - shared
       - shared_contract
+      - ui_contract
+    party_integration_documents:
+      - audit
+      - audit_contract
+      - documents_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
       - ui_contract
     party_integration_import:
       - audit
