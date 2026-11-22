@@ -60,7 +60,7 @@ final readonly class SearchProductsTool implements ReadTool, StaffOnlyTool
         return [
             'type' => 'object',
             'properties' => [
-                'q' => ['type' => 'string', 'maxLength' => ProductReads::MAX_TEXT, 'description' => 'The text the name or the description holds; left out for every product.'],
+                'query' => ['type' => 'string', 'maxLength' => ProductReads::MAX_TEXT, 'description' => 'The text the name or the description holds; left out for every product.'],
                 'archived' => ['type' => 'boolean', 'description' => 'true includes the archived products.'],
             ],
             'additionalProperties' => false,
@@ -70,7 +70,7 @@ final readonly class SearchProductsTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $products = $this->products->search(ToolArguments::text($arguments, 'q') ?? '', ToolArguments::flag($arguments, 'archived'));
+            $products = $this->products->search(ToolArguments::text($arguments, 'query') ?? '', ToolArguments::flag($arguments, 'archived'));
         } catch (CatalogRefused $refused) {
             throw ToolRefusal::of($refused);
         }

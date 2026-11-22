@@ -95,7 +95,7 @@ final class CatalogApiTest extends ApiTestCase
         $id = $this->in($created, 'structuredContent', 'data', 'id');
         self::assertIsString($id);
 
-        $found = $this->tool('foresi_search_products', ['q' => 'roof']);
+        $found = $this->tool('foresi_search_products', ['query' => 'roof']);
         self::assertSame([$id], array_column($this->in($found, 'structuredContent', 'data', 'items'), 'id'));
         $one = $this->tool('foresi_get_product', ['id' => $id]);
         self::assertSame(['one_off', 1200000], [$this->in($one, 'structuredContent', 'data', 'billing_kind'), $this->in($one, 'structuredContent', 'data', 'unit_price', 'amount_minor')]);
