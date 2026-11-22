@@ -41,7 +41,7 @@ final readonly class DoctrineVatStore implements VatStore
 
     public function entries(): array
     {
-        return array_values($this->entityManager->getRepository(PeriodEntry::class)->findBy([], ['periodKey' => 'ASC']));
+        return $this->entityManager->getRepository(PeriodEntry::class)->findBy([], ['periodKey' => 'ASC']);
     }
 
     public function addEntry(PeriodEntry $entry): void
@@ -61,7 +61,7 @@ final readonly class DoctrineVatStore implements VatStore
 
     public function assignments(): array
     {
-        return array_values($this->entityManager->getRepository(PaymentAssignment::class)->findBy([], ['movementId' => 'ASC']));
+        return $this->entityManager->getRepository(PaymentAssignment::class)->findBy([], ['movementId' => 'ASC']);
     }
 
     public function addAssignment(PaymentAssignment $assignment): void

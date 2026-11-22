@@ -22,7 +22,6 @@ use Foresi\Vat\Application\SettlePeriodInput;
 use Foresi\Vat\Application\VatRefused;
 use Foresi\Vat\Application\VatStore;
 use Foresi\Vat\Domain\PaymentAssignment;
-use Foresi\Vat\Domain\PeriodEntry;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 
@@ -54,23 +53,23 @@ final class PeriodWritesTest extends VatTestCase
         self::assertSame([null, 0, PeriodState::Estimated], [$cleared->period->returnAmount, $cleared->period->expected->minor(), $cleared->period->state]);
         self::assertNull($this->store()->entry('2026-11'), 'An entry with nothing in it is removed.');
         self::assertSame([['2026-11', ['what' => 'return_amount', 'period' => '2026-11', 'movement' => null]], ['2026-11', ['what' => 'return_amount', 'period' => '2026-11', 'movement' => null]], ['2026-11', ['what' => 'return_amount', 'period' => '2026-11', 'movement' => null]]], $this->events('vat.period.changed'));
-        $this->refused('not_found', null, fn () => $this->writes()->clearReturnAmount(new ClearReturnAmountInput('2026-11')));
+        $this->refused('not_found', null, fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->clearReturnAmount(new ClearReturnAmountInput('2026-11')));
     }
 
     public function testAnAmountMustBeADecimalNumber(): void
     {
         foreach (['', 'abc', '1.234', '1,5', '12345678901234'] as $amount) {
-            $this->refused('amount_invalid', 'amount', fn () => $this->writes()->setReturnAmount(new SetReturnAmountInput('2026-11', $amount)));
+            $this->refused('amount_invalid', 'amount', fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->setReturnAmount(new SetReturnAmountInput('2026-11', $amount)));
         }
         self::assertSame(123_456_789_012_300, $this->writes()->setReturnAmount(new SetReturnAmountInput('2026-11', '1234567890123'))->period->expected->minor());
     }
 
     public function testAPeriodTheFirmDoesNotHaveIsRefused(): void
     {
-        $this->refused('not_found', null, fn () => $this->writes()->setReturnAmount(new SetReturnAmountInput('2026-10', '1')));
-        $this->refused('key_invalid', 'key', fn () => $this->writes()->settle(new SettlePeriodInput('November')));
-        $this->refused('key_invalid', 'period', fn () => $this->writes()->assign(new AssignPaymentInput('m1', 'November')));
-        $this->refused('not_found', null, fn () => $this->writes()->assign(new AssignPaymentInput('m1', '2026-10')));
+        $this->refused('not_found', null, fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->setReturnAmount(new SetReturnAmountInput('2026-10', '1')));
+        $this->refused('key_invalid', 'key', fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->settle(new SettlePeriodInput('November')));
+        $this->refused('key_invalid', 'period', fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->assign(new AssignPaymentInput('m1', 'November')));
+        $this->refused('not_found', null, fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->assign(new AssignPaymentInput('m1', '2026-10')));
         self::assertSame([], $this->events('vat.period.changed'));
     }
 
@@ -88,7 +87,7 @@ final class PeriodWritesTest extends VatTestCase
         self::assertSame([PeriodState::Estimated, null], [$reopened->period->state, $reopened->period->mark]);
         self::assertNull($this->store()->entry('2026-11'));
         self::assertSame(['settled', 'settled', 'reopened'], array_map(static fn (array $event): mixed => $event[1]['what'], $this->events('vat.period.changed')));
-        $this->refused('not_found', null, fn () => $this->writes()->reopen(new ReopenPeriodInput('2026-11')));
+        $this->refused('not_found', null, fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->reopen(new ReopenPeriodInput('2026-11')));
     }
 
     public function testReopeningKeepsTheReturnAmountAndClearingKeepsTheMark(): void
@@ -100,12 +99,12 @@ final class PeriodWritesTest extends VatTestCase
 
         $this->writes()->settle(new SettlePeriodInput('2026-11'));
         $this->writes()->clearReturnAmount(new ClearReturnAmountInput('2026-11'));
-        self::assertInstanceOf(PeriodEntry::class, $this->store()->entry('2026-11'));
+        self::assertNotNull($this->store()->entry('2026-11')->settledAt(), 'Clearing the amount keeps the mark.');
     }
 
     public function testANoteIsAtMost500Characters(): void
     {
-        $this->refused('note_too_long', 'note', fn () => $this->writes()->settle(new SettlePeriodInput('2026-11', str_repeat('é', 501))));
+        $this->refused('note_too_long', 'note', fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->settle(new SettlePeriodInput('2026-11', str_repeat('é', 501))));
         self::assertSame(str_repeat('é', 500), $this->writes()->settle(new SettlePeriodInput('2026-11', str_repeat('é', 500)))->period->mark?->note);
     }
 
@@ -129,13 +128,13 @@ final class PeriodWritesTest extends VatTestCase
             ['m1', ['what' => 'payment_assigned', 'period' => null, 'movement' => 'm1']],
             ['m1', ['what' => 'payment_automatic', 'period' => null, 'movement' => 'm1']],
         ], $this->events('vat.period.changed'));
-        $this->refused('not_found', null, fn () => $this->writes()->reset(new ResetPaymentInput('m1')));
+        $this->refused('not_found', null, fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->reset(new ResetPaymentInput('m1')));
     }
 
     public function testAMovementIdHas1To64Characters(): void
     {
-        $this->refused('movement_id_invalid', 'movementId', fn () => $this->writes()->assign(new AssignPaymentInput('  ', null)));
-        $this->refused('movement_id_invalid', 'movementId', fn () => $this->writes()->reset(new ResetPaymentInput(str_repeat('a', 65))));
+        $this->refused('movement_id_invalid', 'movementId', fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->assign(new AssignPaymentInput('  ', null)));
+        $this->refused('movement_id_invalid', 'movementId', fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->reset(new ResetPaymentInput(str_repeat('a', 65))));
         self::assertSame(str_repeat('a', 64), $this->writes()->assign(new AssignPaymentInput(str_repeat('a', 64), null))->movementId);
     }
 
@@ -143,9 +142,9 @@ final class PeriodWritesTest extends VatTestCase
     {
         $this->signIn($this->guest);
 
-        $this->refused('forbidden', null, fn () => $this->writes()->settle(new SettlePeriodInput('2026-11')));
-        $this->refused('forbidden', null, fn () => $this->writes()->assign(new AssignPaymentInput('m1', null)));
-        $this->refused('forbidden', null, fn () => $this->writes()->reset(new ResetPaymentInput('m1')));
+        $this->refused('forbidden', null, fn (): \Foresi\Vat\Application\PeriodDetail => $this->writes()->settle(new SettlePeriodInput('2026-11')));
+        $this->refused('forbidden', null, fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->assign(new AssignPaymentInput('m1', null)));
+        $this->refused('forbidden', null, fn (): \Foresi\Vat\Application\PaymentAssignmentView => $this->writes()->reset(new ResetPaymentInput('m1')));
     }
 
     private function writes(): PeriodWrites

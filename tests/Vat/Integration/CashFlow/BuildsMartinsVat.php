@@ -17,6 +17,8 @@ use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
+use Foresi\Tests\Vat\Support\FixedDocumentSource;
+use Foresi\Tests\Vat\Support\RecordingPaymentSource;
 use Foresi\Vat\Application\PeriodView;
 use Foresi\Vat\Application\VatAccess;
 use Foresi\Vat\Application\VatPeriods;
@@ -24,8 +26,6 @@ use Foresi\Vat\Application\VatRules;
 use Foresi\Vat\Application\VatStore;
 use Foresi\Vat\Contract\DocumentVat;
 use Foresi\Vat\Contract\PlannedVatSource;
-use Foresi\Vat\Contract\VatDocumentSource;
-use Foresi\Vat\Contract\VatPayments;
 use Foresi\Vat\Contract\VatPaymentSource;
 use Foresi\Vat\Contract\VatSubject;
 use Foresi\Vat\Integration\CashFlow\BankVatPayments;
@@ -49,52 +49,16 @@ trait BuildsMartinsVat
      * and a received one of 1,000 + 210 on 24 November; and a December of
      * 3,000 back from a received invoice of 3,000 VAT.
      *
-     * @param iterable<VatPaymentSource>|null $payments
-     * @param iterable<PlannedVatSource>      $planned
+     * @param iterable<VatPaymentSource>|null                                $payments
+     * @param iterable<PlannedVatSource>                                     $planned
      * @param \ArrayObject<int, array{string, string, string, ?string}>|null $asked
      */
     protected function vat(?iterable $payments = null, iterable $planned = [], ?\ArrayObject $asked = null): VatPeriods
     {
         $container = self::getContainer();
-        $documents = new readonly class([$this->document('2026-11-20', 210_000, 0), $this->document('2026-11-24', 0, 21_000), $this->document('2026-12-10', 0, 300_000)]) implements VatDocumentSource {
-            /**
-             * @param list<DocumentVat> $documents
-             */
-            public function __construct(private array $documents)
-            {
-            }
-
-            public function key(): string
-            {
-                return 'invoicing.issued_vat';
-            }
-
-            public function mayReadDetails(): bool
-            {
-                return true;
-            }
-
-            public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
-            {
-                return $this->documents;
-            }
-        };
+        $documents = new FixedDocumentSource([$this->document('2026-11-20', 210_000, 0), $this->document('2026-11-24', 0, 21_000), $this->document('2026-12-10', 0, 300_000)]);
         $bank = new BankVatPayments(new RuleMovements([new FakeActualSource('banking.movements', $this->movements)]));
-        $payments ??= [null === $asked ? $bank : new readonly class($bank, $asked) implements VatPaymentSource {
-            /**
-             * @param \ArrayObject<int, array{string, string, string, ?string}> $asked
-             */
-            public function __construct(private VatPaymentSource $inner, private \ArrayObject $asked)
-            {
-            }
-
-            public function paymentsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to, string $account, ?string $variableSymbol): VatPayments
-            {
-                $this->asked->append([$from->format('Y-m-d'), $to->format('Y-m-d'), $account, $variableSymbol]);
-
-                return $this->inner->paymentsBetween($from, $to, $account, $variableSymbol);
-            }
-        }];
+        $payments ??= [$asked instanceof \ArrayObject ? new RecordingPaymentSource($bank, $asked) : $bank];
 
         return new VatPeriods($container->get(VatAccess::class), $container->get(VatRules::class), $container->get(FirmVatStatuses::class), $container->get(InstanceClock::class), [$documents], new NullLogger(), $container->get(VatStore::class), $payments, $planned);
     }

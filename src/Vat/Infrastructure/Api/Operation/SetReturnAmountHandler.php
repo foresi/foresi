@@ -10,8 +10,8 @@ namespace Foresi\Vat\Infrastructure\Api\Operation;
 
 use Foresi\Shared\Infrastructure\Operation\OperationHandler;
 use Foresi\Shared\Infrastructure\Operation\OperationOutput;
-use Foresi\Vat\Application\SetReturnAmountInput;
 use Foresi\Vat\Application\PeriodWrites;
+use Foresi\Vat\Application\SetReturnAmountInput;
 use Foresi\Vat\Infrastructure\Api\VatJson;
 
 final readonly class SetReturnAmountHandler implements OperationHandler

@@ -30,9 +30,9 @@ use Foresi\Vat\Contract\VatPayment;
 final class VatSettlement
 {
     /**
-     * @param list<SettlementPeriod>    $periods  oldest first
-     * @param list<VatPayment>          $payments
-     * @param array<string, ?string>    $manual   the period of each movement a person assigned, null for no VAT payment
+     * @param list<SettlementPeriod> $periods  oldest first
+     * @param list<VatPayment>       $payments
+     * @param array<string, ?string> $manual   the period of each movement a person assigned, null for no VAT payment
      *
      * @return array{array<string, list<PaymentView>>, list<PaymentView>} the payments of each period by its key, and those unassigned
      */
@@ -76,7 +76,7 @@ final class VatSettlement
     }
 
     /**
-     * @param list<SettlementPeriod>             $periods
+     * @param list<SettlementPeriod>           $periods
      * @param array<string, list<PaymentView>> $paid
      */
     private static function payable(array $periods, array $paid, string $day): ?string
@@ -96,7 +96,7 @@ final class VatSettlement
     }
 
     /**
-     * @param list<SettlementPeriod>             $periods
+     * @param list<SettlementPeriod>           $periods
      * @param array<string, list<PaymentView>> $paid
      */
     private static function refund(array $periods, array $paid, string $day): ?string

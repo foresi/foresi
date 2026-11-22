@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 use Foresi\Vat\Application\VatPeriods;
 use Foresi\Vat\Application\VatRules;
-use Foresi\Vat\Contract\VatCountryRules;
 use Foresi\Vat\Contract\PlannedVatSource;
+use Foresi\Vat\Contract\VatCountryRules;
 use Foresi\Vat\Contract\VatDocumentSource;
 use Foresi\Vat\Contract\VatPaymentSource;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;

@@ -32,12 +32,12 @@ final readonly class PeriodList
     public const array KNOWN_GAPS = ['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'];
 
     /**
-     * @param list<PeriodView> $periods            oldest first
-     * @param list<string>     $warnings
-     * @param list<string>     $unverified
-     * @param list<string>     $unavailableSources
+     * @param list<PeriodView>        $periods            oldest first
+     * @param list<string>            $warnings
+     * @param list<string>            $unverified
+     * @param list<string>            $unavailableSources
      * @param list<string>            $knownGaps
-     * @param list<PaymentView>       $unassigned oldest first
+     * @param list<PaymentView>       $unassigned         oldest first
      * @param list<PossibleDuplicate> $duplicates
      */
     public function __construct(

@@ -91,6 +91,6 @@ class PeriodEntry implements Audited
 
     public function isEmpty(): bool
     {
-        return null === $this->returnAmountMinor && null === $this->settledAt;
+        return null === $this->returnAmountMinor && !$this->settledAt instanceof \DateTimeImmutable;
     }
 }

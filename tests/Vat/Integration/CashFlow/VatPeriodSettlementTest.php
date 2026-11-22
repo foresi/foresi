@@ -12,33 +12,22 @@ use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\FlowSubject;
-use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Domain\VatStatus;
-use Foresi\Shared\Domain\Currency;
-use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
 use Foresi\Tests\Vat\Support\VatTestCase;
 use Foresi\Vat\Application\PaymentView;
 use Foresi\Vat\Application\PeriodState;
 use Foresi\Vat\Application\PeriodView;
-use Foresi\Vat\Application\VatAccess;
 use Foresi\Vat\Application\VatPeriods;
-use Foresi\Vat\Application\VatRules;
-use Foresi\Vat\Application\VatStore;
-use Foresi\Vat\Contract\DocumentVat;
 use Foresi\Vat\Contract\PlannedVatSource;
 use Foresi\Vat\Contract\PossibleDuplicate;
-use Foresi\Vat\Contract\VatDocumentSource;
 use Foresi\Vat\Contract\VatPayments;
 use Foresi\Vat\Contract\VatPaymentSource;
-use Foresi\Vat\Contract\VatSubject;
 use Foresi\Vat\Domain\PaymentAssignment;
 use Foresi\Vat\Domain\PeriodEntry;
 use Foresi\Vat\Domain\VatSettings;
 use Foresi\Vat\Integration\CashFlow\BankVatPayments;
-use Psr\Log\NullLogger;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 
@@ -194,9 +183,12 @@ final class VatPeriodSettlementTest extends VatTestCase
 
     public function testWithoutAnOfficeAccountNothingMatches(): void
     {
-        $this->em->remove($this->em->find(VatSettings::class, VatSettings::ID));
+        $settings = $this->em->find(VatSettings::class, VatSettings::ID);
+        self::assertInstanceOf(VatSettings::class, $settings);
+        $this->em->remove($settings);
         $this->em->flush();
         $this->paid('m1', '2026-12-20', 1_890);
+        /** @var \ArrayObject<int, array{string, string, string, ?string}> $asked */
         $asked = new \ArrayObject();
 
         $list = $this->vat(asked: $asked)->list('2026-11', '2026-11');
@@ -209,6 +201,7 @@ final class VatPeriodSettlementTest extends VatTestCase
     {
         $this->paid('m1', '2026-12-20', 1_000);
         $this->paid('m2', '2026-12-27', 890);
+        /** @var \ArrayObject<int, array{string, string, string, ?string}> $asked */
         $asked = new \ArrayObject();
 
         $december = $this->vat(asked: $asked)->list('2026-12', '2026-12');
@@ -221,12 +214,13 @@ final class VatPeriodSettlementTest extends VatTestCase
     {
         $this->em->find(VatSettings::class, VatSettings::ID)?->change(self::OFFICE, '');
         $this->em->flush();
+        /** @var \ArrayObject<int, array{string, string, string, ?string}> $asked */
         $asked = new \ArrayObject();
         $this->paid('m1', '2026-12-20', 1_890, '42');
 
         $november = $this->vat(asked: $asked)->list('2026-11', '2026-11')->periods[0];
 
-        self::assertNull($asked[0][3]);
+        self::assertSame([['2026-11-01', '2027-01-05', self::OFFICE, null]], $asked->getArrayCopy());
         self::assertSame(PeriodState::Settled, $november->state);
     }
 

@@ -116,8 +116,12 @@ abstract class VatTestCase extends KernelTestCase
             $data = json_decode($row[EventLogTable::DATA], true, flags: \JSON_THROW_ON_ERROR);
             self::assertIsArray($data);
 
-            /* @var array<string, mixed> $data */
-            return [$row[EventLogTable::SUBJECT_ID], $data];
+            $facts = [];
+            foreach ($data as $fact => $value) {
+                $facts[(string) $fact] = $value;
+            }
+
+            return [$row[EventLogTable::SUBJECT_ID], $facts];
         }, $rows);
     }
 

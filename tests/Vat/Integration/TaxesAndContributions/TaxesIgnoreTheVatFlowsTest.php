@@ -37,7 +37,7 @@ final class TaxesIgnoreTheVatFlowsTest extends TestCase
 
         new ForecastAmounts($reader)->between(new \DateTimeImmutable('2027-01-05'), new \DateTimeImmutable('2027-12-31'));
 
-        self::assertContains(FlowCategory::Vat, $reader->query?->excludeCategories ?? []);
-        self::assertNotContains(FlowCertainty::Estimate, $reader->query?->certainties ?? [FlowCertainty::Estimate]);
+        self::assertContains(FlowCategory::Vat, $reader->query->excludeCategories ?? []);
+        self::assertNotContains(FlowCertainty::Estimate, $reader->query->certainties ?? [FlowCertainty::Estimate]);
     }
 }

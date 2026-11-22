@@ -13,8 +13,8 @@ use Foresi\CashFlow\Contract\FoundMovement;
 use Foresi\CashFlow\Contract\MovementFinder;
 use Foresi\CashFlow\Contract\MovementRule;
 use Foresi\Vat\Contract\VatPayment;
-use Foresi\Vat\Contract\VatPaymentSource;
 use Foresi\Vat\Contract\VatPayments;
+use Foresi\Vat\Contract\VatPaymentSource;
 
 /**
  * The bank movements to and from the tax office, found by the cash flow's
