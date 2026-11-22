@@ -15,6 +15,7 @@ use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 
 /**
  * An invoice is paid once, when a payment, or the cancelling of one, moves it

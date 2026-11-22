@@ -25,6 +25,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 use Symfony\Component\Clock\MockClock;
 
 /**
