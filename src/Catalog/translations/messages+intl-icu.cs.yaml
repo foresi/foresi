@@ -1,0 +1,91 @@
+nav:
+  item:
+    products: Produkty
+catalog:
+  cancel: Zrušit
+  save: Uložit
+  billing_kind:
+    one_off: Jednorázově
+    recurring: Opakovaně
+  products:
+    title: Produkty
+    views: Pohledy na produkty
+    tab:
+      all: Vše
+      one_off: Jednorázové
+      recurring: Opakované
+      archived: Archiv
+    field:
+      archived: Archivovaný
+    column:
+      name: Název
+      unit: Jednotka
+      unitPrice: Cena za jednotku
+      billing: Fakturace
+    empty:
+      title: Zatím žádné produkty
+      text: Přidejte, co prodáváte, s jednotkou, cenou a způsobem fakturace, ať je můžete použít v obchodech.
+      filtered_title: Filtru neodpovídá žádný produkt
+      reset: Zrušit filtr
+      archived_title: Žádné archivované produkty
+      view_title: V tomto pohledu není žádný produkt
+  product:
+    new: Nový produkt
+    create: Vytvořit produkt
+    edit: Upravit
+    archive: Archivovat
+    restore: Obnovit
+    archived: Archivovaný
+    detail: Produkt
+    field:
+      name: Název
+      unit: Jednotka
+      unit_help: Třeba hodina, kus nebo měsíc.
+      unit_price: Cena za jednotku
+      unit_price_help: Bez DPH; nechte prázdné, když se cena dohodne pokaždé.
+      currency: Měna
+      billing_kind: Fakturace
+      billing: Fakturace
+      interval: Každých
+      recurrence_unit: Období
+      cycles: Kolikrát
+      cycles_help: Nechte prázdné, když nekončí.
+      description: Popis
+    none:
+      unit: Bez jednotky
+      unit_price: Dohodne se pokaždé
+      description: Bez popisu
+    unit_of_time:
+      day: Dny
+      week: Týdny
+      month: Měsíce
+      year: Roky
+    every:
+      day: '{count, plural, one {Každý den} few {Každé # dny} other {Každých # dní}}'
+      week: '{count, plural, one {Každý týden} few {Každé # týdny} other {Každých # týdnů}}'
+      month: '{count, plural, one {Každý měsíc} few {Každé # měsíce} other {Každých # měsíců}}'
+      year: '{count, plural, one {Každý rok} few {Každé # roky} other {Každých # let}}'
+    billing_open: '{every}, bez konce'
+    billing_cycles: '{every}, {count, plural, one {jednou} few {#krát} other {#krát}}'
+    flash:
+      created: 'Produkt {name} je v katalogu.'
+      saved: Produkt je uložený.
+      archived: Produkt je v archivu. Do nových obchodů se už nenabízí.
+      restored: Produkt je obnovený.
+    error:
+      name_required: Zadejte název.
+      name_too_long: Název má nejvýš 200 znaků.
+      unit_too_long: Jednotka má nejvýš 32 znaků.
+      description_too_long: Popis má nejvýš 2 000 znaků.
+      billing_kind_unknown: Vyberte jednorázově, nebo opakovaně.
+      currency_unknown: Vyberte měnu.
+      unit_price_invalid: Zadejte cenu jako číslo s nejvýš dvěma desetinnými místy, třeba 1500,00.
+      unit_price_negative: Cena je nula nebo víc.
+      one_off_recurrence: Jednorázový produkt nemá období.
+      recurrence_unit_required: Vyberte období.
+      recurrence_unit_unknown: Vyberte dny, týdny, měsíce, nebo roky.
+      interval_required: Zadejte, jak často se fakturuje, 1 pro každé období.
+      interval_invalid: Zadejte celé číslo od 1 do 99.
+      cycles_invalid: Zadejte celé číslo od 1 do 999, nebo nechte prázdné, když nekončí.
+      not_found: Produkt neexistuje.
+      forbidden: S katalogem pracují jen vlastníci a členové.
