@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new document type, or a change of one: its name, its code (set once, as an API name is), whether
+    its documents are signed and at which level of electronic signature. A dialog over the settings;
+    the same URL is a page. Variables: type (null for a new one), values, errors, levels, action.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = type ? 'documents.settings.edit_type'|trans({name: type.name}) : 'documents.settings.new_type'|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'documents.settings.title'|trans, href: path('app_document_settings')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="type-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) }}">
+        <twig:Ui:TextInput name="name" id="name" :label="'documents.settings.field.name'|trans" :placeholder="'documents.settings.field.name_placeholder'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="120" autocomplete="off" required />
+        {% if type %}
+            <div class="grid gap-1">
+                <p class="m-0 text-small text-ink">{{ 'documents.settings.field.code'|trans }}</p>
+                <p class="m-0 font-medium text-ink"><code>{{ type.code }}</code></p>
+            </div>
+        {% else %}
+            <twig:Ui:TextInput name="code" id="code" :label="'documents.settings.field.code'|trans" :help="'documents.settings.field.code_help'|trans" :value="values.code" :error="errors.code|default(null)" maxlength="40" autocomplete="off" required />
+        {% endif %}
+        <twig:Ui:Checkbox name="needsSigning" id="needsSigning" value="1" :checked="values.needsSigning == '1'" :label="'documents.settings.field.needs_signing'|trans" />
+        <twig:Ui:Select name="signatureLevel" id="signatureLevel" :label="'documents.settings.field.level'|trans" :help="'documents.settings.field.level_help'|trans" :options="levels" :value="values.signatureLevel" :error="errors.signatureLevel|default(null)" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="type-form" variant="primary">{{ 'documents.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="file-text" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_document_settings')">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="type-form" variant="primary">{{ 'documents.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

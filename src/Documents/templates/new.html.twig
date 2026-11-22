@@ -1,0 +1,61 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new document: its type, a template of that type (the templates are grouped under their type's
+    name), its title, and the record it belongs to when it was opened from one
+    (?link_kind=contact&link_id=...), shown as text and sent along, as Pipedrive creates a Smart Doc
+    from a deal's Documents tab with the deal filled in. A dialog over the page it was opened from;
+    the same URL is a page. Variables: values, errors, link, linkView, types, templates.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'documents.action.new'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'documents.list.title'|trans, href: path('app_documents')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="document-form" action="{{ path('app_document_new') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) }}">
+        {% if link %}
+            <input type="hidden" name="link_kind" value="{{ link.kind }}">
+            <input type="hidden" name="link_id" value="{{ link.id }}">
+        {% endif %}
+        {% if errors.links is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.links }}</twig:Ui:Alert>
+        {% endif %}
+        {% if types is empty %}
+            <twig:Ui:Alert tone="info">{{ 'documents.empty.no_types_text'|trans }} <a href="{{ path('app_document_settings') }}" class="font-medium text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'documents.empty.no_types_action'|trans }}</a></twig:Ui:Alert>
+        {% endif %}
+        <twig:Ui:Select name="typeId" id="typeId" :label="'documents.field.type'|trans" :options="types" :value="values.typeId" :error="errors.typeId|default(null)" required />
+        <twig:Ui:Select name="templateId" id="templateId" :label="'documents.field.template'|trans" :help="'documents.field.template_help'|trans" :options="templates" :value="values.templateId" :error="errors.templateId|default(null)" required />
+        <twig:Ui:TextInput name="title" id="title" :label="'documents.field.title'|trans" :placeholder="'documents.field.title_placeholder'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="200" autocomplete="off" required />
+        {% if linkView %}
+            <div class="grid gap-1" data-document-link>
+                <p class="m-0 text-small text-ink">{{ 'documents.field.link'|trans }}</p>
+                {% if linkView.available %}
+                    <p class="m-0 font-medium text-ink">{{ linkView.label }}</p>
+                {% else %}
+                    <p class="m-0 text-muted" data-document-link-unavailable>{{ 'documents.link.unavailable'|trans({kind: linkView.kind}) }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="document-form" variant="primary">{{ 'documents.create'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="plus" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_documents')">{{ 'documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="document-form" variant="primary">{{ 'documents.create'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

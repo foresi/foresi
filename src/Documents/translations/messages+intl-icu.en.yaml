@@ -1,0 +1,236 @@
+nav:
+    item:
+        documents: Documents
+        document_settings: Documents
+documents:
+    pdf:
+        footer: 'Page {page} of {pages}'
+    cancel: Cancel
+    keep: Keep
+    save: Save
+    create: Create
+    list:
+        title: Documents
+        more: 'Showing the newest 200 documents. Narrow the list with the filters.'
+    column:
+        title: Title
+        type: Type
+        status: Status
+        links: Belongs to
+        created: Created
+    status:
+        draft: Draft
+        ready: Ready
+        out_for_signature: Out for signature
+        completed: Completed
+        declined: Declined
+        cancelled: Cancelled
+        expired: Expired
+    filter:
+        type: Type
+        status: Status
+        any_type: All types
+        any_status: All statuses
+    empty:
+        title: No documents yet
+        text: 'Create a document from a template, generate its PDF and record who signed it.'
+        filtered_title: No documents match the filters
+        reset: Clear the filters
+        no_types_title: No document types yet
+        no_types_text: 'Documents are made from templates of a document type. Add a type and a template first.'
+        no_types_action: Open the document settings
+    action:
+        new: New document
+        generate: Generate
+        send: Mark sent
+        signed_copy: Upload signed copy
+        add_signer: Add signer
+        mark_signed: 'Mark {name} signed'
+        cancel: Cancel document
+        again: Generate again
+        open_pdf: Open the PDF
+        open_signed: Open the signed copy
+    field:
+        type: Type
+        template: Template
+        template_help: The templates are grouped by document type.
+        title: Title
+        title_placeholder: 'NDA with Example Ltd'
+        link: Belongs to
+    link:
+        unavailable: 'Unavailable record ({kind})'
+        unavailable_short: Unavailable record
+    links:
+        title: Belongs to
+    none:
+        links: Not linked to any record
+        generated: Not generated yet
+        sent: Not sent yet
+        completed: Not completed yet
+    detail:
+        title: Details
+        template_version: '{name}, version {number}'
+        created: Created
+        generated: Generated
+        sent: Sent
+        completed: Completed
+    preview:
+        pdf: Generated PDF
+        draft: Preview
+        draft_note: 'The template filled with the values of the linked records. Generate freezes it as a PDF.'
+        signed_copy: 'The signed copy is stored.'
+    signers:
+        title: Signers
+        none: 'No signers yet. Add who signs, with their order.'
+        order: 'Order {order}'
+        parallel: sign at the same time
+        order_note: 'Signers of one order sign at the same time; the orders follow each other. The order is shown, not enforced.'
+        signed: Signed
+        add: Add
+        edit: Edit
+        edit_label: 'Edit {name}'
+        edit_title: 'Edit {name}'
+        remove: Remove
+        remove_label: 'Remove {name}'
+    signer:
+        field:
+            name: Name
+            email: E-mail
+            side: Signs for
+            order: Order
+            order_help: 'Signers of one order sign at the same time, 1 to 99.'
+        side:
+            ours: Our side
+            theirs: The other party
+        status:
+            pending: Waiting
+            signed: Signed
+            signed_on: 'Signed {day}'
+            declined: Declined
+    signed_copy:
+        description: 'The PDF with every signature. From a ready document it also marks the document sent.'
+        file: Signed PDF
+        help: 'A PDF of up to 10 MB.'
+        submit: Upload
+    confirm:
+        cancel_title: 'Cancel {title}?'
+        cancel_text: 'A cancelled document stays in the history and cannot be signed. Generate it again for a new one.'
+        remove_signer_title: 'Remove {name} from the signers?'
+    record:
+        title: Documents
+        empty_title: No documents yet
+        empty_text: 'Create one for this record with New document.'
+    flash:
+        created: 'Document {title} was created.'
+        generated: The PDF was generated and the document is ready.
+        sent: The document is marked sent.
+        signed_copy: The signed copy is stored.
+        cancelled: The document was cancelled.
+        again: A new draft was made from the document.
+        signer_added: '{name} was added to the signers.'
+        signer_saved: 'The signer {name} was saved.'
+        signer_removed: The signer was removed.
+        signer_signed: The signature is recorded.
+    error:
+        forbidden: Only the owners and members of the organisation work with documents.
+        not_found: The document was not found.
+        invalid:
+            title: 'Enter the title, up to 200 characters.'
+            name: 'Enter the name, up to 160 characters.'
+            email: 'Enter a valid e-mail address, or leave it empty.'
+            order: 'The order is a whole number from 1 to 99.'
+            margin: 'A margin is a whole number of millimetres from 0 to 60.'
+            marginTop: 'A margin is a whole number of millimetres from 0 to 60.'
+            body: 'Enter the template, up to 200,000 bytes.'
+            code: 'The code is a lowercase identifier of up to 40 characters, such as nda.'
+        type_unknown: Choose a document type.
+        template_unknown: Choose a template of the type chosen.
+        link_invalid: The record this document belongs to is not valid.
+        link_kind_unknown: 'No installed module offers records of this kind ({kind}), so the document cannot belong to it.'
+        link_target_unknown: The record this document belongs to does not exist.
+        not_draft: Only a draft can change; a generated document is frozen. Cancel it and generate it again instead.
+        not_ready: Only a generated document that is ready can be marked sent.
+        not_final: Only a completed, declined or cancelled document can be generated again.
+        not_signable: Signatures are recorded on a generated document that is ready or out for signature.
+        final: A completed, declined or cancelled document cannot change.
+        signed_copy_exists: The document already has its signed copy.
+        signer_not_pending: This signer already signed or declined.
+        signer_unknown: The document has no such signer.
+        side_unknown: Choose the side the signer signs for.
+        file_invalid: Choose the signed PDF.
+        file_too_large: The signed copy is larger than 10 MB.
+        file_not_pdf: The signed copy must be a PDF.
+        template_variables_missing: 'The template uses variables with no value for this document. Link the record they come from, or change the template:'
+        template_not_allowed: The template uses something templates cannot use. They may use the tags if, for and set, the filters listed in the documentation, and the variables beside the editor.
+        template_failed: The template could not be filled.
+        code_taken: Another document type has this code; codes are unique.
+        signature_level_unknown: Choose the level of signature.
+        paper_unknown: Choose the paper.
+    settings:
+        title: Documents
+        types: Document types
+        templates: Templates
+        types_empty: No document types yet
+        templates_empty: No templates yet
+        templates_empty_text: 'A template is the HTML of a document, with variables such as the client name filled in when it is generated.'
+        new_type: New type
+        edit_type: 'Edit {name}'
+        new_template: New template
+        template_of: 'A template of the type {type}.'
+        archived: Archived
+        not_signed: Not signed
+        version: 'Version {number}'
+        version_editing: 'You are editing version {number}. Saving changes it in place until a document is generated from it.'
+        version_frozen: 'Version {number} is used by generated documents and stays as it is. Saving makes version {next}.'
+        variables: Variables
+        variables_help: 'Click a variable to put it at the cursor.'
+        variables_none: 'No installed module offers variables yet. The template can still hold plain text.'
+        example: 'Example: {example}'
+        preview: Preview
+        preview_help: The template filled with the examples of the variables.
+        column:
+            name: Name
+            code: Code
+            signing: Signing
+            type: Type
+            version: Version
+        level:
+            simple: Simple signature
+            advanced: Advanced signature
+            qualified: Qualified signature
+        paper:
+            a4: A4
+            letter: Letter
+        field:
+            name: Name
+            name_placeholder: Service contract
+            code: Code
+            code_help: 'Lowercase, such as service_contract; it never changes.'
+            needs_signing: Documents of this type are signed
+            level: Level of signature
+            level_help: 'Simple is enough for most contracts between firms.'
+            template_name: Name
+            template_name_placeholder: 'NDA, English'
+            body: HTML source
+            body_help: 'The variables are filled in when a document is generated.'
+            paper: Paper
+            landscape: Landscape
+            marginTop: Top margin (mm)
+            marginRight: Right margin (mm)
+            marginBottom: Bottom margin (mm)
+            marginLeft: Left margin (mm)
+        action:
+            edit: Edit
+            edit_template: Open the editor
+            archive: Archive
+        confirm:
+            archive_type: 'Archive the type {name}?'
+            archive_type_text: 'No new documents are made of an archived type; its documents stay.'
+            archive_template: 'Archive the template {name}?'
+            archive_template_text: 'No new documents are made from an archived template; its documents stay.'
+        flash:
+            type_saved: 'The type {name} was saved.'
+            type_archived: 'The type {name} was archived.'
+            template_created: 'The template {name} was created.'
+            template_saved: 'The template was saved as version {number}.'
+            template_archived: 'The template {name} was archived.'

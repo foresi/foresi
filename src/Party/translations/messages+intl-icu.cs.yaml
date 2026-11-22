@@ -109,6 +109,20 @@ party:
     addresses: Adresy
     bank-accounts: Bankovní účty
     history: Historie
+    documents: Dokumenty
+  document_variable:
+    firm:
+      name: 'Název firmy'
+      address_lines: 'Adresa firmy po řádcích'
+      registration_number: 'IČO firmy'
+      vat_id: 'DIČ firmy'
+      bank_account: 'Bankovní účet firmy (IBAN)'
+    client:
+      name: 'Název klienta'
+      address_lines: 'Adresa klienta po řádcích'
+      registration_number: 'IČO klienta'
+      vat_id: 'DIČ klienta'
+      persons: 'Kontaktní osoby klienta'
   card:
     identification: Identifikace
     contact: Kontakt

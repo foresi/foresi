@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Infrastructure\Events\BankingEventAccess;
 use Foresi\CashFlow\Infrastructure\Events\CashFlowEventAccess;
 use Foresi\Catalog\Infrastructure\Events\CatalogEventAccess;
+use Foresi\Documents\Infrastructure\Events\DocumentsEventAccess;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
@@ -195,7 +196,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services
         // of the installed modules say no.
-        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', TaxesEventAccess::class => 'taxes-and-contributions', WorkEventAccess::class => 'work'] as $service => $module) {
+        foreach ([BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'documents', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', TaxesEventAccess::class => 'taxes-and-contributions', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }

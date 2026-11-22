@@ -44,7 +44,7 @@ final class ContactTabsTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testCoreTabsUnchangedWithoutProviders(): void
+    public function testCoreTabsComeFirst(): void
     {
         $id = $this->contact()->id();
 
@@ -57,7 +57,7 @@ final class ContactTabsTest extends WebTestCase
             ['Addresses', '/contacts/'.$id.'?tab=addresses'],
             ['Bank accounts', '/contacts/'.$id.'?tab=bank-accounts'],
             ['History', '/contacts/'.$id.'?tab=history'],
-        ], $this->tabs($crawler));
+        ], \array_slice($this->tabs($crawler), 0, 5));
         self::assertSame('Addresses', trim($crawler->filter('main nav[aria-label="Contact sections"] [aria-current="page"]')->text()));
         self::assertCount(0, $crawler->filter('turbo-frame#'.ContactTabs::FRAME));
     }
@@ -69,8 +69,10 @@ final class ContactTabsTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/contacts/'.$id);
         $tabs = $this->tabs($crawler);
-        self::assertCount(6, $tabs);
+        // The Documents module, installed here, adds its tab after the deals.
+        self::assertCount(7, $tabs);
         self::assertSame(['Deals', '/contacts/'.$id.'?tab=deals'], $tabs[5]);
+        self::assertSame(['Documents', '/contacts/'.$id.'?tab=documents'], $tabs[6]);
         self::assertSame('Overview', trim($crawler->filter('main nav[aria-label="Contact sections"] [aria-current="page"]')->text()));
         self::assertSelectorTextContains('main', 'Billing address');
 

@@ -6,10 +6,10 @@ declare(strict_types=1);
 
 /*
  * Builds the font definitions tc-lib-pdf reads from the Inter release and writes
- * them to src/Invoicing/resources/pdf-fonts/. The output is committed, so a running installation
+ * them to src/Shared/resources/pdf-fonts/. The output is committed, so a running installation
  * never needs this script, and running it on the same release gives the same files.
  *
- * Source: Inter 4.1, SIL Open Font License 1.1 (src/Invoicing/resources/pdf-fonts/OFL.txt).
+ * Source: Inter 4.1, SIL Open Font License 1.1 (src/Shared/resources/pdf-fonts/OFL.txt).
  *   https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
  * The archive and each face taken from it are checked by SHA-256 below.
  *
@@ -52,7 +52,7 @@ if (true !== $zip->open($archive)) {
     $fail('The archive cannot be opened.');
 }
 
-$output = dirname(__DIR__).'/src/Invoicing/resources/pdf-fonts';
+$output = dirname(__DIR__).'/src/Shared/resources/pdf-fonts';
 $work = sys_get_temp_dir().'/foresi-fonts-'.bin2hex(random_bytes(6));
 if (!mkdir($work, 0o700)) {
     $fail("Cannot create $work");

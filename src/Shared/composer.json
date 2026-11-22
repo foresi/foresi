@@ -52,6 +52,7 @@
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
+        "tecnickcom/tc-lib-pdf": "^8.82.2",
         "twig/twig": "^3.30",
         "zircote/swagger-php": "^7.5"
     },

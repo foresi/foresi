@@ -1,0 +1,179 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One document, a record (docs/design/overlays.md): a row of the list opens it in the side sheet; the
+    same URL is a page. The header carries what its status allows next, as PandaDoc and DocuSign move a
+    document from draft to sent to completed: Generate a draft; Mark sent and Upload signed copy once it
+    is ready; mark a pending signer signed; Cancel after asking; Generate again once it is final.
+    The preview is the generated PDF, or for a draft the template filled with the values of its links,
+    in a sandboxed frame. The signers are grouped by their order, as DocuSign's routing order: one
+    order signs at the same time, the orders follow each other; the order is shown, not enforced.
+    A link whose record is gone shows as unavailable. Variables: document, status, details, links,
+    signing, groups, pending, draftPreview, final, signable.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'documents.list.title'|trans, href: path('app_documents')}, {label: document.title}] %}
+{% set token = csrf_token(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::TOKEN')) %}
+{% set record_reload = true %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set uploadable = signing and signable and document.signedAttachmentId is null %}
+
+{% block title %}{{ document.title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="document-actions">
+        <twig:block name="primary">
+            {% if document.status.value == 'draft' %}
+                <form method="post" action="{{ path('app_document_generate', {id: document.id}) }}" data-document-generate>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="file-text" :size="record_action_size">{{ 'documents.action.generate'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif document.status.value == 'ready' and signing %}
+                <form method="post" action="{{ path('app_document_send', {id: document.id}) }}" data-document-send>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="send" :size="record_action_size">{{ 'documents.action.send'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif uploadable %}
+                <twig:Ui:Button variant="primary" icon="upload" :size="record_action_size" :href="path('app_document_signed_copy', {id: document.id})" data-dialog aria-haspopup="dialog" data-document-signed-copy>{{ 'documents.action.signed_copy'|trans }}</twig:Ui:Button>
+            {% elseif final %}
+                <form method="post" action="{{ path('app_document_again', {id: document.id}) }}" data-document-again>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="refresh-cw" :size="record_action_size">{{ 'documents.action.again'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            {% if uploadable and document.status.value == 'ready' %}
+                <twig:Ui:Button icon="upload" :size="record_action_size" :href="path('app_document_signed_copy', {id: document.id})" data-dialog aria-haspopup="dialog" data-document-signed-copy>{{ 'documents.action.signed_copy'|trans }}</twig:Ui:Button>
+            {% endif %}
+            {% if signing and not final %}
+                <twig:Ui:Button icon="user-plus" :size="record_action_size" :href="path('app_document_signer_new', {id: document.id})" data-dialog aria-haspopup="dialog" data-signer-add>{{ 'documents.action.add_signer'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            {% if uploadable and document.status.value == 'ready' %}
+                <twig:Ui:MenuItem icon="upload" :href="path('app_document_signed_copy', {id: document.id})" data-dialog aria-haspopup="dialog">{{ 'documents.action.signed_copy'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+            {% if signing and not final %}
+                <twig:Ui:MenuItem icon="user-plus" :href="path('app_document_signer_new', {id: document.id})" data-dialog aria-haspopup="dialog">{{ 'documents.action.add_signer'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+        {% if signing and signable %}
+            {% for signer in pending %}
+                <form method="post" action="{{ path('app_document_signer_signed', {id: document.id, signerId: signer.id}) }}" role="none" data-signer-mark-signed="{{ signer.id }}">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="check">{{ 'documents.action.mark_signed'|trans({name: signer.name}) }}</twig:Ui:MenuItem>
+                </form>
+            {% endfor %}
+        {% endif %}
+        {% if document.pdfAttachmentId %}
+            <twig:Ui:MenuItem icon="file-down" :href="path('app_attachment', {id: document.pdfAttachmentId})" data-turbo="false">{{ 'documents.action.open_pdf'|trans }}</twig:Ui:MenuItem>
+        {% endif %}
+        {% if document.signedAttachmentId %}
+            <twig:Ui:MenuItem icon="file-signature" :href="path('app_attachment', {id: document.signedAttachmentId})" data-turbo="false">{{ 'documents.action.open_signed'|trans }}</twig:Ui:MenuItem>
+        {% endif %}
+        <twig:block name="last">
+            {% if not final %}
+                <form method="post" action="{{ path('app_document_cancel', {id: document.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    data-confirm-title="{{ 'documents.confirm.cancel_title'|trans({title: document.title}) }}" data-confirm-text="{{ 'documents.confirm.cancel_text'|trans }}"
+                    data-confirm-accept="{{ 'documents.action.cancel'|trans }}" data-confirm-cancel="{{ 'documents.keep'|trans }}" data-confirm-tone="danger" data-document-cancel>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" tone="danger" icon="x">{{ 'documents.action.cancel'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {{ include('@Documents/_flashes.html.twig') }}
+
+        <div class="flex flex-wrap items-center gap-2">
+            <twig:Ui:Badge :tone="status.tone" data-document-status>{{ status.label }}</twig:Ui:Badge>
+        </div>
+
+        <section class="grid gap-2" aria-labelledby="document-preview-title" data-document-preview-section>
+            <h2 id="document-preview-title" class="m-0 text-body font-semibold text-ink">{{ (document.pdfAttachmentId ? 'documents.preview.pdf' : 'documents.preview.draft')|trans }}</h2>
+            {% if document.pdfAttachmentId %}
+                <iframe src="{{ path('app_attachment', {id: document.pdfAttachmentId}) }}" title="{{ document.title }}" class="block h-dvh max-h-[75vh] w-full rounded-panel border border-container bg-white" data-document-preview="pdf"></iframe>
+                {% if document.signedAttachmentId %}
+                    <p class="m-0 text-small text-muted">{{ 'documents.preview.signed_copy'|trans }} <a href="{{ path('app_attachment', {id: document.signedAttachmentId}) }}" data-turbo="false" class="font-medium text-current underline underline-offset-2 {{ focus }}" data-document-signed-copy-link>{{ 'documents.action.open_signed'|trans }}</a></p>
+                {% endif %}
+            {% elseif draftPreview and draftPreview.html %}
+                <p class="m-0 text-small text-muted">{{ 'documents.preview.draft_note'|trans }}</p>
+                <iframe sandbox="" srcdoc="{{ draftPreview.html }}" title="{{ document.title }}" class="block h-dvh max-h-[75vh] w-full rounded-panel border border-container bg-white" data-document-preview="template"></iframe>
+            {% elseif draftPreview %}
+                <twig:Ui:Alert tone="error" data-document-preview-refused>{{ draftPreview.error }}</twig:Ui:Alert>
+            {% endif %}
+        </section>
+
+        <twig:Ui:Card :title="'documents.detail.title'|trans" icon="file-text">
+            <twig:Ui:DescriptionList :items="details" />
+        </twig:Ui:Card>
+
+        <section class="grid gap-2" aria-labelledby="document-links-title" data-document-links>
+            <h2 id="document-links-title" class="m-0 text-body font-semibold text-ink">{{ 'documents.links.title'|trans }}</h2>
+            {% if links is empty %}
+                <p class="m-0 text-small text-muted">{{ 'documents.none.links'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for link in links %}
+                        <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 last:border-b-0" data-document-link="{{ link.kind }}">
+                            {% if link.available and link.url %}
+                                <a href="{{ link.url }}" data-turbo-frame="_top" class="min-w-0 truncate font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.label }}</a>
+                            {% elseif link.available %}
+                                <span class="min-w-0 truncate font-medium text-ink">{{ link.label }}</span>
+                            {% else %}
+                                <span class="min-w-0 truncate text-muted" data-document-link-unavailable>{{ 'documents.link.unavailable'|trans({kind: link.kind}) }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        {% if signing %}
+            <section class="grid gap-2" aria-labelledby="document-signers-title" data-document-signers>
+                <h2 id="document-signers-title" class="m-0 text-body font-semibold text-ink">{{ 'documents.signers.title'|trans }}</h2>
+                {% if groups is empty %}
+                    <p class="m-0 text-small text-muted" data-document-signers-empty>{{ 'documents.signers.none'|trans }}</p>
+                {% else %}
+                    <p class="m-0 text-caption text-muted">{{ 'documents.signers.order_note'|trans }}</p>
+                    {% for group in groups %}
+                        <div class="grid gap-1" data-signer-order="{{ group.order }}">
+                            <h3 class="m-0 text-small font-semibold text-ink">{{ 'documents.signers.order'|trans({order: group.order}) }}{% if group.parallel %} <span class="font-normal text-muted">· {{ 'documents.signers.parallel'|trans }}</span>{% endif %}</h3>
+                            <ul class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                                {% for signer in group.signers %}
+                                    <li class="flex min-h-row flex-wrap items-center gap-x-3 gap-y-1 border-b border-divider px-4 py-2 last:border-b-0" data-signer="{{ signer.id }}">
+                                        <div class="grid min-w-0 flex-1 gap-0.5">
+                                            <span class="min-w-0 truncate font-medium text-ink" data-signer-name>{{ signer.name }}</span>
+                                            <span class="min-w-0 truncate text-small text-muted">{{ signer.side }}{% if signer.email %} · {{ signer.email }}{% endif %}</span>
+                                        </div>
+                                        <twig:Ui:Badge :tone="signer.badge.tone" data-signer-status="{{ signer.status }}">{{ signer.badge.label }}</twig:Ui:Badge>
+                                        {% if signer.pending and not final %}
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                {% if signable %}
+                                                    <form method="post" action="{{ path('app_document_signer_signed', {id: document.id, signerId: signer.id}) }}" data-signer-row-signed>
+                                                        <input type="hidden" name="_token" value="{{ token }}">
+                                                        <twig:Ui:Button type="submit" size="sm" :aria-label="'documents.action.mark_signed'|trans({name: signer.name})">{{ 'documents.signers.signed'|trans }}</twig:Ui:Button>
+                                                    </form>
+                                                {% endif %}
+                                                <twig:Ui:Button size="sm" variant="ghost" :href="path('app_document_signer_edit', {id: document.id, signerId: signer.id})" data-dialog aria-haspopup="dialog" :aria-label="'documents.signers.edit_label'|trans({name: signer.name})" data-signer-edit>{{ 'documents.signers.edit'|trans }}</twig:Ui:Button>
+                                                <form method="post" action="{{ path('app_document_signer_remove', {id: document.id, signerId: signer.id}) }}" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                                                    data-confirm-title="{{ 'documents.confirm.remove_signer_title'|trans({name: signer.name}) }}" data-confirm-accept="{{ 'documents.signers.remove'|trans }}" data-confirm-cancel="{{ 'documents.keep'|trans }}" data-confirm-tone="danger" data-signer-remove>
+                                                    <input type="hidden" name="_token" value="{{ token }}">
+                                                    <twig:Ui:Button type="submit" size="sm" variant="ghost" :aria-label="'documents.signers.remove_label'|trans({name: signer.name})">{{ 'documents.signers.remove'|trans }}</twig:Ui:Button>
+                                                </form>
+                                            </div>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

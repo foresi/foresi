@@ -44,7 +44,10 @@ test.describe('signed in', () => {
     await page.getByRole('link', { name: 'Example Supplies s.r.o.', exact: true }).click();
     // The row opens the contact in the side sheet; the page is a click further.
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    // The list has a heading too: wait for the contact's page itself, not mid-visit.
+    await expect(page).toHaveURL(/\/contacts\/[0-9a-f-]{36}$/);
+    await expect(page.locator('html[aria-busy]')).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Example Supplies s.r.o.' })).toBeVisible();
     await expectNoSeriousViolations(page);
   });
 

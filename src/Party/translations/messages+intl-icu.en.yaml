@@ -109,6 +109,20 @@ party:
     addresses: Addresses
     bank-accounts: Bank accounts
     history: History
+    documents: Documents
+  document_variable:
+    firm:
+      name: 'Firm name'
+      address_lines: 'Firm address, line by line'
+      registration_number: 'Firm registration number'
+      vat_id: 'Firm VAT ID'
+      bank_account: 'Firm bank account (IBAN)'
+    client:
+      name: 'Client name'
+      address_lines: 'Client address, line by line'
+      registration_number: 'Client registration number'
+      vat_id: 'Client VAT ID'
+      persons: 'Client contact persons'
   card:
     identification: Identification
     contact: Contact
