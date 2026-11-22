@@ -20,12 +20,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 
 /**
- * The kernel of a Foresi application. An application's kernel is
- *
- *     final class Kernel extends Symfony\Component\HttpKernel\Kernel
- *     {
- *         use ForesiKernel;
- *     }
+ * The kernel of a Foresi application: an application's Kernel class extends
+ * Symfony's kernel and uses this trait, and nothing else.
  *
  * It registers the bundle of every installed module and the integration code
  * of every installed optional dependency, on top of the MicroKernelTrait's
