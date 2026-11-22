@@ -98,8 +98,8 @@ final class AppShellTest extends WebTestCase
         self::assertSame('The firm, people and connections', $shown->filter('h2 + p')->text());
         self::assertSame('settings', $crawler->filter('#rail a[aria-current="true"]')->attr('data-nav-area'));
         self::assertSame('/settings/people', $sidebar->filter('[aria-current="page"]')->attr('href'));
-        // One group: no group heading; every area is in the drawer, so the other areas are there too.
-        self::assertCount(0, $shown->filter('h3'));
+        // Seven items in two sections: the section headings show; every area is in the drawer, so the other areas are there too.
+        self::assertSame(['Firm', 'Connections'], $shown->filter('h3')->each(static fn ($h): string => trim($h->text())));
         self::assertCount(8, $sidebar->filter('section[data-nav-area]'));
     }
 
