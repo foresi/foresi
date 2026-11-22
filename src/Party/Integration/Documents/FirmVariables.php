@@ -52,7 +52,7 @@ final readonly class FirmVariables implements DocumentVariableSource
 
         return [
             'name' => $firm?->name() ?? '',
-            'address_lines' => null === $firm ? [] : AddressLines::of($firm->address()),
+            'address_lines' => $firm instanceof \Foresi\Party\Domain\LegalEntity ? AddressLines::of($firm->address()) : [],
             'registration_number' => $firm?->registrationNumber()->toString() ?? '',
             'vat_id' => $firm?->vatId()?->toString() ?? '',
             'bank_account' => null === $iban ? '' : trim(chunk_split($iban, 4, ' ')),

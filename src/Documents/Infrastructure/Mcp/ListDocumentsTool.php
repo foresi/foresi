@@ -80,8 +80,8 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
                 ToolArguments::text($arguments, 'status'),
                 ToolArguments::text($arguments, 'linked_kind'),
                 ToolArguments::text($arguments, 'linked_id'),
-                self::number($arguments, 'limit'),
-                self::number($arguments, 'offset'),
+                $this->number($arguments, 'limit'),
+                $this->number($arguments, 'offset'),
             );
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);
@@ -89,7 +89,7 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
         $count = \count($documents);
 
         return new ToolOutput(
-            ['items' => array_map(fn (Document $document): array => $this->json->documentRow($document), $documents)],
+            ['items' => array_map($this->json->documentRow(...), $documents)],
             1 === $count ? '1 document.' : \sprintf('%d documents, newest first.', $count),
         );
     }
@@ -99,7 +99,7 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
      *
      * @throws ToolRefusal for a value that is no integer
      */
-    private static function number(array $arguments, string $name): ?int
+    private function number(array $arguments, string $name): ?int
     {
         $value = $arguments[$name] ?? null;
         if (null !== $value && !\is_int($value)) {

@@ -28,6 +28,7 @@ final readonly class GenerateDocumentHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof GenerateDocumentInput);
+
         return new OperationOutput($this->json->document($this->writes->generate($input)), 'Generated the document: its PDF, values and template version are frozen.');
     }
 }

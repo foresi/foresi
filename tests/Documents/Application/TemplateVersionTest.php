@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 final class TemplateVersionTest extends DocumentsTestCase
 {
     #[Test]
-    public function version_edits_in_place_until_referenced(): void
+    public function versionEditsInPlaceUntilReferenced(): void
     {
         $first = $this->template('<p>One</p>');
 
@@ -32,7 +32,7 @@ final class TemplateVersionTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function saving_frozen_version_creates_next_number(): void
+    public function savingFrozenVersionCreatesNextNumber(): void
     {
         $first = $this->template('<p>{{ client.name }}</p>');
         $this->documents()->generate(new GenerateDocumentInput($this->draft($first)->id()));
@@ -51,7 +51,7 @@ final class TemplateVersionTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function a_body_outside_the_sandbox_is_never_saved(): void
+    public function aBodyOutsideTheSandboxIsNeverSaved(): void
     {
         $first = $this->template('<p>One</p>');
 
@@ -66,7 +66,7 @@ final class TemplateVersionTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function margins_outside_the_page_are_refused(): void
+    public function marginsOutsideThePageAreRefused(): void
     {
         $first = $this->template('<p>One</p>');
 

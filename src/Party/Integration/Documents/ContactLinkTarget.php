@@ -44,7 +44,7 @@ final readonly class ContactLinkTarget implements DocumentLinkTarget
     {
         $contact = $this->contact($kind, $id);
 
-        return null === $contact ? null : $this->urls->generate('app_contact_show', ['id' => $contact->id]);
+        return $contact instanceof \Foresi\Party\Contract\PartySummary ? $this->urls->generate('app_contact_show', ['id' => $contact->id]) : null;
     }
 
     private function contact(string $kind, string $id): ?PartySummary
@@ -54,6 +54,6 @@ final readonly class ContactLinkTarget implements DocumentLinkTarget
         }
         $contact = $this->directory->find($id);
 
-        return null === $contact || $contact->archived ? null : $contact;
+        return !$contact instanceof \Foresi\Party\Contract\PartySummary || $contact->archived ? null : $contact;
     }
 }

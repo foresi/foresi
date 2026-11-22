@@ -24,10 +24,10 @@ use PHPUnit\Framework\Attributes\Test;
 final class DocumentLinksTest extends DocumentsTestCase
 {
     #[Test]
-    public function unknown_kind_refused(): void
+    public function unknownKindRefused(): void
     {
         try {
-            $this->draft(null, null);
+            $this->draft();
             $this->documents()->create(new CreateDocumentInput($this->firstTypeId(), $this->firstTemplateId(), 'Deal paper', [['kind' => 'deal', 'id' => Id::generate()]]));
             self::fail('A link to a kind no module offers was kept.');
         } catch (DocumentsRefused $refused) {
@@ -37,7 +37,7 @@ final class DocumentLinksTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function a_link_to_a_record_that_does_not_exist_is_refused(): void
+    public function aLinkToARecordThatDoesNotExistIsRefused(): void
     {
         $this->expectException(DocumentsRefused::class);
 
@@ -45,7 +45,7 @@ final class DocumentLinksTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function document_survives_trashed_link_and_shows_it_as_unavailable(): void
+    public function documentSurvivesTrashedLinkAndShowsItAsUnavailable(): void
     {
         $draft = $this->draft();
         $this->documents()->generate(new GenerateDocumentInput($draft->id()));
@@ -53,7 +53,7 @@ final class DocumentLinksTest extends DocumentsTestCase
         $this->contacts->remove($this->contactId);
 
         $document = $this->reload($draft);
-        self::assertSame([$document->id()], array_map(static fn ($found): string => $found->id(), $this->store()->documents(new DocumentFilter(linkKind: 'contact', linkId: $this->contactId))));
+        self::assertSame([$document->id()], array_map(static fn (\Foresi\Documents\Domain\Document $found): string => $found->id(), $this->store()->documents(new DocumentFilter(linkKind: 'contact', linkId: $this->contactId))));
         $view = new LinkTargets([$this->contacts])->describe(new RecordLink('contact', $this->contactId));
         self::assertFalse($view->available);
         self::assertNull($view->label);

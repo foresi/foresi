@@ -89,7 +89,7 @@ final readonly class DocumentsJson
             'type_id' => $template->typeId(),
             'name' => $template->name(),
             'archived' => $template->isArchived(),
-            'version' => null === $latest ? null : ['id' => $latest->id(), 'number' => $latest->number(), 'frozen' => $latest->isFrozen()],
+            'version' => $latest instanceof \Foresi\Documents\Domain\TemplateVersion ? ['id' => $latest->id(), 'number' => $latest->number(), 'frozen' => $latest->isFrozen()] : null,
         ];
     }
 
@@ -146,16 +146,16 @@ final readonly class DocumentsJson
 
         return $this->documentRow($document) + [
             'template' => ['id' => $document->templateId(), 'version_id' => $document->templateVersionId(), 'version_number' => $version?->number()],
-            'links' => array_map(function ($link): array {
+            'links' => array_map(function (\Foresi\Documents\Domain\DocumentLink $link): array {
                 $view = $this->targets->describe(new RecordLink($link->kind(), $link->targetId()));
 
                 return ['kind' => $view->kind, 'id' => $view->id, 'available' => $view->available, 'label' => $view->label, 'url' => $view->url];
             }, $this->store->links($document)),
             'signers' => array_map($this->signer(...), $this->store->signers($document)),
             'files' => [
-                'pdf' => self::file($document->pdfAttachmentId(), $document->pdfSha256()),
-                'signed' => self::file($document->signedAttachmentId(), $document->signedSha256()),
-                'certificate' => self::file($document->certificateAttachmentId(), $document->certificateSha256()),
+                'pdf' => $this->file($document->pdfAttachmentId(), $document->pdfSha256()),
+                'signed' => $this->file($document->signedAttachmentId(), $document->signedSha256()),
+                'certificate' => $this->file($document->certificateAttachmentId(), $document->certificateSha256()),
             ],
             'values' => $document->resolvedValues(),
             'provider' => $document->provider(),
@@ -186,7 +186,7 @@ final readonly class DocumentsJson
     /**
      * @return array{attachment_id: string, sha256: ?string}|null
      */
-    private static function file(?string $attachmentId, ?string $sha256): ?array
+    private function file(?string $attachmentId, ?string $sha256): ?array
     {
         return null === $attachmentId ? null : ['attachment_id' => $attachmentId, 'sha256' => $sha256];
     }

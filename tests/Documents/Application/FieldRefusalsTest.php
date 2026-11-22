@@ -25,30 +25,30 @@ use PHPUnit\Framework\Attributes\Test;
 final class FieldRefusalsTest extends DocumentsTestCase
 {
     #[Test]
-    public function signer_refusals_name_their_field(): void
+    public function signerRefusalsNameTheirField(): void
     {
         $document = $this->draft();
 
-        self::assertSame('name', $this->field(fn () => $this->documents()->addSigner(new AddSignerInput($document->id(), ' ', 'theirs', 1))));
-        self::assertSame('email', $this->field(fn () => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 1, 'not-an-address'))));
-        self::assertSame('order', $this->field(fn () => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 0))));
-        self::assertSame('partyPersonId', $this->field(fn () => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 1, null, 'not-an-id'))));
+        self::assertSame('name', $this->field(fn (): \Foresi\Documents\Domain\Signer => $this->documents()->addSigner(new AddSignerInput($document->id(), ' ', 'theirs', 1))));
+        self::assertSame('email', $this->field(fn (): \Foresi\Documents\Domain\Signer => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 1, 'not-an-address'))));
+        self::assertSame('order', $this->field(fn (): \Foresi\Documents\Domain\Signer => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 0))));
+        self::assertSame('partyPersonId', $this->field(fn (): \Foresi\Documents\Domain\Signer => $this->documents()->addSigner(new AddSignerInput($document->id(), 'Jana Example', 'theirs', 1, null, 'not-an-id'))));
 
         $signer = $this->signer($document, 'Jana Example', 1);
-        self::assertSame('order', $this->field(fn () => $this->documents()->updateSigner(new UpdateSignerInput($document->id(), $signer->id(), 'Jana Example', 'theirs', 100))));
+        self::assertSame('order', $this->field(fn (): \Foresi\Documents\Domain\Signer => $this->documents()->updateSigner(new UpdateSignerInput($document->id(), $signer->id(), 'Jana Example', 'theirs', 100))));
     }
 
     #[Test]
-    public function margin_refusals_name_their_margin(): void
+    public function marginRefusalsNameTheirMargin(): void
     {
         $type = self::getContainer()->get(DocumentTypeWrites::class)->create(new CreateDocumentTypeInput('Test agreement', 'margins', true, 'simple'));
 
-        self::assertSame('marginBottom', $this->field(fn () => $this->templates()->create(new CreateDocumentTemplateInput($type->id(), 'Test template', '<p>Text</p>', marginBottom: 500))));
-        self::assertSame('marginLeft', $this->field(fn () => $this->templates()->create(new CreateDocumentTemplateInput($type->id(), 'Test template', '<p>Text</p>', marginLeft: -1))));
+        self::assertSame('marginBottom', $this->field(fn (): \Foresi\Documents\Domain\TemplateVersion => $this->templates()->create(new CreateDocumentTemplateInput($type->id(), 'Test template', '<p>Text</p>', marginBottom: 500))));
+        self::assertSame('marginLeft', $this->field(fn (): \Foresi\Documents\Domain\TemplateVersion => $this->templates()->create(new CreateDocumentTemplateInput($type->id(), 'Test template', '<p>Text</p>', marginLeft: -1))));
     }
 
     #[Test]
-    public function a_type_without_signing_takes_no_signers(): void
+    public function aTypeWithoutSigningTakesNoSigners(): void
     {
         $type = self::getContainer()->get(DocumentTypeWrites::class)->create(new CreateDocumentTypeInput('Price list', 'price_list', false, 'simple'));
         $version = $this->templates()->create(new CreateDocumentTemplateInput($type->id(), 'Price list', '<p>Prices</p>'));

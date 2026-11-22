@@ -28,6 +28,7 @@ final readonly class UpdateSignerHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof UpdateSignerInput);
+
         return new OperationOutput($this->json->signer($this->writes->updateSigner($input)), 'Changed the signer.');
     }
 }

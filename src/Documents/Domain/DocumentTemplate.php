@@ -35,14 +35,11 @@ class DocumentTemplate implements Audited
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
-    #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
-
-    public function __construct(DocumentType $type, string $name, \DateTimeImmutable $now)
+    public function __construct(DocumentType $type, string $name, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $createdAt)
     {
         $this->id = Id::generate();
         $this->typeId = $type->id();
-        $this->createdAt = $now;
         $this->rename($name);
     }
 
@@ -77,7 +74,7 @@ class DocumentTemplate implements Audited
 
     public function isArchived(): bool
     {
-        return null !== $this->archivedAt;
+        return $this->archivedAt instanceof \DateTimeImmutable;
     }
 
     public function createdAt(): \DateTimeImmutable

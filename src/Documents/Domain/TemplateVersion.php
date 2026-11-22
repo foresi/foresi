@@ -59,10 +59,8 @@ class TemplateVersion implements Audited
     #[ORM\Column(name: 'frozen_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $frozenAt = null;
 
-    #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
-
-    public function __construct(DocumentTemplate $template, int $number, string $body, PageSettings $page, \DateTimeImmutable $now)
+    public function __construct(DocumentTemplate $template, int $number, string $body, PageSettings $page, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $createdAt)
     {
         if ($number < 1) {
             throw new \InvalidArgumentException('Template versions are numbered from 1.');
@@ -70,7 +68,6 @@ class TemplateVersion implements Audited
         $this->id = Id::generate();
         $this->templateId = $template->id();
         $this->number = $number;
-        $this->createdAt = $now;
         $this->write($body, $page);
     }
 
@@ -117,7 +114,7 @@ class TemplateVersion implements Audited
 
     public function isFrozen(): bool
     {
-        return null !== $this->frozenAt;
+        return $this->frozenAt instanceof \DateTimeImmutable;
     }
 
     public function frozenAt(): ?\DateTimeImmutable

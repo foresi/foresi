@@ -31,7 +31,7 @@ final readonly class DocumentTypeWrites
     public function create(CreateDocumentTypeInput $input): DocumentType
     {
         $this->access->denyUnlessStaff();
-        $level = self::level($input->signatureLevel);
+        $level = $this->level($input->signatureLevel);
 
         return $this->transaction->run(function () use ($input, $level): DocumentType {
             if ($this->store->typeByCode($input->code) instanceof DocumentType) {
@@ -49,7 +49,7 @@ final readonly class DocumentTypeWrites
      */
     public function update(UpdateDocumentTypeInput $input): DocumentType
     {
-        $level = self::level($input->signatureLevel);
+        $level = $this->level($input->signatureLevel);
 
         return $this->transaction->run(function () use ($input, $level): DocumentType {
             $type = $this->type($input->typeId);
@@ -82,7 +82,7 @@ final readonly class DocumentTypeWrites
         return $this->store->type($id) ?? throw DocumentsRefused::notFound('There is no document type with this id. List them with foresi_list_document_types.');
     }
 
-    private static function level(string $level): SignatureLevel
+    private function level(string $level): SignatureLevel
     {
         return SignatureLevel::tryFrom($level) ?? throw DocumentsRefused::invalid('signature_level_unknown', 'signatureLevel', 'The signature level is simple, advanced or qualified.');
     }

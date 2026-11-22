@@ -28,6 +28,7 @@ final readonly class MarkDocumentSentHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof MarkDocumentSentInput);
+
         return new OperationOutput($this->json->document($this->writes->markSent($input)), 'Marked the document sent for signature.');
     }
 }

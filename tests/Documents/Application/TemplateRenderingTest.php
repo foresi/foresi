@@ -25,7 +25,7 @@ final class TemplateRenderingTest extends TestCase
     ];
 
     #[Test]
-    public function renders_firm_and_client_values(): void
+    public function rendersFirmAndClientValues(): void
     {
         $html = new TemplateRenderer()->render(
             '<p>{{ firm.name }} and {{ client.name|upper }}</p>{% for line in firm.address_lines %}<br>{{ line }}{% endfor %}'
@@ -37,7 +37,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function missing_variable_refuses_with_names(): void
+    public function missingVariableRefusesWithNames(): void
     {
         try {
             new TemplateRenderer()->render('<p>{{ client.name }}: {{ deal.title }}, {{ deal.value }}, {{ client.vat_id }}</p>', self::VALUES);
@@ -50,7 +50,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function a_variable_checked_with_defined_or_given_a_default_is_not_missing(): void
+    public function aVariableCheckedWithDefinedOrGivenADefaultIsNotMissing(): void
     {
         $html = new TemplateRenderer()->render('{% if deal is defined %}{{ deal.title }}{% endif %}[{{ client.vat_id|default("none") }}]', self::VALUES);
 
@@ -58,7 +58,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function loop_and_set_variables_are_not_missing(): void
+    public function loopAndSetVariablesAreNotMissing(): void
     {
         $html = new TemplateRenderer()->render('{% set who = client.name %}{% for i, p in client.persons %}{{ i }}{{ p.name }}{% endfor %}{{ who }}', self::VALUES);
 
@@ -83,7 +83,7 @@ final class TemplateRenderingTest extends TestCase
 
     #[Test]
     #[DataProvider('blocked')]
-    public function sandbox_blocks_include_self_and_method_calls(string $body, string $construct): void
+    public function sandboxBlocksIncludeSelfAndMethodCalls(string $body, string $construct): void
     {
         try {
             new TemplateRenderer()->render($body, self::VALUES);
@@ -95,7 +95,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function output_is_html_escaped(): void
+    public function outputIsHtmlEscaped(): void
     {
         $html = new TemplateRenderer()->render('<p>{{ client.name }}</p>{{ client.note|nl2br }}', ['client' => ['name' => '<script>alert(1)</script> & "x"', 'note' => "a<b>\nc"]]);
 
@@ -103,7 +103,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function values_must_be_scalars_and_arrays(): void
+    public function valuesMustBeScalarsAndArrays(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
@@ -111,7 +111,7 @@ final class TemplateRenderingTest extends TestCase
     }
 
     #[Test]
-    public function the_variables_a_template_uses_are_listed(): void
+    public function theVariablesATemplateUsesAreListed(): void
     {
         self::assertSame(
             ['client.name', 'client.persons', 'deal.title', 'firm.name'],

@@ -28,6 +28,7 @@ final readonly class CancelDocumentHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof CancelDocumentInput);
+
         return new OperationOutput($this->json->document($this->writes->cancel($input)), 'Cancelled the document.');
     }
 }

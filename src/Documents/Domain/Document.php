@@ -80,12 +80,6 @@ class Document implements Audited
     #[ORM\Column(name: 'envelope_id', type: 'string', length: 128, nullable: true)]
     private ?string $envelopeId = null;
 
-    #[ORM\Column(name: 'created_by', type: 'guid')]
-    private string $createdBy;
-
-    #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
-
     #[ORM\Column(name: 'generated_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $generatedAt = null;
 
@@ -102,7 +96,9 @@ class Document implements Audited
      * Its links and signers are records of their own (DocumentLink, Signer), kept
      * by the store, since changes to collections of audited entities are not audited.
      */
-    public function __construct(DocumentType $type, DocumentTemplate $template, string $title, string $createdBy, \DateTimeImmutable $now)
+    public function __construct(DocumentType $type, DocumentTemplate $template, string $title, #[ORM\Column(name: 'created_by', type: 'guid')]
+    private string $createdBy, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $createdAt)
     {
         if ($template->typeId() !== $type->id()) {
             throw new \InvalidArgumentException('The template is of another type.');
@@ -110,8 +106,6 @@ class Document implements Audited
         $this->id = Id::generate();
         $this->typeId = $type->id();
         $this->templateId = $template->id();
-        $this->createdBy = $createdBy;
-        $this->createdAt = $now;
         $this->retitle($title);
     }
 

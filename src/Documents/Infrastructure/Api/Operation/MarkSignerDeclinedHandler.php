@@ -28,6 +28,7 @@ final readonly class MarkSignerDeclinedHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof MarkSignerDeclinedInput);
+
         return new OperationOutput($this->json->document($this->writes->markDeclined($input)), 'Marked the signer declined; the document is declined.');
     }
 }

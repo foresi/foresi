@@ -28,6 +28,7 @@ final readonly class UpdateDocumentHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof UpdateDocumentInput);
+
         return new OperationOutput($this->json->document($this->writes->update($input)), 'Changed the draft document.');
     }
 }

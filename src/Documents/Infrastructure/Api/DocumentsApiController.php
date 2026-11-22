@@ -63,15 +63,15 @@ final readonly class DocumentsApiController
     {
         $this->scope->require(self::READ_SCOPE);
         $documents = $this->reads->documents(
-            self::text($request, 'type_id'),
-            self::text($request, 'status'),
-            self::text($request, 'linked_kind'),
-            self::text($request, 'linked_id'),
-            self::number($request, 'limit'),
-            self::number($request, 'offset'),
+            $this->text($request, 'type_id'),
+            $this->text($request, 'status'),
+            $this->text($request, 'linked_kind'),
+            $this->text($request, 'linked_id'),
+            $this->number($request, 'limit'),
+            $this->number($request, 'offset'),
         );
 
-        return new JsonResponse(['data' => array_map(fn (Document $document): array => $this->json->documentRow($document), $documents)]);
+        return new JsonResponse(['data' => array_map($this->json->documentRow(...), $documents)]);
     }
 
     #[Route('/api/v1/documents/{documentId}', name: DocumentsRoutes::DOCUMENT, methods: ['GET'])]
@@ -94,7 +94,7 @@ final readonly class DocumentsApiController
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'There is no such document, or it has no such file yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    public function file(string $documentId, string $file, Request $request): Response
+    public function file(string $documentId, string $file, Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
         $this->scope->require(self::READ_SCOPE);
         $attachment = $this->attachments->get($this->reads->fileOf($documentId, $file)) ?? throw DocumentsRefused::notFound(\sprintf('The document has no %s file.', $file));
@@ -126,7 +126,7 @@ final readonly class DocumentsApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => array_map(fn (DocumentType $type): array => $this->json->type($type), $this->reads->types($request->query->getBoolean('include_archived')))]);
+        return new JsonResponse(['data' => array_map($this->json->type(...), $this->reads->types($request->query->getBoolean('include_archived')))]);
     }
 
     #[Route('/api/v1/document-templates', name: DocumentsRoutes::TEMPLATES, methods: ['GET'])]
@@ -140,9 +140,9 @@ final readonly class DocumentsApiController
     public function templates(Request $request): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
-        $templates = $this->reads->templates(self::text($request, 'type_id'), $request->query->getBoolean('include_archived'));
+        $templates = $this->reads->templates($this->text($request, 'type_id'), $request->query->getBoolean('include_archived'));
 
-        return new JsonResponse(['data' => array_map(fn (DocumentTemplate $template): array => $this->json->templateRow($template), $templates)]);
+        return new JsonResponse(['data' => array_map($this->json->templateRow(...), $templates)]);
     }
 
     #[Route('/api/v1/document-templates/{templateId}', name: DocumentsRoutes::TEMPLATE, methods: ['GET'])]
@@ -158,7 +158,7 @@ final readonly class DocumentsApiController
         return new JsonResponse(['data' => $this->json->template($this->reads->template($templateId))]);
     }
 
-    private static function text(Request $request, string $name): ?string
+    private function text(Request $request, string $name): ?string
     {
         $value = trim($request->query->getString($name));
 
@@ -168,9 +168,9 @@ final readonly class DocumentsApiController
     /**
      * @throws DocumentsRefused when it is not a whole number
      */
-    private static function number(Request $request, string $name): ?int
+    private function number(Request $request, string $name): ?int
     {
-        $value = self::text($request, $name);
+        $value = $this->text($request, $name);
         if (null === $value) {
             return null;
         }

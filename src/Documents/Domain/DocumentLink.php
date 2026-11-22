@@ -21,24 +21,19 @@ class DocumentLink
 {
     public const int MAX_KIND = 40;
 
-    #[ORM\Id]
-    #[ORM\ManyToOne(targetEntity: Document::class)]
-    #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
-    private Document $document;
-
-    #[ORM\Id]
-    #[ORM\Column(type: 'string', length: self::MAX_KIND)]
-    private string $kind;
-
-    #[ORM\Id]
-    #[ORM\Column(name: 'target_id', type: 'guid')]
-    private string $targetId;
-
-    public function __construct(Document $document, string $kind, string $targetId)
+    public function __construct(
+        #[ORM\Id]
+        #[ORM\ManyToOne(targetEntity: Document::class)]
+        #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
+        private Document $document,
+        #[ORM\Id]
+        #[ORM\Column(type: 'string', length: self::MAX_KIND)]
+        private string $kind,
+        #[ORM\Id]
+        #[ORM\Column(name: 'target_id', type: 'guid')]
+        private string $targetId
+    )
     {
-        $this->document = $document;
-        $this->kind = $kind;
-        $this->targetId = $targetId;
     }
 
     public function documentId(): string

@@ -97,7 +97,7 @@ final readonly class DoctrineDocumentsStore implements DocumentsStore
         if (null !== $filter->typeId) {
             $query->andWhere('d.typeId = :type')->setParameter('type', $filter->typeId);
         }
-        if (null !== $filter->status) {
+        if ($filter->status instanceof \Foresi\Documents\Domain\DocumentStatus) {
             $query->andWhere('d.status = :status')->setParameter('status', $filter->status->value);
         }
         if (null !== $filter->linkKind && null !== $filter->linkId) {

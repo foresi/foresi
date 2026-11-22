@@ -72,7 +72,7 @@ final readonly class ListDocumentTypesTool implements ReadTool, StaffOnlyTool
         $count = \count($types);
 
         return new ToolOutput(
-            ['items' => array_map(fn (DocumentType $type): array => $this->json->type($type), $types)],
+            ['items' => array_map($this->json->type(...), $types)],
             1 === $count ? '1 document type.' : \sprintf('%d document types.', $count),
         );
     }

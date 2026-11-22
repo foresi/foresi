@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Party\Integration\Documents;
 
 use Foresi\Documents\Contract\DocumentVariableSource;
-use Foresi\Documents\Contract\RecordLink;
 use Foresi\Documents\Contract\VariableDefinition;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
@@ -52,7 +51,7 @@ final readonly class ClientVariables implements DocumentVariableSource
                 break;
             }
         }
-        if (null === $contact || $contact->archived) {
+        if (!$contact instanceof \Foresi\Party\Contract\PartySummary || $contact->archived) {
             return null;
         }
 

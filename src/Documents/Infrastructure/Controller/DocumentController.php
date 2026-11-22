@@ -126,7 +126,7 @@ final class DocumentController extends AbstractController
         $this->checkToken($request);
         $values = ['typeId' => trim($request->request->getString('typeId')), 'templateId' => trim($request->request->getString('templateId')), 'title' => trim($request->request->getString('title'))];
         try {
-            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], null === $link ? [] : [['kind' => $link->kind, 'id' => $link->id]]));
+            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], $link instanceof \Foresi\Documents\Contract\RecordLink ? [['kind' => $link->kind, 'id' => $link->id]] : []));
         } catch (DocumentsRefused $refused) {
             $this->denyIfForbidden($refused);
 
@@ -146,7 +146,7 @@ final class DocumentController extends AbstractController
         $draftPreview = null;
         if ($document->status()->isDraft()) {
             $version = $this->store->latestVersion($document->templateId());
-            if (null !== $version) {
+            if ($version instanceof \Foresi\Documents\Domain\TemplateVersion) {
                 $links = array_map(static fn (DocumentLink $link): RecordLink => new RecordLink($link->kind(), $link->targetId()), $this->store->links($document));
                 $draftPreview = $this->preview->preview($version->body(), $this->variables->values($links), $version->page());
             }
@@ -326,7 +326,7 @@ final class DocumentController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'link' => $link,
-            'linkView' => null === $link ? null : $this->targets->describe($link),
+            'linkView' => $link instanceof \Foresi\Documents\Contract\RecordLink ? $this->targets->describe($link) : null,
             'types' => $this->screen->typeOptions(),
             'templates' => $this->screen->templateOptions(),
         ], new Response(status: $status));

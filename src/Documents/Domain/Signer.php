@@ -29,10 +29,6 @@ class Signer implements Audited
     #[ORM\Column(type: 'guid')]
     private string $id;
 
-    #[ORM\ManyToOne(targetEntity: Document::class)]
-    #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
-    private Document $document;
-
     #[ORM\Column(type: 'string', length: self::MAX_NAME)]
     private string $name;
 
@@ -59,10 +55,11 @@ class Signer implements Audited
     #[ORM\Column(type: 'string', length: 40, nullable: true)]
     private ?string $method = null;
 
-    public function __construct(Document $document, string $name, ?string $email, ?string $partyPersonId, SignerSide $side, int $order)
+    public function __construct(#[ORM\ManyToOne(targetEntity: Document::class)]
+    #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
+    private Document $document, string $name, ?string $email, ?string $partyPersonId, SignerSide $side, int $order)
     {
         $this->id = Id::generate();
-        $this->document = $document;
         $this->change($name, $email, $partyPersonId, $side, $order);
     }
 

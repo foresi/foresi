@@ -22,7 +22,7 @@ use PHPUnit\Framework\Attributes\Test;
 final class DocumentLifecycleTest extends DocumentsTestCase
 {
     #[Test]
-    public function generate_freezes_values_pdf_and_version(): void
+    public function generateFreezesValuesPdfAndVersion(): void
     {
         $version = $this->template('<p>{{ firm.name }} and {{ client.name }}</p>');
         $draft = $this->draft($version);
@@ -45,15 +45,15 @@ final class DocumentLifecycleTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function ready_document_cannot_be_edited(): void
+    public function readyDocumentCannotBeEdited(): void
     {
         $draft = $this->draft();
         $this->documents()->generate(new GenerateDocumentInput($draft->id()));
 
         foreach ([
-            fn () => $this->documents()->update(new UpdateDocumentInput($draft->id(), title: 'Changed')),
-            fn () => $this->documents()->update(new UpdateDocumentInput($draft->id(), links: [])),
-            fn () => $this->documents()->generate(new GenerateDocumentInput($draft->id())),
+            fn (): \Foresi\Documents\Domain\Document => $this->documents()->update(new UpdateDocumentInput($draft->id(), title: 'Changed')),
+            fn (): \Foresi\Documents\Domain\Document => $this->documents()->update(new UpdateDocumentInput($draft->id(), links: [])),
+            fn (): \Foresi\Documents\Domain\Document => $this->documents()->generate(new GenerateDocumentInput($draft->id())),
         ] as $edit) {
             try {
                 $edit();
@@ -66,7 +66,7 @@ final class DocumentLifecycleTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function a_failed_generation_leaves_the_draft_as_it_was(): void
+    public function aFailedGenerationLeavesTheDraftAsItWas(): void
     {
         $draft = $this->draft($this->template('<p>{{ deal.title }}</p>'));
 
@@ -84,7 +84,7 @@ final class DocumentLifecycleTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function cancel_keeps_history(): void
+    public function cancelKeepsHistory(): void
     {
         $draft = $this->draft();
         $this->signer($draft, 'Jana Example', 1);
@@ -104,7 +104,7 @@ final class DocumentLifecycleTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function generate_again_creates_new_draft_with_same_links_and_signers(): void
+    public function generateAgainCreatesNewDraftWithSameLinksAndSigners(): void
     {
         $version = $this->template('<p>{{ client.name }}</p>');
         $draft = $this->draft($version);
@@ -120,15 +120,15 @@ final class DocumentLifecycleTest extends DocumentsTestCase
         $copy = $this->reload($again);
         self::assertNotSame($draft->id(), $copy->id());
         self::assertSame('NDA with Example Client', $copy->title());
-        self::assertSame([['contact', $this->contactId]], array_map(static fn ($link): array => [$link->kind(), $link->targetId()], $this->store()->links($copy)));
-        self::assertSame([['Jana Example', 1, 'theirs', SignerStatus::Pending], ['Petr Example', 2, 'ours', SignerStatus::Pending]], array_map(static fn ($signer): array => [$signer->name(), $signer->order(), $signer->side()->value, $signer->status()], $this->store()->signers($copy)));
+        self::assertSame([['contact', $this->contactId]], array_map(static fn (\Foresi\Documents\Domain\DocumentLink $link): array => [$link->kind(), $link->targetId()], $this->store()->links($copy)));
+        self::assertSame([['Jana Example', 1, 'theirs', SignerStatus::Pending], ['Petr Example', 2, 'ours', SignerStatus::Pending]], array_map(static fn (\Foresi\Documents\Domain\Signer $signer): array => [$signer->name(), $signer->order(), $signer->side()->value, $signer->status()], $this->store()->signers($copy)));
         self::assertSame('<p>New Example Client Ltd</p>', $this->pdf->lastHtml);
         self::assertSame(2, $this->store()->version((string) $copy->templateVersionId())?->number());
         self::assertSame(DocumentStatus::Cancelled, $this->store()->document($draft->id())?->status());
     }
 
     #[Test]
-    public function an_open_document_is_not_generated_again(): void
+    public function anOpenDocumentIsNotGeneratedAgain(): void
     {
         $draft = $this->draft();
 

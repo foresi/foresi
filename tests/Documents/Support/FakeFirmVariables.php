@@ -25,7 +25,7 @@ final class FakeFirmVariables implements DocumentVariableSource
         return [new VariableDefinition('name', 'Firm name', 'Example Firm s.r.o.')];
     }
 
-    public function values(array $links): ?array
+    public function values(array $links): array
     {
         return ['name' => $this->name];
     }

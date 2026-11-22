@@ -73,7 +73,7 @@ final readonly class TemplateRenderer
         try {
             return $this->twig->createTemplate($body)->render($values);
         } catch (SecurityError $blocked) {
-            throw self::blocked($blocked);
+            throw $this->blocked($blocked);
         } catch (TwigError $failed) {
             throw DocumentsRefused::invalid('template_failed', 'body', \sprintf('The template could not be rendered: %s', $failed->getRawMessage()));
         }
@@ -117,17 +117,17 @@ final readonly class TemplateRenderer
         try {
             $module = $this->twig->parse($this->twig->tokenize(new Source($body, 'template')));
         } catch (SecurityError $blocked) {
-            throw self::blocked($blocked);
+            throw $this->blocked($blocked);
         } catch (SyntaxError $invalid) {
-            throw self::invalid($invalid);
+            throw $this->invalid($invalid);
         }
         try {
             // The sandbox policy is checked when the template starts to display.
             $this->twig->createTemplate($body)->render([]);
         } catch (SecurityError $blocked) {
-            throw self::blocked($blocked);
+            throw $this->blocked($blocked);
         } catch (SyntaxError $invalid) {
-            throw self::invalid($invalid);
+            throw $this->invalid($invalid);
         } catch (TwigError) {
             // Without values a template may fail to render; only what it uses matters here.
         }
@@ -136,15 +136,7 @@ final readonly class TemplateRenderer
         $this->walk($module, $found, false);
         $paths = array_values(array_unique(array_filter($found['paths'], static fn (string $path): bool => !\in_array(explode('.', $path)[0], $found['bound'], true))));
         // A path also read deeper is covered by the deeper one.
-        $paths = array_values(array_filter($paths, static function (string $path) use ($paths): bool {
-            foreach ($paths as $other) {
-                if (str_starts_with($other, $path.'.')) {
-                    return false;
-                }
-            }
-
-            return true;
-        }));
+        $paths = array_values(array_filter($paths, static fn(string $path): bool => array_all($paths, fn(string $other): bool => !str_starts_with($other, $path.'.'))));
 
         return ['paths' => $paths, 'optional' => $found['optional']];
     }
@@ -155,7 +147,7 @@ final readonly class TemplateRenderer
     private function walk(Node $node, array &$found, bool $defined): void
     {
         if ($node instanceof AssignContextVariable) {
-            $found['bound'][] = self::name($node);
+            $found['bound'][] = $this->name($node);
 
             return;
         }
@@ -184,14 +176,14 @@ final readonly class TemplateRenderer
     /**
      * The name of a variable node; Twig keeps it as a string attribute.
      */
-    private static function name(Node $node): string
+    private function name(Node $node): string
     {
         $name = $node->getAttribute('name');
 
         return \is_string($name) ? $name : '';
     }
 
-    private static function invalid(SyntaxError $invalid): DocumentsRefused
+    private function invalid(SyntaxError $invalid): DocumentsRefused
     {
         return DocumentsRefused::blockedTemplate('syntax', \sprintf('The template is not valid on line %d: %s', $invalid->getTemplateLine(), $invalid->getRawMessage()));
     }
@@ -205,7 +197,7 @@ final readonly class TemplateRenderer
     private function path(Node $node): ?string
     {
         if ($node instanceof NameExpression) {
-            $name = self::name($node);
+            $name = $this->name($node);
             if (str_starts_with($name, '_')) {
                 throw DocumentsRefused::blockedTemplate($name, \sprintf('Templates cannot use %s; use the variables listed beside the editor.', $name));
             }
@@ -227,7 +219,7 @@ final readonly class TemplateRenderer
         return $parent.'.'.$attribute->getAttribute('value');
     }
 
-    private static function blocked(SecurityError $blocked): DocumentsRefused
+    private function blocked(SecurityError $blocked): DocumentsRefused
     {
         $construct = match (true) {
             $blocked instanceof SecurityNotAllowedTagError => $blocked->getTagName(),
@@ -244,13 +236,7 @@ final readonly class TemplateRenderer
      */
     private static function isOptional(string $path, array $optional): bool
     {
-        foreach ($optional as $guarded) {
-            if ($path === $guarded || str_starts_with($path, $guarded.'.')) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($optional, fn(string $guarded): bool => $path === $guarded || str_starts_with($path, $guarded.'.'));
     }
 
     /**

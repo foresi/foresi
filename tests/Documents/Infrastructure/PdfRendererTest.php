@@ -31,7 +31,7 @@ final class PdfRendererTest extends TestCase
     ];
 
     #[Test]
-    public function the_sample_contract_renders_two_pages_of_pdf_a_with_footers(): void
+    public function theSampleContractRendersTwoPagesOfPdfAWithFooters(): void
     {
         $html = new TemplateRenderer()->render((string) file_get_contents(__DIR__.'/../Fixtures/contract.html.twig'), self::VALUES);
 
@@ -48,7 +48,7 @@ final class PdfRendererTest extends TestCase
     }
 
     #[Test]
-    public function the_page_settings_set_the_paper(): void
+    public function thePageSettingsSetThePaper(): void
     {
         $pdf = $this->renderer()->render('<p>x</p>', new PageSettings(landscape: true), 'T', 'en');
 

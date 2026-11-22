@@ -43,7 +43,7 @@ final readonly class LinkTargets
             if (!\is_string($kind) || !\is_string($id) || !Id::isValid($id)) {
                 throw DocumentsRefused::invalid('link_invalid', 'links', \sprintf('Link %d is not an object {kind, id} with a valid id.', $at + 1));
             }
-            $target = $this->target($kind) ?? throw DocumentsRefused::invalid('link_kind_unknown', 'links', \sprintf('Documents cannot link to records of kind "%s"; the kinds offered are: %s.', $kind, ([] === $this->kinds() ? 'none' : implode(', ', $this->kinds()))), ['kind' => $kind]);
+            $target = $this->target($kind) ?? throw DocumentsRefused::invalid('link_kind_unknown', 'links', \sprintf('Documents cannot link to records of kind "%s"; the kinds offered are: %s.', $kind, [] === $this->kinds() ? 'none' : implode(', ', $this->kinds())), ['kind' => $kind]);
             if (!$target->exists($kind, $id)) {
                 throw DocumentsRefused::invalid('link_target_unknown', 'links', \sprintf('There is no %s with the id %s.', $kind, $id), ['kind' => $kind, 'id' => $id]);
             }

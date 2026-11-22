@@ -75,7 +75,7 @@ final readonly class ListDocumentTemplatesTool implements ReadTool, StaffOnlyToo
         $count = \count($templates);
 
         return new ToolOutput(
-            ['items' => array_map(fn (DocumentTemplate $template): array => $this->json->templateRow($template), $templates)],
+            ['items' => array_map($this->json->templateRow(...), $templates)],
             1 === $count ? '1 document template.' : \sprintf('%d document templates.', $count),
         );
     }

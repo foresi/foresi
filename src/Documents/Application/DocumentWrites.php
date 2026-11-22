@@ -140,7 +140,7 @@ final readonly class DocumentWrites
             $values = $this->variables->values($this->links($document));
             $html = $this->renderer->render($version->body(), $values);
             $pdf = $this->pdf->render($html, $version->page(), $document->title(), $this->language);
-            $stored = $this->files->store($document->id(), self::fileName($document->title()).'.pdf', $pdf);
+            $stored = $this->files->store($document->id(), $this->fileName($document->title()).'.pdf', $pdf);
             $document->generate($version, $values, $stored->attachmentId, $stored->sha256, $this->clock->now());
             $this->events->record(new DocumentGenerated($document->id(), $this->typeCode($document), $document->status()->value));
 
@@ -252,7 +252,7 @@ final readonly class DocumentWrites
     public function addSigner(AddSignerInput $input): Signer
     {
         $this->access->denyUnlessStaff();
-        $side = self::side($input->side);
+        $side = $this->side($input->side);
 
         return $this->transaction->run(function () use ($input, $side): Signer {
             $document = $this->document($input->documentId);
@@ -274,7 +274,7 @@ final readonly class DocumentWrites
     public function updateSigner(UpdateSignerInput $input): Signer
     {
         $this->access->denyUnlessStaff();
-        $side = self::side($input->side);
+        $side = $this->side($input->side);
 
         return $this->transaction->run(function () use ($input, $side): Signer {
             $document = $this->document($input->documentId);
@@ -354,7 +354,7 @@ final readonly class DocumentWrites
             $now = $this->clock->now();
             // Checked before the file is stored, so a refused copy leaves no file behind.
             DocumentsInvalid::unless('documentId', static fn () => $document->checkSignedCopy());
-            $stored = $this->files->store($document->id(), self::fileName('' === trim($fileName) ? $document->title() : pathinfo($fileName, \PATHINFO_FILENAME)).'.pdf', $bytes);
+            $stored = $this->files->store($document->id(), $this->fileName('' === trim($fileName) ? $document->title() : pathinfo($fileName, \PATHINFO_FILENAME)).'.pdf', $bytes);
             if (DocumentsInvalid::unless('documentId', static fn (): bool => $document->attachSignedCopy($stored->attachmentId, $stored->sha256, $now))) {
                 $this->sent($document);
             }
@@ -405,13 +405,13 @@ final readonly class DocumentWrites
         return array_map(static fn (DocumentLink $link): RecordLink => new RecordLink($link->kind(), $link->targetId()), $this->store->links($document));
     }
 
-    private static function side(string $side): SignerSide
+    private function side(string $side): SignerSide
     {
         return SignerSide::tryFrom($side) ?? throw DocumentsRefused::invalid('side_unknown', 'side', 'The side is ours (signs for the firm) or theirs.');
     }
 
     /** A file name from a title: letters, digits and dashes. */
-    private static function fileName(string $title): string
+    private function fileName(string $title): string
     {
         $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title);
         $name = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower(false === $ascii ? '' : $ascii)), '-');

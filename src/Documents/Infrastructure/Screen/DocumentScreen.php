@@ -123,11 +123,11 @@ final readonly class DocumentScreen
 
         return [
             ['label' => $this->trans('documents.field.type'), 'value' => $type?->name()],
-            ['label' => $this->trans('documents.field.template'), 'value' => null === $template ? null : (null !== $version ? $this->trans('documents.detail.template_version', ['name' => $template->name(), 'number' => $version->number()]) : $template->name())],
+            ['label' => $this->trans('documents.field.template'), 'value' => $template instanceof \Foresi\Documents\Domain\DocumentTemplate ? $version instanceof \Foresi\Documents\Domain\TemplateVersion ? $this->trans('documents.detail.template_version', ['name' => $template->name(), 'number' => $version->number()]) : $template->name() : (null)],
             ['label' => $this->trans('documents.detail.created'), 'value' => $this->day($document->createdAt(), true)],
-            ['label' => $this->trans('documents.detail.generated'), 'value' => null === $document->generatedAt() ? null : $this->day($document->generatedAt(), true), 'empty' => $this->trans('documents.none.generated')],
-            ['label' => $this->trans('documents.detail.sent'), 'value' => null === $document->sentAt() ? null : $this->day($document->sentAt(), true), 'empty' => $this->trans('documents.none.sent')],
-            ['label' => $this->trans('documents.detail.completed'), 'value' => null === $document->completedAt() ? null : $this->day($document->completedAt(), true), 'empty' => $this->trans('documents.none.completed')],
+            ['label' => $this->trans('documents.detail.generated'), 'value' => $document->generatedAt() instanceof \DateTimeImmutable ? $this->day($document->generatedAt(), true) : null, 'empty' => $this->trans('documents.none.generated')],
+            ['label' => $this->trans('documents.detail.sent'), 'value' => $document->sentAt() instanceof \DateTimeImmutable ? $this->day($document->sentAt(), true) : null, 'empty' => $this->trans('documents.none.sent')],
+            ['label' => $this->trans('documents.detail.completed'), 'value' => $document->completedAt() instanceof \DateTimeImmutable ? $this->day($document->completedAt(), true) : null, 'empty' => $this->trans('documents.none.completed')],
         ];
     }
 
@@ -301,7 +301,7 @@ final readonly class DocumentScreen
     {
         return match ($signer->status()) {
             SignerStatus::Pending => ['label' => $this->trans('documents.signer.status.pending'), 'tone' => 'gray'],
-            SignerStatus::Signed => ['label' => null === $signer->signedAt() ? $this->trans('documents.signer.status.signed') : $this->trans('documents.signer.status.signed_on', ['day' => $this->day($signer->signedAt(), true)]), 'tone' => 'green'],
+            SignerStatus::Signed => ['label' => $signer->signedAt() instanceof \DateTimeImmutable ? $this->trans('documents.signer.status.signed_on', ['day' => $this->day($signer->signedAt(), true)]) : $this->trans('documents.signer.status.signed'), 'tone' => 'green'],
             SignerStatus::Declined => ['label' => $this->trans('documents.signer.status.declined'), 'tone' => 'red'],
         };
     }

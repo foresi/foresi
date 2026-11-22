@@ -44,17 +44,14 @@ class DocumentType implements Audited
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
-    #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt;
-
-    public function __construct(string $name, string $code, bool $needsSigning, SignatureLevel $signatureLevel, \DateTimeImmutable $now)
+    public function __construct(string $name, string $code, bool $needsSigning, SignatureLevel $signatureLevel, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $createdAt)
     {
         if (1 !== preg_match('/^[a-z][a-z0-9_]{0,39}$/', $code)) {
             throw new \InvalidArgumentException('A type code is a lowercase identifier of up to 40 characters, such as "nda".');
         }
         $this->id = Id::generate();
         $this->code = $code;
-        $this->createdAt = $now;
         $this->change($name, $needsSigning, $signatureLevel);
     }
 
@@ -101,7 +98,7 @@ class DocumentType implements Audited
 
     public function isArchived(): bool
     {
-        return null !== $this->archivedAt;
+        return $this->archivedAt instanceof \DateTimeImmutable;
     }
 
     public function archivedAt(): ?\DateTimeImmutable

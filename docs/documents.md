@@ -26,6 +26,22 @@ Placeholders are Twig in a sandbox, such as `{{ client.name }}`. Allowed are:
 
 Values are HTML escaped. A body that uses anything else is refused when it is saved, with the construct in `details.construct` (`template_not_allowed`). The variables a body can use, with a label and an example each, are in the template detail (`variables`), and the ones a version uses are in `version.uses`.
 
+### Variables from the address book
+
+The address book (Party) offers two sources when Documents is installed:
+
+| Variable | Value |
+| --- | --- |
+| `firm.name`, `firm.registration_number`, `firm.vat_id` | The firm of the instance, as its settings hold it when the document is generated. |
+| `firm.address_lines` | The firm's address as rows: `{% for item in firm.address_lines %}{{ item.line }}<br>{% endfor %}` (street, postal code with city, country). |
+| `firm.bank_account` | The IBAN of the primary bank account, in groups of four. |
+| `client.name`, `client.registration_number`, `client.vat_id`, `client.address_lines` | The contact the document links to (the first `contact` link): its billing address, or else its first address. |
+| `client.persons` | The contact persons of a company in the order they were linked, as rows with `name`, `position`, `email` and `phone`. |
+
+A value that is not known is empty, such as the VAT ID of a firm that is not a VAT payer. The client variables need a link to a contact that is in the address book: without one, or once the contact is archived, a template that uses them is refused when it is generated. The address book keeps no e-mail or phone of the firm, so there are no such variables.
+
+A contact shows its documents on the **Documents** tab, with **New document** that opens the dialog with the contact linked.
+
 ## Documents and their statuses
 
 A document has a type, a template, a title and links to the records it belongs to. It starts as a **draft**.
@@ -48,7 +64,7 @@ The files of a document that has left draft are never deleted. Each stored file 
 
 ## Manual signing
 
-Signers have a name, an optional e-mail and contact person, a side (`ours` for the firm, `theirs` for the other party) and a signing order from 1. Signers of one order sign in parallel; the order is shown, not enforced. Signers can be added, changed and removed until the document is completed.
+Signers have a name, an optional e-mail and contact person, a side (`ours` for the firm, `theirs` for the other party) and a signing order from 1. Signers of one order sign in parallel; the order is shown, not enforced. Signers can be added, changed and removed until the document is completed. A document of a type that is not signed takes no signers (`signing_not_needed`).
 
 Signing happens outside Foresi, on paper or in any signing tool. Then you:
 

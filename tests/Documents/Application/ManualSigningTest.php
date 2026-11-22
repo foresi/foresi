@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\Test;
 final class ManualSigningTest extends DocumentsTestCase
 {
     #[Test]
-    public function parallel_and_sequential_orders_are_kept_as_given(): void
+    public function parallelAndSequentialOrdersAreKeptAsGiven(): void
     {
         $draft = $this->draft();
         $this->signer($draft, 'Second Signer', 2);
@@ -33,11 +33,11 @@ final class ManualSigningTest extends DocumentsTestCase
 
         $signers = $this->store()->signers($this->reload($draft));
 
-        self::assertSame([['First Signer', 1], ['Parallel Signer', 1], ['Second Signer', 2]], array_map(static fn ($signer): array => [$signer->name(), $signer->order()], $signers));
+        self::assertSame([['First Signer', 1], ['Parallel Signer', 1], ['Second Signer', 2]], array_map(static fn (\Foresi\Documents\Domain\Signer $signer): array => [$signer->name(), $signer->order()], $signers));
     }
 
     #[Test]
-    public function the_order_is_shown_not_enforced(): void
+    public function theOrderIsShownNotEnforced(): void
     {
         $document = $this->ready();
         $first = $this->signer($document, 'First Signer', 1);
@@ -50,7 +50,7 @@ final class ManualSigningTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function upload_from_ready_implies_sent(): void
+    public function uploadFromReadyImpliesSent(): void
     {
         $document = $this->ready();
         $this->signer($document, 'Jana Example', 1);
@@ -65,7 +65,7 @@ final class ManualSigningTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function completes_once_in_either_order(): void
+    public function completesOnceInEitherOrder(): void
     {
         // The signed copy first, then the last signature.
         $first = $this->ready();
@@ -87,8 +87,8 @@ final class ManualSigningTest extends DocumentsTestCase
 
         // Doing either again changes nothing and completes nothing again.
         foreach ([
-            fn () => $this->documents()->markSigned(new MarkSignerSignedInput($first->id(), $b->id())),
-            fn () => $this->documents()->attachSignedCopy(new AttachSignedCopyInput($second->id(), 'signed.pdf', base64_encode(self::PDF))),
+            fn (): \Foresi\Documents\Domain\Document => $this->documents()->markSigned(new MarkSignerSignedInput($first->id(), $b->id())),
+            fn (): \Foresi\Documents\Domain\Document => $this->documents()->attachSignedCopy(new AttachSignedCopyInput($second->id(), 'signed.pdf', base64_encode(self::PDF))),
         ] as $again) {
             try {
                 $again();
@@ -104,7 +104,7 @@ final class ManualSigningTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function declined_signer_declines_document(): void
+    public function declinedSignerDeclinesDocument(): void
     {
         $document = $this->ready();
         $signer = $this->signer($document, 'Jana Example', 1);
@@ -121,7 +121,7 @@ final class ManualSigningTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function signatures_need_a_generated_document(): void
+    public function signaturesNeedAGeneratedDocument(): void
     {
         $draft = $this->draft();
         $signer = $this->signer($draft, 'Jana Example', 1);
@@ -137,7 +137,7 @@ final class ManualSigningTest extends DocumentsTestCase
     }
 
     #[Test]
-    public function a_signed_copy_must_be_a_pdf(): void
+    public function aSignedCopyMustBeAPdf(): void
     {
         $document = $this->ready();
 

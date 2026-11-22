@@ -28,6 +28,7 @@ final readonly class RemoveSignerHandler implements OperationHandler
     public function handle(object $input): OperationOutput
     {
         \assert($input instanceof RemoveSignerInput);
+
         return new OperationOutput($this->json->document($this->writes->removeSigner($input)), 'Removed the signer.');
     }
 }

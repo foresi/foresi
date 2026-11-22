@@ -172,10 +172,10 @@ final class DocumentSettingsController extends AbstractController
             'body' => $version->body(),
             'paper' => $page->paper->value,
             'landscape' => $page->landscape ? '1' : '',
-            'marginTop' => self::mm($page->marginTopMm),
-            'marginRight' => self::mm($page->marginRightMm),
-            'marginBottom' => self::mm($page->marginBottomMm),
-            'marginLeft' => self::mm($page->marginLeftMm),
+            'marginTop' => $this->mm($page->marginTopMm),
+            'marginRight' => $this->mm($page->marginRightMm),
+            'marginBottom' => $this->mm($page->marginBottomMm),
+            'marginLeft' => $this->mm($page->marginLeftMm),
         ];
         $errors = [];
         if ($request->isMethod('POST')) {
@@ -361,7 +361,7 @@ final class DocumentSettingsController extends AbstractController
                 if (\is_array($definition->example)) {
                     $first = $definition->example[0] ?? [];
                     $fields = implode(' ', array_map(static fn (string $key): string => '{{ item.'.$key.' }}', array_keys($first)));
-                    $items[] = ['placeholder' => '{% for item in '.$path.' %}'.$fields.'{% endfor %}', 'label' => $definition->label, 'example' => implode(', ', array_map('strval', array_values($first)))];
+                    $items[] = ['placeholder' => '{% for item in '.$path.' %}'.$fields.'{% endfor %}', 'label' => $definition->label, 'example' => implode(', ', array_map(strval(...), array_values($first)))];
                 } else {
                     $items[] = ['placeholder' => '{{ '.$path.' }}', 'label' => $definition->label, 'example' => $definition->example];
                 }
@@ -412,7 +412,7 @@ final class DocumentSettingsController extends AbstractController
         return new PageSettings(PaperSize::tryFrom($values['paper']) ?? PaperSize::A4, '1' === $values['landscape'], (float) $values['marginTop'], (float) $values['marginRight'], (float) $values['marginBottom'], (float) $values['marginLeft']);
     }
 
-    private static function mm(float $value): string
+    private function mm(float $value): string
     {
         return (string) (int) round($value);
     }
