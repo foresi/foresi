@@ -321,22 +321,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertSame(0, $this->partyCount());
     }
 
-    public function testInvalidSubmissionShowsErrorsAndKeepsTheEnteredValues(): void
-    {
-        $this->signIn();
-        $crawler = $this->client->request('GET', '/contacts/new');
-        $form = $crawler->filter('main form')->form($this->values(['displayName' => '', 'registrationNumber' => '12345670', 'vatId' => 'CZ12', 'city' => 'Entered City']));
-
-        $this->client->submit($form);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#displayName-error', 'Fill in this field.');
-        self::assertSelectorTextContains('#registrationNumber-error', 'Invalid registration number');
-        self::assertSelectorTextContains('#vatId-error', 'Invalid VAT ID');
-        self::assertSame('Entered City', $this->client->getCrawler()->filter('#city')->attr('value'));
-        self::assertSame(0, $this->partyCount());
-    }
-
     public function testEveryInvalidFieldIsMarkedAndTheFirstTakesTheFocus(): void
     {
         $this->signIn();

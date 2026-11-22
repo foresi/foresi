@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Application;
+namespace Foresi\Tests\Party\Integration\Country;
 
 use Foresi\Party\Application\RegistrationNumberFactory;
 use Foresi\Party\Domain\InvalidRegistrationNumber;

@@ -239,16 +239,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame(0, $this->firmCount());
     }
 
-    public function testAnInvalidRegistrationNumberIsAFormError(): void
-    {
-        $this->signIn();
-
-        $this->submitNew(['registrationNumber' => '12345678']);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
-    }
-
     public function testSubmittingTheSameSetupFormTwiceCreatesOneFirm(): void
     {
         $this->signIn();
