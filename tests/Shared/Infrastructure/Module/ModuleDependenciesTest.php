@@ -31,7 +31,8 @@ final class ModuleDependenciesTest extends TestCase
      */
     public static function modules(): iterable
     {
-        foreach (glob(self::root().'/src/*/composer.json') ?: [] as $file) {
+        $files = glob(self::root().'/src/*/composer.json');
+        foreach (false === $files ? [] : $files as $file) {
             yield basename(\dirname($file)) => [\dirname($file)];
         }
     }
@@ -44,8 +45,9 @@ final class ModuleDependenciesTest extends TestCase
         if ('foresi/foresi' !== (self::json(self::root().'/composer.json')['name'] ?? null)) {
             self::markTestSkipped('Only the application with every module installed knows every package.');
         }
+        $require = self::json($directory.'/composer.json')['require'] ?? [];
         $declared = array_values(array_filter(
-            array_keys(self::json($directory.'/composer.json')['require'] ?? []),
+            array_map(strval(...), array_keys(\is_array($require) ? $require : [])),
             static fn (string $package): bool => str_contains($package, '/') && !str_starts_with($package, 'foresi/'),
         ));
         sort($declared);
@@ -101,7 +103,11 @@ final class ModuleDependenciesTest extends TestCase
         }
         $vendor = self::root().'/vendor';
         $directories = [];
-        foreach (self::json($vendor.'/composer/installed.json')['packages'] ?? [] as $package) {
+        $installed = self::json($vendor.'/composer/installed.json')['packages'] ?? [];
+        foreach (\is_array($installed) ? $installed : [] as $package) {
+            if (!\is_array($package) || !\is_string($package['install-path'] ?? null) || !\is_string($package['name'] ?? null)) {
+                continue;
+            }
             $path = realpath($vendor.'/composer/'.$package['install-path']);
             if (false !== $path) {
                 $directories[$path] = $package['name'];
@@ -126,7 +132,7 @@ final class ModuleDependenciesTest extends TestCase
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private static function json(string $file): array
     {
