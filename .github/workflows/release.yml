@@ -86,3 +86,39 @@ jobs:
             exit 0
           fi
           .github/scripts/split.sh --push ${SPLIT_SINCE:+--since "$SPLIT_SINCE"}
+
+  # Tells the instances that follow every release that the split is done, so
+  # they update now instead of at their next scheduled check: a
+  # repository_dispatch of type foresi-release to each repository in the secret
+  # RELEASE_DISPATCH_REPOSITORIES (owner/name, separated by spaces), with the
+  # token RELEASE_DISPATCH_TOKEN (Contents: read and write on those
+  # repositories). Both are secrets so that this public workflow names no
+  # private repository. Without them it does nothing.
+  dispatch:
+    name: Notify instances
+    needs: split
+    if: github.repository == 'foresi/foresi'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Send repository_dispatch
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_DISPATCH_TOKEN }}
+          REPOSITORIES: ${{ secrets.RELEASE_DISPATCH_REPOSITORIES }}
+        run: |
+          if [ -z "$GH_TOKEN" ] || [ -z "$REPOSITORIES" ]; then
+            echo "RELEASE_DISPATCH_TOKEN or RELEASE_DISPATCH_REPOSITORIES is not set; nothing to do."
+            exit 0
+          fi
+          failed=0
+          for repository in $REPOSITORIES; do
+            echo "::add-mask::$repository"
+            if gh api --silent -X POST "repos/$repository/dispatches" -f event_type=foresi-release; then
+              echo "notified one instance"
+            else
+              echo "::error title=Dispatch::an instance repository refused the dispatch"
+              failed=1
+            fi
+          done
+          exit $failed
