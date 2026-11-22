@@ -42,7 +42,20 @@ final class PlannedActivityEntriesTest extends ActivitiesTestCase
         self::assertNotContains($outside->id(), $this->ids($this->owner->user()->id()));
         self::assertSame(PlannedActivityEntries::KEY, $this->source()->key());
         $feed = new CalendarFeed($this->owner->user()->id(), 'Work', FeedToken::hash('token'), $this->clock->now());
-        self::assertStringContainsString('SUMMARY:Meeting: Kick-off meeting', self::getContainer()->get(CalendarFeedReader::class)->calendar($feed), 'The calendar feeds read it.');
+        self::assertStringContainsString('SUMMARY:Meeting: Kick-off meeting', $this->reader()->calendar($feed), 'The calendar feeds read it.');
+    }
+
+    public function testOnlyTheOwnerKeepsAnActivityWhoseTargetsAreGone(): void
+    {
+        $member = $this->person('member@example.com', Role::Member);
+        $this->em->flush();
+        $planned = $this->planned('Kick-off meeting');
+        $unlinked = $this->activities()->create(new CreateActivityInput($this->type('task')->id(), 'Think it over', plannedOn: '2026-11-24'));
+
+        $this->contacts->remove($this->contactId);
+
+        self::assertSame([$planned->id(), $unlinked->id()], $this->ids($this->owner->user()->id()), 'The feed keeps it for its owner.');
+        self::assertSame([], $this->ids($member->user()->id()), 'Nobody else gets it in a feed.');
     }
 
     public function testDateOnlyIsAllDay(): void
@@ -77,6 +90,11 @@ final class PlannedActivityEntriesTest extends ActivitiesTestCase
 
         self::assertSame('Meeting: Kick-off meeting', $entry->title);
         self::assertStringNotContainsString('Example Client', $entry->title);
+    }
+
+    private function reader(): CalendarFeedReader
+    {
+        return self::getContainer()->get(CalendarFeedReader::class);
     }
 
     private function source(): PlannedActivityEntries

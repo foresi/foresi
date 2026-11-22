@@ -12,7 +12,6 @@ use Foresi\Activities\Application\ActivitiesRefused;
 use Foresi\Activities\Application\Api\CreateActivityInput;
 use Foresi\Activities\Application\Api\TrashActivityInput;
 use Foresi\Activities\Domain\Activity;
-use Foresi\Activities\Integration\Calendar\PlannedActivityEntries;
 use Foresi\Attachment\Application\AttachmentPermissions;
 use Foresi\Identity\Domain\Role;
 use Foresi\Shared\Domain\Id;
@@ -20,8 +19,8 @@ use Foresi\Tests\Activities\Support\ActivitiesTestCase;
 
 /**
  * Who sees an activity: whoever sees one of its records; when none is visible
- * (none given, or all gone) only its owner, in the timeline, in the reads and
- * in the calendar feed alike. Its files follow it.
+ * (none given, or all gone) only its owner, in the timeline and in the reads
+ * alike (the calendar feed: Integration\Calendar). Its files follow it.
  */
 final class ActivityVisibilityTest extends ActivitiesTestCase
 {
@@ -58,13 +57,11 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
         self::assertSame($planned->id(), $this->reads()->activity($planned->id())->id(), 'Its owner still sees it.');
         self::assertSame([$planned->id()], $this->ids($this->reads()->timeline('contact', $this->contactId)));
         self::assertCount(1, $this->store()->links($planned));
-        self::assertSame([$planned->id(), $unlinked->id()], $this->feed($this->owner->user()->id()), 'The feed keeps it for its owner.');
 
         $this->signIn($member);
         $this->assertNotFound(fn (): Activity => $this->reads()->activity($planned->id()));
         $this->assertNotFound(fn (): Activity => $this->reads()->activity($unlinked->id()));
         self::assertSame([], $this->reads()->timeline('contact', $this->contactId));
-        self::assertSame([], $this->feed($member->user()->id()), 'Nobody else gets it in a feed.');
     }
 
     public function testAttachmentsFollowActivity(): void
@@ -96,16 +93,6 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
     private function ids(array $activities): array
     {
         return array_map(static fn (Activity $activity): string => $activity->id(), $activities);
-    }
-
-    /**
-     * @return list<string> the ids of the entries in the person's feed
-     */
-    private function feed(string $userId): array
-    {
-        $entries = self::getContainer()->get(PlannedActivityEntries::class)->entriesFor($userId, new \DateTimeImmutable('2026-10-23'), new \DateTimeImmutable('2027-11-22'));
-
-        return array_map(static fn ($entry): string => substr($entry->uid, \strlen('activities.planned-'), 36), iterator_to_array($entries, false));
     }
 
     private function assertNotFound(callable $read): void
