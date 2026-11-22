@@ -80,12 +80,14 @@ cash_flow:
     document: Otevřené doklady
     schedule: Opakované faktury
     plan: Plánované položky
-    estimate: Odhad daní a pojištění
+    estimate: Odhad daní, pojištění a DPH
   flag:
     overdue: Po splatnosti
     expected_date: Očekávaný den
     no_due_date: Bez splatnosti
     estimated: Odhad
+    awaited_out: Zatím nezaplaceno
+    awaited_in: Zatím nepřišlo
   source:
     cash_flow_planned_items: Plánované položky
     invoicing_invoices: Faktury

@@ -560,6 +560,52 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertSame(['Today'], $this->labels($forecast->periods[0]->lines));
     }
 
+    public function testAnAwaitedFlowBeforeTodayCountsTodayWithoutOverdue(): void
+    {
+        $this->clock->modify('2026-12-29 10:00:00');
+        $source = new FakeSource('test.invoices', [
+            $this->flow('plan-today', '2026-12-29', '50.00', FlowCertainty::Plan, FlowDirection::Out),
+            $this->flow('vat-november', '2026-12-28', '1890.00', FlowCertainty::Estimate, FlowDirection::Out, [FlowFlag::Estimated, FlowFlag::Awaited]),
+        ]);
+
+        $forecast = $this->forecast(sources: [$source]);
+
+        $line = $forecast->periods[0]->lines[0];
+        self::assertSame('vat-november', $line->flow->subject->id, 'An awaited flow comes first, with the overdue ones.');
+        self::assertSame([FlowFlag::Estimated, FlowFlag::Awaited], $line->flow->flags);
+        self::assertSame('2026-12-29', $line->countedOn->format('Y-m-d'));
+        self::assertSame('2026-12-28', $line->flow->expectedOn->format('Y-m-d'));
+        self::assertSame('plan-today', $forecast->periods[0]->lines[1]->flow->subject->id);
+    }
+
+    public function testAFlowBeforeTodayWithoutAwaitedStaysOverdue(): void
+    {
+        $this->clock->modify('2026-12-29 10:00:00');
+        $source = new FakeSource('test.invoices', [$this->flow('tax', '2026-12-28', '1890.00', FlowCertainty::Estimate, FlowDirection::Out, [FlowFlag::Estimated])]);
+
+        $line = $this->forecast(sources: [$source])->periods[0]->lines[0];
+
+        self::assertSame([FlowFlag::Estimated, FlowFlag::Overdue], $line->flow->flags);
+        self::assertSame('2026-12-29', $line->countedOn->format('Y-m-d'));
+    }
+
+    public function testAwaitedOnTheDayAfterPragueMidnight(): void
+    {
+        $source = new FakeSource('test.invoices', [$this->flow('vat-november', '2026-12-28', '1890.00', FlowCertainty::Estimate, FlowDirection::Out, [FlowFlag::Estimated, FlowFlag::Awaited])]);
+
+        // 23:30 UTC on 28 December is 00:30 on 29 December in Prague: the flow is past.
+        $this->clock->modify('2026-12-28 23:30:00');
+        $after = $this->forecast(sources: [$source])->periods[0]->lines[0];
+        self::assertSame('2026-12-29', $after->countedOn->format('Y-m-d'));
+        self::assertSame([FlowFlag::Estimated, FlowFlag::Awaited], $after->flow->flags);
+
+        // 22:30 UTC is 23:30 on 28 December in Prague: still its own day.
+        $this->clock->modify('2026-12-28 22:30:00');
+        $before = $this->forecast(sources: [$source])->periods[0]->lines[0];
+        self::assertSame('2026-12-28', $before->countedOn->format('Y-m-d'));
+        self::assertFalse($before->flow->hasFlag(FlowFlag::Overdue));
+    }
+
     /**
      * @param list<CashFlowSource>|null $sources        the planned items when null
      * @param list<BalanceSource>       $balanceSources

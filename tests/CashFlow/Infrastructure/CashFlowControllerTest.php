@@ -218,7 +218,7 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-cash-flow-table-empty]'));
         self::assertCount(0, $crawler->filter('[data-cash-flow-table]'));
-        self::assertStringContainsString('Source: Open documents, Tax and insurance estimate', $crawler->filter('[data-cash-flow-filter]')->text());
+        self::assertStringContainsString('Source: Open documents, Tax, insurance and VAT estimate', $crawler->filter('[data-cash-flow-filter]')->text());
         // The balance today is never filtered.
         self::assertStringContainsString('60,000', $crawler->filter('[data-cash-flow-kpis]')->text());
 
