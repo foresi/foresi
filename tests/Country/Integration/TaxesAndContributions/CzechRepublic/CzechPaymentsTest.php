@@ -181,6 +181,47 @@ final class CzechPaymentsTest extends TestCase
         self::assertSame(2_920_000, $this->payment($result, 'social.advance.2026-05')->amount->minor(), '600,000 over the six months of 2025 with activity.');
     }
 
+    public function testAFiveMonthPreviousYearDividesTheBasesByFive(): void
+    {
+        $inputs = new YearInputsView(2026, previousSocialBase: $this->czk(1_000_000), previousHealthBase: $this->czk(300_001), previousOverviewFiledOn: new \DateTimeImmutable('2026-04-20'), previousActivityMonths: 5);
+        $result = $this->compute($this->profile('main', $inputs));
+
+        // 300,001 / 5 is 60,000.20, up to 60,001; times 13.5 % is 8,100.135, up to 8,101.
+        self::assertSame(810_100, $this->payment($result, 'health.advance.2026-04')->amount->minor());
+        // 1,000,000 / 5 is 200,000; times 29.2 % is 58,400.
+        self::assertSame(5_840_000, $this->payment($result, 'social.advance.2026-05')->amount->minor());
+        self::assertNotContains(CzechPayments::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS, $result->unverified);
+    }
+
+    public function testTheEnteredMonthsOfActivityWinOverTheStatuses(): void
+    {
+        $profile = new ProfileView([
+            new StatusPeriod('a', StatusKind::Activity, 'main', new \DateTimeImmutable('2025-07-01')),
+        ], [2026 => new YearInputsView(2026, previousHealthBase: $this->czk(300_000), previousOverviewFiledOn: new \DateTimeImmutable('2026-04-20'), previousActivityMonths: 5)], []);
+
+        // 300,000 / 5 is 60,000, times 13.5 %; the six months of the statuses would give 6,750.
+        self::assertSame(810_000, $this->payment($this->compute($profile), 'health.advance.2026-04')->amount->minor());
+    }
+
+    public function testWithoutMonthsOrStatusesOfThePreviousYearTheBaseIsSpreadOverTwelveFlagged(): void
+    {
+        $inputs = new YearInputsView(2026, previousHealthBase: $this->czk(600_000), previousOverviewFiledOn: new \DateTimeImmutable('2026-04-20'));
+        $result = $this->compute($this->profile('main', $inputs));
+
+        self::assertSame(675_000, $this->payment($result, 'health.advance.2026-04')->amount->minor());
+        self::assertSame(1, array_count_values($result->unverified)[CzechPayments::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS] ?? 0);
+        self::assertNotContains(CzechPayments::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS, $this->compute($this->profile('main'))->unverified, 'No base, nothing divided.');
+    }
+
+    public function testTheStatusesOfThePreviousYearAreNotFlagged(): void
+    {
+        $profile = new ProfileView([
+            new StatusPeriod('a', StatusKind::Activity, 'main', new \DateTimeImmutable('2025-07-01')),
+        ], [2026 => new YearInputsView(2026, previousSocialBase: $this->czk(600_000), previousOverviewFiledOn: new \DateTimeImmutable('2026-04-20'))], []);
+
+        self::assertNotContains(CzechPayments::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS, $this->compute($profile)->unverified);
+    }
+
     public function testASecondaryActivityPaysSocialOnlyWithABaseFromTheYearBefore(): void
     {
         $without = $this->compute($this->profile('secondary'));

@@ -94,6 +94,7 @@ final class ProfileBoundariesTest extends TaxesTestCase
             'paper',
             ' 2026-02-01 ',
             ' 8.00 ',
+            5,
         ));
         $this->em->clear();
 
@@ -106,6 +107,7 @@ final class ProfileBoundariesTest extends TaxesTestCase
         self::assertSame(['gifts' => 150, 'exam_fees' => 0], array_map(static fn (\Foresi\Shared\Domain\Money $amount): int => $amount->minor(), $year->deductions));
         self::assertSame([100, 200, 300, 400, 500, 600, 700, 800], [$year->employmentBase?->minor(), $year->employmentTaxWithheld?->minor(), $year->rentalBase?->minor(), $year->otherBase?->minor(), $year->lastKnownTax?->minor(), $year->previousSocialBase?->minor(), $year->previousHealthBase?->minor(), $year->averageWageOverride?->minor()]);
         self::assertSame(['2026-04-30', ReturnRoute::Paper, '2026-02-01'], [$year->previousOverviewFiledOn?->format('Y-m-d'), $year->returnRoute, $year->activityStart?->format('Y-m-d')]);
+        self::assertSame(5, $year->previousActivityMonths);
 
         // The years stay in order, whatever order they were set in.
         $this->writes()->setYear(new SetYearInputsInput('2025'));
@@ -127,6 +129,13 @@ final class ProfileBoundariesTest extends TaxesTestCase
         $this->assertReason('months_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['months' => '12'])])));
         $this->assertReason('months_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', spouseMonths: -1)));
         self::assertSame(12, $this->writes()->setYear(new SetYearInputsInput('2026', spouseMonths: 12))->spouse?->months);
+        $this->assertReason('activity_months_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', previousActivityMonths: 0)));
+        $this->assertReason('activity_months_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', previousActivityMonths: 13)));
+        self::assertSame([1, 12, null], [
+            $this->writes()->setYear(new SetYearInputsInput('2026', previousActivityMonths: 1))->previousActivityMonths,
+            $this->writes()->setYear(new SetYearInputsInput('2026', previousActivityMonths: 12))->previousActivityMonths,
+            $this->writes()->setYear(new SetYearInputsInput('2026'))->previousActivityMonths,
+        ]);
         $this->assertReason('date_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: [$child(['birth_date' => null])])));
         $this->assertReason('child_invalid', fn (): mixed => $this->writes()->setYear(new SetYearInputsInput('2026', children: ['Elder daughter'])));
         self::assertCount(20, $this->writes()->setYear(new SetYearInputsInput('2026', children: array_fill(0, 20, $child([]))))->children);

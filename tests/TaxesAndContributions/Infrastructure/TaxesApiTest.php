@@ -111,6 +111,11 @@ final class TaxesApiTest extends ApiTestCase
 
         $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', ['children' => [['label' => 'Elder daughter', 'birth_date' => '2019-05-14', 'order' => 1, 'months' => 13]]]);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'children', 'reason' => 'months_invalid']);
+
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', ['previous_activity_months' => 0]);
+        $this->assertProblem(400, 'invalid_parameter', ['reason' => 'activity_months_invalid']);
+        $this->send($this->owner, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', ['previous_activity_months' => 5]);
+        self::assertSame(5, $this->at('data', 'previous_year', 'activity_months'));
     }
 
     public function testTheOwnerReadsTheAmountsOfAYearAndABadYearNamesItsParameter(): void

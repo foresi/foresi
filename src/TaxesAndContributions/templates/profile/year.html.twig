@@ -110,6 +110,7 @@
                 {% for name in ['previousSocialBase', 'previousHealthBase'] %}
                     <twig:Ui:TextInput :name="name" :id="name" :row="true" width="short" :label="('taxes.profile.field.' ~ name)|trans" :value="values[name]" :error="errors[name] is defined ? errors[name]|trans : null" inputmode="decimal" autocomplete="off" />
                 {% endfor %}
+                <twig:Ui:TextInput name="previousActivityMonths" id="previousActivityMonths" :row="true" width="short" :label="'taxes.profile.field.previousActivityMonths'|trans" :help="'taxes.profile.field.previousActivityMonths_help'|trans" :value="values.previousActivityMonths" :error="errors.previousActivityMonths is defined ? errors.previousActivityMonths|trans : null" inputmode="numeric" autocomplete="off" />
                 <twig:Ui:TextInput name="previousOverviewFiledOn" id="previousOverviewFiledOn" type="date" :row="true" width="short" :label="'taxes.profile.field.previousOverviewFiledOn'|trans" :value="values.previousOverviewFiledOn" :error="errors.previousOverviewFiledOn is defined ? errors.previousOverviewFiledOn|trans : null" />
             </twig:Ui:FieldGroup>
 

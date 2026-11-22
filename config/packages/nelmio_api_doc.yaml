@@ -703,6 +703,7 @@ nelmio_api_doc:
                                 social_base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
                                 health_base: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
                                 overview_filed_on: { type: string, format: date, nullable: true }
+                                activity_months: { type: integer, minimum: 1, maximum: 12, nullable: true }
                         return_route: { type: string, enum: [paper, electronic, advisor] }
                         activity_start: { type: string, format: date, nullable: true }
                         average_wage_override: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }

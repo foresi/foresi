@@ -104,6 +104,7 @@ final class TaxesJson
                 'social_base' => self::money($year->previousSocialBase),
                 'health_base' => self::money($year->previousHealthBase),
                 'overview_filed_on' => $year->previousOverviewFiledOn?->format('Y-m-d'),
+                'activity_months' => $year->previousActivityMonths,
             ],
             'return_route' => $year->returnRoute->value,
             'activity_start' => $year->activityStart?->format('Y-m-d'),

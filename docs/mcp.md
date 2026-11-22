@@ -84,7 +84,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_tax_estimate` | The estimate of a year (`year`, this one by default): to date and year end apart, the expense methods with their steps, and the payments of the year by due day with their state, expected, paid by a bank movement or overdue. Owner only. |
 | `foresi_add_tax_status` | **Write.** Adds a status of the owner from a day on (`kind`, `value`, `valid_from`), until the next of its kind. Owner only. |
 | `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. Owner only. |
-| `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year and the return route. Owner only. |
+| `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |

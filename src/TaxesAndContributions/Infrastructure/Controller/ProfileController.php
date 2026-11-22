@@ -164,6 +164,7 @@ final class ProfileController extends AbstractController
             $values['previousSocialBase'] = $text('previousSocialBase');
             $values['previousHealthBase'] = $text('previousHealthBase');
             $values['previousOverviewFiledOn'] = $text('previousOverviewFiledOn');
+            $values['previousActivityMonths'] = $text('previousActivityMonths');
             $values['returnRoute'] = $text('returnRoute');
             $values['activityStart'] = $text('activityStart');
             $values['averageWageOverride'] = $text('averageWageOverride');
@@ -180,6 +181,9 @@ final class ProfileController extends AbstractController
             $values['children'] = array_values($values['children']);
 
             return $this->yearForm($year, $section, $values, [], Response::HTTP_OK);
+        }
+        if ('' !== $values['previousActivityMonths'] && 1 !== preg_match('/^[0-9]{1,2}\z/', $values['previousActivityMonths'])) {
+            return $this->yearForm($year, $section, $values, ['previousActivityMonths' => 'taxes.profile.error.activity_months_invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         if ('' !== $values['spouseMonths'] && 1 !== preg_match('/^[0-9]{1,2}\z/', $values['spouseMonths'])) {
             return $this->yearForm($year, $section, $values, ['spouseMonths' => 'taxes.profile.error.months_invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -228,6 +232,7 @@ final class ProfileController extends AbstractController
                 '' === $values['returnRoute'] ? ReturnRoute::Electronic->value : $values['returnRoute'],
                 '' === $values['activityStart'] ? null : $values['activityStart'],
                 $amount($values['averageWageOverride']),
+                '' === $values['previousActivityMonths'] ? null : (int) $values['previousActivityMonths'],
             ));
         } catch (TaxesRefused $refused) {
             $this->denyIfForbidden($refused);

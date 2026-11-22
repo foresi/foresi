@@ -66,6 +66,7 @@ final readonly class YearInputs
             'previous_overview_filed_on' => $view->previousOverviewFiledOn?->format('Y-m-d'),
             'return_route' => $view->returnRoute->value,
             'activity_start' => $view->activityStart?->format('Y-m-d'),
+            'previous_activity_months' => $view->previousActivityMonths,
         ] + $amounts);
     }
 
@@ -123,6 +124,7 @@ final readonly class YearInputs
             ReturnRoute::from(Stored::string($data, 'return_route')),
             Stored::day($data, 'activity_start'),
             Stored::money($data, 'average_wage_override'),
+            \is_int($data['previous_activity_months'] ?? null) ? $data['previous_activity_months'] : null,
         );
     }
 

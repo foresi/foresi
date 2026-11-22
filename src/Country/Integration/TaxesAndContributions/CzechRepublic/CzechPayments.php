@@ -29,7 +29,11 @@ use Foresi\TaxesAndContributions\Contract\YearInputsView;
  *   next month (ZP act § 7 (2)).
  * - An advance is the previous year's base per month of its activity times
  *   the rate, rounded up, and at least the minimum of the month; with no base
- *   known, it is the minimum. A secondary activity pays a social advance only
+ *   known, it is the minimum. The months of activity are those with an
+ *   activity at least for part of the month, main or secondary alike (ZP act
+ *   § 8 (2), SP act § 14 (2), zakonyprolidi.cz/cs/1992-592 and /1992-589 as
+ *   in force on 1 November 2026): the count the owner entered for the year,
+ *   else the activity statuses of the year before, else twelve, flagged. A secondary activity pays a social advance only
  *   with a base from the year before, as it took part then. The new base
  *   applies to social from the month after the overview and to health from
  *   the overview month (SP act § 14 (6), ZP act § 8 (2)).
@@ -50,6 +54,7 @@ final readonly class CzechPayments
     public const string UNVERIFIED_MIDDLE_BAND = 'middle_advance_band';
     public const string UNVERIFIED_ELECTRONIC_DEADLINE = 'electronic_deadline_payment_date';
     public const string UNVERIFIED_OVERVIEW_DEADLINES = 'overview_deadlines';
+    public const string UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS = 'previous_activity_months';
 
     /** The months of the four quarterly advances and of the two half-year ones. */
     private const array FOUR = [3, 6, 9, 12];
@@ -98,6 +103,11 @@ final readonly class CzechPayments
             $period = $month->key();
             $social = $first->format('Y-m') > $overview->format('Y-m') ? $after : $before;
             $health = $first->format('Y-m') >= $overview->format('Y-m') ? $after : $before;
+            foreach ([[$social, 'social'], [$health, 'health']] as [$bases, $levy]) {
+                if ($bases['guessed'] && null !== $bases[$levy] && !\in_array(self::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS, $unverified, true)) {
+                    $unverified[] = self::UNVERIFIED_PREVIOUS_ACTIVITY_MONTHS;
+                }
+            }
 
             $socialRate = $this->rule('social.rate', $first, $used)->value;
             $socialAdvance = Czk::percentUp(Czk::fractionUp($social['social'] ?? 0, 1, $social['months']), $socialRate);
@@ -278,26 +288,29 @@ final readonly class CzechPayments
 
     /**
      * The bases the advances of a year take after its overview, from the
-     * year before: per month of that year's activity, in minor units.
+     * year before: per month of that year's activity, in minor units, and
+     * whether those months are twelve for want of anything entered.
      *
-     * @return array{social: ?int, health: ?int, months: int}
+     * @return array{social: ?int, health: ?int, months: int, guessed: bool}
      */
     private function bases(ProfileView $profile, int $year): array
     {
         $inputs = $this->inputs($profile, $year);
+        $months = $inputs->previousActivityMonths ?? $this->activeMonths($profile, $year - 1);
 
         return [
             'social' => $inputs->previousSocialBase?->minor(),
             'health' => $inputs->previousHealthBase?->minor(),
-            'months' => $this->activeMonths($profile, $year - 1),
+            'months' => $months ?? 12,
+            'guessed' => null === $months,
         ];
     }
 
     /**
-     * The months of a year with an activity, or all twelve when none is
-     * entered.
+     * The months of a year with an activity by its statuses, or null when
+     * none is entered.
      */
-    private function activeMonths(ProfileView $profile, int $year): int
+    private function activeMonths(ProfileView $profile, int $year): ?int
     {
         $active = 0;
         for ($month = 1; $month <= 12; ++$month) {
@@ -305,7 +318,7 @@ final readonly class CzechPayments
             $active += null !== $value && Month::NONE !== $value ? 1 : 0;
         }
 
-        return $active > 0 ? $active : 12;
+        return $active > 0 ? $active : null;
     }
 
     private function inputs(ProfileView $profile, int $year): YearInputsView

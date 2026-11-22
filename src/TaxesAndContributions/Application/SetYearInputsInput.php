@@ -22,7 +22,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_set_tax_year',
     scope: 'taxes:write',
     title: 'Set the tax inputs of a year',
-    description: 'Replaces the inputs of one year of the owner profile: the expense methods to compare and the chosen one, the children and the spouse claimed, the deductions, the other partial bases, the last known tax, the previous year, the return route, the start of the activity and an average wage override. '
+    description: 'Replaces the inputs of one year of the owner profile: the expense methods to compare and the chosen one, the children and the spouse claimed, the deductions, the other partial bases, the last known tax, the previous year (its bases, overview day and months of activity), the return route, the start of the activity and an average wage override. '
         .'A field left out is cleared, so send the whole year as foresi_get_tax_profile returns it. All amounts are in CZK. Only the owner of the organisation may do this.',
     response: 'TaxYear',
     staffOnly: true,
@@ -73,6 +73,8 @@ final readonly class SetYearInputsInput
         public ?string $activityStart = null,
         #[Field('An average wage to use instead of the published one.')]
         public ?string $averageWageOverride = null,
+        #[Field('The months of the previous year with an activity, at least for part of the month, 1 to 12; the previous year\'s bases are divided by them for the advances after its overview. Null counts the activity statuses of that year, or twelve when there are none.')]
+        public ?int $previousActivityMonths = null,
     ) {
     }
 }

@@ -15,8 +15,9 @@ use Foresi\Shared\Domain\Money;
  * to compare and the one chosen, the children and the spouse claimed, the
  * deductions, the other partial bases, the last known tax, the bases of the
  * previous year and its overview filed day, the return route, the day the
- * activity started and an average wage that overrides the published one. All
- * amounts are in CZK.
+ * activity started, an average wage that overrides the published one and the
+ * months of the previous year with an activity (1 to 12, null when not
+ * entered). All amounts are in CZK.
  */
 final readonly class YearInputsView
 {
@@ -43,6 +44,7 @@ final readonly class YearInputsView
         public ReturnRoute $returnRoute = ReturnRoute::Electronic,
         public ?\DateTimeImmutable $activityStart = null,
         public ?Money $averageWageOverride = null,
+        public ?int $previousActivityMonths = null,
     ) {
     }
 
