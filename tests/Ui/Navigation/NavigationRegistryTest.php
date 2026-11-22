@@ -158,6 +158,7 @@ final class NavigationRegistryTest extends TestCase
         )->groups(null, true);
 
         self::assertSame([true, false], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $entry): bool => $entry->marksArea, $groups[0]['items']));
+        self::assertFalse(new \Foresi\Ui\Navigation\NavigationEntry('a', 'plus', 'r1', 3, false)->marksArea, 'An entry marks its area only when told to.');
     }
 
     public function testACapOfOneIsAllowedAndBelowItRefused(): void
