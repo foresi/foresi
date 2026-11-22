@@ -134,8 +134,8 @@
         "cs:fix": "php-cs-fixer fix --ansi",
         "rector": "rector process --dry-run --ansi",
         "lint": [
-            "@php bin/console lint:twig templates src",
-            "@php bin/console lint:yaml config translations src --parse-tags",
+            "@php bin/console lint:twig src",
+            "@php bin/console lint:yaml config src --parse-tags",
             "@php bin/console lint:container"
         ],
         "phpstan": [

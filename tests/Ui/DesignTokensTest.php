@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The templates, the component classes and the Stimulus controllers use only the
- * closed scales of assets/styles/app.css: three radii, the control and row
+ * closed scales of src/Ui/assets/theme/app.css: three radii, the control and row
  * heights, the named type steps, three border roles and three elevations. Any
  * arbitrary value or default Tailwind step fails with its file and line.
  */
@@ -73,12 +73,12 @@ final class DesignTokensTest extends TestCase
             }
         }
 
-        self::assertSame([], $violations, "Use the design tokens of assets/styles/app.css:\n".implode("\n", $violations));
+        self::assertSame([], $violations, "Use the design tokens of src/Ui/assets/theme/app.css:\n".implode("\n", $violations));
     }
 
     public function testEveryAllowedRadiusIsAThemeToken(): void
     {
-        $css = (string) file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
+        $css = (string) file_get_contents(dirname(__DIR__, 2).'/src/Ui/assets/theme/app.css');
 
         foreach (self::RADII as $radius) {
             self::assertMatchesRegularExpression('/--radius-'.$radius.':\s*\d+px;/', $css, sprintf('The radius "%s" must be defined in @theme.', $radius));
@@ -180,7 +180,7 @@ final class DesignTokensTest extends TestCase
                 $modules[] = substr($directory, strlen($root) + 1);
             }
         }
-        foreach (['templates', 'src/Ui', 'assets/controllers', ...$modules] as $dir) {
+        foreach (['src/Ui', ...$modules] as $dir) {
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root.'/'.$dir, \FilesystemIterator::SKIP_DOTS));
             foreach ($iterator as $file) {
                 self::assertInstanceOf(\SplFileInfo::class, $file);

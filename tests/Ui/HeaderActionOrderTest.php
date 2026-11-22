@@ -30,7 +30,7 @@ final class HeaderActionOrderTest extends TestCase
     public static function headers(): iterable
     {
         $root = \dirname(__DIR__, 2);
-        $directories = ['' => $root.'/templates'];
+        $directories = [];
         $modules = glob($root.'/src/*/templates', \GLOB_ONLYDIR);
         foreach (false === $modules ? [] : $modules as $directory) {
             $directories['@'.basename(\dirname($directory)).'/'] = $directory;

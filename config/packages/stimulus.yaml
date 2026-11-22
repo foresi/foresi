@@ -1,6 +1,0 @@
-# The application's own controllers. Each module bundle adds its
-# src/<Module>/assets/controllers, and a bundle's entry would replace the
-# default, so the application's directory is listed here.
-stimulus:
-    controller_paths:
-        - '%kernel.project_dir%/assets/controllers'
