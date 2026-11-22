@@ -24,7 +24,7 @@ use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Invoicing\Application\ReadsEventLog;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 
 /**
  * The payments of received documents (decision C3 of the cash flow spec):

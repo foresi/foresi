@@ -36,7 +36,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Banking\Support\BankingTestCase;
 use Foresi\Tests\Banking\Support\LoggingBankMovements;
-use Foresi\Tests\Invoicing\Application\ReadsEventLog;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Psr\Clock\ClockInterface;
 
