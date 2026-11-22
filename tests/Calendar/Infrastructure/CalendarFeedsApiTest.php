@@ -131,7 +131,7 @@ final class CalendarFeedsApiTest extends ApiTestCase
 
     public function testATokenWithoutTheCalendarScopeReadsNothing(): void
     {
-        $this->get('/api/v1/calendar/feeds', secret: $this->issued([ApiScope::from('cashflow:read')]));
+        $this->get('/api/v1/calendar/feeds', secret: $this->issued([ApiScope::from('contacts:read')]));
 
         $this->assertProblem(403, 'insufficient_scope');
     }

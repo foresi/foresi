@@ -359,7 +359,7 @@ final class TaxesApiTest extends ApiTestCase
         self::assertSame('owner_only', $this->in($write, 'structuredContent', 'error', 'code'));
 
         // The token without the scope is refused for the scope first.
-        $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->issued([ApiScope::from('cashflow:read')]));
+        $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->issued([ApiScope::from('contacts:read')]));
         $this->assertProblem(403, 'insufficient_scope');
     }
 
