@@ -150,11 +150,11 @@ final class DocumentSettingsScreensTest extends WebTestCase
         self::assertStringContainsString('EXAMPLE', $answer['html']);
         self::assertStringContainsString('padding:20mm 20mm 20mm 20mm', $answer['html']);
 
-        $this->client->request('POST', '/settings/documents/templates/'.$template->id().'/preview', ['body' => '<p>{{ client.name }}</p>'] + $values);
+        $this->client->request('POST', '/settings/documents/templates/'.$template->id().'/preview', ['body' => '<p>{{ deal.title }}</p>'] + $values);
         $answer = $this->json();
         self::assertNull($answer['html']);
         self::assertIsString($answer['error']);
-        self::assertStringContainsString('client.name', $answer['error']);
+        self::assertStringContainsString('deal.title', $answer['error']);
     }
 
     private function type(string $code): DocumentType
