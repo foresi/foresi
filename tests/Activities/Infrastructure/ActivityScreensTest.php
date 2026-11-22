@@ -23,6 +23,7 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
@@ -64,7 +65,7 @@ final class ActivityScreensTest extends WebTestCase
         $form = $crawler->filter('#activity-form')->form();
         $form['subject'] = 'Kick-off meeting';
         $form['plannedAt'] = '2026-11-25T10:00';
-        $form['plannedOn']->setValue('');
+        $form['plannedOn'] = '';
         $this->client->submit($form);
         self::assertResponseRedirects($this->return);
 
@@ -73,7 +74,7 @@ final class ActivityScreensTest extends WebTestCase
         $form['subject'] = 'First call';
         $form['doneAt'] = '2026-11-20T09:00';
         $form['outcome'] = 'Wants a roof audit';
-        $form['file']->upload($this->recording());
+        $form['file'] = $this->recording();
         $this->client->submit($form);
         self::assertResponseRedirects($this->return);
 
@@ -92,7 +93,7 @@ final class ActivityScreensTest extends WebTestCase
         $form['nextTypeId'] = $this->type('task')->id();
         $form['nextSubject'] = 'Send the audit offer';
         $form['nextPlannedOn'] = '2026-11-27';
-        $form['nextPlannedAt']->setValue('');
+        $form['nextPlannedAt'] = '';
         $this->client->submit($form);
         self::assertResponseRedirects($this->return);
 
@@ -117,7 +118,9 @@ final class ActivityScreensTest extends WebTestCase
         self::assertFalse($this->activity($activity)->isDone());
 
         $form = $this->client->getCrawler()->filter('#activity-complete-form')->form();
-        $form['planNext']->untick();
+        $planNext = $form->get('planNext');
+        self::assertInstanceOf(ChoiceFormField::class, $planNext);
+        $planNext->untick();
         $this->client->submit($form);
         self::assertResponseRedirects('/activities/'.$activity);
         $this->em()->clear();
@@ -214,7 +217,7 @@ final class ActivityScreensTest extends WebTestCase
         $form = $crawler->filter('#activity-form')->form();
         $form['subject'] = 'Kick-off meeting';
         $form['plannedAt'] = '2026-11-25T10:00';
-        $form['plannedOn']->setValue('');
+        $form['plannedOn'] = '';
         $this->client->submit($form);
         self::assertResponseRedirects();
         $location = (string) $this->client->getResponse()->headers->get('Location');

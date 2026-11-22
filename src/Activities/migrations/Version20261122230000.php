@@ -19,7 +19,7 @@ use Symfony\Component\Uid\Uuid;
  * written, and a task on a date. They have no name of their own, so each shows
  * under its key's name in the person's language until someone renames it.
  */
-final class Version20261122210000 extends AbstractMigration
+final class Version20261122230000 extends AbstractMigration
 {
     /** @var list<array{string, string, int|null}> key, timing, default duration */
     private const array TYPES = [

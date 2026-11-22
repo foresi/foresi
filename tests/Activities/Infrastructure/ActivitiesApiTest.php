@@ -102,9 +102,13 @@ final class ActivitiesApiTest extends ApiTestCase
         $this->get('/api/v1/activity-types', ['include_archived' => '1']);
         self::assertContains($followUpId, $this->ids());
 
-        self::assertSame(['activities.activity.created' => 2, 'activities.activity.updated' => 1, 'activities.activity.done' => 1, 'activities.activity.trashed' => 1, 'activities.activity.restored' => 1], array_map(fn (string $name): int => \count($this->events($name)), array_combine($names = ['activities.activity.created', 'activities.activity.updated', 'activities.activity.done', 'activities.activity.trashed', 'activities.activity.restored'], $names)));
-        self::assertStringContainsString('"links":["contact:'.$this->contactId.'"]', (string) $this->events('activities.activity.done')[0]);
-        self::assertStringNotContainsString('Roof', (string) $this->events('activities.activity.created')[0], 'Events carry no subject.');
+        $counts = [];
+        foreach (['activities.activity.created', 'activities.activity.updated', 'activities.activity.done', 'activities.activity.trashed', 'activities.activity.restored'] as $name) {
+            $counts[$name] = \count($this->events($name));
+        }
+        self::assertSame(['activities.activity.created' => 2, 'activities.activity.updated' => 1, 'activities.activity.done' => 1, 'activities.activity.trashed' => 1, 'activities.activity.restored' => 1], $counts);
+        self::assertStringContainsString('"links":["contact:'.$this->contactId.'"]', $this->events('activities.activity.done')[0]);
+        self::assertStringNotContainsString('Roof', $this->events('activities.activity.created')[0], 'Events carry no subject.');
     }
 
     public function testEveryWriteOverMcpAndTheReadToolsAnswerAsRest(): void
@@ -123,14 +127,14 @@ final class ActivitiesApiTest extends ApiTestCase
         $this->call('foresi_archive_activity_type', ['type_id' => $note]);
 
         $this->get('/api/v1/activities/'.$planned);
-        $rest = $this->json()['data'];
+        $rest = $this->in($this->json(), 'data');
         self::assertEquals($rest, $this->in($this->call('foresi_get_activity', ['activity_id' => $planned]), 'structuredContent', 'data'));
         $this->get('/api/v1/activities', ['linked_kind' => 'contact', 'linked_id' => $this->contactId]);
         self::assertEquals($this->json()['data'], $this->in($this->call('foresi_list_activities', ['linked_kind' => 'contact', 'linked_id' => $this->contactId]), 'structuredContent', 'data', 'items'));
         self::assertSame([], $this->in($this->call('foresi_list_planned_activities', []), 'structuredContent', 'data', 'items'));
         $this->get('/api/v1/activity-types', ['include_archived' => '1']);
         self::assertEquals($this->json()['data'], $this->in($this->call('foresi_list_activity_types', ['include_archived' => true]), 'structuredContent', 'data', 'items'));
-        self::assertSame('Video meeting', $rest['type']['name'] ?? null);
+        self::assertSame('Video meeting', $this->in($rest, 'type', 'name'));
     }
 
     public function testWithoutActivitiesWriteTheWritesAreRefused(): void
@@ -321,10 +325,16 @@ final class ActivitiesApiTest extends ApiTestCase
     }
 
     /**
-     * @return list<mixed> the recorded events of this name
+     * @return list<string> the recorded events of this name, as their JSON
      */
     private function events(string $name): array
     {
-        return $this->em()->getConnection()->fetchFirstColumn('SELECT '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', [$name]);
+        $events = [];
+        foreach ($this->em()->getConnection()->fetchFirstColumn('SELECT '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', [$name]) as $data) {
+            self::assertIsString($data);
+            $events[] = $data;
+        }
+
+        return $events;
     }
 }

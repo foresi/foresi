@@ -40,9 +40,9 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
         self::assertSame([$activity->id()], $this->ids($this->reads()->timeline('contact', $this->contactId)), 'A record the member cannot see still shows what they see through another.');
 
         $this->deals->hide($dealId);
-        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($activity->id()));
+        $this->assertNotFound(fn (): Activity => $this->reads()->activity($activity->id()));
         self::assertSame([], $this->reads()->timeline('deal', $dealId));
-        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->activities()->trash(new TrashActivityInput($activity->id())));
+        $this->assertNotFound(fn (): Activity => $this->activities()->trash(new TrashActivityInput($activity->id())));
     }
 
     public function testOnlyOwnerSeesActivityWhoseTargetsAreGone(): void
@@ -61,8 +61,8 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
         self::assertSame([$planned->id(), $unlinked->id()], $this->feed($this->owner->user()->id()), 'The feed keeps it for its owner.');
 
         $this->signIn($member);
-        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($planned->id()));
-        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($unlinked->id()));
+        $this->assertNotFound(fn (): Activity => $this->reads()->activity($planned->id()));
+        $this->assertNotFound(fn (): Activity => $this->reads()->activity($unlinked->id()));
         self::assertSame([], $this->reads()->timeline('contact', $this->contactId));
         self::assertSame([], $this->feed($member->user()->id()), 'Nobody else gets it in a feed.');
     }
@@ -105,7 +105,7 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
     {
         $entries = self::getContainer()->get(PlannedActivityEntries::class)->entriesFor($userId, new \DateTimeImmutable('2026-10-23'), new \DateTimeImmutable('2027-11-22'));
 
-        return array_map(static fn ($entry): string => substr($entry->uid, \strlen('activities.planned-'), 36), [...$entries]);
+        return array_map(static fn ($entry): string => substr($entry->uid, \strlen('activities.planned-'), 36), iterator_to_array($entries, false));
     }
 
     private function assertNotFound(callable $read): void

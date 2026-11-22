@@ -49,15 +49,18 @@ final class RecordActivitiesController extends AbstractController
         // The page the record is shown on, which the dialogs go back to.
         $return = AttachmentController::localPath($request->query->getString('return'))
             ?? $this->generateUrl(RecordActivities::ROUTE, ['kind' => $kind, 'id' => $id]);
-        $items = array_map(fn (Activity $activity): array => $this->screen->item($activity, $kind, $id), $activities);
+        $items = fn (bool $done): array => array_values(array_map(
+            fn (Activity $activity): array => $this->screen->item($activity, $kind, $id),
+            array_filter($activities, static fn (Activity $activity): bool => $done === $activity->isDone()),
+        ));
 
         return $this->render('@Activities/for_record.html.twig', [
             'frame' => \is_string($frame) && 1 === preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $frame) ? $frame : null,
             'kind' => $kind,
             'id' => $id,
             'return' => $return,
-            'planned' => array_values(array_filter($items, static fn (array $item): bool => !$item['done'])),
-            'done' => array_values(array_filter($items, static fn (array $item): bool => $item['done'])),
+            'planned' => $items(false),
+            'done' => $items(true),
         ]);
     }
 }
