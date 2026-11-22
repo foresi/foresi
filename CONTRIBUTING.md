@@ -112,5 +112,18 @@ Every merge to `main` that users notice is a release; there is no release branch
 
 The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
 
+After the release, the `Split packages` job pushes every `src/<Module>/` and `packages/core/` to its read-only repository `foresi/<name>`, and Packagist publishes the tag from there (ADR 0034).
+
+### A new module
+
+The split pushes only to repositories that exist, so a new module needs these steps before the release that first contains it; without them the `Split packages` job fails and names the module:
+
+1. Create the public repository `foresi/<name>` (the package name without `foresi/`), empty, with issues, wiki and projects off and the description starting with `[READ-ONLY]`. The `SPLIT_TOKEN` must be allowed to push to it.
+2. After the first split, submit `https://github.com/foresi/<name>` on [Packagist](https://packagist.org/packages/submit) under the `foresi` vendor.
+3. Add the Packagist webhook to the repository (`https://packagist.org/api/github`, JSON, push events, the maintainer's Packagist API token as the secret), as on the other module repositories, so every tag reaches Packagist at once.
+4. Re-run the failed `Split packages` job if the release went out before step 1.
+
+A module that is removed from this repository is marked abandoned on Packagist, so instances that follow every release stop requiring it.
+
 Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between say what else to do. The one exception is the move onto the module baselines in 0.9.0: a database must reach 0.8.0, the last release with the global migration history, before it is rebased ([operations](docs/operations.md#the-module-baselines)). [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
 

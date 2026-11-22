@@ -66,6 +66,13 @@ split_one() {
 	[ -n "$name" ] || { echo "$dir: no foresi/ package name" >&2; return 1; }
 	url="$target$name.git"
 
+	# A new module has no repository until someone creates it; say so plainly
+	# instead of a bare "repository not found" from git push.
+	if [ -n "$push" ] && ! git ls-remote -q "$url" >/dev/null 2>&1; then
+		echo "$name: ${url%.git} does not exist or SPLIT_TOKEN may not push to it. Create it first: CONTRIBUTING.md, \"A new module\"." >&2
+		return 1
+	fi
+
 	head=$(git subtree split -q -P "$dir" HEAD)
 	echo "$name main $head"
 	[ -n "$push" ] && git push -q "$url" "$head:refs/heads/main"
@@ -104,7 +111,8 @@ for dir in "${packages[@]}"; do
 	base=$(basename "$dir")
 	cat "$logs/$base.out"
 	if [ "$(cat "$logs/$base.status")" != 0 ]; then
-		echo "::error title=Split::$dir failed"
+		echo "::error title=Split::$dir failed: $(tail -n 1 "$logs/$base.out")"
+		[ -z "${GITHUB_STEP_SUMMARY:-}" ] || echo "- $dir: $(tail -n 1 "$logs/$base.out")" >>"$GITHUB_STEP_SUMMARY"
 		failed=1
 	fi
 done

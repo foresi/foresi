@@ -45,7 +45,7 @@ final readonly class WorkNavigation implements NavigationItemProvider
         if ($this->guest->isGuest()) {
             yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.shared_with_me', 'share-2', SharedWorkController::ROUTE, weight: 10, routePrefixes: ['app_project', 'app_task']);
         }
-        yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP);
+        yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP, marksArea: true);
         if (!$this->staff->isStaff()) {
             yield new NavigationItem(CoreNavigationAreas::PROJECTS, 'nav.item.my_tasks', 'square-check-big', MyTasksController::ROUTE, $this->count, weight: 20, routePrefixes: [MyTasksController::ROUTE]);
 

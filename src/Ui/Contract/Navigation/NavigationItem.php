@@ -22,6 +22,8 @@ use Foresi\Ui\Contract\Guard;
  * The entry is marked as current on its own route and on every route whose name
  * starts with one of the prefixes, so the pages that belong to it keep it marked.
  * A count above the cap is shown as the cap with a plus, as "99+" of an inbox.
+ * An item that marks its area puts a dot on the area in the rail while its count
+ * is above zero, as an inbox with unread notifications does.
  */
 final readonly class NavigationItem
 {
@@ -38,6 +40,7 @@ final readonly class NavigationItem
         public array $routePrefixes = [],
         public ?int $countCap = null,
         public ?string $section = null,
+        public bool $marksArea = false,
     ) {
         if (1 !== preg_match('/^[a-z][a-z0-9_]*$/', $area)) {
             throw new \InvalidArgumentException(sprintf('Navigation area id "%s" must be lowercase letters, digits and underscores.', $area));

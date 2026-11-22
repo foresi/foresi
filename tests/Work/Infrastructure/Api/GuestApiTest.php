@@ -88,7 +88,9 @@ final class GuestApiTest extends WorkApiTestCase
         self::assertSame(self::GUEST_TOOLS, $listed);
 
         $all = array_keys($this->service(ReadToolLoader::class)->scopes());
-        self::assertGreaterThanOrEqual(54, \count($all));
+        // Every installed module adds its tools; Work alone already has more than a guest may use.
+        self::assertContains('foresi_archive_project', $all);
+        self::assertContains('foresi_trash_task', $all);
         $schemas = [];
         foreach (self::getContainer()->get('mcp.server.default.registry')->getTools()->references as $tool) {
             $schemas[$tool->name] = $tool->inputSchema;

@@ -1602,7 +1602,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "26bbc8847cea68f6ab4d628758b4c3bf47e8a166"
+                "reference": "d71c9bd04778070a76677e3a656dc51a4d9652cb"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1615,7 +1615,6 @@
                 "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "psr/clock": "^1.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
@@ -2557,7 +2556,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "79bc532a2ba8443f103ac4b09ed338398c71fcb8"
+                "reference": "2fe18592108978d4fe0b4d328babe3bf363a5cb9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2604,7 +2603,8 @@
                     "bundle": "Foresi\\Invoicing\\InvoicingBundle",
                     "optional": [
                         "cash-flow",
-                        "taxes-and-contributions"
+                        "taxes-and-contributions",
+                        "vat"
                     ],
                     "scopes": [
                         "invoices",
@@ -2640,7 +2640,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "7547ad0fe2a48b4fb5d59f7a8d332e6b3b8b1e6e"
+                "reference": "b17fe01d10e31a68c86dec589497820ef9637ce1"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2674,6 +2674,7 @@
                     "namespace": "Foresi\\Party\\",
                     "bundle": "Foresi\\Party\\PartyBundle",
                     "optional": [
+                        "activities",
                         "documents",
                         "import"
                     ],
@@ -2710,7 +2711,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "8677cf284f7f71402faa7439e487a4760d7a7821"
+                "reference": "ccb2091e4ce5a6617e1f34017711359360633986"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2747,7 +2748,8 @@
                     "bundle": "Foresi\\Purchasing\\PurchasingBundle",
                     "optional": [
                         "cash-flow",
-                        "taxes-and-contributions"
+                        "taxes-and-contributions",
+                        "vat"
                     ],
                     "scopes": [
                         "received_documents"
@@ -3080,22 +3082,26 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "e627e3c576d22a09e7c4731ce52f7cfe3b238701"
+                "reference": "d8da651b934a872275d58795ff846484002c36c3"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
+                "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
                 "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
@@ -3126,7 +3132,7 @@
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules, and where it pays its VAT.",
+            "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, the flow of each into the cash flow, the bank payments that settle them, and where it pays its VAT.",
             "homepage": "https://foresi.app",
             "support": {
                 "issues": "https://github.com/foresi/foresi/issues",

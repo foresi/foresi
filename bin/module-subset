@@ -241,7 +241,8 @@ function writePhpunit(string $root, string $dir): int
 
 function templatePaths(string $root): int
 {
-    $paths = ['templates'];
+    // The application keeps no templates of its own: they ship in the module bundles.
+    $paths = is_dir($root.'/templates') ? ['templates'] : [];
     foreach (installed($root) as $dir) {
         if (is_dir($root.'/src/'.$dir.'/templates')) {
             $paths[] = 'src/'.$dir.'/templates';

@@ -27,6 +27,7 @@ final readonly class VatApiController
 {
     public const string READ_SCOPE = 'vat:read';
     public const string PERIODS = 'api_v1_vat_periods';
+    public const string PERIOD = 'api_v1_vat_period';
     public const string SETTINGS = 'api_v1_vat_settings';
 
     public function __construct(private ScopeGuard $scope, private VatPeriods $periods, private VatSettingsReads $settings)
@@ -47,6 +48,21 @@ final readonly class VatApiController
         $this->scope->require(self::READ_SCOPE);
 
         return new JsonResponse(['data' => VatJson::periods($this->periods->list($this->optional($request, 'from'), $this->optional($request, 'to')))]);
+    }
+
+    #[Route('/api/v1/vat/periods/{key}', name: self::PERIOD, methods: ['GET'])]
+    #[OA\Tag(name: 'VAT')]
+    #[OA\Parameter(name: 'key', description: 'The period, a month such as "2026-11" or a quarter such as "2026-Q4".', in: 'path', required: true, schema: new OA\Schema(type: 'string', example: '2026-11'))]
+    #[OA\Response(response: 200, description: 'The VAT period with the documents behind its amounts, always an estimate. The documents of a source the token may not read are left out and the source is listed in restricted_sources.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/VatPeriodDetail')], type: 'object'))]
+    #[OA\Response(response: 400, description: 'The key is no month or quarter (invalid_parameter: key_invalid), or lies more than 24 months ahead (range_too_long).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the vat:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 404, description: 'The firm has no such VAT period, or the instance has no firm yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    public function period(string $key): JsonResponse
+    {
+        $this->scope->require(self::READ_SCOPE);
+
+        return new JsonResponse(['data' => VatJson::detail($this->periods->get($key))]);
     }
 
     #[Route('/api/v1/vat/settings', name: self::SETTINGS, methods: ['GET'])]

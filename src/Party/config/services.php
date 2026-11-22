@@ -10,6 +10,7 @@ use Foresi\Party\Application\AccountNumbers;
 use Foresi\Party\Application\CompanyRegistry;
 use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\Parties;
@@ -24,6 +25,7 @@ use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
@@ -94,6 +96,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         // Public for the tests, which use the ports directly.
         $services->alias(TransactionalWork::class, DoctrineTransactionalWork::class)->public();
         $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class)->public();
+        // With Party alone only ManageFirmBankAccounts takes the accounts, and the container
+        // would inline them into it.
+        $services->alias(FirmBankAccounts::class, DoctrineFirmBankAccounts::class)->public();
 
         // Lets a test make storing a party fail with a domain error after it was written.
         $services->set(RejectingParties::class)->decorate(Parties::class);

@@ -11,7 +11,9 @@ namespace Foresi\Tests\Shared\Infrastructure\Migration;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Foresi\Shared\Infrastructure\Migration\TableOwners;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
@@ -41,23 +43,39 @@ final class TableOwnersTest extends KernelTestCase
         parent::tearDown();
     }
 
+    /** Tables whose owner is known, by table: each is checked when its module is installed. */
+    private const array KNOWN_OWNERS = [
+        'messenger_messages' => 'shared',
+        'event_log' => 'events',
+        'event_consumption' => 'events',
+        'api_idempotency_key' => 'identity',
+        'webhook_delivery' => 'webhooks',
+        'party' => 'party',
+        'party_vat_status_period' => 'party',
+        'time_entry' => 'work',
+        'released_time' => 'timesheet',
+        'documents_document' => 'documents',
+        'vat_settings' => 'vat',
+        'vat_period_entry' => 'vat',
+        'vat_payment_assignment' => 'vat',
+        'activities_activity' => 'activities',
+    ];
+
     public function testEveryTableHasTheModuleThatCreatesIt(): void
     {
         $owners = $this->owners()->owners();
 
-        self::assertCount(94, $owners);
-        self::assertSame('shared', $owners['messenger_messages']);
-        self::assertSame('events', $owners['event_log']);
-        self::assertSame('events', $owners['event_consumption']);
-        self::assertSame('identity', $owners['api_idempotency_key']);
-        self::assertSame('webhooks', $owners['webhook_delivery']);
-        self::assertSame('party', $owners['party']);
-        self::assertSame('party', $owners['party_vat_status_period']);
-        self::assertSame('work', $owners['time_entry']);
-        self::assertSame('timesheet', $owners['released_time']);
-        self::assertSame('documents', $owners['documents_document']);
-        self::assertSame('vat', $owners['vat_settings']);
-        self::assertSame('activities', $owners['activities_activity']);
+        // Exactly the tables the installed modules' migrations made, whichever modules those are.
+        $tables = array_map(static fn (string $table): string => substr($table, (int) strrpos('.'.$table, '.')), $this->db->createSchemaManager()->listTableNames());
+        self::assertSame($this->sorted(array_values(array_diff($tables, ['doctrine_migration_versions']))), array_keys($owners));
+        $installed = array_map(static fn (ModuleManifest $module): string => $module->id->value, self::getContainer()->get(InstalledModules::class)->graph()->all());
+        foreach (self::KNOWN_OWNERS as $table => $module) {
+            if (\in_array($module, $installed, true)) {
+                self::assertSame($module, $owners[$table] ?? null, $table);
+            } else {
+                self::assertArrayNotHasKey($table, $owners, 'A module that is not installed owns no table.');
+            }
+        }
         self::assertSame(array_keys($owners), $this->sorted(array_keys($owners)));
     }
 

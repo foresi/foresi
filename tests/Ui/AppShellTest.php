@@ -135,9 +135,12 @@ final class AppShellTest extends WebTestCase
         $areas = $registry->areas('app_dashboard', false);
         $inAreas = array_merge(...array_map(static fn (array $area): array => self::entries($area['sections']), $areas));
 
-        self::assertGreaterThan(15, \count($inAreas), 'The owner should see the full navigation.');
+        // The installed modules decide how many items and areas there are; the order of the areas is fixed.
+        self::assertNotEmpty($inAreas, 'The owner should see the navigation.');
         self::assertSame($inAreas, array_values(array_unique($inAreas)), 'No item is listed twice.');
-        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
+        $ids = array_map(static fn (array $a): string => $a['area']->id, $areas);
+        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $ids)), $ids);
+        self::assertSame('settings', end($ids));
     }
 
     public function testSalesShowsItsSectionHeadingsAndASmallAreaStaysFlat(): void

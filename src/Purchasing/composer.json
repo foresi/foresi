@@ -50,7 +50,8 @@
             "bundle": "Foresi\\Purchasing\\PurchasingBundle",
             "optional": [
                 "cash-flow",
-                "taxes-and-contributions"
+                "taxes-and-contributions",
+                "vat"
             ],
             "scopes": [
                 "received_documents"

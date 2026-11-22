@@ -120,6 +120,18 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame(99, $items[0]->countCap);
     }
 
+    public function testOnlyAnItemThatMarksItsAreaCarriesTheMarkToTheSidebar(): void
+    {
+        $items = $this->overview(
+            null,
+            new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(3), marksArea: true),
+            new NavigationItem('overview', 'b', 'plus', 'r2', $this->counter(3)),
+        );
+
+        self::assertSame([true, false], array_map(static fn (NavigationEntry $entry): bool => $entry->marksArea, $items));
+        self::assertFalse(new NavigationEntry('a', 'plus', 'r1', 3, false)->marksArea, 'An entry marks its area only when told to.');
+    }
+
     public function testACapOfOneIsAllowedAndBelowItRefused(): void
     {
         self::assertSame(1, new NavigationItem('overview', 'a', 'plus', 'r1', countCap: 1)->countCap);
@@ -178,6 +190,11 @@ final class NavigationRegistryTest extends TestCase
             ['main nav.area.projects'],
             ['firm nav.section.firm', 'connections nav.section.connections'],
         ], $sections);
+        $weights = array_map(
+            static fn (NavigationArea $a): array => array_map(static fn (NavigationSection $s): int => $s->weight, $a->sections),
+            iterator_to_array(new CoreNavigationAreas()->areas(), false),
+        );
+        self::assertSame([[100], [10, 20], [100], [100], [100], [100], [10, 20]], $weights);
     }
 
     public function testAnAreaOrdersItsSectionsByWeightThenTheOrderGiven(): void
@@ -190,6 +207,11 @@ final class NavigationRegistryTest extends TestCase
         ]);
 
         self::assertSame(['early', 'late', 'tie_a', 'tie_b'], array_map(static fn (NavigationSection $s): string => $s->key, $area->sections));
+    }
+
+    public function testASectionWeighsAHundredByDefault(): void
+    {
+        self::assertSame(100, new NavigationSection('billing', 'l')->weight);
     }
 
     public function testAnAreaDefiningASectionTwiceIsRefused(): void
