@@ -128,7 +128,7 @@ taxes:
       previousSocialBase: Základ sociálního pojištění
       previousHealthBase: Základ zdravotního pojištění
       previousActivityMonths: Měsíce činnosti
-      previousActivityMonths_help: 1 až 12, měsíce předchozího roku, kdy jste podnikali aspoň část měsíce. Prázdné spočítá stavy činnosti toho roku, jinak dvanáct.
+      previousActivityMonths_help: V předchozím roce, 1 až 12. Prázdné spočítá jeho stavy.
       previousOverviewFiledOn: Přehledy podány dne
       returnRoute: Podání přiznání
       activityStart: Zahájení činnosti

@@ -128,7 +128,7 @@ taxes:
       previousSocialBase: Social insurance base
       previousHealthBase: Health insurance base
       previousActivityMonths: Months of activity
-      previousActivityMonths_help: 1 to 12, the months of the previous year you were in business for at least part of the month. Empty counts your activity statuses of that year, or twelve.
+      previousActivityMonths_help: In the previous year, 1 to 12. Empty counts its statuses.
       previousOverviewFiledOn: Overviews filed on
       returnRoute: Filing the return
       activityStart: Start of the activity
