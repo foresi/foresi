@@ -50,6 +50,6 @@ final readonly class FirmApiController
             throw new NotFoundHttpException('The instance has no firm yet.', $none);
         }
 
-        return new JsonResponse(['data' => FirmJson::detail($firm)]);
+        return new JsonResponse(['data' => FirmJson::detail($firm, $this->firm->vatStatuses())]);
     }
 }

@@ -39,8 +39,19 @@
 
         <twig:Ui:Card :title="'firm.card.tax'|trans" icon="receipt-text">
             <div class="grid gap-3 sm:grid-cols-2">
-                <twig:Ui:Select name="vatStatus" id="vatStatus" :label="'firm.field.vatStatus'|trans" :options="statuses" :value="values.vatStatus" :error="errors.vatStatus|default(null)" required />
+                {% if editing %}
+                    <div class="grid content-start gap-1.5" id="vatStatus">
+                        <p class="m-0 text-small font-medium text-ink">{{ 'firm.field.vatStatus'|trans }}</p>
+                        <p class="m-0 text-body font-medium text-ink" data-firm-vat-today>{{ vatToday }}</p>
+                        <p class="m-0 text-caption text-muted">{{ 'firm.field.vatStatus_today_help'|trans }} <a href="{{ vatUrl }}" class="font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'firm.field.vatStatus_link'|trans }}</a></p>
+                    </div>
+                {% else %}
+                    <twig:Ui:Select name="vatStatus" id="vatStatus" :label="'firm.field.vatStatus'|trans" :options="statuses" :value="values.vatStatus" :error="errors.vatStatus|default(null)" required />
+                {% endif %}
                 <twig:Ui:TextInput name="vatId" id="vatId" :label="'party.field.vatId'|trans" :help="'party.field.vatId_help'|trans" :value="values.vatId" :error="errors.vatId|default(null)" maxlength="16" data-party-lookup-target="vatId" />
+                {% if not editing %}
+                    <twig:Ui:TextInput name="vatValidFrom" id="vatValidFrom" type="date" :label="'firm.field.vatValidFrom'|trans" :help="'firm.field.vatValidFrom_help'|trans" :value="values.vatValidFrom" :error="errors.vatValidFrom|default(null)" />
+                {% endif %}
             </div>
         </twig:Ui:Card>
 

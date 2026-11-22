@@ -138,6 +138,8 @@ final class ApiPlumbingTest extends ApiTestCase
             ],
             'party' => [
                 '/api/v1/firm' => ['get' => '200'],
+                '/api/v1/firm/vat-statuses' => ['post' => '201'],
+                '/api/v1/firm/vat-statuses/{vatStatusId}' => ['delete' => '200'],
                 '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
                 '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
                 '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],

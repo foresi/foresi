@@ -127,12 +127,20 @@ test.describe('navigation', () => {
     await page.goto('/settings/firm');
 
     const tabs = page.getByRole('navigation', { name: 'Části firmy' });
-    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'Fakturace', 'E-maily', 'Banka']);
+    await expect(tabs.getByRole('link')).toHaveText(['Údaje', 'DPH', 'Fakturace', 'E-maily', 'Banka']);
     await expect(tabs.locator('[aria-current="page"]')).toHaveText('Údaje');
     await expect(page).toHaveURL(/\/settings\/firm$/);
     await expectNoSeriousViolations(page);
     await expectNoSidewaysScroll(page);
     await shot(page, 'firm-details-tab');
+
+    // The VAT status over time has its own tab, with the change added in the page header.
+    await tabs.getByRole('link', { name: 'DPH' }).click();
+    await expect(page).toHaveURL(/\/settings\/firm\/vat$/);
+    await expect(tabs.locator('[aria-current="page"]')).toHaveText('DPH');
+    await expect(page.locator('#firm-vat-add')).toHaveCount(1);
+    await expectNoSeriousViolations(page);
+    await expectNoSidewaysScroll(page);
 
     await tabs.getByRole('link', { name: 'Fakturace' }).click();
     await expect(page).toHaveURL(/\/settings\/firm\/invoicing$/);

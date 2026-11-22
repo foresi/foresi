@@ -8,16 +8,21 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Controller;
 
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\FirmAlreadyExists;
 use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntityInput;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Application\VatStatusWrites;
+use Foresi\Party\Contract\FirmVatStatuses;
+use Foresi\Party\Contract\VatStretch;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Infrastructure\Form\CountryOptions;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmission;
 use Foresi\Party\Infrastructure\Form\LegalEntitySubmissionReader;
+use Foresi\Party\Infrastructure\View\VatStretchLabel;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,6 +52,10 @@ final class LegalEntityController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly FirmImages $images,
         private readonly InstanceFirm $instanceFirm,
+        private readonly VatStatusWrites $vatStatuses,
+        private readonly FirmVatStatuses $vatStretches,
+        private readonly InstanceClock $clock,
+        private readonly VatStretchLabel $vatLabel,
     ) {
     }
 
@@ -123,7 +132,7 @@ final class LegalEntityController extends AbstractController
             return null !== $this->tokens->createdId($token) ? $this->redirectToRoute('app_firm') : $this->refuseAnotherFirm();
         }
 
-        return $this->handle($request, $firm, $this->reader->read($request), '');
+        return $this->handle($request, $firm, $this->reader->read($request, $firm->vatStatus()), '');
     }
 
     private function handle(Request $request, ?LegalEntity $firm, LegalEntitySubmission $submission, string $token): Response
@@ -148,7 +157,10 @@ final class LegalEntityController extends AbstractController
                 $created = new LegalEntity($input->name, $input->registrationNumber, $input->vatId, $input->address, $input->vatStatus, $input->registerEntry);
                 $created->changeLogo($logo);
                 $created->changeStamp($stamp);
-                $this->transaction->run(fn () => $this->instanceFirm->create($created));
+                $this->transaction->run(function () use ($created, $input): void {
+                    $this->instanceFirm->create($created);
+                    $this->vatStatuses->start($created, $input->vatValidFrom);
+                });
                 $this->tokens->complete($token, $created->id());
             }
         } catch (FirmAlreadyExists) {
@@ -208,7 +220,21 @@ final class LegalEntityController extends AbstractController
             'cancel' => $this->generateUrl('app_firm'),
             // A new firm gets its accounts once it is saved, on its bank tab.
             'bankUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_bank') : null,
+            // An edited firm shows its status of today; its statuses over time change on their tab.
+            'vatToday' => $firm instanceof LegalEntity ? $this->vatToday() : null,
+            'vatUrl' => $firm instanceof LegalEntity ? $this->generateUrl('app_firm_vat') : null,
         ], new Response(status: $status));
+    }
+
+    /**
+     * The status that holds today, with the period length of a payer.
+     */
+    private function vatToday(): string
+    {
+        $stretches = $this->vatStretches->stretches();
+        $today = $this->vatStretches->on($this->clock->today()) ?? $stretches[0] ?? null;
+
+        return $today instanceof VatStretch ? $this->vatLabel->of($today) : '';
     }
 
     /**
@@ -234,6 +260,7 @@ final class LegalEntityController extends AbstractController
             'registrationCountry' => 'CZ',
             'registrationNumber' => '',
             'vatStatus' => VatStatus::Registered->value,
+            'vatValidFrom' => '',
             'vatId' => '',
             'street' => '',
             'city' => '',
@@ -255,6 +282,7 @@ final class LegalEntityController extends AbstractController
             'registrationCountry' => $firm->registrationNumber()->countryCode,
             'registrationNumber' => $firm->registrationNumber()->value,
             'vatStatus' => $firm->vatStatus()->value,
+            'vatValidFrom' => '',
             'vatId' => $firm->vatId()?->toString() ?? '',
             'street' => $firm->address()->street,
             'city' => $firm->address()->city,

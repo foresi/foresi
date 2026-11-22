@@ -370,6 +370,7 @@ firm:
     invoicing: Fakturace
     mail: E-maily
     bank: Banka
+    vat: DPH
   card:
     tax: DPH
     seat: Sídlo
@@ -388,6 +389,48 @@ firm:
     stamp_help: 'Jeden PNG nebo JPEG, nejvýš 1 MB. Jen pro doklady'
     stamp_stored_help: 'Nahráno. Nový PNG nebo JPEG ho nahradí, nejvýš 1 MB'
     removeStamp: Odebrat razítko a podpis
+    vatStatus_today_help: Platí dnes. Změny s datem vedete na záložce
+    vatStatus_link: DPH
+    vatValidFrom: Od
+    vatValidFrom_help: Den, od kterého stav DPH platí. Bez data platí od začátku.
+  vat:
+    title: DPH
+    card: Vztah k DPH v čase
+    today: 'Dnes: {status}'
+    undated: U prvního stavu chybí den, od kterého platí. Přidejte změnu s datem, ať se DPH počítá od správného dne.
+    add: Přidat změnu
+    submit: Přidat změnu
+    description: Stav platí od zadaného dne do další změny.
+    with_length: '{status}, {length}'
+    from_start: od začátku
+    until_next: do další změny
+    remove: Odebrat
+    remove_title: 'Odebrat stav {status}?'
+    remove_text: Znovu bude platit stav před ním.
+    length:
+      month: měsíčně
+      quarter: čtvrtletně
+    field:
+      change: Vztah k DPH
+      valid_from: Od
+      valid_from_help: První den, kdy stav platí.
+    column:
+      status: Stav
+      from: Od
+      until: Do
+    flash:
+      added: 'Přidáno: {status}.'
+      removed: Stav je odebraný. Znovu platí ten před ním.
+    error:
+      status_invalid: Vyberte vztah k DPH.
+      period_length_required: Vyberte vztah k DPH.
+      period_length_not_allowed: Vyberte vztah k DPH.
+      period_length_invalid: Vyberte vztah k DPH.
+      date_invalid: Zadejte platné datum.
+      same_day: Ke stejnému dni už stav je. Nejdřív ho odeberte.
+      vat_id_missing: Dnešní stav potřebuje DIČ. Doplňte ho v údajích firmy.
+      last_stretch: Firma musí mít aspoň jeden stav. Nejdřív přidejte nový.
+      not_found: Stav se nenašel. Načtěte stránku znovu.
   vat_status:
     registered: Plátce DPH
     not_registered: Neplátce DPH
@@ -398,6 +441,7 @@ firm:
   error:
     vat_status: Vyberte vztah k DPH.
     vat_id_required: Zadejte DIČ této firmy.
+    vat_valid_from: Zadejte platné datum.
     save_failed: Firmu se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     one_per_instance: Foresi vede jednu firmu na instanci. Další firma potřebuje vlastní instanci.
     image_type: Nahrajte obrázek PNG nebo JPEG.

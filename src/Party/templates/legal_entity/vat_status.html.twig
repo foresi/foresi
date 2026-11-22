@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Add a change of the firm's VAT status: one status from a day on, until the next one. A small
+    dialog over the VAT tab, and the same form as a page of its own. The change is one choice, a
+    payer with its period length or another status, so no script swaps the fields.
+    Variables: firm, values, errors, changes.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'firm.title'|trans, href: path('app_firm')}, {label: 'firm.vat.title'|trans, href: path('app_firm_vat')}, {label: 'firm.vat.add'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'firm.vat.add'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="firm-vat-form" action="{{ path('app_firm_vat_new') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\FirmVatController::FORM_TOKEN')) }}">
+
+        {% if errors.form is defined %}
+            <twig:Ui:Alert tone="error" tabindex="-1" data-error-summary :autofocus="true">{{ errors.form }}</twig:Ui:Alert>
+        {% endif %}
+
+        <p class="m-0 text-small text-muted">{{ 'firm.vat.description'|trans }}</p>
+        <twig:Ui:Select name="change" id="change" :label="'firm.vat.field.change'|trans" :options="changes" :value="values.change" :error="errors.change|default(null)" required />
+        <twig:Ui:TextInput name="validFrom" id="validFrom" type="date" :label="'firm.vat.field.valid_from'|trans" :help="'firm.vat.field.valid_from_help'|trans" :value="values.validFrom" :error="errors.validFrom|default(null)" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="firm-vat-form" variant="primary">{{ 'firm.vat.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <div class="mb-4">{% include '@Party/legal_entity/_tabs.html.twig' with {firm: firm, active: 'vat'} only %}</div>
+    <twig:Ui:Card :title="'firm.vat.add'|trans" icon="receipt-text" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_firm_vat')">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="firm-vat-form" variant="primary">{{ 'firm.vat.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

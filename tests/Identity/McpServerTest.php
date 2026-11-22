@@ -30,7 +30,7 @@ final class McpServerTest extends ApiTestCase
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
         'identity' => ['foresi_whoami'],
         'invoicing' => ['foresi_create_invoice', 'foresi_get_invoice', 'foresi_get_payment', 'foresi_mark_invoice_sent', 'foresi_restore_invoice', 'foresi_search_invoices', 'foresi_search_payments', 'foresi_trash_invoice', 'foresi_update_invoice'],
-        'party' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
+        'party' => ['foresi_add_firm_vat_status', 'foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_remove_firm_vat_status', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
         'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_trash_received_document'],
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year', 'foresi_tax_amounts', 'foresi_tax_estimate'],
@@ -40,6 +40,7 @@ final class McpServerTest extends ApiTestCase
 
     /** The tools that change data, with whether they destroy: every other tool only reads. */
     private const array WRITE_TOOLS = [
+        'foresi_add_firm_vat_status' => false,
         'foresi_add_received_document_payment' => false,
         'foresi_add_task_comment' => false,
         'foresi_add_tax_status' => false,
@@ -68,6 +69,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_record_balance_checkpoint' => false,
         'foresi_record_received_document' => false,
         'foresi_redeliver_webhook' => false,
+        'foresi_remove_firm_vat_status' => true,
         'foresi_remove_received_document_payment' => true,
         'foresi_remove_tax_status' => true,
         'foresi_rename_calendar_feed' => false,
@@ -229,12 +231,14 @@ final class McpServerTest extends ApiTestCase
 
         // contacts:write grants contacts:read, and nothing of invoices, payments, events or webhooks.
         self::assertSame([
+            'foresi_add_firm_vat_status',
             'foresi_archive_contact',
             'foresi_create_contact',
             'foresi_get_contact',
             'foresi_get_firm',
             'foresi_link_contact_person',
             'foresi_list_modules',
+            'foresi_remove_firm_vat_status',
             'foresi_restore_contact',
             'foresi_search_contacts',
             'foresi_unlink_contact_person',

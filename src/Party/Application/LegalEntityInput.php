@@ -25,6 +25,8 @@ final readonly class LegalEntityInput
         public Address $address,
         public VatStatus $vatStatus,
         public string $registerEntry,
+        // The first day of the VAT status, set on the first-run setup only; null: from the start.
+        public ?\DateTimeImmutable $vatValidFrom = null,
     ) {
     }
 }
