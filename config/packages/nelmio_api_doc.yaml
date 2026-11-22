@@ -513,6 +513,22 @@ nelmio_api_doc:
                                     default: { type: boolean }
                                     locked: { type: boolean }
                         default_views: { type: array, items: { type: string } }
+                CatalogProduct:
+                    type: object
+                    description: Something the firm sells, with its unit, an optional price per unit without VAT and how it is billed.
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        description: { type: string }
+                        unit: { type: string, description: 'Such as hour or piece; may be empty.' }
+                        unit_price: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Null when the price is agreed each time.' }
+                        billing_kind: { type: string, enum: [one_off, recurring] }
+                        recurrence_unit: { type: string, enum: [day, week, month, year], nullable: true }
+                        interval: { type: integer, nullable: true, description: 'A recurring product is billed every interval recurrence_units.' }
+                        cycles: { type: integer, nullable: true, description: 'How many times a recurring product is billed; null for no end.' }
+                        archived: { type: boolean }
+                        archived_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
                 CashFlowPlannedItem:
                     type: object
                     description: Money a firm expects to receive or pay that no document carries yet, one-off or recurring.
