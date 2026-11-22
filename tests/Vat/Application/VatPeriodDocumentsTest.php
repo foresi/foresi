@@ -193,7 +193,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
             /**
              * @param \ArrayObject<int, array{string, mixed}> $logged
              */
-            public function __construct(private \ArrayObject $logged)
+            public function __construct(private readonly \ArrayObject $logged)
             {
             }
 
@@ -211,12 +211,12 @@ final class VatPeriodDocumentsTest extends VatTestCase
      */
     private function source(string $key, array $documents, bool $details = true): VatDocumentSource
     {
-        return new class($key, $documents, $details, $this->reads) implements VatDocumentSource {
+        return new readonly class($key, $documents, $details, $this->reads) implements VatDocumentSource {
             /**
-             * @param list<DocumentVat>                   $documents
+             * @param list<DocumentVat>                                $documents
              * @param \ArrayObject<int, array{string, string, string}> $reads
              */
-            public function __construct(private readonly string $key, private readonly array $documents, private readonly bool $details, private readonly \ArrayObject $reads)
+            public function __construct(private string $key, private array $documents, private bool $details, private \ArrayObject $reads)
             {
             }
 
