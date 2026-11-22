@@ -1602,13 +1602,24 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "c8f231e8e0f90e44aa76cfbe61120db33b1da6c2"
+                "reference": "3b4c38863f580eadb841785adf379a38b3a92b73"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8"
             },
             "type": "foresi-module",
             "extra": {
@@ -1648,11 +1659,17 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "1f629702042c7e011c94196e32920269130a727c"
+                "reference": "d68651cae0a020e475acbbad863b61e326c84aad"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/doctrine-bundle": "^3.3.4",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/instance": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "symfony/clock": "^7.4 || ^8.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0"
             },
             "type": "foresi-module",
             "extra": {
@@ -1692,10 +1709,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "35f8338d3dc9f179e8783d5f56783611e09c877d"
+                "reference": "80c0b5399dbdc4e54eac524ca7d54feb0176f25e"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
@@ -1703,6 +1723,19 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
+                "psr/cache": "^3.0",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/cache": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.23",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
                 "zbateson/mail-mime-parser": "^4.0.8"
             },
             "type": "foresi-module",
@@ -1745,16 +1778,29 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "6d2707565dba89fa060ee35c3a73e6271fba21cf"
+                "reference": "2d2b3a4247bc6f8fc6a36f810d757a2d0b939106"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version"
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -1829,11 +1875,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "725c619c6faeb36ae27e3af0892cbc8a7d5a8963"
+                "reference": "cccad1bf6781cfd84524c8cad16de6f77d77eb35"
             },
             "require": {
                 "foresi/party": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0"
             },
             "type": "foresi-module",
             "extra": {
@@ -1845,7 +1893,8 @@
                     "optional": [
                         "banking",
                         "exchange-rate",
-                        "invoicing"
+                        "invoicing",
+                        "taxes-and-contributions"
                     ]
                 }
             },
@@ -1874,12 +1923,30 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "011469e39a6c24e15a5b7be66bce898158cc887f"
+                "reference": "42d4403089f1f45c5f9f5139cd7d352f2b743ea1"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/doctrine-bundle": "^3.3.4",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "psr/event-dispatcher": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/lock": "^7.4.23",
+                "symfony/messenger": "^7.4.23",
+                "symfony/routing": "^7.4",
+                "symfony/service-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -1922,11 +1989,17 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "50613ab60a176b1543305a2e662cfb18324553dc"
+                "reference": "88fa6b03c47b59542eeb64a8c01155a6ff8f09d4"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/instance": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0"
             },
             "type": "foresi-module",
             "extra": {
@@ -1966,15 +2039,40 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "7a9441879156e03a271f1a4a17e3b06a7a472fd2"
+                "reference": "41d25d273e4256345df3746a6d1411cc9f4bca87"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/doctrine-bundle": "^3.3.4",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "tecnickcom/tc-lib-barcode": "^2.17.2"
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "scheb/2fa-bundle": "^8.7",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-client": "^7.4.23",
+                "symfony/http-client-contracts": "^3.7",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/password-hasher": "^7.4",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/security-bundle": "7.4.*",
+                "symfony/security-core": "^7.4",
+                "symfony/security-http": "^7.4",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "tecnickcom/tc-lib-barcode": "^2.17.2",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2014,16 +2112,31 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "f8467c925dda02937b0e6492c3e4b70315d86685"
+                "reference": "8e1b2a6f708f46f4b14608c775f8a7882b686ff1"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/import": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/invoicing": "self.version",
                 "foresi/party": "self.version",
-                "foresi/shared": "self.version"
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/clock": "^7.4 || ^8.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-client": "^7.4.23",
+                "symfony/http-client-contracts": "^3.7",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.23",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8"
             },
             "type": "foresi-module",
             "extra": {
@@ -2063,15 +2176,31 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "82630a985b2486849f1757e57440432eccba1e67"
+                "reference": "4412076a5d5b71ec68d04828dae931d3c49963d2"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "openspout/openspout": "^5.12"
+                "openspout/openspout": "^5.12",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/lock": "^7.4.23",
+                "symfony/messenger": "^7.4.23",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/uid": "7.4.*"
             },
             "type": "foresi-module",
             "extra": {
@@ -2111,10 +2240,27 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "6dba81a00d27c1b3c750dec30e321a32324efce2"
+                "reference": "ed09a22a43839bb47ee168315954913dbcbc063d"
             },
             "require": {
-                "foresi/shared": "self.version"
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "foresi/shared": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/cache-contracts": "^3.8",
+                "symfony/clock": "^7.4 || ^8.0",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/lock": "^7.4.23",
+                "symfony/messenger": "^7.4.23",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/scheduler": "7.4.*"
             },
             "type": "foresi-module",
             "extra": {
@@ -2154,9 +2300,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "e43bcb64fe63f0d58065a277f3cb1638ffd9be21"
+                "reference": "bd52f3b5ec6946ac061764ff2eb21443621938a4"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
@@ -2164,8 +2313,31 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "openspout/openspout": "^5.12",
+                "psr/clock": "^1.0",
+                "psr/event-dispatcher": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/asset-mapper": "7.4.*",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/mailer": "7.4.*",
+                "symfony/messenger": "^7.4.23",
+                "symfony/mime": "^7.4 || ^8.0",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/string": "^7.4 || ^8.0",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/uid": "7.4.*",
+                "symfony/validator": "7.4.*",
                 "tecnickcom/tc-lib-barcode": "^2.17.2",
-                "tecnickcom/tc-lib-pdf": "^8.82.2"
+                "tecnickcom/tc-lib-pdf": "^8.82.2",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2212,13 +2384,31 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "473966d638dcfae19885a7b315b43afc59487d49"
+                "reference": "4ad8614bc80e6d5867eabeeee34d754ed5f4a619"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version"
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.23",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2263,10 +2453,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "7518dfbfba3da4fd9fc0979c6c7b616e622a6bd2"
+                "reference": "c6b6de8707ba90cfa283ec24b4d64bafc38f5865"
             },
             "require": {
                 "brick/math": "^1.0",
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/attachment": "self.version",
                 "foresi/audit": "self.version",
                 "foresi/exchange-rate": "self.version",
@@ -2274,7 +2467,19 @@
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version"
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2320,12 +2525,42 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "c7284fbbc008e9940f2286f13a4fc8f7736afdab"
+                "reference": "adfe6037d91b42eccf90cce6efb08f89e510f271"
             },
             "require": {
                 "brick/math": "^1.0",
                 "brick/money": "^0.15.2",
-                "league/commonmark": "^2.10"
+                "doctrine/dbal": "^4.5",
+                "doctrine/doctrine-bundle": "^3.3.4",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "league/commonmark": "^2.10",
+                "mcp/sdk": "^0.9",
+                "monolog/monolog": "^3.12",
+                "nelmio/api-doc-bundle": "^5.13",
+                "psr/cache": "^3.0",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/clock": "^7.4 || ^8.0",
+                "symfony/config": "^7.4 || ^8.0",
+                "symfony/console": "7.4.*",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/html-sanitizer": "7.4.*",
+                "symfony/http-client-contracts": "^3.7",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/mailer": "7.4.*",
+                "symfony/messenger": "^7.4.23",
+                "symfony/mime": "^7.4 || ^8.0",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/uid": "7.4.*",
+                "symfony/validator": "7.4.*",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2368,16 +2603,28 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "b507099e223a1151e4deb4de1c0dbeb86a91cd07"
+                "reference": "1fe5276218a24ddda58d9a0dcb21b8a98b3bf226"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version"
+                "foresi/ui": "self.version",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2424,9 +2671,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "ceec1c5e2de54e8201da543cbc8245d2fe15c30c"
+                "reference": "c1fe9c929945319c3a033e4cb202013627d6ec11"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
@@ -2434,7 +2684,14 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "foresi/work": "self.version"
+                "foresi/work": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8"
             },
             "type": "foresi-module",
             "extra": {
@@ -2474,11 +2731,22 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "6f5e779ee5eb5ef0a5822911ff0730a9a79f6a47"
+                "reference": "61e02c2e515103ac3f6fbd0f9b8ff059c2d56d1f"
             },
             "require": {
                 "foresi/shared": "self.version",
-                "tempest/highlight": "^2.30"
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/service-contracts": "^3.8",
+                "symfony/translation": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/ux-twig-component": "^3.6",
+                "tempest/highlight": "^2.30",
+                "twig/twig": "^3.30"
             },
             "type": "foresi-module",
             "extra": {
@@ -2515,15 +2783,37 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "7931068053c87efdc705676b85c64d1a2ac262ca"
+                "reference": "a956459f5e76f50fc9af1393e2647a3f5eff0ebc"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/doctrine-bundle": "^3.3.4",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/events": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version"
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-client": "^7.4.23",
+                "symfony/http-client-contracts": "^3.7",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.23",
+                "symfony/routing": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/service-contracts": "^3.8",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2566,9 +2856,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "616f64a2190458cc9f8e65065f7041ae4fdfdbcd"
+                "reference": "f731faf2f7581b151923513154960f985e2215b9"
             },
             "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
                 "foresi/attachment": "self.version",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
@@ -2576,7 +2869,21 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "openspout/openspout": "^5.12"
+                "openspout/openspout": "^5.12",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.23",
+                "symfony/routing": "^7.4",
+                "symfony/security-csrf": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {

@@ -9,6 +9,9 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
@@ -16,8 +19,31 @@
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "openspout/openspout": "^5.12",
+        "psr/clock": "^1.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/log": "^3.0",
+        "symfony/asset-mapper": "7.4.*",
+        "symfony/console": "7.4.*",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/mailer": "7.4.*",
+        "symfony/messenger": "^7.4.23",
+        "symfony/mime": "^7.4 || ^8.0",
+        "symfony/rate-limiter": "7.4.*",
+        "symfony/routing": "^7.4",
+        "symfony/serializer": "7.4.*",
+        "symfony/string": "^7.4 || ^8.0",
+        "symfony/translation": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/uid": "7.4.*",
+        "symfony/validator": "7.4.*",
         "tecnickcom/tc-lib-barcode": "^2.17.2",
-        "tecnickcom/tc-lib-pdf": "^8.82.2"
+        "tecnickcom/tc-lib-pdf": "^8.82.2",
+        "twig/twig": "^3.30",
+        "zircote/swagger-php": "^7.5"
     },
     "autoload": {
         "psr-4": {

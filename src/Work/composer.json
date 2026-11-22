@@ -9,6 +9,9 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
         "foresi/attachment": "self.version",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
@@ -16,7 +19,21 @@
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
-        "openspout/openspout": "^5.12"
+        "openspout/openspout": "^5.12",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/messenger": "^7.4.23",
+        "symfony/routing": "^7.4",
+        "symfony/security-csrf": "^7.4",
+        "symfony/serializer": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/validator": "7.4.*",
+        "twig/twig": "^3.30",
+        "zircote/swagger-php": "^7.5"
     },
     "autoload": {
         "psr-4": {
