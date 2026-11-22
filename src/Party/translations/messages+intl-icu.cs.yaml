@@ -109,6 +109,7 @@ party:
     addresses: Adresy
     bank-accounts: Bankovní účty
     history: Historie
+    activities: Aktivity
     documents: Dokumenty
   document_variable:
     firm:

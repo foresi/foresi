@@ -20,9 +20,10 @@ final readonly class ActivityTimes
     {
     }
 
+    /** Now, in UTC, as every moment is kept. */
     public function now(): \DateTimeImmutable
     {
-        return $this->clock->clock()->now();
+        return $this->clock->clock()->now()->setTimezone(new \DateTimeZone('UTC'));
     }
 
     /**
