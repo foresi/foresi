@@ -68,7 +68,7 @@ final class DocumentScreensTest extends WebTestCase
         $crawler = $this->client->request('GET', '/documents');
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('#sidebar a[href="/documents"]'));
+        self::assertCount(1, $crawler->filter('#sidebar [data-nav-sections] a[href="/documents"]'));
         self::assertCount(1, $crawler->filter('header a[data-document-new][data-dialog][href="/documents/new"]'));
         self::assertCount(2, $crawler->filter('[data-documents] tbody tr'));
         self::assertSelectorTextContains('[data-documents]', 'NDA with Example Ltd');

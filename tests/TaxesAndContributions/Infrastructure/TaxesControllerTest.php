@@ -74,7 +74,7 @@ final class TaxesControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('#sidebar a[href="/taxes-and-contributions"]'));
+        self::assertCount(1, $crawler->filter('#sidebar [data-nav-sections] a[href="/taxes-and-contributions"]'));
         self::assertCount(1, $crawler->filter('header a[data-taxes-profile][href="/taxes-and-contributions/profile"]'));
         self::assertSame(['2025', '2026', '2027'], $crawler->filter('[data-taxes-years] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
         self::assertSame('2026', trim($crawler->filter('[data-taxes-years] a[aria-current="page"]')->text()));

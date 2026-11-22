@@ -72,7 +72,11 @@ final class AppShellTest extends WebTestCase
         self::assertCount(1, $rail);
         self::assertNotNull($rail->attr('data-turbo-permanent'));
         $areas = $rail->filter('a[data-nav-area]')->each(static fn ($a): string => (string) $a->attr('data-nav-area'));
-        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $areas);
+        // The installed modules decide which areas there are; their order is fixed, the overview
+        // first, the contacts always and the settings last.
+        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $areas)), $areas);
+        self::assertSame(['overview', 'contacts', 'settings'], array_values(array_intersect($areas, ['overview', 'contacts', 'settings'])));
+        self::assertSame('settings', end($areas));
         self::assertSame(['overview'], $rail->filter('a[aria-current="true"]')->each(static fn ($a): string => (string) $a->attr('data-nav-area')));
         self::assertSame('/', $rail->filter('a[data-nav-area="overview"]')->attr('href'));
         self::assertSame('Overview', trim($rail->filter('a[data-nav-area="overview"]')->text()));
@@ -100,7 +104,7 @@ final class AppShellTest extends WebTestCase
         self::assertSame('/settings/people', $sidebar->filter('[aria-current="page"]')->attr('href'));
         // One group: no group heading; every area is in the drawer, so the other areas are there too.
         self::assertCount(0, $shown->filter('h3'));
-        self::assertCount(8, $sidebar->filter('section[data-nav-area]'));
+        self::assertCount($crawler->filter('#rail a[data-nav-area]')->count(), $sidebar->filter('section[data-nav-area]'));
     }
 
     public function testOnlyTheContentPanelTakesPartInTheViewTransition(): void
@@ -221,9 +225,9 @@ final class AppShellTest extends WebTestCase
         $menu = $crawler->filter('[data-controller="dropdown"] [role="menu"]');
         self::assertCount(1, $menu);
         self::assertTrue($menu->matches('[hidden]'));
-        self::assertCount(5, $menu->filter('[role="menuitem"]'));
-        self::assertSelectorExists('[role="menu"] a[href="/account/notifications"]');
-        self::assertSelectorExists('[role="menu"] a[href="/account/calendar"]');
+        // The profile, the language and the sign-out are always there; the notifications of
+        // Work and the calendar of Calendar come with their modules, whose tests check them.
+        self::assertGreaterThanOrEqual(3, $menu->filter('[role="menuitem"]')->count());
         // API and MCP live in the settings only.
         self::assertSelectorNotExists('[role="menu"] a[href="/settings/api"]');
         self::assertSelectorExists('[role="menu"] form[action="/account/language"] input[name="_token"]');

@@ -53,7 +53,7 @@ final class ProfileControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('#sidebar a[href="/taxes-and-contributions"]'));
+        self::assertCount(1, $crawler->filter('#sidebar [data-nav-sections] a[href="/taxes-and-contributions"]'));
         // A rare change is a small action in the header, not a primary one, and no empty state.
         self::assertCount(1, $crawler->filter('header a[data-taxes-statuses-open][data-dialog][href="/taxes-and-contributions/profile/statuses"]'));
         self::assertCount(0, $crawler->filter('header [data-taxes-status-new]'));
