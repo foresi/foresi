@@ -15,8 +15,10 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Application\CalculationStep;
 use Foresi\Vat\Application\PeriodAmounts;
+use Foresi\Vat\Application\ScheduleAmount;
 use Foresi\Vat\Application\VatCalculation;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\ScheduledVat;
 use Foresi\Vat\Contract\VatPeriod;
 use Foresi\Vat\Contract\VatSubject;
 use PHPUnit\Framework\TestCase;
@@ -50,6 +52,7 @@ final class VatCalculationTest extends TestCase
         self::assertSame([0, 0, 0], $this->totals($december));
         self::assertSame([], $december->documents);
         self::assertSame([], $december->steps[0]->sources);
+        self::assertSame([], $december->schedules);
     }
 
     public function testAReceivedDocumentCountsInItsDeductionMonth(): void
@@ -160,6 +163,71 @@ final class VatCalculationTest extends TestCase
         self::assertSame(['purchasing.received_vat'], $november->steps[1]->sources, 'Each source once.');
     }
 
+    public function testAMonthlyTemplateCountsInEachFuturePeriod(): void
+    {
+        $periods = [$this->month('2026-11', '2026-11-12', '2026-11-30'), $this->month('2026-12', '2026-12-01', '2026-12-31'), $this->month('2027-01', '2027-01-01', '2027-01-31')];
+        $issued = $this->issued('2026-11-20', 210_000);
+        $received = $this->received('2026-12-01', '2026-12-03', 21_000);
+        $december = $this->scheduled('2026-12-01', 210_000);
+        $january = $this->scheduled('2027-01-01', 210_000);
+        $second = $this->scheduled('2027-01-15', 100);
+
+        [$nov, $dec, $jan] = VatCalculation::compute($periods, [$issued, $received], $this->payer(), [$december, $january, $second]);
+
+        self::assertSame([210_000, 0, 210_000], $this->totals($nov));
+        self::assertSame([], $nov->schedules);
+        self::assertSame([210_000, 21_000, 189_000], $this->totals($dec));
+        self::assertSame([0, 21_000, 210_000, 0], [$dec->documentsPart->output->minor(), $dec->documentsPart->input->minor(), $dec->schedulesPart->output->minor(), $dec->schedulesPart->input->minor()]);
+        self::assertSame(['CZK', 'CZK'], [$dec->schedulesPart->output->currency()->value, $dec->schedulesPart->input->currency()->value]);
+        self::assertSame([$december], $dec->schedules);
+        self::assertSame([$received], $dec->documents);
+        self::assertSame([
+            [CalculationStep::OUTPUT, 210_000, VatCalculation::RULE_OUTPUT, ['invoicing.recurring_vat', 'purchasing.received_vat']],
+            [CalculationStep::INPUT, 21_000, VatCalculation::RULE_INPUT, ['purchasing.received_vat']],
+            [CalculationStep::RESULT, 189_000, VatCalculation::RULE_RESULT, ['output', 'input']],
+        ], array_map(static fn (CalculationStep $step): array => [$step->name, $step->amount->minor(), $step->rule, $step->sources], $dec->steps));
+        self::assertSame([210_100, 0, 210_100], $this->totals($jan));
+        self::assertSame([$january, $second], $jan->schedules);
+        self::assertSame([['invoicing.recurring_vat'], []], [$jan->steps[0]->sources, $jan->steps[1]->sources], 'A source is named once.');
+        self::assertSame([[], []], [$jan->warnings, $jan->missingCzk]);
+    }
+
+    public function testAScheduleCountsOnlyWhenTheFirmIsAPayerOnItsTaxPoint(): void
+    {
+        $periods = [$this->month('2026-11', '2026-11-12', '2026-11-30')];
+
+        [$period] = VatCalculation::compute($periods, [], $this->payer(), [$this->scheduled('2026-11-11', 500), $this->scheduled('2026-11-12', 100), $this->scheduled('2026-12-01', 900)]);
+
+        self::assertSame([100, 0, 100], $this->totals($period), 'Neither the day before the payer day nor a day outside the periods counts.');
+        self::assertCount(1, $period->schedules);
+    }
+
+    public function testAQuarterlyFilerCountsAScheduleInTheQuarterOfItsTaxPoint(): void
+    {
+        $stretches = [new VatStretch('q', VatRegistration::Registered, VatPeriodLength::Quarter, new \DateTimeImmutable('2026-11-12'))];
+
+        [$q4, $q1] = VatCalculation::compute([$this->quarter('2026-Q4', '2026-11-12', '2026-12-31'), $this->quarter('2027-Q1', '2027-01-01', '2027-03-31')], [], $stretches, [$this->scheduled('2026-12-01', 100), $this->scheduled('2027-03-01', 200)]);
+
+        self::assertSame([100, 200], [$q4->output->minor(), $q1->output->minor()]);
+    }
+
+    public function testAScheduleAtTodaysRateOrWithoutOneWarns(): void
+    {
+        $periods = [$this->month('2026-12', '2026-12-01', '2026-12-31'), $this->month('2027-01', '2027-01-01', '2027-01-31')];
+        $document = new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'i', null), '20260007', $this->day('2026-12-02'), $this->day('2026-12-02'), $this->czk(0), $this->czk(0), true);
+
+        [$december, $january] = VatCalculation::compute($periods, [$document], $this->payer(), [
+            new ScheduleAmount($this->scheduled('2026-12-01', 0)->schedule, $this->czk(0), true, true),
+            new ScheduleAmount($this->scheduled('2026-12-01', 0)->schedule, $this->czk(52_500), true),
+            new ScheduleAmount($this->scheduled('2027-01-01', 0)->schedule, $this->czk(52_500), true),
+        ]);
+
+        self::assertSame(['missing_czk_vat', 'fx_today'], $december->warnings);
+        self::assertSame(['20260007', 'Hosting (2026-12-01)'], $december->missingCzk);
+        self::assertSame([52_500, 0, 52_500], $this->totals($december));
+        self::assertSame([['fx_today'], []], [$january->warnings, $january->missingCzk]);
+    }
+
     /**
      * @return list<VatStretch>
      */
@@ -202,6 +270,11 @@ final class VatCalculationTest extends TestCase
     private function day(string $day): \DateTimeImmutable
     {
         return new \DateTimeImmutable($day, new \DateTimeZone('Europe/Prague'));
+    }
+
+    private function scheduled(string $taxPoint, int $vat): ScheduleAmount
+    {
+        return new ScheduleAmount(new ScheduledVat('invoicing.recurring_vat', new VatSubject('recurring_invoice', 't-'.$taxPoint, null), 'Hosting ('.$taxPoint.')', $this->day($taxPoint), $this->czk($vat)), $this->czk($vat));
     }
 
     private function czk(int $minor): Money

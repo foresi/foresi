@@ -8,15 +8,22 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Application;
 
+use Foresi\ExchangeRate\Application\ExchangeRates;
+use Foresi\ExchangeRate\Domain\ExchangeRate;
+use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Contract\VatRegistration;
 use Foresi\Party\Contract\VatStretch;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\ScheduledVat;
 use Foresi\Vat\Contract\VatCountryRules;
 use Foresi\Vat\Contract\VatDocumentSource;
 use Foresi\Vat\Contract\VatPeriod;
+use Foresi\Vat\Contract\VatScheduleSource;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,7 +33,9 @@ use Psr\Log\LoggerInterface;
  * payer from 12 November 2026 has the period 2026-11 from 2026-11-12 to
  * 2026-11-30, due as the whole November is. Nothing is computed before a
  * stated date, nor without the rules of the firm's country. The amounts
- * come from the documents of the installed sources (VatCalculation).
+ * come from the documents and the schedules of the installed sources
+ * (VatCalculation); a scheduled amount in another currency is converted at
+ * today's rate.
  */
 final readonly class VatPeriods
 {
@@ -39,8 +48,12 @@ final readonly class VatPeriods
     /** The document sources the amounts count when their modules are installed. */
     public const array EXPECTED_SOURCES = ['invoicing.issued_vat', 'purchasing.received_vat'];
 
+    /** The schedule sources the amounts count when their modules are installed. */
+    public const array EXPECTED_SCHEDULE_SOURCES = ['invoicing.recurring_vat'];
+
     /**
      * @param iterable<VatDocumentSource> $sources
+     * @param iterable<VatScheduleSource> $schedules
      */
     public function __construct(
         private VatAccess $access,
@@ -49,6 +62,8 @@ final readonly class VatPeriods
         private InstanceClock $clock,
         private iterable $sources,
         private LoggerInterface $logger,
+        private ExchangeRates $exchangeRates,
+        private iterable $schedules = [],
     ) {
     }
 
@@ -87,8 +102,9 @@ final readonly class VatPeriods
         foreach ($list->periods as $view) {
             if ($view->period->key === $key) {
                 $documents = array_values(array_filter($view->amounts->documents, static fn (DocumentVat $document): bool => !\in_array($document->source, $restricted, true)));
+                $schedules = array_values(array_filter($view->amounts->schedules, static fn (ScheduleAmount $schedule): bool => !\in_array($schedule->schedule->source, $restricted, true)));
 
-                return new PeriodDetail($list, $view, $documents, $restricted);
+                return new PeriodDetail($list, $view, $documents, $restricted, $schedules);
             }
         }
 
@@ -137,13 +153,14 @@ final readonly class VatPeriods
         }
         $wholes = array_column($listed, 0);
         [$documents, $unavailable, $restricted] = [] === $wholes ? [[], [], []] : $this->documents($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
-        $amounts = VatCalculation::compute(array_column($listed, 1), $documents, $stretches);
+        [$schedules, $unscheduled, $hidden] = [] === $wholes ? [[], [], []] : $this->scheduled($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
+        $amounts = VatCalculation::compute(array_column($listed, 1), $documents, $stretches, $schedules);
         $views = [];
         foreach ($listed as $i => [$whole, $clipped]) {
             $views[] = new PeriodView($clipped, $rules->dueOn($whole), $rules->refundExpectedOn($whole), $amounts[$i]);
         }
 
-        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), $unavailable), $restricted];
+        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), [...$unavailable, ...$unscheduled]), [...$restricted, ...$hidden]];
     }
 
     /**
@@ -185,6 +202,81 @@ final readonly class VatPeriods
         }
 
         return [$documents, $unavailable, $restricted];
+    }
+
+    /**
+     * The occurrences of every installed schedule source whose tax point
+     * falls on the days from $from to $to, in CZK, the sources that are not
+     * installed or failed to read, and those whose schedules the caller may
+     * not see.
+     *
+     * @return array{list<ScheduleAmount>, list<string>, list<string>}
+     */
+    private function scheduled(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $today = $this->clock->today();
+        $amounts = [];
+        $unavailable = [];
+        $restricted = [];
+        $found = [];
+        $rates = [];
+        foreach ($this->schedules as $source) {
+            $found[] = $source->key();
+            try {
+                $details = $source->mayReadDetails();
+                $read = [];
+                foreach ($source->between($from, $to, $today) as $schedule) {
+                    $read[] = $schedule;
+                }
+            } catch (\Throwable $failure) {
+                $this->logger->error('The VAT of the schedules of {source} could not be read.', ['source' => $source->key(), 'exception' => $failure]);
+                $unavailable[] = $source->key();
+
+                continue;
+            }
+            if (!$details) {
+                $restricted[] = $source->key();
+            }
+            foreach ($read as $schedule) {
+                $amounts[] = $this->inCzk($schedule, $today, $rates);
+            }
+        }
+        foreach (self::EXPECTED_SCHEDULE_SOURCES as $expected) {
+            if (!\in_array($expected, $found, true)) {
+                $unavailable[] = $expected;
+            }
+        }
+
+        return [$amounts, $unavailable, $restricted];
+    }
+
+    /**
+     * The output of a scheduled occurrence in CZK at today's rate, each rate
+     * asked once; zero, and marked, when its currency has no rate today.
+     *
+     * @param array<string, ExchangeRate|null> $rates the rates asked so far, by currency
+     */
+    private function inCzk(ScheduledVat $schedule, \DateTimeImmutable $today, array &$rates): ScheduleAmount
+    {
+        $output = $schedule->output;
+        $currency = $output->currency();
+        if (Currency::CZK === $currency) {
+            return new ScheduleAmount($schedule, $output);
+        }
+        if (!\array_key_exists($currency->value, $rates)) {
+            try {
+                $rates[$currency->value] = $this->exchangeRates->rateOn($currency->value, $today);
+            } catch (RateNotAvailable $failure) {
+                $this->logger->warning('No rate of {currency} for the VAT of the schedules.', ['currency' => $currency->value, 'exception' => $failure]);
+                $rates[$currency->value] = null;
+            }
+        }
+        $rate = $rates[$currency->value];
+        if (!$rate instanceof ExchangeRate) {
+            return new ScheduleAmount($schedule, Money::ofMinor(0, Currency::CZK), true, true);
+        }
+
+        return new ScheduleAmount($schedule, Money::ofMinor($output->minor(), Currency::CZK)->multipliedBy($rate->rate)->dividedBy((string) $rate->amount), true);
     }
 
     /**

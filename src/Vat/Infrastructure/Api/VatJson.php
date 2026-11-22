@@ -13,6 +13,7 @@ use Foresi\Vat\Application\CalculationStep;
 use Foresi\Vat\Application\PeriodDetail;
 use Foresi\Vat\Application\PeriodList;
 use Foresi\Vat\Application\PeriodView;
+use Foresi\Vat\Application\ScheduleAmount;
 use Foresi\Vat\Application\VatPart;
 use Foresi\Vat\Application\VatSettingsView;
 use Foresi\Vat\Contract\DocumentVat;
@@ -51,6 +52,7 @@ final class VatJson
         return self::periods($detail->list) + [
             'period' => self::period($detail->period),
             'documents' => array_map(self::document(...), $detail->documents),
+            'schedules' => array_map(self::schedule(...), $detail->schedules),
             'restricted_sources' => $detail->restrictedSources,
         ];
     }
@@ -69,6 +71,25 @@ final class VatJson
             'output' => JsonValues::money($document->output),
             'input' => JsonValues::money($document->input),
             'missing_czk' => $document->missingCzk,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function schedule(ScheduleAmount $amount): array
+    {
+        $schedule = $amount->schedule;
+
+        return [
+            'source' => $schedule->source,
+            'subject' => ['type' => $schedule->subject->type, 'id' => $schedule->subject->id, 'url' => $schedule->subject->url],
+            'label' => $schedule->label,
+            'tax_point_on' => JsonValues::date($schedule->taxPointOn),
+            'output' => JsonValues::money($amount->output),
+            'output_in_currency' => JsonValues::money($schedule->output),
+            'fx_today' => $amount->fxToday,
+            'missing_czk' => $amount->missingCzk,
         ];
     }
 

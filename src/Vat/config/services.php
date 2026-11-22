@@ -10,6 +10,7 @@ use Foresi\Vat\Application\VatPeriods;
 use Foresi\Vat\Application\VatRules;
 use Foresi\Vat\Contract\VatCountryRules;
 use Foresi\Vat\Contract\VatDocumentSource;
+use Foresi\Vat\Contract\VatScheduleSource;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -27,7 +28,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(VatRules::class)
         ->arg('$rules', tagged_iterator(VatCountryRules::TAG));
 
-    // Invoicing and Purchasing give the VAT of their documents through Foresi\Vat\Contract\VatDocumentSource.
+    // Invoicing and Purchasing give the VAT of their documents through Foresi\Vat\Contract\VatDocumentSource,
+    // and Invoicing the VAT of its recurring invoices through Foresi\Vat\Contract\VatScheduleSource.
     $services->set(VatPeriods::class)
-        ->arg('$sources', tagged_iterator(VatDocumentSource::TAG));
+        ->arg('$sources', tagged_iterator(VatDocumentSource::TAG))
+        ->arg('$schedules', tagged_iterator(VatScheduleSource::TAG));
 };

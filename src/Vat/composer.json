@@ -1,6 +1,6 @@
 {
     "name": "foresi/vat",
-    "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules, and where it pays its VAT.",
+    "description": "The VAT of the firm: its VAT periods with the due dates from the country's rules and the amounts from its documents and schedules, and where it pays its VAT.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",
@@ -13,6 +13,7 @@
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
         "foresi/audit": "self.version",
+        "foresi/exchange-rate": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
         "foresi/party": "self.version",
