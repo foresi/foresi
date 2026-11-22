@@ -94,9 +94,15 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_remove_tax_status` | **Write, destructive.** Removes a status (`status_id`); the one before it holds again. A `vat_payer` status is the firm's and is refused with `vat_payer_on_firm`. Owner only. |
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
-| `foresi_vat_periods` | The VAT periods of the firm (`from`, `to`, months or quarters), an estimate: each with its days, due date, expected refund date and amounts, the reason when there is nothing to compute, the warnings, the unverified rules, the known gaps, and the payment details in `settings`. |
+| `foresi_vat_periods` | The VAT periods of the firm (`from`, `to`, months or quarters), an estimate: each with its days, due date, expected refund date, amounts, what it expects, its state (never overdue) and the bank payments that pay it, the reason when there is nothing to compute, the warnings, the unverified rules, the known gaps, and the payment details in `settings`. |
 | `foresi_get_vat_period` | One VAT period (`key`, such as `2026-11` or `2026-Q4`) with its amounts, their breakdown and steps, and the documents counted; `restricted_sources` names the sources whose documents the token may not read. |
 | `foresi_set_vat_settings` | **Write.** Sets where the firm pays its VAT: `office_account` and `variable_symbol` (empty takes the suggested one). |
+| `foresi_set_vat_return_amount` | **Write.** Enters the amount of the filed return of a period (`key`, `amount` in CZK, negative for a refund), which replaces the estimate until the period is paid. |
+| `foresi_clear_vat_return_amount` | **Write.** Removes the return amount of a period (`key`), so the estimate counts again. |
+| `foresi_settle_vat_period` | **Write.** Marks a period settled by hand (`key`, optional `note`); its flow leaves the cash-flow forecast. |
+| `foresi_reopen_vat_period` | **Write.** Removes the settled mark of a period (`key`); a period a bank payment pays stays settled. |
+| `foresi_assign_vat_payment` | **Write.** Places a bank movement (`movement_id`): `period` it pays, or `null` for no VAT payment. It wins over the automatic matching. |
+| `foresi_reset_vat_payment` | **Write.** Gives a placed bank movement (`movement_id`) back to the automatic matching. |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
@@ -157,7 +163,7 @@ The catalog tools take the fields of the [REST catalog](api.md#catalog), with th
 
 The tax tools take the fields of the [REST taxes and contributions](api.md#taxes-and-contributions), with the id of a status as `status_id`, and answer what the REST API answers. Only the owner of the organisation may call them; anyone else is refused with `owner_only`. They also refuse with `invalid_argument` (it names the argument and the `reason`), `not_found` and `status_day_taken`. See [taxes-and-contributions.md](taxes-and-contributions.md).
 
-The VAT tools take the fields of the [REST VAT](api.md#vat) and answer what the REST API answers; the read needs `vat:read`, the write `vat:write`. The owners and members may call them, and a guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `range_too_long`). See [vat.md](vat.md).
+The VAT tools take the fields of the [REST VAT](api.md#vat) and answer what the REST API answers; the reads need `vat:read`, the writes `vat:write`. The owners and members may call them, and a guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `range_too_long`). See [vat.md](vat.md).
 
 The document tools take the fields of the [REST documents](api.md#documents), with the ids as `type_id`, `template_id`, `document_id` and `signer_id`, and answer what the REST API answers; the reads need `documents:read`, the writes `documents:write`. A guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `template_variables_missing` with `missing`), `not_found` and the conflicts of the document's status. The stored files are not sent over MCP: download them from `GET /api/v1/documents/{document_id}/files/{file}`. See [documents.md](documents.md).
 

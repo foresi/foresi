@@ -746,7 +746,7 @@ nelmio_api_doc:
                 VatPeriods:
                     type: object
                     description: The VAT periods of the firm, always an estimate. With nothing to compute, periods is empty and reason says why.
-                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps, unavailable_sources]
+                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps, unavailable_sources, unassigned_payments, possible_duplicates]
                     properties:
                         estimate: { type: boolean, enum: [true] }
                         reason: { type: string, nullable: true, enum: [payer_date_missing, not_a_payer, country_not_supported, null], description: 'payer_date_missing when the firm is a payer but the day it became one is not stated: nothing is computed before a stated day.' }
@@ -757,7 +757,31 @@ nelmio_api_doc:
                         warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
                         unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
                         known_gaps: { type: array, items: { type: string }, example: [schedules_not_counted, plans_not_counted, deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
-                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat. Their documents count nothing.' }
+                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat, whose documents count nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
+                        unassigned_payments: { type: array, description: 'The bank movements to or from the tax office that pay no period, oldest first, for a person to place with PUT /api/v1/vat/payments/{movementId}.', items: { $ref: '#/components/schemas/VatPayment' } }
+                        possible_duplicates:
+                            type: array
+                            description: The active planned items of Cash flow in the category vat, which may count the VAT a second time. Nothing ends them but a person.
+                            items: { type: object, required: [id, name, url], properties: { id: { type: string, format: uuid }, name: { type: string }, url: { type: string, nullable: true } } }
+                VatPayment:
+                    type: object
+                    required: [movement_id, on, amount, direction, rule, period, manual, unverified]
+                    properties:
+                        movement_id: { type: string, description: 'The id of the bank movement.' }
+                        on: { type: string, format: date }
+                        amount: { $ref: '#/components/schemas/Money', description: 'Positive, as the bank booked it; direction says which way.' }
+                        direction: { type: string, enum: [in, out] }
+                        rule: { type: string, enum: [payable, refund, other], description: 'payable: to the office account with the variable symbol; refund: from the office account, by the account alone; other: to the office account with another symbol, never matched on its own.' }
+                        period: { type: string, nullable: true, example: '2026-11', description: 'The period it pays; null while it is unassigned.' }
+                        manual: { type: boolean, description: 'A person placed it.' }
+                        unverified: { type: array, items: { type: string }, example: [refund_account] }
+                VatPaymentAssignment:
+                    type: object
+                    required: [movement_id, period, automatic]
+                    properties:
+                        movement_id: { type: string }
+                        period: { type: string, nullable: true, description: 'The period it pays; null when it is no VAT payment, or when automatic.' }
+                        automatic: { type: boolean, description: 'Nobody placed it any more, so the automatic matching decides.' }
                 VatPeriodDetail:
                     allOf:
                         - { $ref: '#/components/schemas/VatPeriods' }
@@ -787,7 +811,7 @@ nelmio_api_doc:
                         input: { $ref: '#/components/schemas/Money' }
                 VatPeriod:
                     type: object
-                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, breakdown, steps, warnings, missing_czk]
+                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, return_amount, expected, state, paid, difference, payments, settled_mark, breakdown, steps, warnings, missing_czk]
                     properties:
                         key: { type: string, example: '2026-11', description: 'The calendar month, or the quarter such as "2026-Q4".' }
                         length: { type: string, enum: [month, quarter] }
@@ -798,6 +822,13 @@ nelmio_api_doc:
                         output: { $ref: '#/components/schemas/Money' }
                         input: { $ref: '#/components/schemas/Money' }
                         result: { $ref: '#/components/schemas/Money', description: 'Output minus input; positive to pay, negative to get back.' }
+                        return_amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The amount of the return a person entered; null until then.' }
+                        expected: { $ref: '#/components/schemas/Money', description: 'What the period expects: the return amount when entered, else the result.' }
+                        state: { type: string, enum: [estimated, return_entered, settled, not_yet_paid], description: 'settled once a movement pays it or a person marked it; not_yet_paid once its due date, or for a refund its expected date, has passed. Never overdue.' }
+                        paid: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'What the movements paid, in the sign of the result; null without any.' }
+                        difference: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Paid minus expected, as information: a payment of another amount still settles the period.' }
+                        payments: { type: array, items: { $ref: '#/components/schemas/VatPayment' } }
+                        settled_mark: { type: object, nullable: true, required: [at, note], description: 'A person marked it settled.', properties: { at: { type: string, format: date-time }, note: { type: string, nullable: true } } }
                         breakdown:
                             type: object
                             required: [documents, schedules, plans]

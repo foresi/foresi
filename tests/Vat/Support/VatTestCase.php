@@ -10,6 +10,7 @@ namespace Foresi\Tests\Vat\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
@@ -98,6 +99,26 @@ abstract class VatTestCase extends KernelTestCase
         $this->em->persist($firm);
 
         return $firm;
+    }
+
+    /**
+     * The events of one name, oldest first, each as its subject id and facts.
+     *
+     * @return list<array{string, array<string, mixed>}>
+     */
+    protected function events(string $name): array
+    {
+        $rows = $this->em->getConnection()->fetchAllAssociative('SELECT '.EventLogTable::SUBJECT_ID.', '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ? ORDER BY '.EventLogTable::ID, [$name]);
+
+        return array_map(static function (array $row): array {
+            self::assertIsString($row[EventLogTable::DATA]);
+            self::assertIsString($row[EventLogTable::SUBJECT_ID]);
+            $data = json_decode($row[EventLogTable::DATA], true, flags: \JSON_THROW_ON_ERROR);
+            self::assertIsArray($data);
+
+            /* @var array<string, mixed> $data */
+            return [$row[EventLogTable::SUBJECT_ID], $data];
+        }, $rows);
     }
 
     private function person(string $email, Role $role, ?Party $customer): Membership

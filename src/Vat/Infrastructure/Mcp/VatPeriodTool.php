@@ -45,7 +45,8 @@ final readonly class VatPeriodTool implements ReadTool
     {
         return 'Returns one VAT period of the firm by its key, always an estimate (estimate: true): its output VAT, input VAT and result in CZK, the breakdown into documents, schedules and plans, the steps of the calculation, and the documents counted. '
             .'An issued tax document counts on its tax point; a received document in its deduction month, and only when the firm was a VAT payer on its tax point (known_gaps: deduction_before_registration). '
-            .'restricted_sources lists the sources whose documents the token may not read: their amounts count, their documents are left out. unavailable_sources lists the sources not installed. warnings holds missing_czk_vat when a document has no CZK amount of its VAT; it counts zero.';
+            .'restricted_sources lists the sources whose documents the token may not read: their amounts count, their documents are left out. unavailable_sources lists the sources not installed. warnings holds missing_czk_vat when a document has no CZK amount of its VAT; it counts zero. '
+            .'The period also has expected, state, payments, paid, difference and settled_mark, as in foresi_vat_periods.';
     }
 
     public function inputSchema(): array
