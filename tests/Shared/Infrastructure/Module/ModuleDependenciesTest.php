@@ -16,8 +16,11 @@ use PHPUnit\Framework\TestCase;
  * PHP code uses (ADR 0034), so "composer require foresi/<module>" installs what
  * the module needs and nothing it does not. A class counts as used when a file
  * of the module imports it ("use") or names it fully qualified ("\Vendor\...");
- * its package is the one whose PSR-4 prefix is the longest match. Bundles the
- * application's config/ needs, and PHP extensions, are the application's.
+ * its package is the one whose PSR-4 prefix is the longest match. A package only
+ * the module's configuration needs (a bundle its config/packages configures, a
+ * Messenger transport) is listed in extra.foresi.config-requires as well.
+ * PHP extensions, and what boots the application (runtime, dotenv), are the
+ * application's.
  */
 final class ModuleDependenciesTest extends TestCase
 {
@@ -45,14 +48,20 @@ final class ModuleDependenciesTest extends TestCase
         if ('foresi/foresi' !== (self::json(self::root().'/composer.json')['name'] ?? null)) {
             self::markTestSkipped('Only the application with every module installed knows every package.');
         }
-        $require = self::json($directory.'/composer.json')['require'] ?? [];
+        $composer = self::json($directory.'/composer.json');
+        $require = $composer['require'] ?? [];
+        $extra = $composer['extra'] ?? null;
+        $foresi = \is_array($extra) ? ($extra['foresi'] ?? null) : null;
+        $forConfig = \is_array($foresi) && \is_array($foresi['config-requires'] ?? null) ? array_map(strval(...), $foresi['config-requires']) : [];
         $declared = array_values(array_filter(
             array_map(strval(...), array_keys(\is_array($require) ? $require : [])),
             static fn (string $package): bool => str_contains($package, '/') && !str_starts_with($package, 'foresi/'),
         ));
         sort($declared);
 
-        self::assertSame(self::used($directory), $declared, 'The "require" of '.basename($directory).'/composer.json lists the third-party packages its code uses, no more and no fewer.');
+        $expected = array_values(array_unique([...self::used($directory), ...$forConfig]));
+        sort($expected);
+        self::assertSame($expected, $declared, 'The "require" of '.basename($directory).'/composer.json lists the third-party packages its code uses and extra.foresi.config-requires names, no more and no fewer.');
     }
 
     /**
