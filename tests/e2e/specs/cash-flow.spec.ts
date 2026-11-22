@@ -34,4 +34,20 @@ test.describe('the cash flow', () => {
     await page.getByRole('link', { name: 'Zrušit filtr' }).click();
     await expect(page.locator('[data-cash-flow-table]')).toBeVisible();
   });
+
+  // Twelve months are wider than the card: the table scrolls in its own box and the page never sideways,
+  // also with the screen-reader texts of the empty cells far to the right.
+  for (const width of [1440, 375]) {
+    test(`the 12 months table scrolls in its box, not the page, at ${width} px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/cash-flow');
+      const table = page.locator('[data-cash-flow-table]');
+      await expect(table).toBeVisible();
+
+      const box = await table.evaluate((element) => ({ scroll: element.parentElement!.scrollWidth, client: element.parentElement!.clientWidth }));
+      expect(box.scroll).toBeGreaterThan(box.client);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+  }
 });

@@ -95,7 +95,8 @@
                         </twig:Ui:EmptyState>
                     {% else %}
                     <div class="overflow-hidden rounded-panel border border-container bg-white">
-                        <div class="overflow-x-auto">
+                        {# relative: the screen-reader texts of the cells are absolute; without a positioned scroll box they sit at their cell's place on the page and widen it, as on the Taxes page. #}
+                        <div class="relative overflow-x-auto">
                             <table class="w-full border-collapse text-small" data-cash-flow-table>
                                 <caption class="sr-only">{{ 'cash_flow.table.caption'|trans }}</caption>
                                 <thead>
