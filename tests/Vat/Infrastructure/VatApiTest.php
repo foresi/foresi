@@ -60,7 +60,7 @@ final class VatApiTest extends ApiTestCase
         $data = $this->json()['data'];
         self::assertIsArray($data);
         self::assertSame([true, null, 'CZ', '2026-11', '2027-01'], [$data['estimate'], $data['reason'], $data['country'], $data['from'], $data['to']]);
-        self::assertSame(['documents_not_counted', 'schedules_not_counted', 'plans_not_counted'], $data['known_gaps']);
+        self::assertSame(['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'], $data['known_gaps']);
         self::assertIsArray($data['unverified']);
         self::assertContains('refund_timing', $data['unverified']);
         self::assertSame([
@@ -73,8 +73,20 @@ final class VatApiTest extends ApiTestCase
             'output' => ['amount_minor' => 0, 'currency' => 'CZK'],
             'input' => ['amount_minor' => 0, 'currency' => 'CZK'],
             'result' => ['amount_minor' => 0, 'currency' => 'CZK'],
+            'breakdown' => [
+                'documents' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
+                'schedules' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
+                'plans' => ['output' => ['amount_minor' => 0, 'currency' => 'CZK'], 'input' => ['amount_minor' => 0, 'currency' => 'CZK']],
+            ],
+            'steps' => [
+                ['name' => 'output', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'output VAT of the documents in the period', 'sources' => []],
+                ['name' => 'input', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'deductible input VAT of the documents in the period', 'sources' => []],
+                ['name' => 'result', 'amount' => ['amount_minor' => 0, 'currency' => 'CZK'], 'rule' => 'output VAT minus deductible input VAT', 'sources' => ['output', 'input']],
+            ],
             'warnings' => [],
+            'missing_czk' => [],
         ], $this->at('data', 'periods', 0));
+        self::assertSame([], $data['unavailable_sources']);
         self::assertSame(['2026-11', '2026-12', '2027-01'], array_column((array) $data['periods'], 'key'));
         self::assertStringNotContainsString('overdue', (string) $this->client->getResponse()->getContent());
 
@@ -84,6 +96,35 @@ final class VatApiTest extends ApiTestCase
         self::assertIsArray($structured);
         self::assertSame($data['periods'], $structured['periods']);
         self::assertSame(['office_account' => null, 'variable_symbol' => null], array_slice((array) $structured['settings'], 0, 2));
+    }
+
+    public function testOnePeriodWithItsDocumentsOnBothSurfaces(): void
+    {
+        $this->flushed(function (): void {
+            $this->em()->persist(new VatStatusPeriod(VatStatus::Registered, VatPeriodLength::Month, new \DateTimeImmutable('2026-11-12')));
+        });
+
+        $this->get('/api/v1/vat/periods/2026-11', secret: $this->writer);
+        self::assertResponseIsSuccessful();
+        $data = $this->json()['data'];
+        self::assertIsArray($data);
+        self::assertSame([true, '2026-11', '2026-11-12', []], [$data['estimate'], $this->at('data', 'period', 'key'), $this->at('data', 'period', 'start'), $data['documents']]);
+        self::assertSame(['invoicing.issued_vat', 'purchasing.received_vat'], $data['restricted_sources'], 'A token with vat:write alone reads no invoice nor received document.');
+        self::assertSame([], $data['unavailable_sources']);
+        self::assertSame(['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'], $data['known_gaps']);
+
+        $this->get('/api/v1/vat/periods/2026-10', secret: $this->writer);
+        $this->assertProblem(404, 'not_found');
+        $this->get('/api/v1/vat/periods/November', secret: $this->writer);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'key', 'reason' => 'key_invalid']);
+
+        $reader = $this->issued([ApiScope::from('vat:read'), ApiScope::from('invoices:read'), ApiScope::from('received_documents:read')]);
+        $call = $this->tool($reader, 'foresi_get_vat_period', ['key' => '2026-11']);
+        self::assertFalse($call['isError'] ?? false);
+        self::assertSame(['2026-11', []], [$this->in($call, 'structuredContent', 'data', 'period', 'key'), $this->in($call, 'structuredContent', 'data', 'restricted_sources')]);
+        $missing = $this->tool($reader, 'foresi_get_vat_period', ['key' => '2026-10']);
+        self::assertTrue($missing['isError'] ?? false);
+        self::assertSame('not_found', $this->in($missing, 'structuredContent', 'error', 'code'));
     }
 
     public function testThePayerDateMissingIsAnAnswerNotAnError(): void

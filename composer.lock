@@ -2490,7 +2490,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "6beb6b3bdf5cf798140a9af07892efeb1365e15e"
+                "reference": "8ff567ab9d643af597d7976885ecec2bb2708505"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2537,7 +2537,8 @@
                     "bundle": "Foresi\\Invoicing\\InvoicingBundle",
                     "optional": [
                         "cash-flow",
-                        "taxes-and-contributions"
+                        "taxes-and-contributions",
+                        "vat"
                     ],
                     "scopes": [
                         "invoices",
@@ -2643,7 +2644,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "34aa2af2972f10c09fb2dda32bce8d906509ad85"
+                "reference": "861aa65123af4a1b991c02ff69e59f89a944f35c"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2680,7 +2681,8 @@
                     "bundle": "Foresi\\Purchasing\\PurchasingBundle",
                     "optional": [
                         "cash-flow",
-                        "taxes-and-contributions"
+                        "taxes-and-contributions",
+                        "vat"
                     ],
                     "scopes": [
                         "received_documents"
@@ -2820,7 +2822,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "388f6380963cc21436411bde7bab5f0169672ffa"
+                "reference": "83575d2033d4666236ef930c869ede9afdcd3783"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2834,6 +2836,7 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/log": "^3.0",
+                "symfony/clock": "^7.4 || ^8.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
@@ -3012,7 +3015,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "a3a935f50632f524b50c82055e0b55f108db8a08"
+                "reference": "0aa6240fc9a8fd3a6ce3b7beaba8fab814abb307"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3024,6 +3027,7 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
+                "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",

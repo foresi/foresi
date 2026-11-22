@@ -13,8 +13,9 @@ namespace Foresi\Vat\Application;
  * nothing to compute, the reason says why: payer_date_missing (the firm is
  * a payer but the day it became one is not stated), not_a_payer or
  * country_not_supported. It carries the warnings about the firm's VAT
- * statuses, the rules nobody has confirmed yet (unverified) and what the
- * amounts do not count yet (known gaps).
+ * statuses, the rules nobody has confirmed yet (unverified), what the
+ * amounts do not count yet (known gaps) and the document sources that are
+ * not installed or could not be read (unavailable sources).
  */
 final readonly class PeriodList
 {
@@ -23,12 +24,13 @@ final readonly class PeriodList
     public const string COUNTRY_NOT_SUPPORTED = 'country_not_supported';
 
     /** What the amounts of every period leave out until the module counts it. */
-    public const array KNOWN_GAPS = ['documents_not_counted', 'schedules_not_counted', 'plans_not_counted'];
+    public const array KNOWN_GAPS = ['schedules_not_counted', 'plans_not_counted', 'deduction_before_registration'];
 
     /**
-     * @param list<PeriodView> $periods    oldest first
+     * @param list<PeriodView> $periods            oldest first
      * @param list<string>     $warnings
      * @param list<string>     $unverified
+     * @param list<string>     $unavailableSources
      * @param list<string>     $knownGaps
      */
     public function __construct(
@@ -39,6 +41,7 @@ final readonly class PeriodList
         public array $periods,
         public array $warnings,
         public array $unverified,
+        public array $unavailableSources = [],
         public array $knownGaps = self::KNOWN_GAPS,
     ) {
     }

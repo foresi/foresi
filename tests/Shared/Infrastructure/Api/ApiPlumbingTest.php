@@ -187,6 +187,7 @@ final class ApiPlumbingTest extends ApiTestCase
             ],
             'vat' => [
                 '/api/v1/vat/periods' => ['get' => '200'],
+                '/api/v1/vat/periods/{key}' => ['get' => '200'],
                 '/api/v1/vat/settings' => ['get' => '200', 'put' => '200'],
             ],
             'shared' => [

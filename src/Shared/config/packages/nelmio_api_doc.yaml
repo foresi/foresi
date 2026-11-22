@@ -746,7 +746,7 @@ nelmio_api_doc:
                 VatPeriods:
                     type: object
                     description: The VAT periods of the firm, always an estimate. With nothing to compute, periods is empty and reason says why.
-                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps]
+                    required: [estimate, reason, country, from, to, periods, warnings, unverified, known_gaps, unavailable_sources]
                     properties:
                         estimate: { type: boolean, enum: [true] }
                         reason: { type: string, nullable: true, enum: [payer_date_missing, not_a_payer, country_not_supported, null], description: 'payer_date_missing when the firm is a payer but the day it became one is not stated: nothing is computed before a stated day.' }
@@ -756,10 +756,38 @@ nelmio_api_doc:
                         periods: { type: array, items: { $ref: '#/components/schemas/VatPeriod' } }
                         warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
                         unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
-                        known_gaps: { type: array, items: { type: string }, example: [documents_not_counted, schedules_not_counted, plans_not_counted], description: What the amounts do not count yet. }
+                        known_gaps: { type: array, items: { type: string }, example: [schedules_not_counted, plans_not_counted, deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
+                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat. Their documents count nothing.' }
+                VatPeriodDetail:
+                    allOf:
+                        - { $ref: '#/components/schemas/VatPeriods' }
+                        - type: object
+                          required: [period, documents, restricted_sources]
+                          properties:
+                              period: { $ref: '#/components/schemas/VatPeriod' }
+                              documents: { type: array, description: 'The documents counted in the period, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatDocument' } }
+                              restricted_sources: { type: array, items: { type: string }, example: [invoicing.issued_vat], description: The sources whose documents the token may not read; their amounts still count in the totals. }
+                VatDocument:
+                    type: object
+                    required: [source, subject, label, counts_on, tax_point_on, output, input, missing_czk]
+                    properties:
+                        source: { type: string, example: invoicing.issued_vat }
+                        subject: { type: object, required: [type, id, url], properties: { type: { type: string, enum: [invoice, received_document] }, id: { type: string, format: uuid }, url: { type: string, nullable: true } } }
+                        label: { type: string, description: The number of the document. }
+                        counts_on: { type: string, format: date, description: 'The day that decides its period: the tax point of an issued document, the first day of the deduction month of a received one.' }
+                        tax_point_on: { type: string, format: date, description: 'It counts only when the firm is a payer on this day.' }
+                        output: { $ref: '#/components/schemas/Money' }
+                        input: { $ref: '#/components/schemas/Money' }
+                        missing_czk: { type: boolean, description: 'The VAT has no CZK amount, so it counts zero.' }
+                VatPart:
+                    type: object
+                    required: [output, input]
+                    properties:
+                        output: { $ref: '#/components/schemas/Money' }
+                        input: { $ref: '#/components/schemas/Money' }
                 VatPeriod:
                     type: object
-                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, warnings]
+                    required: [key, length, start, end, due_on, refund_expected_on, output, input, result, breakdown, steps, warnings, missing_czk]
                     properties:
                         key: { type: string, example: '2026-11', description: 'The calendar month, or the quarter such as "2026-Q4".' }
                         length: { type: string, enum: [month, quarter] }
@@ -770,7 +798,26 @@ nelmio_api_doc:
                         output: { $ref: '#/components/schemas/Money' }
                         input: { $ref: '#/components/schemas/Money' }
                         result: { $ref: '#/components/schemas/Money', description: 'Output minus input; positive to pay, negative to get back.' }
-                        warnings: { type: array, items: { type: string } }
+                        breakdown:
+                            type: object
+                            required: [documents, schedules, plans]
+                            properties:
+                                documents: { $ref: '#/components/schemas/VatPart' }
+                                schedules: { $ref: '#/components/schemas/VatPart' }
+                                plans: { $ref: '#/components/schemas/VatPart' }
+                        steps:
+                            type: array
+                            description: How the result comes about, output, input and result.
+                            items:
+                                type: object
+                                required: [name, amount, rule, sources]
+                                properties:
+                                    name: { type: string, enum: [output, input, result] }
+                                    amount: { $ref: '#/components/schemas/Money' }
+                                    rule: { type: string, example: output VAT minus deductible input VAT }
+                                    sources: { type: array, items: { type: string }, description: 'The document sources of the step, or the steps the result is computed from.' }
+                        warnings: { type: array, items: { type: string }, example: [missing_czk_vat], description: 'missing_czk_vat: a document counted has no CZK amount of its VAT; missing_czk names it.' }
+                        missing_czk: { type: array, items: { type: string }, description: The labels of the documents counted without a CZK amount of their VAT. }
                 VatSettings:
                     type: object
                     required: [office_account, variable_symbol, suggestion]
