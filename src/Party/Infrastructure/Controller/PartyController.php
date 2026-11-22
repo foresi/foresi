@@ -22,6 +22,7 @@ use Foresi\Party\Application\Query\ContactList;
 use Foresi\Party\Application\RefreshRegistryChecks;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\View\ContactLists;
+use Foresi\Party\Contract\ContactTabs;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
@@ -47,6 +48,7 @@ use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\Slot\SlotRegistry;
 use Foresi\Ui\View\ViewBar;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -71,7 +73,8 @@ final class PartyController extends AbstractController
     public const string ACTION_TOKEN = 'party_action';
 
     private const string DEFAULT_SORT = 'name';
-    private const array TABS = ['overview', 'contacts', 'addresses', 'bank-accounts', 'history'];
+    /** The address book's own tabs by their weights; the tabs of other modules come from ContactTabs::SLOT. */
+    private const array TABS = ['overview' => 0, 'contacts' => 10, 'addresses' => 20, 'bank-accounts' => 30, 'history' => 40];
     public const int MAX_BULK = 1000;
     public const int MAX_SEARCH = 100;
     private const array QUIET_FIELDS = ['registrationKey', 'registrationCountry', 'billingFlag', 'primaryFlag', 'viesCheckedAt', 'unreliablePayerCheckedAt', 'unreliablePayerAccounts', 'party', 'company', 'person'];
@@ -97,6 +100,7 @@ final class PartyController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly ContactLists $contactLists,
+        private readonly SlotRegistry $slots,
     ) {
     }
 
@@ -155,12 +159,20 @@ final class PartyController extends AbstractController
     #[Route('/contacts/{id}', name: 'app_contact_show', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
+        $party = $this->contactDetails->party($id);
+        $contributed = $this->contributedTabs($party);
         $tab = $request->query->getString('tab', 'overview');
+        if (!isset(self::TABS[$tab]) && !isset($contributed[$tab])) {
+            $tab = 'overview';
+        }
 
-        return $this->detail($this->contactDetails->party($id), $id, \in_array($tab, self::TABS, true) ? $tab : 'overview', $request->getLocale());
+        return $this->detail($party, $id, $tab, $contributed, $request->getLocale());
     }
 
-    private function detail(Party $party, string $id, string $tab, string $locale): Response
+    /**
+     * @param array<string, array{label: string, href: string, weight: int}> $contributed
+     */
+    private function detail(Party $party, string $id, string $tab, array $contributed, string $locale): Response
     {
         $vies = $party->viesCheck();
         $reliability = $party->unreliablePayerCheck();
@@ -175,7 +187,8 @@ final class PartyController extends AbstractController
             'id' => $id,
             'badge' => $badge,
             'tab' => $tab,
-            'tabs' => $this->detailTabs($party, $tab),
+            'tabs' => $this->detailTabs($party, $tab, $contributed),
+            'contributed' => $contributed[$tab]['href'] ?? null,
             'facts' => $this->facts($party),
             'checks' => $this->checks($vies, $reliability),
             'accounts' => $unreliable ? $party->publishedBankAccounts() : [],
@@ -186,11 +199,13 @@ final class PartyController extends AbstractController
         ];
 
         return $this->render('@Party/show.html.twig', $data + match ($tab) {
+            'overview' => ['billing' => $this->details->billingAddress($party)?->address()],
             'contacts' => $this->contactsTab($party),
             'addresses' => ['addressRows' => $this->addressRows($party, $this->details->addresses($party))],
             'bank-accounts' => ['accountRows' => $this->accountRows($party, $this->details->bankAccounts($party))],
             'history' => ['timeline' => $this->timeline($party)],
-            default => ['billing' => $this->details->billingAddress($party)?->address()],
+            // A module's tab loads its own page into the contact (ContactTabs).
+            default => [],
         });
     }
 
@@ -410,17 +425,46 @@ final class PartyController extends AbstractController
     }
 
     /**
+     * @param array<string, array{label: string, href: string, weight: int}> $contributed
+     *
      * @return list<array{label: string, href: string, active: bool}>
      */
-    private function detailTabs(Party $party, string $active): array
+    private function detailTabs(Party $party, string $active, array $contributed): array
     {
         $tabs = [];
-        foreach (self::TABS as $tab) {
-            $tabs[] = [
-                'label' => $this->translator->trans('party.tab.'.$tab),
-                'href' => $this->generateUrl('app_contact_show', ['id' => $party->id(), 'tab' => 'overview' === $tab ? null : $tab]),
-                'active' => $tab === $active,
-            ];
+        foreach (self::TABS as $tab => $weight) {
+            $tabs[] = ['label' => $this->translator->trans('party.tab.'.$tab), 'tab' => $tab, 'weight' => $weight];
+        }
+        foreach ($contributed as $tab => $item) {
+            $tabs[] = ['label' => $item['label'], 'tab' => $tab, 'weight' => $item['weight']];
+        }
+        // Stable: tabs of the same weight keep the address book's order, then the slot's.
+        usort($tabs, static fn (array $a, array $b): int => $a['weight'] <=> $b['weight']);
+
+        return array_map(fn (array $tab): array => [
+            'label' => $tab['label'],
+            'href' => $this->generateUrl('app_contact_show', ['id' => $party->id(), 'tab' => 'overview' === $tab['tab'] ? null : $tab['tab']]),
+            'active' => $tab['tab'] === $active,
+        ], $tabs);
+    }
+
+    /**
+     * The tabs other modules add to the contact (ContactTabs), by key; one that names no key, label
+     * or page, or a key of the address book's own tabs, is left out.
+     *
+     * @return array<string, array{label: string, href: string, weight: int}>
+     */
+    private function contributedTabs(Party $party): array
+    {
+        $tabs = [];
+        foreach ($this->slots->items(ContactTabs::SLOT, ['contactId' => $party->id()]) as $item) {
+            $key = $item->data['key'] ?? null;
+            $label = $item->data['label'] ?? null;
+            $href = $item->data['href'] ?? null;
+            if (!\is_string($key) || '' === $key || isset(self::TABS[$key]) || isset($tabs[$key]) || !\is_string($label) || !\is_string($href) || '' === $href) {
+                continue;
+            }
+            $tabs[$key] = ['label' => $label, 'href' => $href, 'weight' => $item->weight];
         }
 
         return $tabs;

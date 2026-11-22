@@ -68,19 +68,19 @@ cash_flow:
     invoice: Invoice
     recurring_invoice: Recurring invoice
     received_document: Received document
-    planned_item: Plan
+    planned_item: Planned item
     bank_movement: Bank movement
   filter:
-    certainty: Certainty
+    certainty: Source
     all: All
     empty_title: Nothing matches the filter
-    empty_text: No money of the chosen certainty is expected in this period. The balance today does not change with the filter.
+    empty_text: No money from the chosen source is expected in this period. The balance today does not change with the filter.
     reset: Clear the filter
   certainty:
-    document: Document
-    schedule: Schedule
-    plan: Plan
-    estimate: Estimate
+    document: Open documents
+    schedule: Recurring invoices
+    plan: Planned items
+    estimate: Tax and insurance estimate
   flag:
     overdue: Overdue
     expected_date: Expected day

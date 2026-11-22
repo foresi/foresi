@@ -259,8 +259,8 @@ taxes:
         title: The year-end forecast could not be read
         text: The forecast of Cash flow could not be read just now. Only the actual payments count.
     forecast:
-      title: Forecast to the year end by certainty
-      certainty_column: Certainty
+      title: Forecast to the year end by source
+      certainty_column: Source
       certainty:
         document: Open documents
         schedule: Recurring invoices

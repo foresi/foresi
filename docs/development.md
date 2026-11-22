@@ -31,7 +31,7 @@ bin/console tailwind:build --minify  # before deploying, then bin/console asset-
 
 For a production build run, in this order and with `APP_ENV=prod`: `bin/console importmap:install`, `bin/console tailwind:build --minify`, `bin/console asset-map:compile`. Missing imports are an error in this build (strict `missing_import_mode`), and CI fails on any warning in the output. Icons are never fetched at runtime; add them with `bin/console ux:icons:import lucide:<name>` and commit them.
 
-The built CSS is not committed, and tests and `composer qa` do not need it. Inter fonts (SIL OFL 1.1) and Lucide icons (ISC) are self-hosted in `assets/`; nothing is loaded from a CDN. All UI text lives in `translations/` (Czech default, English).
+The built CSS is not committed, and tests and `composer qa` do not need it. Inter fonts (SIL OFL 1.1) and Lucide icons (ISC) are self-hosted in `src/Ui/assets/`; nothing is loaded from a CDN. All UI text lives in `translations/` (Czech default, English).
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 

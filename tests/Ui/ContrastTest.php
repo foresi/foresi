@@ -90,7 +90,7 @@ final class ContrastTest extends TestCase
 
     public function testTheThemeIsTheOnlySourceOfColours(): void
     {
-        $css = file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
+        $css = file_get_contents(dirname(__DIR__, 2).'/src/Ui/assets/theme/app.css');
         self::assertIsString($css);
 
         // Every colour is a --color-* theme token; no plain alias repeats a value outside the theme.
@@ -103,7 +103,7 @@ final class ContrastTest extends TestCase
 
     private function token(string $name): string
     {
-        $css = file_get_contents(dirname(__DIR__, 2).'/assets/styles/app.css');
+        $css = file_get_contents(dirname(__DIR__, 2).'/src/Ui/assets/theme/app.css');
         self::assertIsString($css);
         self::assertSame(1, preg_match('/--color-'.preg_quote($name, '/').':\s*(#[0-9a-f]{6});/i', $css, $m), $name);
 

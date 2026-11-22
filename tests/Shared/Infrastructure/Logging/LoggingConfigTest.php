@@ -25,7 +25,7 @@ final class LoggingConfigTest extends TestCase
     protected function setUp(): void
     {
         /** @var array{'when@prod': array{monolog: array{handlers: array<string, array<string, mixed>>}}} $config */
-        $config = Yaml::parseFile(\dirname(__DIR__, 4).'/config/packages/monolog.yaml');
+        $config = Yaml::parseFile(\dirname(__DIR__, 4).'/src/Shared/config/packages/monolog.yaml');
         $this->handlers = $config['when@prod']['monolog']['handlers'];
     }
 
