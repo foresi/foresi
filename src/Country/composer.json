@@ -29,7 +29,8 @@
                 "banking",
                 "exchange-rate",
                 "invoicing",
-                "taxes-and-contributions"
+                "taxes-and-contributions",
+                "vat"
             ]
         }
     }

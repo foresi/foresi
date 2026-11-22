@@ -28,6 +28,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Cash flow | How much money the firm will have, by weeks and months, twelve months ahead | [cash-flow.md](docs/cash-flow.md) |
 | Calendar | Secret iCal addresses that show what Foresi plans for you in your own calendar app | [calendar.md](docs/calendar.md) |
 | Taxes and contributions | The owner profile with dated statuses, the base of the estimate of taxes and contributions | [taxes-and-contributions.md](docs/taxes-and-contributions.md) |
+| VAT | The firm's VAT periods with their due dates, and where it pays its VAT | [vat.md](docs/vat.md) |
 | Documents | Contracts such as NDAs from versioned templates, frozen as PDFs, with signers and the signed copy beside the client | [documents.md](docs/documents.md) |
 | Projects and tasks | Projects with your own workflow, tasks with subtasks, a board, comments and attachments | [projects.md](docs/projects.md) |
 | People | Owners, team members and guests who see only what is shared with them | [people.md](docs/people.md) |

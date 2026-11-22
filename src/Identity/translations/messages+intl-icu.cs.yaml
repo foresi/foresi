@@ -178,6 +178,7 @@ api_tokens:
     cashflow: Cash flow
     catalog: Katalog
     taxes: Daně a odvody
+    vat: DPH
     received_documents: Přijaté doklady
     views: Uložené pohledy
     projects: Projekty
