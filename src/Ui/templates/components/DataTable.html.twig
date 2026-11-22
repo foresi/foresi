@@ -21,7 +21,8 @@
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
     {% else %}
         <div class="overflow-hidden rounded-panel border border-container bg-white">
-            <div class="overflow-x-auto">
+            {# relative: absolute screen-reader texts in the cells stay inside the scroll box instead of widening the page. #}
+            <div class="relative overflow-x-auto">
                 <table class="w-full border-collapse">
                     <caption class="sr-only">{{ caption ?: 'ui.table.caption'|trans }}</caption>
                     {#- The widths a view gives its columns, from the sm breakpoint up; a column with none sizes to its content. A col leaves the table where its column does, so the rest keep their place. -#}
