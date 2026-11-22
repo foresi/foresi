@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Cancel a document',
     description: 'Cancels a document that is not completed, declined or cancelled; it keeps its history and files and cannot be taken back. Generate it again for a new draft.',
     destructive: true,
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class CancelDocumentInput

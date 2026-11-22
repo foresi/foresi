@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Remove a signer from a document',
     description: 'Removes a signer from a document that is not completed, declined or cancelled.',
     destructive: true,
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class RemoveSignerInput

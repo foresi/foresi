@@ -19,6 +19,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Attach the signed copy of a document',
     description: 'Stores the signed copy of a ready or sent document, a PDF up to 10 MB sent as base64; from ready it also marks it sent. Once every signer is marked signed too, the document is completed.',
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class AttachSignedCopyInput

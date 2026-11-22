@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The messages of the documents screens: what was done, or what was refused and why. #}
+{% for tone in ['success', 'error'] %}
+    {% for message in app.flashes(tone) %}
+        <twig:Ui:Alert :tone="tone" class="mb-4" data-document-flash="{{ tone }}">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+{% endfor %}

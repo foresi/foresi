@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Make a new draft of a document',
     description: 'Makes a new draft from a completed, declined or cancelled document: the same type, template, title, links and signers (pending again). It is generated from the latest template version.',
     status: 201,
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class GenerateDocumentAgainInput

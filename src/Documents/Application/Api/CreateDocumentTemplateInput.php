@@ -22,6 +22,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Create a document template',
     description: 'Creates a template of a document type with its first version: the HTML body and the paper. A body outside the sandbox is refused with the construct in details.construct.',
     status: 201,
+    response: 'DocumentsTemplate',
     staffOnly: true,
 )]
 final readonly class CreateDocumentTemplateInput
@@ -37,14 +38,14 @@ final readonly class CreateDocumentTemplateInput
         public string $paper = 'a4',
         #[Field('Whether the page is turned to landscape.')]
         public bool $landscape = false,
-        #[Field('The top margin in millimetres, 0 to 60.')]
-        public float $marginTop = 20.0,
-        #[Field('The right margin in millimetres, 0 to 60.')]
-        public float $marginRight = 20.0,
-        #[Field('The bottom margin in millimetres, 0 to 60.')]
-        public float $marginBottom = 20.0,
-        #[Field('The left margin in millimetres, 0 to 60.')]
-        public float $marginLeft = 20.0,
+        #[Field('The top margin in whole millimetres, 0 to 60.')]
+        public int $marginTop = 20,
+        #[Field('The right margin in whole millimetres, 0 to 60.')]
+        public int $marginRight = 20,
+        #[Field('The bottom margin in whole millimetres, 0 to 60.')]
+        public int $marginBottom = 20,
+        #[Field('The left margin in whole millimetres, 0 to 60.')]
+        public int $marginLeft = 20,
     ) {
     }
 }

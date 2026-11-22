@@ -19,6 +19,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Archive a document type',
     description: 'Archives a document type: no new templates or documents are made of it; its documents stay.',
+    response: 'DocumentsType',
     staffOnly: true,
 )]
 final readonly class ArchiveDocumentTypeInput

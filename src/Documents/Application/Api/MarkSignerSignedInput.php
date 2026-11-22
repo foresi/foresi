@@ -19,6 +19,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Mark a signer signed',
     description: 'Records that a signer signed a ready or sent document; from ready it also marks it sent. Once every signer signed and the signed copy is attached, the document is completed.',
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class MarkSignerSignedInput

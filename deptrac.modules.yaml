@@ -71,6 +71,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\TaxesAndContributions\\.*
+    - name: documents
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Documents\\(?!Contract\\|Integration\\).*
+    - name: documents_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Documents\\Contract\\.*
     - name: events
       collectors:
         - type: classLike
@@ -395,6 +403,32 @@ deptrac:
       - shared
       - shared_contract
       - taxes_and_contributions_contract
+    documents:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - documents_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    documents_contract:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui_contract
     events:
       - audit
       - audit_contract

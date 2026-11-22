@@ -76,6 +76,24 @@ final readonly class DocumentsJson
     }
 
     /**
+     * A template in a list: its latest version without the body.
+     *
+     * @return array<string, mixed>
+     */
+    public function templateRow(DocumentTemplate $template): array
+    {
+        $latest = $this->store->latestVersion($template->id());
+
+        return [
+            'id' => $template->id(),
+            'type_id' => $template->typeId(),
+            'name' => $template->name(),
+            'archived' => $template->isArchived(),
+            'version' => null === $latest ? null : ['id' => $latest->id(), 'number' => $latest->number(), 'frozen' => $latest->isFrozen()],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function version(TemplateVersion $version): array

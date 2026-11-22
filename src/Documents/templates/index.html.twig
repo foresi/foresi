@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Documents under Sales: every document, newest first, with its type, status and the records it
+    belongs to. The type and the status are the two pinned filter chips (Ui:FilterBar). A row opens the
+    document in the side sheet; "+ New document" in the header opens the dialog and follows to the new
+    document. Variables: columns, rows, more, filters, narrowed, hasTypes.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'documents.list.title'|trans}] %}
+
+{% block title %}{{ 'documents.list.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_document_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-document-new>{{ 'documents.action.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Documents/_flashes.html.twig') }}
+    <section class="grid gap-3" data-documents>
+        <twig:Ui:FilterBar id="documents-filters" :action="path('app_documents')" :filters="filters" :empty="rows is empty" data-documents-filter />
+        <twig:Ui:DataTable :caption="'documents.list.title'|trans" :columns="columns" :rows="rows">
+            <twig:block name="empty">
+                {% if narrowed %}
+                    <twig:Ui:EmptyState icon="search" :title="'documents.empty.filtered_title'|trans" data-documents-filtered-empty>
+                        <twig:Ui:Button :href="path('app_documents')">{{ 'documents.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif not hasTypes %}
+                    <twig:Ui:EmptyState icon="file-text" :title="'documents.empty.no_types_title'|trans" :text="'documents.empty.no_types_text'|trans">
+                        <twig:Ui:Button :href="path('app_document_settings')" icon="settings">{{ 'documents.empty.no_types_action'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="file-text" :title="'documents.empty.title'|trans" :text="'documents.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_document_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'documents.action.new'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+        {% if more %}<p class="m-0 text-caption text-muted" data-documents-more>{{ 'documents.list.more'|trans }}</p>{% endif %}
+    </section>
+{% endblock %}

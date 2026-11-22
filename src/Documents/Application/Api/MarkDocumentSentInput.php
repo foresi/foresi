@@ -19,6 +19,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Mark a document sent for signature',
     description: 'Records that a ready document went out to its signers (by e-mail or on paper): it becomes out_for_signature.',
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class MarkDocumentSentInput

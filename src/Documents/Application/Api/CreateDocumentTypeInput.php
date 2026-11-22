@@ -21,6 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Create a document type',
     description: 'Creates a kind of document, such as a service contract: its name, a unique code that never changes, and whether it needs signing and at which level. Templates and documents are of a type.',
     status: 201,
+    response: 'DocumentsType',
     staffOnly: true,
 )]
 final readonly class CreateDocumentTypeInput

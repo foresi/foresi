@@ -19,6 +19,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Generate a document',
     description: 'Fills the latest version of the template with the values of the linked records, renders the PDF and freezes it, the values and the version: the draft becomes ready. A variable with no value is refused with the names in details.missing, and the document stays a draft.',
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class GenerateDocumentInput

@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Change a signer of a document',
     description: 'Changes a pending signer of a document that is not completed, declined or cancelled; all fields are replaced.',
+    response: 'DocumentsSigner',
     staffOnly: true,
 )]
 final readonly class UpdateSignerInput

@@ -60,6 +60,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
 The resources are `calendar`, `cashflow`, `contacts`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `cashflow`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +110,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -139,6 +140,12 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
+| `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
+| `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |
+| `/api/v1/documents/{documentId}/files/{file}` | `documents:read` | The bytes of a stored file of a document: `pdf`, `signed` or `certificate`. |
+| `/api/v1/document-types` | `documents:read` | The document types, by name. |
+| `/api/v1/document-templates` | `documents:read` | The document templates, by name, without their bodies. |
+| `/api/v1/document-templates/{templateId}` | `documents:read` | One template with its latest version, its versions and the variables a body can use. |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
 | `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
 | `/api/v1/views/{viewId}` | `views:read` | One saved view, by its id or the system key of one a module ships. |
@@ -488,6 +495,42 @@ The owner profile the taxes and contributions are estimated from: the dated stat
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"kind": "vat_payer", "value": "yes", "valid_from": "2026-11-12"}' \
   "https://app.example.com/api/v1/taxes-and-contributions/profile/statuses"
+```
+
+## Documents
+
+Contracts and other documents made from templates, their signers and their signed copies. What the statuses mean and how manual signing works is in [documents.md](documents.md). The reads need `documents:read`, the writes `documents:write`, and only the owners and members of the organisation may use them: a guest's token is never accepted. Bodies are JSON with snake case fields.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/documents` | The documents, newest first, each with `id`, `title`, `status`, `type` and the days it was created, generated and completed. Filters: `type_id`, `status` (`draft`, `ready`, `out_for_signature`, `completed`, `declined`, `cancelled`, `expired`), and `linked_kind` with `linked_id` for the documents of a record, such as `contact`. Paging: `limit` (1 to 200, 50 by default) and `offset`. A filter that cannot be used is `400 invalid_parameter`, naming it. |
+| `GET /api/v1/documents/{documentId}` | The document with `template`, `links` (each with `available`, false when the record is gone), `signers` in signing order, `files` (`pdf`, `signed`, `certificate`, each `null` or `{attachment_id, sha256}`), the frozen `values`, `provider` and `envelope_id`. |
+| `GET /api/v1/documents/{documentId}/files/{file}` | The bytes of the file (`pdf`, `signed` or `certificate`) as an attachment, `application/pdf`. `404 not_found` while the document has no such file. |
+| `GET /api/v1/document-types` | The types by name; archived ones with `include_archived=true`. |
+| `GET /api/v1/document-templates` | The templates by name, each with its latest version without the body; `type_id` and `include_archived=true` filter them. |
+| `GET /api/v1/document-templates/{templateId}` | The template with its latest `version` (body, paper and the variables it `uses`), its `versions`, and every `variable` a body can use with its label and example. |
+| `POST /api/v1/document-types` | `201` with the type: `name`, `code` (unique, never changes), `needs_signing`, `signature_level`. |
+| `PATCH /api/v1/document-types/{typeId}` | The type with its new `name`, `needs_signing` and `signature_level`. |
+| `POST /api/v1/document-types/{typeId}/archive` | The archived type. |
+| `POST /api/v1/document-templates` | `201` with the template and its first version: `type_id`, `name`, `body`, and the paper (`paper`, `landscape`, `margin_top`, `margin_right`, `margin_bottom`, `margin_left` in whole millimetres). A body outside the sandbox is `400 invalid_parameter` with the reason `template_not_allowed`. |
+| `POST /api/v1/document-templates/{templateId}/versions` | The template, its latest version edited in place, or version n+1 when the latest is frozen. |
+| `POST /api/v1/document-templates/{templateId}/archive` | The archived template. |
+| `POST /api/v1/documents` | `201` with the draft: `type_id`, `template_id`, `title` and `links`, a list of `{kind, id}`. A kind no module offers is `400 invalid_parameter` with the reason `link_kind_unknown`. |
+| `PATCH /api/v1/documents/{documentId}` | The draft with its new `title` or `links`. |
+| `POST /api/v1/documents/{documentId}/generate` | The ready document with its PDF and frozen values. A variable with no value is `400 invalid_parameter` with the reason `template_variables_missing` and the names in `missing`. |
+| `POST /api/v1/documents/{documentId}/mark-sent` | The document out for signature. |
+| `POST /api/v1/documents/{documentId}/signed-copy` | The document with its signed copy: `file_name` and `content_base64`, a PDF up to 10 MB. From ready it also marks it sent. |
+| `POST /api/v1/documents/{documentId}/cancel` | The cancelled document. |
+| `POST /api/v1/documents/{documentId}/generate-again` | `201` with a new draft of a final document: the same type, links and signers, the latest template version. |
+| `POST /api/v1/documents/{documentId}/signers` | `201` with the signer: `name`, `side` (`ours` or `theirs`), `order` (1 to 99), `email`, `party_person_id`. |
+| `PATCH /api/v1/documents/{documentId}/signers/{signerId}` | The signer with its new fields. |
+| `DELETE /api/v1/documents/{documentId}/signers/{signerId}` | The document without the signer. |
+| `POST /api/v1/documents/{documentId}/signers/{signerId}/mark-signed` | The document; once every signer signed and the signed copy is attached, it is completed. |
+| `POST /api/v1/documents/{documentId}/signers/{signerId}/mark-declined` | The declined document. |
+
+```bash
+curl -H "Authorization: Bearer $FORESI_API_TOKEN" -o nda.pdf \
+  "https://app.example.com/api/v1/documents/$DOCUMENT_ID/files/pdf"
 ```
 
 ## Received documents

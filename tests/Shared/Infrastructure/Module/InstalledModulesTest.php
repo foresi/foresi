@@ -50,7 +50,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            array_values(array_intersect(['banking', 'calendar', 'cash-flow', 'country', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'purchasing', 'taxes-and-contributions', 'timesheet', 'work'], $installed)),
+            array_values(array_intersect(['banking', 'calendar', 'cash-flow', 'country', 'documents', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'purchasing', 'taxes-and-contributions', 'timesheet', 'work'], $installed)),
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }
@@ -94,7 +94,7 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'documents' => ['documents'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());

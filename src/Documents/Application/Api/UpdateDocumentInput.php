@@ -21,6 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Change a draft document',
     description: 'Changes the title and links of a draft; a generated document is frozen and refused with not_draft.',
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class UpdateDocumentInput

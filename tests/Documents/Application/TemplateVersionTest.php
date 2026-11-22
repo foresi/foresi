@@ -21,7 +21,7 @@ final class TemplateVersionTest extends DocumentsTestCase
     {
         $first = $this->template('<p>One</p>');
 
-        $saved = $this->templates()->saveVersion(new SaveTemplateVersionInput($first->templateId(), '<p>Two</p>', 'letter', true, 10.0, 11.0, 12.0, 13.0));
+        $saved = $this->templates()->saveVersion(new SaveTemplateVersionInput($first->templateId(), '<p>Two</p>', 'letter', true, 10, 11, 12, 13));
 
         self::assertSame($first->id(), $saved->id());
         self::assertSame(1, $saved->number());
@@ -72,6 +72,6 @@ final class TemplateVersionTest extends DocumentsTestCase
 
         $this->expectException(DocumentsRefused::class);
 
-        $this->templates()->saveVersion(new SaveTemplateVersionInput($first->templateId(), '<p>Two</p>', 'a4', false, 70.0));
+        $this->templates()->saveVersion(new SaveTemplateVersionInput($first->templateId(), '<p>Two</p>', 'a4', false, 70));
     }
 }

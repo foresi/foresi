@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Mark a signer declined',
     description: 'Records that a signer declined to sign; the document becomes declined and changes no more.',
     destructive: true,
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class MarkSignerDeclinedInput

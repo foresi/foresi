@@ -20,6 +20,7 @@ use Foresi\Shared\Application\Api\Operation;
     scope: 'documents:write',
     title: 'Change a document type',
     description: 'Changes the name, signing and signature level of a document type; the code stays. Documents already made keep their type.',
+    response: 'DocumentsType',
     staffOnly: true,
 )]
 final readonly class UpdateDocumentTypeInput

@@ -21,6 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Create a document',
     description: 'Creates a draft document of a type from a template, linked to the records it belongs to, such as the contact it is for. Then add signers with foresi_add_document_signer and generate it with foresi_generate_document.',
     status: 201,
+    response: 'DocumentsDocument',
     staffOnly: true,
 )]
 final readonly class CreateDocumentInput

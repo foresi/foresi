@@ -21,6 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     title: 'Add a signer to a document',
     description: 'Adds a signer to a document that is not completed, declined or cancelled.',
     status: 201,
+    response: 'DocumentsSigner',
     staffOnly: true,
 )]
 final readonly class AddSignerInput
