@@ -176,6 +176,7 @@ api_tokens:
     events: Events
     calendar: Calendar
     cashflow: Cash flow
+    catalog: Catalog
     taxes: Taxes and contributions
     received_documents: Received documents
     views: Saved views

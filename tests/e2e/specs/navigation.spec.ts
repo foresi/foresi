@@ -72,7 +72,7 @@ test.describe('navigation', () => {
     await shot(page, 'sidebar');
 
     for (const [label, area, links] of [
-      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/, 'Dokumenty']],
+      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/, 'Dokumenty', /Produkty/]],
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],

@@ -90,10 +90,12 @@ final readonly class DuePayments
         $failed = false;
         foreach ($this->banks as $bank) {
             try {
-                foreach ($bank->paymentsBetween($from, $today, $rules) as $movement) {
-                    $movements[] = $movement;
-                }
+                $found = $bank->paymentsBetween($from, $today, $rules);
+                array_push($movements, ...$found->payments);
+                // A bank source that failed was logged where it failed; it gives no movement.
+                $failed = $failed || [] !== $found->unavailable;
             } catch (\Throwable $failure) {
+                // The contract says a failure, but a bank of another module may still throw.
                 $this->logger->error('The bank movements of the levies could not be read.', ['exception' => $failure]);
                 $failed = true;
             }

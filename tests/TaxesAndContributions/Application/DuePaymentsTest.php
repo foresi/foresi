@@ -131,6 +131,18 @@ final class DuePaymentsTest extends TestCase
         self::assertInstanceOf(\RuntimeException::class, $logger->records[0][1]['exception'] ?? null);
     }
 
+    public function testABankSourceSaidUnavailableIsSaidAndItsOtherPaymentsStillPay(): void
+    {
+        $logger = new RecordingLogger();
+        $bank = new FakeLevyPayments([new LevyPayment(Authority::Social, 'm1', $this->day('2026-10-28'), $this->czk(5_005))], unavailable: ['banking.movements']);
+
+        [$stated, $failed] = new DuePayments([$bank], $logger)->stated([$this->advance(Authority::Social, '2026-10', '2026-10-31')], $this->profile(), $this->day('2026-11-20'));
+
+        self::assertTrue($failed);
+        self::assertSame(DuePayment::STATE_PAID, $stated[0]->state);
+        self::assertSame([], $logger->records, 'The finder logged the failure where it happened.');
+    }
+
     public function testNothingToPayOrNothingPayableYetAsksNoBank(): void
     {
         $bank = new FakeLevyPayments();

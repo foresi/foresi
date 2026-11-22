@@ -176,6 +176,7 @@ api_tokens:
     events: Události
     calendar: Kalendář
     cashflow: Cash flow
+    catalog: Katalog
     taxes: Daně a odvody
     received_documents: Přijaté doklady
     views: Uložené pohledy

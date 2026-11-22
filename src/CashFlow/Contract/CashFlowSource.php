@@ -38,7 +38,10 @@ interface CashFlowSource
 
     /**
      * The open flows of the firm expected by $to. A flow still open with a date
-     * before $today is returned too; the forecast counts it as overdue.
+     * before $today is returned too; the forecast counts it on the first day as
+     * overdue, or without overdue when the source flags it awaited
+     * (FlowFlag::Awaited): its date has passed, but it is not late, such as a
+     * tax whose final amount only the return knows.
      *
      * @param \DateTimeImmutable $from  the first day of the forecast, $today or later
      * @param \DateTimeImmutable $to    the last day of the forecast, inclusive

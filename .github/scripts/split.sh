@@ -10,7 +10,8 @@
 # commit ids on every run, so a push is always a fast-forward. The branch is the
 # split of HEAD, pushed as main. Tags are in lockstep: every tag vX.Y.Z from
 # --since on is split and pushed to every repository that does not have it yet.
-# Without --since no tag is pushed.
+# Without --since no tag is pushed. A package added later starts at the first
+# tag that has it.
 #
 #   split.sh [--target PREFIX] [--since TAG] [--push]
 #
@@ -74,6 +75,8 @@ split_one() {
 	[ -n "$push" ] && remote_tags=$(git ls-remote --tags --refs "$url" | sed 's|.*refs/tags/||')
 	for tag in "${tags[@]}"; do
 		grep -qxF "$tag" <<<"$remote_tags" && continue
+		# A package added after a tag has nothing to split at that tag.
+		git cat-file -e "$tag:$dir/composer.json" 2>/dev/null || continue
 		sha=$(git subtree split -q -P "$dir" "$tag")
 		echo "$name $tag $sha"
 		[ -n "$push" ] && git push -q "$url" "$sha:refs/tags/$tag"

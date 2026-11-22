@@ -322,7 +322,7 @@ final readonly class ForecastScreen
     /**
      * The items of one cell: what a period expects in one direction, of one category or all.
      *
-     * @return array{title: string, total: string, items: list<array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<string>, amount: string, czk: ?string}>}
+     * @return array{title: string, total: string, items: list<array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string}>}
      */
     public function items(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category): array
     {
@@ -364,20 +364,30 @@ final readonly class ForecastScreen
     }
 
     /**
+     * The translation key of a flag: awaited reads "not yet paid" for money out
+     * and "not yet received" for money in.
+     */
+    public static function flagKey(FlowFlag $flag, FlowDirection $direction): string
+    {
+        return 'cash_flow.flag.'.$flag->value.(FlowFlag::Awaited === $flag ? '_'.$direction->value : '');
+    }
+
+    /**
      * An item with the badge of how sure it is: a document, a schedule, a plan,
      * or an estimate in its own outlined badge, so an estimate never reads as a
      * document or a bank movement; what it comes from follows when it says more.
      *
-     * @return array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<string>, amount: string, czk: ?string}
+     * @return array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string}
      */
     private function item(ForecastLine $line): array
     {
         $estimate = FlowCertainty::Estimate === $line->flow->certainty;
         $flags = [];
-        foreach ([FlowFlag::Overdue, FlowFlag::ExpectedDate, FlowFlag::NoDueDate, FlowFlag::Estimated] as $flag) {
+        // Awaited is past but not late, so it never reads as a warning.
+        foreach ([[FlowFlag::Overdue, 'amber'], [FlowFlag::Awaited, 'gray'], [FlowFlag::ExpectedDate, 'amber'], [FlowFlag::NoDueDate, 'amber'], [FlowFlag::Estimated, 'amber']] as [$flag, $tone]) {
             // An estimate says so in its badge already.
             if ($line->flow->hasFlag($flag) && (!$estimate || FlowFlag::Estimated !== $flag)) {
-                $flags[] = $this->trans('cash_flow.flag.'.$flag->value);
+                $flags[] = ['label' => $this->trans(self::flagKey($flag, $line->flow->direction)), 'tone' => $tone];
             }
         }
         $certainty = $this->trans('cash_flow.certainty.'.$line->flow->certainty->value);

@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new product, or one changed. New is a dialog over the list; Edit takes the place of the product in its
+    side sheet (layout/record.html.twig) and is a dialog from the product's page; each URL is a page of its
+    own too. Variables: product (null for a new one), action, values, errors, billingKinds, units, currencies.
+#}
+{% extends product and overlay() == 'sheet' ? '@Ui/layout/record.html.twig' : (overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig') %}
+
+{% set heading = product ? 'catalog.product.edit'|trans : 'catalog.product.new'|trans %}
+{% set back = product ? path('app_catalog_product', {id: product.id}) : path('app_catalog_products') %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'catalog.products.title'|trans, href: path('app_catalog_products')}]|merge(product ? [{label: product.name, href: back}] : [])|merge([{label: heading}]) %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set record_fields = true %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="product-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Catalog\\Infrastructure\\Controller\\ProductController::TOKEN')) }}">
+        {% include '@Catalog/products/_fields.html.twig' %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'catalog.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="product-form" variant="primary">{{ (product ? 'catalog.save' : 'catalog.product.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="product ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back" data-in-place>{{ 'catalog.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="product-form" variant="primary">{{ (product ? 'catalog.save' : 'catalog.product.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

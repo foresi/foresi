@@ -46,7 +46,7 @@ final readonly class CashFlowForecastTool implements ReadTool
     {
         return 'Returns how much money the firm will have, in CZK at today\'s ČNB rate: by ISO weeks until the end of next month, then by calendar months, 12 months in all. '
             .'It starts from the latest balance of each bank account (balance, with stale when it is older than 7 days) and adds every expected flow: planned items and whatever the installed modules expect, such as open invoices. '
-            .'Each period has opening, inflows and outflows by category, closing and its items; an item keeps its own amount and currency, and one still open before today is counted in the first period with the flag overdue. '
+            .'Each period has opening, inflows and outflows by category, closing and its items; an item keeps its own amount and currency, and one still open before today is counted in the first period with the flag overdue, or with the flag awaited and not overdue when it is past its date but not late, such as a tax estimate. '
             .'It also answers the lowest balance and its day, the first day below the minimum balance (shortfall_on), and incomplete with the sources or rates that failed. '
             .'certainty keeps only the flows of the certainties listed (document, schedule, plan, estimate); the balances, lowest and shortfall_on then follow those flows, and inflows and outflows hold by_certainty too. '
             .'The ids of the bank accounts for foresi_record_balance_checkpoint are in balance.accounts.';

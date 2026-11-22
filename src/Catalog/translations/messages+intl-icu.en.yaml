@@ -1,0 +1,91 @@
+nav:
+  item:
+    products: Products
+catalog:
+  cancel: Cancel
+  save: Save
+  billing_kind:
+    one_off: One-off
+    recurring: Recurring
+  products:
+    title: Products
+    views: Views of the products
+    tab:
+      all: All
+      one_off: One-off
+      recurring: Recurring
+      archived: Archived
+    field:
+      archived: Archived
+    column:
+      name: Name
+      unit: Unit
+      unitPrice: Price per unit
+      billing: Billing
+    empty:
+      title: No products yet
+      text: Add what you sell, with its unit, price and how it is billed, so deals can use it.
+      filtered_title: No product matches the filter
+      reset: Clear the filter
+      archived_title: No archived products
+      view_title: No product in this view
+  product:
+    new: New product
+    create: Create product
+    edit: Edit
+    archive: Archive
+    restore: Restore
+    archived: Archived
+    detail: Product
+    field:
+      name: Name
+      unit: Unit
+      unit_help: Such as hour, piece or month.
+      unit_price: Price per unit
+      unit_price_help: Without VAT; leave empty when the price is agreed each time.
+      currency: Currency
+      billing_kind: Billing
+      billing: Billing
+      interval: Every
+      recurrence_unit: Period
+      cycles: Times
+      cycles_help: Leave empty for no end.
+      description: Description
+    none:
+      unit: No unit
+      unit_price: Agreed each time
+      description: No description
+    unit_of_time:
+      day: Days
+      week: Weeks
+      month: Months
+      year: Years
+    every:
+      day: '{count, plural, one {Every day} other {Every # days}}'
+      week: '{count, plural, one {Every week} other {Every # weeks}}'
+      month: '{count, plural, one {Every month} other {Every # months}}'
+      year: '{count, plural, one {Every year} other {Every # years}}'
+    billing_open: '{every}, no end'
+    billing_cycles: '{every}, {count, plural, one {once} other {# times}}'
+    flash:
+      created: 'The product {name} was added to the catalog.'
+      saved: The product was saved.
+      archived: The product was archived. It is no longer offered for new deals.
+      restored: The product was restored.
+    error:
+      name_required: Enter the name.
+      name_too_long: The name is at most 200 characters.
+      unit_too_long: The unit is at most 32 characters.
+      description_too_long: The description is at most 2,000 characters.
+      billing_kind_unknown: Choose one-off or recurring.
+      currency_unknown: Choose a currency.
+      unit_price_invalid: Enter the price as a number with at most two decimals, such as 1500.00.
+      unit_price_negative: The price is zero or more.
+      one_off_recurrence: A one-off product has no period.
+      recurrence_unit_required: Choose the period.
+      recurrence_unit_unknown: Choose days, weeks, months or years.
+      interval_required: Enter how often it is billed, 1 for every period.
+      interval_invalid: Enter a whole number from 1 to 99.
+      cycles_invalid: Enter a whole number from 1 to 999, or leave it empty for no end.
+      not_found: The product does not exist.
+      forbidden: Only the owners and members work with the catalog.

@@ -80,12 +80,14 @@ cash_flow:
     document: Open documents
     schedule: Recurring invoices
     plan: Planned items
-    estimate: Tax and insurance estimate
+    estimate: Tax, insurance and VAT estimate
   flag:
     overdue: Overdue
     expected_date: Expected day
     no_due_date: No due date
     estimated: Estimated
+    awaited_out: Not yet paid
+    awaited_in: Not yet received
   source:
     cash_flow_planned_items: The planned items
     invoicing_invoices: The invoices

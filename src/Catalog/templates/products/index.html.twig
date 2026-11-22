@@ -1,0 +1,57 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The products of the catalog on saved views, as every list has them: All (the products not archived),
+    One-off, Recurring and Archived, the person's own views, "+ Filter" and the Columns sheet. A row opens
+    the product in the side sheet. A new product starts in a dialog over the list; without JavaScript the
+    same link is a page.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'catalog.products.title'|trans}] %}
+
+{% block title %}{{ 'catalog.products.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_catalog_product_new')" id="product-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'catalog.product.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid grid-cols-1 gap-4">
+        {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
+            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'catalog.products.views'|trans" class="min-w-0 sm:flex-1">
+                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
+            </twig:Ui:Tabs>
+            {{ include('@Ui/components/_view_actions.html.twig') }}
+        </div>
+        {# The billing kind and the archive are conditions of "+ Filter" (saved views D11). #}
+        <twig:Ui:FilterBar id="product-filters" :action="path('app_catalog_products')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :builder="builder" :empty="rows is empty">
+            <twig:block name="end">
+                <twig:Ui:ColumnPicker id="product-columns" :action="path('app_catalog_products')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
+            </twig:block>
+        </twig:Ui:FilterBar>
+
+        <twig:Ui:DataTable :caption="'catalog.products.title'|trans" :columns="columns" :rows="rows" :density="density">
+            <twig:block name="empty">
+                {% if filtered %}
+                    <twig:Ui:EmptyState icon="search" :title="'catalog.products.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="resetHref">{{ 'catalog.products.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif view == '' %}
+                    <twig:Ui:EmptyState icon="tag" :title="'catalog.products.empty.title'|trans" :text="'catalog.products.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_catalog_product_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'catalog.product.new'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState :icon="view == 'archived' ? 'archive' : 'tag'" :title="emptyTitle" />
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
+{% endblock %}
