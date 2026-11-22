@@ -21,7 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_remove_tax_status',
     scope: 'taxes:write',
     title: 'Remove a tax status',
-    description: 'Removes a status of the owner profile, found in statuses of foresi_get_tax_profile; the status of its kind before it then holds until the next one. Only the owner of the organisation may do this.',
+    description: 'Removes a status of the owner profile, found in statuses of foresi_get_tax_profile; the status of its kind before it then holds until the next one. A vat_payer status belongs to the firm and is refused with vat_payer_on_firm: remove it with foresi_remove_firm_vat_status. Only the owner of the organisation may do this.',
     destructive: true,
     response: 'TaxStatusRemoved',
     staffOnly: true,
@@ -29,7 +29,7 @@ use Foresi\Shared\Application\Api\Operation;
 final readonly class RemoveStatusInput
 {
     public function __construct(
-        #[Field('The id of the status.', maxLength: 36)]
+        #[Field('The id of the status.', maxLength: 64)]
         public string $statusId,
     ) {
     }

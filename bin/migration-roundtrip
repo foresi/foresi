@@ -18,6 +18,7 @@ cd "$(dirname "$0")/.."
 
 # Fully qualified, such as 'Foresi\Work\Migrations\Version20261201000001'.
 IRREVERSIBLE=(
+    'Foresi\TaxesAndContributions\Migrations\Version20261122210000'
 )
 
 console() { php bin/console --no-interaction --quiet "$@"; }

@@ -10,6 +10,7 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Screen;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Money;
+use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
@@ -36,6 +37,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final readonly class ProfileScreen
 {
     public const string SECTION_EXPENSES = 'expenses';
+    /** Where the firm's VAT statuses change: Party's firm settings. */
+    public const string FIRM_VAT_ROUTE = 'app_firm_vat';
     public const string SECTION_CREDITS = 'credits';
     public const string SECTION_OTHER = 'other';
 
@@ -72,9 +75,11 @@ final readonly class ProfileScreen
 
     /**
      * The statuses of each kind that has one, in the order of StatusKind,
-     * oldest first, each until the day before the next of its kind.
+     * oldest first, each until the day before the next of its kind. The VAT
+     * payer statuses are the firm's: read-only here, with a link to where the
+     * firm's VAT statuses change.
      *
-     * @return list<array{kind: string, title: string, rows: list<array<string, mixed>>}>
+     * @return list<array{kind: string, title: string, rows: list<array<string, mixed>>, firmVat: ?string}>
      */
     public function statusGroups(ProfileView $profile): array
     {
@@ -84,20 +89,22 @@ final readonly class ProfileScreen
             if ([] === $periods) {
                 continue;
             }
+            $firm = StatusKind::VatPayer === $kind;
             $rows = [];
             foreach ($periods as $index => $status) {
                 $next = $periods[$index + 1] ?? null;
                 $value = $this->statusValue($status);
+                $from = $this->from($status);
                 $rows[] = [
                     'id' => $status->id,
                     'label' => $value,
-                    'secondary' => $this->day($status->validFrom),
+                    'secondary' => $from,
                     'cells' => [
                         'value' => $value,
-                        'from' => $this->day($status->validFrom),
+                        'from' => $from,
                         'until' => $next instanceof StatusPeriod ? $this->day($next->validFrom->modify('-1 day')) : ['empty' => $this->trans('taxes.profile.until_next')],
                     ],
-                    'actions' => [[
+                    'actions' => $firm ? [] : [[
                         'label' => $this->trans('taxes.profile.status.remove'),
                         'href' => $this->urls->generate(ProfileController::ROUTE.'_status_remove', ['id' => $status->id]),
                         'method' => 'POST',
@@ -113,7 +120,12 @@ final readonly class ProfileScreen
                     ]],
                 ];
             }
-            $groups[] = ['kind' => $kind->value, 'title' => $this->trans('taxes.status.kind.'.$kind->value), 'rows' => $rows];
+            $groups[] = [
+                'kind' => $kind->value,
+                'title' => $this->trans('taxes.status.kind.'.$kind->value),
+                'rows' => $rows,
+                'firmVat' => $firm ? $this->urls->generate(self::FIRM_VAT_ROUTE) : null,
+            ];
         }
 
         return $groups;
@@ -160,7 +172,7 @@ final readonly class ProfileScreen
     public function statusChoices(): array
     {
         $choices = [];
-        foreach (StatusKind::cases() as $kind) {
+        foreach (StatusKind::writable() as $kind) {
             foreach ($kind->values() as $value) {
                 // The phrase names the kind too, so the closed select reads "Sickness insurance", not "On".
                 $phrase = $this->trans('taxes.status.phrase.'.$kind->value.'.'.$value);
@@ -333,6 +345,15 @@ final readonly class ProfileScreen
         }
 
         return [] === $parts ? $this->trans('taxes.profile.summary.none') : implode(' · ', $parts);
+    }
+
+    /**
+     * The first day of a status, or "from the start" for the firm's VAT
+     * status that held before its first known day.
+     */
+    private function from(StatusPeriod $status): string
+    {
+        return ProfileReads::FROM_THE_START === $status->validFrom->format('Y-m-d') ? $this->trans('taxes.profile.from_the_start') : $this->day($status->validFrom);
     }
 
     private function day(\DateTimeImmutable $day): string

@@ -333,7 +333,7 @@ final class TaxesControllerTest extends WebTestCase
         $this->browser->seed(role: $role);
         $this->browser->signIn();
         $em = $this->browser->em();
-        $em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, ''));
+        $em->persist(new LegalEntity('Example Sole Trader', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $em->flush();
     }
 

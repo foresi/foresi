@@ -19,6 +19,7 @@ use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Foresi\Tests\TaxesAndContributions\Support\DatedAmountSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
@@ -54,6 +55,8 @@ final class TaxesApiTest extends ApiTestCase
         $this->ownerId = $owner->id();
         $this->owner = $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($owner->id(), 'Taxes', [ApiScope::from('taxes:write')])->secret);
         $this->memberWriter = $this->issued([ApiScope::from('taxes:write')]);
+        // The firm of the API fixtures is a VAT payer; this owner was not one until a stretch says so.
+        FirmVat::from($this->em(), 'no', '2000-01-01');
     }
 
     protected function tearDown(): void
@@ -64,9 +67,9 @@ final class TaxesApiTest extends ApiTestCase
 
     public function testTheOwnerBuildsTheProfileAndReadsItBackOnBothSurfaces(): void
     {
-        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-11-12']);
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-11-12']);
         self::assertResponseStatusCodeSame(201);
-        self::assertSame(['vat_payer', 'yes', '2026-11-12', null], [$this->at('data', 'kind'), $this->at('data', 'value'), $this->at('data', 'valid_from'), $this->at('data', 'base')]);
+        self::assertSame(['activity', 'main', '2026-11-12', null], [$this->at('data', 'kind'), $this->at('data', 'value'), $this->at('data', 'valid_from'), $this->at('data', 'base')]);
         $statusId = $this->at('data', 'id');
         self::assertIsString($statusId);
 
@@ -87,7 +90,8 @@ final class TaxesApiTest extends ApiTestCase
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->owner);
         self::assertResponseIsSuccessful();
         $profile = $this->json()['data'];
-        self::assertSame(['vat_payer', 'sickness_insurance'], [$this->at('data', 'statuses', 0, 'kind'), $this->at('data', 'statuses', 1, 'kind')]);
+        self::assertSame(['activity', 'vat_payer', 'sickness_insurance'], [$this->at('data', 'statuses', 0, 'kind'), $this->at('data', 'statuses', 1, 'kind'), $this->at('data', 'statuses', 2, 'kind')]);
+        self::assertSame(['no', '2000-01-01'], [$this->at('data', 'statuses', 1, 'value'), $this->at('data', 'statuses', 1, 'valid_from')], 'VAT payer is the firm\'s.');
         self::assertSame([$year], $this->at('data', 'years'));
 
         $call = $this->tool($this->owner, 'foresi_get_tax_profile', []);
@@ -102,8 +106,8 @@ final class TaxesApiTest extends ApiTestCase
 
     public function testAStatusOnATakenDayIsAConflictAndABadValueNamesItsParameter(): void
     {
-        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'vat_payer', 'value' => 'no', 'valid_from' => '2026-01-01']);
-        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'secondary', 'valid_from' => '2026-01-01']);
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-01-01']);
         $this->assertProblem(409, 'status_day_taken');
 
         $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'sickness_insurance', 'value' => 'on', 'valid_from' => '2026-01-01']);
@@ -310,6 +314,28 @@ final class TaxesApiTest extends ApiTestCase
         self::assertStringContainsString('due 2028-05-02.', $this->text($call));
     }
 
+    public function testAddingAVatPayerStatusIsRefusedWithVatPayerOnFirm(): void
+    {
+        $this->send($this->owner, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-11-12']);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'kind', 'reason' => 'vat_payer_on_firm']);
+        $detail = $this->at('detail');
+        self::assertIsString($detail);
+        self::assertStringContainsString('POST /api/v1/firm/vat-statuses', $detail);
+
+        $call = $this->tool($this->owner, 'foresi_add_tax_status', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-11-12']);
+        self::assertTrue($call['isError'] ?? false);
+        self::assertSame('vat_payer_on_firm', $this->in($call, 'structuredContent', 'error', 'details', 'reason'));
+        self::assertStringContainsString('foresi_add_firm_vat_status', $this->text($call));
+
+        // Nor is the firm's own stretch removed here.
+        $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->owner);
+        $id = $this->at('data', 'statuses', 0, 'id');
+        self::assertIsString($id);
+        self::assertStringStartsWith('firm-vat:', $id);
+        $this->send($this->owner, 'DELETE', '/api/v1/taxes-and-contributions/profile/statuses/'.$id);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'status_id', 'reason' => 'vat_payer_on_firm']);
+    }
+
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->memberWriter);
@@ -318,7 +344,7 @@ final class TaxesApiTest extends ApiTestCase
         $this->get('/api/v1/taxes-and-contributions/profile', secret: $this->secret);
         $this->assertProblem(403, 'owner_only');
 
-        $this->send($this->memberWriter, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-11-12']);
+        $this->send($this->memberWriter, 'POST', '/api/v1/taxes-and-contributions/profile/statuses', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-11-12']);
         $this->assertProblem(403, 'owner_only');
         $this->send($this->memberWriter, 'PUT', '/api/v1/taxes-and-contributions/profile/years/2026', self::YEAR);
         $this->assertProblem(403, 'owner_only');
@@ -328,7 +354,7 @@ final class TaxesApiTest extends ApiTestCase
         $read = $this->tool($this->memberWriter, 'foresi_get_tax_profile', []);
         self::assertTrue($read['isError'] ?? false);
         self::assertSame('owner_only', $this->in($read, 'structuredContent', 'error', 'code'));
-        $write = $this->tool($this->memberWriter, 'foresi_add_tax_status', ['kind' => 'vat_payer', 'value' => 'yes', 'valid_from' => '2026-11-12']);
+        $write = $this->tool($this->memberWriter, 'foresi_add_tax_status', ['kind' => 'activity', 'value' => 'main', 'valid_from' => '2026-11-12']);
         self::assertTrue($write['isError'] ?? false);
         self::assertSame('owner_only', $this->in($write, 'structuredContent', 'error', 'code'));
 

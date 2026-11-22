@@ -12,7 +12,8 @@ use Foresi\Shared\Application\Api\Field;
 use Foresi\Shared\Application\Api\Operation;
 
 /**
- * A status of the owner from a day on, such as VAT payer from 2026-11-12.
+ * A status of the owner from a day on, such as the main activity from
+ * 2026-01-01. VAT payer is refused: it comes from the firm's VAT statuses.
  */
 #[Operation(
     name: 'taxes.profile.status.add',
@@ -21,8 +22,9 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_add_tax_status',
     scope: 'taxes:write',
     title: 'Add a tax status',
-    description: 'Adds a status of the owner that holds from valid_from until the next status of its kind, such as {"kind": "vat_payer", "value": "yes", "valid_from": "2026-11-12"}. '
-        .'The values: legal_form sole_trader; activity none, secondary or main; vat_payer and health_minimum_exempt yes or no; flat_rate_band none, 1, 2 or 3; sickness_insurance off or on, where on needs base, the monthly base in CZK. '
+    description: 'Adds a status of the owner that holds from valid_from until the next status of its kind, such as {"kind": "activity", "value": "main", "valid_from": "2026-01-01"}. '
+        .'The values: legal_form sole_trader; activity none, secondary or main; health_minimum_exempt yes or no; flat_rate_band none, 1, 2 or 3; sickness_insurance off or on, where on needs base, the monthly base in CZK. '
+        .'The kind vat_payer is refused with vat_payer_on_firm: it follows the VAT statuses of the firm, changed with foresi_add_firm_vat_status. '
         .'Two statuses of one kind never start on one day: remove the old one first with foresi_remove_tax_status. Only the owner of the organisation may do this.',
     status: 201,
     response: 'TaxStatus',
@@ -31,7 +33,7 @@ use Foresi\Shared\Application\Api\Operation;
 final readonly class AddStatusInput
 {
     public function __construct(
-        #[Field('The kind of status.', enum: ['legal_form', 'activity', 'vat_payer', 'flat_rate_band', 'sickness_insurance', 'health_minimum_exempt'])]
+        #[Field('The kind of status; vat_payer is refused, as it comes from the firm.', enum: ['legal_form', 'activity', 'vat_payer', 'flat_rate_band', 'sickness_insurance', 'health_minimum_exempt'])]
         public string $kind,
         #[Field('The value, one the kind takes, such as "yes".', maxLength: 20)]
         public string $value,

@@ -8,8 +8,13 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\TaxesAndContributions\Application;
 
+use Foresi\Party\Contract\VatPeriodLength;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
+use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\RemoveStatusInput;
 use Foresi\TaxesAndContributions\Application\SetAuthorityAccountInput;
 use Foresi\TaxesAndContributions\Application\SetYearInputsInput;
@@ -20,6 +25,7 @@ use Foresi\TaxesAndContributions\Contract\ReturnRoute;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Foresi\TaxesAndContributions\Domain\OwnerProfile;
 use Foresi\TaxesAndContributions\Domain\StatusPeriod;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 
 /**
@@ -31,8 +37,8 @@ final class ProfileWritesTest extends TaxesTestCase
 {
     public function testAStatusAppliesFromItsDayUntilTheNextOfItsKind(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'no', '2026-01-01'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
+        FirmVat::from($this->em, 'no', '2026-01-01');
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $this->em->clear();
 
@@ -51,12 +57,51 @@ final class ProfileWritesTest extends TaxesTestCase
 
     public function testTwoPeriodsOfOneKindOnOneDayAreRefused(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'no', '2026-01-01'));
+        $this->writes()->addStatus(new AddStatusInput('activity', 'secondary', '2026-01-01'));
 
-        $this->assertRefused('status_day_taken', null, RefusalKind::Conflict, fn (): mixed => $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-01-01')));
+        $this->assertRefused('status_day_taken', null, RefusalKind::Conflict, fn (): mixed => $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01')));
         // Another kind may start on the same day.
-        self::assertSame('main', $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'))->value);
+        self::assertSame('yes', $this->writes()->addStatus(new AddStatusInput('health_minimum_exempt', 'yes', '2026-01-01'))->value);
         self::assertCount(2, $this->em->getRepository(StatusPeriod::class)->findAll());
+    }
+
+    public function testVatPayerComesFromTheFirm(): void
+    {
+        FirmVat::from($this->em, 'no', '2026-01-01');
+        FirmVat::from($this->em, 'yes', '2026-11-12');
+        $this->em->clear();
+
+        $profile = $this->reads()->profile();
+
+        self::assertSame('no', $profile->valueOn(StatusKind::VatPayer, new \DateTimeImmutable('2026-11-11'))?->value);
+        self::assertSame('yes', $profile->valueOn(StatusKind::VatPayer, new \DateTimeImmutable('2026-11-12'))?->value);
+        self::assertStringStartsWith(ProfileReads::FIRM_VAT, $profile->valueOn(StatusKind::VatPayer, new \DateTimeImmutable('2026-11-12'))->id);
+        self::assertSame([], $this->em->getRepository(StatusPeriod::class)->findAll(), 'Nothing of it is stored in the profile.');
+    }
+
+    public function testTheFirmsStatusFromTheStartHoldsFrom1970AndOnlyRegisteredIsAPayer(): void
+    {
+        // The firm of the test case is not registered, with no stretch stored: it held from the start.
+        self::assertSame([['firm-vat:'.$this->firmId(), 'no', '1970-01-01']], $this->vatPayer());
+
+        $this->em->persist(new VatStatusPeriod(VatStatus::IdentifiedPerson, null, null));
+        $this->em->persist(new VatStatusPeriod(VatStatus::Registered, VatPeriodLength::Quarter, new \DateTimeImmutable('2026-11-12')));
+        $this->em->flush();
+
+        self::assertSame([['no', '1970-01-01'], ['yes', '2026-11-12']], array_map(static fn (array $status): array => [$status[1], $status[2]], $this->vatPayer()));
+    }
+
+    public function testAddingAVatPayerStatusIsRefusedWithVatPayerOnFirm(): void
+    {
+        FirmVat::from($this->em, 'no', '2026-01-01');
+
+        $this->assertRefused('vat_payer_on_firm', 'kind', RefusalKind::Invalid, fn (): mixed => $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12')));
+        $id = (string) $this->reads()->profile()->valueOn(StatusKind::VatPayer, new \DateTimeImmutable('2026-11-12'))?->id;
+        $this->assertRefused('vat_payer_on_firm', 'statusId', RefusalKind::Invalid, fn (): mixed => $this->writes()->removeStatus(new RemoveStatusInput(' '.$id.' ')));
+        self::assertSame([], $this->em->getRepository(StatusPeriod::class)->findAll());
+        self::assertSame([], $this->eventData('taxes-and-contributions.profile.changed'));
+        self::assertNotContains(StatusKind::VatPayer, StatusKind::writable());
+        self::assertSame(array_values(array_filter(StatusKind::cases(), static fn (StatusKind $kind): bool => StatusKind::VatPayer !== $kind)), StatusKind::writable());
     }
 
     public function testSicknessOnNeedsABase(): void
@@ -80,14 +125,14 @@ final class ProfileWritesTest extends TaxesTestCase
 
     public function testRemovingAStatusLetsTheOneBeforeItHoldAgain(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'no', '2026-01-01'));
-        $yes = $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        $this->writes()->addStatus(new AddStatusInput('activity', 'secondary', '2026-01-01'));
+        $main = $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-11-12'));
 
-        self::assertSame($yes->id, $this->writes()->removeStatus(new RemoveStatusInput($yes->id)));
+        self::assertSame($main->id, $this->writes()->removeStatus(new RemoveStatusInput($main->id)));
         $this->em->clear();
 
-        self::assertSame('no', $this->reads()->profile()->valueOn(StatusKind::VatPayer, new \DateTimeImmutable('2026-12-01'))?->value);
-        $this->assertRefused('not_found', null, RefusalKind::NotFound, fn (): mixed => $this->writes()->removeStatus(new RemoveStatusInput($yes->id)));
+        self::assertSame('secondary', $this->reads()->profile()->valueOn(StatusKind::Activity, new \DateTimeImmutable('2026-12-01'))?->value);
+        $this->assertRefused('not_found', null, RefusalKind::NotFound, fn (): mixed => $this->writes()->removeStatus(new RemoveStatusInput($main->id)));
     }
 
     public function testClaimedMonthsAbove12AreRefused(): void
@@ -176,12 +221,12 @@ final class ProfileWritesTest extends TaxesTestCase
 
     public function testAMemberIsRefusedWithOwnerOnly(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'no', '2026-01-01'));
+        $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $this->signIn($this->member);
 
         $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->reads()->profile());
         $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->reads()->year(2026));
-        $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12')));
+        $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->writes()->addStatus(new AddStatusInput('activity', 'none', '2026-11-12')));
         $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->writes()->setYear($this->year()));
         $this->assertRefused('owner_only', null, RefusalKind::Forbidden, fn (): mixed => $this->writes()->setAuthority(new SetAuthorityAccountInput('health', '1/0300')));
         self::assertCount(1, $this->em->getRepository(StatusPeriod::class)->findAll());
@@ -203,6 +248,28 @@ final class ProfileWritesTest extends TaxesTestCase
         self::assertSame(['what' => 'year', 'kind' => null, 'year' => 2026, 'valid_from' => null], json_decode($events[0], true, flags: \JSON_THROW_ON_ERROR));
         self::assertSame(['what' => 'status', 'kind' => 'sickness_insurance', 'year' => null, 'valid_from' => '2026-03-01'], json_decode($events[1], true, flags: \JSON_THROW_ON_ERROR));
         self::assertSame(['what' => 'authority', 'kind' => 'health', 'year' => null, 'valid_from' => null], json_decode($events[2], true, flags: \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * The VAT payer statuses as the profile reads them: id, value and day.
+     *
+     * @phpstan-impure
+     *
+     * @return list<array{string, string, string}>
+     */
+    private function vatPayer(): array
+    {
+        $this->em->clear();
+        $statuses = array_filter($this->reads()->profile()->statuses, static fn (\Foresi\TaxesAndContributions\Contract\StatusPeriod $status): bool => StatusKind::VatPayer === $status->kind);
+
+        return array_values(array_map(static fn (\Foresi\TaxesAndContributions\Contract\StatusPeriod $status): array => [$status->id, $status->value, $status->validFrom->format('Y-m-d')], $statuses));
+    }
+
+    private function firmId(): string
+    {
+        $firm = $this->em->getRepository(LegalEntity::class)->findAll()[0] ?? throw new \LogicException('No firm.');
+
+        return $firm->id();
     }
 
     /**

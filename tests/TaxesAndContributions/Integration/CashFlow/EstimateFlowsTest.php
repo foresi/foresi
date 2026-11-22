@@ -52,6 +52,7 @@ use Foresi\TaxesAndContributions\Integration\CashFlow\EstimateFlows;
 use Foresi\TaxesAndContributions\Integration\CashFlow\ForecastAmounts;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
 use Foresi\Tests\TaxesAndContributions\Support\CountingSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\FixedToken;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\NullLogger;
@@ -179,7 +180,7 @@ final class EstimateFlowsTest extends TaxesTestCase
     public function testNoFlowsBeforeAnActivityIsEntered(): void
     {
         $this->writes()->removeStatus(new RemoveStatusInput($this->reads()->profile()->statuses[0]->id));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
 
         self::assertSame([], $this->flows(), 'Another status is no activity.');
     }

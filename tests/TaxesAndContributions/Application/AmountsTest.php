@@ -14,7 +14,6 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
-use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\Amounts;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
@@ -31,6 +30,7 @@ use Foresi\TaxesAndContributions\Infrastructure\Api\TaxesJson;
 use Foresi\TaxesAndContributions\Infrastructure\Mcp\TaxAmountsTool;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\TaxesAndContributions\Support\FakeAmountSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\RecordingLogger;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\LoggerInterface;
@@ -145,8 +145,8 @@ final class AmountsTest extends TaxesTestCase
 
     public function testBeforeTheVatPayerDayTheRecordsCountTheVatAndFromItTheyDoNot(): void
     {
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'no', '2026-01-01'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'no', '2026-01-01');
+        FirmVat::from($this->em, 'yes', '2026-11-12');
 
         $amounts = $this->amounts([
             new FakeAmountSource('invoicing.payments', [

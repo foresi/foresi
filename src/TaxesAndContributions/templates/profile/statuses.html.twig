@@ -3,7 +3,8 @@
     The statuses of the owner: a dated list per kind, each holding until the next of its kind. A small
     record that "Statuses" in the profile's header opens in a dialog (docs/design/overlays.md), as the
     history of a send; "Add a change" in its header loads the form in the same dialog, and saving
-    comes back here. The same URL is a page. Variables: columns, groups.
+    comes back here. The same URL is a page. VAT payer is the firm's: its rows have no menu, and a
+    note links to the firm's VAT statuses. Variables: columns, groups.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -30,6 +31,9 @@
         {% for group in groups %}
             <div class="grid gap-2" data-taxes-kind="{{ group.kind }}">
                 <h3 class="m-0 text-small font-semibold text-ink">{{ group.title }}</h3>
+                {% if group.firmVat %}
+                    <p class="m-0 text-small text-muted" data-taxes-firm-vat>{{ 'taxes.profile.firm_vat_note'|trans }} <a href="{{ group.firmVat }}" class="font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'taxes.profile.firm_vat_link'|trans }}</a></p>
+                {% endif %}
                 <twig:Ui:DataTable :caption="group.title" :columns="columns" :rows="group.rows" :actionToken="token" />
             </div>
         {% else %}

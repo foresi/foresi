@@ -29,6 +29,7 @@ use Foresi\TaxesAndContributions\Contract\MonthStatus;
 use Foresi\TaxesAndContributions\Contract\RegimeResult;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\Tests\TaxesAndContributions\Support\DatedAmountSource;
+use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\Clock;
@@ -74,7 +75,7 @@ final class StatusSplitTest extends TaxesTestCase
         // 23:30 UTC on the 11th is 00:30 in Prague on the 12th.
         Clock::set(new MockClock('2026-11-11 23:30:00', 'UTC'));
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', '2026-11-12'));
+        FirmVat::from($this->em, 'yes', '2026-11-12');
         $estimates = $this->estimates([
             $this->paid('invoicing.payments', AmountKind::Income, '2026-11-11', 121_000_00, 100_000_00),
             $this->paid('invoicing.payments', AmountKind::Income, '2026-11-12', 121_000_00, 100_000_00),
@@ -168,7 +169,7 @@ final class StatusSplitTest extends TaxesTestCase
         $this->setUp();
         Clock::set(new MockClock('2027-02-01 10:00:00', 'UTC'));
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
-        $this->writes()->addStatus(new AddStatusInput('vat_payer', 'yes', $day));
+        FirmVat::from($this->em, 'yes', $day);
         $this->writes()->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
         $estimates = $this->estimates([
             $this->paid('invoicing.payments', AmountKind::Income, '2026-11-11', 1_210_000_00, 1_000_000_00),

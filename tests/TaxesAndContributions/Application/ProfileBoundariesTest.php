@@ -41,12 +41,12 @@ final class ProfileBoundariesTest extends TaxesTestCase
 
     public function testAStatusIsTrimmedAndItsRemovalIsAnEvent(): void
     {
-        $status = $this->writes()->addStatus(new AddStatusInput(' vat_payer ', ' yes ', ' 2026-11-12 ', ' '));
+        $status = $this->writes()->addStatus(new AddStatusInput(' activity ', ' main ', ' 2026-11-12 ', ' '));
 
-        self::assertSame([StatusKind::VatPayer, 'yes', '2026-11-12', null], [$status->kind, $status->value, $status->validFrom->format('Y-m-d'), $status->base]);
+        self::assertSame([StatusKind::Activity, 'main', '2026-11-12', null], [$status->kind, $status->value, $status->validFrom->format('Y-m-d'), $status->base]);
         $this->writes()->removeStatus(new RemoveStatusInput(' '.$status->id.' '));
         $this->em->clear();
-        self::assertSame([], $this->reads()->profile()->statuses);
+        self::assertSame([StatusKind::VatPayer], array_map(static fn (\Foresi\TaxesAndContributions\Contract\StatusPeriod $left): StatusKind => $left->kind, $this->reads()->profile()->statuses), 'Only the firm\'s VAT status is left.');
         self::assertCount(2, $this->eventData('taxes-and-contributions.profile.changed'));
         self::assertStringContainsString('"valid_from":"2026-11-12"', $this->eventData('taxes-and-contributions.profile.changed')[1]);
     }
