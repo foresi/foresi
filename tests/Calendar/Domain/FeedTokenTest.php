@@ -39,6 +39,7 @@ final class FeedTokenTest extends TestCase
         }
     }
 
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAFeedKeepsOnlyAWholeSha256(): void
     {
         $hash = FeedToken::hash(FeedToken::generate());
@@ -49,7 +50,6 @@ final class FeedTokenTest extends TestCase
             } catch (\InvalidArgumentException) {
             }
         }
-        $this->addToAssertionCount(1);
     }
 
     public function testANameHasUpTo80CharactersNotBytes(): void
