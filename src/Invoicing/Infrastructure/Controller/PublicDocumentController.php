@@ -288,7 +288,7 @@ final class PublicDocumentController extends AbstractController
 
     private function stylesheet(): string
     {
-        return $this->assets->getPublicPath('styles/app.css') ?? throw new \LogicException('The stylesheet is not in the asset map.');
+        return $this->assets->getPublicPath('@foresi/ui/theme/app.css') ?? throw new \LogicException('The stylesheet is not in the asset map.');
     }
 
     private function fileName(PublicDocument $document): string

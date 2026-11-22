@@ -52,7 +52,7 @@ final class ModuleDependenciesTest extends TestCase
         $require = $composer['require'] ?? [];
         $extra = $composer['extra'] ?? null;
         $foresi = \is_array($extra) ? ($extra['foresi'] ?? null) : null;
-        $forConfig = \is_array($foresi) && \is_array($foresi['config-requires'] ?? null) ? array_map(strval(...), $foresi['config-requires']) : [];
+        $forConfig = \is_array($foresi) && \is_array($foresi['config-requires'] ?? null) ? array_values(array_filter($foresi['config-requires'], \is_string(...))) : [];
         $declared = array_values(array_filter(
             array_map(strval(...), array_keys(\is_array($require) ? $require : [])),
             static fn (string $package): bool => str_contains($package, '/') && !str_starts_with($package, 'foresi/'),
