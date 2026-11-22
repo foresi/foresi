@@ -53,6 +53,6 @@ What a document template may use. Anything else is either ignored or drawn diffe
 ### Consequences
 
 * Good: one PDF stack, no new binary on the server, about 0.1 s per page.
-* Good: Invoicing's PDF tests run unchanged against the moved engine.
+* Good: Invoicing's PDF tests run against the moved engine with only their imports changed.
 * Bad: template authors write to a subset, not to full HTML and CSS; the template editor links this ADR's list in `docs/documents.md`.
 * Bad: if a future template needs what the subset lacks (floats, images), we revisit this decision; the `PdfRenderer` interface keeps that change inside Documents.
