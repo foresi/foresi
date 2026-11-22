@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Settings → Activities: the activity types with their timing, as Pipedrive and Odoo let a team keep its
+    own. A type is a small record: a new one and a change open in a dialog over the page, and archiving
+    asks first. Variables: columns, rows.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'activities.settings.title'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\Activities\\Infrastructure\\Controller\\ActivityController::TOKEN')) %}
+
+{% block title %}{{ 'activities.settings.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_activity_type_new')" data-dialog aria-haspopup="dialog" data-activity-type-new>{{ 'activities.settings.new_type'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Activities/_flashes.html.twig') }}
+    <section class="grid gap-2" aria-labelledby="activity-types-title" data-activity-types>
+        <h2 id="activity-types-title" class="m-0 text-body font-semibold text-ink">{{ 'activities.settings.types'|trans }}</h2>
+        <twig:Ui:DataTable :caption="'activities.settings.types'|trans" :columns="columns" :rows="rows" :actionToken="token" />
+    </section>
+{% endblock %}

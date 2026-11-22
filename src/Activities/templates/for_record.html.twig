@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The timeline of one record (Foresi\Activities\Contract\RecordActivities), shown inside another module's
+    screen such as a contact's Activities tab, as HubSpot, Pipedrive and Twenty show a record's activities:
+    what is planned on top, the soonest first, and what is done below, the latest first, with its outcome
+    and files. "Log activity" and "Plan activity" open a dialog with the record linked, and the page
+    shows again once it is saved. Loaded by a Turbo frame it is that frame alone (_frame.html.twig);
+    otherwise a page. Variables: frame, kind, id, return, planned, done.
+#}
+{% extends frame ? '@Activities/_frame.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'activities.record.title'|trans}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ 'activities.record.title'|trans }}{% endblock %}
+
+{% block content %}
+    <section class="grid gap-4" aria-labelledby="record-activities-title" data-record-activities>
+        {{ include('@Activities/_flashes.html.twig') }}
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="record-activities-title" class="m-0 text-heading font-semibold text-ink">{{ 'activities.record.title'|trans }} <span class="num font-normal text-muted">({{ planned|length + done|length }})</span></h2>
+            <div class="flex flex-wrap gap-2">
+                <twig:Ui:Button icon="square-pen" size="sm" :href="path('app_activity_new', {mode: 'log', link_kind: kind, link_id: id, return: return})" data-dialog aria-haspopup="dialog" data-activity-log>{{ 'activities.action.log'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="primary" icon="plus" size="sm" :href="path('app_activity_new', {mode: 'plan', link_kind: kind, link_id: id, return: return})" data-dialog aria-haspopup="dialog" data-activity-plan>{{ 'activities.action.plan'|trans }}</twig:Ui:Button>
+            </div>
+        </div>
+        {% if planned is empty and done is empty %}
+            <twig:Ui:EmptyState icon="calendar" :title="'activities.record.empty_title'|trans" :text="'activities.record.empty_text'|trans" />
+        {% endif %}
+        {% if planned is not empty %}
+            <section class="grid gap-2" aria-labelledby="record-activities-planned" data-activities-planned>
+                <h3 id="record-activities-planned" class="m-0 text-body font-semibold text-ink">{{ 'activities.record.planned'|trans }}</h3>
+                <ol class="m-0 grid list-none gap-2 p-0">
+                    {% for item in planned %}{{ include('@Activities/_item.html.twig') }}{% endfor %}
+                </ol>
+            </section>
+        {% endif %}
+        {% if done is not empty %}
+            <section class="grid gap-2" aria-labelledby="record-activities-done" data-activities-done>
+                <h3 id="record-activities-done" class="m-0 text-body font-semibold text-ink">{{ 'activities.record.done'|trans }}</h3>
+                <ol class="m-0 grid list-none gap-2 p-0">
+                    {% for item in done %}{{ include('@Activities/_item.html.twig') }}{% endfor %}
+                </ol>
+            </section>
+        {% endif %}
+    </section>
+{% endblock %}
