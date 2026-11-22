@@ -41,7 +41,7 @@
         </twig:Ui:EmptyState>
     {% elseif noAccount %}
         <twig:Ui:EmptyState icon="landmark" :title="'cash_flow.empty.no_account_title'|trans" :text="'cash_flow.empty.no_account_text'|trans" data-cash-flow-empty>
-            <twig:Ui:Button :href="path('app_firm_bank')" variant="primary" icon="plus">{{ 'cash_flow.empty.no_account_action'|trans }}</twig:Ui:Button>
+            {% if bankUrl|default(null) %}<twig:Ui:Button :href="bankUrl" variant="primary" icon="plus">{{ 'cash_flow.empty.no_account_action'|trans }}</twig:Ui:Button>{% endif %}
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">

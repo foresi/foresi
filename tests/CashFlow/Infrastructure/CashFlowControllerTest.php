@@ -65,6 +65,17 @@ final class CashFlowControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testAFirmWithoutAnAccountIsAskedForOne(): void
+    {
+        $this->signedIn(withAccount: false);
+
+        $this->client->request('GET', '/cash-flow');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-cash-flow-empty]', 'Add a bank account');
+        self::assertSelectorNotExists('[data-cash-flow-alert]');
+    }
+
     public function testAnAccountWithoutABalanceAsksForOne(): void
     {
         $this->signedIn();
@@ -248,14 +259,16 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    private function signedIn(): void
+    private function signedIn(bool $withAccount = true): void
     {
         $this->user = $this->browser->seed();
         $this->browser->signIn();
         $em = $this->browser->em();
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $em->persist($firm);
-        $this->account = FirmAccounts::add($em, self::IBAN)->id();
+        if ($withAccount) {
+            $this->account = FirmAccounts::add($em, self::IBAN)->id();
+        }
         $em->flush();
     }
 
