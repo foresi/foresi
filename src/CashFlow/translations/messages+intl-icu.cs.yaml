@@ -68,19 +68,19 @@ cash_flow:
     invoice: Faktura
     recurring_invoice: Opakovaná faktura
     received_document: Přijatý doklad
-    planned_item: Plán
+    planned_item: Plánovaná položka
     bank_movement: Pohyb na účtu
   filter:
-    certainty: Jistota
+    certainty: Zdroj
     all: Vše
     empty_title: Filtru nic neodpovídá
-    empty_text: V tomto období nečekáte žádné peníze s vybranou jistotou. Zůstatek dnes se filtrem nemění.
+    empty_text: V tomto období nečekáte žádné peníze z vybraného zdroje. Zůstatek dnes se filtrem nemění.
     reset: Zrušit filtr
   certainty:
-    document: Doklad
-    schedule: Plán opakování
-    plan: Plán
-    estimate: Odhad
+    document: Otevřené doklady
+    schedule: Opakované faktury
+    plan: Plánované položky
+    estimate: Odhad daní a pojištění
   flag:
     overdue: Po splatnosti
     expected_date: Očekávaný den

@@ -195,7 +195,7 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertCount(1, $sheet->filter('#sheet-page'));
         self::assertStringContainsString('Money out · Rent · Dec 2026', $sheet->filter('#sheet-page')->text());
         self::assertStringContainsString('Office rent', $sheet->filter('[data-cash-flow-item]')->text());
-        self::assertSame('Plan', $sheet->filter('[data-cash-flow-item] [data-certainty]')->text());
+        self::assertSame('Planned items', $sheet->filter('[data-cash-flow-item] [data-certainty]')->text());
         // A plan's source says no more than its certainty.
         self::assertCount(0, $sheet->filter('[data-cash-flow-item] [data-source]'));
         $this->client->request('GET', $link->attr('href'));
@@ -218,7 +218,7 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-cash-flow-table-empty]'));
         self::assertCount(0, $crawler->filter('[data-cash-flow-table]'));
-        self::assertStringContainsString('Certainty: Document, Estimate', $crawler->filter('[data-cash-flow-filter]')->text());
+        self::assertStringContainsString('Source: Open documents, Tax and insurance estimate', $crawler->filter('[data-cash-flow-filter]')->text());
         // The balance today is never filtered.
         self::assertStringContainsString('60,000', $crawler->filter('[data-cash-flow-kpis]')->text());
 
