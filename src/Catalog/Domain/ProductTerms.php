@@ -25,9 +25,9 @@ final readonly class ProductTerms
         public string $unit,
         public ?Money $unitPrice,
         public BillingKind $billingKind,
-        public ?RecurrenceUnit $recurrenceUnit = null,
-        public ?int $interval = null,
-        public ?int $cycles = null,
+        public ?RecurrenceUnit $recurrenceUnit,
+        public ?int $interval,
+        public ?int $cycles,
     ) {
     }
 }

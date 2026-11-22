@@ -143,10 +143,11 @@ final readonly class ProductWrites
     }
 
     /**
-     * Minor units as the decimal the rules read back, such as "1500.50".
+     * Minor units as the decimal the rules read back, such as "1500.50". A
+     * stored price is never negative.
      */
     private function decimal(int $minor): string
     {
-        return ($minor < 0 ? '-' : '').intdiv(abs($minor), 100).'.'.str_pad((string) (abs($minor) % 100), 2, '0', \STR_PAD_LEFT);
+        return \sprintf('%d.%02d', intdiv($minor, 100), $minor % 100);
     }
 }

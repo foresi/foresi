@@ -96,6 +96,21 @@ final class ProductRulesTest extends TestCase
         $this->assertRefused('description_too_long', 'description', $this->draft(description: str_repeat('a', 2001)));
     }
 
+    public function testBoundsCountCharactersAndHoldAtTheLimit(): void
+    {
+        $terms = new ProductRules()->terms($this->draft(name: str_repeat('č', 200), unit: str_repeat('č', 32), description: str_repeat('č', 2000)));
+        self::assertSame([200, 32, 2000], [mb_strlen($terms->name), mb_strlen($terms->unit), mb_strlen($terms->description)]);
+
+        self::assertSame(99, new ProductRules()->terms($this->draft(billingKind: 'recurring', recurrenceUnit: 'week', interval: 99))->interval);
+        self::assertSame(150050, new ProductRules()->terms($this->draft(unitPrice: ' 1500.50 '))->unitPrice?->minor());
+    }
+
+    public function testRefusalsNameTheAllowedValues(): void
+    {
+        self::assertSame('The currency is one of CZK, EUR, USD.', $this->refusal($this->draft(unitPrice: '10', currency: 'GBP'))->getMessage());
+        self::assertSame('The recurrence unit is one of day, week, month, year.', $this->refusal($this->draft(billingKind: 'recurring', recurrenceUnit: 'fortnight', interval: 1))->getMessage());
+    }
+
     private function draft(
         string $name = 'Roof audit',
         string $unit = 'piece',
@@ -112,11 +127,17 @@ final class ProductRulesTest extends TestCase
 
     private function assertRefused(string $reason, string $field, ProductDraft $draft): void
     {
+        $refused = $this->refusal($draft);
+        self::assertSame([$reason, $field], [$refused->reason(), $refused->field()]);
+    }
+
+    private function refusal(ProductDraft $draft): CatalogRefused
+    {
         try {
             new ProductRules()->terms($draft);
-            self::fail(\sprintf('The draft was not refused for %s.', $reason));
         } catch (CatalogRefused $refused) {
-            self::assertSame([$reason, $field], [$refused->reason(), $refused->field()]);
+            return $refused;
         }
+        self::fail('The draft was not refused.');
     }
 }

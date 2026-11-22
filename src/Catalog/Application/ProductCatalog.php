@@ -27,15 +27,15 @@ final readonly class ProductCatalog implements Products
     {
         $product = $this->store->product($id) ?? throw UnknownProduct::withId($id);
 
-        return self::snapshot($product);
+        return $this->snapshot($product);
     }
 
     public function search(string $text, bool $includeArchived = false): array
     {
-        return array_map(self::snapshot(...), $this->store->search(mb_substr(trim($text), 0, ProductReads::MAX_TEXT), $includeArchived));
+        return array_map($this->snapshot(...), $this->store->search(ProductReads::searchText($text), $includeArchived));
     }
 
-    public static function snapshot(Product $product): ProductSnapshot
+    private function snapshot(Product $product): ProductSnapshot
     {
         return new ProductSnapshot(
             $product->id(),

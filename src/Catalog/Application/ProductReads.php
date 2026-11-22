@@ -42,6 +42,14 @@ final readonly class ProductReads
     {
         $this->access->denyUnlessStaff();
 
-        return $this->store->search(mb_substr(trim($text), 0, self::MAX_TEXT), $includeArchived);
+        return $this->store->search(self::searchText($text), $includeArchived);
+    }
+
+    /**
+     * The text a search looks for: trimmed and cut to MAX_TEXT characters.
+     */
+    public static function searchText(string $text): string
+    {
+        return mb_substr(trim($text), 0, self::MAX_TEXT);
     }
 }
