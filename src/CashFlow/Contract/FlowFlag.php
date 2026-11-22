@@ -22,4 +22,11 @@ enum FlowFlag: string
     case NoDueDate = 'no_due_date';
     /** Someone set the date it is expected on, which replaced the source's date. */
     case ExpectedDate = 'expected_date';
+    /**
+     * Its date has passed, but it is still awaited and not late, such as a tax
+     * whose final amount only the return knows. The forecast counts it in the
+     * first period, never as overdue. A source sets it on a flow dated before
+     * today.
+     */
+    case Awaited = 'awaited';
 }

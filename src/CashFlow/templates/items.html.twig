@@ -25,7 +25,7 @@
                             <twig:Ui:Badge :tone="item.certaintyTone" data-certainty>{{ item.certainty }}</twig:Ui:Badge>
                             {% if item.source %}<span data-source>{{ item.source }}</span>{% endif %}
                             <span>{{ item.day }}</span>
-                            {% for flag in item.flags %}<twig:Ui:Badge tone="amber">{{ flag }}</twig:Ui:Badge>{% endfor %}
+                            {% for flag in item.flags %}<twig:Ui:Badge :tone="flag.tone" data-flag>{{ flag.label }}</twig:Ui:Badge>{% endfor %}
                         </div>
                     </div>
                     <div class="shrink-0 text-right">
