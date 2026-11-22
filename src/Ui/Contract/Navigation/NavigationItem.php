@@ -18,6 +18,8 @@ use Foresi\Ui\Contract\Guard;
  * The entry is marked as current on its own route and on every route whose name
  * starts with one of the prefixes, so the pages that belong to it keep it marked.
  * A count above the cap is shown as the cap with a plus, as "99+" of an inbox.
+ * An item that marks its area puts a dot on the area in the rail while its count
+ * is above zero, as an inbox with unread notifications does.
  *
  * Every item belongs to exactly one navigation area (see NavigationArea). Inside
  * the area the group becomes the section the item is listed under. Groups that
@@ -47,6 +49,7 @@ final readonly class NavigationItem
         public array $routePrefixes = [],
         public ?int $countCap = null,
         ?string $area = null,
+        public bool $marksArea = false,
     ) {
         if (!\in_array($groupKey, self::GROUPS, true)) {
             throw new \InvalidArgumentException(sprintf('Unknown navigation group "%s", expected one of: %s.', $groupKey, implode(', ', self::GROUPS)));

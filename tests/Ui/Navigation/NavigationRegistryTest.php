@@ -150,6 +150,17 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame(99, $groups[0]['items'][0]->countCap);
     }
 
+    public function testOnlyAnItemThatMarksItsAreaCarriesTheMarkToTheSidebar(): void
+    {
+        $groups = $this->registry(
+            new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(3), marksArea: true),
+            new NavigationItem('main', 'b', 'plus', 'r2', $this->counter(3)),
+        )->groups(null, true);
+
+        self::assertSame([true, false], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $entry): bool => $entry->marksArea, $groups[0]['items']));
+        self::assertFalse(new \Foresi\Ui\Navigation\NavigationEntry('a', 'plus', 'r1', 3, false)->marksArea, 'An entry marks its area only when told to.');
+    }
+
     public function testACapOfOneIsAllowedAndBelowItRefused(): void
     {
         self::assertSame(1, new NavigationItem('main', 'a', 'plus', 'r1', countCap: 1)->countCap);
