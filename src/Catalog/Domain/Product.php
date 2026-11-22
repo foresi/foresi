@@ -49,23 +49,23 @@ class Product implements Audited
     private string $unit;
 
     #[ORM\Column(name: 'unit_price_minor', type: 'bigint', nullable: true)]
-    private ?int $unitPriceMinor = null;
+    private ?int $unitPriceMinor;
 
     #[ORM\Column(name: 'currency', type: 'string', length: 3, nullable: true, enumType: Currency::class)]
-    private ?Currency $currency = null;
+    private ?Currency $currency;
 
     /** A plain string, so a new kind needs no data migration. */
     #[ORM\Column(name: 'billing_kind', type: 'string', length: 16, enumType: BillingKind::class)]
     private BillingKind $billingKind;
 
     #[ORM\Column(name: 'recurrence_unit', type: 'string', length: 8, nullable: true, enumType: RecurrenceUnit::class)]
-    private ?RecurrenceUnit $recurrenceUnit = null;
+    private ?RecurrenceUnit $recurrenceUnit;
 
     #[ORM\Column(name: 'recurrence_interval', type: 'smallint', nullable: true)]
-    private ?int $interval = null;
+    private ?int $interval;
 
     #[ORM\Column(type: 'smallint', nullable: true)]
-    private ?int $cycles = null;
+    private ?int $cycles;
 
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;

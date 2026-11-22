@@ -60,20 +60,20 @@ final readonly class ProductWrites
     {
         return $this->work->run(function () use ($input): Product {
             $product = $this->product($input->productId);
-            $kind = self::given($input->billingKind, $product->billingKind()->value);
+            $kind = $this->given($input->billingKind, $product->billingKind()->value);
             // A product made one-off keeps no recurrence, unless the input sends one, which is refused.
             $recurs = BillingKind::Recurring->value === $kind;
             $price = $product->unitPrice();
             $product->change($this->rules->terms(new ProductDraft(
-                self::given($input->name, $product->name()),
-                self::given($input->description, $product->description()),
-                self::given($input->unit, $product->unit()),
-                self::given($input->unitPrice, null === $price ? null : self::decimal($price->minor())),
-                self::given($input->currency, $price?->currency()->value ?? 'CZK'),
+                $this->given($input->name, $product->name()),
+                $this->given($input->description, $product->description()),
+                $this->given($input->unit, $product->unit()),
+                $this->given($input->unitPrice, $price instanceof \Foresi\Shared\Domain\Money ? $this->decimal($price->minor()) : null),
+                $this->given($input->currency, $price?->currency()->value ?? 'CZK'),
                 $kind,
-                self::given($input->recurrenceUnit, $recurs ? $product->recurrenceUnit()?->value : null),
-                self::given($input->interval, $recurs ? $product->interval() : null),
-                self::given($input->cycles, $recurs ? $product->cycles() : null),
+                $this->given($input->recurrenceUnit, $recurs ? $product->recurrenceUnit()?->value : null),
+                $this->given($input->interval, $recurs ? $product->interval() : null),
+                $this->given($input->cycles, $recurs ? $product->cycles() : null),
             )));
             $this->events->record(new ProductUpdated($product->id(), $product->billingKind()));
 
@@ -137,7 +137,7 @@ final readonly class ProductWrites
      *
      * @return T
      */
-    private static function given(mixed $value, mixed $current): mixed
+    private function given(mixed $value, mixed $current): mixed
     {
         return $value instanceof Omitted ? $current : $value;
     }
@@ -145,7 +145,7 @@ final readonly class ProductWrites
     /**
      * Minor units as the decimal the rules read back, such as "1500.50".
      */
-    private static function decimal(int $minor): string
+    private function decimal(int $minor): string
     {
         return ($minor < 0 ? '-' : '').intdiv(abs($minor), 100).'.'.str_pad((string) (abs($minor) % 100), 2, '0', \STR_PAD_LEFT);
     }

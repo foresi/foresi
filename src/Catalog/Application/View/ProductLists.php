@@ -52,13 +52,13 @@ final class ProductLists implements ListDefinitionSource
         return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::ARCHIVED, FieldType::Boolean, 'catalog.products.field.archived'),
             new Field(self::BILLING_KIND, FieldType::Enum, 'catalog.product.field.billing_kind', options: $kinds, optionLabels: array_combine($kinds, array_map(static fn (string $kind): string => 'catalog.billing_kind.'.$kind, $kinds))),
-        ]), self::defaults());
+        ]), $this->defaults());
     }
 
     /**
      * @return list<DefaultView>
      */
-    private static function defaults(): array
+    private function defaults(): array
     {
         return [
             new DefaultView(ListDefinition::ALL, 'catalog.products.tab.all', showCount: false, position: 0),

@@ -12,8 +12,8 @@ use Foresi\Catalog\Application\CatalogRefused;
 use Foresi\Catalog\Application\ProductReads;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
+use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 

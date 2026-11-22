@@ -66,14 +66,16 @@ final class CatalogApiTest extends ApiTestCase
         self::assertSame([null, null, 'Marketing retainer'], [$this->at('data', 'unit_price'), $this->at('data', 'cycles'), $this->at('data', 'name')]);
 
         $this->send('POST', '/api/v1/catalog/products/'.$id.'/archive');
-        self::assertSame(true, $this->at('data', 'archived'));
+        self::assertTrue($this->at('data', 'archived'));
         $this->get('/api/v1/catalog/products', [], $this->writer);
         self::assertSame([], $this->json()['data']);
         $this->get('/api/v1/catalog/products', ['archived' => 'true', 'q' => 'retainer'], $this->writer);
-        self::assertSame([$id], array_column($this->json()['data'], 'id'));
+        $listed = $this->json()['data'];
+        self::assertIsArray($listed);
+        self::assertSame([$id], array_column($listed, 'id'));
 
         $this->send('POST', '/api/v1/catalog/products/'.$id.'/restore');
-        self::assertSame(false, $this->at('data', 'archived'));
+        self::assertFalse($this->at('data', 'archived'));
     }
 
     public function testARefusalNamesTheParameterAsTheClientSendsIt(): void
@@ -96,7 +98,9 @@ final class CatalogApiTest extends ApiTestCase
         self::assertIsString($id);
 
         $found = $this->tool('foresi_search_products', ['query' => 'roof']);
-        self::assertSame([$id], array_column($this->in($found, 'structuredContent', 'data', 'items'), 'id'));
+        $items = $this->in($found, 'structuredContent', 'data', 'items');
+        self::assertIsArray($items);
+        self::assertSame([$id], array_column($items, 'id'));
         $one = $this->tool('foresi_get_product', ['id' => $id]);
         self::assertSame(['one_off', 1200000], [$this->in($one, 'structuredContent', 'data', 'billing_kind'), $this->in($one, 'structuredContent', 'data', 'unit_price', 'amount_minor')]);
         $this->get('/api/v1/catalog/products/'.$id, secret: $this->writer);
@@ -171,7 +175,7 @@ final class CatalogApiTest extends ApiTestCase
         if (null !== $this->session) {
             $server['HTTP_MCP_SESSION_ID'] = $this->session;
         }
-        $this->client->request('POST', '/mcp', server: $server, content: json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => $method, 'params' => '' === $method ? [] : ($params ?: new \stdClass())], \JSON_THROW_ON_ERROR));
+        $this->client->request('POST', '/mcp', server: $server, content: json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => $method, 'params' => [] === $params ? new \stdClass() : $params], \JSON_THROW_ON_ERROR));
         self::assertResponseIsSuccessful();
         $this->session ??= $this->client->getResponse()->headers->get('Mcp-Session-Id');
         $body = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);

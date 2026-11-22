@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Infrastructure\Api\Operation;
 
-use Foresi\Catalog\Application\RestoreProductInput;
 use Foresi\Catalog\Application\ProductWrites;
+use Foresi\Catalog\Application\RestoreProductInput;
 use Foresi\Shared\Infrastructure\Operation\OperationHandler;
 use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 

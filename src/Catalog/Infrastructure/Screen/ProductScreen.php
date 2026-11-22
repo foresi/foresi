@@ -42,7 +42,7 @@ final readonly class ProductScreen
     public function billing(Product $product): string
     {
         $unit = $product->recurrenceUnit();
-        if (BillingKind::OneOff === $product->billingKind() || null === $unit) {
+        if (BillingKind::OneOff === $product->billingKind() || !$unit instanceof \Foresi\Shared\Domain\Schedule\RecurrenceUnit) {
             return $this->translator->trans('catalog.billing_kind.one_off');
         }
         $every = $this->translator->trans('catalog.product.every.'.$unit->value, ['count' => $product->interval() ?? 1]);
@@ -77,10 +77,10 @@ final readonly class ProductScreen
             'name' => $product?->name() ?? '',
             'description' => $product?->description() ?? '',
             'unit' => $product?->unit() ?? '',
-            'unitPrice' => $price instanceof Money ? self::decimal($price) : '',
+            'unitPrice' => $price instanceof Money ? $this->decimal($price) : '',
             'currency' => $price?->currency()->value ?? 'CZK',
             'billingKind' => $product?->billingKind()->value ?? BillingKind::OneOff->value,
-            'recurrenceUnit' => $product?->recurrenceUnit()?->value ?? 'month',
+            'recurrenceUnit' => ($product instanceof Product ? $product->recurrenceUnit()?->value : null) ?? 'month',
             'interval' => (string) ($product?->interval() ?? 1),
             'cycles' => null === $product?->cycles() ? '' : (string) $product->cycles(),
         ];
@@ -98,7 +98,7 @@ final readonly class ProductScreen
         ];
     }
 
-    private static function decimal(Money $money): string
+    private function decimal(Money $money): string
     {
         $minor = $money->minor();
 

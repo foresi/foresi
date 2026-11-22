@@ -25,25 +25,25 @@ final class ProductRulesTest extends TestCase
 {
     public function testRecurringNeedsUnitAndInterval(): void
     {
-        $terms = new ProductRules()->terms(self::draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+        $terms = new ProductRules()->terms($this->draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
         self::assertSame([BillingKind::Recurring, RecurrenceUnit::Month, 1, null], [$terms->billingKind, $terms->recurrenceUnit, $terms->interval, $terms->cycles]);
 
-        $this->assertRefused('recurrence_unit_required', 'recurrenceUnit', self::draft(billingKind: 'recurring', interval: 1));
-        $this->assertRefused('interval_required', 'interval', self::draft(billingKind: 'recurring', recurrenceUnit: 'month'));
-        $this->assertRefused('recurrence_unit_unknown', 'recurrenceUnit', self::draft(billingKind: 'recurring', recurrenceUnit: 'fortnight', interval: 1));
-        $this->assertRefused('interval_invalid', 'interval', self::draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 0));
-        $this->assertRefused('interval_invalid', 'interval', self::draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 100));
+        $this->assertRefused('recurrence_unit_required', 'recurrenceUnit', $this->draft(billingKind: 'recurring', interval: 1));
+        $this->assertRefused('interval_required', 'interval', $this->draft(billingKind: 'recurring', recurrenceUnit: 'month'));
+        $this->assertRefused('recurrence_unit_unknown', 'recurrenceUnit', $this->draft(billingKind: 'recurring', recurrenceUnit: 'fortnight', interval: 1));
+        $this->assertRefused('interval_invalid', 'interval', $this->draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 0));
+        $this->assertRefused('interval_invalid', 'interval', $this->draft(billingKind: 'recurring', recurrenceUnit: 'month', interval: 100));
     }
 
     public function testOneOffRefusesRecurrence(): void
     {
-        $terms = new ProductRules()->terms(self::draft());
+        $terms = new ProductRules()->terms($this->draft());
         self::assertSame([BillingKind::OneOff, null, null, null], [$terms->billingKind, $terms->recurrenceUnit, $terms->interval, $terms->cycles]);
 
-        $this->assertRefused('one_off_recurrence', 'recurrenceUnit', self::draft(recurrenceUnit: 'month'));
-        $this->assertRefused('one_off_recurrence', 'interval', self::draft(interval: 1));
-        $this->assertRefused('one_off_recurrence', 'cycles', self::draft(cycles: 3));
-        $this->assertRefused('billing_kind_unknown', 'billingKind', self::draft(billingKind: 'time_based'));
+        $this->assertRefused('one_off_recurrence', 'recurrenceUnit', $this->draft(recurrenceUnit: 'month'));
+        $this->assertRefused('one_off_recurrence', 'interval', $this->draft(interval: 1));
+        $this->assertRefused('one_off_recurrence', 'cycles', $this->draft(cycles: 3));
+        $this->assertRefused('billing_kind_unknown', 'billingKind', $this->draft(billingKind: 'time_based'));
     }
 
     /**
@@ -62,7 +62,7 @@ final class ProductRulesTest extends TestCase
     #[DataProvider('cycles')]
     public function testCyclesPositiveOrNull(?int $cycles, ?string $refusal): void
     {
-        $draft = self::draft(billingKind: 'recurring', recurrenceUnit: 'year', interval: 1, cycles: $cycles);
+        $draft = $this->draft(billingKind: 'recurring', recurrenceUnit: 'year', interval: 1, cycles: $cycles);
         if (null !== $refusal) {
             $this->assertRefused($refusal, 'cycles', $draft);
 
@@ -74,29 +74,29 @@ final class ProductRulesTest extends TestCase
     public function testPriceOptional(): void
     {
         $rules = new ProductRules();
-        self::assertNull($rules->terms(self::draft())->unitPrice);
+        self::assertNull($rules->terms($this->draft())->unitPrice);
 
-        $priced = $rules->terms(self::draft(unitPrice: '1500.50', currency: 'EUR'))->unitPrice;
+        $priced = $rules->terms($this->draft(unitPrice: '1500.50', currency: 'EUR'))->unitPrice;
         self::assertSame([150050, 'EUR'], [$priced?->minor(), $priced?->currency()->value]);
-        self::assertSame(0, $rules->terms(self::draft(unitPrice: '0'))->unitPrice?->minor());
+        self::assertSame(0, $rules->terms($this->draft(unitPrice: '0'))->unitPrice?->minor());
 
-        $this->assertRefused('unit_price_invalid', 'unitPrice', self::draft(unitPrice: '12,5'));
-        $this->assertRefused('unit_price_negative', 'unitPrice', self::draft(unitPrice: '-1'));
-        $this->assertRefused('currency_unknown', 'currency', self::draft(unitPrice: '10', currency: 'GBP'));
+        $this->assertRefused('unit_price_invalid', 'unitPrice', $this->draft(unitPrice: '12,5'));
+        $this->assertRefused('unit_price_negative', 'unitPrice', $this->draft(unitPrice: '-1'));
+        $this->assertRefused('currency_unknown', 'currency', $this->draft(unitPrice: '10', currency: 'GBP'));
     }
 
     public function testNameUnitAndDescriptionAreTrimmedAndBounded(): void
     {
-        $terms = new ProductRules()->terms(self::draft(name: '  Roof audit  ', unit: ' hour ', description: "  Line one\n"));
+        $terms = new ProductRules()->terms($this->draft(name: '  Roof audit  ', unit: ' hour ', description: "  Line one\n"));
         self::assertSame(['Roof audit', 'hour', 'Line one'], [$terms->name, $terms->unit, $terms->description]);
 
-        $this->assertRefused('name_required', 'name', self::draft(name: '  '));
-        $this->assertRefused('name_too_long', 'name', self::draft(name: str_repeat('a', 201)));
-        $this->assertRefused('unit_too_long', 'unit', self::draft(unit: str_repeat('a', 33)));
-        $this->assertRefused('description_too_long', 'description', self::draft(description: str_repeat('a', 2001)));
+        $this->assertRefused('name_required', 'name', $this->draft(name: '  '));
+        $this->assertRefused('name_too_long', 'name', $this->draft(name: str_repeat('a', 201)));
+        $this->assertRefused('unit_too_long', 'unit', $this->draft(unit: str_repeat('a', 33)));
+        $this->assertRefused('description_too_long', 'description', $this->draft(description: str_repeat('a', 2001)));
     }
 
-    private static function draft(
+    private function draft(
         string $name = 'Roof audit',
         string $unit = 'piece',
         ?string $unitPrice = null,

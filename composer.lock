@@ -1843,7 +1843,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "01ec0eb40eee3b0a5be55d7d64fc9fe11253def7"
+                "reference": "487399824a1f5c053d937412c50b90c9bec2a98f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1852,15 +1852,14 @@
                 "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "psr/clock": "^1.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4",
-                "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
                 "zircote/swagger-php": "^7.5"
             },
