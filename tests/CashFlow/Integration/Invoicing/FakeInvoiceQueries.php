@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\CashFlow\Support;
+namespace Foresi\Tests\CashFlow\Integration\Invoicing;
 
 use Foresi\Invoicing\Application\Query\InvoiceListItem;
 use Foresi\Invoicing\Application\Query\InvoiceQueries;

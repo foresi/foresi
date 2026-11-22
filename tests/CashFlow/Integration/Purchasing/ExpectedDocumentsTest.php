@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\CashFlow\Infrastructure;
+namespace Foresi\Tests\CashFlow\Integration\Purchasing;
 
 use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\RecordCheckpointInput;

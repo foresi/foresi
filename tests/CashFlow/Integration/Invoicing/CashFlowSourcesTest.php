@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\CashFlow\Infrastructure;
+namespace Foresi\Tests\CashFlow\Integration\Invoicing;
 
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\RecordMovement;
@@ -98,7 +98,6 @@ use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
-use Foresi\Tests\CashFlow\Support\FakeInvoiceQueries;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -107,6 +106,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * The forecast from the real modules (C13, C15, C16): issued invoices, a
  * recurring template, received documents and bank movements, read through the
  * container at half past midnight in Prague, while UTC is still a day behind.
+ * It needs Invoicing, and Banking and Purchasing beside it, so it runs with
+ * the full set of modules, not in the subset of Cash flow.
  */
 final class CashFlowSourcesTest extends CashFlowTestCase
 {
