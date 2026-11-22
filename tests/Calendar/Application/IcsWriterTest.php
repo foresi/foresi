@@ -27,7 +27,7 @@ final class IcsWriterTest extends TestCase
 
     public function testEscapesTheCalendarName(): void
     {
-        self::assertContains('X-WR-CALNAME:Work\, sales\; mine', $this->unfolded((new IcsWriter())->write('Work, sales; mine', [])));
+        self::assertContains('X-WR-CALNAME:Work\, sales\; mine', $this->unfolded(new IcsWriter()->write('Work, sales; mine', [])));
     }
 
     public function testFoldsLongUtf8LinesWithoutSplittingACharacter(): void
@@ -48,7 +48,7 @@ final class IcsWriterTest extends TestCase
         $ics = $this->written($this->entry('Meeting'));
 
         self::assertStringEndsWith("END:VCALENDAR\r\n", $ics);
-        self::assertSame(0, preg_match("/(?<!\r)\n/", $ics));
+        self::assertDoesNotMatchRegularExpression("/(?<!\r)\n/", $ics);
     }
 
     public function testAllDayUsesValueDateAndNextDayEnd(): void
@@ -75,7 +75,7 @@ final class IcsWriterTest extends TestCase
         $after = new CalendarEntry('b@foresi.example.com', 'After', new \DateTimeImmutable('2026-10-26 10:00', $prague), new \DateTimeImmutable('2026-10-26 11:00', $prague), false, new \DateTimeImmutable('2026-10-01 00:00 UTC'), null);
         $across = new CalendarEntry('c@foresi.example.com', 'Across', new \DateTimeImmutable('2026-10-25 01:30', $prague), new \DateTimeImmutable('2026-10-25 04:30', $prague), false, new \DateTimeImmutable('2026-10-01 00:00 UTC'), null);
 
-        $lines = $this->unfolded((new IcsWriter())->write('Mine', [$before, $after, $across]));
+        $lines = $this->unfolded(new IcsWriter()->write('Mine', [$before, $after, $across]));
 
         self::assertContains('DTSTART:20261024T080000Z', $lines);
         self::assertContains('DTEND:20261024T090000Z', $lines);
@@ -115,7 +115,7 @@ final class IcsWriterTest extends TestCase
 
     public function testCalendarHasProdidNameAndRefreshInterval(): void
     {
-        $lines = $this->unfolded((new IcsWriter())->write('Martin at work', []));
+        $lines = $this->unfolded(new IcsWriter()->write('Martin at work', []));
 
         self::assertSame(['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Foresi//Calendar//EN'], \array_slice($lines, 0, 3));
         self::assertContains('CALSCALE:GREGORIAN', $lines);
@@ -135,7 +135,7 @@ final class IcsWriterTest extends TestCase
 
     private function written(CalendarEntry $entry): string
     {
-        return (new IcsWriter())->write('Mine', [$entry]);
+        return new IcsWriter()->write('Mine', [$entry]);
     }
 
     /**

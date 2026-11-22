@@ -62,7 +62,7 @@ final readonly class CalendarFeedController
             ]);
         }
         $feed = $this->feeds->open($token);
-        if (null === $feed) {
+        if (!$feed instanceof \Foresi\Calendar\Domain\CalendarFeed) {
             return new Response('No such calendar feed.', Response::HTTP_NOT_FOUND, ['Content-Type' => 'text/plain; charset=utf-8', 'X-Robots-Tag' => 'noindex, nofollow']);
         }
 

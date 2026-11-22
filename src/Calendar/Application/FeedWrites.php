@@ -34,7 +34,7 @@ final readonly class FeedWrites
     public function create(CreateFeedInput $input): IssuedFeed
     {
         $userId = $this->me();
-        $name = self::name($input->name);
+        $name = $this->name($input->name);
 
         return $this->store->transaction(function () use ($userId, $name): IssuedFeed {
             $token = FeedToken::generate();
@@ -51,7 +51,7 @@ final readonly class FeedWrites
     public function rename(RenameFeedInput $input): CalendarFeed
     {
         $feed = $this->mine($input->feedId);
-        $name = self::name($input->name);
+        $name = $this->name($input->name);
 
         return $this->store->transaction(static function () use ($feed, $name): CalendarFeed {
             $feed->rename($name);
@@ -109,7 +109,7 @@ final readonly class FeedWrites
         return $this->clock->clock()->now()->setTimezone(new \DateTimeZone('UTC'));
     }
 
-    private static function name(string $name): string
+    private function name(string $name): string
     {
         try {
             return CalendarFeed::validName($name);

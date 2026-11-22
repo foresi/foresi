@@ -38,13 +38,13 @@ final readonly class IcsWriter
             'PRODID:-//Foresi//Calendar//EN',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
-            'X-WR-CALNAME:'.self::text($name),
-            'NAME:'.self::text($name),
+            'X-WR-CALNAME:'.$this->text($name),
+            'NAME:'.$this->text($name),
             'REFRESH-INTERVAL;VALUE=DURATION:'.self::REFRESH,
             'X-PUBLISHED-TTL:'.self::REFRESH,
         ];
         foreach ($entries as $entry) {
-            array_push($lines, ...self::event($entry));
+            array_push($lines, ...$this->event($entry));
         }
         $lines[] = 'END:VCALENDAR';
 
@@ -54,19 +54,19 @@ final readonly class IcsWriter
     /**
      * @return list<string>
      */
-    private static function event(CalendarEntry $entry): array
+    private function event(CalendarEntry $entry): array
     {
-        $lines = ['BEGIN:VEVENT', 'UID:'.self::text($entry->uid), 'DTSTAMP:'.self::utc($entry->lastModified)];
+        $lines = ['BEGIN:VEVENT', 'UID:'.$this->text($entry->uid), 'DTSTAMP:'.$this->utc($entry->lastModified)];
         if ($entry->allDay) {
             $lines[] = 'DTSTART;VALUE=DATE:'.$entry->start->format('Ymd');
             $lines[] = 'DTEND;VALUE=DATE:'.($entry->end ?? $entry->start)->modify('+1 day')->format('Ymd');
         } else {
-            $lines[] = 'DTSTART:'.self::utc($entry->start);
+            $lines[] = 'DTSTART:'.$this->utc($entry->start);
             if ($entry->end instanceof \DateTimeImmutable) {
-                $lines[] = 'DTEND:'.self::utc($entry->end);
+                $lines[] = 'DTEND:'.$this->utc($entry->end);
             }
         }
-        $lines[] = 'SUMMARY:'.self::text($entry->title);
+        $lines[] = 'SUMMARY:'.$this->text($entry->title);
         if (null !== $entry->url) {
             $lines[] = 'URL:'.$entry->url;
         }
@@ -75,7 +75,7 @@ final readonly class IcsWriter
         return $lines;
     }
 
-    private static function utc(\DateTimeImmutable $time): string
+    private function utc(\DateTimeImmutable $time): string
     {
         return $time->setTimezone(new \DateTimeZone('UTC'))->format('Ymd\THis\Z');
     }
@@ -84,7 +84,7 @@ final readonly class IcsWriter
      * A TEXT value (RFC 5545 3.3.11): backslash, semicolon and comma escaped, any
      * line break as \n, other control characters dropped.
      */
-    private static function text(string $value): string
+    private function text(string $value): string
     {
         $value = str_replace(["\r\n", "\r"], "\n", $value);
         $value = (string) preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/', '', $value);

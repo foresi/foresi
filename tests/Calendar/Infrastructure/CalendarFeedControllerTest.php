@@ -40,7 +40,6 @@ use Symfony\Component\Clock\NativeClock;
 final class CalendarFeedControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
-    private IdentityFixtures $fixtures;
     private MockClock $clock;
     private User $owner;
     private User $colleague;
@@ -55,12 +54,12 @@ final class CalendarFeedControllerTest extends WebTestCase
         Clock::set($this->clock);
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->fixtures = new IdentityFixtures($this->em());
-        $this->fixtures->rebuildSchema();
-        $this->owner = $this->fixtures->user('owner@example.com');
-        $this->fixtures->join($this->owner, Role::Owner);
-        $this->colleague = $this->fixtures->user('colleague@example.com');
-        $this->fixtures->join($this->colleague, Role::Member);
+        $fixtures = new IdentityFixtures($this->em());
+        $fixtures->rebuildSchema();
+        $this->owner = $fixtures->user('owner@example.com');
+        $fixtures->join($this->owner, Role::Owner);
+        $this->colleague = $fixtures->user('colleague@example.com');
+        $fixtures->join($this->colleague, Role::Member);
         $this->source = new FakeEntrySource('test.planned', [
             $this->owner->id() => [$this->entry('mine', 'Meeting with Example Customer')],
             $this->colleague->id() => [$this->entry('theirs', 'Colleague dentist')],
