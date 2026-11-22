@@ -37,7 +37,7 @@ final class RecordActivitiesController extends AbstractController
     {
     }
 
-    #[Route('/activities/for/{kind}/{id}', name: RecordActivities::ROUTE, requirements: ['kind' => '[a-z][a-z0-9_]{0,39}', 'id' => Requirement::UUID], methods: ['GET'])]
+    #[Route('/activities/for/{kind}/{id}', name: RecordActivities::ROUTE, requirements: ['kind' => '[a-z0-9_-]{1,40}', 'id' => Requirement::UUID], methods: ['GET'])]
     public function forRecord(string $kind, string $id, Request $request): Response
     {
         try {

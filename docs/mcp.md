@@ -123,6 +123,18 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_remove_document_signer` | **Write, destructive.** Removes a signer (`signer_id`). Staff only. |
 | `foresi_mark_document_signer_signed` | **Write.** Records that a signer signed; the document completes once all signed and the signed copy is attached. Staff only. |
 | `foresi_mark_document_signer_declined` | **Write, destructive.** Records that a signer declined, which declines the document. Staff only. |
+| `foresi_list_activities` | The timeline of a record (`linked_kind`, `linked_id`): planned activities first, the soonest on top, then the done ones, the latest first. Staff only. |
+| `foresi_list_planned_activities` | Your own planned activities that are not done, `from` a day up to the day before `to`. Staff only. |
+| `foresi_get_activity` | One activity (`activity_id`) with its records and files. Staff only. |
+| `foresi_list_activity_types` | The activity types with their timing; archived ones with `include_archived`. Staff only. |
+| `foresi_create_activity` | **Write.** Logs or plans an activity: `type_id`, `subject`, `body`, `planned_on` or `planned_at` with `duration_minutes`, or `done` with `done_at` and `outcome`; `links`, `owner_user_id`. Staff only. |
+| `foresi_update_activity` | **Write.** Changes the fields given of an activity (`activity_id`). Staff only. |
+| `foresi_complete_activity` | **Write.** Marks an activity done with its `outcome` and plans the next one (`next_type_id`, `next_subject`, `next_planned_on` or `next_planned_at`) in one transaction. Staff only. |
+| `foresi_trash_activity` | **Write, destructive.** Puts an activity in the trash. Staff only. |
+| `foresi_restore_activity` | **Write.** Brings an activity back from the trash. Staff only. |
+| `foresi_create_activity_type` | **Write.** Creates an activity type: `name`, `key`, `timing`, `default_duration_minutes`. Staff only. |
+| `foresi_update_activity_type` | **Write.** Changes a type (`type_id`): `name`, `timing`, `default_duration_minutes`. Staff only. |
+| `foresi_archive_activity_type` | **Write, destructive.** Archives a type (`type_id`). Staff only. |
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
 | `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |

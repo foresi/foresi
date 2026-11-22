@@ -65,7 +65,7 @@ activities:
         body: Poznámky
         body_help: 'Markdown.'
         file: Soubor
-        file_help: 'Třeba nahrávka schůzky; další soubory přidáte u aktivity.'
+        file_help: 'Třeba nahrávka schůzky.'
         link: 'Patří k'
     detail:
         title: Podrobnosti

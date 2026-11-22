@@ -65,7 +65,7 @@ activities:
         body: Notes
         body_help: 'Markdown.'
         file: File
-        file_help: 'Such as the recording of a meeting; more files can be added on the activity.'
+        file_help: 'Such as the recording of a meeting.'
         link: 'Belongs to'
     detail:
         title: Details
