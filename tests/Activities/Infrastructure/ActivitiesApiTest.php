@@ -87,16 +87,16 @@ final class ActivitiesApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'to', 'reason' => 'window_invalid']);
 
         $this->send('POST', '/api/v1/activities/'.$next.'/trash');
-        self::assertSame(true, $this->at('data', 'trashed'));
+        self::assertTrue($this->at('data', 'trashed'));
         $this->get('/api/v1/activities', ['linked_kind' => 'contact', 'linked_id' => $this->contactId]);
         self::assertSame([$visit], $this->ids());
         $this->get('/api/v1/activities/'.$next);
-        self::assertSame(true, $this->at('data', 'trashed'), 'One in the trash is still read by its id.');
+        self::assertTrue($this->at('data', 'trashed'), 'One in the trash is still read by its id.');
         $this->send('POST', '/api/v1/activities/'.$next.'/restore');
-        self::assertSame(false, $this->at('data', 'trashed'));
+        self::assertFalse($this->at('data', 'trashed'));
 
         $this->send('POST', '/api/v1/activity-types/'.$followUpId.'/archive');
-        self::assertSame(true, $this->at('data', 'archived'));
+        self::assertTrue($this->at('data', 'archived'));
         $this->get('/api/v1/activity-types');
         self::assertNotContains($followUpId, $this->ids());
         $this->get('/api/v1/activity-types', ['include_archived' => '1']);

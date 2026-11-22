@@ -164,7 +164,7 @@ final readonly class ActivityScreen
     /** A time as a datetime-local field shows it, in the instance's zone. */
     public function field(?\DateTimeImmutable $time): string
     {
-        return null === $time ? '' : $this->local($time)->format('Y-m-d\TH:i');
+        return $time instanceof \DateTimeImmutable ? $this->local($time)->format('Y-m-d\TH:i') : '';
     }
 
     /**

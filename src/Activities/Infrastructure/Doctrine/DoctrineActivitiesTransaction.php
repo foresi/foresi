@@ -10,8 +10,8 @@ namespace Foresi\Activities\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Activities\Application\ActivitiesTransaction;
+use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Id;
 

@@ -47,23 +47,20 @@ class Activity implements Audited
     private string $body;
 
     #[ORM\Column(name: 'planned_on', type: 'date_immutable', nullable: true)]
-    private ?\DateTimeImmutable $plannedOn = null;
+    private ?\DateTimeImmutable $plannedOn;
 
     /** In UTC. */
     #[ORM\Column(name: 'planned_at', type: 'datetime_immutable', nullable: true)]
-    private ?\DateTimeImmutable $plannedAt = null;
+    private ?\DateTimeImmutable $plannedAt;
 
     #[ORM\Column(name: 'duration_minutes', type: 'integer', nullable: true)]
-    private ?int $durationMinutes = null;
+    private ?int $durationMinutes;
 
     #[ORM\Column(name: 'done_at', type: 'datetime_immutable', nullable: true)]
-    private ?\DateTimeImmutable $doneAt = null;
+    private ?\DateTimeImmutable $doneAt;
 
     #[ORM\Column(type: 'string', length: self::MAX_OUTCOME, nullable: true)]
-    private ?string $outcome = null;
-
-    #[ORM\Column(name: 'owner_user_id', type: 'guid')]
-    private string $ownerUserId;
+    private ?string $outcome;
 
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
@@ -85,15 +82,15 @@ class Activity implements Audited
         ActivitySchedule $schedule,
         ?\DateTimeImmutable $doneAt,
         ?string $outcome,
-        string $ownerUserId,
+        #[ORM\Column(name: 'owner_user_id', type: 'guid')]
+        private string $ownerUserId,
         #[ORM\Column(name: 'created_by', type: 'guid')]
         private string $createdBy,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $createdAt,
     ) {
         $this->id = Id::generate();
-        $this->doneAt = null === $doneAt ? null : self::utc($doneAt);
-        $this->ownerUserId = $ownerUserId;
+        $this->doneAt = $doneAt instanceof \DateTimeImmutable ? $this->utc($doneAt) : null;
         $this->updatedAt = $createdAt;
         $this->apply($type, $subject, $body, $schedule, $outcome, $createdAt);
     }
@@ -134,8 +131,8 @@ class Activity implements Audited
         if ($this->isDone()) {
             throw new ActivityConflict('already_done', 'The activity is done already.');
         }
-        $this->outcome = self::cleanOutcome($outcome);
-        $this->doneAt = self::utc($doneAt);
+        $this->outcome = $this->cleanOutcome($outcome);
+        $this->doneAt = $this->utc($doneAt);
         $this->updatedAt = $now;
     }
 
@@ -275,7 +272,7 @@ class Activity implements Audited
         }
         $schedule->checkFor($type);
         if (ActivityTiming::None === $type->timing()) {
-            $this->doneAt ??= self::utc($now);
+            $this->doneAt ??= $this->utc($now);
         }
         if (!$schedule->isPlanned() && !$this->isDone()) {
             throw new InvalidField(ActivityTiming::Date === $type->timing() ? 'plannedOn' : 'plannedAt', 'An activity is planned ahead or logged as done.');
@@ -284,9 +281,9 @@ class Activity implements Audited
         $this->subject = $subject;
         $this->body = $body;
         $this->plannedOn = $schedule->plannedOn;
-        $this->plannedAt = null === $schedule->plannedAt ? null : self::utc($schedule->plannedAt);
+        $this->plannedAt = $schedule->plannedAt instanceof \DateTimeImmutable ? $this->utc($schedule->plannedAt) : null;
         $this->durationMinutes = ActivityTiming::Timed === $type->timing() ? ($schedule->durationMinutes ?? $type->defaultDurationMinutes()) : null;
-        $this->outcome = self::cleanOutcome($outcome);
+        $this->outcome = $this->cleanOutcome($outcome);
     }
 
     /**
@@ -302,7 +299,7 @@ class Activity implements Audited
     /**
      * @throws InvalidField
      */
-    private static function cleanOutcome(?string $outcome): ?string
+    private function cleanOutcome(?string $outcome): ?string
     {
         $outcome = null === $outcome ? null : trim($outcome);
         if (null !== $outcome && mb_strlen($outcome) > self::MAX_OUTCOME) {
@@ -312,7 +309,7 @@ class Activity implements Audited
         return '' === $outcome ? null : $outcome;
     }
 
-    private static function utc(\DateTimeImmutable $time): \DateTimeImmutable
+    private function utc(\DateTimeImmutable $time): \DateTimeImmutable
     {
         return $time->setTimezone(new \DateTimeZone('UTC'));
     }

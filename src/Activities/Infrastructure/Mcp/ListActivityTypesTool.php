@@ -13,7 +13,6 @@ use Foresi\Activities\Application\ActivityReads;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 

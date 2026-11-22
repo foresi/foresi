@@ -40,9 +40,9 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
         self::assertSame([$activity->id()], $this->ids($this->reads()->timeline('contact', $this->contactId)), 'A record the member cannot see still shows what they see through another.');
 
         $this->deals->hide($dealId);
-        $this->assertNotFound(fn () => $this->reads()->activity($activity->id()));
+        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($activity->id()));
         self::assertSame([], $this->reads()->timeline('deal', $dealId));
-        $this->assertNotFound(fn () => $this->activities()->trash(new TrashActivityInput($activity->id())));
+        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->activities()->trash(new TrashActivityInput($activity->id())));
     }
 
     public function testOnlyOwnerSeesActivityWhoseTargetsAreGone(): void
@@ -61,8 +61,8 @@ final class ActivityVisibilityTest extends ActivitiesTestCase
         self::assertSame([$planned->id(), $unlinked->id()], $this->feed($this->owner->user()->id()), 'The feed keeps it for its owner.');
 
         $this->signIn($member);
-        $this->assertNotFound(fn () => $this->reads()->activity($planned->id()));
-        $this->assertNotFound(fn () => $this->reads()->activity($unlinked->id()));
+        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($planned->id()));
+        $this->assertNotFound(fn (): \Foresi\Activities\Domain\Activity => $this->reads()->activity($unlinked->id()));
         self::assertSame([], $this->reads()->timeline('contact', $this->contactId));
         self::assertSame([], $this->feed($member->user()->id()), 'Nobody else gets it in a feed.');
     }

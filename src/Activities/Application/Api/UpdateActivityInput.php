@@ -39,13 +39,13 @@ final readonly class UpdateActivityInput
         #[Field('Notes, in Markdown.', maxLength: Activity::MAX_BODY)]
         public string|Omitted $body = new Omitted(),
         #[Field('The day it is planned on, YYYY-MM-DD; null for none.', format: 'date')]
-        public string|null|Omitted $plannedOn = new Omitted(),
+        public string|Omitted|null $plannedOn = new Omitted(),
         #[Field('When it is planned to start, ISO 8601; null for none.', format: 'date-time')]
-        public string|null|Omitted $plannedAt = new Omitted(),
+        public string|Omitted|null $plannedAt = new Omitted(),
         #[Field('How long it takes, in minutes; null for the type\'s default.')]
-        public int|null|Omitted $durationMinutes = new Omitted(),
+        public int|Omitted|null $durationMinutes = new Omitted(),
         #[Field('What came of it; null for nothing.', maxLength: Activity::MAX_OUTCOME)]
-        public string|null|Omitted $outcome = new Omitted(),
+        public string|Omitted|null $outcome = new Omitted(),
         #[Field('The records it is about, as objects {kind, id}. Replaces all links.', items: Field::OBJECTS)]
         public array|Omitted $links = new Omitted(),
         #[Field('The owner or member it belongs to.', format: 'uuid')]

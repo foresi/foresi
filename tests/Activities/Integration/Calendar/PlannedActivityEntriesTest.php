@@ -12,8 +12,8 @@ use Foresi\Activities\Application\Api\CompleteActivityInput;
 use Foresi\Activities\Application\Api\CreateActivityInput;
 use Foresi\Activities\Application\Api\TrashActivityInput;
 use Foresi\Activities\Integration\Calendar\PlannedActivityEntries;
-use Foresi\Calendar\Contract\CalendarEntry;
 use Foresi\Calendar\Application\CalendarFeedReader;
+use Foresi\Calendar\Contract\CalendarEntry;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Domain\FeedToken;
 use Foresi\Identity\Domain\Role;
@@ -42,7 +42,7 @@ final class PlannedActivityEntriesTest extends ActivitiesTestCase
         self::assertNotContains($outside->id(), $this->ids($this->owner->user()->id()));
         self::assertSame(PlannedActivityEntries::KEY, $this->source()->key());
         $feed = new CalendarFeed($this->owner->user()->id(), 'Work', FeedToken::hash('token'), $this->clock->now());
-        self::assertStringContainsString('SUMMARY:Meeting: Kick-off meeting', self::getContainer()->get(CalendarFeedReader::class)->calendar($feed), 'The calendar feeds read it.');
+        self::assertStringContainsString('SUMMARY:Meeting: Kick-off meeting', (string) self::getContainer()->get(CalendarFeedReader::class)->calendar($feed), 'The calendar feeds read it.');
     }
 
     public function testDateOnlyIsAllDay(): void

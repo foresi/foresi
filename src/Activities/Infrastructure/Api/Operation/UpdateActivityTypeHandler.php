@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Activities\Infrastructure\Api\Operation;
 
-use Foresi\Activities\Application\Api\UpdateActivityTypeInput;
 use Foresi\Activities\Application\ActivityTypeWrites;
+use Foresi\Activities\Application\Api\UpdateActivityTypeInput;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
 use Foresi\Activities\Infrastructure\Api\ActivitiesRoutes;
 use Foresi\Shared\Infrastructure\Operation\OperationHandler;

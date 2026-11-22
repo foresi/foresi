@@ -34,13 +34,13 @@ class ActivityType implements Audited
     private string $key;
 
     #[ORM\Column(type: 'string', length: self::MAX_NAME, nullable: true)]
-    private ?string $name = null;
+    private ?string $name;
 
     #[ORM\Column(type: 'string', length: 8, enumType: ActivityTiming::class)]
     private ActivityTiming $timing;
 
     #[ORM\Column(name: 'default_duration_minutes', type: 'integer', nullable: true)]
-    private ?int $defaultDurationMinutes = null;
+    private ?int $defaultDurationMinutes;
 
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;

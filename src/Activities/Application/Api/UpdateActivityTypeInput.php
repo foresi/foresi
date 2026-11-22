@@ -34,7 +34,7 @@ final readonly class UpdateActivityTypeInput
         #[Field('Which time it has.', enum: ['timed', 'date', 'none'])]
         public string|Omitted $timing = new Omitted(),
         #[Field('For a timed type: the duration of a new activity, in minutes; null for none.')]
-        public int|null|Omitted $defaultDurationMinutes = new Omitted(),
+        public int|Omitted|null $defaultDurationMinutes = new Omitted(),
     ) {
     }
 }

@@ -50,7 +50,7 @@ final readonly class ActivityReads
 
         return Timeline::order(array_values(array_filter(
             $activities,
-            fn (Activity $activity): bool => $this->targets->canSee($activity, self::recordLinks($links[$activity->id()] ?? []), $userId),
+            fn (Activity $activity): bool => $this->targets->canSee($activity, $this->recordLinks($links[$activity->id()] ?? []), $userId),
         )));
     }
 
@@ -107,7 +107,7 @@ final readonly class ActivityReads
      */
     public function links(Activity $activity): array
     {
-        return self::recordLinks($this->store->links($activity));
+        return $this->recordLinks($this->store->links($activity));
     }
 
     /**
@@ -115,7 +115,7 @@ final readonly class ActivityReads
      *
      * @return list<RecordLink>
      */
-    private static function recordLinks(array $links): array
+    private function recordLinks(array $links): array
     {
         return array_map(static fn (ActivityLink $link): RecordLink => new RecordLink($link->kind(), $link->targetId()), $links);
     }

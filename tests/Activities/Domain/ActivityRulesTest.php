@@ -38,10 +38,10 @@ final class ActivityRulesTest extends TestCase
         } catch (InvalidField $invalid) {
             self::assertSame('plannedAt', $invalid->field);
         }
-        $this->assertRefusedAt('plannedOn', fn () => $this->activity($this->type(ActivityTiming::Timed, 60), new ActivitySchedule(plannedOn: new \DateTimeImmutable('2026-11-25'))));
-        $this->assertRefusedAt('plannedAt', fn () => $this->activity($this->type(ActivityTiming::Date), new ActivitySchedule(plannedAt: new \DateTimeImmutable('2026-11-25 10:00'))));
-        $this->assertRefusedAt('plannedAt', fn () => $this->activity($this->type(ActivityTiming::None), new ActivitySchedule(plannedAt: new \DateTimeImmutable('2026-11-25 10:00'))));
-        $this->assertRefusedAt('plannedOn', fn () => $this->activity($this->type(ActivityTiming::None), new ActivitySchedule(plannedOn: new \DateTimeImmutable('2026-11-25'))));
+        $this->assertRefusedAt('plannedOn', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::Timed, 60), new ActivitySchedule(plannedOn: new \DateTimeImmutable('2026-11-25'))));
+        $this->assertRefusedAt('plannedAt', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::Date), new ActivitySchedule(plannedAt: new \DateTimeImmutable('2026-11-25 10:00'))));
+        $this->assertRefusedAt('plannedAt', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::None), new ActivitySchedule(plannedAt: new \DateTimeImmutable('2026-11-25 10:00'))));
+        $this->assertRefusedAt('plannedOn', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::None), new ActivitySchedule(plannedOn: new \DateTimeImmutable('2026-11-25'))));
 
         $task = $this->activity($this->type(ActivityTiming::Date), new ActivitySchedule(plannedOn: new \DateTimeImmutable('2026-11-25')));
         self::assertSame(['2026-11-25', null, null, false], [$task->plannedOn()?->format('Y-m-d'), $task->plannedAt(), $task->durationMinutes(), $task->isDone()]);
@@ -75,8 +75,8 @@ final class ActivityRulesTest extends TestCase
 
     public function testAPlannedOrLoggedActivityNeedsOneOfThem(): void
     {
-        $this->assertRefusedAt('plannedAt', fn () => $this->activity($this->type(ActivityTiming::Timed, 60), ActivitySchedule::none()));
-        $this->assertRefusedAt('plannedOn', fn () => $this->activity($this->type(ActivityTiming::Date), ActivitySchedule::none()));
+        $this->assertRefusedAt('plannedAt', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::Timed, 60), ActivitySchedule::none()));
+        $this->assertRefusedAt('plannedOn', fn (): \Foresi\Activities\Domain\Activity => $this->activity($this->type(ActivityTiming::Date), ActivitySchedule::none()));
 
         $logged = $this->activity($this->type(ActivityTiming::Timed, 15), ActivitySchedule::none(), new \DateTimeImmutable('2026-11-21 15:00 Europe/Prague'));
         self::assertSame(['2026-11-21 14:00', 15], [$logged->doneAt()?->format('Y-m-d H:i'), $logged->durationMinutes()]);
@@ -85,12 +85,12 @@ final class ActivityRulesTest extends TestCase
     public function testFieldsAreCheckedAndTrimmed(): void
     {
         $type = $this->type(ActivityTiming::None);
-        $this->assertRefusedAt('subject', fn () => $this->activity($type, ActivitySchedule::none(), subject: '  '));
-        $this->assertRefusedAt('subject', fn () => $this->activity($type, ActivitySchedule::none(), subject: str_repeat('a', Activity::MAX_SUBJECT + 1)));
-        $this->assertRefusedAt('body', fn () => $this->activity($type, ActivitySchedule::none(), body: str_repeat('a', Activity::MAX_BODY + 1)));
-        $this->assertRefusedAt('outcome', fn () => $this->activity($type, ActivitySchedule::none(), outcome: str_repeat('a', Activity::MAX_OUTCOME + 1)));
-        $this->assertRefusedAt('durationMinutes', static fn () => new ActivitySchedule(durationMinutes: 0));
-        $this->assertRefusedAt('durationMinutes', static fn () => new ActivitySchedule(durationMinutes: ActivityType::MAX_DURATION + 1));
+        $this->assertRefusedAt('subject', fn (): \Foresi\Activities\Domain\Activity => $this->activity($type, ActivitySchedule::none(), subject: '  '));
+        $this->assertRefusedAt('subject', fn (): \Foresi\Activities\Domain\Activity => $this->activity($type, ActivitySchedule::none(), subject: str_repeat('a', Activity::MAX_SUBJECT + 1)));
+        $this->assertRefusedAt('body', fn (): \Foresi\Activities\Domain\Activity => $this->activity($type, ActivitySchedule::none(), body: str_repeat('a', Activity::MAX_BODY + 1)));
+        $this->assertRefusedAt('outcome', fn (): \Foresi\Activities\Domain\Activity => $this->activity($type, ActivitySchedule::none(), outcome: str_repeat('a', Activity::MAX_OUTCOME + 1)));
+        $this->assertRefusedAt('durationMinutes', static fn (): \Foresi\Activities\Domain\ActivitySchedule => new ActivitySchedule(durationMinutes: 0));
+        $this->assertRefusedAt('durationMinutes', static fn (): \Foresi\Activities\Domain\ActivitySchedule => new ActivitySchedule(durationMinutes: ActivityType::MAX_DURATION + 1));
 
         $note = $this->activity($type, ActivitySchedule::none(), subject: str_repeat('a', Activity::MAX_SUBJECT), body: str_repeat('b', Activity::MAX_BODY), outcome: '  ');
         self::assertNull($note->outcome(), 'An empty outcome is none.');
@@ -131,11 +131,11 @@ final class ActivityRulesTest extends TestCase
 
     public function testATypeKeepsItsKeyAndADurationOnlyWhenTimed(): void
     {
-        $this->assertRefusedAt('key', fn () => new ActivityType('Site visit', null, ActivityTiming::Timed, 30, $this->now));
-        $this->assertRefusedAt('name', fn () => new ActivityType('visit', ' ', ActivityTiming::Timed, 30, $this->now));
-        $this->assertRefusedAt('name', fn () => new ActivityType('visit', str_repeat('a', ActivityType::MAX_NAME + 1), ActivityTiming::Timed, 30, $this->now));
-        $this->assertRefusedAt('defaultDurationMinutes', fn () => new ActivityType('visit', null, ActivityTiming::Timed, 0, $this->now));
-        $this->assertRefusedAt('defaultDurationMinutes', fn () => new ActivityType('visit', null, ActivityTiming::Timed, ActivityType::MAX_DURATION + 1, $this->now));
+        $this->assertRefusedAt('key', fn (): \Foresi\Activities\Domain\ActivityType => new ActivityType('Site visit', null, ActivityTiming::Timed, 30, $this->now));
+        $this->assertRefusedAt('name', fn (): \Foresi\Activities\Domain\ActivityType => new ActivityType('visit', ' ', ActivityTiming::Timed, 30, $this->now));
+        $this->assertRefusedAt('name', fn (): \Foresi\Activities\Domain\ActivityType => new ActivityType('visit', str_repeat('a', ActivityType::MAX_NAME + 1), ActivityTiming::Timed, 30, $this->now));
+        $this->assertRefusedAt('defaultDurationMinutes', fn (): \Foresi\Activities\Domain\ActivityType => new ActivityType('visit', null, ActivityTiming::Timed, 0, $this->now));
+        $this->assertRefusedAt('defaultDurationMinutes', fn (): \Foresi\Activities\Domain\ActivityType => new ActivityType('visit', null, ActivityTiming::Timed, ActivityType::MAX_DURATION + 1, $this->now));
 
         $type = new ActivityType('site_visit', ' Site visit ', ActivityTiming::Timed, ActivityType::MAX_DURATION, $this->now);
         self::assertSame(['site_visit', 'Site visit', 1440], [$type->key(), $type->name(), $type->defaultDurationMinutes()]);

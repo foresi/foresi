@@ -37,7 +37,7 @@ final class CompleteAndPlanNextTest extends ActivitiesTestCase
         $next = $this->store()->activity($next->id());
         self::assertInstanceOf(Activity::class, $next);
         self::assertSame(['Send the audit proposal', '2026-11-27', false, $this->owner->user()->id()], [$next->subject(), $next->plannedOn()?->format('Y-m-d'), $next->isDone(), $next->ownerUserId()]);
-        self::assertSame([['contact', $this->contactId]], array_map(static fn ($link): array => [$link->kind(), $link->targetId()], $this->store()->links($next)), 'The next one is about the same records.');
+        self::assertSame([['contact', $this->contactId]], array_map(static fn (\Foresi\Activities\Domain\ActivityLink $link): array => [$link->kind(), $link->targetId()], $this->store()->links($next)), 'The next one is about the same records.');
         self::assertCount(1, $this->eventData('activities.activity.done'));
         self::assertCount(2, $this->eventData('activities.activity.created'));
         self::assertStringContainsString('"type_key":"task"', $this->eventData('activities.activity.created')[1]);
@@ -67,7 +67,7 @@ final class CompleteAndPlanNextTest extends ActivitiesTestCase
     public function testTheNextOneIsCheckedAtItsOwnFields(): void
     {
         $meeting = $this->planned('Kick-off meeting');
-        $complete = fn (CompleteActivityInput $input) => $this->activities()->complete($input);
+        $complete = fn (CompleteActivityInput $input): array => $this->activities()->complete($input);
 
         foreach ([
             'nextTypeId' => new CompleteActivityInput($meeting->id(), nextSubject: 'Follow up', nextPlannedOn: '2026-11-27'),
