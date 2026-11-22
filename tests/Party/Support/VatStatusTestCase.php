@@ -26,6 +26,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -56,6 +57,7 @@ abstract class VatStatusTestCase extends KernelTestCase
         $tool->createSchema($metadata);
         $this->clock = new MockClock('2026-11-20 10:00:00', 'UTC');
         Clock::set($this->clock);
+        InstanceZone::set(self::getContainer());
 
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), $this->vatId(), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, '');
         $this->em->persist($this->firm);
