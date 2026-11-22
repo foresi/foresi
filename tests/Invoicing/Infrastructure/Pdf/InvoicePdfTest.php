@@ -502,7 +502,7 @@ final class InvoicePdfTest extends InvoiceTestCase
     {
         foreach (['intertnum', 'intertnumb'] as $face) {
             /** @var array{cw: array<int, int>} $font */
-            $font = json_decode((string) file_get_contents(self::getContainer()->getParameter('kernel.project_dir').'/src/Invoicing/resources/pdf-fonts/'.$face.'.json'), true, flags: \JSON_THROW_ON_ERROR);
+            $font = json_decode((string) file_get_contents(self::getContainer()->getParameter('kernel.project_dir').'/src/Shared/resources/pdf-fonts/'.$face.'.json'), true, flags: \JSON_THROW_ON_ERROR);
             self::assertCount(1, array_unique(array_map(static fn (int $digit): int => $font['cw'][48 + $digit], range(0, 9))));
         }
     }

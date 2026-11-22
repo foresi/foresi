@@ -6,13 +6,14 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Tests\Shared\Infrastructure\Pdf;
 
 use Com\Tecnick\Pdf\PdfConformance;
 use Com\Tecnick\Pdf\Tcpdf;
-use Foresi\Invoicing\Infrastructure\Pdf\EmbeddedFile;
-use Foresi\Invoicing\Infrastructure\Pdf\PdfEngine;
-use Foresi\Invoicing\Infrastructure\Pdf\QrFigure;
+use Foresi\Shared\Infrastructure\Pdf\EmbeddedFile;
+use Foresi\Shared\Infrastructure\Pdf\PageLayout;
+use Foresi\Shared\Infrastructure\Pdf\PdfEngine;
+use Foresi\Shared\Infrastructure\Pdf\QrFigure;
 use Foresi\Tests\Support\VeraPdf;
 use PHPUnit\Framework\TestCase;
 
@@ -63,7 +64,7 @@ final class PdfEngineTest extends TestCase
      */
     public function testTheConformanceCheckTellsTheLevelsApart(): void
     {
-        $directory = realpath(__DIR__.'/../../../../src/Invoicing/resources/pdf-fonts');
+        $directory = realpath(__DIR__.'/../../../../src/Shared/resources/pdf-fonts');
         self::assertIsString($directory);
         $library = \dirname((string) new \ReflectionClass(Tcpdf::class)->getFileName()).'/include';
         $pdf = new Tcpdf(unit: 'mm', isunicode: true, subsetfont: true, compress: true, mode: PdfConformance::Pdfa3b, fileOptions: ['allowedHosts' => [], 'allowedPaths' => [$directory, $library]]);
@@ -131,6 +132,29 @@ final class PdfEngineTest extends TestCase
         VeraPdf::assertConforms($pdf, '3a');
     }
 
+    public function testAnInvoiceIsDrawnOnPortraitA4(): void
+    {
+        $raw = $this->engine()->document('T', 'cs', '<p>x</p>', null);
+
+        self::assertSame([595.3, 841.9], $this->pageSize($raw));
+    }
+
+    public function testALayoutSetsThePageSizeAndOrientation(): void
+    {
+        $layout = new PageLayout(widthMm: 215.9, heightMm: 279.4, landscape: true, marginTopMm: 20.0, marginRightMm: 20.0, marginBottomMm: 20.0, marginLeftMm: 20.0);
+        $raw = $this->engine()->document('T', 'cs', '<p>x</p>', null, layout: $layout);
+
+        self::assertSame([792.0, 612.0], $this->pageSize($raw));
+        VeraPdf::assertConforms($raw, '3a');
+    }
+
+    public function testALayoutRefusesMarginsThatLeaveNoRoom(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new PageLayout(widthMm: 210.0, heightMm: 297.0, landscape: false, marginTopMm: 150.0, marginRightMm: 20.0, marginBottomMm: 150.0, marginLeftMm: 20.0);
+    }
+
     public function testNothingIsReadOutsideTheAllowedDirectories(): void
     {
         $this->writePng($this->logoDirectory.'/inside.png', alpha: false);
@@ -144,6 +168,18 @@ final class PdfEngineTest extends TestCase
         self::assertStringContainsString('/Subtype /Image', $control);
         self::assertStringNotContainsString('/Subtype /Image', $outside);
         self::assertStringNotContainsString('localhost', $outside);
+    }
+
+    /**
+     * The width and height of the first page in points, to a tenth.
+     *
+     * @return array{float, float}
+     */
+    private function pageSize(string $raw): array
+    {
+        self::assertSame(1, preg_match('~/MediaBox \[[\d.]+ [\d.]+ ([\d.]+) ([\d.]+)\]~', $raw, $box));
+
+        return [round((float) $box[1], 1), round((float) $box[2], 1)];
     }
 
     /** A PDF text string: UTF-16BE with a byte order mark. */

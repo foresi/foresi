@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Shared\Infrastructure\Pdf;
 
 use Com\Tecnick\Pdf\AFRelationship;
 use Com\Tecnick\Pdf\PdfConformance;
@@ -25,11 +25,10 @@ final readonly class PdfEngine
     private const string FONT = 'intertnum';
     private const string DISPLAY_FONT = 'interdisplay';
     private const float FONT_SIZE = 9.0;
-    private const float MARGIN_MM = 15.0;
-    private const float PAGE_WIDTH_MM = 210.0;
-    private const float PAGE_HEIGHT_MM = 297.0;
-    private const float CONTENT_BOTTOM_MM = 20.0;
-    private const float FOOTER_FROM_BOTTOM_MM = 12.0;
+    /** How far above the bottom of the content the footer line starts, in millimetres. */
+    private const float FOOTER_ABOVE_CONTENT_BOTTOM_MM = 8.0;
+    /** How much lower than the content the page's own bottom margin lies, in millimetres. */
+    private const float PAGE_BOTTOM_BELOW_CONTENT_MM = 5.0;
     private const float FOOTER_SIZE = 7.0;
     private const string CREATOR = 'Foresi';
 
@@ -53,6 +52,7 @@ final readonly class PdfEngine
      * @param string                            $language BCP 47 tag of the document, for example "cs"
      * @param string                            $htmlHead what comes before the body: the QR code keeps its place below it, however tall it grows
      * @param (\Closure(int, int): string)|null $footer   the footer of a page, from its number and the number of pages
+     * @param PageLayout|null                   $layout   the paper and margins; an invoice's when not given
      *
      * @return string the PDF bytes
      */
@@ -64,7 +64,9 @@ final readonly class PdfEngine
         ?QrFigure $qr = null,
         string $htmlHead = '',
         ?\Closure $footer = null,
+        ?PageLayout $layout = null,
     ): string {
+        $layout ??= PageLayout::invoice();
         $logos = $this->existingLogoDirectories();
         $pdf = new Tcpdf(
             unit: 'mm',
@@ -92,25 +94,31 @@ final readonly class PdfEngine
         $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
 
         // Every page keeps these: a table that breaks continues inside them.
-        $margin = self::MARGIN_MM;
-        $pdf->addPage(['margin' => ['PL' => $margin, 'PR' => $margin, 'PT' => $margin, 'PB' => $margin, 'HB' => $margin, 'FT' => $margin, 'CT' => $margin, 'CB' => self::CONTENT_BOTTOM_MM]]);
+        $top = $layout->marginTopMm;
+        $pageBottom = max(0.0, $layout->marginBottomMm - self::PAGE_BOTTOM_BELOW_CONTENT_MM);
+        $pdf->addPage([
+            'width' => $layout->widthMm,
+            'height' => $layout->heightMm,
+            'orientation' => $layout->landscape ? 'L' : 'P',
+            'margin' => ['PL' => $layout->marginLeftMm, 'PR' => $layout->marginRightMm, 'PT' => $top, 'PB' => $pageBottom, 'HB' => $top, 'FT' => $pageBottom, 'CT' => $top, 'CB' => $layout->marginBottomMm],
+        ]);
         $pdf->page->addContent($regular['out']);
 
         $page = $pdf->page->getPageID();
-        $bodyTop = self::MARGIN_MM;
+        $bodyTop = $top;
         if ('' !== $htmlHead) {
-            $pdf->addHTMLCell(html: $htmlHead, posx: self::MARGIN_MM, posy: self::MARGIN_MM, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
+            $pdf->addHTMLCell(html: $htmlHead, posx: $layout->marginLeftMm, posy: $top, width: $layout->contentWidthMm());
             $bodyTop = $pdf->getLastHTMLCellEnd()['y'];
         }
 
-        $pdf->addHTMLCell(html: $htmlBody, posx: self::MARGIN_MM, posy: $bodyTop, width: self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM);
+        $pdf->addHTMLCell(html: $htmlBody, posx: $layout->marginLeftMm, posy: $bodyTop, width: $layout->contentWidthMm());
 
         if ($qr instanceof QrFigure) {
-            $this->drawQr($pdf, $qr, $page, $bodyTop - self::MARGIN_MM);
+            $this->drawQr($pdf, $qr, $page, $bodyTop - $top, $layout);
         }
 
         if ($footer instanceof \Closure) {
-            $this->drawFooters($pdf, $footer);
+            $this->drawFooters($pdf, $footer, $layout);
         }
 
         if ($file instanceof EmbeddedFile) {
@@ -131,16 +139,16 @@ final readonly class PdfEngine
      *
      * @param \Closure(int, int): string $footer
      */
-    private function drawFooters(Tcpdf $pdf, \Closure $footer): void
+    private function drawFooters(Tcpdf $pdf, \Closure $footer, PageLayout $layout): void
     {
         $font = $pdf->font->insert($pdf->pon, self::FONT, '', self::FOOTER_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
         $pages = $pdf->page->getPageID() + 1;
         for ($page = 0; $page < $pages; ++$page) {
             $text = $pdf->getTextCell(
                 $footer($page + 1, $pages),
-                self::MARGIN_MM,
-                self::PAGE_HEIGHT_MM - self::FOOTER_FROM_BOTTOM_MM,
-                self::PAGE_WIDTH_MM - 2 * self::MARGIN_MM,
+                $layout->marginLeftMm,
+                $layout->pageHeightMm() - $layout->marginBottomMm + self::FOOTER_ABOVE_CONTENT_BOTTOM_MM,
+                $layout->contentWidthMm(),
                 valign: 'T',
                 halign: 'L',
             );
@@ -170,7 +178,7 @@ final readonly class PdfEngine
     /**
      * @param float $shift how far a head pushed the body down, in millimetres
      */
-    private function drawQr(Tcpdf $pdf, QrFigure $qr, int $pid, float $shift): void
+    private function drawQr(Tcpdf $pdf, QrFigure $qr, int $pid, float $shift, PageLayout $layout): void
     {
         $top = $qr->y + $shift;
 
@@ -185,7 +193,7 @@ final readonly class PdfEngine
         );
 
         // The Figure bounding box is in points from the bottom left corner of the page.
-        $pageHeight = $pdf->toPoints(self::PAGE_HEIGHT_MM);
+        $pageHeight = $pdf->toPoints($layout->pageHeightMm());
         $pdf->addTaggedFigureContent(
             $drawing,
             $pid,

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Infrastructure\Pdf;
+namespace Foresi\Shared\Infrastructure\Pdf;
 
 /**
  * A file attached to a PDF/A-3 document. It is always written as an

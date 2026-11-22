@@ -41,7 +41,6 @@
         "symfony/uid": "7.4.*",
         "symfony/validator": "7.4.*",
         "tecnickcom/tc-lib-barcode": "^2.17.2",
-        "tecnickcom/tc-lib-pdf": "^8.82.2",
         "twig/twig": "^3.30",
         "zircote/swagger-php": "^7.5"
     },
