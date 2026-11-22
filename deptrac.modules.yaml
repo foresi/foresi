@@ -1016,6 +1016,8 @@ deptrac:
     vat:
       - audit
       - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
       - identity
       - identity_contract
       - instance
@@ -1030,6 +1032,7 @@ deptrac:
     vat_contract:
       - audit
       - audit_contract
+      - exchange_rate_contract
       - identity
       - identity_contract
       - instance
@@ -1043,6 +1046,8 @@ deptrac:
       - audit
       - audit_contract
       - cash_flow_contract
+      - exchange_rate
+      - exchange_rate_contract
       - identity
       - identity_contract
       - instance
@@ -1058,6 +1063,8 @@ deptrac:
     vat_integration_invoicing:
       - audit
       - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
       - identity
       - identity_contract
       - instance
@@ -1074,6 +1081,8 @@ deptrac:
     vat_integration_purchasing:
       - audit
       - audit_contract
+      - exchange_rate
+      - exchange_rate_contract
       - identity
       - identity_contract
       - instance

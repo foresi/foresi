@@ -142,7 +142,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates and amounts, an estimate; see [VAT](#vat). |
-| `/api/v1/vat/periods/{key}` | `vat:read` | One VAT period with the documents behind its amounts; see [VAT](#vat). |
+| `/api/v1/vat/periods/{key}` | `vat:read` | One VAT period with the documents and the recurring invoices behind its amounts; see [VAT](#vat). |
 | `/api/v1/vat/settings` | `vat:read` | Where the firm pays its VAT; see [VAT](#vat). |
 | `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
 | `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |

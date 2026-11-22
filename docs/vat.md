@@ -1,10 +1,10 @@
 # VAT
 
-The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It counts the **VAT of the documents** in each period, puts what each period expects into the **Cash flow forecast**, finds the **bank payments** that settle it, and keeps **where the firm pays its VAT**. Later steps add the VAT of recurring invoices and plans.
+The VAT module (`src/Vat`, id `vat`, package `foresi/vat`, scope `vat`) shows a firm that is a VAT payer its **VAT periods**: which month or quarter it files, when the return and the payment are due, and when a refund is expected. It counts the **VAT of the documents** and of the **recurring invoices** not issued yet in each period, puts what each period expects into the **Cash flow forecast**, finds the **bank payments** that settle it, and keeps **where the firm pays its VAT**. Later steps add the VAT of plans.
 
 Every answer is an **estimate**, not the base of a return. It says so (`estimate: true`), names the rules nobody has confirmed from a primary source yet (`unverified`) and what the amounts do not count yet (`known_gaps`). A past period that is not paid is never called overdue.
 
-The module is optional. It requires Party, Identity, Ui and the core modules. Cash flow, Invoicing and Purchasing are optional (ADR 0033). The rules of a country come from a country module through `Foresi\Vat\Contract\VatCountryRules`; the Country module has the Czech ones.
+The module is optional. It requires Party, Identity, Exchange rates, Ui and the core modules. Cash flow, Invoicing and Purchasing are optional (ADR 0033). The rules of a country come from a country module through `Foresi\Vat\Contract\VatCountryRules`; the Country module has the Czech ones.
 
 ## Who works with it
 
@@ -28,9 +28,10 @@ Each period has its output VAT, its deductible input VAT and the result, the out
 - **Received documents** (`purchasing.received_vat`): the recorded documents not in the trash, in their deduction month. Domestic VAT the supplier charged is input. In the self-assessed treatments (domestic reverse charge, a service from the EU or from outside it) the VAT is both output and input. Non-deductible VAT, a document without VAT and a draft give nothing. A credit note lowers the input. A document whose VAT has no CZK amount counts zero, and the period warns `missing_czk_vat` and names it in `missing_czk`.
 - A document counts in the period whose month or quarter holds the day it counts on, so a quarterly filer finds a received document's deduction month in its quarter.
 - A document counts only when the firm is a payer on its tax point. The deduction of VAT on supplies received before the registration is not supported (`known_gaps`: `deduction_before_registration`): a payer from 12 November 2026 deducts nothing for a document with the tax point 5 November, even in its deduction month November.
-- `breakdown` keeps the documents, the schedules and the plans apart, and `steps` shows the output, the input and the result with the rule and the sources of each. Recurring invoices and plans are not counted yet (`schedules_not_counted`, `plans_not_counted`).
+- **Recurring invoices** (`invoicing.recurring_vat`, through `Foresi\Vat\Contract\VatScheduleSource`): each occurrence of an active template that is not issued yet, the same ones the Cash flow forecast counts, adds output VAT in the period of the tax point its invoice would get when issued that day. The VAT is that of the template's lines, priced as an issue prices them. A paused or ended template adds nothing, and a line in reverse charge adds no output. An issued occurrence is an invoice and counts once, as a document: the template's next date has moved past it. A template in another currency is converted at today's rate of the Czech National Bank, and the period warns `fx_today`; a currency without a rate today counts zero and warns `missing_czk_vat`.
+- `breakdown` keeps the documents, the schedules and the plans apart, and `steps` shows the output, the input and the result with the rule and the sources of each. Plans are not counted yet (`plans_not_counted`).
 
-`GET /api/v1/vat/periods/{key}` lists the documents of one period. A token that may not read the invoices or the received documents sees the totals only, and the source in `restricted_sources`.
+`GET /api/v1/vat/periods/{key}` lists the documents and the recurring invoices (`schedules`) of one period. A token that may not read the invoices or the received documents sees the totals only, and the source in `restricted_sources`.
 
 ## Czech rules
 

@@ -756,8 +756,8 @@ nelmio_api_doc:
                         periods: { type: array, items: { $ref: '#/components/schemas/VatPeriod' } }
                         warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
                         unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
-                        known_gaps: { type: array, items: { type: string }, example: [schedules_not_counted, plans_not_counted, deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
-                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat, whose documents count nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
+                        known_gaps: { type: array, items: { type: string }, example: [plans_not_counted, deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
+                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document and schedule sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat, invoicing.recurring_vat. What they hold counts nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
                         unassigned_payments: { type: array, description: 'The bank movements to or from the tax office that pay no period, oldest first, for a person to place with PUT /api/v1/vat/payments/{movementId}.', items: { $ref: '#/components/schemas/VatPayment' } }
                         possible_duplicates:
                             type: array
@@ -786,11 +786,12 @@ nelmio_api_doc:
                     allOf:
                         - { $ref: '#/components/schemas/VatPeriods' }
                         - type: object
-                          required: [period, documents, restricted_sources]
+                          required: [period, documents, schedules, restricted_sources]
                           properties:
                               period: { $ref: '#/components/schemas/VatPeriod' }
                               documents: { type: array, description: 'The documents counted in the period, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatDocument' } }
-                              restricted_sources: { type: array, items: { type: string }, example: [invoicing.issued_vat], description: The sources whose documents the token may not read; their amounts still count in the totals. }
+                              schedules: { type: array, description: 'The occurrences of schedules not issued yet counted in the period, such as the next invoices of recurring templates, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatSchedule' } }
+                              restricted_sources: { type: array, items: { type: string }, example: [invoicing.issued_vat], description: The sources whose documents or schedules the token may not read; their amounts still count in the totals. }
                 VatDocument:
                     type: object
                     required: [source, subject, label, counts_on, tax_point_on, output, input, missing_czk]
@@ -803,6 +804,18 @@ nelmio_api_doc:
                         output: { $ref: '#/components/schemas/Money' }
                         input: { $ref: '#/components/schemas/Money' }
                         missing_czk: { type: boolean, description: 'The VAT has no CZK amount, so it counts zero.' }
+                VatSchedule:
+                    type: object
+                    required: [source, subject, label, tax_point_on, output, output_in_currency, fx_today, missing_czk]
+                    properties:
+                        source: { type: string, example: invoicing.recurring_vat }
+                        subject: { type: object, required: [type, id, url], properties: { type: { type: string, enum: [recurring_invoice] }, id: { type: string, format: uuid }, url: { type: string, nullable: true } } }
+                        label: { type: string, example: 'Hosting (2026-12-01)', description: The name of the template and the day of the occurrence. }
+                        tax_point_on: { type: string, format: date, description: 'The tax point the issued invoice would get; it decides the period, and it counts only when the firm is a payer on this day.' }
+                        output: { $ref: '#/components/schemas/Money', description: The output VAT in CZK. }
+                        output_in_currency: { $ref: '#/components/schemas/Money', description: The output VAT in the currency of the schedule. }
+                        fx_today: { type: boolean, description: 'The output is converted from another currency at today''s rate.' }
+                        missing_czk: { type: boolean, description: 'The currency has no rate today, so it counts zero.' }
                 VatPart:
                     type: object
                     required: [output, input]
@@ -847,8 +860,8 @@ nelmio_api_doc:
                                     amount: { $ref: '#/components/schemas/Money' }
                                     rule: { type: string, example: output VAT minus deductible input VAT }
                                     sources: { type: array, items: { type: string }, description: 'The document sources of the step, or the steps the result is computed from.' }
-                        warnings: { type: array, items: { type: string }, example: [missing_czk_vat], description: 'missing_czk_vat: a document counted has no CZK amount of its VAT; missing_czk names it.' }
-                        missing_czk: { type: array, items: { type: string }, description: The labels of the documents counted without a CZK amount of their VAT. }
+                        warnings: { type: array, items: { type: string }, example: [missing_czk_vat, fx_today], description: 'missing_czk_vat: a document or a schedule counted has no CZK amount of its VAT; missing_czk names it. fx_today: a schedule in another currency is converted at today''s rate.' }
+                        missing_czk: { type: array, items: { type: string }, description: The labels of the documents and schedules counted without a CZK amount of their VAT. }
                 VatSettings:
                     type: object
                     required: [office_account, variable_symbol, suggestion]

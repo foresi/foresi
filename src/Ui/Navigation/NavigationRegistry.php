@@ -147,6 +147,7 @@ final readonly class NavigationRegistry
                 $item->commandLabelKey,
                 $item->commandRoute,
                 $item->countCap,
+                $item->marksArea,
             )];
         }
 

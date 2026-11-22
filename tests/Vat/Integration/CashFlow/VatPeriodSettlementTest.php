@@ -237,7 +237,7 @@ final class VatPeriodSettlementTest extends VatTestCase
 
         $list = $this->vat([$failing, $partial])->list('2026-11', '2026-11');
 
-        self::assertSame(['purchasing.received_vat', VatPeriods::PAYMENT_SOURCE, 'banking.movements'], $list->unavailableSources);
+        self::assertSame(['purchasing.received_vat', 'invoicing.recurring_vat', VatPeriods::PAYMENT_SOURCE, 'banking.movements'], $list->unavailableSources);
         self::assertSame(PeriodState::NotYetPaid, $list->periods[0]->state);
     }
 

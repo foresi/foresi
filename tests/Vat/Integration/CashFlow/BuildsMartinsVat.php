@@ -12,6 +12,7 @@ use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\FlowSubject;
+use Foresi\ExchangeRate\Application\ExchangeRates;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Shared\Domain\Currency;
@@ -60,7 +61,7 @@ trait BuildsMartinsVat
         $bank = new BankVatPayments(new RuleMovements([new FakeActualSource('banking.movements', $this->movements)]));
         $payments ??= [$asked instanceof \ArrayObject ? new RecordingPaymentSource($bank, $asked) : $bank];
 
-        return new VatPeriods($container->get(VatAccess::class), $container->get(VatRules::class), $container->get(FirmVatStatuses::class), $container->get(InstanceClock::class), [$documents], new NullLogger(), $container->get(VatStore::class), $payments, $planned);
+        return new VatPeriods($container->get(VatAccess::class), $container->get(VatRules::class), $container->get(FirmVatStatuses::class), $container->get(InstanceClock::class), [$documents], new NullLogger(), $container->get(ExchangeRates::class), store: $container->get(VatStore::class), payments: $payments, plannedItems: $planned);
     }
 
     private function period(string $key): PeriodView
