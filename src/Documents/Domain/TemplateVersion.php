@@ -60,7 +60,7 @@ class TemplateVersion implements Audited
     private ?\DateTimeImmutable $frozenAt = null;
 
     public function __construct(DocumentTemplate $template, int $number, string $body, PageSettings $page, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt)
+        private \DateTimeImmutable $createdAt)
     {
         if ($number < 1) {
             throw new \InvalidArgumentException('Template versions are numbered from 1.');

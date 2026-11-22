@@ -31,9 +31,8 @@ class DocumentLink
         private string $kind,
         #[ORM\Id]
         #[ORM\Column(name: 'target_id', type: 'guid')]
-        private string $targetId
-    )
-    {
+        private string $targetId,
+    ) {
     }
 
     public function documentId(): string

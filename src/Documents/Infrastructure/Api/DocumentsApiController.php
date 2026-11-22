@@ -14,8 +14,6 @@ use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
 use Foresi\Documents\Domain\Document;
-use Foresi\Documents\Domain\DocumentTemplate;
-use Foresi\Documents\Domain\DocumentType;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -94,7 +92,7 @@ final readonly class DocumentsApiController
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'There is no such document, or it has no such file yet.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    public function file(string $documentId, string $file, Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function file(string $documentId, string $file, Request $request): BinaryFileResponse
     {
         $this->scope->require(self::READ_SCOPE);
         $attachment = $this->attachments->get($this->reads->fileOf($documentId, $file)) ?? throw DocumentsRefused::notFound(\sprintf('The document has no %s file.', $file));

@@ -146,7 +146,7 @@ abstract class DocumentsTestCase extends KernelTestCase
     {
         $this->em->clear();
         $fresh = $this->store()->document($document->id());
-        self::assertInstanceOf(\Foresi\Documents\Domain\Document::class, $fresh);
+        self::assertInstanceOf(Document::class, $fresh);
 
         return $fresh;
     }

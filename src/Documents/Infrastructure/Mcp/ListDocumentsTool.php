@@ -11,7 +11,6 @@ namespace Foresi\Documents\Infrastructure\Mcp;
 use Foresi\Documents\Application\DocumentFilter;
 use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
-use Foresi\Documents\Domain\Document;
 use Foresi\Documents\Domain\DocumentStatus;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
 use Foresi\Shared\Infrastructure\Mcp\ReadTool;

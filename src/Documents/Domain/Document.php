@@ -97,8 +97,8 @@ class Document implements Audited
      * by the store, since changes to collections of audited entities are not audited.
      */
     public function __construct(DocumentType $type, DocumentTemplate $template, string $title, #[ORM\Column(name: 'created_by', type: 'guid')]
-    private string $createdBy, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt)
+        private string $createdBy, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+        private \DateTimeImmutable $createdAt)
     {
         if ($template->typeId() !== $type->id()) {
             throw new \InvalidArgumentException('The template is of another type.');

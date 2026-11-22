@@ -45,7 +45,7 @@ class DocumentType implements Audited
     private ?\DateTimeImmutable $archivedAt = null;
 
     public function __construct(string $name, string $code, bool $needsSigning, SignatureLevel $signatureLevel, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt)
+        private \DateTimeImmutable $createdAt)
     {
         if (1 !== preg_match('/^[a-z][a-z0-9_]{0,39}$/', $code)) {
             throw new \InvalidArgumentException('A type code is a lowercase identifier of up to 40 characters, such as "nda".');

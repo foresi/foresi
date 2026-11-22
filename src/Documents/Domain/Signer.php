@@ -56,8 +56,8 @@ class Signer implements Audited
     private ?string $method = null;
 
     public function __construct(#[ORM\ManyToOne(targetEntity: Document::class)]
-    #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
-    private Document $document, string $name, ?string $email, ?string $partyPersonId, SignerSide $side, int $order)
+        #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
+        private Document $document, string $name, ?string $email, ?string $partyPersonId, SignerSide $side, int $order)
     {
         $this->id = Id::generate();
         $this->change($name, $email, $partyPersonId, $side, $order);

@@ -59,9 +59,9 @@ final class PdfRendererTest extends TestCase
     private function renderer(): TcpdfDocumentRenderer
     {
         $this->footers = new \ArrayObject();
-        $translator = new class($this->footers) implements TranslatorInterface {
+        $translator = new readonly class($this->footers) implements TranslatorInterface {
             /** @param \ArrayObject<int, string> $footers */
-            public function __construct(private readonly \ArrayObject $footers)
+            public function __construct(private \ArrayObject $footers)
             {
             }
 

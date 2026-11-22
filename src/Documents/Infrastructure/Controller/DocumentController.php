@@ -126,7 +126,7 @@ final class DocumentController extends AbstractController
         $this->checkToken($request);
         $values = ['typeId' => trim($request->request->getString('typeId')), 'templateId' => trim($request->request->getString('templateId')), 'title' => trim($request->request->getString('title'))];
         try {
-            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], $link instanceof \Foresi\Documents\Contract\RecordLink ? [['kind' => $link->kind, 'id' => $link->id]] : []));
+            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], $link instanceof RecordLink ? [['kind' => $link->kind, 'id' => $link->id]] : []));
         } catch (DocumentsRefused $refused) {
             $this->denyIfForbidden($refused);
 
@@ -326,7 +326,7 @@ final class DocumentController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'link' => $link,
-            'linkView' => $link instanceof \Foresi\Documents\Contract\RecordLink ? $this->targets->describe($link) : null,
+            'linkView' => $link instanceof RecordLink ? $this->targets->describe($link) : null,
             'types' => $this->screen->typeOptions(),
             'templates' => $this->screen->templateOptions(),
         ], new Response(status: $status));

@@ -89,7 +89,7 @@ final readonly class DocumentsJson
             'type_id' => $template->typeId(),
             'name' => $template->name(),
             'archived' => $template->isArchived(),
-            'version' => $latest instanceof \Foresi\Documents\Domain\TemplateVersion ? ['id' => $latest->id(), 'number' => $latest->number(), 'frozen' => $latest->isFrozen()] : null,
+            'version' => $latest instanceof TemplateVersion ? ['id' => $latest->id(), 'number' => $latest->number(), 'frozen' => $latest->isFrozen()] : null,
         ];
     }
 

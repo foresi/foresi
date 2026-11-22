@@ -36,7 +36,7 @@ class DocumentTemplate implements Audited
     private ?\DateTimeImmutable $archivedAt = null;
 
     public function __construct(DocumentType $type, string $name, #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
-    private \DateTimeImmutable $createdAt)
+        private \DateTimeImmutable $createdAt)
     {
         $this->id = Id::generate();
         $this->typeId = $type->id();

@@ -136,7 +136,7 @@ final readonly class TemplateRenderer
         $this->walk($module, $found, false);
         $paths = array_values(array_unique(array_filter($found['paths'], static fn (string $path): bool => !\in_array(explode('.', $path)[0], $found['bound'], true))));
         // A path also read deeper is covered by the deeper one.
-        $paths = array_values(array_filter($paths, static fn(string $path): bool => array_all($paths, fn(string $other): bool => !str_starts_with($other, $path.'.'))));
+        $paths = array_values(array_filter($paths, static fn (string $path): bool => array_all($paths, fn (string $other): bool => !str_starts_with($other, $path.'.'))));
 
         return ['paths' => $paths, 'optional' => $found['optional']];
     }
@@ -236,7 +236,7 @@ final readonly class TemplateRenderer
      */
     private static function isOptional(string $path, array $optional): bool
     {
-        return array_any($optional, fn(string $guarded): bool => $path === $guarded || str_starts_with($path, $guarded.'.'));
+        return array_any($optional, fn (string $guarded): bool => $path === $guarded || str_starts_with($path, $guarded.'.'));
     }
 
     /**

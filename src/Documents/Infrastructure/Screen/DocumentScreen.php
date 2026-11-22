@@ -123,7 +123,7 @@ final readonly class DocumentScreen
 
         return [
             ['label' => $this->trans('documents.field.type'), 'value' => $type?->name()],
-            ['label' => $this->trans('documents.field.template'), 'value' => $template instanceof \Foresi\Documents\Domain\DocumentTemplate ? $version instanceof \Foresi\Documents\Domain\TemplateVersion ? $this->trans('documents.detail.template_version', ['name' => $template->name(), 'number' => $version->number()]) : $template->name() : (null)],
+            ['label' => $this->trans('documents.field.template'), 'value' => $template instanceof DocumentTemplate ? $version instanceof \Foresi\Documents\Domain\TemplateVersion ? $this->trans('documents.detail.template_version', ['name' => $template->name(), 'number' => $version->number()]) : $template->name() : (null)],
             ['label' => $this->trans('documents.detail.created'), 'value' => $this->day($document->createdAt(), true)],
             ['label' => $this->trans('documents.detail.generated'), 'value' => $document->generatedAt() instanceof \DateTimeImmutable ? $this->day($document->generatedAt(), true) : null, 'empty' => $this->trans('documents.none.generated')],
             ['label' => $this->trans('documents.detail.sent'), 'value' => $document->sentAt() instanceof \DateTimeImmutable ? $this->day($document->sentAt(), true) : null, 'empty' => $this->trans('documents.none.sent')],
