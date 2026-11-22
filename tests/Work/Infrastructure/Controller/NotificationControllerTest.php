@@ -91,6 +91,8 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('/notifications/read', $crawler->filter('[data-notifications-read-all]')->attr('action'));
         self::assertSame('2', trim($crawler->filter('#sidebar [data-nav-group="main"] a[href="/notifications"] [data-nav-count]')->text()));
         self::assertSame('page', $crawler->filter('#sidebar a[href="/notifications"]')->attr('aria-current'));
+        // The inbox marks its area: the rail puts the unread dot on Overview alone.
+        self::assertSame(['overview'], $crawler->filter('#rail [data-nav-unread]')->each(static fn (Crawler $dot): string => (string) $dot->closest('[data-nav-area]')?->attr('data-nav-area')));
         self::assertSame(['/', '/notifications'], $crawler->filter('#sidebar [data-nav-group="main"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
         self::assertSame(['All', 'Done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => trim($a->text())));
         self::assertCount(0, $crawler->filter('[data-notifications-kept]'));
@@ -219,6 +221,7 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame(['false'], $crawler->filter('[data-notifications] [data-unread]')->each(static fn (Crawler $mark): string => (string) $mark->attr('data-unread')));
         self::assertCount(0, $crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]'));
         self::assertCount(0, $crawler->filter('[data-notifications-read-all]'));
+        self::assertCount(0, $crawler->filter('#rail [data-nav-unread]'));
         self::assertSame([null, null], [$this->field('Fix the form', 'owner', 'done_at'), $this->field('Call the client', 'owner', 'done_at')]);
         self::assertNotNull($this->field('Call the client', 'owner', 'read_at'));
         // Marek's row is his.

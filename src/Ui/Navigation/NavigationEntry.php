@@ -9,7 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Ui\Navigation;
 
 /**
- * An item as the sidebar shows it: resolved count and current-page flag.
+ * An item as the sidebar shows it: resolved count and current-page flag. An item
+ * that marks its area puts the unread dot on the area in the rail while it counts.
  */
 final readonly class NavigationEntry
 {
@@ -22,6 +23,7 @@ final readonly class NavigationEntry
         public ?string $commandLabelKey = null,
         public ?string $commandRoute = null,
         public ?int $countCap = null,
+        public bool $marksArea = false,
     ) {
     }
 
