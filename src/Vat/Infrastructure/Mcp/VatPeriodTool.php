@@ -43,9 +43,9 @@ final readonly class VatPeriodTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns one VAT period of the firm by its key, always an estimate (estimate: true): its output VAT, input VAT and result in CZK, the breakdown into documents, schedules and plans, the steps of the calculation, and the documents counted. '
-            .'An issued tax document counts on its tax point; a received document in its deduction month, and only when the firm was a VAT payer on its tax point (known_gaps: deduction_before_registration). '
-            .'restricted_sources lists the sources whose documents the token may not read: their amounts count, their documents are left out. unavailable_sources lists the sources not installed. warnings holds missing_czk_vat when a document has no CZK amount of its VAT; it counts zero.';
+        return 'Returns one VAT period of the firm by its key, always an estimate (estimate: true): its output VAT, input VAT and result in CZK, the breakdown into documents, schedules and plans, the steps of the calculation, and the documents and the schedules counted. '
+            .'An issued tax document counts on its tax point; a received document in its deduction month, and only when the firm was a VAT payer on its tax point (known_gaps: deduction_before_registration). A schedule is an occurrence of an active recurring invoice not issued yet: it adds output VAT on the tax point its invoice would get, in CZK at today\'s rate when the template is in another currency (fx_today); once issued it counts as a document only. '
+            .'restricted_sources lists the sources whose documents or schedules the token may not read: their amounts count, the items are left out. unavailable_sources lists the sources not installed. warnings holds missing_czk_vat when a document or a schedule has no CZK amount of its VAT, which counts zero, and fx_today when a schedule is converted at today\'s rate.';
     }
 
     public function inputSchema(): array

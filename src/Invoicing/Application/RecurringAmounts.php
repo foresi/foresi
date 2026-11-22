@@ -56,6 +56,27 @@ final readonly class RecurringAmounts
     }
 
     /**
+     * The VAT of the next invoice of each template, in its currency, as the
+     * VAT module counts the occurrences not issued yet.
+     *
+     * @param list<RecurringInvoice>                    $templates
+     * @param array<string, list<RecurringInvoiceLine>> $lines     by template id, as RecurringOverview::prepare() gives them
+     *
+     * @return array<string, Money|null> VAT by template id; null when it cannot be priced
+     */
+    public function vat(array $templates, array $lines, \DateTimeImmutable $today): array
+    {
+        $firm = $this->instanceFirm->get();
+        $rounding = $this->settings->get()->rounding();
+        $amounts = [];
+        foreach ($templates as $template) {
+            $amounts[$template->id()] = $this->price($template, $firm, $lines[$template->id()] ?? [], $rounding, $today)['totals']->vat ?? null;
+        }
+
+        return $amounts;
+    }
+
+    /**
      * The lines and totals of the next invoice, for a template shown on its own.
      *
      * @param list<RecurringInvoiceLine> $lines
