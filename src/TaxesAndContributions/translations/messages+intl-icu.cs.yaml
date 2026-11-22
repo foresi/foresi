@@ -127,6 +127,8 @@ taxes:
       lastKnownTax: Poslední známá daň
       previousSocialBase: Základ sociálního pojištění
       previousHealthBase: Základ zdravotního pojištění
+      previousActivityMonths: Měsíce činnosti
+      previousActivityMonths_help: V předchozím roce, 1 až 12. Prázdné spočítá jeho stavy.
       previousOverviewFiledOn: Přehledy podány dne
       returnRoute: Podání přiznání
       activityStart: Zahájení činnosti
@@ -208,6 +210,7 @@ taxes:
       child_label_invalid: Jméno dítěte má nejvýš 100 znaků.
       child_order_invalid: Vyberte pořadí dítěte.
       months_invalid: Počet měsíců je 0 až 12.
+      activity_months_invalid: Měsíce činnosti jsou 1 až 12.
       deduction_invalid: Odčitatelná položka není platná.
       deduction_repeated: Každá odčitatelná položka může být jen jednou.
       return_route_invalid: Vyberte způsob podání.
@@ -443,6 +446,7 @@ taxes:
       middle_advance_band: dvě zálohy na daň po 40 % při poslední známé dani do 150 000 Kč
       electronic_deadline_payment_date: lhůta a den platby u elektronického přiznání
       overview_deadlines: lhůty přehledů a jejich doplatků
+      previous_activity_months: měsíce činnosti předchozího roku, počítané jako dvanáct
       flat_rate_mixed_year: rok s měsíci v paušálním režimu i mimo něj
       flat_rate_2027_band_1: 1. pásmo paušální daně pro rok 2027, 9 661, nebo 9 662 Kč
       switch_adjustment: úprava loňského základu daně při změně způsobu uplatnění výdajů

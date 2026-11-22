@@ -127,6 +127,8 @@ taxes:
       lastKnownTax: Last known tax
       previousSocialBase: Social insurance base
       previousHealthBase: Health insurance base
+      previousActivityMonths: Months of activity
+      previousActivityMonths_help: In the previous year, 1 to 12. Empty counts its statuses.
       previousOverviewFiledOn: Overviews filed on
       returnRoute: Filing the return
       activityStart: Start of the activity
@@ -208,6 +210,7 @@ taxes:
       child_label_invalid: The name of a child is at most 100 characters.
       child_order_invalid: Choose the order of the child.
       months_invalid: The months are 0 to 12.
+      activity_months_invalid: The months of activity are 1 to 12.
       deduction_invalid: The deduction is not valid.
       deduction_repeated: Each deduction comes once.
       return_route_invalid: Choose how the return is filed.
@@ -443,6 +446,7 @@ taxes:
       middle_advance_band: two income tax advances of 40 % each with a last known tax up to 150,000 CZK
       electronic_deadline_payment_date: the deadline and the payment day of an electronic return
       overview_deadlines: the deadlines of the overviews and their settlement
+      previous_activity_months: the months of activity of the previous year, taken as twelve
       flat_rate_mixed_year: a year with months both in and out of the flat-rate tax
       flat_rate_2027_band_1: the flat-rate band 1 for 2027, 9,661 or 9,662 CZK
       switch_adjustment: the adjustment of last year's base for the change of the expense method

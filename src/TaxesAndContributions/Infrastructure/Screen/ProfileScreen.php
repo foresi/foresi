@@ -31,7 +31,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * each authority; and the statuses dialog, a dated list per kind, each holding
  * until the next of its kind.
  *
- * @phpstan-type YearValues array{expenseMethods: list<string>, chosenMethod: string, children: list<array{label: string, birthDate: string, order: string, ztpP: bool, months: string, new?: bool}>, spouseMonths: string, spouseZtpP: bool, spouseLowIncome: bool, deductions: array<string, string>, employmentBase: string, employmentTaxWithheld: string, rentalBase: string, otherBase: string, lastKnownTax: string, previousSocialBase: string, previousHealthBase: string, previousOverviewFiledOn: string, returnRoute: string, activityStart: string, averageWageOverride: string}
+ * @phpstan-type YearValues array{expenseMethods: list<string>, chosenMethod: string, children: list<array{label: string, birthDate: string, order: string, ztpP: bool, months: string, new?: bool}>, spouseMonths: string, spouseZtpP: bool, spouseLowIncome: bool, deductions: array<string, string>, employmentBase: string, employmentTaxWithheld: string, rentalBase: string, otherBase: string, lastKnownTax: string, previousSocialBase: string, previousHealthBase: string, previousOverviewFiledOn: string, previousActivityMonths: string, returnRoute: string, activityStart: string, averageWageOverride: string}
  */
 final readonly class ProfileScreen
 {
@@ -47,7 +47,7 @@ final readonly class ProfileScreen
     public const array SECTIONS = [
         self::SECTION_EXPENSES => ['expenseMethods', 'chosenMethod'],
         self::SECTION_CREDITS => ['children', 'spouseMonths', 'spouseZtpP', 'spouseLowIncome', 'deductions'],
-        self::SECTION_OTHER => ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax', 'previousSocialBase', 'previousHealthBase', 'previousOverviewFiledOn', 'returnRoute', 'activityStart', 'averageWageOverride'],
+        self::SECTION_OTHER => ['employmentBase', 'employmentTaxWithheld', 'rentalBase', 'otherBase', 'lastKnownTax', 'previousSocialBase', 'previousHealthBase', 'previousOverviewFiledOn', 'previousActivityMonths', 'returnRoute', 'activityStart', 'averageWageOverride'],
     ];
 
     public function __construct(
@@ -266,6 +266,7 @@ final readonly class ProfileScreen
             'previousSocialBase' => $this->plain($year->previousSocialBase),
             'previousHealthBase' => $this->plain($year->previousHealthBase),
             'previousOverviewFiledOn' => $year->previousOverviewFiledOn?->format('Y-m-d') ?? '',
+            'previousActivityMonths' => null === $year->previousActivityMonths ? '' : (string) $year->previousActivityMonths,
             'returnRoute' => $year->returnRoute->value,
             'activityStart' => $year->activityStart?->format('Y-m-d') ?? '',
             'averageWageOverride' => $this->plain($year->averageWageOverride),
@@ -326,7 +327,7 @@ final readonly class ProfileScreen
             if (($year->employmentBase ?? $year->rentalBase ?? $year->otherBase ?? $year->lastKnownTax) instanceof Money) {
                 $parts[] = $this->trans('taxes.profile.summary.income');
             }
-            if (null !== ($year->previousSocialBase ?? $year->previousHealthBase ?? $year->previousOverviewFiledOn)) {
+            if (null !== ($year->previousSocialBase ?? $year->previousHealthBase ?? $year->previousOverviewFiledOn ?? $year->previousActivityMonths)) {
                 $parts[] = $this->trans('taxes.profile.summary.previous');
             }
         }

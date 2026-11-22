@@ -226,6 +226,7 @@ final readonly class ProfileWrites
             $route,
             $this->optionalDay($input->activityStart, 'activityStart'),
             $this->optionalMoney($input->averageWageOverride, 'averageWageOverride'),
+            $this->activityMonths($input->previousActivityMonths),
         );
     }
 
@@ -279,6 +280,20 @@ final readonly class ProfileWrites
             $children[$place['key']]['months'],
             $place['chosen'],
         ), ChildOrder::of(array_column($children, 'birth'), array_column($children, 'order')));
+    }
+
+    /**
+     * The months of the previous year with an activity, 1 to 12, or null.
+     *
+     * @throws TaxesRefused
+     */
+    private function activityMonths(?int $months): ?int
+    {
+        if (null !== $months && ($months < 1 || $months > 12)) {
+            throw TaxesRefused::invalid('activity_months_invalid', 'previousActivityMonths', 'The months of the previous year with an activity are 1 to 12, or null.');
+        }
+
+        return $months;
     }
 
     /**

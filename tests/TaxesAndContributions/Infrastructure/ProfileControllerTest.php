@@ -162,10 +162,22 @@ final class ProfileControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/other', server: [$this->dialogHeader() => '1']);
         $form = $crawler->filter('#taxes-year-form')->form();
         $form['employmentBase'] = '120 000,50';
+        $form['previousActivityMonths'] = '5x';
+        $crawler = $this->client->submit($form, [], [$this->dialogHeader() => '1']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The months of activity are 1 to 12', $crawler->filter('#taxes-year-form')->text());
+        $form = $crawler->filter('#taxes-year-form')->form();
+        $form['previousActivityMonths'] = '13';
+        $crawler = $this->client->submit($form, [], [$this->dialogHeader() => '1']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The months of activity are 1 to 12', $crawler->filter('#taxes-year-form')->text());
+        $form = $crawler->filter('#taxes-year-form')->form();
+        $form['previousActivityMonths'] = '5';
         $this->client->submit($form, [], [$this->dialogHeader() => '1']);
         self::assertSame('{"location":"\\/taxes-and-contributions\\/profile"}', $this->client->getResponse()->getContent());
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/years/2026/other');
         self::assertSame('120000.50', $crawler->filter('#employmentBase')->attr('value'));
+        self::assertSame('5', $crawler->filter('#previousActivityMonths')->attr('value'));
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/authorities/health', server: [$this->dialogHeader() => '1']);
         $form = $crawler->filter('#taxes-authority-form')->form(['account' => '1234567890/0300', 'variableSymbol' => '8501011234']);
