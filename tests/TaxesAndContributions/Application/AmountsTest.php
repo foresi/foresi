@@ -35,13 +35,12 @@ use Foresi\Tests\TaxesAndContributions\Support\RecordingLogger;
 use Foresi\Tests\TaxesAndContributions\Support\TaxesTestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Symfony\Component\Clock\Clock;
-use Symfony\Component\Clock\MockClock;
 
 /**
  * The actual amounts on a cash basis (B2, B3) from sources the test gives:
  * each payment on its own day, in CZK at the rate of that day, with VAT
- * before the owner became a VAT payer and without it after.
+ * before the owner became a VAT payer and without it after. The day in the
+ * time zone of the Czech rules is in Integration/Country.
  */
 final class AmountsTest extends TaxesTestCase
 {
@@ -166,21 +165,6 @@ final class AmountsTest extends TaxesTestCase
         self::assertSame([2_420_000, 2_000_000, 420_000, 2_210_000], $this->figures($amounts->totalOf(AmountKind::Income)));
         self::assertSame(100_000, $amounts->totalOf(AmountKind::Cost)->counted->minor(), 'The deducted VAT of a cost leaves it too.');
         self::assertSame([AmountsView::UNVERIFIED_VAT_CASH_BASIS, AmountsView::UNVERIFIED_FX_PAYMENT_DAY], $amounts->unverified, 'Each flag once, in the order first met.');
-    }
-
-    public function testThePaymentOnTheDayAfterPragueMidnightCountsOnThePragueDay(): void
-    {
-        // 23:30 UTC on 30 November is 00:30 on 1 December in Prague.
-        Clock::set(new MockClock('2026-11-30 23:30:00', 'UTC'));
-        $source = new FakeAmountSource('invoicing.payments', [
-            $this->amount('invoicing.payments', 'december', AmountKind::Income, '2026-12-01', 10_000, 10_000),
-        ]);
-
-        $amounts = $this->amounts([$source, new FakeAmountSource('purchasing.payments', [])])->year(2026);
-
-        self::assertSame('2026-12-01', $amounts->to->format('Y-m-d'));
-        self::assertSame(['2026-01-01', '2026-12-01', 'Europe/Prague'], [$source->asked[0][0]->format('Y-m-d'), $source->asked[0][1]->format('Y-m-d'), $source->asked[0][0]->getTimezone()->getName()]);
-        self::assertSame(['2026-12'], array_map(static fn (AmountSum $sum): string => $sum->month, $amounts->sums));
     }
 
     public function testAPastYearRunsToItsLastDay(): void
