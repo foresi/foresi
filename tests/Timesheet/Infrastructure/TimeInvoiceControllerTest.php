@@ -46,9 +46,9 @@ use Symfony\Component\DomCrawler\Form;
 /**
  * "Invoice time": the header action of a project and of the report, for an
  * owner; the dialog with the firm, the client, its projects and last month,
- * the billable time not invoiced yet all ticked with its totals; Continue to
- * the new invoice form with the lines; and saving it locks the time, which
- * then names its invoice instead of its actions.
+ * the billable time not invoiced yet all ticked with its totals. Continue to
+ * the invoice, which needs the invoicing rules of the firm's country, is in
+ * Integration/Country.
  */
 final class TimeInvoiceControllerTest extends WebTestCase
 {
@@ -114,85 +114,6 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $crawler = $this->client->submit($form);
         self::assertResponseIsSuccessful();
         self::assertCount(3, $crawler->filter('[data-time-invoice-entry]'));
-    }
-
-    public function testContinueOpensTheNewInvoiceFormWithTheLinesAndSavingLocksTheTime(): void
-    {
-        $this->seed();
-        $design = $this->logged($this->homepage, 50, '2026-10-05');
-        $more = $this->logged($this->homepage, 20, '2026-10-06');
-        $planning = $this->logged(null, 10, '2026-10-07');
-        $later = $this->logged(null, 5, '2026-10-09');
-
-        $crawler = $this->dialog('/time/invoice?project='.$this->website);
-        $form = $crawler->filter('#time-invoice-form')->form(['rounding' => '15']);
-        $this->tick($form, 'entries', [$design, $more, $planning]);
-        $this->client->request('POST', $form->getUri(), $form->getPhpValues() + ['continue' => '1']);
-        self::assertResponseStatusCodeSame(303);
-        $location = (string) $this->client->getResponse()->headers->get('Location');
-        self::assertStringStartsWith('/invoices/new?billedWork=', $location);
-
-        $crawler = $this->client->request('GET', $location);
-        self::assertResponseIsSuccessful();
-        /** @var array{customerId: string, billedWork: string, lineSources: string, lines: list<array<string, string>>} $values */
-        $values = $crawler->filter('form#invoice-form')->form()->getPhpValues();
-        self::assertSame($this->customer, $values['customerId']);
-        self::assertNotSame('', $values['billedWork']);
-        self::assertSame([
-            ['Website', '0.25', 'h', '1000.00', 'base'],
-            ['Website – Design the homepage', '1.5', 'h', '1000.00', 'base'],
-        ], array_map(static fn (array $line): array => [$line['text'], $line['quantity'], $line['unit'], $line['price'], $line['vat']], $values['lines']));
-        self::assertSame(['line-1', 'line-2'], json_decode($values['lineSources'], true));
-
-        // The project's line is removed and the other edited: its time is billed all the same.
-        $values['lines'] = [array_merge($values['lines'][1], ['text' => 'Homepage', 'price' => '900'])];
-        $values['lineSources'] = '["line-2"]';
-        $this->client->request('POST', '/invoices/new', array_merge($values, ['_action' => 'save']));
-        self::assertResponseRedirects('/invoices');
-
-        $invoice = $this->row('SELECT id, number FROM invoice');
-        [$invoiceId, $number] = [(string) $invoice['id'], (string) $invoice['number']];
-        $line = $this->row('SELECT id FROM invoice_line WHERE invoice_id = ?', [$invoiceId]);
-        foreach ([$design => 60, $more => 30] as $entry => $minutes) {
-            self::assertSame(['invoice_id' => $invoiceId, 'invoice_line_id' => $line['id'], 'invoiced_rate_minor' => '100000', 'invoiced_rate_currency' => 'CZK', 'invoiced_minutes' => (string) $minutes], $this->row('SELECT invoice_id, invoice_line_id, invoiced_rate_minor, invoiced_rate_currency, invoiced_minutes FROM time_entry WHERE id = ?', [$entry]));
-        }
-        foreach ([$planning, $later] as $entry) {
-            self::assertSame(['invoice_id' => null], $this->row('SELECT invoice_id FROM time_entry WHERE id = ?', [$entry]));
-        }
-
-        // Invoiced time names its invoice instead of its actions, on the task and in the week.
-        foreach (['/tasks/'.$this->homepage, '/time?week=2026-10-05'] as $page) {
-            $crawler = $this->client->request('GET', $page);
-            $line = $crawler->filter('#time-'.$design);
-            self::assertSame('Invoice '.$number, trim($line->filter('a[data-time-invoice]')->text()), $page);
-            self::assertSame('/invoices/'.$invoiceId.'/edit', $line->filter('a[data-time-invoice]')->attr('href'));
-            self::assertCount(0, $line->filter('[data-time-edit], [data-time-delete]'), $page);
-        }
-        $crawler = $this->dialog('/time/invoice?project='.$this->website);
-        self::assertSame([$planning, $later], $crawler->filter('input[name="entries[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value')));
-    }
-
-    public function testTimeWithoutARateIsRefusedUnlessUnticked(): void
-    {
-        $this->seed();
-        $priced = $this->logged($this->homepage, 60, '2026-10-05');
-        $this->logged(null, 30, '2026-10-06', project: 'Shop');
-
-        $crawler = $this->dialog('/time/invoice?project='.$this->shop);
-        self::assertCount(1, $crawler->filter('[data-time-invoice-no-rate]'));
-        self::assertSame('Not set', $crawler->filter('[data-empty-value][data-time-invoice-target=amountEmpty]')->text());
-        $form = $crawler->filter('#time-invoice-form')->form();
-        $this->tick($form, 'projects', [$this->website, $this->shop]);
-        $crawler = $this->client->submit($form);
-        $form = $crawler->filter('#time-invoice-form')->form();
-        $this->client->request('POST', $form->getUri(), $form->getPhpValues() + ['continue' => '1']);
-        self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Ticked time has no hourly rate', $this->client->getCrawler()->filter('[data-time-invoice-error]')->text());
-
-        $form = $this->client->getCrawler()->filter('#time-invoice-form')->form();
-        $this->tick($form, 'entries', [$priced]);
-        $this->client->request('POST', $form->getUri(), $form->getPhpValues() + ['continue' => '1']);
-        self::assertResponseStatusCodeSame(303);
     }
 
     public function testOnlyAnOwnerInvoicesTime(): void
@@ -273,21 +194,6 @@ final class TimeInvoiceControllerTest extends WebTestCase
         $user = $this->em->getConnection()->fetchOne('SELECT id FROM app_user WHERE email = ?', [IdentityFixtures::EMAIL]);
 
         return $this->em->getRepository(Membership::class)->findOneBy(['user' => $user]) ?? throw new \LogicException('Membership.');
-    }
-
-    /**
-     * The row with its values as text, whatever the database returns them as.
-     *
-     * @param list<string> $parameters
-     *
-     * @return array<string, ?string>
-     */
-    private function row(string $sql, array $parameters = []): array
-    {
-        $row = $this->em->getConnection()->fetchAssociative($sql, $parameters);
-        self::assertIsArray($row);
-
-        return array_map(static fn (mixed $value): ?string => \is_scalar($value) ? (string) $value : null, $row);
     }
 
     private function plain(string $text): string

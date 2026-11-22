@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Timesheet\Application;
+namespace Foresi\Tests\Timesheet\Integration\Country;
 
 use Foresi\Invoicing\Application\BilledLine;
 use Foresi\Invoicing\Application\BilledWork;

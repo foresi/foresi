@@ -24,12 +24,7 @@ use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
 use Foresi\Timesheet\Application\TimeCandidate;
 use Foresi\Timesheet\Application\TimeInvoicing;
-use Foresi\Timesheet\Application\TimeInvoicingRefused;
 use Foresi\Timesheet\Application\TimeScope;
-use Foresi\Timesheet\Domain\BilledTime;
-use Foresi\Timesheet\Domain\LineGrouping;
-use Foresi\Timesheet\Domain\TimeLine;
-use Foresi\Timesheet\Domain\TimeRounding;
 use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Domain\Project;
@@ -40,9 +35,10 @@ use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 /**
- * What the dialog of time to invoice offers: the projects, the time in scope
- * that is finished, billable and not invoiced, each with its rate, and the
- * lines the ticked time makes. Only an owner gets any of it.
+ * What the dialog of time to invoice offers: the projects, and the time in
+ * scope that is finished, billable and not invoiced, each with its rate. The
+ * lines, which need the invoicing rules of the firm's country, are in
+ * Integration/Country.
  */
 final class TimeInvoicingTest extends WorkTestCase
 {
@@ -72,27 +68,6 @@ final class TimeInvoicingTest extends WorkTestCase
 
         $this->website = $this->projects->create('Website', $this->customer->id(), WorkflowTemplate::Simple);
         $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
-    }
-
-    public function testOnlyAnOwnerGetsAnyOfIt(): void
-    {
-        $this->logged($this->website, '2026-10-05');
-        $lines = $this->invoicing->lines($this->scope(), $this->candidateIds(), LineGrouping::Task, TimeRounding::None);
-        $this->signIn($this->member);
-
-        foreach ([
-            'projects' => $this->invoicing->projects(...),
-            'candidates' => fn (): array => $this->invoicing->candidates($this->scope()),
-            'lines' => fn (): array => $this->invoicing->lines($this->scope(), [], LineGrouping::Task, TimeRounding::None),
-            'select' => fn (): string => $this->invoicing->select($this->scope(), $lines, 'hod', 'j. n. Y'),
-        ] as $call => $asked) {
-            try {
-                $asked();
-                self::fail(\sprintf('%s is refused.', $call));
-            } catch (TimeInvoicingRefused $refused) {
-                self::assertSame('not_allowed', $refused->reason, $call);
-            }
-        }
     }
 
     public function testEveryProjectIsOfferedOnceArchivedOnesTooByName(): void
@@ -127,32 +102,6 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->signIn($this->owner);
 
         self::assertSame([150000, 80000], array_map(static fn (TimeCandidate $candidate): ?int => $candidate->rate?->minor(), $this->invoicing->candidates($this->scope())));
-    }
-
-    public function testOnlyTheTickedTimeMakesTheLines(): void
-    {
-        $this->logged($this->website, '2026-10-05');
-        $ticked = $this->logged($this->website, '2026-10-06');
-
-        $lines = $this->invoicing->lines($this->scope(), [$ticked], LineGrouping::Entry, TimeRounding::None);
-
-        self::assertSame([[$ticked]], array_map(static fn (TimeLine $line): array => array_map(static fn (BilledTime $billed): string => $billed->time->entryId, $line->entries), $lines));
-    }
-
-    public function testTheTimeMakesAtMostTheLinesAnInvoiceHolds(): void
-    {
-        for ($entry = 0; $entry <= Invoice::MAX_LINES; ++$entry) {
-            $this->logged($this->website, '2026-10-05');
-        }
-        $ids = $this->candidateIds();
-
-        self::assertCount(Invoice::MAX_LINES, $this->invoicing->lines($this->scope(), \array_slice($ids, 0, Invoice::MAX_LINES), LineGrouping::Entry, TimeRounding::None));
-        try {
-            $this->invoicing->lines($this->scope(), $ids, LineGrouping::Entry, TimeRounding::None);
-            self::fail('A line too many is refused.');
-        } catch (TimeInvoicingRefused $refused) {
-            self::assertSame('too_many_lines', $refused->reason);
-        }
     }
 
     private function logged(Project $project, string $day): string
