@@ -44,6 +44,11 @@ final readonly class DoctrineCalendarStore implements CalendarStore
         $this->entityManager->persist($feed);
     }
 
+    public function save(): void
+    {
+        $this->entityManager->flush();
+    }
+
     public function transaction(callable $work): mixed
     {
         if ($this->entityManager->getConnection()->isTransactionActive()) {

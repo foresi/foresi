@@ -91,6 +91,20 @@ final class CalendarFeedControllerTest extends WebTestCase
         self::assertSame([[$this->owner->id(), '2026-10-23 00:00 UTC', '2027-11-23 00:00 UTC']], $this->source->asked);
     }
 
+    public function testEntriesComeInOrderOfStartThenUid(): void
+    {
+        $at = static fn (string $uid, string $start): CalendarEntry => new CalendarEntry($uid, 'Entry '.$uid, new \DateTimeImmutable($start), null, false, new \DateTimeImmutable('2026-11-20 08:00 UTC'), null);
+        $this->sources([
+            new FakeEntrySource('test.b', [$this->owner->id() => [$at('c@foresi.example.com', '2026-12-02 09:00 UTC'), $at('b@foresi.example.com', '2026-12-01 09:00 UTC')]]),
+            new FakeEntrySource('test.a', [$this->owner->id() => [$at('d@foresi.example.com', '2026-11-30 09:00 UTC'), $at('a@foresi.example.com', '2026-12-01 09:00 UTC')]]),
+        ]);
+
+        $this->fetch($this->feed($this->owner, 'Phone'));
+
+        preg_match_all('/^UID:(.+)\r$/m', (string) $this->client->getResponse()->getContent(), $uids);
+        self::assertSame(['d@foresi.example.com', 'a@foresi.example.com', 'b@foresi.example.com', 'c@foresi.example.com'], $uids[1]);
+    }
+
     public function testAFeedWithNoEntriesIsAValidEmptyCalendar(): void
     {
         $this->sources([]);

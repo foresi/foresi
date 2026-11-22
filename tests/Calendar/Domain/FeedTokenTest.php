@@ -39,11 +39,25 @@ final class FeedTokenTest extends TestCase
         }
     }
 
-    public function testAMalformedTokenIsNotAToken(): void
+    public function testAFeedKeepsOnlyAWholeSha256(): void
     {
-        self::assertTrue(FeedToken::wellFormed(FeedToken::generate()));
-        self::assertFalse(FeedToken::wellFormed('short'));
-        self::assertFalse(FeedToken::wellFormed(str_repeat('a', 42).'='));
+        $hash = FeedToken::hash(FeedToken::generate());
+        foreach (['x'.$hash, $hash.'x', strtoupper($hash)] as $notAHash) {
+            try {
+                new CalendarFeed('0190a000-0000-7000-8000-000000000001', 'Phone', $notAHash, new \DateTimeImmutable('2026-11-22 10:00 UTC'));
+                self::fail('A feed took '.$notAHash);
+            } catch (\InvalidArgumentException) {
+            }
+        }
+        $this->addToAssertionCount(1);
+    }
+
+    public function testANameHasUpTo80CharactersNotBytes(): void
+    {
+        self::assertSame(str_repeat('ž', 80), CalendarFeed::validName(str_repeat('ž', 80)));
+        self::assertSame(str_repeat('a', 80), CalendarFeed::validName(' '.str_repeat('a', 80).' '));
+        $this->expectException(\InvalidArgumentException::class);
+        CalendarFeed::validName(str_repeat('a', 81));
     }
 
     public function testAFeedRefusesAnEmptyOrLongName(): void

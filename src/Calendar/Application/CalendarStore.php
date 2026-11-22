@@ -27,6 +27,11 @@ interface CalendarStore
     public function add(CalendarFeed $feed): void;
 
     /**
+     * Stores what changed on the feeds read, such as the time of a fetch.
+     */
+    public function save(): void;
+
+    /**
      * Runs the work and stores what it changed, with its audit entries, in one transaction.
      *
      * @template T

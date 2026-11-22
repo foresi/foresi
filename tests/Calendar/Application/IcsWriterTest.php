@@ -43,6 +43,40 @@ final class IcsWriterTest extends TestCase
         self::assertStringContainsString("\r\n ", $ics);
     }
 
+    public function testALoneCarriageReturnIsALineBreakAndControlCharactersGo(): void
+    {
+        $ics = $this->written($this->entry("one\rtwo\x00\x07\tthree\x1F\x7Ffour"));
+
+        self::assertContains('SUMMARY:one\ntwothreefour', $this->unfolded($ics));
+    }
+
+    public function testALineOf75OctetsStaysWholeAnd76Fold(): void
+    {
+        $exact = $this->written($this->entry(str_repeat('a', 75 - \strlen('SUMMARY:'))));
+        $over = $this->written($this->entry(str_repeat('a', 76 - \strlen('SUMMARY:'))));
+
+        self::assertStringContainsString("\r\nSUMMARY:".str_repeat('a', 67)."\r\n", $exact);
+        self::assertStringContainsString("\r\nSUMMARY:".str_repeat('a', 67)."\r\n a\r\n", $over);
+    }
+
+    public function testFoldsAtEveryOffsetWithoutSplittingACharacter(): void
+    {
+        for ($offset = 0; $offset < 4; ++$offset) {
+            $title = str_repeat('x', $offset).str_repeat('ěš€', 40);
+            $ics = $this->written($this->entry($title));
+
+            foreach (explode("\r\n", $ics) as $line) {
+                self::assertLessThanOrEqual(75, \strlen($line));
+                self::assertTrue(mb_check_encoding($line, 'UTF-8'), 'Offset '.$offset.' splits a character.');
+            }
+            $summary = array_values(array_filter($this->unfolded($ics), static fn (string $line): bool => str_starts_with($line, 'SUMMARY:')));
+            self::assertSame(['SUMMARY:'.$title], $summary);
+            // Each line is filled: the next character would not fit.
+            $lines = explode("\r\n", substr($ics, (int) strpos($ics, 'SUMMARY:')));
+            self::assertGreaterThan(72, \strlen($lines[0]));
+        }
+    }
+
     public function testEndsEveryLineWithCrlf(): void
     {
         $ics = $this->written($this->entry('Meeting'));

@@ -42,13 +42,10 @@ final readonly class CalendarFeedReader
     }
 
     /**
-     * The feed of the token, or null for a malformed, unknown or revoked one, or one whose owner left the staff.
+     * The feed of the token, or null for an unknown or revoked one (a malformed one is unknown), or one whose owner left the staff.
      */
     public function open(#[\SensitiveParameter] string $token): ?CalendarFeed
     {
-        if (!FeedToken::wellFormed($token)) {
-            return null;
-        }
         $feed = $this->store->feedByTokenHash(FeedToken::hash($token));
         if (!$feed instanceof CalendarFeed || $feed->isRevoked() || !$this->staff->isStaffMember($feed->userId())) {
             return null;
@@ -78,7 +75,7 @@ final readonly class CalendarFeedReader
         usort($entries, static fn (CalendarEntry $a, CalendarEntry $b): int => [$a->start, $a->uid] <=> [$b->start, $b->uid]);
         $now = $this->clock->clock()->now()->setTimezone(new \DateTimeZone('UTC'));
         if ($feed->fetched($now)) {
-            $this->store->transaction(static fn (): bool => true);
+            $this->store->save();
         }
 
         return $this->writer->write($feed->name(), $entries);

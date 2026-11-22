@@ -29,9 +29,4 @@ final class FeedToken
     {
         return hash('sha256', $token);
     }
-
-    public static function wellFormed(#[\SensitiveParameter] string $token): bool
-    {
-        return 1 === preg_match('/^'.self::PATTERN.'$/D', $token);
-    }
 }

@@ -87,7 +87,7 @@ final readonly class IcsWriter
     private function text(string $value): string
     {
         $value = str_replace(["\r\n", "\r"], "\n", $value);
-        $value = (string) preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/', '', $value);
+        $value = str_replace([...array_map(\chr(...), [...range(0, 9), ...range(11, 31)]), "\x7F"], '', $value);
 
         return strtr($value, ['\\' => '\\\\', ';' => '\;', ',' => '\,', "\n" => '\n']);
     }
@@ -98,9 +98,6 @@ final readonly class IcsWriter
      */
     private static function fold(string $line): string
     {
-        if (\strlen($line) <= self::LINE_OCTETS) {
-            return $line;
-        }
         $folded = '';
         $current = '';
         $limit = self::LINE_OCTETS;
