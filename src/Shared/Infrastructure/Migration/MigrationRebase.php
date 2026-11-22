@@ -10,6 +10,8 @@ namespace Foresi\Shared\Infrastructure\Migration;
 
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractNamedObject;
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Metadata\ExecutedMigration;
 use Doctrine\Migrations\Metadata\Storage\TableMetadataStorageConfiguration;
@@ -17,6 +19,8 @@ use Doctrine\Migrations\Version\Direction;
 use Doctrine\Migrations\Version\ExecutionResult;
 use Doctrine\Migrations\Version\Version;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\ORM\Tools\SchemaValidator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -26,7 +30,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * only the rows of the executed versions change: the global versions go and
  * the baselines of the installed modules come, in one transaction, and no
  * DDL runs. It acts only on a database that executed every global version and
- * nothing else, and whose schema is in sync with the mapping.
+ * nothing else, and whose schema is in sync with the mapping. The tables that
+ * only a migration after the baselines creates, such as those of a module added
+ * later, are left out of that comparison: such a database has never had them,
+ * and doctrine:migrations:migrate creates them after the rebase.
  */
 final readonly class MigrationRebase
 {
@@ -89,7 +96,7 @@ final readonly class MigrationRebase
                 $refusals[] = \sprintf('The mapping of %s is invalid: %s', $class, $error);
             }
         }
-        if (!$this->inSync($validator)) {
+        if (!$this->inSync()) {
             $refusals[] = 'The database schema is not in sync with the mapping (see doctrine:schema:validate).';
         }
         if ([] === $this->baselines()) {
@@ -129,10 +136,16 @@ final readonly class MigrationRebase
 
     /**
      * Whether the schema matches the mapping, leaving out the table of the
-     * executed versions as doctrine:schema:validate does.
+     * executed versions as doctrine:schema:validate does, and the entities whose
+     * tables only migrations after the baselines create.
      */
-    private function inSync(SchemaValidator $validator): bool
+    private function inSync(): bool
     {
+        $later = $this->tablesAfterTheBaselines();
+        $classes = array_values(array_filter(
+            $this->entityManager->getMetadataFactory()->getAllMetadata(),
+            static fn (ClassMetadata $metadata): bool => !\in_array($metadata->getTableName(), $later, true),
+        ));
         $storage = $this->migrations->getConfiguration()->getMetadataStorageConfiguration();
         $table = $storage instanceof TableMetadataStorageConfiguration ? $storage->getTableName() : 'doctrine_migration_versions';
         $configuration = $this->entityManager->getConnection()->getConfiguration();
@@ -147,10 +160,38 @@ final readonly class MigrationRebase
             return $name !== $table && true === $filter($asset);
         });
         try {
-            return $validator->schemaInSyncWithMetadata();
+            return [] === new SchemaTool($this->entityManager)->getUpdateSchemaSql($classes);
         } finally {
             $configuration->setSchemaAssetsFilter($filter);
         }
+    }
+
+    /**
+     * The tables that migrations after the baselines create, played on an empty schema.
+     *
+     * @return list<string>
+     */
+    private function tablesAfterTheBaselines(): array
+    {
+        $schema = new Schema();
+        $tables = [];
+        foreach ($this->migrations->getMigrationRepository()->getMigrations()->getItems() as $available) {
+            $before = $this->tableNames($schema);
+            $available->getMigration()->up($schema);
+            if (!str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE)) {
+                array_push($tables, ...array_diff($this->tableNames($schema), $before));
+            }
+        }
+
+        return $tables;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tableNames(Schema $schema): array
+    {
+        return array_map(static fn (Table $table): string => $table->getName(), $schema->getTables());
     }
 
     /**

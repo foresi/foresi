@@ -53,8 +53,8 @@ final class MigrationRebaseTest extends KernelTestCase
 
     public function testADatabaseOnTheGlobalHistoryMovesOntoTheBaselines(): void
     {
-        $this->onGlobalHistory();
         $tables = $this->tables();
+        $this->onGlobalHistory();
         self::assertSame(RebaseMigrationsCommand::PENDING, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
 
         $rebase = $this->console('app:migrations:rebase');
@@ -62,12 +62,9 @@ final class MigrationRebaseTest extends KernelTestCase
         self::assertSame(Command::SUCCESS, $rebase->getStatusCode(), $rebase->getDisplay());
         self::assertStringContainsString('Replaced the 108 versions', $rebase->getDisplay());
         self::assertSame($this->baselines(), $this->versions());
+        // What ops/deploy.sh runs next: the migrations after the baselines, which create what the database never had.
+        self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:migrate')->getStatusCode());
         self::assertSame($tables, $this->tables());
-        // What ops/deploy.sh runs next: the migrations after the baselines. The schema of this test
-        // follows the mapping and has their tables already, so they are only recorded.
-        foreach ($this->afterBaselines() as $version) {
-            $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-22 12:00:00', 'execution_time' => 5]);
-        }
         self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:up-to-date')->getStatusCode());
         self::assertSame(Command::SUCCESS, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
     }
@@ -136,8 +133,20 @@ final class MigrationRebaseTest extends KernelTestCase
     /**
      * The rows a database migrated before the module packages holds.
      */
+    /**
+     * A database of the last release before the module packages: every global version executed,
+     * and none of the tables that only migrations after the baselines create.
+     */
     private function onGlobalHistory(): void
     {
+        foreach ($this->afterBaselines() as $version) {
+            $migration = self::getContainer()->get('doctrine.migrations.dependency_factory')->getMigrationRepository()->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration();
+            $schema = new \Doctrine\DBAL\Schema\Schema();
+            $migration->up($schema);
+            foreach ($schema->getTables() as $table) {
+                $this->db->createSchemaManager()->dropTable($table->getName());
+            }
+        }
         $this->db->executeStatement('DELETE FROM doctrine_migration_versions');
         foreach (GlobalMigrationHistory::VERSIONS as $version) {
             $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-20 12:00:00', 'execution_time' => 5]);
