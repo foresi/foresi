@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\ForecastReader;
+use Foresi\CashFlow\Contract\MovementFinder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -32,4 +34,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$sources', tagged_iterator('app.cash_flow_source'))
         ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
     $services->alias(ForecastReader::class, ForecastReads::class)->public();
+    // Other modules find the bank movements that meet their match rules through Foresi\CashFlow\Contract\MovementFinder.
+    $services->set(RuleMovements::class)
+        ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+    $services->alias(MovementFinder::class, RuleMovements::class)->public();
 };

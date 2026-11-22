@@ -8,43 +8,40 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Integration\CashFlow;
 
-use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FoundMovement;
+use Foresi\CashFlow\Contract\MovementFinder;
+use Foresi\CashFlow\Contract\MovementRule;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\LevyPayment;
+use Foresi\TaxesAndContributions\Contract\LevyPayments;
 use Foresi\TaxesAndContributions\Contract\LevyPaymentSource;
-use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
- * The bank movements that pay the levies, from the actuals of the cash flow
- * (B4): a movement meets an authority's account and variable symbol the way a
- * planned item's match rule does (ActualFlow::meets). A document never pays a
- * levy; a movement pays at most one authority, the first it meets.
+ * The bank movements that pay the levies, found by the cash flow's movement
+ * finder (B4): a movement meets an authority's account and variable symbol
+ * the way a planned item's match rule does (ActualFlow::meets). A document
+ * never pays a levy; a movement pays at most one authority, the first it meets.
  */
 final readonly class BankLevyPayments implements LevyPaymentSource
 {
-    /**
-     * @param iterable<ActualFlowSource> $actuals
-     */
-    public function __construct(
-        #[AutowireIterator(ActualFlowSource::ACTUAL_TAG)]
-        private iterable $actuals,
-    ) {
+    public function __construct(private MovementFinder $finder)
+    {
     }
 
-    public function paymentsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to, array $accounts): iterable
+    public function paymentsBetween(\DateTimeImmutable $from, \DateTimeImmutable $to, array $accounts): LevyPayments
     {
-        foreach ($this->actuals as $source) {
-            foreach ($source->actuals($from, $to) as $actual) {
-                foreach ($accounts as $account) {
-                    $authority = Authority::tryFrom($account->authority);
-                    if ($authority instanceof Authority && $actual->meets($account->account, '' === $account->variableSymbol ? null : $account->variableSymbol)) {
-                        yield new LevyPayment($authority, $actual->subject->id, $actual->on, $actual->amount, FlowDirection::In === $actual->direction);
-
-                        break;
-                    }
-                }
+        $rules = [];
+        foreach ($accounts as $account) {
+            if (Authority::tryFrom($account->authority) instanceof Authority) {
+                $rules[] = new MovementRule($account->authority, $account->account, '' === $account->variableSymbol ? null : $account->variableSymbol);
             }
         }
+        $found = $this->finder->find($from, $to, $rules);
+
+        return new LevyPayments(
+            array_map(static fn (FoundMovement $movement): LevyPayment => new LevyPayment(Authority::from($movement->ruleKey), $movement->id, $movement->on, $movement->amount, FlowDirection::In === $movement->direction), $found->movements),
+            $found->unavailable,
+        );
     }
 }

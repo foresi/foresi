@@ -13,6 +13,7 @@ use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\PlannedItemWrites;
+use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\CashFlowSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;
@@ -135,7 +136,7 @@ final class EstimateFlowsTest extends TaxesTestCase
             new ActualFlow('invoicing.invoices', new FlowSubject('invoice', 'i1'), FlowDirection::Out, $this->czk(5_005), $this->day('2026-09-30'), counterpartyId: 'c1', counterpartyAccount: self::SOCIAL_ACCOUNT, variableSymbol: self::SYMBOL),
             new ActualFlow('banking.movements', new FlowSubject('bank_movement', 'm-other'), FlowDirection::Out, $this->czk(5_005), $this->day('2026-08-30'), counterpartyAccount: self::SOCIAL_ACCOUNT, variableSymbol: '111'),
         ]);
-        $estimates = $this->estimates($this->forecastReads([]), new DuePayments([new BankLevyPayments([$bank])]));
+        $estimates = $this->estimates($this->forecastReads([]), new DuePayments([new BankLevyPayments(new RuleMovements([$bank]))]));
 
         $flows = $this->flows($this->flowsWith($estimates));
 
