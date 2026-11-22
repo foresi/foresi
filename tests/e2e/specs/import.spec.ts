@@ -46,18 +46,18 @@ test.describe('import of contacts', () => {
 
     // Columns: the iDoklad preset proposed the fields.
     await expect(page.locator('nav[aria-label="Kroky importu"] [aria-current="step"]')).toContainText('Přiřazení sloupců');
-    await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
+    await expect(page.locator('main').getByLabel('Firma', { exact: true })).toHaveValue('display_name');
     await expect(page.getByLabel('Sleva', { exact: true })).toHaveValue('');
     // Where the proposals come from is said once; confident columns carry no marker.
     await expect(page.locator('[data-mapping-basis]')).toContainText('Poznali jsme export z iDokladu a sloupce přiřadili podle něj.');
     await expect(page.locator('form[data-controller="import-mapping"]').getByText('Ověřte', { exact: true })).toHaveCount(0);
 
     // A required field left out is named above the columns; the check button stays enabled.
-    await page.getByLabel('Firma', { exact: true }).selectOption('');
+    await page.locator('main').getByLabel('Firma', { exact: true }).selectOption('');
     await expect(page.locator('[data-missing-alert]')).toBeVisible();
     await expect(page.locator('[data-missing-alert]')).toContainText('Název');
     await expect(page.getByRole('button', { name: 'Zkontrolovat' })).toBeEnabled();
-    await page.getByLabel('Firma', { exact: true }).selectOption('display_name');
+    await page.locator('main').getByLabel('Firma', { exact: true }).selectOption('display_name');
     await expect(page.locator('[data-missing-alert]')).toBeHidden();
 
     // The blank cell option applies only to modes that update.
@@ -95,7 +95,7 @@ test.describe('import of contacts', () => {
     const check = page.getByRole('button', { name: 'Zkontrolovat' });
 
     // No column for the name, and a match key no column fills.
-    await page.getByLabel('Firma', { exact: true }).selectOption('');
+    await page.locator('main').getByLabel('Firma', { exact: true }).selectOption('');
     await page.getByLabel('IČ', { exact: true }).selectOption('');
     await page.locator('#match_key').selectOption('registration_number');
     await expect(check).toBeEnabled();
@@ -108,7 +108,7 @@ test.describe('import of contacts', () => {
     await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
     await expect(page.locator('#match_key-error')).toBeVisible();
     // The choices are kept, and the bar still only counts.
-    await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('');
+    await expect(page.locator('main').getByLabel('Firma', { exact: true })).toHaveValue('');
     await expect(page.getByLabel('IČ', { exact: true })).toHaveValue('');
     await expect(page.locator('#match_key')).toHaveValue('registration_number');
     await expect(page.locator('[data-action-bar-status]')).toHaveText('18 z 22 sloupců se importuje');
@@ -116,7 +116,7 @@ test.describe('import of contacts', () => {
     await expectFocusedClearOfActionBar(page, page.locator('#column-0'));
 
     // With the name back, the match key near the floating bar is the first problem.
-    await page.getByLabel('Firma', { exact: true }).selectOption('display_name');
+    await page.locator('main').getByLabel('Firma', { exact: true }).selectOption('display_name');
     await check.click();
     await expect(page.locator('#column-0')).not.toHaveAttribute('aria-invalid', 'true');
     await expect(page.locator('#match_key')).toHaveAttribute('aria-invalid', 'true');
@@ -154,7 +154,7 @@ test.describe('import of contacts', () => {
 
   test('mapping and check screens have no serious accessibility violations @a11y', async ({ page }) => {
     await uploadFixture(page);
-    await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
+    await expect(page.locator('main').getByLabel('Firma', { exact: true })).toHaveValue('display_name');
     await expectNoSeriousViolations(page);
 
     await page.getByRole('button', { name: 'Zkontrolovat' }).click();
@@ -178,7 +178,7 @@ test.describe('import of contacts', () => {
       test(`mapping and check screens look as approved on ${name} @visual`, async ({ page }) => {
         await page.setViewportSize(viewport);
         await uploadFixture(page);
-        await expect(page.getByLabel('Firma', { exact: true })).toHaveValue('display_name');
+        await expect(page.locator('main').getByLabel('Firma', { exact: true })).toHaveValue('display_name');
         await expect(page.locator('[data-action-bar-status]')).toHaveText('20 z 22 sloupců se importuje');
         await expect(page).toHaveScreenshot(`mapping-${name}.png`);
         await undockActionBar(page);
@@ -211,7 +211,7 @@ test.describe('import of contacts', () => {
     await expect(bar).toHaveAttribute('data-stuck', '');
 
     // A field reached with the keyboard is never hidden behind the bar (WCAG 2.4.11).
-    const select = page.getByLabel('Firma', { exact: true });
+    const select = page.locator('main').getByLabel('Firma', { exact: true });
     await select.focus();
     for (let step = 0; step < 30; step += 1) {
       await page.keyboard.press('Tab');
