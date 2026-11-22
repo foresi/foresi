@@ -50,6 +50,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_webhook_deliveries', 'api_v1_webhook_delivery', 'api_v1_webhook_delivery_redeliver', '_mcp_endpoint_default',
         'api_v1_operation_contacts.create', 'api_v1_operation_contacts.update', 'api_v1_operation_contacts.archive', 'api_v1_operation_contacts.restore',
         'api_v1_operation_contacts.link_person', 'api_v1_operation_contacts.unlink_person',
+        'api_v1_operation_party.firm.vat_status.add', 'api_v1_operation_party.firm.vat_status.remove',
         'api_v1_cash_flow_forecast', 'api_v1_cash_flow_planned_items', 'api_v1_cash_flow_planned_item',
         'api_v1_operation_cashflow.checkpoints.record', 'api_v1_operation_cashflow.expected_dates.clear', 'api_v1_operation_cashflow.expected_dates.set',
         'api_v1_operation_cashflow.minimum_balance.set', 'api_v1_operation_cashflow.planned_items.change', 'api_v1_operation_cashflow.planned_items.create',

@@ -12,6 +12,8 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyAccess;
 use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Contract\FirmVatStatuses;
+use Foresi\Party\Contract\VatStretch;
 use Foresi\Party\Domain\LegalEntity;
 
 /**
@@ -21,7 +23,7 @@ use Foresi\Party\Domain\LegalEntity;
  */
 final readonly class FirmDetails
 {
-    public function __construct(private PartyAccess $access, private InstanceFirm $firm)
+    public function __construct(private PartyAccess $access, private InstanceFirm $firm, private FirmVatStatuses $vatStatuses)
     {
     }
 
@@ -34,5 +36,19 @@ final readonly class FirmDetails
         $this->access->denyUnlessStaff();
 
         return $this->firm->get();
+    }
+
+    /**
+     * The VAT statuses of the firm, oldest first.
+     *
+     * @return list<VatStretch>
+     *
+     * @throws PartyNotAllowed for anyone but the owners and members of the organisation
+     */
+    public function vatStatuses(): array
+    {
+        $this->access->denyUnlessStaff();
+
+        return $this->vatStatuses->stretches();
     }
 }

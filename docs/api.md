@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -118,7 +118,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
-| `/api/v1/firm` | `contacts:read` | The firm of the instance: id, name, registration number, VAT ID, VAT status, register entry and address. `404` before the first-run setup. |
+| `/api/v1/firm` | `contacts:read` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today (`vat_status`), its VAT statuses over time (`vat_statuses`, see [Firm VAT statuses](#firm-vat-statuses)), register entry and address. `404` before the first-run setup. |
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
 | `/api/v1/received-documents` | `received_documents:read` | Received documents, newest first, with what is paid and what remains. |
@@ -237,7 +237,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -354,6 +354,36 @@ What a contact write refuses:
 | 409 | `already_linked` | The person is linked to the company already. |
 
 There is no upsert. To keep a contact you may have created before, search for it first (`q` also matches e-mails), and on `duplicate` read the contact in `existing_ids` and update it.
+
+## Firm VAT statuses
+
+The VAT status of the firm over time: each status holds from its day (`valid_from`) until the next one begins. `GET /api/v1/firm` lists them in `vat_statuses`, oldest first, each `{id, status, period_length, valid_from}`, and keeps `vat_status` as the status that holds today. `status` is `registered` (a VAT payer), `not_registered` or `identified_person`. `period_length` is `month` or `quarter` for a registered payer, and `null` for every other status. `valid_from` is `null` only for a status that held from the start, before the statuses had days: the status the firm had before this was added, or one set up without a day. Add a change with its day, so the day VAT is counted from is known.
+
+The writes need the `contacts:write` scope, and only the **owner** of the organisation may use them, as the firm's settings: anyone else is refused with `403 owner_only`. Bodies are JSON with snake case fields.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/firm/vat-statuses` | `201` with the status: `id`, `status`, `period_length` and `valid_from`, which is required. |
+| `DELETE /api/v1/firm/vat-statuses/{vatStatusId}` | `{"id": ..., "removed": true}`. The status before it holds again. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"status": "registered", "period_length": "month", "valid_from": "2026-11-12"}' \
+  "https://app.example.com/api/v1/firm/vat-statuses"
+```
+
+After every change, and each night after midnight in the instance's time zone, the firm takes the status that holds that day: the documents it issues follow it. Every change records the event `party.firm.vat_status_changed`, version 1, with the facts `what` (`added` or `removed`), `status`, `period_length` and `valid_from` of that status, and the firm as its subject.
+
+What a write refuses:
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which rule: `status_invalid`, `period_length_required` (a registered payer without one), `period_length_not_allowed` (a length on another status), `period_length_invalid` or `date_invalid`. |
+| 403 | `owner_only` | The token's person is not the owner. |
+| 404 | `not_found` | The firm has no such status, or the instance has no firm yet. |
+| 409 | `same_day` | A status already starts on that day. Remove it first. |
+| 409 | `vat_id_missing` | The status of today would need a VAT ID (a payer or an identified person), and the firm has none. |
+| 409 | `last_stretch` | The firm keeps at least one status: add the new one first. |
 
 ## Work writes
 

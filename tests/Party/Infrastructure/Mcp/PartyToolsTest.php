@@ -180,6 +180,7 @@ final class PartyToolsTest extends ReadToolTestCase
             'registration_number' => '12345695',
             'vat_id' => 'CZ12345695',
             'vat_status' => 'registered',
+            'vat_statuses' => [['id' => $this->firmId, 'status' => 'registered', 'period_length' => 'month', 'valid_from' => null]],
             'register_entry' => 'Example register, entry C 1',
             'address' => ['street' => 'Example Street 1', 'city' => 'Example City', 'postal_code' => '100 00', 'country_code' => 'CZ'],
         ], $output->data);

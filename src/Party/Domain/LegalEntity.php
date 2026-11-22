@@ -92,6 +92,15 @@ class LegalEntity implements Audited
         return $this->vatStatus;
     }
 
+    /**
+     * The VAT status that holds today, kept here so the code that issues
+     * documents reads it as before; the dated statuses are VatStatusPeriod.
+     */
+    public function holdVatStatus(VatStatus $status): void
+    {
+        $this->vatStatus = $status;
+    }
+
     public function registerEntry(): string
     {
         return $this->registerEntry;

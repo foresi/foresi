@@ -91,8 +91,8 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/settings/firm');
 
-        self::assertSame(['Details', 'Invoicing', 'E-mail', 'Bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
-        self::assertSame(['/settings/firm', '/settings/firm/invoicing', '/settings/firm/mail', '/settings/firm/bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => (string) $a->attr('href')));
+        self::assertSame(['Details', 'VAT', 'Invoicing', 'E-mail', 'Bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
+        self::assertSame(['/settings/firm', '/settings/firm/vat', '/settings/firm/invoicing', '/settings/firm/mail', '/settings/firm/bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => (string) $a->attr('href')));
         self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
         self::assertSame('/settings/firm', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
 
@@ -179,6 +179,40 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertNull($firm->vatId());
     }
 
+    public function testTheSetupWithADayMakesADatedVatStatus(): void
+    {
+        $this->signIn();
+
+        $this->submitNew(['vatValidFrom' => '2026-11-12']);
+
+        self::assertResponseRedirects('/settings/firm');
+        self::assertSame([['registered', 'month', '2026-11-12']], $this->vatStretches());
+    }
+
+    public function testTheSetupWithoutADayMakesTheVatStatusHoldFromTheStart(): void
+    {
+        $this->signIn();
+        $crawler = $this->client->request('GET', '/settings/firm');
+        self::assertSame('date', $crawler->filter('#vatValidFrom')->attr('type'));
+
+        $this->submitNew(['vatStatus' => 'not_registered', 'vatId' => '']);
+
+        self::assertResponseRedirects('/settings/firm');
+        self::assertSame([['not_registered', null, null]], $this->vatStretches());
+    }
+
+    public function testTheSetupRefusesADayThatIsNoDate(): void
+    {
+        $this->signIn();
+
+        $this->submitNew(['vatValidFrom' => '12.11.2026']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('main', 'Enter a valid date.');
+        self::assertSame(0, $this->firmCount());
+        self::assertSame([], $this->vatStretches());
+    }
+
     public function testAVatPayerFirmNeedsAVatNumber(): void
     {
         $this->signIn();
@@ -257,7 +291,14 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorTextContains('#bank-accounts-note', 'The firm\'s bank accounts are kept in its bank settings.');
         self::assertSame('/settings/firm/bank', $crawler->filter('#bank-accounts-note a')->attr('href'));
 
-        $this->client->submit($crawler->filter('main form[data-controller]')->form(['name' => 'Renamed Firm', 'vatStatus' => 'not_registered', 'vatId' => '']));
+        self::assertSelectorNotExists('select#vatStatus');
+        self::assertSelectorNotExists('#vatValidFrom');
+        self::assertSelectorTextContains('[data-firm-vat-today]', 'Non-payer');
+        self::assertSame('/settings/firm/vat', $crawler->filter('#vatStatus a')->attr('href'));
+
+        // The VAT status changes on its own tab: a posted one is ignored.
+        $form = $crawler->filter('main form[data-controller]')->form(['name' => 'Renamed Firm', 'vatId' => '']);
+        $this->client->request('POST', '/settings/firm', ['vatStatus' => 'registered', 'vatValidFrom' => '2026-11-12'] + $form->getPhpValues());
 
         self::assertResponseRedirects('/settings/firm');
         $this->client->followRedirect();
@@ -266,6 +307,8 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSame('Renamed Firm', $stored->name());
         self::assertSame([self::IBAN_STORED], $this->accounts()->ibans(), 'saving the firm keeps its accounts');
         self::assertSame('12345695', $stored->registrationNumber()->value);
+        self::assertSame(VatStatus::NotRegistered, $stored->vatStatus());
+        self::assertSame(0, $this->vatStretchCount());
     }
 
     #[DataProvider('otherRoles')]
@@ -415,6 +458,19 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertCount(1, $firms);
 
         return $firms[0];
+    }
+
+    /**
+     * @return list<array{mixed, mixed, mixed}> status, period length and first day of every stored VAT status
+     */
+    private function vatStretches(): array
+    {
+        return array_map(static fn (array $row): array => [$row['status'], $row['period_length'], $row['valid_from']], $this->em()->getConnection()->fetchAllAssociative('SELECT status, period_length, valid_from FROM party_vat_status_period ORDER BY valid_from'));
+    }
+
+    private function vatStretchCount(): int
+    {
+        return \count($this->em()->getConnection()->fetchFirstColumn('SELECT id FROM party_vat_status_period'));
     }
 
     private function firmCount(): int

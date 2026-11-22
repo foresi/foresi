@@ -45,13 +45,14 @@ final class TableOwnersTest extends KernelTestCase
     {
         $owners = $this->owners()->owners();
 
-        self::assertCount(89, $owners);
+        self::assertCount(90, $owners);
         self::assertSame('shared', $owners['messenger_messages']);
         self::assertSame('events', $owners['event_log']);
         self::assertSame('events', $owners['event_consumption']);
         self::assertSame('identity', $owners['api_idempotency_key']);
         self::assertSame('webhooks', $owners['webhook_delivery']);
         self::assertSame('party', $owners['party']);
+        self::assertSame('party', $owners['party_vat_status_period']);
         self::assertSame('work', $owners['time_entry']);
         self::assertSame('timesheet', $owners['released_time']);
         self::assertSame('documents', $owners['documents_document']);

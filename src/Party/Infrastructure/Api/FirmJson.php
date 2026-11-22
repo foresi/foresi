@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Api;
 
+use Foresi\Party\Contract\VatStretch;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatId;
 
@@ -17,9 +18,11 @@ use Foresi\Party\Domain\VatId;
 final class FirmJson
 {
     /**
+     * @param list<VatStretch> $vatStatuses oldest first
+     *
      * @return array<string, mixed>
      */
-    public static function detail(LegalEntity $firm): array
+    public static function detail(LegalEntity $firm, array $vatStatuses): array
     {
         $address = $firm->address();
         $vatId = $firm->vatId();
@@ -31,8 +34,22 @@ final class FirmJson
             'registration_number' => $firm->registrationNumber()->toString(),
             'vat_id' => $vatId instanceof VatId ? $vatId->toString() : null,
             'vat_status' => $firm->vatStatus()->value,
+            'vat_statuses' => array_map(self::vatStatus(...), $vatStatuses),
             'register_entry' => $firm->registerEntry(),
             'address' => ['street' => $address->street, 'city' => $address->city, 'postal_code' => $address->postalCode, 'country_code' => $address->countryCode],
+        ];
+    }
+
+    /**
+     * @return array{id: string, status: string, period_length: string|null, valid_from: string|null}
+     */
+    public static function vatStatus(VatStretch $stretch): array
+    {
+        return [
+            'id' => $stretch->id,
+            'status' => $stretch->status->value,
+            'period_length' => $stretch->periodLength?->value,
+            'valid_from' => $stretch->validFrom?->format('Y-m-d'),
         ];
     }
 }

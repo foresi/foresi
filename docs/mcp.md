@@ -11,7 +11,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | Tool | What it does |
 | --- | --- |
 | `foresi_whoami` | The person of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
-| `foresi_get_firm` | The firm of the instance: id, name, registration number, VAT ID, VAT status, register entry and address. An instance holds one firm ([ADR 0039](adr/0039-one-firm-per-instance.md)), so no other tool takes a firm. |
+| `foresi_get_firm` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today, its VAT statuses over time (`vat_statuses`), register entry and address. An instance holds one firm ([ADR 0039](adr/0039-one-firm-per-instance.md)), so no other tool takes a firm. |
 | `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |
 | `foresi_create_invoice` | **Write.** Issues an invoice or advance invoice to a customer (`customer_id`) with its `lines`; it gets the next number of its series, or a `number` typed by hand. Foresi has no drafts. |
@@ -39,6 +39,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_restore_contact` | **Write.** Restores an archived contact (`contact_id`). |
 | `foresi_link_contact_person` | **Write.** Links a person (`person_id`) to a company or sole trader (`contact_id`), with an optional `position` and `primary`. |
 | `foresi_unlink_contact_person` | **Write.** Takes a contact person (`person_id`) off a company (`contact_id`); both contacts stay. |
+| `foresi_add_firm_vat_status` | **Write.** Adds a VAT status of the firm from a day on (`status`, `period_length` for a registered payer, `valid_from`), until the next one. Owner only; see [Firm VAT statuses](api.md#firm-vat-statuses). |
+| `foresi_remove_firm_vat_status` | **Write, destructive.** Removes a VAT status of the firm (`vat_status_id`); the one before it holds again, and the last one stays. Owner only. |
 | `foresi_list_webhook_endpoints` | The webhook endpoints you may manage, newest first, without secrets. Takes `limit` and `cursor`. |
 | `foresi_list_webhook_deliveries` | The deliveries to one endpoint from the last 30 days, newest first, with status, attempts and last status code. Takes `endpoint_id`, `limit` and `cursor`. |
 | `foresi_create_webhook_endpoint` | **Write.** Registers an https URL for events (`event_types`, names or `module.*`; optional `description` and `version`) and queues a ping. The answer holds the endpoint and its secret, `whsec_...`, which is shown only now. |

@@ -192,7 +192,8 @@ nelmio_api_doc:
                         registration_country: { type: string, example: CZ }
                         registration_number: { type: string }
                         vat_id: { type: string, nullable: true }
-                        vat_status: { type: string, enum: [registered, not_registered, identified_person] }
+                        vat_status: { type: string, enum: [registered, not_registered, identified_person], description: 'The VAT status that holds today.' }
+                        vat_statuses: { type: array, description: 'The VAT status over time, oldest first.', items: { $ref: '#/components/schemas/FirmVatStatus' } }
                         register_entry: { type: string }
                         address:
                             type: object
@@ -201,6 +202,19 @@ nelmio_api_doc:
                                 city: { type: string }
                                 postal_code: { type: string }
                                 country_code: { type: string }
+                FirmVatStatus:
+                    type: object
+                    description: A VAT status of the firm from valid_from until the next one begins.
+                    properties:
+                        id: { type: string, format: uuid }
+                        status: { type: string, enum: [registered, not_registered, identified_person] }
+                        period_length: { type: string, enum: [month, quarter], nullable: true, description: 'The length of a VAT period; set exactly for a registered payer.' }
+                        valid_from: { type: string, format: date, nullable: true, description: 'The first day; null for the status that held from the start.' }
+                FirmVatStatusRemoved:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        removed: { type: boolean }
                 ContactDetail:
                     allOf:
                         - $ref: '#/components/schemas/Contact'

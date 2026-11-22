@@ -370,6 +370,7 @@ firm:
     invoicing: Invoicing
     mail: E-mail
     bank: Bank
+    vat: VAT
   card:
     tax: VAT
     seat: Registered office
@@ -388,6 +389,48 @@ firm:
     stamp_help: 'One PNG or JPEG, up to 1 MB. Used only in documents'
     stamp_stored_help: 'Uploaded. A new PNG or JPEG replaces it, up to 1 MB'
     removeStamp: Remove the stamp and signature
+    vatStatus_today_help: Holds today. Dated changes are kept on the tab
+    vatStatus_link: VAT
+    vatValidFrom: From
+    vatValidFrom_help: The day it holds from. Without one, from the start.
+  vat:
+    title: VAT
+    card: VAT status over time
+    today: 'Today: {status}'
+    undated: The first status has no day it holds from. Add a change with its day, so VAT is counted from the right day.
+    add: Add a change
+    submit: Add the change
+    description: A status holds from its day until the next change.
+    with_length: '{status}, {length}'
+    from_start: from the start
+    until_next: until the next change
+    remove: Remove
+    remove_title: 'Remove the status {status}?'
+    remove_text: The status before it holds again.
+    length:
+      month: monthly
+      quarter: quarterly
+    field:
+      change: VAT status
+      valid_from: From
+      valid_from_help: The first day the status holds.
+    column:
+      status: Status
+      from: From
+      until: Until
+    flash:
+      added: 'Added: {status}.'
+      removed: The status is removed. The one before it holds again.
+    error:
+      status_invalid: Choose the VAT status.
+      period_length_required: Choose the VAT status.
+      period_length_not_allowed: Choose the VAT status.
+      period_length_invalid: Choose the VAT status.
+      date_invalid: Enter a valid date.
+      same_day: A status already starts on this day. Remove it first.
+      vat_id_missing: The status of today needs a VAT ID. Add it in the firm details.
+      last_stretch: The firm keeps at least one status. Add the new one first.
+      not_found: The status was not found. Reload the page.
   vat_status:
     registered: VAT payer
     not_registered: Non-payer
@@ -398,6 +441,7 @@ firm:
   error:
     vat_status: Choose the VAT status.
     vat_id_required: Enter the VAT ID of this firm.
+    vat_valid_from: Enter a valid date.
     save_failed: The firm could not be saved. Check the details and try again.
     one_per_instance: Foresi keeps one firm per instance. Another firm needs an instance of its own.
     image_type: Upload a PNG or JPEG image.

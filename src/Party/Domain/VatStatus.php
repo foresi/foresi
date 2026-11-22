@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Domain;
 
+use Foresi\Party\Contract\VatRegistration;
+
 enum VatStatus: string
 {
     case Registered = 'registered';
@@ -29,5 +31,18 @@ enum VatStatus: string
     public function chargesVat(): bool
     {
         return self::Registered === $this;
+    }
+
+    public static function ofRegistration(VatRegistration $registration): self
+    {
+        return self::from($registration->value);
+    }
+
+    /**
+     * The status as the contract of the firm's VAT statuses names it.
+     */
+    public function registration(): VatRegistration
+    {
+        return VatRegistration::from($this->value);
     }
 }

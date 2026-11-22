@@ -42,7 +42,8 @@ final readonly class GetFirmTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns the firm of this Foresi instance, the company that issues its documents and receives its payments: id, name, registration number, VAT ID, VAT status, register entry and address. '
+        return 'Returns the firm of this Foresi instance, the company that issues its documents and receives its payments: id, name, registration number, VAT ID, the VAT status of today, register entry and address, '
+            .'and vat_statuses: the VAT status over time, oldest first, each {id, status, period_length, valid_from} holding from its day until the next one (valid_from null: from the start; period_length month or quarter for a registered payer). '
             .'An instance holds exactly one firm, so no other tool takes a firm id.';
     }
 
@@ -61,6 +62,6 @@ final readonly class GetFirmTool implements ReadTool
             throw ToolRefusal::notFound('The instance has no firm yet: its first-run setup has not happened.');
         }
 
-        return new ToolOutput(FirmJson::detail($firm), 'The firm of the instance.');
+        return new ToolOutput(FirmJson::detail($firm, $this->firm->vatStatuses()), 'The firm of the instance.');
     }
 }

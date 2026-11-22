@@ -35,14 +35,19 @@ final readonly class LegalEntitySubmissionReader
     {
     }
 
-    public function read(Request $request): LegalEntitySubmission
+    /**
+     * @param VatStatus|null $kept the firm's status of today, when it is edited: its VAT
+     *                             statuses change on their own tab, so none is read from the form
+     */
+    public function read(Request $request, ?VatStatus $kept = null): LegalEntitySubmission
     {
         $post = $request->request;
         $values = [
             'name' => trim($post->getString('name')),
             'registrationCountry' => $this->country($post->getString('registrationCountry')),
             'registrationNumber' => trim($post->getString('registrationNumber')),
-            'vatStatus' => $post->getString('vatStatus'),
+            'vatStatus' => $kept instanceof VatStatus ? $kept->value : $post->getString('vatStatus'),
+            'vatValidFrom' => $kept instanceof VatStatus ? '' : trim($post->getString('vatValidFrom')),
             'vatId' => trim($post->getString('vatId')),
             'street' => trim($post->getString('street')),
             'city' => trim($post->getString('city')),
@@ -72,6 +77,7 @@ final readonly class LegalEntitySubmissionReader
             $errors['vatStatus'] = ['firm.error.vat_status'];
         }
 
+        $vatValidFrom = $this->vatValidFrom($values['vatValidFrom'], $errors);
         $registrationNumber = $this->registrationNumber($values, $errors);
         $vatId = $this->vatId($values, $status, $errors);
         $logo = $this->image($request, 'logo', $errors);
@@ -88,6 +94,7 @@ final readonly class LegalEntitySubmissionReader
             new Address($values['street'], $values['city'], $values['postalCode'], $values['countryCode']),
             $status,
             $values['registerEntry'],
+            $vatValidFrom,
         ), $logo, $stamp);
     }
 
@@ -123,6 +130,26 @@ final readonly class LegalEntitySubmissionReader
         }
 
         return $bytes;
+    }
+
+    /**
+     * The optional first day of the VAT status on the first-run setup; empty means from the start.
+     *
+     * @param array<string, array{0: string, 1?: array<string, string>}> $errors
+     */
+    private function vatValidFrom(string $value, array &$errors): ?\DateTimeImmutable
+    {
+        if ('' === $value) {
+            return null;
+        }
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        if (false === $day || $day->format('Y-m-d') !== $value) {
+            $errors['vatValidFrom'] = ['firm.error.vat_valid_from'];
+
+            return null;
+        }
+
+        return $day;
     }
 
     private function country(string $code): string
