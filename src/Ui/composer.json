@@ -17,9 +17,14 @@
         "symfony/http-kernel": "^7.4 || ^8.0",
         "symfony/routing": "^7.4",
         "symfony/service-contracts": "^3.8",
+        "symfony/stimulus-bundle": "^3.6",
         "symfony/translation": "7.4.*",
         "symfony/translation-contracts": "^3.8",
+        "symfony/ux-icons": "^3.6",
+        "symfony/ux-live-component": "^3.6",
+        "symfony/ux-turbo": "^3.6",
         "symfony/ux-twig-component": "^3.6",
+        "symfonycasts/tailwind-bundle": "^1.0",
         "tempest/highlight": "^2.30",
         "twig/twig": "^3.30"
     },
@@ -34,7 +39,14 @@
             "kind": "ui",
             "namespace": "Foresi\\Ui\\",
             "bundle": "Foresi\\Ui\\UiBundle",
-            "optional": []
+            "optional": [],
+            "config-requires": [
+                "symfony/stimulus-bundle",
+                "symfony/ux-icons",
+                "symfony/ux-live-component",
+                "symfony/ux-turbo",
+                "symfonycasts/tailwind-bundle"
+            ]
         }
     }
 }

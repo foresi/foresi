@@ -64,11 +64,14 @@
             {% else %}
                 <twig:Ui:KpiStrip :items="kpis" data-cash-flow-kpis />
 
-                {# One granularity per view, as Float's weekly or monthly toggle: 13 weeks or 12 months, for the chart and the table alike. #}
-                <twig:Ui:Tabs :items="views" :label="'cash_flow.view.label'|trans" data-cash-flow-views />
+                {# The tabs and "+ Filter" share one row, as on the Time page: a list without a search keeps its filter at the end of its tabs. #}
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    {# One granularity per view, as Float's weekly or monthly toggle: 13 weeks or 12 months, for the chart and the table alike. #}
+                    <twig:Ui:Tabs :items="views" :label="'cash_flow.view.label'|trans" class="min-w-0 flex-1" data-cash-flow-views />
 
-                {# Certainty is a condition of "+ Filter" (saved views D11); the page keeps it in its address and stores no view. #}
-                <twig:Ui:FilterBar id="cash-flow-filters" :action="path('app_cash_flow')" :keep="filterKeep" :conditions="chips" :builder="builder" data-cash-flow-filter />
+                    {# The source of a flow is a condition of "+ Filter" (saved views D11); the page keeps it in its address and stores no view. #}
+                    <twig:Ui:FilterBar id="cash-flow-filters" :action="path('app_cash_flow')" :keep="filterKeep" :conditions="chips" :builder="builder" class="w-full sm:w-auto" data-cash-flow-filter />
+                </div>
 
                 <section aria-labelledby="cash-flow-chart-title" class="grid grid-cols-1 gap-2">
                     <h2 id="cash-flow-chart-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.chart.title'|trans }}</h2>

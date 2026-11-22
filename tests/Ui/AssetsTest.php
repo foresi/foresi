@@ -63,7 +63,7 @@ final class AssetsTest extends WebTestCase
         $icons = ['layout-grid', 'square-check-big', 'clock-3', 'target', 'file-pen-line', 'file-signature', 'receipt-text', 'inbox', 'landmark', 'chart-column', 'puzzle', 'users', 'settings', 'search', 'chevrons-up-down', 'plus', 'upload', 'download', 'list-filter', 'arrow-up-down', 'columns-3', 'share-2', 'send', 'circle-check', 'tag', 'ellipsis', 'x', 'chevron-left', 'chevron-right', 'chevron-down', 'pencil', 'file-down', 'link-2', 'history', 'user', 'key-round', 'languages', 'building-2', 'log-out', 'calendar', 'plug', 'archive', 'archive-restore', 'refresh-cw', 'triangle-alert', 'user-plus'];
 
         foreach ($icons as $icon) {
-            self::assertFileExists(\dirname(__DIR__, 2).sprintf('/assets/icons/lucide/%s.svg', $icon));
+            self::assertFileExists(\dirname(__DIR__, 2).sprintf('/src/Ui/assets/icons/lucide/%s.svg', $icon));
             // Rendering never falls back to the online Iconify API: it is disabled.
             self::assertStringStartsWith('<svg', $renderer->renderIcon('lucide:'.$icon));
         }

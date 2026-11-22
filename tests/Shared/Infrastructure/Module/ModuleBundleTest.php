@@ -48,6 +48,15 @@ use Foresi\Work\WorkBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Bundle\TwigBundle\DependencyInjection\TwigExtension;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Loader\LoaderResolver;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Loader\GlobFileLoader;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\UX\StimulusBundle\DependencyInjection\StimulusExtension;
 
 /**
@@ -239,6 +248,46 @@ final class ModuleBundleTest extends KernelTestCase
         self::assertSame(['Shared'], $this->mappings($prod));
     }
 
+    public function testUiPointsTheThemeIconsAndUxControllersAtItsOwnAssets(): void
+    {
+        $builder = $this->builder('prod');
+        foreach (['framework', 'symfonycasts_tailwind', 'ux_icons', 'stimulus'] as $alias) {
+            $builder->registerExtension($this->extension($alias));
+        }
+
+        new UiBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        $assets = \dirname(__DIR__, 4).'/src/Ui/assets';
+        self::assertContains(['asset_mapper' => ['paths' => [$assets.'/theme' => '@foresi/ui/theme']]], $builder->getExtensionConfig('framework'));
+        self::assertSame([['input_css' => [$assets.'/theme/app.css']]], $builder->getExtensionConfig('symfonycasts_tailwind'));
+        self::assertSame([['icon_dir' => $assets.'/icons']], $builder->getExtensionConfig('ux_icons'));
+        self::assertContains(['controllers_json' => $assets.'/controllers.json'], $builder->getExtensionConfig('stimulus'));
+        self::assertFileExists($assets.'/theme/app.css');
+        self::assertFileExists($assets.'/controllers.json');
+        self::assertDirectoryExists($assets.'/icons/lucide');
+    }
+
+    public function testSharedPrependsTheFrameworkConfigurationItShips(): void
+    {
+        $builder = $this->builder('prod');
+        $aliases = ['doctrine', 'doctrine_migrations', 'framework', 'mcp', 'monolog', 'nelmio_api_doc', 'scheb_two_factor', 'security', 'symfonycasts_tailwind', 'twig', 'twig_component', 'ux_icons'];
+        foreach ($aliases as $alias) {
+            $builder->registerExtension($this->extension($alias));
+        }
+        $locator = new FileLocator();
+        $php = new PhpFileLoader($builder, $locator, 'prod');
+        $php->setResolver(new LoaderResolver([new YamlFileLoader($builder, $locator, 'prod'), new GlobFileLoader($builder, $locator), $php]));
+        $instanceof = [];
+        $configurator = new ContainerConfigurator($builder, $php, $instanceof, __FILE__, __FILE__, 'prod');
+
+        new SharedBundle()->prependExtension($configurator, $builder);
+
+        foreach ($aliases as $alias) {
+            self::assertNotSame([], $builder->getExtensionConfig($alias), $alias.' is configured by src/Shared/config/packages.');
+        }
+        self::assertSame('Foresi', $builder->getParameter('app.product_name'));
+    }
+
     public function testAnIntegrationRegistersItsTemplatesTranslationsAndControllersWhenItsModuleIsInstalled(): void
     {
         $builder = $this->builder('prod');
@@ -279,6 +328,24 @@ final class ModuleBundleTest extends KernelTestCase
         $bundle = new AlphaBundle(new ModuleGraph([$this->fixture('alpha', []), $this->fixture('beta')]));
 
         self::assertFalse($bundle->loaded('beta', $this->builder('prod')));
+    }
+
+    private function extension(string $alias): ExtensionInterface
+    {
+        return new class($alias) extends Extension {
+            public function __construct(private readonly string $name)
+            {
+            }
+
+            public function load(array $configs, ContainerBuilder $container): void
+            {
+            }
+
+            public function getAlias(): string
+            {
+                return $this->name;
+            }
+        };
     }
 
     /**

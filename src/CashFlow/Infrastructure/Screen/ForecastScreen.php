@@ -387,7 +387,8 @@ final readonly class ForecastScreen
             'label' => $line->flow->label,
             'certainty' => $certainty,
             'certaintyTone' => $estimate ? 'outline' : 'gray',
-            'source' => $source === $certainty ? null : $source,
+            // Only a document says more by its kind (an invoice, a received document); a schedule or a plan is named by its source already.
+            'source' => FlowCertainty::Document === $line->flow->certainty && $source !== $certainty ? $source : null,
             'day' => $this->day($line->countedOn),
             'flags' => $flags,
             'amount' => $this->money->shown($line->flow->amount),

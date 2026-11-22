@@ -319,6 +319,8 @@
             "Foresi\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf"
         ]},
         "PregMatchRemoveDollar": {"ignore": [
+            // Without the end anchor, a longer name still needs an icon file of that exact name.
+            "Foresi\\Ui\\Contract\\Guard::icon::22",
             "Foresi\\Banking\\Application\\InboundAddresses::written::78",
             "Foresi\\Idoklad\\Application\\Import\\DocumentsStage::shapeOf::583"
         ]},

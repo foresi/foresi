@@ -236,7 +236,7 @@ final class TranslationsTest extends TestCase
         $modules = false === $found ? [] : $found;
         sort($modules);
 
-        return [$root.'/translations/'.$name, ...$modules];
+        return $modules;
     }
 
     /**

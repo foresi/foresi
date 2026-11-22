@@ -146,7 +146,7 @@
                     <twig:Ui:DataTable :caption="'party.tab.bank-accounts'|trans" :columns="[{key: 'iban', label: 'party.column.iban'|trans}, {key: 'bic', label: 'party.column.bic'|trans}, {key: 'label', label: 'party.column.label'|trans}, {key: 'primary', label: 'party.column.primary'|trans}]" :rows="accountRows" :actionToken="token" />
                 {% endif %}
             </twig:Ui:Card>
-        {% else %}
+        {% elseif tab == 'history' %}
             {% if timeline is empty %}
                 <twig:Ui:EmptyState icon="history" :title="'party.history.empty'|trans" />
             {% else %}
@@ -154,6 +154,9 @@
                     <twig:Ui:Timeline :items="timeline" data-party-history />
                 </twig:Ui:Card>
             {% endif %}
+        {% else %}
+            {# A module's tab: its own page fragment, loaded into the contact (Foresi\Party\Contract\ContactTabs). #}
+            <turbo-frame id="{{ constant('Foresi\\Party\\Contract\\ContactTabs::FRAME') }}" src="{{ contributed }}" loading="lazy" target="_top" data-contact-tab="{{ tab }}"></turbo-frame>
         {% endif %}
     </div>
 {% endblock %}

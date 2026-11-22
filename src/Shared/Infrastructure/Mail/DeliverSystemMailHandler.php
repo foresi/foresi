@@ -32,12 +32,12 @@ final readonly class DeliverSystemMailHandler
             ->from($this->settings->from())
             ->to($mail->to)
             ->subject($mail->subject)
-            ->text($this->twig->render('email/system.txt.twig', $context));
+            ->text($this->twig->render('@Shared/email/system.txt.twig', $context));
         foreach ($mail->headers as $name => $value) {
             $email->getHeaders()->addTextHeader($name, $value);
         }
         if (null !== $mail->html) {
-            $email->html($this->twig->render('email/system.html.twig', $context));
+            $email->html($this->twig->render('@Shared/email/system.html.twig', $context));
         }
         $this->settings->transport()->send($email);
     }

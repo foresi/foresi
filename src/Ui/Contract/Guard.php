@@ -19,7 +19,7 @@ final class Guard
         if (null === $name) {
             return;
         }
-        if (1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $name) || !is_file(dirname(__DIR__, 3).'/assets/icons/lucide/'.$name.'.svg')) {
+        if (1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $name) || !is_file(__DIR__.'/../assets/icons/lucide/'.$name.'.svg')) {
             throw new \InvalidArgumentException(sprintf('Icon "%s" is not in the locked icon set.', $name));
         }
     }

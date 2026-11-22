@@ -259,8 +259,8 @@ taxes:
         title: Výhled do konce roku se nepodařilo načíst
         text: Předpověď z Cash flow se teď nepodařilo načíst. Počítá se jen se skutečnými platbami.
     forecast:
-      title: Výhled do konce roku podle jistoty
-      certainty_column: Jistota
+      title: Výhled do konce roku podle zdroje
+      certainty_column: Zdroj
       certainty:
         document: Otevřené doklady
         schedule: Opakované faktury

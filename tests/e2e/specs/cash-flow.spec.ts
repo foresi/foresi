@@ -20,14 +20,14 @@ test.describe('the cash flow', () => {
     // Certainty is a field of "+ Filter", sent with Apply as a condition in f=, as on the list pages.
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
-    await page.getByRole('menuitem', { name: 'Jistota' }).click();
-    await page.locator('[data-filter-sheet-form] [data-filter-row="certainty"]').getByLabel('Odhad', { exact: true }).check();
+    await page.getByRole('menuitem', { name: 'Zdroj' }).click();
+    await page.locator('[data-filter-sheet-form] [data-filter-row="certainty"]').getByLabel('Odhad daní a pojištění', { exact: true }).check();
     await page.getByRole('button', { name: 'Použít' }).click();
 
     await expect(page).toHaveURL(/[?&]f=/);
     await expect(page.locator('[data-cash-flow-table-empty]')).toBeVisible();
     await expect(page.locator('[data-cash-flow-table]')).toHaveCount(0);
-    await expect(page.locator('[data-cash-flow-filter]')).toContainText('Jistota: Odhad');
+    await expect(page.locator('[data-cash-flow-filter]')).toContainText('Zdroj: Odhad daní a pojištění');
     // The figures stay: the balance today is never filtered.
     await expect(page.locator('[data-cash-flow-kpis]')).toBeVisible();
 

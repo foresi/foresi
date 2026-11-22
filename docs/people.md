@@ -39,3 +39,41 @@ The owner sees, for each person, their role, the linked contact, whether two-fac
 ## The last owner
 
 An organisation always keeps at least one active owner: the last one can be neither changed to another role nor deactivated. Add a second owner first (invite a team member, then make them owner).
+
+## Contacts for other modules
+
+The people and firms an organisation works with are its contacts, kept in the address book (the Party module). Other modules reach them only through `Foresi\Party\Contract`, so they run against any address book that serves the contract.
+
+### Reading a contact
+
+`Foresi\Party\Contract\PartyDirectory` reads contacts for modules such as Sales (the customer of a deal or an offer) and Outreach (the recipients of a campaign):
+
+```php
+interface PartyDirectory
+{
+    public function find(string $id): ?PartySummary; // archived contacts too, flagged; null when unknown
+
+    /** @throws UnknownParty */
+    public function get(string $id): PartySummary;
+
+    /** @return list<PartyPersonSummary> the persons linked to the company, in link order */
+    public function personsOf(string $companyId): array;
+}
+```
+
+- `PartySummary` has the `id`, the `kind` (`Foresi\Party\Contract\Event\ContactKind`: person, sole trader or company), the `displayName`, the `registrationNumber` and the `vatId` (null when the contact has none), the `addressLines` of the billing address (else the first address; street, postal code and city, country code), the general `email`, the `phone` (else the mobile), the `roles` (`customer`, `supplier`, `partner`, `authority`) and `archived`.
+- `PartyPersonSummary` has the person's `id`, `displayName`, `email` and `phone`, and the `position` the link to the company gives (null when it gives none).
+- `personsOf()` of a person, or of an unknown id, is an empty list.
+- It reads as the person signed in: only the owners and members of the organisation read contacts, and a guest is refused, as on the address book's screens, API and MCP tools.
+
+### Adding a tab to a contact
+
+A module that keeps something of a contact, such as its deals, adds a tab after the contact's own five (Overview, Contact persons, Addresses, Bank accounts, History). It implements `Foresi\Ui\Contract\Slot\SlotProvider` and answers the slot `Foresi\Party\Contract\ContactTabs::SLOT` (`party.contact_tabs`), whose context holds `contactId`, with a `SlotItem` whose data holds:
+
+- `key`: the tab's key; the tab opens at `/contacts/<id>?tab=<key>`. A key the address book uses itself is ignored.
+- `label`: the tab's name, already translated.
+- `href`: the module's own page fragment for the contact.
+
+Lower weights come first. The contact's own tabs take the weights 0 to 50, so a module's tab starts at 100. An unknown `?tab=`, such as the key of a module that is not installed, opens the overview.
+
+The tab's body loads inside the contact detail from `href`, in a lazy Turbo frame with the id `ContactTabs::FRAME` (`contact-tab`). The response holds `<turbo-frame id="contact-tab">` with the body. Links in it open as whole pages unless they name the frame with `data-turbo-frame="contact-tab"`.

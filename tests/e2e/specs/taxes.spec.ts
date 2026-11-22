@@ -61,20 +61,20 @@ test.describe('taxes and contributions', () => {
     await expect(insurance).toBeVisible();
     await insurance.locator('a[data-sheet]').first().click();
     const sheet = page.locator('dialog#sheet');
-    await expect(sheet.locator('[data-cash-flow-item]').first().locator('[data-certainty]')).toHaveText('Odhad');
+    await expect(sheet.locator('[data-cash-flow-item]').first().locator('[data-certainty]')).toHaveText('Odhad daní a pojištění');
     await sheet.getByRole('button', { name: 'Zavřít' }).first().click();
 
-    // The filter "Jistota není Odhad" leaves them out, and with them every flow of this firm.
+    // The filter "Zdroj není Odhad daní a pojištění" leaves them out, and with them every flow of this firm.
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
-    await page.getByRole('menuitem', { name: 'Jistota' }).click();
+    await page.getByRole('menuitem', { name: 'Zdroj' }).click();
     const row = page.locator('[data-filter-sheet-form] [data-filter-row="certainty"]');
     await row.getByRole('combobox').first().selectOption({ label: 'není' });
-    await row.getByLabel('Odhad', { exact: true }).check();
+    await row.getByLabel('Odhad daní a pojištění', { exact: true }).check();
     await page.getByRole('button', { name: 'Použít' }).click();
     await expect(page).toHaveURL(/[?&]f=/);
     await expect(page.locator('[data-cash-flow-table-empty]')).toBeVisible();
-    await expect(page.locator('[data-cash-flow-filter]')).toContainText('Jistota: není Odhad');
+    await expect(page.locator('[data-cash-flow-filter]')).toContainText('Zdroj: není Odhad daní a pojištění');
   });
 
   test('a team member does not see the menu item', async ({ page }) => {
