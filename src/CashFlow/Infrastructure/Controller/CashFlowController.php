@@ -37,6 +37,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -90,6 +91,8 @@ final class CashFlowController extends AbstractController
         return $this->render('@CashFlow/index.html.twig', [
             'noFirm' => false,
             'noAccount' => [] === $forecast->accounts,
+            // The accounts are added on the bank tab of Banking; without it the page only says so.
+            'bankUrl' => [] === $forecast->accounts ? $this->bankUrl() : null,
             'empty' => !$forecast->isFiltered() && $this->screen->isEmpty($forecast),
             'filtered' => $forecast->isFiltered() || [] !== $filter->conditions,
             'noFlows' => !$this->screen->hasFlows($forecast),
@@ -227,6 +230,19 @@ final class CashFlowController extends AbstractController
             : $this->translator->trans('cash_flow.expected.flash_saved', ['document' => $line->flow->label, 'day' => $this->documents->day(new \DateTimeImmutable($values['expectedOn'], $this->clock->timezone()))]));
 
         return $this->redirectToRoute(self::ROUTE, null === $view ? [] : ['view' => $view]);
+    }
+
+    /**
+     * The bank tab of the firm, or null without Banking: Cash flow knows that
+     * screen by its route only.
+     */
+    private function bankUrl(): ?string
+    {
+        try {
+            return $this->generateUrl('app_firm_bank');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**
