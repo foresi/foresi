@@ -5,7 +5,7 @@
     leaves it out of the forecast or includes it again (Pulse's Active, Float's switch), ends a recurring
     one on a day and deletes it after asking. Its next occurrences each have Skip this one, as Xero and
     Pulse change a single occurrence. Variables: item, direction, listTitle, listRoute, details,
-    occurrences, recurring.
+    occurrences, pairedDocuments, recurring.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -86,5 +86,27 @@
                 </ol>
             {% endif %}
         </section>
+
+        {% if pairedDocuments is not empty %}
+            {# The documents Cash flow paired with the occurrences, automatically or a person did. #}
+            <section class="grid gap-2" aria-labelledby="planned-paired-title" data-planned-paired>
+                <h2 id="planned-paired-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.planned.paired.title'|trans }}</h2>
+                <ol class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for occurrence in pairedDocuments %}
+                        <li class="flex min-h-row flex-wrap items-center gap-x-3 gap-y-1 border-b border-divider px-4 py-2 last:border-b-0" data-paired-occurrence="{{ occurrence.on }}">
+                            <span class="w-32 shrink-0 text-ink">{{ occurrence.day }}</span>
+                            <span class="grid min-w-0 flex-1 gap-1">
+                                {% for document in occurrence.documents %}
+                                    <span class="flex min-w-0 flex-wrap items-center gap-2" data-paired-document>
+                                        {% if document.href %}<a href="{{ document.href }}" class="min-w-0 truncate text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ document.label }}</a>{% else %}<span class="min-w-0 truncate">{{ document.label }}</span>{% endif %}
+                                        {% if document.auto %}<twig:Ui:Badge tone="gray">{{ 'cash_flow.planned.paired.auto'|trans }}</twig:Ui:Badge>{% endif %}
+                                    </span>
+                                {% endfor %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </section>
+        {% endif %}
     </div>
 {% endblock %}

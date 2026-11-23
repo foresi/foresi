@@ -16,6 +16,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatRegistration;
 use Foresi\Party\Contract\VatStretch;
+use Foresi\Shared\Domain\Money;
 
 /**
  * When the VAT of a planned item counts: only on the days the firm is a
@@ -48,6 +49,16 @@ final readonly class PlannedItemVatRule
         $vat = $item->vat();
 
         return $vat instanceof PlannedItemVat && $this->isPayerOn($day) ? $vat : null;
+    }
+
+    /**
+     * What the occurrence on the day moves: with the VAT on top when the item
+     * states it and the firm is a payer that day, the item's amount otherwise.
+     * This is the amount the forecast uses for the occurrence.
+     */
+    public function amountOn(PlannedItem $item, \DateTimeImmutable $day): Money
+    {
+        return $this->on($item, $day)->flow ?? $item->amount();
     }
 
     /**

@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+purchasing:
+  pairing:
+    title: Plán
+    filter: K potvrzení párování
+    paired_with: Spárováno s
+    automatic: (automaticky)
+    unpair: Zrušit párování
+    proposed: Doklad může patřit k těmto plánovaným položkám.
+    confirm: Potvrdit
+    other: Jiná položka…
+    decline: Nepárovat
+    declined: Nepárováno
+    none: Žádná plánovaná položka zatím neodpovídá.
+    choose: Spárovat…
+    choose_description: Vyberte plánovanou položku a den, ke kterému doklad patří.
+    field: Položka a den
+    submit: Spárovat
+    no_options: V okolí data dokladu nemá žádná plánovaná položka stejného směru výskyt.
+    flash:
+      paired: Doklad je spárovaný s plánovanou položkou.
+      unpaired: Doklad zůstane nespárovaný.
+    error:
+      choice: Vyberte položku a den ze seznamu.
+      not_found: Doklad nebo plánovaná položka už neexistuje.
+      direction_mismatch: Doklad a plánovaná položka mají opačný směr peněz.
+      not_an_occurrence: Plánovaná položka na tento den nepřipadá, nebo je výskyt přeskočený.
+      date_invalid: Den není platné datum.
+      other: Párování se nepodařilo.

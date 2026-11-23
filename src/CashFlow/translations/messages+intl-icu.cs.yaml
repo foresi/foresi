@@ -250,6 +250,10 @@ cash_flow:
       vat_mode: DPH
       vat_mode_help: Počítá se jen ve dnech, kdy je firma plátcem DPH.
       vat_rate: Sazba DPH (%)
+    paired:
+      title: Spárované doklady
+      document: Doklad
+      auto: Automaticky
     occurrences:
       title: Další výskyty
       title_once: Den

@@ -57,7 +57,7 @@ final readonly class ForecastScreen
      * planned item by its direction. A module that is not installed has no
      * route, so its items stay plain text.
      */
-    private const array RECORDS = [
+    public const array RECORDS = [
         'invoice' => 'app_invoice_show',
         'recurring_invoice' => 'app_recurring_show',
         'received_document' => 'app_purchasing_document',

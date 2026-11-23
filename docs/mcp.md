@@ -95,6 +95,9 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_skip_planned_occurrence` | **Write.** Leaves one occurrence (`on`) of a planned item out. |
 | `foresi_end_planned_item` | **Write.** Ends a recurring planned item on a day (`on`). |
 | `foresi_delete_planned_item` | **Write, destructive.** Deletes a planned item with all its occurrences. |
+| `foresi_list_pairings` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) or `planned_item_id`; each with the document, the occurrence it is paired with and its candidates. |
+| `foresi_pair_document` | **Write.** Says a document (`subject_type`, `subject_id`) belongs to an occurrence (`occurrence_on`) of a planned item (`planned_item_id`); the forecast then leaves that occurrence out. The occurrence chosen is always among the row's `candidates`. |
+| `foresi_unpair_document` | **Write.** Says a document belongs to none of the occurrences it was paired or proposed with; Cash flow never pairs it on its own again. Both writes record the event `cash-flow.document_pairing.changed`. |
 | `foresi_record_balance_checkpoint` | **Write.** Records the balance of a firm bank account (`bank_account_id`, from `balance.accounts` of the forecast) at the end of a day. |
 | `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
 | `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |

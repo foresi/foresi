@@ -16,7 +16,9 @@ use Foresi\CashFlow\Application\PeriodForecast;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\ExpectedDate;
+use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Domain\PlannedItemVat;
 use Foresi\Party\Domain\LegalEntity;
@@ -72,6 +74,38 @@ final class CashFlowJson
                 'tolerance' => null === $tolerance ? null : JsonValues::money(Money::ofMinor($tolerance, $item->amount()->currency())),
             ],
             'created_at' => JsonValues::timestamp($item->createdAt()),
+        ];
+    }
+
+    /**
+     * A document's pairing with a planned occurrence: its subject, state, the item and the occurrence day it is
+     * paired with (null for a proposal with several candidates and for a declined one), every candidate with the
+     * item's name, and when a person decided it.
+     *
+     * @param array<string, string> $names the names of the planned items, by id
+     *
+     * @return array<string, mixed>
+     */
+    public static function pairing(DocumentPairing $pairing, array $names, ?string $url): array
+    {
+        $itemId = $pairing->plannedItemId();
+
+        return [
+            'subject' => ['type' => $pairing->subjectType(), 'id' => $pairing->subjectId(), 'url' => $url],
+            'state' => $pairing->state()->value,
+            'counterparty_id' => $pairing->counterpartyId(),
+            'planned_item_id' => $itemId,
+            'planned_item_name' => null === $itemId ? null : ($names[$itemId] ?? null),
+            'occurrence_on' => JsonValues::date($pairing->occurrenceOn()),
+            'candidates' => array_map(static fn (PairingCandidate $candidate): array => [
+                'planned_item_id' => $candidate->plannedItemId,
+                'planned_item_name' => $names[$candidate->plannedItemId] ?? null,
+                'occurrence_on' => JsonValues::date($candidate->occurrenceOn),
+            ], $pairing->candidates()),
+            'decided_by' => $pairing->decidedBy(),
+            'decided_at' => JsonValues::timestamp($pairing->decidedAt()),
+            'created_at' => JsonValues::timestamp($pairing->createdAt()),
+            'updated_at' => JsonValues::timestamp($pairing->updatedAt()),
         ];
     }
 

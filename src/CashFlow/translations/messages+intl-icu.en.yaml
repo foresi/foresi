@@ -250,6 +250,10 @@ cash_flow:
       vat_mode: VAT
       vat_mode_help: Counted only on the days the firm is a VAT payer.
       vat_rate: VAT rate (%)
+    paired:
+      title: Paired documents
+      document: Document
+      auto: Automatic
     occurrences:
       title: Next occurrences
       title_once: The day

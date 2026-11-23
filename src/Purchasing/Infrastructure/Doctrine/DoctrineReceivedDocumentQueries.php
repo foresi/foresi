@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentIdFilter;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
@@ -30,6 +31,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The lists of received documents in DQL over scalar columns, so a page loads
@@ -52,8 +54,16 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     /** A document from abroad belongs to the month of its issue date (ReceivedDocumentFilter::byIssueDate). */
     private const string FROM_ABROAD = '(d.kind = :abroadKind OR d.treatment IN (:abroadTreatments))';
 
-    public function __construct(private ReceivedDocumentLists $receivedLists, private EntityManagerInterface $em, private InstanceClock $clock)
-    {
+    /**
+     * @param iterable<ReceivedDocumentIdFilter> $idFilters
+     */
+    public function __construct(
+        private ReceivedDocumentLists $receivedLists,
+        private EntityManagerInterface $em,
+        private InstanceClock $clock,
+        #[AutowireIterator(ReceivedDocumentIdFilter::ID_FILTER_TAG)]
+        private iterable $idFilters = [],
+    ) {
     }
 
     public function counts(ReceivedDocumentFilter $filter): array
@@ -168,10 +178,20 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
      */
     private function inView(ViewFilter $view, string $prefix, string $trash = 'd.deletedAt IS NULL'): array
     {
-        $derived = static fn (Condition $condition): array => [match ($condition->field) {
-            ReceivedDocumentLists::TRASHED => DqlConditions::derivedBoolean($condition, 'd.deletedAt IS NOT NULL'),
-            default => throw new \LogicException(\sprintf('The field "%s" of the received documents has no SQL.', $condition->field)),
-        }, []];
+        $derived = function (Condition $condition, string $name): array {
+            if (ReceivedDocumentLists::TRASHED === $condition->field) {
+                return [DqlConditions::derivedBoolean($condition, 'd.deletedAt IS NOT NULL'), []];
+            }
+            foreach ($this->idFilters as $filter) {
+                if ($filter->field() === $condition->field) {
+                    $ids = $filter->documentIds();
+
+                    return [DqlConditions::derivedBoolean($condition, [] === $ids ? '1 = 0' : 'd.id IN (:'.$name.')'), [] === $ids ? [] : [$name => [$ids, ArrayParameterType::STRING]]];
+                }
+            }
+
+            throw new \LogicException(\sprintf('The field "%s" of the received documents has no SQL.', $condition->field));
+        };
         [$condition, $parameters] = new DqlConditions($this->receivedLists->list(), self::VIEW_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), $prefix);
 
         return [([] === $view->on(ReceivedDocumentLists::TRASHED) ? $trash.' AND ' : '').$condition, $parameters];
@@ -211,6 +231,14 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         if ($filter->dueBefore instanceof \DateTimeImmutable) {
             $conditions[] = 'd.dueDate < :dueBefore';
             $parameters['dueBefore'] = [$filter->dueBefore, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->dayFrom instanceof \DateTimeImmutable) {
+            $conditions[] = 'COALESCE(d.taxPointDate, d.issueDate, d.receivedDate) >= :dayFrom';
+            $parameters['dayFrom'] = [$filter->dayFrom, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->dayTo instanceof \DateTimeImmutable) {
+            $conditions[] = 'COALESCE(d.taxPointDate, d.issueDate, d.receivedDate) <= :dayTo';
+            $parameters['dayTo'] = [$filter->dayTo, Types::DATE_IMMUTABLE];
         }
         if (null !== $afterId) {
             $conditions[] = 'd.id < :after';

@@ -15,7 +15,9 @@ use Foresi\CashFlow\Contract\Event\PlannedItemDeleted;
 use Foresi\CashFlow\Contract\Event\PlannedItemEnded;
 use Foresi\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Contract\PlannedVatMode;
+use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\TransactionalWork;
@@ -43,6 +45,7 @@ final readonly class PlannedItemWrites
         private EventRecorder $events,
         private InstanceClock $instanceClock,
         private ClockInterface $clock,
+        private Pairing $pairing,
     ) {
     }
 
@@ -61,6 +64,10 @@ final readonly class PlannedItemWrites
             $item = new PlannedItem($direction, $terms, $this->clock->now());
             $this->store->add($item);
             $this->events->record(new PlannedItemCreated($item->id(), $firmId, $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
+            // The documents of the counterparty recorded before the item may belong to it.
+            if ($item->isRecurring()) {
+                $this->reconsiderDocuments([$item->counterparty()?->id()]);
+            }
 
             return $item;
         });
@@ -75,6 +82,8 @@ final readonly class PlannedItemWrites
             $item = $this->item($input->plannedItemId);
             $zone = $this->instanceClock->timezone();
             $was = $item->recurrence($zone);
+            $before = $this->terms($item, $zone);
+            $counterpartyBefore = $item->counterparty()?->id();
             $match = $item->matchRule();
             $tolerance = $match->toleranceMinor();
             // A one-off item has no end, and a new end replaces the other kind of end.
@@ -107,6 +116,9 @@ final readonly class PlannedItemWrites
             PlannedItemRules::checkVatDirection($terms, $item->direction());
             $item->change($terms);
             $this->events->record(new PlannedItemChanged($item->id(), $this->access->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isIncluded()));
+            if ($before !== $this->terms($item, $zone)) {
+                $this->reconsiderDocuments([$counterpartyBefore, $item->counterparty()?->id()]);
+            }
 
             return $item;
         });
@@ -130,6 +142,8 @@ final readonly class PlannedItemWrites
             }
             $item->skip($on);
             $this->events->record(new PlannedItemOccurrenceSkipped($item->id(), $this->access->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
+            // A document paired with the occurrence, or proposed for it, is looked at again now that it is gone.
+            $this->pairing->reconsiderOccurrence($item, $on);
 
             return $item;
         });
@@ -152,23 +166,72 @@ final readonly class PlannedItemWrites
             }
             $item->endOn($on);
             $this->events->record(new PlannedItemEnded($item->id(), $this->access->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
+            // A document paired with an occurrence after the end, or proposed for one, is looked at again.
+            $this->reconsiderDocuments([$item->counterparty()?->id()]);
 
             return $item;
         });
     }
 
     /**
-     * @throws CashFlowRefused
+     * @throws CashFlowRefused has_pairings while a document is paired with an occurrence of the item
      */
     public function delete(DeletePlannedItemInput $input): string
     {
         return $this->transaction->run(function () use ($input): string {
             $item = $this->item($input->plannedItemId);
+            $paired = array_filter($this->store->pairings(plannedItemId: $item->id()), static fn (DocumentPairing $pairing): bool => \in_array($pairing->state(), [PairingState::Auto, PairingState::Confirmed], true));
+            if ([] !== $paired) {
+                throw CashFlowRefused::conflict('has_pairings', 'Documents are paired with occurrences of this planned item, so it cannot be deleted. End the recurring item instead (foresi_end_planned_item), or unpair the documents first (foresi_unpair_document).');
+            }
+            // The proposals that list the item let go of it before it goes, and look at their documents again once it is gone.
+            $proposals = $this->pairing->release($item);
             $this->events->record(new PlannedItemDeleted($item->id(), $this->access->firm()->id(), $this->direction($item)));
             $this->store->remove($item);
+            $this->store->flush();
+            foreach ($proposals as $subject) {
+                $this->pairing->reconsiderSubject($subject);
+            }
 
             return $item->id();
         });
+    }
+
+    /**
+     * What decides which documents belong to an item: its counterparty, direction, amount, VAT, tolerance,
+     * schedule and whether the forecast includes it.
+     *
+     * @return array<string, mixed>
+     */
+    private function terms(PlannedItem $item, \DateTimeZone $zone): array
+    {
+        $recurrence = $item->recurrence($zone);
+
+        return [
+            'counterparty' => $item->counterparty()?->id(),
+            'direction' => $item->direction()->value,
+            'amount' => $item->amount()->minor().$item->amount()->currency()->value,
+            'vat' => [$item->vatMode()->value, $item->vatRate()],
+            'tolerance' => $item->matchRule()->toleranceMinor(),
+            'on' => $item->firstOn()->format('Y-m-d'),
+            'schedule' => $recurrence instanceof Recurrence ? [$recurrence->unit()->value, $recurrence->every(), $recurrence->onLastDayOfMonth(), $recurrence->endOn()?->format('Y-m-d'), $recurrence->endAfter()] : null,
+            'included' => $item->isIncluded(),
+        ];
+    }
+
+    /**
+     * Takes another look at the documents of these counterparties of the last 13 months that a person has not decided.
+     *
+     * @param list<string|null> $counterpartyIds
+     */
+    private function reconsiderDocuments(array $counterpartyIds): void
+    {
+        $today = $this->instanceClock->today();
+        $from = $today->modify('-13 months');
+        $to = $today->modify('+13 months');
+        foreach (array_unique(array_filter($counterpartyIds, static fn (?string $id): bool => null !== $id)) as $counterpartyId) {
+            $this->pairing->reconsiderOf($counterpartyId, $from, $to);
+        }
     }
 
     /**

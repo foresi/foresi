@@ -11,7 +11,9 @@ namespace Foresi\CashFlow\Infrastructure\Doctrine;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Domain\Checkpoint;
+use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\ExpectedDate;
 use Foresi\CashFlow\Domain\MinimumBalance;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -41,12 +43,12 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
             ->getQuery()->getResult();
     }
 
-    public function add(PlannedItem|Checkpoint|ExpectedDate|MinimumBalance $record): void
+    public function add(PlannedItem|Checkpoint|ExpectedDate|MinimumBalance|DocumentPairing $record): void
     {
         $this->entityManager->persist($record);
     }
 
-    public function remove(PlannedItem|ExpectedDate|MinimumBalance $record): void
+    public function remove(PlannedItem|ExpectedDate|MinimumBalance|DocumentPairing $record): void
     {
         $this->entityManager->remove($record);
     }
@@ -88,5 +90,61 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
         $minimum = $this->entityManager->getRepository(MinimumBalance::class)->findOneBy([]);
 
         return $minimum instanceof MinimumBalance ? $minimum : null;
+    }
+
+    public function pairing(string $subjectType, string $subjectId): ?DocumentPairing
+    {
+        return $this->entityManager->getRepository(DocumentPairing::class)->findOneBy(['subjectType' => $subjectType, 'subjectId' => $subjectId]);
+    }
+
+    public function pairings(?PairingState $state = null, ?string $plannedItemId = null): array
+    {
+        $query = $this->entityManager->createQueryBuilder()->select('p')->from(DocumentPairing::class, 'p');
+        if ($state instanceof PairingState) {
+            $query->andWhere('p.state = :state')->setParameter('state', $state);
+        }
+        if (null !== $plannedItemId) {
+            $query->andWhere('IDENTITY(p.plannedItem) = :item')->setParameter('item', $plannedItemId);
+        }
+
+        /* @var list<DocumentPairing> */
+        return $query->orderBy('p.createdAt')->addOrderBy('p.id')->getQuery()->getResult();
+    }
+
+    public function pairingsOfOccurrence(string $plannedItemId, \DateTimeImmutable $on): array
+    {
+        /* @var list<DocumentPairing> */
+        return $this->entityManager->createQueryBuilder()
+            ->select('p')->from(DocumentPairing::class, 'p')
+            ->where('IDENTITY(p.plannedItem) = :item')->andWhere('p.occurrenceOn = :on')
+            ->setParameter('item', $plannedItemId)->setParameter('on', $on, Types::DATE_IMMUTABLE)
+            ->orderBy('p.createdAt')->addOrderBy('p.id')
+            ->getQuery()->getResult();
+    }
+
+    public function pairingsOfCounterparty(string $counterpartyId): array
+    {
+        /* @var list<DocumentPairing> */
+        return $this->entityManager->createQueryBuilder()
+            ->select('p')->from(DocumentPairing::class, 'p')
+            ->where('IDENTITY(p.counterparty) = :counterparty')->setParameter('counterparty', $counterpartyId)
+            ->orderBy('p.createdAt')->addOrderBy('p.id')
+            ->getQuery()->getResult();
+    }
+
+    public function pairedOccurrences(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /* @var list<DocumentPairing> */
+        return $this->entityManager->createQueryBuilder()
+            ->select('p')->from(DocumentPairing::class, 'p')
+            ->where('p.state IN (:states)')->andWhere('p.occurrenceOn >= :from')->andWhere('p.occurrenceOn <= :to')
+            ->setParameter('states', [PairingState::Auto, PairingState::Confirmed])
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()->getResult();
+    }
+
+    public function flush(): void
+    {
+        $this->entityManager->flush();
     }
 }

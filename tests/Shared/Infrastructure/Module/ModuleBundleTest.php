@@ -119,7 +119,9 @@ final class ModuleBundleTest extends KernelTestCase
         $bundle->prependExtension($this->configurator($builder, $env), $builder);
 
         self::assertSame($mappings, $this->mappings($builder));
-        self::assertSame([] === $routing ? [] : [['messenger' => ['routing' => $routing]]], $builder->getExtensionConfig('framework'));
+        // The translations of an integration are tested on their own, with a fixture.
+        $framework = array_values(array_filter($builder->getExtensionConfig('framework'), static fn (array $config): bool => !isset($config['translator'])));
+        self::assertSame([] === $routing ? [] : [['messenger' => ['routing' => $routing]]], $framework);
         $expected = [];
         foreach ($mappings as $name) {
             $tests = str_ends_with($name, 'Fixtures');

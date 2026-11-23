@@ -8,9 +8,18 @@ declare(strict_types=1);
 
 use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\Pairing;
+use Foresi\CashFlow\Application\PairingReads;
 use Foresi\CashFlow\Application\RuleMovements;
+use Foresi\CashFlow\Contract\DocumentPairer;
+use Foresi\CashFlow\Contract\DocumentPairings;
 use Foresi\CashFlow\Contract\ForecastReader;
 use Foresi\CashFlow\Contract\MovementFinder;
+use Foresi\CashFlow\Contract\PairableDocumentSource;
+use Foresi\CashFlow\Contract\PlannedItemDirectory;
+use Foresi\CashFlow\Contract\PlannedPairings;
+use Foresi\CashFlow\Infrastructure\Directory\PlannedItemsDirectory;
+use Foresi\CashFlow\Infrastructure\Screen\DocumentPairingsScreen;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -38,4 +47,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RuleMovements::class)
         ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
     $services->alias(MovementFinder::class, RuleMovements::class)->public();
+    // Other modules hand documents to Cash flow to pair with planned occurrences, read the pairings and look planned items up.
+    $services->set(Pairing::class)
+        ->arg('$sources', tagged_iterator(PairableDocumentSource::TAG));
+    $services->alias(DocumentPairer::class, Pairing::class)->public();
+    $services->alias(PlannedPairings::class, PairingReads::class)->public();
+    $services->alias(DocumentPairings::class, DocumentPairingsScreen::class)->public();
+    $services->alias(PlannedItemDirectory::class, PlannedItemsDirectory::class)->public();
 };

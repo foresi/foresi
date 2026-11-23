@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+purchasing:
+  pairing:
+    title: Plan
+    filter: Pairing to confirm
+    paired_with: Paired with
+    automatic: (automatically)
+    unpair: Unpair
+    proposed: The document may belong to one of these planned items.
+    confirm: Confirm
+    other: Another item…
+    decline: Do not pair
+    declined: Not paired
+    none: No planned item matches yet.
+    choose: Pair…
+    choose_description: Choose the planned item and the day the document belongs to.
+    field: Item and day
+    submit: Pair
+    no_options: No planned item of the same direction falls near the day of the document.
+    flash:
+      paired: The document is paired with the planned item.
+      unpaired: The document stays unpaired.
+    error:
+      choice: Choose an item and a day from the list.
+      not_found: The document or the planned item no longer exists.
+      direction_mismatch: The document and the planned item move money in opposite directions.
+      not_an_occurrence: The planned item does not fall on this day, or the occurrence is skipped.
+      date_invalid: The day is not a valid date.
+      other: The pairing did not work out.

@@ -15,13 +15,15 @@ namespace Foresi\CashFlow\Contract;
 final readonly class FlowSubject
 {
     /**
-     * @param string      $type such as "invoice" or "planned_item", lower snake case
-     * @param string|null $url  where the API reads it, when it has a place there
+     * @param string      $type  such as "invoice" or "planned_item", lower snake case
+     * @param string|null $url   where the API reads it, when it has a place there
+     * @param string|null $label how a person names it, such as a document's number and supplier, when the source says
      */
     public function __construct(
         public string $type,
         public string $id,
         public ?string $url = null,
+        public ?string $label = null,
     ) {
     }
 }

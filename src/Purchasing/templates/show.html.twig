@@ -160,6 +160,11 @@
                 </section>
             {% endif %}
 
+            {# Panels of other modules' integrations, such as the Plan panel of Cash flow (ADR 0038). #}
+            {% if document.recorded and not document.trashed %}
+                {% for item in slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::DOCUMENT_SECTIONS'), {documentId: document.id}) %}{{ include(item.template, item.data|merge({documentId: document.id})) }}{% endfor %}
+            {% endif %}
+
             <twig:Ui:Card :title="'purchasing.history.title'|trans" icon="history">
                 <twig:Ui:Timeline :items="timeline" data-purchasing-history />
             </twig:Ui:Card>

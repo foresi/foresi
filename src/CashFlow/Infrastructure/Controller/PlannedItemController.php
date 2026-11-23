@@ -127,6 +127,7 @@ final class PlannedItemController extends AbstractController
             'itemRoute' => PlannedItemScreen::itemRoute($item->direction()),
             'details' => $this->screen->details($item),
             'occurrences' => $this->screen->occurrences($item),
+            'pairedDocuments' => $this->screen->pairedDocuments($item),
             'recurring' => $item->isRecurring(),
         ]);
     }

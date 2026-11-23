@@ -88,6 +88,41 @@ An occurrence is left out when, in its period and in its direction:
 
 An actual source that fails is listed in `unavailable_sources`, and then nothing is left out because of it.
 
+## Pairing documents with planned occurrences
+
+A document that stands for a planned occurrence can be paired with it, so the occurrence is not counted twice and the page of the item shows what was invoiced for it. The pairing is stored (`cash_flow_document_pairing`), one row per document, with the occurrence it points at and the occurrences it may belong to (`candidates`).
+
+**Candidates.** The recurring, included planned items of the document's direction and counterparty that have an occurrence whose period (see [What replaces a plan](#what-replaces-a-plan)) holds the document's day. A skipped occurrence and any after the item's end are not candidates. Periods are counted in the instance's zone. A document has the day of its tax point, else its issue date.
+
+**States.**
+
+| State | Meaning |
+| --- | --- |
+| `auto` | Cash flow paired it: exactly one candidate, no other document of the same counterparty and direction in that occurrence's period (a declined one does not count), the currency of the item and an amount within the item's tolerance (exact without one) of what the forecast expects, VAT on top included. |
+| `proposed` | There is at least one candidate, but the rules above do not all hold, such as two documents in one period or another amount. A person decides. With one candidate the row also points at it. |
+| `confirmed` | A person paired it, with a candidate or with any other occurrence the item falls on. |
+| `declined` | A person said it belongs to none; Cash flow never pairs it on its own again. |
+
+A second document arriving in the period of an `auto` occurrence turns the first one into `proposed`; when one of them is forgotten, the other can become `auto` again. A document with no candidate has no row. Cash flow never changes a `confirmed` or `declined` row; only a person does, over the API, MCP or the screens. A row of a person lists the occurrence chosen among its `candidates`, also when it was not offered.
+
+**Fulfilment.** An occurrence with an `auto` or `confirmed` pairing is left out of the forecast, whatever the item's counterparty and match rule. A `proposed` or `declined` pairing leaves it in, until the document counts as an actual (see [What replaces a plan](#what-replaces-a-plan)).
+
+**What changes a pairing.**
+
+- A recurring planned item that is **created**, **changed** (counterparty, direction, amount, VAT, tolerance, schedule, included) or **ended**: the documents of its counterparty are looked at again, 13 months back and 13 months ahead. An occurrence that is **skipped**: the documents of its period are looked at again.
+- A planned item that is **deleted** is refused with `has_pairings` while an `auto` or `confirmed` pairing points at it. Proposals that list it lose it as a candidate; one left with none is removed, one left with one points at it.
+- A document that is recorded, changed or restored from the trash is considered at once, in the same transaction. When it is trashed or no longer complete, its source stops offering it, and it is forgotten: its row goes and the other documents of the occurrence are looked at again.
+
+Each change of a row records the event `cash-flow.document_pairing.changed` (version 1) with the document (`subject_type`, `subject_id`), the `state` (null when the row was removed), the `planned_item_id`, the `occurrence_on` and the `previous_planned_item_id`. Owners and team members read it in the event feed and through webhooks.
+
+**Operations.** `GET /api/v1/cash-flow/pairings`, `POST /api/v1/cash-flow/pairings` and `DELETE /api/v1/cash-flow/pairings/{subjectType}/{subjectId}`, and the tools `foresi_list_pairings`, `foresi_pair_document` and `foresi_unpair_document`; see [the API](api.md#cash-flow) and [MCP](mcp.md#tools).
+
+**Backfill.** `bin/console cashflow:pairing:backfill` looks at every document dated in the last 13 months once, as if it had just been recorded, and prints the number of pairings per state. It leaves what a person decided and changes nothing on a second run. Run it once after installing Cash flow next to existing documents, or after adding planned items for suppliers that are already invoiced.
+
+**Plugging in documents.** A module whose documents may stand for planned money implements `Foresi\CashFlow\Contract\PairableDocumentSource` in its `Integration/CashFlow/` directory (tag `app.cash_flow_pairable_documents`, added by autoconfiguration): `one()`, `many()` (several of one type in one lookup), `of()` (a counterparty's documents in a period) and `since()` give `PairableDocument`s: the subject, the counterparty id, the direction, a positive amount in the document's currency and the day. A trashed document and a draft are not offered. It then asks `Foresi\CashFlow\Contract\DocumentPairer::consider()` when a document is recorded or changed and `forget()` when it goes. A module that shows pairings on its own screens uses `Foresi\CashFlow\Contract\DocumentPairings` (the state of a document, the items and days to choose from, pair and unpair, the documents that wait for a decision). `PlannedPairings` answers which occurrence a document is paired with.
+
+**On the screens.** The page of a received document shows a **Plan** panel (see [Received documents](purchasing.md#the-plan-panel)), and the page of a planned item lists the documents paired with each occurrence, with a badge for the automatic ones.
+
 ## Plugging in a source
 
 A module that expects money implements `Foresi\CashFlow\Contract\CashFlowSource` in its `Integration/CashFlow/` directory, declares `cash-flow` in `extra.foresi.optional` of its manifest (ADR 0033), and is collected by the tag `app.cash_flow_source`:

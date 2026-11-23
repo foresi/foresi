@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Pairs a received document with an occurrence of a planned item of its direction: a dialog over the document,
+    and a page of its own at the same URL. The days offered are those near the day of the document, grouped by
+    item. Variables: document, title, options (item name => value => day).
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: document.id})}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'purchasing.pairing.choose_description'|trans %}
+
+{% block title %}{{ 'purchasing.pairing.choose'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {% if options is empty %}
+        <p class="m-0 text-small text-muted" data-pairing-no-options>{{ 'purchasing.pairing.no_options'|trans }}</p>
+    {% else %}
+        <form method="post" id="pairing-form" action="{{ path('app_purchasing_pairing_pair', {id: document.id}) }}" class="grid gap-4" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Purchasing\\Integration\\CashFlow\\PairingController::TOKEN')) }}">
+            <twig:Ui:Select name="choice" id="pairing-choice" :label="'purchasing.pairing.field'|trans" :options="options" required />
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+    {% if options is not empty %}<twig:Ui:Button type="submit" form="pairing-form" variant="primary">{{ 'purchasing.pairing.submit'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'purchasing.pairing.choose'|trans" icon="calendar" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ 'purchasing.pairing.choose_description'|trans }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="path('app_purchasing_document', {id: document.id})">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+            {% if options is not empty %}<twig:Ui:Button type="submit" form="pairing-form" variant="primary">{{ 'purchasing.pairing.submit'|trans }}</twig:Ui:Button>{% endif %}
+        </div>
+    </twig:Ui:Card>
+{% endblock %}
