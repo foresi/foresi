@@ -248,7 +248,7 @@ cash_flow:
       match_tolerance: Tolerance
       vat: DPH
       vat_mode: DPH
-      vat_mode_help: Počítá se jen ve dnech, kdy je firma plátcem DPH. Samovyměření u přenesené daňové povinnosti a služeb ze zahraničí.
+      vat_mode_help: Počítá se jen ve dnech, kdy je firma plátcem DPH.
       vat_rate: Sazba DPH (%)
     occurrences:
       title: Další výskyty

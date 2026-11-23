@@ -248,7 +248,7 @@ cash_flow:
       match_tolerance: Tolerance
       vat: VAT
       vat_mode: VAT
-      vat_mode_help: Counted only on the days the firm is a VAT payer. Self-assessed for a reverse charge or a service from abroad.
+      vat_mode_help: Counted only on the days the firm is a VAT payer.
       vat_rate: VAT rate (%)
     occurrences:
       title: Next occurrences
