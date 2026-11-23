@@ -35,6 +35,7 @@ final class PercentTest extends TestCase
         yield 'above 100' => ['100.01', null];
         yield 'empty' => ['', null];
         yield 'sign' => ['-5', null];
+        yield 'trailing newline' => ["50\n", null];
         yield 'comma' => ['5,5', null];
     }
 }

@@ -85,11 +85,14 @@ final readonly class LineForm
         $shares = [];
         foreach ($values['rows'] as $row) {
             if ('' === $row['type']) {
+                if ('' !== trim($row['percent'].$row['amount']) || '' !== $row['contactId']) {
+                    return 'margin.screen.error.recipient';
+                }
                 continue;
             }
             $recipient = 'own' === $row['type'] ? 'own' : $row['contactId'];
             if ('' === $recipient) {
-                return 'purchasing.margin.error.client';
+                return 'margin.screen.error.client';
             }
             $share = ['recipient' => $recipient];
             if ('percent' === $values['kind']) {
@@ -100,7 +103,7 @@ final readonly class LineForm
                 } else {
                     $amount = $this->typedAmount($row['amount']);
                     if (false === $amount) {
-                        return 'purchasing.margin.error.amount';
+                        return 'margin.screen.error.amount';
                     }
                     $share['amount'] = $amount instanceof Money ? \sprintf('%d.%02d', intdiv($amount->minor(), 100), abs($amount->minor()) % 100) : null;
                 }

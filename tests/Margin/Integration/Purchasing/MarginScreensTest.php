@@ -155,6 +155,27 @@ final class MarginScreensTest extends WebTestCase
         self::assertSame(0, $this->stored(DocumentAllocation::class));
     }
 
+    public function testTheLineDialogTellsWhatIsWrongInWords(): void
+    {
+        $this->start(Role::Owner);
+        $id = $this->record();
+        $key = $this->lineKeys($id)[0];
+        $dialog = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
+
+        $page = $this->client->submit($dialog->filter('#margin-line-form')->form(['kind' => 'percent', 'shares[0][type]' => 'client', 'shares[0][percent]' => '100']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Pick the client of a row from the list.', $page->filter('[data-margin-error]')->text());
+
+        $page = $this->client->submit($page->filter('#margin-line-form')->form(['kind' => 'fixed', 'shares[0][type]' => 'own', 'shares[0][amount]' => '-5']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('An amount is a number in CZK with at most two decimals.', $page->filter('[data-margin-error]')->text());
+
+        $page = $this->client->submit($page->filter('#margin-line-form')->form(['kind' => 'percent', 'shares[0][type]' => '', 'shares[0][percent]' => '100']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Choose the firm itself or a client.', $page->filter('[data-margin-error]')->text());
+        self::assertSame(0, $this->stored(LineAllocation::class));
+    }
+
     public function testEnterInTheFormSavesAndNeverClears(): void
     {
         $this->start(Role::Owner);

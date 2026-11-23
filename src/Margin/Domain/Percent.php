@@ -15,7 +15,7 @@ namespace Foresi\Margin\Domain;
  */
 final readonly class Percent
 {
-    public const string PATTERN = '/^(?:100|[1-9]?\d)(?:\.\d{1,2})?$/';
+    public const string PATTERN = '/^(?:100|[1-9]?\d)(?:\.\d{1,2})?$/D';
     public const int WHOLE = 10_000;
 
     /**
