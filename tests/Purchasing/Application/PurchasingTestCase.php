@@ -153,6 +153,8 @@ abstract class PurchasingTestCase extends KernelTestCase
 
     /**
      * A domestic tax invoice of the supplier for 1,000 CZK and 21 % VAT.
+     *
+     * @param list<\Foresi\Purchasing\Domain\ReceivedDocumentLineInput>|null $lines
      */
     protected function input(
         ReceivedDocumentKind $kind = ReceivedDocumentKind::TaxInvoice,
@@ -168,6 +170,7 @@ abstract class PurchasingTestCase extends KernelTestCase
         ?ExchangeRate $rate = null,
         ?string $originalDocumentId = null,
         ?string $supplyCode = null,
+        ?array $lines = null,
     ): ReceivedDocumentInput {
         $vat ??= $treatment->isSelfAssessed() || PurchaseTaxTreatment::NotVatDocument === $treatment ? 0 : intdiv($base * 21, 100);
         $recap = $kind->needsVatRecap() ? [new VatRecapLine(VatRate::of(PurchaseTaxTreatment::NotVatDocument === $treatment ? '0' : '21'), Money::ofMinor($base, $currency), Money::ofMinor($vat, $currency))] : [];
@@ -189,6 +192,7 @@ abstract class PurchasingTestCase extends KernelTestCase
             $recap,
             $originalDocumentId,
             $supplyCode,
+            $lines,
         );
     }
 

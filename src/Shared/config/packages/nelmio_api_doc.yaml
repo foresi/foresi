@@ -1483,6 +1483,18 @@ nelmio_api_doc:
                                           vat: { $ref: '#/components/schemas/Money' }
                                           base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
                                           vat_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                              lines:
+                                  type: array
+                                  description: 'What the document was for, split by the rates of the VAT recap: the stored lines, or one implicit line per rate named by the kind of the document. A document without a recap has the one rate 0, whose bases add up to its total.'
+                                  items:
+                                      type: object
+                                      properties:
+                                          key: { type: string, description: 'The id of a stored line, or rate:<rate> of an implicit one. The key of a stored line is stable only while the lines stay as they are: lines are rewritten by position when they change, so read the lines again after purchasing.received_document.changed.', example: 'rate:21' }
+                                          text: { type: string, example: 'Hosting' }
+                                          base: { $ref: '#/components/schemas/Money' }
+                                          base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                          vat_rate: { type: string, example: '21' }
+                                          implicit: { type: boolean }
                               exchange_rate: { type: string, nullable: true }
                               exchange_rate_date: { type: string, format: date, nullable: true }
                               deduction_period: { type: string, nullable: true, example: '2026-12' }

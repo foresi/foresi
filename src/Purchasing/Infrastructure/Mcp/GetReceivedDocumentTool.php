@@ -17,13 +17,14 @@ use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
 use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Get a received document, as the REST API writes it.
  */
 final readonly class GetReceivedDocumentTool implements ReadTool
 {
-    public function __construct(private ReceivedDocumentBalances $balances, private InstanceFirm $firm)
+    public function __construct(private ReceivedDocumentBalances $balances, private InstanceFirm $firm, private TranslatorInterface $translator)
     {
     }
 
@@ -44,7 +45,7 @@ final readonly class GetReceivedDocumentTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns one received document by its id, a draft or one in the trash too: what foresi_search_received_documents returns for it, with the supplier as the document names it, the VAT recap per rate, the exchange rate, the deduction period and its payments. Find the id with foresi_search_received_documents.';
+        return 'Returns one received document by its id, a draft or one in the trash too: what foresi_search_received_documents returns for it, with the supplier as the document names it, the VAT recap per rate, the lines (what it was for, split by rate: the stored ones, or one implicit line per rate of the recap), the exchange rate, the deduction period and its payments. Find the id with foresi_search_received_documents.';
     }
 
     public function inputSchema(): array
@@ -67,6 +68,6 @@ final readonly class GetReceivedDocumentTool implements ReadTool
             throw ToolRefusal::notFound($unknown->getMessage());
         }
 
-        return new ToolOutput(ReceivedDocumentJson::detail($paid, $this->firm->get()), 'The received document with its VAT recap and payments.');
+        return new ToolOutput(ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator), 'The received document with its VAT recap, lines and payments.');
     }
 }

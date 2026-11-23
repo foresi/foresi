@@ -14,14 +14,15 @@ use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
 use Foresi\Shared\Infrastructure\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * What every received document write answers: the document with its payments,
+ * What every received document write answers: the document with its lines and payments,
  * as GET /api/v1/received-documents/{id} and foresi_get_received_document answer it.
  */
 final readonly class ReceivedDocumentAnswer
 {
-    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm)
+    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm, private TranslatorInterface $translator)
     {
     }
 
@@ -33,7 +34,7 @@ final readonly class ReceivedDocumentAnswer
         $paid = $this->balances->of($id);
 
         return new OperationOutput(
-            ReceivedDocumentJson::detail($paid, $this->firm->get()),
+            ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator),
             \sprintf($summary, $paid->document->evidenceNumber() ?? $id),
             $created ? $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $id]) : null,
         );

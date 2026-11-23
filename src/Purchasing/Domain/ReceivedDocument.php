@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Domain;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
@@ -28,6 +30,9 @@ use Foresi\Shared\Domain\Money;
  * CZK; the totals beside it are its sums, kept for lists and reports. The
  * deduction period and the latest deduction date follow from the treatment, the
  * tax point and the received date on every save.
+ *
+ * The lines split the bases of the recap by what the cost was for; they are
+ * checked against the recap on every save (DocumentLines) and never change it.
  *
  * The original file is an attachment of the kind ATTACHMENT_KIND, named by id; a
  * credit note names the document it corrects by id. In the trash a document
@@ -166,6 +171,11 @@ class ReceivedDocument implements Audited
     #[ORM\Column(name: 'deleted_reason', type: 'text', nullable: true)]
     private ?string $deletedReason = null;
 
+    /** @var Collection<int, ReceivedDocumentLine> */
+    #[ORM\OneToMany(targetEntity: ReceivedDocumentLine::class, mappedBy: 'document', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $lines;
+
     /**
      * A draft with these values; it checks what fits together, not what is missing.
      *
@@ -179,6 +189,7 @@ class ReceivedDocument implements Audited
         private readonly \DateTimeImmutable $createdAt,
     ) {
         $this->id = Id::generate();
+        $this->lines = new ArrayCollection();
         $this->apply($content, false);
     }
 
@@ -228,6 +239,31 @@ class ReceivedDocument implements Audited
         $this->refuseTrashed();
         $this->refuseUnfit($content);
         $this->refuseIncomplete($content);
+        $this->linesOf($content, $this->recapOf($content));
+    }
+
+    /**
+     * Replaces the lines; an empty list removes them. They split the recap as it
+     * stands. Lines that come out the same as the stored ones, once checked,
+     * change nothing, the version neither.
+     *
+     * @param list<ReceivedDocumentLineInput> $lines
+     *
+     * @return bool whether the lines changed
+     *
+     * @throws ReceivedDocumentRefused in the trash, or for lines that do not fit the recap
+     */
+    public function setLines(array $lines): bool
+    {
+        $this->refuseTrashed();
+        $checked = DocumentLines::check($lines, $this->vatRecap(), $this->total(), $this->currency);
+        if ($this->sameLines($checked)) {
+            return false;
+        }
+        $this->keepLines($checked);
+        ++$this->version;
+
+        return true;
     }
 
     /**
@@ -423,6 +459,26 @@ class ReceivedDocument implements Audited
         return VatRecap::fromArray($this->vatRecap, $this->currency);
     }
 
+    /**
+     * The stored lines in their order; none when the document splits nothing.
+     *
+     * @return list<ReceivedDocumentLine>
+     */
+    public function lines(): array
+    {
+        return array_values($this->lines->toArray());
+    }
+
+    /**
+     * The stored lines, or one implicit line per rate of the recap, with their bases in CZK.
+     *
+     * @return list<LineView>
+     */
+    public function effectiveLines(): array
+    {
+        return DocumentLines::views($this->lines(), $this->vatRecap(), $this->total(), $this->exchangeRate(), $this->kind);
+    }
+
     public function deductionPeriod(): ?\DateTimeImmutable
     {
         return $this->deductionPeriod;
@@ -497,8 +553,9 @@ class ReceivedDocument implements Audited
         if ($complete) {
             $this->refuseIncomplete($content);
         }
-        $rate = Currency::CZK === $content->currency ? ExchangeRate::one() : $content->exchangeRate;
-        $recap = VatRecap::of($content->vatRecap, $content->currency, $rate, $content->treatment);
+        $rate = $this->rateOf($content);
+        $recap = $this->recapOf($content);
+        $lines = $this->linesOf($content, $recap);
         // A tax point the document does not name is its issue date (ADR 0028).
         $taxPoint = $complete ? ($content->taxPointDate ?? $content->issueDate) : $content->taxPointDate;
         $deduction = DeductionDates::of($content->treatment, $taxPoint ?? $content->issueDate, $content->receivedDate);
@@ -528,6 +585,76 @@ class ReceivedDocument implements Audited
         $this->latestDeductionDate = $this->keepDay($this->latestDeductionDate ?? null, $deduction->latestDate);
         $this->originalDocumentId = $content->originalDocumentId;
         $this->supplyCode = $this->supplyCodeOf($content);
+        if (null !== $content->lines) {
+            $this->keepLines($lines);
+        }
+    }
+
+    private function rateOf(ReceivedDocumentContent $content): ?ExchangeRate
+    {
+        return Currency::CZK === $content->currency ? ExchangeRate::one() : $content->exchangeRate;
+    }
+
+    /**
+     * @throws ReceivedDocumentRefused for a recap that does not fit the document
+     */
+    private function recapOf(ReceivedDocumentContent $content): VatRecap
+    {
+        return VatRecap::of($content->vatRecap, $content->currency, $this->rateOf($content), $content->treatment);
+    }
+
+    /**
+     * The given lines, or the stored ones, checked against the recap saved with them.
+     *
+     * @return list<ReceivedDocumentLineInput>
+     *
+     * @throws ReceivedDocumentRefused for lines that do not fit the recap
+     */
+    private function linesOf(ReceivedDocumentContent $content, VatRecap $recap): array
+    {
+        $lines = $content->lines ?? array_map(static fn (ReceivedDocumentLine $line): ReceivedDocumentLineInput => $line->toInput(), $this->lines());
+
+        return DocumentLines::check($lines, $recap, $content->total, $content->currency);
+    }
+
+    /**
+     * @param list<ReceivedDocumentLineInput> $lines checked ones
+     */
+    private function sameLines(array $lines): bool
+    {
+        $stored = $this->lines();
+        if (\count($stored) !== \count($lines)) {
+            return false;
+        }
+        foreach ($lines as $position => $line) {
+            $kept = $stored[$position];
+            if ($kept->text() !== $line->text || !$kept->base()->equals($line->base) || $kept->vatRate() !== $line->vatRate) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Rewrites the stored lines in place with checked ones: a line keeps its id
+     * and position, and only the last ones come and go.
+     *
+     * @param list<ReceivedDocumentLineInput> $lines
+     */
+    private function keepLines(array $lines): void
+    {
+        $stored = $this->lines();
+        foreach ($lines as $position => $line) {
+            if (isset($stored[$position])) {
+                $stored[$position]->rewrite($line);
+            } else {
+                $this->lines->add(new ReceivedDocumentLine(Id::generate(), $this, $position, $line->text, $line->base, $line->vatRate));
+            }
+        }
+        foreach (\array_slice($stored, \count($lines)) as $surplus) {
+            $this->lines->removeElement($surplus);
+        }
     }
 
     /**

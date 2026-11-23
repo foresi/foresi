@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     A received document, as iDoklad and Xero show a bill: the original file on the left, its values on
-    the right (under it on a narrower screen), the amounts in CZK and the history below. Recording,
+    the right (under it on a narrower screen), the amounts in CZK, the lines as saved and the history
+    below; a document without lines of its own is one line per rate, named by its kind. Recording,
     saving, the trash, a restore and deleting a draft sit in the page header; the trash asks for a
     reason in a dialog, deleting a draft asks first. A save that went through tells its warnings, which
     never stop it; a refusal is told next to its field and in the summary over the form. A row of the
@@ -130,6 +131,32 @@
                             {% endfor %}
                         </div>
                     {% endif %}
+                </section>
+            {% endif %}
+
+            {% set foreign = document.currency.value != 'CZK' %}
+            {% if lines.rows is not empty %}
+                <section class="grid gap-2" aria-labelledby="lines-title" data-purchasing-lines>
+                    <h2 id="lines-title" class="m-0 text-small font-semibold text-ink">{{ 'purchasing.lines.title'|trans }}</h2>
+                    {% if lines.whole %}<p class="m-0 text-small text-muted">{{ 'purchasing.lines.whole'|trans }}</p>{% endif %}
+                    {# The same ARIA table as the rows in CZK above. #}
+                    {% set columns = foreign ? 'grid-cols-[minmax(4rem,1fr)_repeat(3,minmax(0,auto))] sm:grid-cols-[minmax(0,1fr)_5rem_repeat(2,10rem)]' : 'grid-cols-[minmax(4rem,1fr)_repeat(2,minmax(0,auto))] sm:grid-cols-[minmax(0,1fr)_5rem_10rem]' %}
+                    <div role="table" aria-labelledby="lines-title" tabindex="0" class="overflow-x-auto rounded-panel border border-container bg-white text-small {{ focus }}">
+                        <div role="row" class="grid {{ columns }} gap-x-4 bg-head px-4 py-2 text-caption text-muted">
+                            <span role="columnheader" class="font-medium">{{ 'purchasing.lines.text'|trans }}</span>
+                            <span role="columnheader" class="text-right font-medium">{{ 'purchasing.lines.rate'|trans }}</span>
+                            <span role="columnheader" class="text-right font-medium">{{ 'purchasing.lines.base'|trans }}</span>
+                            {% if foreign %}<span role="columnheader" class="text-right font-medium">{{ 'purchasing.figures.base_czk'|trans }}</span>{% endif %}
+                        </div>
+                        {% for line in lines.rows %}
+                            <div role="row" class="grid {{ columns }} gap-x-4 border-t border-divider px-4 py-2" data-purchasing-line>
+                                <span role="rowheader" class="break-words text-ink">{{ line.text }}</span>
+                                <span role="cell" class="num whitespace-nowrap text-right">{{ line.rate }}</span>
+                                <span role="cell" class="num whitespace-nowrap text-right">{{ line.base }}</span>
+                                {% if foreign %}<span role="cell" class="num whitespace-nowrap text-right">{% if line.baseCzk is null %}<twig:Ui:EmptyValue />{% else %}{{ line.baseCzk }}{% endif %}</span>{% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
                 </section>
             {% endif %}
 

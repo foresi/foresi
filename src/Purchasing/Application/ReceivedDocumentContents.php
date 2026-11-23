@@ -72,6 +72,7 @@ final readonly class ReceivedDocumentContents
             $input->vatRecap,
             $this->original($input->originalDocumentId, $current),
             $input->supplyCode,
+            $input->lines,
         );
     }
 

@@ -16,12 +16,15 @@ use Foresi\Purchasing\Application\PurchasingRefused;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Application\SetReceivedDocumentLines;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\DocumentLines;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PaymentMethod;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\VatRate;
 use Foresi\Purchasing\Domain\VatRecapLine;
@@ -30,7 +33,7 @@ use Foresi\Shared\Domain\Money;
 
 /**
  * The writes of received documents over the API and MCP: it reads the text of
- * the inputs into dates, amounts and the VAT recap, calls the use cases, and
+ * the inputs into dates, amounts, the VAT recap and the lines, calls the use cases, and
  * answers what they refuse as PurchasingRefused. Each returns the id of the
  * document to answer with.
  */
@@ -43,6 +46,7 @@ final readonly class ReceivedDocumentWrites
         private InstanceClock $today,
         private PurchasingAccess $access,
         private ReceivedDocuments $documents,
+        private SetReceivedDocumentLines $settingLines,
     ) {
     }
 
@@ -72,7 +76,23 @@ final readonly class ReceivedDocumentWrites
             array_map(static fn (string $line): VatRecapLine => self::recapLine($line, $currency), $input->vatRecap),
             $input->originalDocumentId,
             $input->supplyCode,
+            $this->lines($input->lines, $currency),
         ))->document->id());
+    }
+
+    /**
+     * @throws PurchasingRefused
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
+     * @throws UnknownReceivedDocument
+     */
+    public function setLines(SetReceivedDocumentLinesInput $input): string
+    {
+        // The bases are read in the currency of the document.
+        $this->access->denyUnlessStaff();
+        $currency = ($this->documents->find($input->documentId) ?? throw new UnknownReceivedDocument())->currency();
+        $lines = $this->lines($input->lines, $currency);
+
+        return $this->refusing(fn (): string => $this->settingLines->set($input->documentId, $lines)->id());
     }
 
     /**
@@ -165,6 +185,43 @@ final readonly class ReceivedDocumentWrites
         }
 
         return Money::of($value, $currency);
+    }
+
+    /**
+     * @param list<mixed> $lines
+     *
+     * @return list<ReceivedDocumentLineInput>
+     *
+     * @throws PurchasingRefused
+     */
+    private function lines(array $lines, Currency $currency): array
+    {
+        // Bounded before anything is read.
+        if (\count($lines) > DocumentLines::MAX_LINES) {
+            throw PurchasingRefused::of(new ReceivedDocumentRefused(ReceivedDocumentRefused::LINES_TOO_MANY));
+        }
+
+        return array_map(static fn (mixed $line): ReceivedDocumentLineInput => self::line($line, $currency), $lines);
+    }
+
+    /**
+     * @throws PurchasingRefused
+     */
+    private static function line(mixed $line, Currency $currency): ReceivedDocumentLineInput
+    {
+        $text = \is_array($line) ? $line['text'] ?? null : null;
+        $base = \is_array($line) ? $line['base'] ?? null : null;
+        $rate = \is_array($line) ? $line['vat_rate'] ?? null : null;
+        if (!\is_string($text) || !\is_string($base) || !\is_string($rate)) {
+            throw PurchasingRefused::unreadable(PurchasingRefused::LINE, 'lines', 'A line is {text, base, vat_rate} of strings, such as {"text": "Hosting", "base": "1000.00", "vat_rate": "21"}.');
+        }
+        try {
+            VatRate::of($rate);
+        } catch (ReceivedDocumentRefused) {
+            throw PurchasingRefused::unreadable(ReceivedDocumentRefused::VAT_RATE, 'lines', 'The VAT rate of a line is a percent of the VAT recap, such as "21", "12" or "0".');
+        }
+
+        return new ReceivedDocumentLineInput($text, self::money($base, $currency, 'lines'), $rate);
     }
 
     private static function recapLine(string $line, Currency $currency): VatRecapLine

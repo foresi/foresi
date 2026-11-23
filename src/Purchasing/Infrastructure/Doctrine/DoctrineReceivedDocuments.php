@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentLine;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Shared\Domain\Id;
 
@@ -37,10 +38,16 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
         // What this process loaded before may be older than the lock, so it is read again.
         $loaded = $this->entityManager->getUnitOfWork()->tryGetById($id, ReceivedDocument::class);
         if ($loaded instanceof ReceivedDocument) {
-            // Its payments loaded before would point at the detached copy, so they go too.
-            foreach ($this->entityManager->getUnitOfWork()->getIdentityMap()[ReceivedDocumentPayment::class] ?? [] as $payment) {
+            // Its payments and lines loaded before would point at the detached copy, so they go too.
+            $map = $this->entityManager->getUnitOfWork()->getIdentityMap();
+            foreach ($map[ReceivedDocumentPayment::class] ?? [] as $payment) {
                 if ($payment instanceof ReceivedDocumentPayment && $payment->document() === $loaded) {
                     $this->entityManager->detach($payment);
+                }
+            }
+            foreach ($map[ReceivedDocumentLine::class] ?? [] as $line) {
+                if ($line instanceof ReceivedDocumentLine && $line->document() === $loaded) {
+                    $this->entityManager->detach($line);
                 }
             }
             $this->entityManager->detach($loaded);

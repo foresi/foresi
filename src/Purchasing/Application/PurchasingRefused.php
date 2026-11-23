@@ -16,7 +16,7 @@ use Foresi\Shared\Application\Refused;
  * What the received documents refuse over the API and MCP (ADR 0032): the
  * reason of ReceivedDocumentRefused with its kind and the input field it is
  * about, or a value the API could not read (a date, an amount, a currency or a
- * line of the VAT recap).
+ * line of the VAT recap or of the document).
  */
 final class PurchasingRefused extends \DomainException implements Refused
 {
@@ -28,6 +28,8 @@ final class PurchasingRefused extends \DomainException implements Refused
     public const string CURRENCY = 'currency_unsupported';
     /** A line of the VAT recap is not rate:base:vat or rate:base:vat:stated_vat_czk. */
     public const string VAT_RECAP_LINE = 'vat_recap_line_invalid';
+    /** A line is not an object of text, base and vat_rate. */
+    public const string LINE = 'line_invalid';
     /** The instance has no firm yet. */
     public const string FIRM_UNKNOWN = 'firm_unknown';
 
@@ -67,6 +69,11 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::REASON_TOO_LONG => 'reason',
         ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED => 'supplyCode',
         ReceivedDocumentRefused::SUPPLY_CODE_INVALID => 'supplyCode',
+        ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP => 'lines',
+        ReceivedDocumentRefused::UNKNOWN_VAT_RATE => 'lines',
+        ReceivedDocumentRefused::LINE_TEXT_REQUIRED => 'lines',
+        ReceivedDocumentRefused::LINE_TEXT_TOO_LONG => 'lines',
+        ReceivedDocumentRefused::LINES_TOO_MANY => 'lines',
         ReceivedDocumentRefused::PAYMENT_AMOUNT => 'amount',
         ReceivedDocumentRefused::BANK_MOVEMENT_INVALID => 'bankMovementId',
     ];
@@ -79,6 +86,8 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::PAYMENT_AMOUNT => 'A payment needs an amount above zero, in the currency of the document.',
         ReceivedDocumentRefused::SUPPLIER_UNKNOWN => 'The organisation has no contact with this id. Find the supplier with foresi_search_contacts, or create it with foresi_create_contact.',
         ReceivedDocumentRefused::LOCKED => 'The document belongs to a closed month and cannot change.',
+        ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP => 'Per VAT rate, the bases of the lines must add up to the base of that rate in the VAT recap; a document without a recap has the one rate "0", and its lines add up to its total. Read the document for its recap.',
+        ReceivedDocumentRefused::UNKNOWN_VAT_RATE => 'A line names a VAT rate the VAT recap of the document does not have; use a rate of its recap, or "0" for a document without one.',
     ];
 
     private function __construct(

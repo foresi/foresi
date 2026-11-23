@@ -18,11 +18,16 @@ use Foresi\Shared\Domain\Money;
  * exchange rate of a CZK document is one, so it may be left out there. The
  * supply code is the code of the supply a domestic reverse charge reports in
  * the control statement (KH B.1); it is optional, as on issued documents.
+ *
+ * The lines split the bases of the VAT recap (DocumentLines): null keeps the
+ * stored lines, an empty list removes them, a list replaces them. Kept or
+ * given, they must add up to the recap saved with them.
  */
 final readonly class ReceivedDocumentContent
 {
     /**
-     * @param list<VatRecapLine> $vatRecap
+     * @param list<VatRecapLine>                   $vatRecap
+     * @param list<ReceivedDocumentLineInput>|null $lines
      */
     public function __construct(
         public ReceivedDocumentKind $kind,
@@ -42,6 +47,7 @@ final readonly class ReceivedDocumentContent
         public array $vatRecap,
         public ?string $originalDocumentId,
         public ?string $supplyCode = null,
+        public ?array $lines = null,
     ) {
     }
 

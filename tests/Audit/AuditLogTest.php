@@ -36,6 +36,8 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\Audit\Fixtures\AuditedGroup;
+use Foresi\Tests\Audit\Fixtures\AuditedList;
+use Foresi\Tests\Audit\Fixtures\AuditedListItem;
 use Foresi\Tests\Audit\Fixtures\AuditedSecret;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -281,6 +283,27 @@ final class AuditLogTest extends KernelTestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessageIsOrContains('collections of audited entities');
         $this->em->flush();
+    }
+
+    public function testItemsOfAnAuditedEntityAreAuditedOnTheirOwn(): void
+    {
+        $list = new AuditedList();
+        $first = $list->add('first');
+        $this->em->persist($list);
+        $this->em->flush();
+
+        $list->add('second');
+        $first->relabel('renamed');
+        $this->em->flush();
+        $list->remove($first);
+        $this->em->flush();
+
+        $items = array_values(array_filter($this->entries(), static fn (AuditEntry $entry): bool => AuditedListItem::class === $entry->entityClass()));
+        self::assertSame(
+            [[AuditAction::Created, [null, 'first']], [AuditAction::Created, [null, 'second']], [AuditAction::Updated, ['first', 'renamed']], [AuditAction::Deleted, ['renamed', null]]],
+            array_map(static fn (AuditEntry $entry): array => [$entry->action(), $entry->changes()['label']], $items),
+        );
+        self::assertSame([AuditedList::class], array_values(array_unique(array_map(static fn (AuditEntry $entry): string => $entry->rootClass(), $items))));
     }
 
     private function party(): Party

@@ -61,7 +61,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_received_documents', 'api_v1_received_document', 'api_v1_received_document_payments',
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
         'api_v1_operation_received_documents.add_payment', 'api_v1_operation_received_documents.mark_paid',
-        'api_v1_operation_received_documents.remove_payment',
+        'api_v1_operation_received_documents.remove_payment', 'api_v1_operation_received_documents.lines.set',
         'api_v1_calendar_feeds', 'api_v1_operation_calendar.feeds.create', 'api_v1_operation_calendar.feeds.rename', 'api_v1_operation_calendar.feeds.revoke',
         'documents_api_documents', 'documents_api_document', 'documents_api_document_file', 'documents_api_types', 'documents_api_templates', 'documents_api_template',
         'api_v1_operation_documents.types.create', 'api_v1_operation_documents.types.update', 'api_v1_operation_documents.types.archive', 'api_v1_operation_documents.templates.create', 'api_v1_operation_documents.templates.save_version', 'api_v1_operation_documents.templates.archive', 'api_v1_operation_documents.create', 'api_v1_operation_documents.update', 'api_v1_operation_documents.generate', 'api_v1_operation_documents.mark_sent', 'api_v1_operation_documents.attach_signed_copy', 'api_v1_operation_documents.cancel', 'api_v1_operation_documents.generate_again', 'api_v1_operation_documents.signers.add', 'api_v1_operation_documents.signers.update', 'api_v1_operation_documents.signers.remove', 'api_v1_operation_documents.signers.mark_signed', 'api_v1_operation_documents.signers.mark_declined',

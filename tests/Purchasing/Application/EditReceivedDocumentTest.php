@@ -20,9 +20,12 @@ use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 
 final class EditReceivedDocumentTest extends PurchasingTestCase
 {
+    use ReadsEventLog;
+
     public function testADraftTakesWhatIsGivenCompleteOrNot(): void
     {
         $draft = $this->draft();
@@ -74,6 +77,26 @@ final class EditReceivedDocumentTest extends PurchasingTestCase
         $this->editing()->edit($id, $this->input(supplierId: $other->id()));
 
         self::assertSame('Other Supplier', $this->document($id)->supplier()->name);
+    }
+
+    public function testSavingARecordedDocumentAgainRecordsTheChangedEvent(): void
+    {
+        $id = $this->recording()->record($this->draft(), $this->input())->document->id();
+        self::assertSame([], $this->events('purchasing.received_document.changed'), 'The first recording records only recorded.');
+
+        $this->editing()->edit($id, $this->input(supplierNumber: 'FV-2026-999'));
+
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('purchasing.received_document.changed'));
+        self::assertCount(1, $this->events('purchasing.received_document.recorded'));
+    }
+
+    public function testADraftRecordsNoEvent(): void
+    {
+        $id = $this->draft();
+
+        $this->editing()->edit($id, $this->input(supplierNumber: 'FV-2026-999'));
+
+        self::assertSame([], $this->events('purchasing.received_document.changed'));
     }
 
     public function testARecordedDocumentStaysComplete(): void

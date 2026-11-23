@@ -14,7 +14,10 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
 use Foresi\Purchasing\Integration\Vat\ReceivedDocumentVat;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Vat\Contract\DocumentVat;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -106,6 +109,22 @@ final class ReceivedDocumentVatTest extends PurchasingTestCase
         self::assertSame([[0, 0, true]], array_map(static fn (DocumentVat $vat): array => [$vat->output->minor(), $vat->input->minor(), $vat->missingCzk], $documents));
     }
 
+    public function testLinesDoNotChangeTheVatRecap(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-24', received: '2026-11-25'))->document->id();
+        $before = $this->amounts($this->between('2026-11-01', '2026-11-30'));
+
+        $document = $this->document($id);
+        $document->setLines([
+            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::CZK), '21'),
+            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::CZK), '21'),
+        ]);
+        $this->em->flush();
+
+        self::assertCount(2, $this->document($id)->lines());
+        self::assertSame($before, $this->amounts($this->between('2026-11-01', '2026-11-30')));
+    }
+
     public function testTheCallerMayReadTheDetailsWithoutATokenOrWithTheReadScopeOfReceivedDocuments(): void
     {
         self::assertTrue($this->source()->mayReadDetails());
@@ -121,6 +140,16 @@ final class ReceivedDocumentVatTest extends PurchasingTestCase
     private function numbers(array $documents): array
     {
         return array_map(fn (DocumentVat $vat): string => $this->document($vat->subject->id)->supplierNumber(), $documents);
+    }
+
+    /**
+     * @param list<DocumentVat> $documents
+     *
+     * @return list<array{string, string, string, int, int, bool}>
+     */
+    private function amounts(array $documents): array
+    {
+        return array_map(static fn (DocumentVat $vat): array => [$vat->subject->id, $vat->countsOn->format('Y-m-d'), $vat->taxPointOn->format('Y-m-d'), $vat->output->minor(), $vat->input->minor(), $vat->missingCzk], $documents);
     }
 
     /**

@@ -2,10 +2,11 @@
 # Architecture rules (see docs/adr/0002-modular-monolith.md). Domain depends on
 # the shared kernel only: Shared Domain plus the Instance and Audit domain
 # contracts (TenantOwned/TenantId, Audited/AuditExcluded), and Doctrine ORM
-# mapping attributes. A module's Domain may reference another module's Domain
-# only where declared below (Identity -> Party). Instance and Audit, the base
-# modules, never depend on the modules built on them. Raw DBAL connections are
-# allowed in Infrastructure only.
+# mapping attributes with the collections of a one-to-many association. A
+# module's Domain may reference another module's Domain only where declared
+# below (Identity -> Party). Instance and Audit, the base modules, never depend
+# on the modules built on them. Raw DBAL connections are allowed in
+# Infrastructure only.
 deptrac:
   paths:
     - src
@@ -370,10 +371,13 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Composer\\InstalledVersions$
+    # The mapping attributes, and the collections a one-to-many association of an entity holds.
     - name: VendorDoctrineOrmMapping
       collectors:
         - type: classLike
           value: ^Doctrine\\ORM\\Mapping\\
+        - type: classLike
+          value: ^Doctrine\\Common\\Collections\\(Collection|ArrayCollection)$
     - name: VendorDbalConnection
       collectors:
         - type: classLike
@@ -387,6 +391,8 @@ deptrac:
           must_not:
             - type: classLike
               value: ^Doctrine\\ORM\\Mapping\\
+            - type: classLike
+              value: ^Doctrine\\Common\\Collections\\(Collection|ArrayCollection)$
             - type: classLike
               value: ^Doctrine\\DBAL\\Connection$
   ruleset:

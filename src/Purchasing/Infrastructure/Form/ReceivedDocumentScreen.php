@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Infrastructure\Form;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\ReceivedDocumentWarnings;
+use Foresi\Purchasing\Domain\LineView;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
@@ -164,6 +165,9 @@ final readonly class ReceivedDocumentScreen
         if (1 === preg_match('/^recap-(\d+)-(\w+)$/D', $id, $match)) {
             return $this->translator->trans('purchasing.recap.row', ['number' => (int) $match[1] + 1]).': '.$this->translator->trans('purchasing.recap.'.$match[2]);
         }
+        if (1 === preg_match('/^lines-(\d+)-(\w+)$/D', $id, $match)) {
+            return $this->translator->trans('purchasing.lines.row', ['number' => (int) $match[1] + 1]).': '.$this->translator->trans('purchasing.lines.'.$match[2]);
+        }
 
         return $this->translator->trans('purchasing.field.'.$id);
     }
@@ -201,6 +205,24 @@ final readonly class ReceivedDocumentScreen
             'selfAssessed' => $selfAssessed,
             'total' => $total instanceof Money ? $this->text->amount($total) : null,
         ];
+    }
+
+    /**
+     * The lines of a stored document in words, the implicit one named by the kind of the
+     * document; whole is true when the document has no lines of its own.
+     *
+     * @return array{whole: bool, rows: list<array{text: string, rate: string, base: string, baseCzk: ?string}>}
+     */
+    public function lines(ReceivedDocument $document): array
+    {
+        $rows = array_map(fn (LineView $line): array => [
+            'text' => $line->implicit ? $this->translator->trans('purchasing.kind.'.$line->text) : $line->text,
+            'rate' => $this->text->decimal($line->vatRate).' %',
+            'base' => $this->text->amount($line->base),
+            'baseCzk' => $line->baseCzk instanceof Money ? $this->text->amount($line->baseCzk) : null,
+        ], $document->effectiveLines());
+
+        return ['whole' => [] === $document->lines(), 'rows' => $rows];
     }
 
     /**

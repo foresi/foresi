@@ -16,9 +16,12 @@ use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Tests\Events\Support\ReadsEventLog;
 
 final class TrashReceivedDocumentTest extends PurchasingTestCase
 {
+    use ReadsEventLog;
+
     public function testARecordedDocumentGoesToTheTrashAndComesBackWithItsNumber(): void
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();
@@ -39,6 +42,37 @@ final class TrashReceivedDocumentTest extends PurchasingTestCase
         self::assertSame('R20260001', $restored->evidenceNumber());
         self::assertNotNull($restored->originalAttachmentId());
         self::assertSame('R20260002', $this->recording()->record($this->draft('%PDF-1.4 next'), $this->input(supplierNumber: 'FV-2'))->document->evidenceNumber(), 'The trash gave no number back.');
+    }
+
+    public function testTrashingRecordsTheTrashedEvent(): void
+    {
+        $id = $this->recording()->record($this->draft(), $this->input())->document->id();
+
+        $this->trashing()->trash($id, 'Recorded twice');
+
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('purchasing.received_document.trashed'));
+    }
+
+    public function testRestoringRecordsTheRestoredEvent(): void
+    {
+        $id = $this->recording()->record($this->draft(), $this->input())->document->id();
+        $this->restoring()->restore($id);
+        self::assertSame([], $this->events('purchasing.received_document.restored'), 'A document outside the trash is not restored.');
+        $this->trashing()->trash($id, 'Recorded twice');
+
+        $this->restoring()->restore($id);
+
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('purchasing.received_document.restored'));
+    }
+
+    public function testTheTrashOfADraftRecordsNoEvent(): void
+    {
+        $id = $this->draft();
+
+        $this->trashing()->trash($id, 'Not ours');
+        $this->restoring()->restore($id);
+
+        self::assertSame([[], []], [$this->events('purchasing.received_document.trashed'), $this->events('purchasing.received_document.restored')]);
     }
 
     public function testTheTrashNeedsAReasonAndTakesADocumentOnce(): void

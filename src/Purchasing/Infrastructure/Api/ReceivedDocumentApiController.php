@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The received documents of the organisation with what is paid and what
@@ -37,7 +38,7 @@ final readonly class ReceivedDocumentApiController
     public const string SHOW = 'api_v1_received_document';
     public const string PAYMENTS = 'api_v1_received_document_payments';
 
-    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json, private InstanceFirm $firm)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json, private InstanceFirm $firm, private TranslatorInterface $translator)
     {
     }
 
@@ -65,7 +66,7 @@ final readonly class ReceivedDocumentApiController
 
     #[Route('/api/v1/received-documents/{documentId}', name: self::SHOW, methods: ['GET'])]
     #[OA\Tag(name: 'Received documents')]
-    #[OA\Response(response: 200, description: 'The received document with its VAT recap and payments.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ReceivedDocumentDetail')], type: 'object'))]
+    #[OA\Response(response: 200, description: 'The received document with its VAT recap, lines and payments.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ReceivedDocumentDetail')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the received_documents:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The organisation has no such received document.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -74,7 +75,7 @@ final readonly class ReceivedDocumentApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => ReceivedDocumentJson::detail($this->balances->of($documentId), $this->firm->get())]);
+        return new JsonResponse(['data' => ReceivedDocumentJson::detail($this->balances->of($documentId), $this->firm->get(), $this->translator)]);
     }
 
     #[Route('/api/v1/received-documents/{documentId}/payments', name: self::PAYMENTS, methods: ['GET'])]
