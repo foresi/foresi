@@ -12,6 +12,7 @@ use Foresi\Documents\Application\DocumentVariables;
 use Foresi\Documents\Contract\RecordLink;
 use Foresi\Documents\Contract\VariableDefinition;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Contract\PartyDirectory;
@@ -48,13 +49,14 @@ final class DocumentVariableSourcesTest extends ContactTestCase
         $source = $this->firm();
 
         self::assertSame('firm', $source->prefix());
-        self::assertSame(['name', 'address_lines', 'registration_number', 'vat_id', 'bank_account'], $this->names($source->definitions()));
+        self::assertSame(['name', 'address_lines', 'registration_number', 'vat_id', 'bank_account', 'logo'], $this->names($source->definitions()));
         self::assertSame([
             'name' => 'Example Firm s.r.o.',
             'address_lines' => [['line' => 'Firm Street 7'], ['line' => '110 00 Example City'], ['line' => 'CZ']],
             'registration_number' => '12345695',
             'vat_id' => 'CZ12345695',
             'bank_account' => 'CZ65 0800 0000 1920 0014 5399',
+            'logo' => '',
         ], $source->values([]));
 
         // Read when asked, never copied: a renamed firm shows its new name.
@@ -65,9 +67,31 @@ final class DocumentVariableSourcesTest extends ContactTestCase
         self::assertSame('', $values['vat_id']);
     }
 
+    public function testTheLogoIsTheNameOfTheStoredImageAndItsFileIsLocal(): void
+    {
+        $images = self::getContainer()->get(FirmImages::class);
+        $name = $images->store(base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYPgPAAEDAQAIicLsAAAAAElFTkSuQmCC', true));
+        $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Firm Street 7', 'Example City', '110 00', 'CZ'), VatStatus::NotRegistered, '');
+        $firm->changeLogo($name);
+        $this->em->persist($firm);
+        $this->em->flush();
+
+        $source = $this->firm();
+        $logo = $source->definitions()[5];
+
+        self::assertTrue($logo->image);
+        self::assertSame('Logo firmy', $logo->label);
+        self::assertSame($name, $source->values([])['logo']);
+        self::assertSame($images->path($name), $source->imageFile('logo', $name));
+        // Not a stored image, or not an image variable: no file.
+        self::assertNull($source->imageFile('logo', '../../etc/passwd'));
+        self::assertNull($source->imageFile('logo', str_repeat('0', 64).'.png'));
+        self::assertNull($source->imageFile('name', $name));
+    }
+
     public function testFirmValuesBeforeTheFirmExistsAreEmpty(): void
     {
-        self::assertSame(['name' => '', 'address_lines' => [], 'registration_number' => '', 'vat_id' => '', 'bank_account' => ''], $this->firm()->values([]));
+        self::assertSame(['name' => '', 'address_lines' => [], 'registration_number' => '', 'vat_id' => '', 'bank_account' => '', 'logo' => ''], $this->firm()->values([]));
     }
 
     public function testClientValuesNeedAContactLink(): void
@@ -173,7 +197,7 @@ final class DocumentVariableSourcesTest extends ContactTestCase
     {
         $container = self::getContainer();
 
-        return new FirmVariables($container->get(InstanceFirm::class), $container->get(FirmBankAccounts::class), $container->get('translator'));
+        return new FirmVariables($container->get(InstanceFirm::class), $container->get(FirmBankAccounts::class), $container->get(FirmImages::class), $container->get('translator'));
     }
 
     private function client(): ClientVariables

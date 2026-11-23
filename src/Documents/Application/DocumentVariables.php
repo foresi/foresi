@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Documents\Application;
 
+use Foresi\Documents\Contract\DocumentImageSource;
 use Foresi\Documents\Contract\DocumentVariableSource;
 use Foresi\Documents\Contract\RecordLink;
 use Foresi\Documents\Contract\VariableDefinition;
@@ -56,6 +57,39 @@ final readonly class DocumentVariables
             }
         }
         ksort($values);
+
+        return $values;
+    }
+
+    /**
+     * The values as a template prints them: an image variable becomes its <img>,
+     * or nothing when it has no image. The values themselves, kept with a
+     * document, hold only the name the source gave the file.
+     *
+     * @param array<string, array<string, mixed>> $values  by prefix
+     * @param bool                                $preview for the browser rather than the PDF: the image inline, and a
+     *                                                     placeholder for an image without a file, such as an example
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function printable(array $values, bool $preview = false): array
+    {
+        foreach ($this->sources as $source) {
+            $prefix = $source->prefix();
+            foreach ($source->definitions() as $definition) {
+                $value = $values[$prefix][$definition->name] ?? null;
+                if (!$definition->image || !\is_string($value)) {
+                    continue;
+                }
+                $file = '' === $value || !$source instanceof DocumentImageSource ? null : $source->imageFile($definition->name, $value);
+                $tag = match (true) {
+                    null === $file => null,
+                    $preview => ImageTag::forPreview($file, $definition->label),
+                    default => ImageTag::forPdf($file, $definition->label),
+                };
+                $values[$prefix][$definition->name] = $tag ?? ($preview && '' !== $value ? ImageTag::placeholder($definition->label) : '');
+            }
+        }
 
         return $values;
     }

@@ -118,6 +118,7 @@ party:
       registration_number: 'IČO firmy'
       vat_id: 'DIČ firmy'
       bank_account: 'Bankovní účet firmy (IBAN)'
+      logo: 'Logo firmy'
     client:
       name: 'Název klienta'
       address_lines: 'Adresa klienta po řádcích'

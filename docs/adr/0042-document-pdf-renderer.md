@@ -43,16 +43,27 @@ Documents renders with tc-lib-pdf. Documents depends only on its own `Documents\
 What a document template may use. Anything else is either ignored or drawn differently from a browser.
 
 * **Page:** A4 or Letter, portrait or landscape, four margins in millimetres, set on the template version, not in CSS. The footer "page X of Y" is drawn by the module, not by the template.
+* **Fonts:** Inter for text (`intertnum`, regular and bold), Inter Display for headings (`interdisplay`, one weight), and the serif Gelasio (`gelasio`, regular and bold), all bundled and embedded as subsets. Gelasio is embedded only in a document whose markup names it.
+* **Images:** only the firm's logo, through the variable `{{ firm.logo }}`, which prints an `<img>` of the stored file fitted into 52 × 16 mm. CSS `width` and `height` on `img` (both of them, in `mm`) set another size. The file is local, from the firm's image store, which is the only directory the engine reads markup images from.
 * **Block tags:** `h1`–`h4`, `p`, `div`, `br`, `hr`, `ol`, `ul`, `li` (nested lists one level deep), `table`, `tr`, `td`, `th` with `width`, `colspan`, `cellpadding`.
 * **Inline tags:** `b`, `strong`, `i`, `em`, `u`, `span`, `small`, `sup`, `sub`.
-* **CSS** in one `<style>` block or `style` attributes: `font-family` (`intertnum` for text, `interdisplay` for headings), `font-size` and `font-weight` (normal or bold), `color`, `background-color`, `text-align`, `vertical-align`, `line-height`, `margin` and `padding`, `border`, `border-top`, `border-bottom` (solid), `width` and `height` on cells, `page-break-before: always`, `page-break-inside: avoid`. Selectors: tag, `.class`, `tag.class` and descendants.
+* **CSS** in one `<style>` block or `style` attributes: `font-family` (`intertnum` for text, `interdisplay` or `gelasio` for headings), `font-size` and `font-weight` (normal or bold), `color`, `background-color`, `text-align`, `vertical-align`, `line-height`, `margin` and `padding`, `border`, `border-top`, `border-bottom` (solid), `width` and `height` on cells, `page-break-before: always`, `page-break-inside: avoid`. Selectors: tag, `.class`, `tag.class` and descendants.
 * **Units:** `mm` and `pt` for lengths, `%` for table widths, plain numbers for `line-height`.
 * **Patterns:** an article is `<div style="page-break-inside: avoid">` around its heading and clauses. Numbered clauses ("1.1", "1.2") are a two-column table, the number in a 10 mm cell. The signature block is a table of two 45 % columns.
-* **Not available:** images, links, forms, scripts, external fonts or stylesheets, `float`, `position`, flexbox and grid, CSS counters, italic Inter (no italic face is bundled; `i` and `em` keep the regular face).
+* **Not available:** images other than the logo, links, forms, scripts, external fonts or stylesheets, `float`, `position`, flexbox and grid, CSS counters, italics (no italic face is bundled; `i` and `em` keep the regular face).
 
 ### Consequences
 
 * Good: one PDF stack, no new binary on the server, about 0.1 s per page.
 * Good: Invoicing's PDF tests run against the moved engine with only their imports changed.
 * Bad: template authors write to a subset, not to full HTML and CSS; the template editor links this ADR's list in `docs/documents.md`.
-* Bad: if a future template needs what the subset lacks (floats, images), we revisit this decision; the `PdfRenderer` interface keeps that change inside Documents.
+* Bad: if a future template needs what the subset lacks (floats, images beyond the logo), we revisit this decision; the `PdfRenderer` interface keeps that change inside Documents.
+
+## Amendment 2026-11-23: Gelasio and the firm's logo
+
+The first real template, an NDA, had to match one printed from Chromium with Gelasio headings and the firm's logo. Both were added inside this decision, without a browser engine:
+
+* Gelasio 1.008 Regular and Bold, the static TTFs of the upstream repository (SIL OFL 1.1, `OFL-Gelasio.txt`), converted by `bin/build-pdf-fonts gelasio` like Inter. They hold all Czech diacritics. The engine inserts them only when the markup names `gelasio`, because every inserted face is embedded, so an invoice stays as small as before.
+* `firm.logo`, an image variable (`VariableDefinition::$image`). Its value is the name of the stored image; the source (`DocumentImageSource`) resolves it to the local file when the document is rendered, so neither the frozen values nor the API show a server path. The PDF reads the file from the firm's image store; the browser preview gets the bytes inline. A file gone from the store costs the picture, never the document.
+
+A generated PDF with both is still valid PDF/A-3a (veraPDF).

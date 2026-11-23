@@ -44,7 +44,7 @@ final readonly class GetDocumentTemplateTool implements ReadTool, StaffOnlyTool
     public function description(): string
     {
         return 'Returns one document template: its latest version with the HTML body, the paper and the variables the body uses (uses), its versions (a frozen one is kept for the documents made from it), '
-            .'and every variable a body can use with its label and an example, such as firm.name. Change the body with foresi_save_document_template_version.';
+            .'and every variable a body can use with its label, an example and whether it is an image, such as firm.name; an image variable such as firm.logo prints an <img> of a local file. Change the body with foresi_save_document_template_version.';
     }
 
     public function staffOnly(): bool

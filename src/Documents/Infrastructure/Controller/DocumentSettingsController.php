@@ -204,7 +204,7 @@ final class DocumentSettingsController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'variables' => $this->variableList(),
-            'preview' => $this->preview->preview($values['body'], $this->variables->examples(), $page),
+            'preview' => $this->preview->preview($values['body'], $this->variables->printable($this->variables->examples(), preview: true), $page),
             'papers' => [PaperSize::A4->value => $this->trans('documents.settings.paper.a4'), PaperSize::Letter->value => $this->trans('documents.settings.paper.letter')],
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
@@ -222,7 +222,7 @@ final class DocumentSettingsController extends AbstractController
         $values = $this->postedTemplate($request);
         $page = [] === $this->marginErrors($values) ? $this->pageOf($values) : new PageSettings();
 
-        return $this->json($this->preview->preview($values['body'], $this->variables->examples(), $page));
+        return $this->json($this->preview->preview($values['body'], $this->variables->printable($this->variables->examples(), preview: true), $page));
     }
 
     #[Route('/settings/documents/templates/{id}/archive', name: 'app_document_template_archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]

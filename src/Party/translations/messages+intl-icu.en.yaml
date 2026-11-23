@@ -118,6 +118,7 @@ party:
       registration_number: 'Firm registration number'
       vat_id: 'Firm VAT ID'
       bank_account: 'Firm bank account (IBAN)'
+      logo: 'Firm logo'
     client:
       name: 'Client name'
       address_lines: 'Client address, line by line'
