@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Integration\Country;
 
 use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Application\InboundMessages;

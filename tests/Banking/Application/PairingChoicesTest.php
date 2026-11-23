@@ -31,6 +31,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 /**
  * What the pair dialog offers, on candidates made up here: the invoices read are
  * the ones a test gives, so each rule of the offer shows on its own.
+ * The tests that need the Czech rules are in Integration/Country.
  */
 final class PairingChoicesTest extends BankingTestCase
 {
@@ -189,12 +190,6 @@ final class PairingChoicesTest extends BankingTestCase
         $options = $this->choices($this->movement('1210.00', $counterName, vs: null));
 
         self::assertSame($suggested ? [['C', PairingChoices::BY_CUSTOMER]] : [['C', null]], $this->offered([...$options->suggested, ...$options->others]));
-    }
-
-    public function testTheLimitIsOfferedOnlyToAFirmThatSettlesSmallDifferences(): void
-    {
-        self::assertNull($this->choices($this->movement('1210.00'))->settlementLimit);
-        self::assertSame(99, $this->choices($this->movement('1210.00'), smallDifference: true)->settlementLimit);
     }
 
     public function testAnOutgoingMovementIsOfferedTheRefundsTheAccountItGoesToPaidBeforeTheCustomersAndFillsNothingIn(): void

@@ -12,10 +12,6 @@ use Doctrine\DBAL\Connection;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Application\InboundToken;
-use Foresi\Banking\Application\ProcessMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
-use Foresi\Banking\Application\ReceiveOutcome;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\MailSecrets;
@@ -38,6 +34,7 @@ use Symfony\Component\DomCrawler\Crawler;
  * The bank tab of a firm: accounts added and edited in dialogs, the inbound
  * address of each account, and the pairing switches. Every write is read back
  * from the database.
+ * The tests that need the Czech rules are in Integration/Country.
  */
 final class FirmBankControllerTest extends WebTestCase
 {
@@ -89,22 +86,6 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertSame($this->url(), $crawler->filter('#bank-accounts-note a')->attr('href'));
     }
 
-    public function testAddingAnAccountInTheDialogStoresIt(): void
-    {
-        $this->signedInFirm();
-        $form = $this->dialogForm($this->url().'/accounts/new');
-        self::assertSame('1', $form['primary'] ?? null, 'The first account is offered as the primary one.');
-
-        $this->dialogPost($this->url().'/accounts/new', ['number' => '19-2000145399/0800', 'currency' => 'EUR', 'label' => 'Operating', 'primary' => '1'] + $form);
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(['location' => $this->url()], json_decode(Scalars::text($this->client->getResponse()->getContent()), true));
-        self::assertSame([['iban' => self::IBAN, 'currency' => 'EUR', 'label' => 'Operating', 'primary_flag' => 1]], $this->storedAccounts());
-        $crawler = $this->client->request('GET', $this->url());
-        self::assertStringContainsString('The account Operating is added.', $crawler->filter('main')->text());
-        self::assertStringContainsString('CZ65 0800 0000 1920 0014 5399', $crawler->filter('main table')->text());
-    }
-
     public function testTheAccountFormIsAPageToo(): void
     {
         $this->signedInFirm();
@@ -142,21 +123,6 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('already has this account', $crawler->filter('#number-error')->text());
         self::assertCount(1, $this->storedAccounts());
-    }
-
-    public function testEditingCannotChangeTheIban(): void
-    {
-        $this->signedInFirm();
-        $account = $this->withAccount();
-        $url = $this->url().'/accounts/'.$account.'/edit';
-        $crawler = $this->client->request('GET', $url, server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1']);
-        self::assertCount(0, $crawler->filter('input[name="number"]'));
-        self::assertStringContainsString('19-2000145399/0800', $crawler->filter('#number')->text());
-
-        $this->dialogPost($url, ['number' => self::OTHER_IBAN, 'currency' => 'USD', 'label' => 'Renamed'] + $crawler->filter('#bank-account-form')->form()->getPhpValues());
-
-        self::assertResponseIsSuccessful();
-        self::assertSame([['iban' => self::IBAN, 'currency' => 'USD', 'label' => 'Renamed', 'primary_flag' => 1]], $this->storedAccounts());
     }
 
     public function testMakingPrimaryArchivingAndRestoring(): void
@@ -233,39 +199,6 @@ final class FirmBankControllerTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertStringContainsString('no-store', Scalars::text($this->client->getResponse()->headers->get('Cache-Control')), $url);
         }
-    }
-
-    /**
-     * Setting up trust means reading a raw header: the tab shows the owner whose
-     * results the last message carried on top, and what Foresi made of them,
-     * and nothing else of the mail.
-     */
-    public function testThePairingTabShowsWhoVouchedForTheLastMessage(): void
-    {
-        $this->signedInFirm();
-        $account = $this->withAccount();
-        $this->generate($account);
-        $address = $this->shownAddress($account);
-        self::assertCount(0, $this->client->request('GET', $this->url('pairing'))->filter('[data-trust-check]'), 'Nothing came yet.');
-        $raw = (string) file_get_contents(__DIR__.'/../../Fixtures/Banking/kb/incoming-booked.eml');
-        $raw = "Authentication-Results: mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n".str_replace('bank+token@example.com', $address, $raw);
-
-        self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
-        $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message'));
-        $before = $this->client->request('GET', $this->url('pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]')->text();
-        self::getContainer()->get(ProcessMessage::class)->process($id);
-
-        $check = $this->client->request('GET', $this->url('pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]');
-
-        self::assertStringContainsString('Waiting to be processed', $before);
-        self::assertCount(1, $check);
-        $text = $check->text();
-        self::assertStringContainsString('webhook', $text);
-        self::assertStringContainsString('mx.example.com', $text);
-        self::assertStringContainsString('a trusted server', $text);
-        self::assertStringContainsString('Verified sender', $text);
-        self::assertStringNotContainsString('Oznámení', $text, 'Nothing else of the mail.');
-        self::assertStringNotContainsString('kb.cz', $text);
     }
 
     public function testGeneratingFromTheDialogClosesItOverTheTab(): void
