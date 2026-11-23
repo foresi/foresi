@@ -70,16 +70,17 @@ final class DealValueTest extends TestCase
     public function testTotalsPerCurrencyNeverMixed(): void
     {
         $value = DealValues::of([
-            $this->line('Audit', '1000.00', currency: Currency::CZK),
             $this->line('Travel', '200.00', currency: Currency::EUR),
+            $this->line('Audit', '1000.00', currency: Currency::CZK),
             $this->line('Report', '0.005', '1', currency: Currency::EUR),
             $this->line('Workshop', '500.00', '2', currency: Currency::CZK),
             $this->line('Support', '50.00', unit: RecurrenceUnit::Month, currency: Currency::EUR),
+            $this->line('Hosting', '100.00', unit: RecurrenceUnit::Month, currency: Currency::CZK),
         ]);
 
-        // One sum per currency, never a converted one.
+        // One sum per currency, never a converted one, in the order of the codes.
         self::assertSame(['CZK' => 200_000, 'EUR' => 20_001], $this->minor($value->oneOff));
-        self::assertSame(['EUR' => 5_000], $this->minor($value->monthly));
+        self::assertSame(['CZK' => 10_000, 'EUR' => 5_000], $this->minor($value->monthly));
         self::assertSame(Currency::EUR, $value->oneOff['EUR']->currency());
         self::assertSame(Currency::CZK, $value->oneOff['CZK']->currency());
     }
