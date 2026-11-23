@@ -10,7 +10,6 @@ use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\Pairing;
 use Foresi\CashFlow\Application\PairingReads;
-use Foresi\CashFlow\Application\PlannedItemsDirectory;
 use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\DocumentPairer;
 use Foresi\CashFlow\Contract\ForecastReader;
@@ -18,6 +17,7 @@ use Foresi\CashFlow\Contract\MovementFinder;
 use Foresi\CashFlow\Contract\PairableDocumentSource;
 use Foresi\CashFlow\Contract\PlannedItemDirectory;
 use Foresi\CashFlow\Contract\PlannedPairings;
+use Foresi\CashFlow\Infrastructure\Directory\PlannedItemsDirectory;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;

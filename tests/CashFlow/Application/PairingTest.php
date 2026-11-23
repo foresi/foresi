@@ -177,15 +177,18 @@ final class PairingTest extends CashFlowTestCase
 
     public function testThePeriodIsDecidedInPragueTime(): void
     {
-        $this->clock->modify('2026-11-30 23:30:00');
+        // Nothing in the pairing reads today, so the clock is not set here: only the zone of the instance counts.
+        $prague = new \DateTimeZone('Europe/Prague');
         $item = $this->monthly('Cloud Host', '32.00', '2026-11-30');
 
-        $this->pairing->consider($this->document('doc-1', '32.00', '2026-11-30'));
-        $this->pairing->consider($this->document('doc-2', '32.00', '2026-12-01'));
+        // (a) The tax point is the date 2026-11-30 in Prague: November.
+        $this->pairing->consider($this->documentOn('doc-1', new \DateTimeImmutable('2026-11-30', $prague)));
+        // (b) The instant 23:30 UTC on 30 November is 1 December in Prague: December.
+        $this->pairing->consider($this->documentOn('doc-2', new \DateTimeImmutable('2026-11-30 23:30:00', new \DateTimeZone('UTC'))));
 
         self::assertSame($item->id(), $this->row('doc-1')->plannedItemId());
-        self::assertSame('2026-11-30', $this->row('doc-1')->occurrenceOn()?->format('Y-m-d'), 'The last day of November is in November.');
-        self::assertSame('2026-12-30', $this->row('doc-2')->occurrenceOn()?->format('Y-m-d'), 'The first of December is in December.');
+        self::assertSame('2026-11-30', $this->row('doc-1')->occurrenceOn()?->format('Y-m-d'));
+        self::assertSame('2026-12-30', $this->row('doc-2')->occurrenceOn()?->format('Y-m-d'));
         self::assertSame(PairingState::Auto, $this->row('doc-2')->state(), 'Neither document shares a month with the other.');
     }
 
@@ -301,6 +304,11 @@ final class PairingTest extends CashFlowTestCase
             Money::of($amount, $currency),
             new \DateTimeImmutable($on),
         ));
+    }
+
+    private function documentOn(string $id, \DateTimeImmutable $on): PairableDocument
+    {
+        return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of('32.00', Currency::USD), $on));
     }
 
     private function row(string $id): DocumentPairing

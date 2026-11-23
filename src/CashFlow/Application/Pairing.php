@@ -77,7 +77,8 @@ final readonly class Pairing implements DocumentPairer
     }
 
     /**
-     * Decides one document and writes its row.
+     * Decides one document and writes its row. A change of the candidate list alone, with the same state, item
+     * and occurrence day, is stored but records no event.
      *
      * @param FlowSubject|null $ignored a document that is gone or going, which no longer shares a period
      *

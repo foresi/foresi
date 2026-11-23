@@ -40,7 +40,8 @@ final readonly class PlannedOccurrences
         if (!$recurrence instanceof Recurrence) {
             return null;
         }
-        $day = new \DateTimeImmutable($day->format('Y-m-d'), $zone);
+        // An instant is the day it is in the instance's zone; a date made in that zone stays the same day.
+        $day = $day->setTimezone($zone)->setTime(0, 0);
         $key = $day->format('Y-m-d');
         foreach (RecurringSchedule::next($recurrence, 0, $this->searchFrom($recurrence, $day), self::WINDOW) as $occurrence) {
             [$first, $last] = PlannedFulfilment::period($item, $occurrence);
