@@ -41,13 +41,17 @@ A share is counted in **CZK from the base of the line without VAT** (the base in
 
 Shares are recalculated whenever the mapping changes and whenever the document is recorded, edited, trashed or restored. A trashed document has no shares; its mapping stays for a restore.
 
+## Documents recorded before Margin
+
+Shares are counted when a document is recorded, edited, trashed or restored, so the documents that were recorded before Margin was installed have none yet. Run `bin/console margin:recalculate` once after installing Margin next to existing documents. It counts the shares of every recorded document of every cost source again, as if it had just been recorded, and prints the number of documents and shares. A mapping that was set is kept, and a second run changes nothing.
+
 ## Known gaps
 
 A line without a base in CZK, because a foreign document has no exchange rate yet, gets **no share**, and the document is reported in `known_gaps` as `missing_exchange_rate`. The panel says so on the document and on the line. The shares appear when the rate is set.
 
 ## On the screen
 
-A recorded received document shows a **Margin** panel with its lines, the shares of each and their sources. **Assign…** in the panel gives the whole document to a recipient or clears it. **Split…** on a line opens a dialog to choose the kind and the recipients, with a client picker that searches the contacts. A draft or trashed document has no panel to change.
+A recorded received document shows a **Margin** panel with its lines, the shares of each and their sources. **Assign…** in the panel gives the whole document to a recipient or clears it. **Split…** on a line opens a dialog to choose the kind and the recipients, with a client picker that searches the contacts. A draft or trashed document has no panel to change. Over REST and MCP a trashed document still accepts a mapping, which waits for its restore.
 
 ## Operations
 

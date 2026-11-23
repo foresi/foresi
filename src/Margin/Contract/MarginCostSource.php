@@ -27,6 +27,13 @@ interface MarginCostSource
     public function document(string $id): ?CostDocument;
 
     /**
+     * The ids of every document that has costs now (not a draft, not trashed).
+     *
+     * @return iterable<string>
+     */
+    public function documentIds(): iterable;
+
+    /**
      * The ids of the documents of a supplier whose month is $fromMonth or later.
      *
      * @return iterable<string>

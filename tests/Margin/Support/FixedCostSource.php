@@ -24,6 +24,15 @@ final class FixedCostSource implements MarginCostSource
         return $this->documents[$id] ?? null;
     }
 
+    public function documentIds(): iterable
+    {
+        foreach ($this->documents as $document) {
+            if (!$document->trashed) {
+                yield $document->id;
+            }
+        }
+    }
+
     public function documentsOf(string $supplierId, \DateTimeImmutable $fromMonth): iterable
     {
         foreach ($this->documents as $document) {

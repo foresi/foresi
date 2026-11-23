@@ -61,6 +61,19 @@ final readonly class ReceivedDocumentCosts implements MarginCostSource
         );
     }
 
+    public function documentIds(): iterable
+    {
+        /** @var list<array{id: string}> $rows */
+        $rows = $this->entityManager->createQuery(
+            'SELECT d.id AS id FROM '.ReceivedDocument::class.' d WHERE d.state = :state AND d.deletedAt IS NULL ORDER BY d.id ASC',
+        )
+            ->setParameter('state', ReceivedDocumentState::Recorded->value)
+            ->getArrayResult();
+        foreach ($rows as $row) {
+            yield $row['id'];
+        }
+    }
+
     public function documentsOf(string $supplierId, \DateTimeImmutable $fromMonth): iterable
     {
         $from = $fromMonth->setTimezone($this->clock->timezone())->format('Y-m-01');

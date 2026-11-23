@@ -386,6 +386,11 @@ whatever was written since is lost.
    with `doctrine:migrations:migrate`, stores the default views of the lists
    with `app:views:sync`, and ends with `messenger:stop-workers`, so the
    supervisor starts the workers on the new code.
+   When a release adds a module next to existing data, the release notes name
+   the one-time command that fills it from what is already stored, for example
+   `bin/console margin:recalculate` after installing Margin or
+   `bin/console cashflow:pairing:backfill` after installing Cash flow. Both are
+   idempotent.
 5. Check `/health`, sign in, and watch the log and the `failed` queue for an
    hour.
 

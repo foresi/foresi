@@ -39,6 +39,16 @@ final readonly class CostSources
     /**
      * @return iterable<string>
      */
+    public function documentIds(): iterable
+    {
+        foreach ($this->sources as $source) {
+            yield from $source->documentIds();
+        }
+    }
+
+    /**
+     * @return iterable<string>
+     */
     public function documentsOf(string $supplierId, \DateTimeImmutable $fromMonth): iterable
     {
         foreach ($this->sources as $source) {

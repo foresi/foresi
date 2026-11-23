@@ -25,6 +25,8 @@ use Foresi\Purchasing\Integration\Margin\ReceivedDocumentCosts;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -72,6 +74,28 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
 
         self::getContainer()->get(RestoreReceivedDocument::class)->restore($id);
         self::assertSame(['rate:21 own 100000 document 2026-11-01'], $this->shares());
+    }
+
+    public function testTheRecalculateCommandGivesTheDocumentsRecordedBeforeMarginTheirShares(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
+        $draft = $this->draft();
+        // As if Margin had been installed afterwards: the document has no shares.
+        $this->em->getConnection()->executeStatement('DELETE FROM margin_cost_share');
+        $this->em->clear();
+        self::assertSame([], $this->shares());
+
+        $tester = new CommandTester(new Application(self::$kernel ?? self::bootKernel())->find('margin:recalculate'));
+        $tester->execute([]);
+        $tester->assertCommandIsSuccessful();
+
+        self::assertStringContainsString('Considered 1 documents.', $tester->getDisplay());
+        self::assertSame(['rate:21 - 100000 unassigned 2026-11-01'], $this->shares());
+
+        $tester->execute([]);
+        self::assertSame(['rate:21 - 100000 unassigned 2026-11-01'], $this->shares(), 'A second run changes nothing.');
+        self::assertSame([$id], iterator_to_array($this->costs()->documentIds(), false));
+        self::assertNotContains($draft, iterator_to_array($this->costs()->documentIds(), false));
     }
 
     public function testEditingTheLinesCountsTheSharesAgainUnderTheKeptIds(): void
