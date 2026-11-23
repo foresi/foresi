@@ -25,6 +25,7 @@ use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;

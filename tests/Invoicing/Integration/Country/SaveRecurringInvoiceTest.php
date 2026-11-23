@@ -23,6 +23,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
+use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 
 final class SaveRecurringInvoiceTest extends RecurringTestCase
 {

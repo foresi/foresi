@@ -40,6 +40,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatId;
 use Foresi\Tests\Banking\Support\LockLog;
 use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\IsdocSchema;
 use Symfony\Component\Clock\Clock;

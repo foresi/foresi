@@ -58,7 +58,6 @@ final class FirmMailControllerTest extends WebTestCase
 {
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private ?string $keys = null;
 
     protected function setUp(): void
     {
@@ -70,9 +69,6 @@ final class FirmMailControllerTest extends WebTestCase
     protected function tearDown(): void
     {
         Clock::set(new NativeClock());
-        if (null !== $this->keys) {
-            $_SERVER['MAIL_SECRET_KEYS'] = $_ENV['MAIL_SECRET_KEYS'] = $this->keys;
-        }
         RecordingMailGateway::reset();
         parent::tearDown();
     }

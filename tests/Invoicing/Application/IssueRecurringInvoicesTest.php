@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\IssueRecurringInvoices;
-use Foresi\Invoicing\Application\RecurringInvoices;
-use Foresi\Invoicing\Application\SaveRecurringInvoice;
 
 /**
  * The daily run of recurring templates, at 05:00 in the instance's zone (Prague
@@ -20,16 +18,6 @@ use Foresi\Invoicing\Application\SaveRecurringInvoice;
  */
 final class IssueRecurringInvoicesTest extends SendingTestCase
 {
-    private SaveRecurringInvoice $save;
-    private RecurringInvoices $templates;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->save = self::getContainer()->get(SaveRecurringInvoice::class);
-        $this->templates = self::getContainer()->get(RecurringInvoices::class);
-    }
-
     public function testTheDayBeginsAtFiveInstanceTime(): void
     {
         $job = self::getContainer()->get(IssueRecurringInvoices::class);

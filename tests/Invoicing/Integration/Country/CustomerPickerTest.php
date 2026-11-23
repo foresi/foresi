@@ -8,23 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Integration\Country;
 
-use Foresi\Invoicing\Application\CustomerPicker;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 final class CustomerPickerTest extends InvoiceTestCase
 {
-    private CustomerPicker $picker;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->picker = self::getContainer()->get(CustomerPicker::class);
-    }
-
     public function testIssuingAddsTheCustomerRole(): void
     {
         $this->customer->assignRoles([PartyRole::Supplier]);

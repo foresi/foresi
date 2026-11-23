@@ -33,6 +33,7 @@ use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\Query\InvoicingReadTestCase;
 
 final class InvoiceListTest extends InvoicingReadTestCase
 {

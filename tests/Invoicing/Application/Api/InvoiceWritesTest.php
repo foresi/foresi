@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Application\Api;
 
-use Foresi\Invoicing\Application\Api\InvoiceWrites;
 use Foresi\Invoicing\Application\Api\InvoicingRefused;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
@@ -26,14 +25,11 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
 {
     private const string OTHER_IBAN = 'CZ0708000000001234567890';
 
-    private InvoiceWrites $writes;
-
     protected function setUp(): void
     {
         parent::setUp();
         FirmAccounts::add($this->em, self::OTHER_IBAN);
         $this->em->flush();
-        $this->writes = self::getContainer()->get(InvoiceWrites::class);
     }
 
     public function testTheProblemsOfTheRulesAreNamedAsTheApiNamesThem(): void

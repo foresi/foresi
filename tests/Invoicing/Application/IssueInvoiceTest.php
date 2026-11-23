@@ -133,7 +133,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
 
     public function testAnInputWithoutDatesGivesNoChange(): void
     {
-        $copy = DocumentParties::ofCustomer($this->customer, self::address(), null);
+        $copy = DocumentParties::ofCustomer($this->customer, $this->address(), null);
 
         foreach (['taxPointDate', 'dueDate'] as $date) {
             try {
@@ -150,7 +150,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
         $this->assertRefusedFor('invoice.problem.constant_symbol_invalid', fn (): Invoice => $this->issue->issue($this->input(overrides: ['constantSymbol' => '03a8'])));
     }
 
-    private static function address(): Address
+    private function address(): Address
     {
         return new Address('Street 1', 'City', '100 00', 'CZ');
     }

@@ -14,11 +14,7 @@ use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyAddress;
-use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -38,7 +34,6 @@ final class RecurringListControllerTest extends WebTestCase
     private SignedInBrowser $browser;
     private LegalEntity $firm;
     private Series $series;
-    private Party $customer;
 
     protected function setUp(): void
     {
@@ -98,32 +93,7 @@ final class RecurringListControllerTest extends WebTestCase
         $this->series->markDefault();
         $this->em()->persist($this->series);
         $this->em()->flush();
-        $this->customer = $this->customerNamed('Example Customer a.s.');
         $this->browser->signIn();
-    }
-
-    private function customerNamed(string $name): Party
-    {
-        return $this->scoped(function () use ($name): Party {
-            $customer = new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', '87654320'), VatId::fromString('CZ87654320'), '');
-            $this->em()->persist($customer);
-            $this->em()->persist(new PartyAddress($customer, AddressType::Billing, new Address('Customer Street 2', 'Customer City', '200 00', 'CZ')));
-            $this->em()->flush();
-
-            return $customer;
-        });
-    }
-
-    /**
-     * @template T
-     *
-     * @param callable(): T $work
-     *
-     * @return T
-     */
-    private function scoped(callable $work): mixed
-    {
-        return $work();
     }
 
     private function em(): EntityManagerInterface

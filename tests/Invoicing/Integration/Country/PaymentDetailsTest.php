@@ -15,6 +15,7 @@ use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\Query\PaymentReadTestCase;
 
 final class PaymentDetailsTest extends PaymentReadTestCase
 {

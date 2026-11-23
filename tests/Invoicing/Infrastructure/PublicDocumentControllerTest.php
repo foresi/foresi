@@ -19,7 +19,6 @@ final class PublicDocumentControllerTest extends WebTestCase
     use ClockSensitiveTrait;
 
     private KernelBrowser $client;
-    private SignedInBrowser $browser;
 
     protected function setUp(): void
     {
@@ -28,7 +27,7 @@ final class PublicDocumentControllerTest extends WebTestCase
         $this->client->disableReboot();
         // A Czech browser, unless a test says otherwise.
         $this->client->setServerParameter('HTTP_ACCEPT_LANGUAGE', 'cs-CZ,cs;q=0.9');
-        $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
+        new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
         RecordingMailGateway::reset();
     }
 

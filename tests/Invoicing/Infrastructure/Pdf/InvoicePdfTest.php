@@ -8,18 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Infrastructure\Pdf;
 
-use Foresi\Invoicing\Application\InvoicePdf;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 final class InvoicePdfTest extends InvoiceTestCase
 {
-    private InvoicePdf $pdf;
     private string $imageDir;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->pdf = self::getContainer()->get(InvoicePdf::class);
         $root = self::getContainer()->getParameter('app.firm_image_dir');
         $this->imageDir = $root;
     }

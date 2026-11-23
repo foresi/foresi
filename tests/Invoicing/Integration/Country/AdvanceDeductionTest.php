@@ -34,6 +34,7 @@ use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Foresi\Tests\Support\IsdocSchema;
 use Foresi\Tests\Support\PdfTools;
 

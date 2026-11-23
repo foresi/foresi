@@ -40,6 +40,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Banking\Support\LockLog;
 use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;

@@ -31,6 +31,7 @@ use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatId;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Foresi\Tests\Support\PdfTools;
 
 /**

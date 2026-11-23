@@ -41,6 +41,7 @@ use Foresi\Invoicing\Infrastructure\Mail\RouterDocumentLinks;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\SendingTestCase;
 use Foresi\Tests\Support\Mail\RecordingMailGateway;
 use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Component\Messenger\MessageBusInterface;

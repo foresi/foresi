@@ -49,6 +49,7 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Tests\Events\Support\ReadsEventLog;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Clock;

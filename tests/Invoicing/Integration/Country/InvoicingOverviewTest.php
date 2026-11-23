@@ -21,6 +21,7 @@ use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 
 /**
  * Today is 20 November 2026, so the last month is October.

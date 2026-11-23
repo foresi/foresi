@@ -43,9 +43,6 @@ final class InvoicePaymentControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private LegalEntity $firm;
-    private Series $series;
-    private Party $customer;
 
     protected function setUp(): void
     {
@@ -91,7 +88,7 @@ final class InvoicePaymentControllerTest extends WebTestCase
     private function signedIn(Role $role = Role::Owner): void
     {
         $this->browser->seed(role: $role);
-        [$this->firm, $this->series, $this->customer] = $this->firmWithSeries();
+        $this->firmWithSeries();
         $this->browser->signIn();
     }
 

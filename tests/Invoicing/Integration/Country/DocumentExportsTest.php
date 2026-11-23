@@ -16,6 +16,7 @@ use Foresi\Invoicing\Domain\ExportState;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Tests\Banking\Support\LockLog;
 use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 

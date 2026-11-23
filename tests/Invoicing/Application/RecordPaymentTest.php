@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\AllocationRequest;
-use Foresi\Invoicing\Application\CancelPayment;
-use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Domain\PaymentSource;
@@ -24,8 +22,6 @@ use Symfony\Component\Clock\NativeClock;
 final class RecordPaymentTest extends InvoiceTestCase
 {
     private RecordPayment $record;
-    private CancelPayment $cancel;
-    private InvoicePayments $payments;
 
     protected function setUp(): void
     {
@@ -34,8 +30,6 @@ final class RecordPaymentTest extends InvoiceTestCase
         Clock::set(new MockClock('2026-11-20 23:30:00', 'UTC'));
         $container = self::getContainer();
         $this->record = $container->get(RecordPayment::class);
-        $this->cancel = $container->get(CancelPayment::class);
-        $this->payments = $container->get(InvoicePayments::class);
     }
 
     protected function tearDown(): void

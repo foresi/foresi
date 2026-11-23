@@ -24,6 +24,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 /**
  * Whether a payment of an advance creates VAT and so needs a tax document (§20a,

@@ -49,8 +49,6 @@ final class InvoiceSendControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private Series $series;
-    private Party $customer;
 
     protected function setUp(): void
     {
@@ -107,7 +105,7 @@ final class InvoiceSendControllerTest extends WebTestCase
     {
         $this->browser->seed($locale, $role);
         $this->scoped(function () use ($server, $email): void {
-            [$this->series, $this->customer] = $this->firmWithCustomer($server, $email);
+            $this->firmWithCustomer($server, $email);
         });
         $this->browser->signIn();
     }

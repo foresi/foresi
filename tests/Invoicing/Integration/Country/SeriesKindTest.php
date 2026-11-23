@@ -11,6 +11,7 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 /**
  * A document takes its kind from its series, and every path that accepts a series

@@ -22,6 +22,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Foresi\Tests\Support\PdfTools;
 
 final class MailVariablesTest extends InvoiceTestCase

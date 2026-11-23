@@ -29,6 +29,7 @@ use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 /**
  * The rules of a corrective tax document asked one by one, on an invoice of

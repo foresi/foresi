@@ -48,8 +48,6 @@ final class SendLogControllerTest extends WebTestCase
 
     private KernelBrowser $client;
     private SignedInBrowser $browser;
-    private Series $series;
-    private Party $customer;
 
     protected function setUp(): void
     {
@@ -91,8 +89,8 @@ final class SendLogControllerTest extends WebTestCase
     private function signedIn(Role $role = Role::Owner, string $locale = 'en'): void
     {
         $this->browser->seed($locale, $role);
-        $this->series = $this->firmWithServer('Example Firm s.r.o.', '12345695');
-        $this->customer = $this->newCustomer('Example Customer a.s.');
+        $this->firmWithServer('Example Firm s.r.o.', '12345695');
+        $this->newCustomer('Example Customer a.s.');
         $this->browser->signIn();
     }
 
