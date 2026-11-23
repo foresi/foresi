@@ -214,9 +214,11 @@ cash_flow:
       none: Bez DPH
       included: Včetně DPH
       excluded: DPH navíc
+      reverse_charge: Samovyměření DPH
     vat:
       included: '{net} + {rate} % DPH {vat}, v ceně'
       excluded: '{net} + {rate} % DPH {vat} navíc'
+      reverse_charge: '{net}, samovyměření {rate} % DPH {vat}'
     field:
       name: Název
       category: Kategorie
@@ -296,4 +298,5 @@ cash_flow:
       vat_mode_unknown: Vyberte, jak částka stojí k DPH.
       vat_rate_required: Zadejte sazbu DPH, například 21.
       vat_rate_invalid: Zadejte sazbu od 0 do 100 s nejvýše dvěma desetinnými místy, například 21 nebo 12,5.
-      vat_rate_without_mode: Sazba DPH potřebuje DPH v ceně nebo navíc.
+      vat_rate_without_mode: Sazba DPH potřebuje DPH v ceně, navíc nebo samovyměření.
+      vat_mode_reverse_charge_in: Samovyměření DPH je jen u nákladů, daň přiznává příjemce plnění.

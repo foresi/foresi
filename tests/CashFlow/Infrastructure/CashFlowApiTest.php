@@ -114,6 +114,15 @@ final class CashFlowApiTest extends ApiTestCase
         $call = $this->tool('foresi_list_planned_items', []);
         self::assertTrue($this->in($call, 'structuredContent', 'data', 'items', 0, 'vat_missing'));
 
+        $call = $this->tool('foresi_change_planned_item', ['planned_item_id' => $id, 'vat_mode' => 'reverse_charge', 'vat_rate' => '21', 'idempotency_key' => 'reverse-charge-1']);
+        self::assertSame(['reverse_charge', '21', 1_000_000, 210_000, false], [
+            $this->in($call, 'structuredContent', 'data', 'vat_mode'), $this->in($call, 'structuredContent', 'data', 'vat_rate'),
+            $this->in($call, 'structuredContent', 'data', 'net', 'amount_minor'), $this->in($call, 'structuredContent', 'data', 'vat', 'amount_minor'),
+            $this->in($call, 'structuredContent', 'data', 'vat_missing'),
+        ], 'A reverse charge moves the 10,000 as stated, self-assesses 2,100 and misses no VAT.');
+        $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'reverse_charge', 'vat_rate' => '21', 'direction' => 'in', 'category' => 'revenue'] + self::RENT);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'vat_mode', 'reason' => 'vat_mode_reverse_charge_in']);
+
         $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'included'] + self::RENT);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'vat_rate', 'reason' => 'vat_rate_required']);
         $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'gross', 'vat_rate' => '21'] + self::RENT);

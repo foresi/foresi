@@ -12,7 +12,8 @@ use Foresi\Shared\Domain\Money;
 
 /**
  * The VAT of one planned occurrence in CZK: output for money the firm plans
- * to receive, input for money it plans to pay, the other one zero.
+ * to receive, input for money it plans to pay, the other one zero; both the
+ * same for a reverse charge the firm self-assesses.
  */
 final readonly class PlannedVatAmount
 {

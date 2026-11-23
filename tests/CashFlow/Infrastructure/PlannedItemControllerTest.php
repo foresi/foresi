@@ -232,6 +232,28 @@ final class PlannedItemControllerTest extends WebTestCase
         self::assertStringContainsString('No VAT stated', $sheet->filter('dl')->text());
     }
 
+    public function testACostStatesSelfAssessedVatAndIncomeDoesNotOfferIt(): void
+    {
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
+        $em->persist(new VatStatusPeriod(VatStatus::NotRegistered, null, null));
+        $em->persist(new VatStatusPeriod(VatStatus::Registered, VatPeriodLength::Month, new \DateTimeImmutable('2026-11-12')));
+        $em->flush();
+        $income = $this->client->request('GET', '/cash-flow/planned-income/new');
+        self::assertSame(['none', 'included', 'excluded'], $income->filter('#vatMode option')->each(static fn ($option): string => (string) $option->attr('value')));
+        $costs = $this->client->request('GET', '/cash-flow/planned-costs/new');
+        self::assertSame('Self-assessed VAT', $costs->filter('#vatMode option[value="reverse_charge"]')->text());
+
+        $values = $this->dialogForm('/cash-flow/planned-costs/new');
+        $this->dialogPost('/cash-flow/planned-costs/new', ['name' => 'Cloud hosting', 'category' => 'software', 'amount' => '1000', 'on' => '2026-12-01', 'vatMode' => 'reverse_charge', 'vatRate' => '21'] + $values);
+        self::assertSame('{"location":"\/cash-flow\/planned-costs"}', $this->client->getResponse()->getContent());
+        $item = $this->item();
+        self::assertSame([PlannedVatMode::ReverseCharge, '21'], [$item->vatMode(), $item->vatRate()]);
+        $sheet = $this->client->request('GET', '/cash-flow/planned-costs/'.$item->id());
+        self::assertMatchesRegularExpression('/1,000\.00\s+Kč, 21 % VAT 210\.00\s+Kč self-assessed/u', $sheet->filter('dl')->text());
+        $list = $this->client->request('GET', '/cash-flow/planned-costs');
+        self::assertStringNotContainsString('VAT not stated', $list->filter('[data-planned-items] tbody tr')->text());
+    }
+
     public function testTheCashFlowPageLinksToBothPages(): void
     {
         $values = $this->dialogForm('/cash-flow/balance', '#cash-flow-balance-form');

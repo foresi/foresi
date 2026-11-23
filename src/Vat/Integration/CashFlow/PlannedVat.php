@@ -29,7 +29,10 @@ use Foresi\Vat\Contract\VatSubject;
  * reads without the VAT periods' own source and without the categories that
  * carry no VAT, so neither the VAT nor the tax estimate is asked from inside
  * it. Money planned in gives output VAT and money planned out input VAT, in
- * CZK as the forecast converts it. A flow with no VAT stated counts nothing.
+ * CZK as the forecast converts it. A reverse charge the firm self-assesses
+ * gives the same VAT as output and as input, so it adds nothing to pay, as a
+ * received document in a self-assessed treatment does. A flow with no VAT
+ * stated counts nothing.
  */
 final readonly class PlannedVat implements VatPlanSource
 {
@@ -78,14 +81,16 @@ final readonly class PlannedVat implements VatPlanSource
         $details = $this->mayReadDetails();
         $amounts = [];
         foreach ($read->flows as $flow) {
-            $vat = $flow->vatCzk();
+            $selfAssessed = $flow->selfAssessedVatCzk();
+            $vat = $selfAssessed ?? $flow->vatCzk();
             if (!$vat instanceof Money) {
                 continue;
             }
             $zero = Money::ofMinor(0, $vat->currency());
             $in = FlowDirection::In === $flow->direction;
             $subject = $details && null !== $flow->subject ? new VatSubject($flow->subject->type, $flow->subject->id, $flow->subject->url) : null;
-            $amounts[] = new PlannedVatAmount(self::KEY, $subject, $subject instanceof VatSubject ? $flow->label : null, $flow->on, $in ? $vat : $zero, $in ? $zero : $vat);
+            [$output, $input] = $selfAssessed instanceof Money ? [$vat, $vat] : ($in ? [$vat, $zero] : [$zero, $vat]);
+            $amounts[] = new PlannedVatAmount(self::KEY, $subject, $subject instanceof VatSubject ? $flow->label : null, $flow->on, $output, $input);
         }
 
         return $amounts;

@@ -88,7 +88,7 @@ class PlannedItem implements Audited
     private array $skippedOn = [];
 
     /** How the amount stands to its VAT; none for an item from before VAT could be stated. */
-    #[ORM\Column(name: 'vat_mode', type: 'string', length: 8, enumType: PlannedVatMode::class, options: ['default' => 'none'])]
+    #[ORM\Column(name: 'vat_mode', type: 'string', length: 16, enumType: PlannedVatMode::class, options: ['default' => 'none'])]
     private PlannedVatMode $vatMode;
 
     /** The VAT rate in percent with two decimals, such as "21.00"; null without a VAT mode. */

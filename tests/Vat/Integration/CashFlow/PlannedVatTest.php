@@ -103,6 +103,25 @@ final class PlannedVatTest extends VatTestCase
         ]], $detail['plans']);
     }
 
+    public function testAReverseChargeGivesTheSameOutputAndInputSoTheResultIsZero(): void
+    {
+        $writes = self::getContainer()->get(PlannedItemWrites::class);
+        $hosting = $writes->create(new CreatePlannedItemInput('out', 'Cloud hosting', 'software', '1000.00', '2026-12-10', vatMode: 'reverse_charge', vatRate: '21'));
+        $this->em->flush();
+
+        $amounts = $this->periods()->list('2026-12', '2026-12')->periods[0]->amounts;
+
+        self::assertSame([21_000, 21_000, 0], [$amounts->plansPart->output->minor(), $amounts->plansPart->input->minor(), $amounts->result->minor()], 'The firm self-assesses 210 of output and deducts the same 210.');
+        self::assertSame([[
+            'source' => PlannedVat::KEY,
+            'subject' => ['type' => 'planned_item', 'id' => $hosting->id(), 'url' => null],
+            'label' => 'Cloud hosting',
+            'on' => '2026-12-10',
+            'output' => ['amount_minor' => 21_000, 'currency' => 'CZK'],
+            'input' => ['amount_minor' => 21_000, 'currency' => 'CZK'],
+        ]], VatJson::detail($this->periods()->get('2026-12'))['plans']);
+    }
+
     public function testAPlanBeforeThePayerDayOrTodayCountsNothing(): void
     {
         $this->stretch(VatStatus::NotRegistered, null, '2026-12-01');

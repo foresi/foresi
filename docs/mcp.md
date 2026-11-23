@@ -89,8 +89,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_archive_lost_reason` | **Write, destructive.** Archives a lost reason (`reason_id`). Staff only. |
 | `foresi_restore_product` | **Write.** Restores an archived product (`product_id`). |
 | `foresi_list_planned_items` | The planned items of the firm, oldest first, each with its `vat_mode`, `vat_rate`, `net`, `vat` and `vat_missing`. |
-| `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring, with its VAT included or on top (`vat_mode`, `vat_rate`). |
-| `foresi_change_planned_item` | **Write.** Changes the fields given of a planned item (`planned_item_id`); `included: false` leaves it out of the forecast. |
+| `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring, with its VAT included, on top or self-assessed as a reverse charge for money out (`vat_mode`, `vat_rate`). |
+| `foresi_change_planned_item` | **Write.** Changes the fields given of a planned item (`planned_item_id`); `included: false` leaves it out of the forecast, and `vat_mode: "reverse_charge"` with `vat_rate` states a foreign or reverse-charge service the firm self-assesses. |
 | `foresi_skip_planned_occurrence` | **Write.** Leaves one occurrence (`on`) of a planned item out. |
 | `foresi_end_planned_item` | **Write.** Ends a recurring planned item on a day (`on`). |
 | `foresi_delete_planned_item` | **Write, destructive.** Deletes a planned item with all its occurrences. |

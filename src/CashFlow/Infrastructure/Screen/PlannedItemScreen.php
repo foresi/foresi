@@ -238,7 +238,7 @@ final readonly class PlannedItemScreen
      *
      * @return array{categories: array<string, string>, currencies: array<string, string>, repeats: array<string, string>, ends: array<string, string>, vatModes: array<string, string>}
      */
-    public function options(): array
+    public function options(FlowDirection $direction): array
     {
         $categories = [];
         foreach (FlowCategory::cases() as $category) {
@@ -254,7 +254,7 @@ final readonly class PlannedItemScreen
         }
 
         $vatModes = [];
-        foreach (PlannedVatMode::cases() as $mode) {
+        foreach (PlannedVatMode::for($direction) as $mode) {
             $vatModes[$mode->value] = $this->trans('cash_flow.planned.vat_mode.'.$mode->value);
         }
 

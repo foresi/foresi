@@ -493,9 +493,9 @@ Fields of a planned item:
 | `counterparty_id` | A contact the money comes from or goes to. |
 | `included` | `false` leaves the item out of the forecast; `true` by default. |
 | `match_account`, `match_variable_symbol`, `match_tolerance` | The counterparty account, a variable symbol of up to 10 digits and how far a payment may differ, a bank movement that meets them replaces the planned occurrence of its period. |
-| `vat_mode`, `vat_rate` | How the amount stands to its VAT: `none` (the default), `included` or `excluded`, with a rate from 0 to 100 with at most two decimals, such as `"21"`. The VAT counts only on the days the firm is a VAT payer. A rate needs `included` or `excluded` (`vat_rate_without_mode`), which need a rate (`vat_rate_required`); a rate out of range is `vat_rate_invalid`. A change to `none` clears the rate. |
+| `vat_mode`, `vat_rate` | How the amount stands to its VAT: `none` (the default), `included`, `excluded` or `reverse_charge`, with a rate from 0 to 100 with at most two decimals, such as `"21"`. `reverse_charge` is for money out whose VAT the firm self-assesses as the recipient (a domestic reverse charge, a service from the EU or from outside it): the amount moves as stated and the VAT counts as both output and input in the VAT period. Money in refuses it (`vat_mode_reverse_charge_in`). The VAT counts only on the days the firm is a VAT payer. A rate needs a mode other than `none` (`vat_rate_without_mode`), which needs a rate (`vat_rate_required`); a rate out of range is `vat_rate_invalid`. A change to `none` clears the rate. |
 
-A planned item answers these fields with `id`, `firm`, `skipped_on` and `created_at`, and also `net` and `vat` (one occurrence as stated, both `null` with `vat_mode` `none`) and `vat_missing`, `true` while the firm is a VAT payer and the item states no VAT, but for the categories `vat`, `taxes`, `insurance`, `loans` and `owner_draws`.
+A planned item answers these fields with `id`, `firm`, `skipped_on` and `created_at`, and also `net` and `vat` (one occurrence as stated, the VAT self-assessed with `reverse_charge`, both `null` with `vat_mode` `none`) and `vat_missing`, `true` while the firm is a VAT payer and the item states no VAT, but for the categories `vat`, `taxes`, `insurance`, `loans` and `owner_draws`.
 
 Query parameters of `GET /api/v1/cash-flow/forecast`:
 

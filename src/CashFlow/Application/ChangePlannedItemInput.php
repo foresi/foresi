@@ -62,7 +62,7 @@ final readonly class ChangePlannedItemInput
         public string|Omitted|null $matchVariableSymbol = new Omitted(),
         #[Field('How far a payment may differ from the amount and still match, a decimal number; null for none.')]
         public string|Omitted|null $matchTolerance = new Omitted(),
-        #[Field('How the amount stands to its VAT: none, included (the amount holds the VAT) or excluded (the VAT comes on top); none clears the rate.', enum: ['none', 'included', 'excluded'])]
+        #[Field('How the amount stands to its VAT: none, included (the amount holds the VAT), excluded (the VAT comes on top) or reverse_charge (money out only: the firm self-assesses the VAT, as for a domestic reverse charge or a service from the EU or from outside it; the amount moves as stated and the VAT counts as both output and input); none clears the rate.', enum: ['none', 'included', 'excluded', 'reverse_charge'])]
         public string|Omitted $vatMode = new Omitted(),
         #[Field('The VAT rate in percent, 0 to 100 with at most two decimals, such as "21"; null for none.')]
         public string|Omitted|null $vatRate = new Omitted(),

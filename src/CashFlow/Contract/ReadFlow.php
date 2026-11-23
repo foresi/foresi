@@ -17,12 +17,13 @@ use Foresi\Shared\Domain\Money;
 final readonly class ReadFlow
 {
     /**
-     * @param string             $source  the key of the source that gave it
-     * @param FlowSubject|null   $subject null when the caller may not read the source's documents; the amount still counts
-     * @param \DateTimeImmutable $on      the expected day, or the first day of the read for a flow already overdue
+     * @param string             $source          the key of the source that gave it
+     * @param FlowSubject|null   $subject         null when the caller may not read the source's documents; the amount still counts
+     * @param \DateTimeImmutable $on              the expected day, or the first day of the read for a flow already overdue
      * @param list<FlowFlag>     $flags
-     * @param string|null        $label   what a person reads, such as a planned item's name; null like the subject
-     * @param Money|null         $vat     the VAT the amount holds, in the currency of the amount; null when none is stated
+     * @param string|null        $label           what a person reads, such as a planned item's name; null like the subject
+     * @param Money|null         $vat             the VAT the amount holds, in the currency of the amount; null when none is stated
+     * @param Money|null         $selfAssessedVat the VAT the firm as the recipient self-assesses on top of the amount (reverse charge), in its currency; null when none
      */
     public function __construct(
         public string $source,
@@ -36,6 +37,7 @@ final readonly class ReadFlow
         public array $flags,
         public ?string $label = null,
         public ?Money $vat = null,
+        public ?Money $selfAssessedVat = null,
     ) {
     }
 
@@ -44,13 +46,26 @@ final readonly class ReadFlow
      */
     public function vatCzk(): ?Money
     {
-        if (!$this->vat instanceof Money) {
+        return $this->czk($this->vat);
+    }
+
+    /**
+     * The self-assessed VAT in CZK, in the ratio the amount was converted at; null when none.
+     */
+    public function selfAssessedVatCzk(): ?Money
+    {
+        return $this->czk($this->selfAssessedVat);
+    }
+
+    private function czk(?Money $vat): ?Money
+    {
+        if (!$vat instanceof Money) {
             return null;
         }
         if ($this->amount->isZero()) {
             return Money::ofMinor(0, $this->amountCzk->currency());
         }
 
-        return $this->amountCzk->multipliedBy((string) $this->vat->minor())->dividedBy((string) $this->amount->minor());
+        return $this->amountCzk->multipliedBy((string) $vat->minor())->dividedBy((string) $this->amount->minor());
     }
 }

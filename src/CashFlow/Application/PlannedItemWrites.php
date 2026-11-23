@@ -56,6 +56,7 @@ final readonly class PlannedItemWrites
 
         return $this->transaction->run(function () use ($input, $direction): PlannedItem {
             $terms = $this->rules->terms(new PlannedItemDraft($input->name, $input->category, $input->amount, $input->currency, $input->on, $input->repeat, $input->every, $input->lastDayOfMonth, $input->endsOn, $input->endsAfter, $input->counterpartyId, $input->included, $input->matchAccount, $input->matchVariableSymbol, $input->matchTolerance, $input->vatMode, $input->vatRate), $this->instanceClock->timezone());
+            PlannedItemRules::checkVatDirection($terms, $direction);
             $firmId = $this->access->firm()->id();
             $item = new PlannedItem($direction, $terms, $this->clock->now());
             $this->store->add($item);
@@ -84,7 +85,7 @@ final readonly class PlannedItemWrites
             // A new VAT mode without a rate keeps the rate, but none clears it.
             $vatMode = $this->given($input->vatMode, $item->vatMode()->value);
             $vatRate = $this->given($input->vatRate, PlannedVatMode::None->value === $vatMode ? null : $item->vatRate());
-            $item->change($this->rules->terms(new PlannedItemDraft(
+            $terms = $this->rules->terms(new PlannedItemDraft(
                 $this->given($input->name, $item->name()),
                 $this->given($input->category, $item->category()->value),
                 $this->given($input->amount, self::decimal($item->amount())),
@@ -102,7 +103,9 @@ final readonly class PlannedItemWrites
                 $this->given($input->matchTolerance, null === $tolerance ? null : self::decimal(Money::ofMinor($tolerance, $item->amount()->currency()))),
                 $vatMode,
                 $vatRate,
-            ), $zone));
+            ), $zone);
+            PlannedItemRules::checkVatDirection($terms, $item->direction());
+            $item->change($terms);
             $this->events->record(new PlannedItemChanged($item->id(), $this->access->firm()->id(), $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isIncluded()));
 
             return $item;
