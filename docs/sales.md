@@ -65,10 +65,18 @@ When Sales is installed, the page of a contact has a **Deals** tab: the deals of
 
 ## Documents and Activities
 
-These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same.
+These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same (`Foresi\Sales\Integration\Documents` and `Integration\Activities` are then not registered). A deal in the trash shows neither.
 
-- **Documents:** the deal's page has a **New document** button and the documents linked to it. The new document is linked to the deal and to its client.
-- **Activities:** the deal's page has **Log activity** and **Plan activity** and the deal's timeline. The activity is linked to the deal, to its client and to the deal's contact persons, so it also shows on the timeline of each of them. Who sees an activity follows its records, as [activities.md](activities.md#who-sees-an-activity) says: a trashed deal no longer makes its activities visible.
+- **Documents:** the deal's header has **New document**, which opens the dialog of Documents with the deal and its client linked, and the deal's page has a **Documents** section listing the documents linked to the deal. A document can link to a deal (record kind `deal`); a deal in the trash shows as unavailable on the document until it is restored. Templates read the deal under `{{ deal.* }}`:
+
+  | Variable | Value |
+  | --- | --- |
+  | `deal.title`, `deal.owner`, `deal.stage`, `deal.status` | The deal's title, the name of its owner, its stage and its status (open, won, lost), in the language of the person who generates the document. |
+  | `deal.lines` | The lines in their order, as rows with `name`, `unit`, `quantity`, `unit_price` (such as "12 000,00 Kč", empty for a line without a price) and `billing_period` (such as "One-off" or "Every month, no end"). |
+  | `deal.one_off_totals`, `deal.monthly_totals` | The value once and every month, one row per currency with `currency` and `amount`, never converted. A monthly amount starts with "≈ " when a weekly or daily line had to be put on a month's terms. |
+
+  The deal variables need a link to a deal that is not in the trash (the first `deal` link): without one a template that uses them is refused when it is generated. Like every variable, they are frozen with the document when it is generated.
+- **Activities:** the deal's header has **Log activity** and **Plan activity**, and the deal's page has its timeline. The activity is linked to the deal, to its client and to the deal's contact persons, so it also shows on the timeline of each of them, and the dialog comes back to the deal. Owners and members see the activities of a deal; who sees an activity follows its records, as [activities.md](activities.md#who-sees-an-activity) says: a trashed deal no longer makes its activities visible.
 
 The new-document and new-activity screens take several links as `links[]=kind:id`, repeated, besides the single `link_kind` and `link_id`, which still work.
 
