@@ -14,6 +14,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\QuickPick;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -27,9 +28,20 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * source its picker's address and a lookup of names. One no longer there shows as
  * unknown and matches nothing (spec D4).
  *
+ * The pinned fields of the view are its quick filters (Shopify Polaris IndexFilters pins filters to
+ * the bar, Linear and Notion keep them with the view): each is a chip under the tabs named by its
+ * field, "+ Field" while nothing is set on it and "Field: value ✕" once it is. Its dropdown is what
+ * the field declares (QuickPick): its values, one or several at once where it takes "any of"; the
+ * periods and the months with records for a date; a search of the records a reference points to;
+ * each pick a link to the list with that condition instead of any it had on the field. A field with
+ * nothing to list opens the sheet with a row for it (Linear's filter menu).
+ *
  * @phpstan-type Reference array{url: string, name: \Closure(string): ?string}
  * @phpstan-type FieldView array{key: string, label: string, type: string, ops: array<string, string>, options: array<int|string, string>, url: ?string, blank: array<string, mixed>}
- * @phpstan-type Chip array{label: string, href: string, removeLabel: string}
+ * @phpstan-type Chip array{label: string, href: string, removeLabel: string, field: string, pinned: bool}
+ * @phpstan-type QuickOption array{label: string, href: string, checked: bool}
+ * @phpstan-type QuickLookup array{url: ?string, base: string, param: string, conditions: string, field: string, op: string, single: bool, selected: list<array{id: string, label: string, href: string}>}
+ * @phpstan-type Quick array{key: string, label: string, pick: string, menu: bool, multi: bool, set: bool, text: string, clearHref: string, groups: list<array{label: ?string, options: list<QuickOption>}>, lookup: QuickLookup|null}
  */
 final readonly class FilterSheet
 {
@@ -37,14 +49,22 @@ final readonly class FilterSheet
     {
     }
 
+    /** The periods a date's quick filter offers, before its months. */
+    public const array QUICK_PERIODS = ['this_month', 'last_month', 'this_quarter', 'last_quarter', 'this_year', 'last_year'];
+    /** At most this many months follow them, the latest first. */
+    public const int QUICK_MONTHS = 24;
+
     /**
      * @param \Closure(ViewFilter): string $href       the list with another working filter
      * @param array<string, Reference>     $references by source
+     * @param list<string>|null            $pinned     the fields pinned as quick filters, in order (WorkingState::$pinned); null for the list's own
+     * @param array<string, list<string>>  $months     the months as YYYY-MM a date field's quick filter offers, by field, such as the months with a document
      *
-     * @return array{chips: list<Chip>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param: string}}
+     * @return array{chips: list<Chip>, quick: list<Quick>, pinnable: list<array{key: string, label: string, pinned: bool}>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param: string}}
      */
-    public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = []): array
+    public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = [], ?array $pinned = null, array $months = []): array
     {
+        $pinned = $list->pinnedOf($pinned);
         $chips = [];
         $rows = [];
         $kept = [];
@@ -61,6 +81,8 @@ final readonly class FilterSheet
                 'label' => $this->translator->trans('ui.view_filter.chip', ['field' => $label, 'condition' => $text]),
                 'href' => $href(new ViewFilter(array_values($others))),
                 'removeLabel' => $this->translator->trans('ui.view_filter.remove', ['label' => $label]),
+                'field' => $field->key,
+                'pinned' => \in_array($field->key, $pinned, true),
             ];
             if (FilterRows::editable($condition, $field)) {
                 $name = FieldType::Reference === $field->type && \is_string($condition->value) ? $this->name($field, $condition->value, $references) : '';
@@ -71,7 +93,7 @@ final readonly class FilterSheet
             }
         }
 
-        return ['chips' => $chips, 'builder' => [
+        return ['chips' => $chips, 'quick' => $this->quick($list, $filter, $href, $pinned, $months, $references), 'pinnable' => $this->pinnable($list, $pinned), 'builder' => [
             'fields' => array_values(array_map(fn (Field $field): array => $this->fieldView($field, $references), $list->fields)),
             'rows' => $rows,
             'kept' => $kept,
@@ -79,6 +101,153 @@ final readonly class FilterSheet
             // The address parameter of the working filter, which clearing the bar drops.
             'param' => WorkingFilter::PARAM,
         ]];
+    }
+
+    /**
+     * The quick filters of the pinned fields, in their order, each as its field declares its pick
+     * (QuickPick): a menu of its values, single or several at once; the periods and the months with
+     * records; a search of the records it points to; or the sheet with a row for it.
+     *
+     * @param \Closure(ViewFilter): string $href
+     * @param list<string>                 $pinned
+     * @param array<string, list<string>>  $months
+     * @param array<string, Reference>     $references
+     *
+     * @return list<Quick>
+     */
+    private function quick(ListDefinition $list, ViewFilter $filter, \Closure $href, array $pinned, array $months, array $references): array
+    {
+        $quick = [];
+        foreach ($pinned as $key) {
+            $field = $list->fields[$key];
+            $set = $filter->on($key);
+            $others = new ViewFilter(array_values(array_filter($filter->conditions, static fn (Condition $condition): bool => $condition->field !== $key)));
+            $picked = $this->picked($set);
+            $pick = $field->quickPick;
+            $url = null === $field->source ? null : ($references[$field->source]['url'] ?? null);
+            if (QuickPick::Lookup === $pick && null === $url) {
+                $pick = QuickPick::Sheet;
+            }
+            $multi = QuickPick::Values === $pick && FieldType::Boolean !== $field->type && $field->multiPick() || QuickPick::Lookup === $pick && $field->multiPick();
+            // A link to the list with this field picked as given, instead of what it had.
+            $with = fn (array $values): string => $href([] === $values ? $others : $others->with($this->pickCondition($field, array_values($values))));
+            $option = function (string $label, mixed $value) use ($with, $picked, $multi): array {
+                $checked = \in_array($value, $picked, true);
+                $values = $multi ? ($checked ? array_values(array_filter($picked, static fn (mixed $one): bool => $one !== $value)) : [...$picked, $value]) : [$value];
+
+                return ['label' => $label, 'href' => $with($values), 'checked' => $checked];
+            };
+            $groups = match ($pick) {
+                QuickPick::Values => FieldType::Boolean === $field->type
+                    ? [['label' => null, 'options' => [$option($this->translator->trans('ui.view_filter.yes'), true), $option($this->translator->trans('ui.view_filter.no'), false)]]]
+                    : [['label' => null, 'options' => array_map(fn (string $value): array => $option($this->trans($field->optionLabels[$value] ?? $value), $value), $field->options)]],
+                QuickPick::Months => $this->dateGroups($option, $months[$key] ?? []),
+                default => [],
+            };
+            $quick[] = [
+                'key' => $key,
+                'label' => $this->label($field),
+                'pick' => $pick->value,
+                // A field with nothing to list opens the sheet with a row for it.
+                'menu' => QuickPick::Sheet !== $pick,
+                'multi' => $multi,
+                'set' => [] !== $set,
+                'text' => implode(', ', array_map(fn (Condition $condition): string => $this->conditionText($condition, $field, $references), $set)),
+                'clearHref' => $href($others),
+                'groups' => $groups,
+                'lookup' => QuickPick::Lookup === $pick ? [
+                    'url' => $url,
+                    'base' => $href($others),
+                    'param' => WorkingFilter::PARAM,
+                    'conditions' => json_encode($others->toArray()['conditions'], \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION),
+                    'field' => $key,
+                    'op' => $field->pickOperator(),
+                    'single' => !$multi,
+                    'selected' => array_values(array_map(fn (string $id): array => ['id' => $id, 'label' => $this->name($field, $id, $references), 'href' => $with(array_values(array_filter($picked, static fn (mixed $one): bool => $one !== $id)))], array_filter($picked, \is_string(...)))),
+                ] : null,
+            ];
+        }
+
+        return $quick;
+    }
+
+    /**
+     * The values a field's conditions pick: those of "is" and of its "any of".
+     *
+     * @param list<Condition> $set
+     *
+     * @return list<mixed>
+     */
+    private function picked(array $set): array
+    {
+        if (1 !== \count($set) || !\in_array($set[0]->op, ['is', 'is_any_of', 'has_any_of'], true)) {
+            return [];
+        }
+
+        return \is_array($set[0]->value) && array_is_list($set[0]->value) ? $set[0]->value : [$set[0]->value];
+    }
+
+    /**
+     * The condition a quick filter sets: one value is "is", several its "any of"; a set always "has any of".
+     *
+     * @param non-empty-list<mixed> $values
+     */
+    private function pickCondition(Field $field, array $values): Condition
+    {
+        if (FieldType::MultiEnum === $field->type) {
+            return new Condition($field->key, 'has_any_of', $values);
+        }
+
+        return 1 === \count($values) ? new Condition($field->key, 'is', $values[0]) : new Condition($field->key, 'is_any_of', $values);
+    }
+
+    /**
+     * The periods, then the months given, newest first.
+     *
+     * @param \Closure(string, mixed): QuickOption $option
+     * @param list<string>                         $months
+     *
+     * @return list<array{label: ?string, options: list<QuickOption>}>
+     */
+    private function dateGroups(\Closure $option, array $months): array
+    {
+        $groups = [['label' => null, 'options' => array_map(fn (string $period): array => $option($this->translator->trans('ui.view_filter.relative.'.$period), ['relative' => $period]), self::QUICK_PERIODS)]];
+        $months = array_values(array_unique(array_filter($months, static fn (string $month): bool => 1 === preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/', $month))));
+        rsort($months);
+        // The latest two years; an older month is picked in the sheet ("Custom…").
+        $months = \array_slice($months, 0, self::QUICK_MONTHS);
+        if ([] !== $months) {
+            $groups[] = ['label' => $this->translator->trans('ui.view_filter.quick.by_month'), 'options' => array_map(fn (string $month): array => $option($this->monthName($month), ['month' => $month]), $months)];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Every field one can pin, those pinned first in their order, for the Display sheet.
+     *
+     * @param list<string> $pinned
+     *
+     * @return list<array{key: string, label: string, pinned: bool}>
+     */
+    private function pinnable(ListDefinition $list, array $pinned): array
+    {
+        $items = [];
+        foreach ($pinned as $key) {
+            $items[$key] = ['key' => $key, 'label' => $this->label($list->fields[$key]), 'pinned' => true];
+        }
+        foreach ($list->fields as $field) {
+            $items[$field->key] ??= ['key' => $field->key, 'label' => $this->label($field), 'pinned' => false];
+        }
+
+        return array_values($items);
+    }
+
+    private function monthName(string $month): string
+    {
+        $formatter = new \IntlDateFormatter($this->translator->getLocale(), \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, 'UTC', \IntlDateFormatter::GREGORIAN, 'LLLL y');
+
+        return (string) $formatter->format(new \DateTimeImmutable($month.'-01', new \DateTimeZone('UTC')));
     }
 
     /**
@@ -185,7 +354,7 @@ final readonly class FilterSheet
             return false === $day ? $value : $day->format($this->translator->trans('format.date'));
         }
         if (\is_array($value) && \is_string($value['month'] ?? null)) {
-            return $value['month'];
+            return 1 === preg_match('/^[1-9]\d{3}-(0[1-9]|1[0-2])$/', $value['month']) ? $this->monthName($value['month']) : $value['month'];
         }
         if (\is_array($value) && \is_string($value['relative'] ?? null)) {
             return $this->translator->trans('ui.view_filter.relative.'.$value['relative'], ['n' => $value['n'] ?? 0]);

@@ -15,10 +15,17 @@ namespace Foresi\Shared\Application\View;
  * query adapter turns them into its SQL, as only it knows a derived field.
  *
  * The first default view is the list's All: it holds no condition and stays first.
+ *
+ * The pinned fields are the quick filters a view shows as chips under its tabs until someone
+ * picks others in its Display sheet (Shopify Polaris IndexFilters pins filters to the bar,
+ * Linear and Notion keep them with the view): the view keeps its own as display.pinned, and
+ * a view that keeps none, as each shipped view, shows these.
  */
 final readonly class ListDefinition
 {
     public const string ALL = 'all';
+    /** At most this many quick filters stand under the tabs. */
+    public const int MAX_PINNED = 4;
 
     /** The operators of a single enum and what they read as on a set. */
     private const array SET_OPERATORS = ['is' => 'has_any_of', 'is_any_of' => 'has_any_of', 'is_not' => 'has_none_of', 'is_none_of' => 'has_none_of'];
@@ -29,12 +36,15 @@ final readonly class ListDefinition
     private array $keys;
     /** @var list<DefaultView> */
     public array $defaults;
+    /** @var list<string> the keys of the fields pinned by default, in their order */
+    public array $pinned;
 
     /**
      * @param list<Field>       $fields
      * @param list<DefaultView> $defaults
+     * @param list<string>      $pinned   the fields pinned as quick filters by default, by key or alias
      */
-    public function __construct(public string $key, array $fields, array $defaults)
+    public function __construct(public string $key, array $fields, array $defaults, array $pinned = [])
     {
         if (1 !== preg_match('/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/', $key)) {
             throw new \InvalidArgumentException(\sprintf('The list key "%s" is "<module>.<list>".', $key));
@@ -64,6 +74,41 @@ final readonly class ListDefinition
             $view->filter->check($this);
         }
         $this->defaults = $defaults;
+        if (\count($pinned) > self::MAX_PINNED) {
+            throw new \InvalidArgumentException(\sprintf('The list "%s" pins at most %d quick filters.', $key, self::MAX_PINNED));
+        }
+        $this->pinned = array_values(array_unique(array_map(function (string $name) use ($key): string {
+            $field = $this->field($name);
+            if (!$field instanceof Field) {
+                throw new \InvalidArgumentException(\sprintf('The list "%s" pins "%s", which is none of its fields.', $key, $name));
+            }
+
+            return $field->key;
+        }, $pinned)));
+    }
+
+    /**
+     * The quick filters a stored list of names pins: the fields it names that the list still has,
+     * under their keys, once each and at most MAX_PINNED; the list's own when it names none.
+     *
+     * @param mixed $names a display's pinned as stored, null for none stored
+     *
+     * @return list<string>
+     */
+    public function pinnedOf(mixed $names): array
+    {
+        if (!\is_array($names)) {
+            return $this->pinned;
+        }
+        $keys = [];
+        foreach ($names as $name) {
+            $field = \is_string($name) ? $this->field($name) : null;
+            if ($field instanceof Field && !\in_array($field->key, $keys, true)) {
+                $keys[] = $field->key;
+            }
+        }
+
+        return \array_slice($keys, 0, self::MAX_PINNED);
     }
 
     /**

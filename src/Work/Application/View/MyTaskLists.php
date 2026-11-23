@@ -57,6 +57,6 @@ final readonly class MyTaskLists implements ListDefinitionSource
             new DefaultView(ListDefinition::ALL, 'work.my_tasks.tab.all', showCount: false, position: 0),
             new DefaultView(self::ASSIGNED, 'work.my_tasks.tab.assigned', ViewFilter::all(new Condition(self::INVOLVEMENT, 'is', self::RESPONSIBLE)), showCount: false, position: 1),
             new DefaultView(self::WATCHING, 'work.my_tasks.tab.watching', ViewFilter::all(new Condition(self::INVOLVEMENT, 'is', self::WATCHER)), showCount: false, position: 2),
-        ]);
+        ], [self::CLIENT]);
     }
 }

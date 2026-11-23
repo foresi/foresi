@@ -86,8 +86,8 @@ final class SendLogController extends AbstractController
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1))));
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(SendLogColumns::LIST, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(SendLogColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
 
@@ -95,7 +95,7 @@ final class SendLogController extends AbstractController
             'page' => $page,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             ...$bar,
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
@@ -185,7 +185,7 @@ final class SendLogController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the log, and the log without the changed columns.
+     * The Display sheet: what it keeps of the log, and the log without the changed columns.
      *
      * @param array<string, string> $query
      *

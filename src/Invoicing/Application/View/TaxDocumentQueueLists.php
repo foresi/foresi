@@ -46,7 +46,7 @@ final readonly class TaxDocumentQueueLists implements ListDefinitionSource
             new Field(self::AMOUNT, FieldType::Number, 'advance.missing.column.received'),
             new Field(self::RECEIVED_ON, FieldType::Date, 'advance.missing.column.receivedOn', ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between']),
             new Field(self::DEADLINE, FieldType::Date, 'advance.missing.column.deadline', ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between']),
-        ], [new DefaultView(ListDefinition::ALL, 'invoice.list.tab.all')]);
+        ], [new DefaultView(ListDefinition::ALL, 'invoice.list.tab.all')], [self::DEADLINE]);
     }
 
     public static function uncorrected(): ListDefinition
@@ -57,6 +57,6 @@ final readonly class TaxDocumentQueueLists implements ListDefinitionSource
             new Field(self::DECISIVE_DATE, FieldType::Date, 'tax_document.uncorrected.column.decisiveDate', ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between']),
             new Field(self::DEADLINE, FieldType::Date, 'tax_document.uncorrected.column.deadline', ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between']),
             new Field(self::DEDUCTED, FieldType::Boolean, 'tax_document.uncorrected.field.deducted'),
-        ], [new DefaultView(ListDefinition::ALL, 'invoice.list.tab.all')]);
+        ], [new DefaultView(ListDefinition::ALL, 'invoice.list.tab.all')], [self::DEADLINE, self::DEDUCTED]);
     }
 }

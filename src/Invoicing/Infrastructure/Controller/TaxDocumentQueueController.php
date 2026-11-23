@@ -111,8 +111,8 @@ final class TaxDocumentQueueController extends AbstractController
         $searched = TaxDocumentQueues::searched($this->queues->rows($list->key, $today), $text);
         $rows = $this->sorted(TaxDocumentQueues::matching($searched, $list->key, $shown, $today), $sort);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read($list->key, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read($list->key, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
 
@@ -121,7 +121,7 @@ final class TaxDocumentQueueController extends AbstractController
             'route' => $route,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             'text' => $text,
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
@@ -251,7 +251,7 @@ final class TaxDocumentQueueController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

@@ -56,7 +56,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The time report "Výkaz" on saved views, as every list has them: All, This month (the
  * view it opens on, as the report showed this month unless asked otherwise) and Last
  * month, the person's own views, "+ Filter" (the day, the project, the client, the
- * person, billable, invoiced) and the Columns sheet of its entries. What the totals add
+ * person, billable, invoiced) and the Display sheet of its entries. What the totals add
  * up by (project, person or task) is the view's display, kept with it as its columns
  * are (D-display-2). Its sums, its totals and its entries, newest first (Freelo reports,
  * Productive "invoiced = no"); the header downloads the entries as CSV with the same
@@ -110,7 +110,7 @@ final class TimeReportController extends AbstractController
         $list = TimeReportLists::list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         // The columns, the density and the grouping, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(TimeReportColumns::LIST, [], $list->key, $view, $input->all(), ListDisplay::DENSE, self::GROUPS);
+        $working = $this->rememberedDisplay->read(TimeReportColumns::LIST, [], $list->key, $view, $input->all(), ListDisplay::DENSE, self::GROUPS, filters: $list);
         $grouping = TimeGrouping::tryFrom($working->display->groupBy ?? '') ?? TimeGrouping::Project;
         $query = array_filter(['view' => $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
@@ -121,7 +121,7 @@ final class TimeReportController extends AbstractController
             'query' => $query,
             'view' => $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($options)),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($options), pinned: $working->pinned),
             ...$bar,
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'range' => $this->range($shown, $view),
@@ -393,7 +393,7 @@ final class TimeReportController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the report, and the report without the changed columns.
+     * The Display sheet: what it keeps of the report, and the report without the changed columns.
      *
      * @param array<string, string> $query
      *

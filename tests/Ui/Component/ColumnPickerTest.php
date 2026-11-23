@@ -11,6 +11,7 @@ namespace Foresi\Tests\Ui\Component;
 use Foresi\Ui\Component\ColumnPicker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 
 final class ColumnPickerTest extends KernelTestCase
@@ -105,14 +106,14 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertStringNotContainsString(', změněno', $this->render());
         self::assertStringNotContainsString('data-column-picker-modified', $this->render());
         $html = $this->render(['modified' => true]);
-        self::assertStringContainsString('aria-label="Sloupce, změněno"', $html);
+        self::assertStringContainsString('aria-label="Zobrazení, změněno"', $html);
         self::assertStringContainsString('data-column-picker-modified', $html);
     }
 
     public function testTheButtonIsASmallIconWithItsLabelAsNameAndTooltip(): void
     {
         $html = $this->render();
-        self::assertMatchesRegularExpression('/<button[^>]*aria-label="Sloupce" title="Sloupce"[^>]*>/', $html);
+        self::assertMatchesRegularExpression('/<button[^>]*aria-label="Zobrazení" title="Zobrazení"[^>]*>/', $html);
         self::assertStringContainsString('data-column-picker-open', $html);
         self::assertStringNotContainsString('ml-auto', $html);
     }
@@ -189,6 +190,70 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertInstanceOf(ColumnPicker::class, $component);
 
         return $component;
+    }
+
+    public function testTheQuickFiltersComeFirstPinnedInOrderThenTheOthersToAdd(): void
+    {
+        $crawler = new Crawler($this->render(['quick' => [
+            ['key' => 'due', 'label' => 'Due', 'pinned' => true],
+            ['key' => 'customer', 'label' => 'Customer', 'pinned' => true],
+            ['key' => 'paid', 'label' => 'Paid', 'pinned' => false],
+        ]]));
+
+        $quick = $crawler->filter('[data-column-picker-quick]');
+        self::assertSame('Rychlé filtry', trim($quick->filter('legend')->text()));
+        self::assertSame(['due', 'customer'], $quick->filter('[data-column-picker-target=pinRow]')->each(static fn (Crawler $row): string => (string) $row->attr('data-key')));
+        self::assertSame(['due', 'customer'], $quick->filter('[data-column-picker-target=pinRow] input[name="pins[]"]:checked')->each(static fn (Crawler $box): string => (string) $box->attr('value')));
+        self::assertCount(2, $quick->filter('[data-column-picker-target=pinRow] [data-column-picker-up]'), 'A quick filter moves as a column does.');
+        self::assertSame('paid', $quick->filter('[data-column-picker-target=pinOption] input[name="pins[]"]')->attr('value'));
+        self::assertSame('', $crawler->filter('input[type=hidden][name="pins[]"]')->attr('value'), 'With no box checked the form still says none.');
+        self::assertLessThan(
+            (int) strpos($crawler->html(), 'data-column-picker-density'),
+            (int) strpos($crawler->html(), 'data-column-picker-quick'),
+            'The quick filters come before the columns and the density.',
+        );
+    }
+
+    public function testTheQuickFiltersSplitIntoThePinnedAndTheOthersEachWithItsOwnId(): void
+    {
+        $picker = $this->mount(['quick' => [
+            ['key' => 'due', 'label' => 'Due', 'pinned' => true],
+            ['key' => 'paid', 'label' => 'Paid'],
+            ['key' => 'customer.city', 'label' => 'City', 'pinned' => true],
+            ['key' => 'kind', 'label' => 'Kind', 'pinned' => false],
+        ]]);
+
+        self::assertSame([
+            ['key' => 'due', 'label' => 'Due', 'pinned' => true, 'id' => 'cols-pin-due'],
+            ['key' => 'customer.city', 'label' => 'City', 'pinned' => true, 'id' => 'cols-pin-customer-city'],
+        ], $picker->pins());
+        self::assertSame([
+            ['key' => 'paid', 'label' => 'Paid', 'pinned' => false, 'id' => 'cols-pin-paid'],
+            ['key' => 'kind', 'label' => 'Kind', 'pinned' => false, 'id' => 'cols-pin-kind'],
+        ], $picker->pinnable(), 'A quick filter that does not say it is pinned is not.');
+    }
+
+    public function testAListWithoutColumnsShowsItsQuickFiltersAlone(): void
+    {
+        $crawler = new Crawler($this->render(['columns' => [], 'density' => null, 'quick' => [['key' => 'person', 'label' => 'Person', 'pinned' => true]]]));
+
+        self::assertCount(1, $crawler->filter('[data-column-picker-quick]'));
+        self::assertCount(0, $crawler->filter('input[name="cols[]"], input[name=cols], [data-column-picker-density]'));
+        self::assertCount(1, $crawler->filter('[data-column-picker-reset]'));
+    }
+
+    public function testNoQuickFiltersNoSection(): void
+    {
+        $crawler = new Crawler($this->render());
+
+        self::assertCount(0, $crawler->filter('[data-column-picker-quick], input[name="pins[]"], input[name=pins]'));
+    }
+
+    public function testThePinsOfTheAddressAreNotKeptAsHiddenFields(): void
+    {
+        $crawler = new Crawler($this->render(['keep' => ['view' => 'paid', 'pins' => 'due'], 'quick' => [['key' => 'due', 'label' => 'Due', 'pinned' => true]]]));
+
+        self::assertCount(0, $crawler->filter('input[type=hidden][name=pins][value=due]'));
     }
 
     /**

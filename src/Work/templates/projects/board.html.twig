@@ -37,12 +37,12 @@
 
         <div class="flex items-end gap-3">
             <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}]" :label="'work.project.views'|trans" class="min-w-0 flex-1" />
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'board-filters'}) }}
+            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'board-filters', toolsColumns: {id: 'board-display', action: path('app_project_board', {id: project.id})}}) }}
         </div>
-        <twig:Ui:FilterBar id="board-filters" :collapsible="true" :action="path('app_project_board', {id: project.id})" data-task-filters
+        <twig:Ui:FilterBar id="board-filters" :collapsible="true" :action="path('app_project_board', {id: project.id})" :keep="pinsQuery" :pinned="pinned" data-task-filters
             :filters="[
-                {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible, pinned: true},
-                {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due, pinned: true},
+                {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible},
+                {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due},
             ]" />
 
         <div class="overflow-x-auto pb-2 {{ focus }}" role="region" tabindex="0" aria-label="{{ 'work.board.columns'|trans }}"{% if editable %} data-controller="board" data-board-token-value="{{ token }}" data-board-moved-value="{{ 'work.board.moved'|trans({status: '__status__', position: '__position__', count: '__count__'}) }}"{% endif %} data-board>

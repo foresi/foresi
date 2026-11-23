@@ -143,7 +143,7 @@ final class DealController extends AbstractController
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_TITLE === ltrim($sort, '-') ? $sort : self::SORT_TITLE;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        $working = $this->rememberedDisplay->read(DealColumns::LIST, [], $list->key, $view, $input->all());
+        $working = $this->rememberedDisplay->read(DealColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_TITLE, $working, self::ROUTE, []);
         $sections = $this->sections($this->queries->index($shown, str_starts_with($sort, '-')), $working);
@@ -152,7 +152,7 @@ final class DealController extends AbstractController
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->screen->trans(DealLists::TRASHED === $view->key ? 'sales.deals.empty.trash_title' : 'sales.deals.empty.view_title'),
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned),
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),

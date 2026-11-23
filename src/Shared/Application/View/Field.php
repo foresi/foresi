@@ -21,11 +21,16 @@ namespace Foresi\Shared\Application\View;
  *
  * Aliases are older keys that still name the field, such as "role" for "roles": a
  * stored view or a link that names one keeps working and is read under the key.
+ *
+ * As a quick filter it says how its dropdown gets its values (QuickPick, its type's by default)
+ * and whether one picks several: a field that takes "is any of" (or a set's "has any of") does.
  */
 final readonly class Field
 {
     /** @var list<string> */
     public array $operators;
+    /** How its quick filter's dropdown gets its values. */
+    public QuickPick $quickPick;
 
     /**
      * @param list<string>|null     $operators    a subset of the type's, or null for all of them
@@ -38,6 +43,7 @@ final readonly class Field
      *                                            row, such as an e-mail of a contact: a condition holds when one such row matches, a negation when none does
      * @param int                   $scale        what a number's value is multiplied by to compare with its expression, such as 100 for whole units stored in minor ones
      * @param string|null           $group        the translation key of the relation the field reads through, such as "Customer"; null for the row's own
+     * @param QuickPick|null        $quick        how its quick filter's dropdown gets its values; null for its type's
      */
     public function __construct(
         public string $key,
@@ -52,6 +58,7 @@ final readonly class Field
         public ?string $within = null,
         public int $scale = 1,
         public ?string $group = null,
+        ?QuickPick $quick = null,
     ) {
         $all = $type->operators();
         if (null !== $operators && [] !== array_diff($operators, $all)) {
@@ -64,5 +71,30 @@ final readonly class Field
             throw new \InvalidArgumentException(\sprintf('The field "%s" reads a related row only through an expression, a relation only in its rows.', $key));
         }
         $this->operators = $operators ?? $all;
+        $this->quickPick = $quick ?? (FieldType::Reference === $type && null === $source ? QuickPick::Sheet : QuickPick::of($type));
+        if (QuickPick::Lookup === $this->quickPick && null === $source) {
+            throw new \InvalidArgumentException(\sprintf('The field "%s" looks up the records of its source, which it names none of.', $key));
+        }
+    }
+
+    /**
+     * Whether its quick filter picks several values: "is any of" for an enum or a reference,
+     * "has any of" for a set.
+     */
+    public function multiPick(): bool
+    {
+        return FieldType::MultiEnum === $this->type ? \in_array('has_any_of', $this->operators, true) : \in_array('is_any_of', $this->operators, true);
+    }
+
+    /**
+     * The operator a quick filter sets: "is" for one value, its "any of" for several.
+     */
+    public function pickOperator(): string
+    {
+        return match (true) {
+            FieldType::MultiEnum === $this->type => 'has_any_of',
+            $this->multiPick() => 'is_any_of',
+            default => 'is',
+        };
     }
 }

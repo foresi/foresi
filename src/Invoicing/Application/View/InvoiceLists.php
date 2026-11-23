@@ -75,7 +75,7 @@ final class InvoiceLists implements ListDefinitionSource
     {
         $key = self::KEYS[$kind->value];
 
-        return $this->lists[$key] ??= new ListDefinition($key, $this->fields->of($key, $this->ownFields($kind)), $this->defaults($kind));
+        return $this->lists[$key] ??= new ListDefinition($key, $this->fields->of($key, $this->ownFields($kind)), $this->defaults($kind), [self::monthField($kind), self::CUSTOMER]);
     }
 
     /**

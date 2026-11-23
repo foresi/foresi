@@ -51,7 +51,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The products of the catalog, for the owners and members. The list runs on
  * saved views as the address book does: All, One-off, Recurring and Archived,
- * with "+ Filter", the person's own views and the Columns sheet. A row opens
+ * with "+ Filter", the person's own views and the Display sheet. A row opens
  * the product as a record in the side sheet. A new product starts in the page
  * header and Edit in the product's, each in a dialog, where the billing kind
  * reveals the period fields (the product library of HubSpot and Pipedrive);
@@ -100,8 +100,8 @@ final class ProductController extends AbstractController
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ProductColumns::LIST, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ProductColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, []);
 
@@ -109,7 +109,7 @@ final class ProductController extends AbstractController
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->translator->trans(ProductLists::ARCHIVED === $view->key ? 'catalog.products.empty.archived_title' : 'catalog.products.empty.view_title'),
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), []),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), [], pinned: $working->pinned),
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
@@ -363,7 +363,7 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

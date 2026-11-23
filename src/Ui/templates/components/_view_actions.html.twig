@@ -1,20 +1,20 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The view's unsaved changes (saved views D10): Reset, Save as new view and Save, the last only for
-    who may change the view (D6), as Attio and level.io offer them. Takes `viewBar` from ViewBar.
-    Centred on the row of tabs it follows, whatever that row aligns: the buttons are shorter than the
-    tabs, so on the tabs' bottom edge their labels sat below the tab labels. On a phone they take a line
-    of their own under the tabs, so the tabs keep their filter and Columns icons beside them.
+    The view's unsaved changes (saved views D10): Reset, Save as new view and Save to view, the last only
+    for who may change the view (D6), as Attio and level.io offer them and Shopify Polaris IndexFilters
+    ends its filter row with Save as and Save. Ui:FilterBar puts them at the end of the filter row under
+    the tabs, which stays open while the view has them; saving keeps the filters, the quick filters and
+    the columns together. Takes `viewBar` from ViewBar.
 #}
 {% if viewBar.modified %}
-    <div class="flex shrink-0 flex-wrap items-center gap-2 self-center max-sm:order-last max-sm:w-full" data-view-actions>
+    <div class="flex shrink-0 flex-wrap items-center gap-2" data-view-actions>
         <twig:Ui:Button variant="ghost" size="sm" :href="viewBar.resetHref" data-view-reset>{{ 'saved_view.reset'|trans }}</twig:Ui:Button>
-        <twig:Ui:Button size="sm" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-save-as-button>{{ 'saved_view.save_as'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button size="sm" :variant="viewBar.canSave ? 'secondary' : 'primary'" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-save-as-button>{{ 'saved_view.save_as'|trans }}</twig:Ui:Button>
         {% if viewBar.canSave %}
             <form method="post" action="{{ path('app_view_save') }}" class="contents">
                 {{ include('@Ui/components/_view_fields.html.twig') }}
                 <input type="hidden" name="return" value="{{ viewBar.return }}">
-                <twig:Ui:Button type="submit" variant="primary" size="sm" data-view-save>{{ 'saved_view.save'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" variant="primary" size="sm" data-view-save>{{ 'saved_view.save_to_view'|trans }}</twig:Ui:Button>
             </form>
         {% endif %}
     </div>

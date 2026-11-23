@@ -125,6 +125,33 @@ final readonly class SavedViews
         return $display;
     }
 
+    /**
+     * The quick filters a view pins, each a field of its list under its key (an alias names it
+     * too); null keeps the list's own.
+     *
+     * @param list<mixed>|null $pinned
+     *
+     * @return list<mixed>|null
+     *
+     * @throws SavedViewRefused
+     */
+    private function pinned(ListDefinition $list, ?array $pinned): ?array
+    {
+        if (null === $pinned) {
+            return null;
+        }
+        $keys = [];
+        foreach ($pinned as $index => $name) {
+            $field = \is_string($name) ? $list->field($name) : null;
+            if (!$field instanceof Field) {
+                throw SavedViewRefused::invalid('pinned_unknown', \sprintf('pinned[%d]', $index), \sprintf('The list "%s" has no field %s to pin; find its fields with foresi_list_lists.', $list->key, \is_string($name) ? '"'.$name.'"' : 'of that kind'));
+            }
+            $keys[] = $field->key;
+        }
+
+        return $keys;
+    }
+
     private function columnKey(string $listKey, string $name): string
     {
         foreach ($this->catalogs as $catalog) {
@@ -147,7 +174,7 @@ final readonly class SavedViews
         $this->storeDefaults($list);
         $filters = $this->filters($input->conditions, $list);
         $sort = $this->checked(static fn (): array => ViewRules::sort($input->sort));
-        $display = $this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($input->columns, $input->density, $input->groupBy)));
+        $display = $this->keyed($list->key, $this->checked(fn (): ?array => ViewRules::display($input->columns, $input->density, $input->groupBy, $this->pinned($list, $input->pinned))));
         $name = $this->name($input->name);
         $positions = array_map(static fn (SavedView $view): int => $view->position(), $this->store->ofList($list->key));
         $view = SavedView::made(
@@ -207,12 +234,13 @@ final readonly class SavedViews
             position: $input->position instanceof Omitted ? null : $input->position,
             hidden: $input->hidden instanceof Omitted ? null : $input->hidden,
         );
-        if (!$input->columns instanceof Omitted || !$input->density instanceof Omitted || !$input->groupBy instanceof Omitted) {
+        if (!$input->columns instanceof Omitted || !$input->density instanceof Omitted || !$input->groupBy instanceof Omitted || !$input->pinned instanceof Omitted) {
             $was = $view->display();
             $columns = $input->columns instanceof Omitted ? (\is_array($was['columns'] ?? null) ? array_values($was['columns']) : null) : $input->columns;
             $density = $input->density instanceof Omitted ? (\is_string($was['density'] ?? null) ? $was['density'] : null) : $input->density;
             $groupBy = $input->groupBy instanceof Omitted ? (\is_string($was['group_by'] ?? null) ? $was['group_by'] : null) : $input->groupBy;
-            $view->redisplay($this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($columns, $density, $groupBy))), $user, $now);
+            $pinned = $input->pinned instanceof Omitted ? (\is_array($was['pinned'] ?? null) ? array_values($was['pinned']) : null) : $this->pinned($list, $input->pinned);
+            $view->redisplay($this->keyed($list->key, $this->checked(static fn (): ?array => ViewRules::display($columns, $density, $groupBy, $pinned))), $user, $now);
         }
         $this->store->flush();
 

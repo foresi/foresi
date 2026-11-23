@@ -20,6 +20,8 @@ final class ViewRules
     public const array DENSITIES = ['comfortable', 'dense'];
     public const int MAX_SORT = 3;
     public const int MAX_COLUMNS = 40;
+    /** As a list pins them (ListDefinition::MAX_PINNED). */
+    public const int MAX_PINNED = ListDefinition::MAX_PINNED;
     private const string KEY = '/^[a-z][A-Za-z0-9_.]{0,63}$/';
 
     /**
@@ -54,25 +56,38 @@ final class ViewRules
     }
 
     /**
-     * The display payload {columns: [{key, width?}], density?, group_by?}, or null for
+     * The display payload {columns: [{key, width?}], density?, group_by?, pinned?}, or null for
      * the list's defaults. What a list groups by is checked for its shape only; a list
-     * that does not group by it shows its own grouping (D-display-2).
+     * that does not group by it shows its own grouping (D-display-2). The pinned fields are
+     * the view's quick filters, in their order: none pins none, null keeps the list's own.
      *
      * @param list<mixed>|null $columns
+     * @param list<mixed>|null $pinned
      *
      * @return array<string, mixed>|null
      *
      * @throws InvalidFilter
      */
-    public static function display(?array $columns, ?string $density, ?string $groupBy = null): ?array
+    public static function display(?array $columns, ?string $density, ?string $groupBy = null, ?array $pinned = null): ?array
     {
+        if (null !== $pinned) {
+            if (\count($pinned) > self::MAX_PINNED) {
+                throw new InvalidFilter('pinned', \sprintf('A view pins at most %d quick filters.', self::MAX_PINNED));
+            }
+            foreach ($pinned as $index => $key) {
+                if (!\is_string($key) || 1 !== preg_match(self::KEY, $key)) {
+                    throw new InvalidFilter(\sprintf('pinned[%d]', $index), 'A quick filter is named by the key of its field, such as "due_date".');
+                }
+            }
+            $pinned = array_values(array_unique($pinned));
+        }
         if (null !== $density && !\in_array($density, self::DENSITIES, true)) {
             throw new InvalidFilter('density', \sprintf('The density is one of %s.', implode(', ', self::DENSITIES)));
         }
         if (null !== $groupBy && 1 !== preg_match(self::KEY, $groupBy)) {
             throw new InvalidFilter('group_by', 'A grouping is named by its key, such as "person".');
         }
-        $rest = (null === $density ? [] : ['density' => $density]) + (null === $groupBy ? [] : ['group_by' => $groupBy]);
+        $rest = (null === $density ? [] : ['density' => $density]) + (null === $groupBy ? [] : ['group_by' => $groupBy]) + (null === $pinned ? [] : ['pinned' => $pinned]);
         if (null === $columns) {
             return [] === $rest ? null : $rest;
         }

@@ -10,22 +10,24 @@ test.use({ storageState: OWNER_STATE });
 test.describe('list columns', () => {
   test('hides, moves and compacts the columns with the keyboard, and resets them', async ({ page }) => {
     await page.goto('/contacts');
-    const open = page.getByRole('button', { name: 'Sloupce' });
+    const open = page.getByRole('button', { name: 'Zobrazení' });
     await open.focus();
     await page.keyboard.press('Enter');
-    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
+    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
     await expect(sheet).toBeVisible();
+    // The Display sheet also lists the quick filters; the columns are their own group.
+    const columns = sheet.getByRole('group', { name: 'Sloupce' });
 
     // The column that names the row is always shown and cannot be unchecked.
-    await expect(sheet.getByRole('checkbox', { name: /Název/ })).toBeDisabled();
-    await sheet.getByRole('checkbox', { name: 'Role' }).focus();
+    await expect(columns.getByRole('checkbox', { name: /Název/ })).toBeDisabled();
+    await columns.getByRole('checkbox', { name: 'Role' }).focus();
     await page.keyboard.press('Space');
 
     // Move up keeps the focus and says where the column went.
-    await sheet.getByRole('button', { name: 'Posunout Stav nahoru' }).focus();
+    await columns.getByRole('button', { name: 'Posunout Stav nahoru' }).focus();
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
-    await expect(sheet.getByRole('button', { name: 'Posunout Stav nahoru' })).toBeFocused();
+    await expect(columns.getByRole('button', { name: 'Posunout Stav nahoru' })).toBeFocused();
     await expect(sheet.getByRole('status')).toHaveText('Stav je teď na pozici 5 z 7.');
 
     await sheet.getByRole('radio', { name: /Kompaktní/ }).check();
@@ -40,16 +42,16 @@ test.describe('list columns', () => {
     await expect(page).toHaveURL(/sort=kind.*cols=/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
 
-    await page.getByRole('button', { name: /Sloupce/ }).click();
-    await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await page.getByRole('button', { name: /Zobrazení/ }).click();
+    await page.getByRole('dialog', { name: 'Zobrazení' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/cols=/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
   });
 
   test('adds a column from the attributes the list does not show', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('button', { name: 'Sloupce' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
+    await page.getByRole('button', { name: 'Zobrazení' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
     const add = sheet.getByRole('group', { name: 'Přidat sloupec' });
 
     // The search goes over what is shown and what can be added.
@@ -65,8 +67,8 @@ test.describe('list columns', () => {
     // any in the address, it still shows the added one, until Reset forgets them.
     await page.goto('/contacts');
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
-    await page.getByRole('button', { name: /Sloupce/ }).click();
-    await page.getByRole('dialog', { name: 'Sloupce' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await page.getByRole('button', { name: /Zobrazení/ }).click();
+    await page.getByRole('dialog', { name: 'Zobrazení' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/cols=/);
     await page.goto('/contacts');
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
@@ -74,10 +76,12 @@ test.describe('list columns', () => {
 
   test('moves a column by dragging its handle', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('button', { name: 'Sloupce' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Sloupce' });
-    const handle = sheet.locator('[data-key="email"] [data-column-picker-handle]');
-    const target = sheet.locator('[data-key="kind"]');
+    await page.getByRole('button', { name: 'Zobrazení' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
+    // The Display sheet also lists the quick filters (Druh is one); the columns are their own group.
+    const columns = sheet.getByRole('group', { name: 'Sloupce' });
+    const handle = columns.locator('[data-key="email"] [data-column-picker-handle]');
+    const target = columns.locator('[data-key="kind"]');
     const from = await handle.boundingBox();
     const to = await target.boundingBox();
     if (from === null || to === null) {

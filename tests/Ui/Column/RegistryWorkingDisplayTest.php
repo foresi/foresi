@@ -44,6 +44,77 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame($saved, $state->payload);
     }
 
+    private const array PINS = ['fields' => ['kind', 'roles', 'city', 'archived'], 'default' => ['roles', 'kind']];
+
+    public function testAViewWithoutQuickFiltersOfItsOwnPinsTheListsDefaults(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, [], pins: self::PINS);
+
+        self::assertSame(['roles', 'kind'], $state->pinned);
+        self::assertFalse($state->modified);
+        self::assertSame([], $state->query);
+    }
+
+    public function testTheViewsStoredQuickFiltersAreTheBaseAndAFieldGoneIsLeftOut(): void
+    {
+        $saved = ['columns' => [['key' => 'name']], 'pinned' => ['city', 'gone']];
+        $state = $this->working()->read(self::LIST, [], $saved, [], pins: self::PINS);
+
+        self::assertSame(['city'], $state->pinned);
+        self::assertFalse($state->modified);
+        self::assertSame($saved, $state->payload);
+        self::assertSame([], $this->working()->read(self::LIST, [], ['pinned' => []], [], pins: self::PINS)->pinned, 'A view that pins none shows none.');
+    }
+
+    public function testQuickFiltersFromTheAddressMarkTheViewModifiedAndGoWithItsDisplay(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['pins' => 'archived,kind,archived,unknown'], pins: self::PINS);
+
+        self::assertSame(['archived', 'kind'], $state->pinned);
+        self::assertTrue($state->modified);
+        self::assertSame(['pins' => 'archived,kind'], $state->query);
+        self::assertSame(['archived', 'kind'], $state->payload['pinned'] ?? null, 'Saving the view keeps them with its columns.');
+        $columns = $state->payload['columns'] ?? null;
+        self::assertIsArray($columns);
+        self::assertSame(['name', 'kind', 'email'], array_column($columns, 'key'));
+    }
+
+    public function testAnEmptyPinsPinsNoneAndAFormWithoutJavaScriptSendsAList(): void
+    {
+        $none = $this->working()->read(self::LIST, [], null, ['pins' => ''], pins: self::PINS);
+        self::assertSame([], $none->pinned);
+        self::assertSame(['pins' => ''], $none->query);
+
+        $listed = $this->working()->read(self::LIST, [], null, ['pins' => ['', 'city']], pins: self::PINS);
+        self::assertSame(['city'], $listed->pinned);
+
+        self::assertSame(['city', 'kind'], $this->working()->read(self::LIST, [], null, ['pins' => 'city, kind'], pins: self::PINS)->pinned, 'A space around a name is no part of it.');
+        self::assertSame(['city', 'kind'], RegistryWorkingDisplay::pins([' city ', 'kind'], ['kind', 'city']));
+    }
+
+    public function testTheViewsOwnQuickFiltersInTheAddressAreNoChange(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['pins' => 'roles,kind'], pins: self::PINS);
+
+        self::assertFalse($state->modified);
+        self::assertSame([], $state->query);
+    }
+
+    public function testAtMostFourQuickFiltersArePinned(): void
+    {
+        $pins = ['fields' => ['a', 'b', 'c', 'd', 'e'], 'default' => []];
+
+        self::assertSame(['a', 'b', 'c', 'd'], $this->working()->read(self::LIST, [], null, ['pins' => 'a,b,c,d,e'], pins: $pins)->pinned);
+    }
+
+    public function testChangingTheColumnsKeepsTheQuickFiltersOfTheView(): void
+    {
+        $state = $this->working()->read(self::LIST, [], ['pinned' => ['city']], ['cols' => 'name,phone'], pins: self::PINS);
+
+        self::assertSame(['city'], $state->payload['pinned'] ?? null);
+        self::assertSame(['cols' => 'name,phone'], $state->query);
+    }
+
     public function testColumnsFromTheAddressOrderAndShowTheList(): void
     {
         $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,phone,kind']);

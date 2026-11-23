@@ -67,7 +67,7 @@ final readonly class BankMovementLists implements ListDefinitionSource
      */
     public static function of(array $accounts): ListDefinition
     {
-        return new ListDefinition(self::KEY, self::fields($accounts), self::defaults());
+        return new ListDefinition(self::KEY, self::fields($accounts), self::defaults(), ['direction', 'state']);
     }
 
     /**

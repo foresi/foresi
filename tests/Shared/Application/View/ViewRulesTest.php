@@ -123,6 +123,21 @@ final class ViewRulesTest extends TestCase
         $this->assertInvalid('group_by', static fn (): ?array => ViewRules::display(null, null, 'Not a key'));
     }
 
+    public function testTheQuickFiltersAreStoredOnceEachInTheirOrderAndAtMostFour(): void
+    {
+        self::assertSame(['pinned' => []], ViewRules::display(null, null, pinned: []), 'None pins none.');
+        self::assertSame(['pinned' => ['due_date', 'paid']], ViewRules::display(null, null, pinned: ['due_date', 'due_date', 'paid']));
+        self::assertSame(['pinned' => ['a', 'b', 'c', 'd']], ViewRules::display(null, null, pinned: ['a', 'b', 'c', 'd']));
+        self::assertNull(ViewRules::display(null, null), 'Null keeps the list\'s own.');
+        $this->assertInvalid('pinned', static fn (): ?array => ViewRules::display(null, null, pinned: ['a', 'b', 'c', 'd', 'e']));
+    }
+
+    public function testAQuickFilterIsNamedByTheKeyOfItsField(): void
+    {
+        $this->assertInvalid('pinned[1]', static fn (): ?array => ViewRules::display(null, null, pinned: ['paid', 'Not a key']));
+        $this->assertInvalid('pinned[0]', static fn (): ?array => ViewRules::display(null, null, pinned: [7]));
+    }
+
     public function testAnUnknownDensityIsRefused(): void
     {
         $this->assertInvalid('density', static fn (): ?array => ViewRules::display(['number'], 'airy'));

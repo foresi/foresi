@@ -29,6 +29,7 @@ use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\QuickPins;
 use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\LabelBadge;
@@ -125,7 +126,7 @@ final class ProjectController extends AbstractController
      * A guest has no index of the projects of the organisation: what is shared with them is their start.
      *
      * The index runs on saved views as the other lists do: All (the projects not archived)
-     * and Archived, with "+ Filter", the person's own views and the Columns sheet. The old
+     * and Archived, with "+ Filter", the person's own views and the Display sheet. The old
      * ?tab=archived opens the Archived view, and ?tab=active All, which shows the same.
      */
     #[OpenToGuest]
@@ -148,8 +149,8 @@ final class ProjectController extends AbstractController
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, []);
 
@@ -158,7 +159,7 @@ final class ProjectController extends AbstractController
             // All keeps its first-run words in the template; the shipped Archived its own; any other view that nothing matches.
             'emptyTitle' => $this->translator->trans(ProjectLists::ARCHIVED === $view->key ? 'work.projects.empty.archived_title' : 'work.projects.empty.view_title'),
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->clientReferences()),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->clientReferences(), pinned: $working->pinned),
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
@@ -252,8 +253,8 @@ final class ProjectController extends AbstractController
             ProjectTaskColumns::SEEDS => $this->seeds(),
             ProjectTaskColumns::EDITS => $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request),
         ];
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ProjectTaskColumns::LIST, $context, $definition->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ProjectTaskColumns::LIST, $context, $definition->key, $view, $input->all(), filters: $definition);
         $query += $working->query;
         $bar = $this->viewBar->of($definition, $views, $view, $shown, '', '', $working, self::PROJECT_ROUTE, ['id' => $id]);
         $sections = [];
@@ -274,7 +275,7 @@ final class ProjectController extends AbstractController
             'workingQuery' => $working->query,
             // Only the staff keep views: a guest filters and changes the columns, and saves nothing.
             'viewsEditable' => $this->staff->isStaff(),
-            ...$this->filterSheet->of($definition, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$this->filterSheet->of($definition, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned),
             ...$bar,
             ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
@@ -323,9 +324,21 @@ final class ProjectController extends AbstractController
         $edits = $this->editsOf($board->project, array_merge(...array_map(static fn (StatusTasks $column): array => $column->tasks, $board->columns)), $request);
         $statuses = array_map(static fn (StatusTasks $column): array => ['id' => $column->id, 'name' => $column->name], $board->columns);
 
+        // The board keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        $pins = QuickPins::read($request->query->all(), ['responsible' => $this->translator->trans('work.filter.responsible'), 'due' => $this->translator->trans('work.filter.due')], ['responsible', 'due']);
+        $set = array_filter(['responsible' => $query['responsible'], 'due' => $query['due']], static fn (string $value): bool => '' !== $value);
+
         return $this->render('@Work/projects/board.html.twig', [
             'project' => $board->project,
             'query' => ['responsible' => $query['responsible'], 'due' => $query['due']],
+            'pinned' => $pins->pinned,
+            'pinnable' => $pins->pinnable,
+            'pinsQuery' => $pins->query,
+            'picker' => [
+                'keep' => $set,
+                'resetHref' => $this->generateUrl(self::BOARD_ROUTE, ['id' => $id] + $set),
+                'modified' => $pins->modified,
+            ],
             'filtered' => '' !== $query['responsible'] || '' !== $query['due'],
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
@@ -968,7 +981,7 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the index, and the index without the changed columns.
+     * The Display sheet: what it keeps of the index, and the index without the changed columns.
      *
      * @param array<string, string> $query
      *

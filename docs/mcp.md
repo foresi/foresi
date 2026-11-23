@@ -184,7 +184,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_list_lists` | The lists saved views filter, such as `invoicing.invoices`: their fields with operators and values, their columns, and the date values every date field takes. |
 | `foresi_list_views` | The saved views of a list (`list`) you see, shared and private, with whether you may change each. |
 | `foresi_get_view` | One saved view (`view_id`, an id or a system key such as `invoicing.invoices.overdue`). |
-| `foresi_create_view` | **Write.** Saves a view of a list: `list_key`, `name`, `visibility` (`private` or `shared`), `conditions`, `sort`, `columns`. |
+| `foresi_create_view` | **Write.** Saves a view of a list: `list_key`, `name`, `visibility` (`private` or `shared`), `conditions`, `sort`, `columns`, `pinned` (the quick filters under the tabs). |
 | `foresi_update_view` | **Write.** Changes the fields given of a view (`view_id`); conditions, sort and columns sent replace what it had. |
 | `foresi_delete_view` | **Write, destructive.** Deletes a view for everyone; a view a module ships is hidden instead. |
 | `foresi_restore_default_views` | **Write.** Brings the views a module ships on a list (`list_key`) back to what it declares. Owners only. |

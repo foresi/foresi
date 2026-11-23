@@ -128,8 +128,8 @@ final class RecurringListController extends AbstractController
         $amounts = $this->amounts->payable($page->templates, $lines, $today);
 
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['trash' => $trash], $list->key, $view, $request->query->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['trash' => $trash], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, RecurringFilter::NEXT, $working, 'app_recurring', []);
@@ -144,7 +144,7 @@ final class RecurringListController extends AbstractController
             'view' => $view->isAll() ? '' : $view->key,
             'emptyTitle' => $this->emptyTitle($view),
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_recurring', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_recurring', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
             ...$bar,
@@ -527,7 +527,7 @@ final class RecurringListController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

@@ -223,8 +223,8 @@ final class InvoiceListExportControllerTest extends WebTestCase
             $fields[(string) $input->attr('name')] = (string) $input->attr('value');
         });
         unset($fields['_token']);
-        // An old ?firm= is no filter: an instance holds one firm (ADR 0039).
-        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'q' => 'Work', 'sort' => 'number', 'month' => '2026-10', 'f' => WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is', 'paid'), new Condition(InvoiceLists::EXPORT, 'is', 'exported')))], $fields);
+        // An old ?firm= is no filter: an instance holds one firm (ADR 0039). An old ?month= is the date quick filter, a condition of the working filter.
+        self::assertSame(['kind' => 'advance', 'view' => 'paid', 'q' => 'Work', 'sort' => 'number', 'f' => WorkingFilter::encode(ViewFilter::all(new Condition(InvoiceLists::PAYMENT, 'is', 'paid'), new Condition(InvoiceLists::EXPORT, 'is', 'exported'), new Condition(InvoiceLists::monthField(DocumentKind::Advance), 'is', ['month' => '2026-10'])))], $fields);
         self::assertSame(['csv', 'xlsx'], $form->filter('button[name="format"]')->each(static fn ($button): string => (string) $button->attr('value')));
         // The export sits in the header's "⋯" menu.
         self::assertCount(1, $crawler->filter('#invoices-actions form[data-list-export]'));

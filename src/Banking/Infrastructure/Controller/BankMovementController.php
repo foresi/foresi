@@ -141,8 +141,8 @@ final class BankMovementController extends AbstractController
         $text = $mail ? '' : $text;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $context = [MovementColumns::ACCOUNT_COLUMN => \count($page->accounts) > 1];
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE);
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE, filters: $list);
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $bar = $this->viewBar->of($list, $views, $view, $shown, self::SORT, self::SORT, $working, 'app_bank_movements', '' === $text ? [] : ['q' => $text]);
@@ -153,7 +153,7 @@ final class BankMovementController extends AbstractController
             'caption' => $view->translated ? $this->translator->trans($view->name) : $view->name,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_bank_movements', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_bank_movements', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             ...$bar,
             'text' => $text,
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),

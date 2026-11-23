@@ -12,15 +12,18 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * The filter row of a list (Calm UI spec, filters option A; Polaris IndexFilters,
+ * The filter row of a list, under its tabs (Calm UI spec, filters option A; Polaris IndexFilters,
  * Stripe filter chips, level.io's filter chips and filters panel):
  *
- * - a search field that applies on Enter;
- * - at most two pinned chips: an empty one is quiet with a dashed edge and
- *   "+ Field", a set one shows "Field: value" on the green tint with a ✕ that
- *   clears it; a filter set from the sheet shows as a set chip too;
- * - "More filters" opens the other filters in the 400 px side sheet;
- * - "Clear all" only while something is set.
+ * - a search field that applies on Enter, at the start of the row; it waits for the search icon
+ *   of the tabs (Polaris IndexFilters) until it holds a text;
+ * - the view's quick filters (FilterSheet), or a list's pinned filters, at most four: an empty
+ *   chip is quiet with a dashed edge and "+ Field", a set one shows "Field: value" on the green
+ *   tint with a ✕ that clears it; a filter set from the sheet shows as a set chip too;
+ * - "+ Filter" or "More filters" opens the other filters in the 400 px side sheet;
+ * - "Clear all" only while something is set, and while the view shows changes nobody saved,
+ *   "Save as new view" and "Save to view", which keep its filters, columns and quick filters
+ *   together (saved views D10; Polaris IndexFilters' Save as and Save).
  *
  * A chip is a menu of links, each one the list with that value, so choosing
  * applies it at once and there is no Filter button. The sheet sends its fields
@@ -37,7 +40,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 #[AsTwigComponent]
 final class FilterBar
 {
-    public const int MAX_PINNED = 2;
+    public const int MAX_PINNED = 4;
 
     /** The id the bar's parts are named from. */
     public string $id = '';
@@ -50,15 +53,25 @@ final class FilterBar
     /**
      * @var list<array<string, mixed>> each with name, label, options (as Ui:Select takes them), value,
      *                                 optional default (the value that sets nothing, '' when not given),
-     *                                 pinned (a chip in the row; at most two), type ("select", or "date" for a
-     *                                 day picked in the sheet, never pinned) and text (the value as a set chip
-     *                                 says it, for a date)
+     *                                 type ("select", or "date" for a day picked in the sheet, never pinned)
+     *                                 and text (the value as a set chip says it, for a date)
      */
     public array $filters = [];
+    /** @var list<string> the names of the filters pinned as chips in the row, in order; at most four, as the list's Display sheet sets them */
+    public array $pinned = [];
     /**
-     * @var list<array{label: string, href: string, removeLabel: string}> the conditions of the list's working filter, each a chip with its ✕
+     * @var list<array{label: string, href: string, removeLabel: string, field?: string, pinned?: bool}> the conditions of the list's working filter, each a chip with its ✕;
+     *                                                                                                   one on a quick filter's field shows as that quick filter
      */
     public array $conditions = [];
+    /**
+     * @var list<array<string, mixed>> the view's quick filters as FilterSheet gives them: key, label, menu, set, text, clearHref, groups
+     */
+    public array $quick = [];
+    /**
+     * @var array<string, mixed>|null the view's unsaved changes as ViewBar gives them; null for a list without views
+     */
+    public ?array $viewBar = null;
 
     /**
      * The filter builder of the sheet (spec D11): the fields one can add a row for, the rows
@@ -74,8 +87,10 @@ final class FilterBar
     public bool $empty = false;
 
     /**
-     * The bar opens from the filter icon at the end of the list's tabs (Shopify Polaris
-     * IndexFilters): folded while nothing narrows the list, open while something does.
+     * The bar stands under the list's tabs, whose search and filter icons (Shopify Polaris
+     * IndexFilters) open its search and its sheet: it shows while it has chips to show (the
+     * view's quick filters, a filter set) or the view unsaved changes, and is folded otherwise
+     * until the search icon opens it.
      */
     public bool $collapsible = false;
 
@@ -106,13 +121,16 @@ final class FilterBar
             if (!\is_string($filter['name'] ?? null) || !\is_string($filter['label'] ?? null) || ('select' === $type && !\is_array($filter['options'] ?? null))) {
                 throw new \InvalidArgumentException('A filter needs a name, a label and, as a select, its options.');
             }
-            if ('date' === $type && true === ($filter['pinned'] ?? false)) {
+            if (\array_key_exists('pinned', $filter)) {
+                throw new \InvalidArgumentException('A filter is pinned by the bar\'s pinned, as the list\'s Display sheet sets them, not by itself.');
+            }
+            if ('date' === $type && \in_array($filter['name'], $this->pinned, true)) {
                 throw new \InvalidArgumentException('A date filter is picked in the sheet; it cannot be pinned.');
             }
-            $pinned += true === ($filter['pinned'] ?? false) ? 1 : 0;
+            $pinned += \in_array($filter['name'], $this->pinned, true) ? 1 : 0;
         }
-        if ($pinned > self::MAX_PINNED) {
-            throw new \InvalidArgumentException(\sprintf('A list pins at most %d filters, %d given.', self::MAX_PINNED, $pinned));
+        if ($pinned + \count($this->quick) > self::MAX_PINNED) {
+            throw new \InvalidArgumentException(\sprintf('A list pins at most %d filters, %d given.', self::MAX_PINNED, $pinned + \count($this->quick)));
         }
         foreach ($this->filters as $filter) {
             $value = $this->text($filter['value'] ?? '');
@@ -132,11 +150,40 @@ final class FilterBar
     }
 
     /**
-     * @return array<int, FilterView>
+     * The pinned filters in their order.
+     *
+     * @return list<FilterView>
      */
-    public function pinned(): array
+    public function pinnedViews(): array
     {
-        return array_filter($this->views, static fn (array $view): bool => $view['pinned']);
+        $views = [];
+        foreach ($this->pinned as $name) {
+            foreach ($this->views as $view) {
+                if ($view['name'] === $name) {
+                    $views[] = $view;
+                }
+            }
+        }
+
+        return $views;
+    }
+
+    /**
+     * The conditions of the working filter that no quick filter shows.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function loose(): array
+    {
+        return array_values(array_filter($this->conditions, static fn (array $chip): bool => true !== ($chip['pinned'] ?? false)));
+    }
+
+    /**
+     * Whether the view shows changes nobody saved: the row then stays open with its save actions.
+     */
+    public function modified(): bool
+    {
+        return true === ($this->viewBar['modified'] ?? false);
     }
 
     /**
@@ -198,12 +245,30 @@ final class FilterBar
      */
     public function collapsed(): bool
     {
-        return $this->collapsible && !$this->narrowed();
+        return $this->collapsible && !$this->hasRow();
+    }
+
+    /**
+     * Whether the row has something to show: a quick filter, a pinned filter, what narrows the list
+     * or the view's unsaved changes.
+     */
+    public function hasRow(): bool
+    {
+        return [] !== $this->quick || [] !== $this->pinnedViews() || $this->narrowed() || $this->modified();
+    }
+
+    /**
+     * Whether the search waits for the search icon: folded with the bar, or while it holds no text
+     * in a bar that opens with its icons. Without JavaScript it is always there.
+     */
+    public function searchFolded(): bool
+    {
+        return $this->collapsible && '' === $this->searchValue();
     }
 
     public function shown(): bool
     {
-        return !$this->empty || $this->narrowed();
+        return !$this->empty || $this->narrowed() || $this->modified();
     }
 
     /**
@@ -260,7 +325,7 @@ final class FilterBar
             'value' => $value,
             'options' => $options,
             'groups' => $groups,
-            'pinned' => true === ($filter['pinned'] ?? false),
+            'pinned' => \in_array($name, $this->pinned, true),
             'set' => $value !== $default,
             'text' => \is_string($filter['text'] ?? null) ? $filter['text'] : ('' === $text ? $value : $text),
             'type' => $this->text($filter['type'] ?? 'select'),

@@ -146,15 +146,15 @@ final class InvoiceListController extends AbstractController
         [$filter, $views, $view] = $this->filterOf($request->query, $kind);
         $shown = $filter->view ?? $view->filter;
         $filterParam = WorkingFilter::param($shown, $view->filter);
-        [$tab, $text, $sort, $toSend, $month] = [$filter->tab, $filter->text, $filter->sort, $filter->toSend, $filter->month];
+        [$tab, $text, $sort, $toSend] = [$filter->tab, $filter->text, $filter->sort, $filter->toSend];
         $page = $this->list->page($filter);
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, 'month' => $month, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $toSendCount = $this->recurring->inReview();
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $list = $this->lists->of($kind);
-        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab], $list->key, $view, $request->query->all());
+        $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, InvoiceFilter::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
         $modified = $bar['viewBar']['modified'];
@@ -172,7 +172,7 @@ final class InvoiceListController extends AbstractController
             'tab' => $tab,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->hasDocuments)),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl($route, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($page->hasDocuments), pinned: $working->pinned, months: [InvoiceLists::monthField($kind) => $page->hasDocuments ? $this->months->months($kind) : []]),
             'text' => $text,
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
@@ -192,11 +192,8 @@ final class InvoiceListController extends AbstractController
             'toSend' => $toSend,
             'toSendCount' => $toSendCount,
             'toSendHref' => $this->generateUrl($route, $toSend ? array_diff_key($query, ['toSend' => true]) : $query + ['toSend' => '1']),
-            'month' => $month ?? '',
-            // The months with a document of the list, and the one asked for, though it has none.
-            'months' => $this->monthOptions($kind, $month),
             // An empty list adds up to nothing to show, and saves the queries.
-            'filtered' => '' !== $text || $toSend || null !== $month || null !== $filterParam,
+            'filtered' => '' !== $text || $toSend || null !== $filterParam,
         ]);
     }
 
@@ -213,7 +210,7 @@ final class InvoiceListController extends AbstractController
         $kind = DocumentKind::tryFrom($request->request->getString('kind')) ?? throw new NotFoundHttpException();
         [$filter] = $this->filterOf($request->request, $kind);
         $format = 'xlsx' === $request->request->getString('format') ? ListFileFormat::Xlsx : ListFileFormat::Csv;
-        $name = \sprintf('%s_%s.%s', $this->translator->trans('invoice.export.folder.'.$kind->value), $this->monthName($filter->month) ?? $this->translator->trans('invoice.list_export.all_months'), $format->value);
+        $name = \sprintf('%s_%s.%s', $this->translator->trans('invoice.export.folder.'.$kind->value), $this->monthName($filter->view, $kind) ?? $this->translator->trans('invoice.list_export.all_months'), $format->value);
 
         // The request has ended by the time the response streams, and its locale with it.
         $locale = $request->getLocale();
@@ -248,6 +245,13 @@ final class InvoiceListController extends AbstractController
         if ($export instanceof ExportState) {
             $working = $working->with(new Condition(InvoiceLists::EXPORT, 'is', $export->value));
         }
+        // The month chip's ?month= is the date quick filter now, so its links still narrow the list.
+        $month = InvoiceFilter::monthValue(InvoiceFilter::monthOf($input->getString('month')));
+        if (null !== $month) {
+            $field = InvoiceLists::monthField($kind);
+            $working = new ViewFilter(array_values(array_filter($working->conditions, static fn (Condition $condition): bool => $condition->field !== $field)))
+                ->with(new Condition($field, 'is', $month));
+        }
         $sort = $input->getString('sort', ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT));
 
         return [new InvoiceFilter(
@@ -259,7 +263,7 @@ final class InvoiceListController extends AbstractController
             // The invoices recurring templates issued that wait to be sent, as the review notice links to them.
             '1' === $input->getString('toSend'),
             $kind,
-            InvoiceFilter::monthOf($input->getString('month')),
+            null,
             $working,
             $this->countedOf($views),
         ), $views, $view];
@@ -347,44 +351,25 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The month chip (spec D5): the periods relative to today first, then the months
-     * with a document of the list, and the one asked for, though it has none.
-     *
-     * @return array<int|string, string|array<int|string, string>>
+     * The month a download is named by: the month the date quick filter holds, or the month
+     * or period a relative one is today; none while it holds no single month or period.
      */
-    private function monthOptions(DocumentKind $kind, ?string $month): array
+    private function monthName(?ViewFilter $filter, DocumentKind $kind): ?string
     {
-        $options = ['' => $this->translator->trans('invoice.month.all')];
-        foreach (InvoiceFilter::RELATIVE_MONTHS as $period) {
-            $options[$period] = $this->translator->trans('invoice.month.'.$period);
+        $set = $filter?->on(InvoiceLists::monthField($kind)) ?? [];
+        $value = 1 === \count($set) && 'is' === $set[0]->op && \is_array($set[0]->value) ? $set[0]->value : null;
+        if (\is_string($value['month'] ?? null)) {
+            return $value['month'];
         }
-        $absolute = null === $month || \in_array($month, InvoiceFilter::RELATIVE_MONTHS, true) ? [] : [$month];
-        // Grouped by year when there are many; else under one heading, below the periods.
-        $flat = [];
-        foreach (MonthChoices::of([...$this->months->months($kind), ...$absolute], $this->translator->getLocale()) as $key => $choice) {
-            if (\is_array($choice)) {
-                $options[$key] = $choice;
-            } else {
-                $flat[$key] = $choice;
-            }
-        }
-
-        return [] === $flat ? $options : $options + [$this->translator->trans('invoice.month.by_month') => $flat];
-    }
-
-    /**
-     * The month a download is named by: a relative one as the month or period it is today.
-     */
-    private function monthName(?string $month): ?string
-    {
-        if (null === $month || !\in_array($month, InvoiceFilter::RELATIVE_MONTHS, true)) {
-            return $month;
+        $month = $value['relative'] ?? null;
+        if (!\in_array($month, [...InvoiceFilter::RELATIVE_MONTHS, 'last_quarter', 'last_year'], true)) {
+            return null;
         }
         $start = DateRange::of(['relative' => $month], $this->instanceClock->today())->start;
 
         return match ($month) {
-            'this_quarter' => $start->format('Y').'-Q'.intdiv((int) $start->format('n') + 2, 3),
-            'this_year' => $start->format('Y'),
+            'this_quarter', 'last_quarter' => $start->format('Y').'-Q'.intdiv((int) $start->format('n') + 2, 3),
+            'this_year', 'last_year' => $start->format('Y'),
             default => $start->format('Y-m'),
         };
     }
@@ -621,7 +606,7 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

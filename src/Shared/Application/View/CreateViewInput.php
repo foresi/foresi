@@ -34,6 +34,7 @@ final readonly class CreateViewInput
      * @param list<mixed>      $conditions
      * @param list<mixed>      $sort
      * @param list<mixed>|null $columns
+     * @param list<mixed>|null $pinned
      */
     public function __construct(
         #[Field('The list the view belongs to, such as "invoicing.invoices". Find the lists and what they filter with foresi_list_lists.', maxLength: 80)]
@@ -56,6 +57,8 @@ final readonly class CreateViewInput
         public string $placement = 'primary',
         #[Field('What the rows are grouped by, on a list that groups them, such as "person" on the time report; null for the list\'s default.', maxLength: 64)]
         public ?string $groupBy = null,
+        #[Field('The quick filters shown as chips under the tabs, in order: keys of the list\'s fields from foresi_list_lists, at most 4; an empty list pins none, null the list\'s own.', items: 'string')]
+        public ?array $pinned = null,
     ) {
     }
 }

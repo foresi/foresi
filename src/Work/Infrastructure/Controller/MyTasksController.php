@@ -75,15 +75,15 @@ final class MyTasksController extends AbstractController
         $groups = TaskGroup::split($this->queries->myTaskList($shown), $this->clock->today());
         $edits = $this->edits->for(array_merge(...array_map(static fn (TaskGroup $group): array => $group->tasks, $groups)), $request->getRequestUri());
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(MyTaskColumns::LIST, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(MyTaskColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
 
         return $this->render('@Work/my_tasks/index.html.twig', [
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned),
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'empty' => $this->emptyOf($view, $shown),

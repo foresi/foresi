@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The time report on saved views, as every list has them: All, This month (where it opens) and Last month,
-    the person's own views, "+ Filter" (day, project, client, person, billable, invoiced) and the Columns sheet
+    the person's own views, "+ Filter" (day, project, client, person, billable, invoiced) and the Display sheet
     of the entries; what the totals add up by is the view's display. Then the sums, the totals and the
     entries, newest first, as Freelo reports and Productive do. The header downloads the entries as CSV with
     the same view and filter. Only the time the person sees is in it. On a phone the tables keep the work and
@@ -32,17 +32,16 @@
     <div class="grid grid-cols-1 gap-4">
         {{ include('@Work/time/_tabs.html.twig', {active: 'report'}) }}
 
-        {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+        {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
             <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.time.report.views'|trans" class="min-w-0 flex-1">
                 <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
             </twig:Ui:Tabs>
-            {{ include('@Ui/components/_view_actions.html.twig') }}
             {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'report-filters', toolsSearch: false, toolsColumns: {id: 'report-columns', action: path('app_time_report')}}) }}
         </div>
         {# The day, the project, the client, the person, billable and invoiced are conditions of "+ Filter" (saved views D11). #}
         <twig:Ui:FilterBar id="report-filters" :collapsible="true" :action="path('app_time_report')" :keep="{view: view, f: working != '' ? working : null}|merge(workingQuery)"
-            :conditions="chips" :builder="builder" :empty="empty" data-time-report-filter>
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="empty" data-time-report-filter>
         </twig:Ui:FilterBar>
 
         <section class="grid gap-3" aria-labelledby="report-range" data-time-report>

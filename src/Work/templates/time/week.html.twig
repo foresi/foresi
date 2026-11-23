@@ -29,11 +29,11 @@
     <div class="grid grid-cols-1 gap-4">
         <div class="flex items-end gap-3">
             {{ include('@Work/time/_tabs.html.twig', {active: 'week'}) }}
-            {% if people is not empty %}{{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'time-filters'}) }}{% endif %}
+            {% if people is not empty %}{{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'time-filters', toolsColumns: {id: 'time-display', action: path('app_time')}}) }}{% endif %}
         </div>
         {% if people is not empty %}
-            <twig:Ui:FilterBar id="time-filters" :collapsible="true" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}" data-time-person-filter
-                :filters="[{name: 'person', label: 'work.time.person'|trans, options: people, value: person, pinned: true}]" />
+            <twig:Ui:FilterBar id="time-filters" :collapsible="true" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}|merge(pinsQuery)" :pinned="pinned" data-time-person-filter
+                :filters="[{name: 'person', label: 'work.time.person'|trans, options: people, value: person}]" />
         {% endif %}
 
         <section class="grid gap-3" aria-labelledby="time-week-title" data-time-week>

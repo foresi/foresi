@@ -31,6 +31,7 @@ use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\View\QuickPins;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -86,7 +87,9 @@ final class CashFlowController extends AbstractController
         if (!$forecast instanceof Forecast) {
             return $this->render('@CashFlow/index.html.twig', ['noFirm' => true]);
         }
-        $here = ForecastScreen::WEEKS === $view ? ['view' => $view] : [];
+        // The page keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        $pins = QuickPins::read($input->all(), [ForecastScreen::CERTAINTY => $this->translator->trans('cash_flow.filter.certainty')], $list->pinned);
+        $here = (ForecastScreen::WEEKS === $view ? ['view' => $view] : []) + $pins->query;
 
         return $this->render('@CashFlow/index.html.twig', [
             'noFirm' => false,
@@ -98,7 +101,12 @@ final class CashFlowController extends AbstractController
             'noFlows' => !$this->screen->hasFlows($forecast),
             'filterKeep' => $here,
             'resetHref' => $this->generateUrl(self::ROUTE, $here),
-            ...$this->filterSheet->of($list, $filter, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, $here + ([] === $next->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($next)]))),
+            ...$this->filterSheet->of($list, $filter, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, $here + ([] === $next->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($next)])), pinned: $pins->pinned),
+            'picker' => [
+                'keep' => array_diff_key($here, $pins->query) + $keep,
+                'resetHref' => $this->generateUrl(self::ROUTE, array_diff_key($here, $pins->query) + $keep),
+                'modified' => $pins->modified,
+            ],
             'kpis' => $this->screen->kpis($forecast),
             'alert' => $this->screen->alert($forecast),
             'table' => $this->screen->table($forecast, $keep),

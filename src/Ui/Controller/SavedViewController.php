@@ -57,7 +57,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $view = $this->views->get($input->getString('ref'));
-            [$columns, $density, $groupBy] = $this->display($input);
+            [$columns, $density, $groupBy, $pinned] = $this->display($input);
             // The display goes with it only when it was changed, so a view keeps its own otherwise.
             $changed = $input->getBoolean('displayChanged');
             $this->views->update(new UpdateViewInput(
@@ -67,6 +67,7 @@ final class SavedViewController extends AbstractController
                 columns: $changed ? $columns : new Omitted(),
                 density: $changed ? $density : new Omitted(),
                 groupBy: $changed ? $groupBy : new Omitted(),
+                pinned: $changed ? $pinned : new Omitted(),
             ));
             $this->forget($view);
 
@@ -81,7 +82,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $list = $input->getString('list');
-            [$columns, $density, $groupBy] = $this->display($input);
+            [$columns, $density, $groupBy, $pinned] = $this->display($input);
             $view = $this->views->create(new CreateViewInput(
                 $list,
                 $input->getString('name'),
@@ -93,6 +94,7 @@ final class SavedViewController extends AbstractController
                 $input->getBoolean('showCount'),
                 $this->placement($list, Placement::Primary->value),
                 $groupBy,
+                $pinned,
             ));
             // The changes now live in the new view; the one they were made on is as saved.
             $from = '' === $input->getString('ref') ? null : $this->views->get($input->getString('ref'));
@@ -253,23 +255,25 @@ final class SavedViewController extends AbstractController
     }
 
     /**
-     * The display payload the list shows, as columns, density and what it groups by.
+     * The display payload the list shows, as columns, density, what it groups by and the quick
+     * filters it pins.
      *
      * @param InputBag<string> $input
      *
-     * @return array{list<mixed>|null, string|null, string|null}
+     * @return array{list<mixed>|null, string|null, string|null, list<mixed>|null}
      */
     private function display(InputBag $input): array
     {
         $display = json_decode($input->getString('display'), true);
         if (!\is_array($display)) {
-            return [null, null, null];
+            return [null, null, null, null];
         }
         $columns = $display['columns'] ?? null;
         $density = $display['density'] ?? null;
         $groupBy = $display['group_by'] ?? null;
+        $pinned = $display['pinned'] ?? null;
 
-        return [\is_array($columns) ? array_values($columns) : null, \is_string($density) ? $density : null, \is_string($groupBy) ? $groupBy : null];
+        return [\is_array($columns) ? array_values($columns) : null, \is_string($density) ? $density : null, \is_string($groupBy) ? $groupBy : null, \is_array($pinned) ? array_values($pinned) : null];
     }
 
     /**

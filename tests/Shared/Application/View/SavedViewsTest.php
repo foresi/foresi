@@ -50,10 +50,10 @@ final class SavedViewsTest extends TestCase
         $lists = new ListDefinitions([new class implements ListDefinitionSource {
             public function lists(): iterable
             {
-                yield new ListDefinition('test.items', [new Field('paid', FieldType::Boolean, 'Paid'), new Field('due_date', FieldType::Date, 'Due date')], [
+                yield new ListDefinition('test.items', [new Field('paid', FieldType::Boolean, 'Paid'), new Field('due_date', FieldType::Date, 'Due date', aliases: ['due'])], [
                     new DefaultView('all', 'All'),
                     new DefaultView('paid', 'Paid', ViewFilter::all(new Condition('paid', 'is', true)), position: 1),
-                ]);
+                ], ['due_date']);
             }
         }]);
         $this->views = new SavedViews($this->store, $lists, $this->actor, new MockClock('2026-11-18 10:00:00'));
@@ -331,6 +331,59 @@ final class SavedViewsTest extends TestCase
         self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'group_by' => 'status'], $view->display());
         $this->views->update(new UpdateViewInput($view->id(), groupBy: null));
         self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display());
+    }
+
+    public function testAViewKeepsItsQuickFiltersWithItsDisplayUnderTheirKeys(): void
+    {
+        $view = $this->views->create(new CreateViewInput('test.items', 'Pinned', columns: ['number'], pinned: ['due', 'paid']));
+        self::assertSame(['columns' => [['key' => 'number']], 'pinned' => ['due_date', 'paid']], $view->display(), 'An alias is stored as the key it names.');
+
+        $this->views->update(new UpdateViewInput($view->id(), density: 'dense'));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'pinned' => ['due_date', 'paid']], $view->display(), 'Changing the density keeps them.');
+
+        $this->views->update(new UpdateViewInput($view->id(), pinned: []));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'pinned' => []], $view->display(), 'None pins none.');
+
+        $this->views->update(new UpdateViewInput($view->id(), pinned: null));
+        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display(), 'Null goes back to the list\'s own.');
+    }
+
+    public function testAQuickFilterOnAFieldTheListLacksIsRefused(): void
+    {
+        $this->assertRefusedBy('pinned_unknown', 'pinned[1]', fn (): SavedView => $this->views->create(new CreateViewInput('test.items', 'Bad', pinned: ['paid', 'customer'])));
+        $this->assertRefusedBy('filter_invalid', 'pinned', fn (): SavedView => $this->views->create(new CreateViewInput('test.items', 'Many', pinned: ['paid', 'paid', 'paid', 'paid', 'paid'])));
+    }
+
+    public function testTheStoredQuickFiltersAreReadInTheirOrderWhenTheRestOfTheDisplayChanges(): void
+    {
+        $view = $this->views->create(new CreateViewInput('test.items', 'Stored', columns: ['number']));
+        $view->redisplay(['pinned' => [3 => 'paid', 5 => 'Not a key']], self::MEMBER, new \DateTimeImmutable('2026-11-18 10:00:00'));
+
+        $this->assertRefusedBy('filter_invalid', 'pinned[1]', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), density: 'dense')));
+    }
+
+    public function testARefusedQuickFilterIsNamedInTheMessage(): void
+    {
+        try {
+            $this->views->create(new CreateViewInput('test.items', 'Bad', pinned: ['paid', 'customer']));
+            self::fail('It was allowed.');
+        } catch (SavedViewRefused $refused) {
+            self::assertSame('The list "test.items" has no field "customer" to pin; find its fields with foresi_list_lists.', $refused->getMessage());
+        }
+        try {
+            $this->views->create(new CreateViewInput('test.items', 'Bad', pinned: [7]));
+            self::fail('It was allowed.');
+        } catch (SavedViewRefused $refused) {
+            self::assertSame('The list "test.items" has no field of that kind to pin; find its fields with foresi_list_lists.', $refused->getMessage());
+        }
+    }
+
+    public function testAShippedViewKeepsNoQuickFiltersAndShowsItsListsOwn(): void
+    {
+        $paid = $this->views->get('test.items.paid');
+
+        self::assertNull($paid->display(), 'A shipped view stores no display: it shows its list\'s default quick filters.');
+        self::assertSame(['due_date'], $this->views->list('test.items')->pinnedOf(null));
     }
 
     public function testUpdatingOnlyTheColumnsKeepsTheDensityAndTheOtherWayRound(): void

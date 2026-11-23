@@ -59,13 +59,15 @@ test.describe.serial('the accountant pack', () => {
   test('the month filter narrows the list', async ({ page }) => {
     await page.goto('/invoices');
     await expect(page.locator('tbody tr')).toHaveCount(3);
-    // The month is a pinned chip: a menu of links, applied at once.
-    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
-    await page.locator('[data-filter-toggle]').click();
-    await page.locator('[data-filter-chip="month"]').getByRole('button', { name: 'Měsíc' }).click();
-    await page.locator(`[data-filter-chip="month"] a[href*="month=${lastMonth}"]`).click();
+    // The month is the date quick filter the view pins, a chip under the tabs: a menu of the periods
+    // and the months with documents, applied at once as a condition of the working filter. An invoice
+    // is a tax document, so its month is the one of its tax point (DUZP).
+    const chip = page.locator('[data-quick-filter="tax_point_date"]');
+    await chip.getByRole('button', { name: 'DUZP' }).click();
+    await chip.getByRole('menuitemradio', { name: 'minulý měsíc', exact: true }).click();
 
-    await expect(page).toHaveURL(new RegExp(`month=${lastMonth}`));
+    await expect(page).toHaveURL(/[?&]f=/);
+    await expect(page.locator('[data-quick-filter="tax_point_date"][data-set]')).toBeVisible();
     await expect(page.locator('tbody tr')).toHaveCount(2);
     // The list carries no sums under it.
     await expect(page.locator('[data-list-sums]')).toHaveCount(0);
@@ -115,9 +117,8 @@ test.describe.serial('the accountant pack', () => {
     }
     await expect(page.locator('tbody [data-icon-cell="archive"]')).toHaveCount(2);
     // The export state is a field of "+ Add filter" in the filter sheet, sent with Apply as a condition in f=.
-    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    // The filter icon at the end of the tabs opens the filter sheet at once (Shopify Polaris IndexFilters).
     await page.locator('[data-filter-toggle]').click();
-    await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Export pro účetní' }).click();
     await page.locator('[data-filter-sheet-form] [data-filter-row="export"]').getByLabel('Exportováno', { exact: true }).check();
