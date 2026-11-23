@@ -42,7 +42,7 @@ final class DocumentTrashTest extends DocumentsTestCase
         self::assertSame(DocumentStatus::Cancelled, $trashed->status());
         self::assertNotNull($trashed->pdfAttachmentId());
         self::assertNotNull($trashed->templateVersionId());
-        self::assertTrue($this->store()->version((string) $trashed->templateVersionId())?->isFrozen());
+        self::assertTrue($this->store()->version($trashed->templateVersionId())?->isFrozen());
         self::assertCount(1, $this->store()->links($trashed));
         self::assertSame([], $this->ids(new DocumentFilter()));
         self::assertSame([], $this->ids(new DocumentFilter(linkKind: 'contact', linkId: $this->contactId)), 'It leaves the documents of its records, such as a deal.');
@@ -123,10 +123,7 @@ final class DocumentTrashTest extends DocumentsTestCase
 
     private function reads(): DocumentReads
     {
-        $reads = self::getContainer()->get(DocumentReads::class);
-        self::assertInstanceOf(DocumentReads::class, $reads);
-
-        return $reads;
+        return self::getContainer()->get(DocumentReads::class);
     }
 
     private function reason(callable $call): string
