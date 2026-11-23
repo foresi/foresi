@@ -572,12 +572,12 @@ Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dea
 | `PATCH /api/v1/sales/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `contact_person_ids` (the whole list; an empty list removes them all). |
 | `POST /api/v1/sales/deals/{dealId}/stage` | An open deal moved to `stage_id`. A won or lost deal is refused with `deal_not_open`. |
 | `POST /api/v1/sales/deals/{dealId}/win` | The open deal won. |
-| `POST /api/v1/sales/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `lost_note`. |
+| `POST /api/v1/sales/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `note`. |
 | `POST /api/v1/sales/deals/{dealId}/reopen` | The won or lost deal open again. |
 | `POST /api/v1/sales/deals/{dealId}/trash` | The deal in the trash. Trashing it again changes nothing. |
 | `POST /api/v1/sales/deals/{dealId}/restore` | The deal back from the trash. |
 | `POST /api/v1/sales/deals/{dealId}/follow-ups` | `201` with a new deal for the same client and contact persons that follows from this one: `title`, optionally `line_ids` to copy as they are, `stage_id` and `owner_user_id`. |
-| `POST /api/v1/sales/deals/{dealId}/links` | `201` with a link: `deal_id` of the deal it follows from and `type` (`follows_from`). |
+| `POST /api/v1/sales/deals/{dealId}/links` | `201` with a link: `to_deal_id`, the deal it follows from, and `type` (`follows_from`). |
 | `DELETE /api/v1/sales/deals/{dealId}/links/{linkId}` | The link removed; both deals stay. |
 | `POST /api/v1/sales/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). |
 | `PATCH /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` clears its period. The product it was copied from does not change. |
@@ -586,7 +586,7 @@ Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dea
 | `POST /api/v1/sales/stages` | `201` with a stage at the end of the order: `name` and an optional `key`, a lowercase identifier that never changes. |
 | `PATCH /api/v1/sales/stages/{stageId}` | The stage renamed; a stage Foresi seeded may be given `null` to show under its own name again. |
 | `POST /api/v1/sales/stages/reorder` | The stages in the order given: `stage_ids`, naming every stage that is not archived once. |
-| `POST /api/v1/sales/stages/{stageId}/archive` | The archived stage, or `409 stage_has_open_deals` while open deals sit in it. |
+| `POST /api/v1/sales/stages/{stageId}/archive` | The archived stage, or `stage_has_open_deals` while open deals sit in it. |
 | `POST /api/v1/sales/lost-reasons` | `201` with a lost reason at the end of the list: `name` and an optional `key`. |
 | `PATCH /api/v1/sales/lost-reasons/{reasonId}` | The lost reason renamed, as a stage. |
 | `POST /api/v1/sales/lost-reasons/{reasonId}/archive` | The archived lost reason; the deals lost for it keep it. |
@@ -597,7 +597,7 @@ curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: appl
   "https://app.example.com/api/v1/sales/deals"
 ```
 
-A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`; a refused state change is a `409` with a code such as `deal_not_open`, `deal_not_closed`, `link_self`, `link_other_client`, `link_duplicate`, `client_archived`, `contact_person_not_of_client` or `stage_has_open_deals`.
+A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`; a refused state change is answered with a code such as `deal_not_open`, `deal_not_closed`, `link_self`, `link_other_client`, `link_duplicate`, `client_archived`, `contact_person_not_of_client` or `stage_has_open_deals`.
 
 ## Taxes and contributions
 
