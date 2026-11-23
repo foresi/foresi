@@ -23,6 +23,9 @@ use Foresi\Sales\Domain\Stage;
  */
 final readonly class DealReads
 {
+    /** The longest text a search looks for; a longer one is cut. */
+    public const int MAX_TEXT = 100;
+
     public function __construct(
         private SalesAccess $access,
         private SalesStore $store,
@@ -34,17 +37,19 @@ final readonly class DealReads
      * The deals not in the trash, the newest first, narrowed by each filter given.
      *
      * @param string|null $status open, won or lost
+     * @param string|null $text   held by the title, without regard to case; empty for any
      *
      * @return list<Deal>
      *
      * @throws SalesRefused forbidden, invalid status_unknown
      */
-    public function deals(?string $status = null, ?string $stageId = null, ?string $ownerUserId = null, ?string $clientPartyId = null): array
+    public function deals(?string $status = null, ?string $stageId = null, ?string $ownerUserId = null, ?string $clientPartyId = null, ?string $text = null): array
     {
         $this->access->denyUnlessStaff();
+        $text = mb_substr(trim($text ?? ''), 0, self::MAX_TEXT);
         $parsed = null === $status ? null : (DealStatus::tryFrom($status) ?? throw SalesRefused::invalid('status_unknown', 'status', 'The status is open, won or lost.'));
 
-        return $this->store->deals(new DealFilter($parsed, $stageId, $ownerUserId, $clientPartyId));
+        return $this->store->deals(new DealFilter($parsed, $stageId, $ownerUserId, $clientPartyId, '' === $text ? null : $text));
     }
 
     /**

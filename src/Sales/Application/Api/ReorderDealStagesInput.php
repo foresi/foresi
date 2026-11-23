@@ -31,7 +31,7 @@ final readonly class ReorderDealStagesInput
      * @param list<mixed> $stageIds
      */
     public function __construct(
-        #[Field('The ids of all the stages not archived, in their new order.')]
+        #[Field('The ids of all the stages not archived, in their new order.', items: 'string')]
         public array $stageIds,
     ) {
     }

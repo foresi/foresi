@@ -51,6 +51,10 @@ final readonly class DoctrineSalesStore implements SalesStore
                 $query->andWhere(\sprintf('d.%s = :%s', $field, $field))->setParameter($field, $value);
             }
         }
+        if (null !== $filter->text) {
+            $query->andWhere("LOWER(d.title) LIKE :text ESCAPE '!'")
+                ->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($filter->text)).'%');
+        }
         /** @var list<Deal> $deals */
         $deals = $query->getQuery()->getResult();
 

@@ -43,7 +43,7 @@ final readonly class CreateDealInput
         public ?string $ownerUserId = null,
         #[Field('Notes on the deal, in Markdown.', maxLength: Deal::MAX_DESCRIPTION)]
         public string $description = '',
-        #[Field('The ids of the client\'s contact persons the deal is talked through with, in order.')]
+        #[Field('The ids of the client\'s contact persons the deal is talked through with, in order.', items: 'string')]
         public array $contactPersonIds = [],
     ) {
     }

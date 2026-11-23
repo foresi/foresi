@@ -38,7 +38,7 @@ final readonly class CreateFollowUpDealInput
         public string $dealId,
         #[Field('What the new deal sells.', maxLength: Deal::MAX_TITLE)]
         public string $title,
-        #[Field('The ids of the lines of this deal to copy onto the new one.')]
+        #[Field('The ids of the lines of this deal to copy onto the new one.', items: 'string')]
         public array $lineIds = [],
         #[Field('The stage the new deal starts at; the first stage when left out.', format: 'uuid')]
         public ?string $stageId = null,

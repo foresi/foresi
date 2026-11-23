@@ -42,7 +42,7 @@ final readonly class UpdateDealInput
         public string|Omitted $description = new Omitted(),
         #[Field('The owner or member who works on it.', format: 'uuid')]
         public string|Omitted $ownerUserId = new Omitted(),
-        #[Field('The ids of the client\'s contact persons, in order; they replace the ones before.')]
+        #[Field('The ids of the client\'s contact persons, in order; they replace the ones before.', items: 'string')]
         public array|Omitted $contactPersonIds = new Omitted(),
     ) {
     }

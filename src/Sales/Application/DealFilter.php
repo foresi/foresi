@@ -12,7 +12,8 @@ use Foresi\Sales\Domain\DealStatus;
 
 /**
  * Which deals a list holds: those not in the trash, narrowed by each
- * criterion given; null leaves it open.
+ * criterion given; null leaves it open. The text is looked for in the title,
+ * without regard to case.
  */
 final readonly class DealFilter
 {
@@ -21,6 +22,7 @@ final readonly class DealFilter
         public ?string $stageId = null,
         public ?string $ownerUserId = null,
         public ?string $clientPartyId = null,
+        public ?string $text = null,
     ) {
     }
 }

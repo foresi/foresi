@@ -33,7 +33,7 @@ final readonly class ReorderDealLinesInput
     public function __construct(
         #[Field('The id of the deal.', format: 'uuid')]
         public string $dealId,
-        #[Field('The ids of all the lines of the deal, in their new order.')]
+        #[Field('The ids of all the lines of the deal, in their new order.', items: 'string')]
         public array $lineIds,
     ) {
     }
