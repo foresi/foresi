@@ -139,7 +139,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
         $crawler = $this->client->request('GET', '/sales/deals/'.$repair->id().'/edit', server: [self::DIALOG => '1']);
         self::assertSelectorTextContains('[data-deal-client]', 'Alpha Example s.r.o.');
-        self::assertSelectorTextContains('[data-deal-client-linked]', 'once the links to other deals are removed');
+        self::assertSelectorTextContains('[data-deal-client-linked]', 'Remove the links to other deals to change the client');
         self::assertCount(0, $crawler->filter('#deal-form input[name="clientId"]'));
 
         // A client sent anyway is ignored, and the rest is saved.
