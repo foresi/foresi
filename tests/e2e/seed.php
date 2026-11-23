@@ -94,6 +94,8 @@ const WORLDS = [
     'documents' => ['Example Documents', 'documents@example.com', 'Documents Example'],
     // A client and a calendar feed with a known address, for the activities spec.
     'activities' => ['Example Activities', 'activities@example.com', 'Activities Example'],
+    // An NDA template that reads a deal, and a client, for the sales spec.
+    'sales' => ['Example Sales', 'sales@example.com', 'Sales Example'],
 ];
 
 if (\in_array('--worlds', $argv, true)) {
