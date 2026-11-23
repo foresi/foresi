@@ -26,15 +26,17 @@ final class Version20261124090000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('DROP INDEX uniq_received_document_line_position');
-        $this->addSql('DROP INDEX idx_received_document_line_document');
-        $this->addSql('CREATE INDEX idx_received_document_line_document ON received_document_line (document_id, position)');
+        $table = $schema->getTable('received_document_line');
+        $table->dropIndex('uniq_received_document_line_position');
+        $table->dropIndex('idx_received_document_line_document');
+        $table->addIndex(['document_id', 'position'], 'idx_received_document_line_document');
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('DROP INDEX idx_received_document_line_document');
-        $this->addSql('CREATE INDEX idx_received_document_line_document ON received_document_line (document_id)');
-        $this->addSql('CREATE UNIQUE INDEX uniq_received_document_line_position ON received_document_line (document_id, position)');
+        $table = $schema->getTable('received_document_line');
+        $table->dropIndex('idx_received_document_line_document');
+        $table->addIndex(['document_id'], 'idx_received_document_line_document');
+        $table->addUniqueIndex(['document_id', 'position'], 'uniq_received_document_line_position');
     }
 }
