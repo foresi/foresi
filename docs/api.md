@@ -664,7 +664,7 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v
 
 ## Margin
 
-Who bears the cost of a received document: the firm itself (`own`) or one of its clients, a contact. The reads need `margin:read`, the writes `margin:write`; only the owners and the members of the organisation work with the margin, so a guest is refused. A recipient is the string `own` or the id of an existing, active contact.
+Who bears the cost of a received document (what it means is in [margin.md](margin.md)): the firm itself (`own`) or one of its clients, a contact. The reads need `margin:read`, the writes `margin:write`; only the owners and the members of the organisation work with the margin, so a guest is refused. A recipient is the string `own` or the id of an existing, active contact.
 
 | Method and path | Answer |
 | --- | --- |
