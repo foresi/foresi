@@ -672,10 +672,10 @@ nelmio_api_doc:
                         name: { type: string }
                         category: { type: string, enum: [revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other] }
                         amount: { $ref: '#/components/schemas/Money' }
-                        vat_mode: { type: string, enum: [none, included, excluded], description: 'How the amount stands to its VAT: none stated, included in the amount, or excluded and added on top. The VAT counts only on the days the firm is a VAT payer.' }
+                        vat_mode: { type: string, enum: [none, included, excluded, reverse_charge], description: 'How the amount stands to its VAT: none stated, included in the amount, excluded and added on top, or reverse_charge for money out whose VAT the firm self-assesses as the recipient (a domestic reverse charge, a service from the EU or from outside it): the amount moves as stated and the VAT counts as both output and input. The VAT counts only on the days the firm is a VAT payer.' }
                         vat_rate: { type: string, nullable: true, example: '21', description: 'The VAT rate in percent; null with vat_mode none.' }
                         net: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The net of one occurrence as stated; null with vat_mode none.' }
-                        vat: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The VAT of one occurrence as stated; null with vat_mode none.' }
+                        vat: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The VAT of one occurrence as stated, self-assessed with reverse_charge; null with vat_mode none.' }
                         vat_missing: { type: boolean, description: 'True while the firm is a VAT payer and the item states no VAT, but for the categories without VAT (vat, taxes, insurance, loans, owner_draws).' }
                         counterparty: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
                         'on': { type: string, format: date, description: 'The day of a one-off item, the first day of a recurring one.' }

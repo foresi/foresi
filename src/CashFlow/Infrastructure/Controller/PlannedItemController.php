@@ -416,7 +416,7 @@ final class PlannedItemController extends AbstractController
             // A match rule with a value, or one refused, shows unfolded.
             'matchOpen' => '' !== $values['matchAccount'].$values['matchVariableSymbol'].$values['matchTolerance']
                 || [] !== array_intersect_key($errors, ['matchAccount' => true, 'matchVariableSymbol' => true, 'matchTolerance' => true]),
-        ] + $this->screen->options(), new Response(status: $status));
+        ] + $this->screen->options($direction), new Response(status: $status));
     }
 
     private function denyIfForbidden(CashFlowRefused $refused): void

@@ -25,7 +25,8 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
  * skipped ones. A planned occurrence that has passed is not overdue; it was a
  * plan, and what really happened is in the balance. On a day the firm is a
  * VAT payer, an item with its VAT stated moves with its VAT and says how much
- * of it is VAT; on any other day it moves as stated.
+ * of it is VAT; a reverse charge moves as stated and says the VAT the firm
+ * self-assesses. On any other day it moves as stated.
  */
 final readonly class PlannedItemFlows implements CashFlowSource
 {
@@ -67,7 +68,8 @@ final readonly class PlannedItemFlows implements CashFlowSource
                         FlowCertainty::Plan,
                         $item->name(),
                         counterpartyId: $item->counterparty()?->id(),
-                        vat: $vat?->vat,
+                        vat: $vat?->held(),
+                        selfAssessedVat: true === $vat?->selfAssessed ? $vat->vat : null,
                     );
                 }
             }

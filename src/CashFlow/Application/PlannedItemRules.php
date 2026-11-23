@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\MatchRule;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -64,8 +65,21 @@ final readonly class PlannedItemRules
     }
 
     /**
+     * Refuses a VAT mode the direction may not take: a reverse charge is the
+     * recipient's, so money planned in never states one.
+     *
+     * @throws CashFlowRefused
+     */
+    public static function checkVatDirection(PlannedItemTerms $terms, FlowDirection $direction): void
+    {
+        if (!\in_array($terms->vatMode, PlannedVatMode::for($direction), true)) {
+            throw CashFlowRefused::invalid('vat_mode_reverse_charge_in', 'vatMode', 'A reverse charge is for money out, whose VAT the firm self-assesses as the recipient.');
+        }
+    }
+
+    /**
      * The VAT mode and the rate with two decimals: none takes no rate, and
-     * included or excluded a rate from 0 to 100 percent.
+     * included, excluded or reverse_charge a rate from 0 to 100 percent.
      *
      * @return array{PlannedVatMode, ?string}
      *
@@ -77,13 +91,13 @@ final readonly class PlannedItemRules
         $rate = $this->blankToNull($draft->vatRate);
         if (PlannedVatMode::None === $mode) {
             if (null !== $rate) {
-                throw CashFlowRefused::invalid('vat_rate_without_mode', 'vatRate', 'A VAT rate needs vat_mode included or excluded.');
+                throw CashFlowRefused::invalid('vat_rate_without_mode', 'vatRate', 'A VAT rate needs vat_mode included, excluded or reverse_charge.');
             }
 
             return [$mode, null];
         }
         if (null === $rate) {
-            throw CashFlowRefused::invalid('vat_rate_required', 'vatRate', 'A planned item with VAT included or excluded states its rate, such as "21".');
+            throw CashFlowRefused::invalid('vat_rate_required', 'vatRate', 'A planned item with VAT included, excluded or reverse_charge states its rate, such as "21".');
         }
         // 0 to 100 with at most two decimals, written with leading zeros or without.
         if (1 !== preg_match('/^0*(?:100(?:\.0{1,2})?|[0-9]{1,2}(?:\.[0-9]{1,2})?)\z/', $rate)) {

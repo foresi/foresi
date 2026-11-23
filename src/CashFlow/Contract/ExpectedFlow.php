@@ -17,11 +17,12 @@ use Foresi\Shared\Domain\Money;
 final readonly class ExpectedFlow
 {
     /**
-     * @param string         $source         the key of the source that gave it
-     * @param string         $label          what a person reads, such as a document number or a planned item's name
+     * @param string         $source          the key of the source that gave it
+     * @param string         $label           what a person reads, such as a document number or a planned item's name
      * @param list<FlowFlag> $flags
-     * @param string|null    $counterpartyId the contact the money comes from or goes to
-     * @param Money|null     $vat            the VAT the amount holds, in its currency; null when none is stated
+     * @param string|null    $counterpartyId  the contact the money comes from or goes to
+     * @param Money|null     $vat             the VAT the amount holds, in its currency; null when none is stated
+     * @param Money|null     $selfAssessedVat the VAT the firm as the recipient self-assesses on top of the amount (reverse charge), in its currency; null when none
      */
     public function __construct(
         public string $source,
@@ -35,12 +36,16 @@ final readonly class ExpectedFlow
         public array $flags = [],
         public ?string $counterpartyId = null,
         public ?Money $vat = null,
+        public ?Money $selfAssessedVat = null,
     ) {
         if ($amount->isNegative()) {
             throw new \InvalidArgumentException('An expected flow has a positive amount; its direction says which way it goes.');
         }
         if ($vat instanceof Money && ($vat->isNegative() || $vat->currency() !== $amount->currency())) {
             throw new \InvalidArgumentException('The VAT of an expected flow is zero or more, in the currency of its amount.');
+        }
+        if ($selfAssessedVat instanceof Money && ($selfAssessedVat->isNegative() || $selfAssessedVat->currency() !== $amount->currency())) {
+            throw new \InvalidArgumentException('The self-assessed VAT of an expected flow is zero or more, in the currency of its amount.');
         }
     }
 
@@ -56,6 +61,6 @@ final readonly class ExpectedFlow
     {
         $flags = $this->hasFlag($flag) ? $this->flags : [...$this->flags, $flag];
 
-        return new self($this->source, $this->subject, $this->direction, $this->amount, $on, $this->category, $this->certainty, $this->label, $flags, $this->counterpartyId, $this->vat);
+        return new self($this->source, $this->subject, $this->direction, $this->amount, $on, $this->category, $this->certainty, $this->label, $flags, $this->counterpartyId, $this->vat, $this->selfAssessedVat);
     }
 }

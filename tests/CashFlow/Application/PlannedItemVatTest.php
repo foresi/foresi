@@ -37,8 +37,8 @@ use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
 
 /**
- * The VAT of a planned item: its amount includes the VAT or the VAT comes on
- * top, and it counts only on the days the firm is a VAT payer. Today is
+ * The VAT of a planned item: its amount includes the VAT, the VAT comes on
+ * top, or the firm self-assesses it as a reverse charge, and it counts only on the days the firm is a VAT payer. Today is
  * 17 November 2026 in Prague.
  */
 final class PlannedItemVatTest extends CashFlowTestCase
@@ -140,9 +140,57 @@ final class PlannedItemVatTest extends CashFlowTestCase
         self::assertSame(['2026-11-20', '2027-01-20'], array_map(static fn (ReadFlow $flow): string => $flow->on->format('Y-m-d'), $flows), 'The 12,100 paid in December fulfils its occurrence; the 10,000 of November is not what the occurrence moves.');
     }
 
+    public function testAReverseChargeMovesTheAmountAndSelfAssessesTheVat(): void
+    {
+        $this->payerFrom('2026-01-01');
+        $item = $this->writes()->create(new CreatePlannedItemInput('out', 'Cloud hosting', 'software', '32.00', '2026-11-20', 'EUR', vatMode: 'reverse_charge', vatRate: '21'));
+
+        $flow = $this->flows()[0];
+
+        self::assertSame([3_200, 3_200, 672], $this->money($item->vat()), 'The amount is the net, and 21 % of it is self-assessed.');
+        self::assertTrue($item->vat()?->selfAssessed);
+        self::assertSame(
+            [3_200, 0, 0, 672, 78_400, 16_464],
+            [$flow->amount->minor(), $flow->vat?->minor(), $flow->vatCzk()?->minor(), $flow->selfAssessedVat?->minor(), $flow->amountCzk->minor(), $flow->selfAssessedVatCzk()?->minor()],
+            '32 EUR moves as stated, holding no VAT; the 6.72 EUR self-assessed is 164.64 CZK at 24.500.',
+        );
+    }
+
+    public function testAReverseChargeBeforeThePayerDayMovesTheAmountWithNoVat(): void
+    {
+        $this->payerFrom('2026-11-21', notBefore: true);
+        $this->writes()->create(new CreatePlannedItemInput('out', 'Cloud hosting', 'software', '1000.00', '2026-11-20', repeat: 'day', vatMode: 'reverse_charge', vatRate: '21'));
+
+        $flows = $this->flows('2026-11-21');
+
+        self::assertSame([[100_000, null, null], [100_000, 0, 21_000]], array_map(static fn (ReadFlow $flow): array => [$flow->amount->minor(), $flow->vat?->minor(), $flow->selfAssessedVat?->minor()], $flows));
+    }
+
+    public function testAReverseChargeIsForMoneyOutOnly(): void
+    {
+        try {
+            $this->writes()->create(new CreatePlannedItemInput('in', 'Consulting', 'revenue', '1000.00', '2026-11-20', vatMode: 'reverse_charge', vatRate: '21'));
+            self::fail('Money in refuses a reverse charge.');
+        } catch (CashFlowRefused $refused) {
+            self::assertSame(['vat_mode_reverse_charge_in', 'vatMode'], [$refused->reason(), $refused->field()]);
+        }
+        $income = $this->writes()->create(new CreatePlannedItemInput('in', 'Consulting', 'revenue', '1000.00', '2026-11-20', vatMode: 'included', vatRate: '21'));
+        try {
+            $this->writes()->change(new ChangePlannedItemInput($income->id(), vatMode: 'reverse_charge'));
+            self::fail('A change of money in to a reverse charge is refused.');
+        } catch (CashFlowRefused $refused) {
+            self::assertSame('vat_mode_reverse_charge_in', $refused->reason());
+        }
+        $cost = $this->item('none', null);
+        $this->writes()->change(new ChangePlannedItemInput($cost->id(), vatMode: 'reverse_charge', vatRate: '21'));
+        self::assertSame([PlannedVatMode::ReverseCharge, '21'], [$cost->vatMode(), $cost->vatRate()]);
+    }
+
     public function testTheRulesOfTheModeAndTheRate(): void
     {
         foreach ([
+            ['reverse_charge', null, 'vat_rate_required', 'vatRate'],
+            ['reverse_charge', '101', 'vat_rate_invalid', 'vatRate'],
             ['none', '21', 'vat_rate_without_mode', 'vatRate'],
             ['included', null, 'vat_rate_required', 'vatRate'],
             ['excluded', ' ', 'vat_rate_required', 'vatRate'],
@@ -160,7 +208,7 @@ final class PlannedItemVatTest extends CashFlowTestCase
             $this->item('gross', '21');
             self::fail('An unknown mode is refused.');
         } catch (CashFlowRefused $refused) {
-            self::assertSame('vat_mode is one of none, included, excluded.', $refused->getMessage());
+            self::assertSame('vat_mode is one of none, included, excluded, reverse_charge.', $refused->getMessage());
         }
         self::assertSame(['100', '100', '21', '12.5', '0', '7.05'], array_map(fn (string $rate): ?string => $this->item('included', $rate)->vatRate(), ['100.00', '100', '21', '12.5', '0', '007.05']));
         self::assertSame([null, '21'], [$this->item('none', ' ')->vatRate(), $this->item('included', ' 21 ')->vatRate()], 'A blank rate is none, and a rate is trimmed.');
@@ -195,6 +243,7 @@ final class PlannedItemVatTest extends CashFlowTestCase
         $rule = self::getContainer()->get(PlannedItemVatRule::class);
         $rent = $this->planned();
         $stated = $this->item('excluded', '21');
+        $reverse = $this->item('reverse_charge', '21');
         $tax = $this->planned(category: 'taxes', name: 'Income tax advance');
 
         $this->em->persist(new VatStatusPeriod(VatStatus::NotRegistered, null, null));
@@ -207,6 +256,7 @@ final class PlannedItemVatTest extends CashFlowTestCase
             $missing[] = [$rule->isMissing($rent), $rule->isMissing($stated), $rule->isMissing($tax)];
         }
 
+        self::assertFalse($rule->isMissing($reverse), 'A reverse charge states its VAT.');
         self::assertSame([[false, false, false], [false, false, false], [true, false, false]], $missing, 'Not a payer: nothing is missing. At 23:30 in Prague on 17 November not a payer yet; at 00:30 on 18 November a payer, and the rent states no VAT; taxes carry none.');
     }
 
