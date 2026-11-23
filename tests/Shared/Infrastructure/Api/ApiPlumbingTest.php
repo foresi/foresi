@@ -128,6 +128,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/cash-flow/checkpoints' => ['post' => '201'],
                 '/api/v1/cash-flow/expected-dates/{subjectType}/{subjectId}' => ['delete' => '200'],
                 '/api/v1/cash-flow/expected-dates' => ['post' => '200'],
+                '/api/v1/cash-flow/pairings' => ['get' => '200', 'post' => '200'],
+                '/api/v1/cash-flow/pairings/{subjectType}/{subjectId}' => ['delete' => '200'],
                 '/api/v1/cash-flow/minimum-balance' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],

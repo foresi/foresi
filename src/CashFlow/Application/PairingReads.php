@@ -13,6 +13,7 @@ use Foresi\CashFlow\Contract\PairedOccurrence;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Contract\PlannedPairings;
 use Foresi\CashFlow\Domain\DocumentPairing;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The pairings of documents with planned occurrences: what other modules read
@@ -55,6 +56,24 @@ final readonly class PairingReads implements PlannedPairings
         $this->access->denyUnlessStaff();
 
         return $this->store->pairings($state, $plannedItemId);
+    }
+
+    /**
+     * The same, for a state and a planned item as a client writes them.
+     *
+     * @return list<DocumentPairing>
+     *
+     * @throws CashFlowRefused forbidden, or invalid state_invalid, planned_item_invalid
+     */
+    public function list(?string $state, ?string $plannedItemId): array
+    {
+        $this->access->denyUnlessStaff();
+        $parsed = null === $state ? null : PairingState::tryFrom($state) ?? throw CashFlowRefused::invalid('state_invalid', 'state', 'The state is one of: '.implode(', ', array_map(static fn (PairingState $case): string => $case->value, PairingState::cases())).'.');
+        if (null !== $plannedItemId && !Id::isValid($plannedItemId)) {
+            throw CashFlowRefused::invalid('planned_item_invalid', 'plannedItemId', 'The planned item id is a UUID. Find it with foresi_list_planned_items.');
+        }
+
+        return $this->store->pairings($parsed, $plannedItemId);
     }
 
     private function pairs(DocumentPairing $pairing): bool

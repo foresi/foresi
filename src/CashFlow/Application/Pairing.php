@@ -109,17 +109,28 @@ final readonly class Pairing implements DocumentPairer
     }
 
     /**
+     * The document of a subject as its source gives it; null when no source knows it or it is trashed.
+     */
+    public function document(string $subjectType, string $subjectId): ?PairableDocument
+    {
+        foreach ($this->sources as $source) {
+            $document = $source->one($subjectType, $subjectId);
+            if ($document instanceof PairableDocument) {
+                return $document;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Takes another look at one document, read again from its source; nothing when no source knows it.
      */
     public function reconsiderSubject(FlowSubject $subject): void
     {
-        foreach ($this->sources as $source) {
-            $document = $source->one($subject->type, $subject->id);
-            if ($document instanceof PairableDocument) {
-                $this->consider($document);
-
-                return;
-            }
+        $document = $this->document($subject->type, $subject->id);
+        if ($document instanceof PairableDocument) {
+            $this->consider($document);
         }
     }
 

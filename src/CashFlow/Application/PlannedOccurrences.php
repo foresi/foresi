@@ -57,6 +57,22 @@ final readonly class PlannedOccurrences
     }
 
     /**
+     * Whether the item falls on exactly this day: a day of its schedule, or the day of a one-off item, that is
+     * not skipped and not after its end.
+     */
+    public function occursOn(PlannedItem $item, \DateTimeImmutable $day): bool
+    {
+        $zone = $this->clock->timezone();
+        $day = $day->setTimezone($zone)->setTime(0, 0);
+        $recurrence = $item->recurrence($zone);
+        $falls = $recurrence instanceof Recurrence
+            ? RecurringSchedule::next($recurrence, 0, $day, 1)[0] ?? null
+            : $item->firstOn();
+
+        return $falls?->format('Y-m-d') === $day->format('Y-m-d') && !$item->isSkipped($day);
+    }
+
+    /**
      * A day no later than the first occurrence whose period can hold $day: a whole cycle of the item before it.
      */
     private function searchFrom(Recurrence $recurrence, \DateTimeImmutable $day): \DateTimeImmutable

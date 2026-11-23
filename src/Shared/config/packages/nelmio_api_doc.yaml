@@ -799,6 +799,34 @@ nelmio_api_doc:
                                 variable_symbol: { type: string, nullable: true }
                                 tolerance: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
                         created_at: { type: string, format: date-time }
+                CashFlowPairing:
+                    type: object
+                    description: Whether a received document belongs to an occurrence of a planned item. An auto or confirmed pairing makes the forecast leave that occurrence out.
+                    properties:
+                        subject:
+                            type: object
+                            properties:
+                                type: { type: string, example: received_document }
+                                id: { type: string }
+                                url: { type: string, nullable: true, description: 'Where the document can be read in the API.' }
+                        state: { type: string, enum: [auto, confirmed, proposed, declined], description: 'auto: Cash flow paired it; confirmed: a person paired it; proposed: a person should decide among the candidates; declined: a person said it belongs to none, so Cash flow never pairs it again.' }
+                        counterparty_id: { type: string, format: uuid, nullable: true }
+                        planned_item_id: { type: string, format: uuid, nullable: true, description: 'The item it is paired or proposed with; null for a proposal with several candidates and for a declined pairing.' }
+                        planned_item_name: { type: string, nullable: true }
+                        occurrence_on: { type: string, format: date, nullable: true }
+                        candidates:
+                            type: array
+                            description: The occurrences it was proposed with, kept in every state.
+                            items:
+                                type: object
+                                properties:
+                                    planned_item_id: { type: string, format: uuid }
+                                    planned_item_name: { type: string, nullable: true }
+                                    occurrence_on: { type: string, format: date }
+                        decided_by: { type: string, format: uuid, nullable: true }
+                        decided_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
                 CashFlowCheckpoint:
                     type: object
                     description: The balance of a firm bank account at the end of a day.

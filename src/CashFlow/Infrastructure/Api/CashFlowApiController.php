@@ -11,6 +11,7 @@ namespace Foresi\CashFlow\Infrastructure\Api;
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\PairingReads;
 use Foresi\CashFlow\Application\PlannedItemReads;
 use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -34,8 +35,9 @@ final readonly class CashFlowApiController
     public const string FORECAST = 'api_v1_cash_flow_forecast';
     public const string PLANNED_ITEMS = 'api_v1_cash_flow_planned_items';
     public const string PLANNED_ITEM = 'api_v1_cash_flow_planned_item';
+    public const string PAIRINGS = 'api_v1_cash_flow_pairings';
 
-    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access, private PlannedItemVatRule $vat)
+    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access, private PlannedItemVatRule $vat, private PairingReads $pairings, private PairingAnswers $pairingAnswers)
     {
     }
 
@@ -95,6 +97,21 @@ final readonly class CashFlowApiController
         $item = $this->items->one($plannedItemId);
 
         return new JsonResponse(['data' => CashFlowJson::plannedItem($item, $this->clock->timezone(), $this->access->firm(), $this->vat->isMissing($item))]);
+    }
+
+    #[Route('/api/v1/cash-flow/pairings', name: self::PAIRINGS, methods: ['GET'])]
+    #[OA\Tag(name: 'Cash flow')]
+    #[OA\Parameter(name: 'state', description: 'Only the pairings in this state: auto, confirmed, proposed or declined.', in: 'query', schema: new OA\Schema(type: 'string', enum: ['auto', 'confirmed', 'proposed', 'declined']))]
+    #[OA\Parameter(name: 'planned_item_id', description: 'Only the pairings paired or proposed with this planned item.', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid'))]
+    #[OA\Response(response: 200, description: 'The pairings of documents with planned occurrences, oldest first.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/CashFlowPairing'))], type: 'object'))]
+    #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the cashflow:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    public function pairings(Request $request): JsonResponse
+    {
+        $this->scope->require(self::READ_SCOPE);
+
+        return new JsonResponse(['data' => $this->pairingAnswers->rows($this->pairings->list($this->optional($request, 'state'), $this->optional($request, 'planned_item_id')))]);
     }
 
     private function optional(Request $request, string $name): ?string
