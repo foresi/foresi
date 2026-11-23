@@ -10,6 +10,9 @@ namespace Foresi\Sales\Infrastructure\Controller;
 
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\ContactPersonRefused;
+use Foresi\Party\Contract\ContactPersonWrites;
+use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\PartySummary;
@@ -24,6 +27,7 @@ use Foresi\Sales\Application\Api\RestoreDealInput;
 use Foresi\Sales\Application\Api\TrashDealInput;
 use Foresi\Sales\Application\Api\UpdateDealInput;
 use Foresi\Sales\Application\Api\WinDealInput;
+use Foresi\Sales\Application\ContactPersonDraft;
 use Foresi\Sales\Application\DealDetail;
 use Foresi\Sales\Application\DealLinkView;
 use Foresi\Sales\Application\DealLinkWrites;
@@ -45,6 +49,7 @@ use Foresi\Sales\Domain\Stage;
 use Foresi\Sales\Infrastructure\Column\DealColumns;
 use Foresi\Sales\Infrastructure\Screen\DealScreen;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\Api\Omitted;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
@@ -82,7 +87,10 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * sections other modules add as tabs (?tab=), the first by default; its side
  * column the details, the notes and the linked deals. New, Edit, Lost, a
  * follow-up and a link each open in a dialog; without JavaScript every dialog
- * is a page of its own.
+ * is a page of its own. New and Edit offer the client's contact persons, and a
+ * person to add to the client on the way, from the address book or new: the
+ * dialog cannot open a dialog over itself (dialog_controller), so it happens
+ * inside it, and the persons reload when the client changes (deal-client).
  */
 final class DealController extends AbstractController
 {
@@ -91,6 +99,8 @@ final class DealController extends AbstractController
     public const string DEAL_ROUTE = 'app_sales_deal';
     public const string TOKEN = 'sales';
     public const string UNDO_FLASH = 'sales_undo';
+    public const string PERSON_EXISTING = 'existing';
+    public const string PERSON_NEW = 'new';
 
     /** The list's one sort, by title; "-title" backwards. */
     private const string SORT_TITLE = 'title';
@@ -113,6 +123,7 @@ final class DealController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly SlotRegistry $slots,
+        private readonly ContactPersonWrites $contactPersons,
     ) {
     }
 
@@ -183,8 +194,23 @@ final class DealController extends AbstractController
     }
 
     /**
+     * The contact persons of a client and the person to add to it, as the deal's dialog
+     * shows them once the client is chosen (deal-client). Nothing for an unknown client.
+     */
+    #[Route('/sales/deals/client-persons', name: 'app_sales_deal_client_persons', methods: ['GET'])]
+    public function clientPersons(Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $clientId = trim($request->query->getString('client'));
+        $client = '' === $clientId ? null : $this->parties->find($clientId);
+
+        return $this->render('@Sales/deals/_persons.html.twig', ['values' => ['contactPersonIds' => []], 'errors' => [], ...$this->personsBlock($client, $this->personValues(), [])]);
+    }
+
+    /**
      * A new deal in a dialog: its title, client, owner, stage and notes. Opened from a
-     * contact (?client=<id>) the client is set and its contact persons are offered.
+     * contact (?client=<id>) the client is set; the client's contact persons are offered
+     * once it is known, with a person to add.
      */
     #[Route('/sales/deals/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
     public function new(Request $request): Response
@@ -203,19 +229,23 @@ final class DealController extends AbstractController
             'description' => '',
             'contactPersonIds' => [],
         ];
+        $person = $this->personValues();
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             $values = $this->postedDeal($request) + $values;
             $values['clientId'] = $clientId;
+            $person = $this->personValues($request);
             try {
-                $deal = $this->writes->create(new CreateDealInput($values['title'], $values['clientId'], '' === $values['stageId'] ? null : $values['stageId'], '' === $values['ownerUserId'] ? null : $values['ownerUserId'], $values['description'], $values['contactPersonIds']));
+                $deal = $this->writes->create(new CreateDealInput($values['title'], $values['clientId'], '' === $values['stageId'] ? null : $values['stageId'], '' === $values['ownerUserId'] ? null : $values['ownerUserId'], $values['description'], $values['contactPersonIds']), $this->draft($person));
                 $this->addFlash('success', $this->screen->trans('sales.deal.flash.created', ['title' => $deal->title()]));
 
                 return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $deal->id()], Response::HTTP_SEE_OTHER);
             } catch (SalesRefused $refused) {
                 $this->denyIfForbidden($refused);
                 $errors = $this->errors($refused);
+            } catch (ContactPersonRefused $refused) {
+                $errors = $this->personErrors($refused, $person);
             }
         }
 
@@ -224,8 +254,11 @@ final class DealController extends AbstractController
             'action' => $this->generateUrl(self::NEW_ROUTE),
             'values' => $values,
             'errors' => $errors,
+            // Opened from a contact the client is fixed; from the list it is chosen in the dialog.
             'client' => $client,
-            'persons' => $this->persons($client?->id),
+            'clientFixed' => $client instanceof PartySummary && ($request->isMethod('POST') ? $request->request->getBoolean('clientFixed') : true),
+            'clientLinked' => false,
+            ...$this->personsBlock($client, $person, $errors),
             'owners' => $this->screen->owners(),
             'stages' => $this->stageOptions($stages),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
@@ -271,19 +304,30 @@ final class DealController extends AbstractController
     {
         $detail = $this->detail($id);
         $deal = $detail->deal;
-        $values = ['title' => $deal->title(), 'ownerUserId' => $deal->ownerUserId(), 'description' => $deal->description(), 'contactPersonIds' => $detail->contactPersonIds];
+        // A link joins deals of one client, so a linked deal keeps its client.
+        $linked = [] !== $detail->links;
+        $client = $this->parties->find($deal->clientPartyId());
+        $values = ['title' => $deal->title(), 'clientId' => $deal->clientPartyId(), 'clientQuery' => $client->displayName ?? '', 'ownerUserId' => $deal->ownerUserId(), 'description' => $deal->description(), 'contactPersonIds' => $detail->contactPersonIds];
+        $person = $this->personValues();
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
-            $values = array_intersect_key($this->postedDeal($request), $values);
+            $values = array_intersect_key($this->postedDeal($request), $values) + $values;
+            if (!$linked) {
+                $values['clientId'] = trim($request->request->getString('clientId'));
+                $client = '' === $values['clientId'] ? null : $this->parties->find($values['clientId']);
+            }
+            $person = $this->personValues($request);
             try {
-                $this->writes->update(new UpdateDealInput($id, $values['title'], $values['description'], $values['ownerUserId'], $values['contactPersonIds']));
+                $this->writes->update(new UpdateDealInput($id, $values['title'], $values['description'], $values['ownerUserId'], $values['contactPersonIds'], $linked ? new Omitted() : $values['clientId']), $this->draft($person));
                 $this->addFlash('success', $this->screen->trans('sales.deal.flash.saved'));
 
                 return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
             } catch (SalesRefused $refused) {
                 $this->denyIfForbidden($refused);
                 $errors = $this->errors($refused);
+            } catch (ContactPersonRefused $refused) {
+                $errors = $this->personErrors($refused, $person);
             }
         }
 
@@ -292,8 +336,10 @@ final class DealController extends AbstractController
             'action' => $this->generateUrl('app_sales_deal_edit', ['id' => $id]),
             'values' => $values,
             'errors' => $errors,
-            'client' => $this->parties->find($deal->clientPartyId()),
-            'persons' => $this->persons($deal->clientPartyId()),
+            'client' => $client,
+            'clientFixed' => $linked,
+            'clientLinked' => $linked,
+            ...$this->personsBlock($client, $person, $errors),
             'owners' => $this->screen->owners($deal->ownerUserId()),
             'stages' => [],
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
@@ -815,6 +861,100 @@ final class DealController extends AbstractController
         }
 
         return array_map(static fn (PartyPersonSummary $person): array => ['id' => $person->id, 'name' => $person->displayName], $this->parties->personsOf($clientId));
+    }
+
+    /**
+     * What the contact persons block of the dialog shows for the client: its persons to
+     * tick and the person to add, from the address book (while it has one to offer) or
+     * new. A person has no contact persons, so the block is for a company or sole trader.
+     *
+     * @param array{mode: string, personId: string, name: string, email: string, position: string} $person
+     * @param array<string, string>                                                                $errors
+     *
+     * @return array{personsShown: bool, persons: list<array{id: string, name: string}>, candidates: array<string, string>, person: array{mode: string, personId: string, name: string, email: string, position: string}, personModes: list<array{value: string, label: string}>, personOpen: bool}
+     */
+    private function personsBlock(?PartySummary $client, array $person, array $errors): array
+    {
+        $shown = $client instanceof PartySummary && ContactKind::Person !== $client->kind;
+        $candidates = [];
+        foreach ($shown ? $this->contactPersons->candidatesOf($client->id) : [] as $candidate) {
+            $candidates[$candidate->id] = $candidate->displayName;
+        }
+        if ('' === $person['mode']) {
+            // From the address book first while it has a person to offer, else a new one (as the contact's own dialog).
+            $person['mode'] = [] === $candidates ? self::PERSON_NEW : self::PERSON_EXISTING;
+        }
+        $typed = '' !== $person['personId'] || '' !== $person['name'] || '' !== $person['email'] || '' !== $person['position'];
+
+        return [
+            'personsShown' => $shown,
+            'persons' => $shown ? $this->persons($client->id) : [],
+            'candidates' => $candidates,
+            'person' => $person,
+            'personModes' => [
+                ['value' => self::PERSON_EXISTING, 'label' => $this->screen->trans('sales.deal.person.mode.existing')],
+                ['value' => self::PERSON_NEW, 'label' => $this->screen->trans('sales.deal.person.mode.new')],
+            ],
+            'personOpen' => $typed || [] !== array_intersect_key($errors, array_flip(['personId', 'personName', 'personEmail', 'personPosition'])),
+        ];
+    }
+
+    /**
+     * The person to add as the dialog sent it; nothing on a GET.
+     *
+     * @return array{mode: string, personId: string, name: string, email: string, position: string}
+     */
+    private function personValues(?Request $request = null): array
+    {
+        $posted = $request?->request;
+        $mode = $posted?->getString('personMode') ?? '';
+
+        return [
+            'mode' => \in_array($mode, [self::PERSON_EXISTING, self::PERSON_NEW], true) ? $mode : '',
+            'personId' => trim($posted?->getString('personId') ?? ''),
+            'name' => trim($posted?->getString('personName') ?? ''),
+            'email' => trim($posted?->getString('personEmail') ?? ''),
+            'position' => trim($posted?->getString('personPosition') ?? ''),
+        ];
+    }
+
+    /**
+     * The person to add, by the way chosen; none when its fields are empty. Without
+     * JavaScript both ways show, and the one not chosen is ignored.
+     *
+     * @param array{mode: string, personId: string, name: string, email: string, position: string} $person
+     */
+    private function draft(array $person): ?ContactPersonDraft
+    {
+        if (self::PERSON_EXISTING === $person['mode']) {
+            return '' === $person['personId'] ? null : ContactPersonDraft::existing($person['personId'], $person['position']);
+        }
+        if (self::PERSON_NEW === $person['mode'] && ('' !== $person['name'] || '' !== $person['email'] || '' !== $person['position'])) {
+            return ContactPersonDraft::new($person['name'], $person['email'], $person['position']);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{mode: string, personId: string, name: string, email: string, position: string} $person
+     *
+     * @return array<string, string> the message of each refused field of the person, by form field
+     */
+    private function personErrors(ContactPersonRefused $refused, array $person): array
+    {
+        $errors = [];
+        foreach ($refused->reasons as $field => $reason) {
+            $key = match ($field) {
+                'name' => 'personName',
+                'email' => 'personEmail',
+                'position' => 'personPosition',
+                default => self::PERSON_NEW === $person['mode'] ? 'personName' : 'personId',
+            };
+            $errors[$key] = $this->screen->trans('sales.deal.person.error.'.$reason);
+        }
+
+        return $errors;
     }
 
     /**

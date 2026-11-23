@@ -19,11 +19,13 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
+use Foresi\Party\Contract\ContactPersonWrites;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
+use Foresi\Party\Infrastructure\Directory\DoctrineContactPersonWrites;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
@@ -79,6 +81,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(ContactImports::class, CollectedContactImports::class);
     // Other modules read contacts through the contract (Sales, Outreach).
     $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class);
+    // Sales adds a contact person to a deal's client through the contract.
+    $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));
@@ -105,6 +109,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         // Lets a test add a module's tab to a contact.
         $services->set(ExampleContactTab::class);
         $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class)->public();
+        $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class)->public();
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();

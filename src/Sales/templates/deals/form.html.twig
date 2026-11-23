@@ -1,10 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     A new deal, or one changed. New is a dialog over the list or the contact it was opened from (the client
-    then set and its contact persons offered); Edit is a dialog over the deal, with its title, notes, owner
-    and contact persons. Each URL is a page of its own too.
-    Variables: deal (null for a new one), action, values, errors, client (PartySummary or null), persons
-    (id, name), owners (by user id), stages (by id; none for Edit).
+    then set); Edit is a dialog over the deal, with its title, client, notes, owner and contact persons. The
+    client is chosen in a combobox, except when it is fixed: a deal opened from a contact, or a deal linked to
+    other deals (a link joins deals of one client). Once the client is known its contact persons and a person
+    to add show (_persons), and they reload when the client changes (deal-client). Each URL is a page of its own too.
+    Variables: deal (null for a new one), action, values, errors, client (PartySummary or null), clientFixed,
+    clientLinked, the variables of _persons, owners (by user id), stages (by id; none for Edit).
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
@@ -17,30 +19,26 @@
 {% block title %}{{ heading }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="deal-form" action="{{ action }}" class="grid gap-4" novalidate>
+    <form method="post" id="deal-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="deal-client" data-deal-client-url-value="{{ path('app_sales_deal_client_persons') }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
         <twig:Ui:TextInput name="title" id="title" :label="'sales.deal.field.title'|trans" :placeholder="'sales.deal.field.title_placeholder'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="200" autocomplete="off" required />
-        {% if not deal %}
-            {% if client %}
+        {% if clientFixed and client %}
+            {% if not deal %}
                 <input type="hidden" name="clientId" value="{{ client.id }}">
-                <div class="grid gap-1" data-deal-client>
-                    <p class="m-0 text-small text-ink">{{ 'sales.deal.field.client'|trans }}</p>
-                    <p class="m-0 font-medium text-ink">{{ client.displayName }}</p>
-                    {% if errors.clientId is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.clientId }}</p>{% endif %}
-                </div>
-            {% else %}
-                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'sales.deal.field.client'|trans" :placeholder="'sales.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_sales_deal_clients')" :emptyText="'sales.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
+                <input type="hidden" name="clientFixed" value="1">
             {% endif %}
+            <div class="grid gap-1" data-deal-client>
+                <p class="m-0 text-small text-ink">{{ 'sales.deal.field.client'|trans }}</p>
+                <p class="m-0 font-medium text-ink">{{ client.displayName }}</p>
+                {% if clientLinked %}<p class="m-0 text-caption text-muted" data-deal-client-linked>{{ 'sales.deal.field.client_linked_help'|trans }}</p>{% endif %}
+                {% if errors.clientId is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.clientId }}</p>{% endif %}
+            </div>
+        {% else %}
+            <div data-action="combobox:pick->deal-client#load combobox:clear->deal-client#clear">
+                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'sales.deal.field.client'|trans" :placeholder="'sales.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_sales_deal_clients')" :emptyText="'sales.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
+            </div>
         {% endif %}
-        {% if persons is not empty %}
-            <fieldset class="m-0 grid gap-2 border-0 p-0" data-deal-persons>
-                <legend class="mb-1 p-0 text-small text-ink">{{ 'sales.deal.field.contact_persons'|trans }}</legend>
-                {% for person in persons %}
-                    <twig:Ui:Checkbox name="contactPersonIds[]" :id="'person-' ~ person.id" :label="person.name" :value="person.id" :checked="person.id in values.contactPersonIds" />
-                {% endfor %}
-                {% if errors.contactPersonIds is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.contactPersonIds }}</p>{% endif %}
-            </fieldset>
-        {% endif %}
+        <div class="contents" data-deal-client-target="persons">{% include '@Sales/deals/_persons.html.twig' %}</div>
         <div class="grid gap-4 sm:grid-cols-2">
             <twig:Ui:Select name="ownerUserId" id="ownerUserId" :label="'sales.deal.field.owner'|trans" :options="owners" :value="values.ownerUserId" :error="errors.ownerUserId|default(null)" />
             {% if stages is not empty %}

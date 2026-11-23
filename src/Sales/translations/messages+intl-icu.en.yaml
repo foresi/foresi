@@ -82,6 +82,7 @@ sales:
             client: Client
             client_placeholder: Search the address book
             client_empty: No contact matches.
+            client_linked_help: Remove the links to other deals to change the client.
             contact_persons: Contact persons
             owner: Owner
             stage: Stage
@@ -92,6 +93,25 @@ sales:
             won_at: Won on
             lost_at: Lost on
             created_at: Created
+        person:
+            add: Add a person
+            none: The client has no contact persons yet.
+            mode:
+                label: How to add the person
+                existing: From the address book
+                new: New person
+            person: Person
+            person_placeholder: Choose a person
+            no_candidates: There is no person in the address book to add. Add a new person instead.
+            name: Full name
+            email: E-mail
+            position: Position
+            position_help: For example director or accountant.
+            error:
+                required: Fill in this field.
+                too_long: The value is too long.
+                email_invalid: Enter a valid e-mail address.
+                person_invalid: Choose a person who is not listed for the client yet.
         none:
             contact_persons: None
             lost_reason: No reason given
@@ -235,6 +255,7 @@ sales:
         lost_note_too_long: The note is at most 1,000 characters.
         client_unknown: Choose a contact of the address book.
         client_archived: The contact is archived; restore it to start a deal with it.
+        client_has_links: The deal is linked to other deals of the client; remove the links before you change the client.
         contact_person_not_of_client: Choose contact persons of the client.
         owner_not_staff: The owner is an owner or member of the organisation.
         stage_unknown: Choose a stage.

@@ -14,7 +14,7 @@ use Foresi\Shared\Domain\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Event\EventSubject;
 
 /**
- * A deal changed: its title, description, owner or contact persons, a line or
+ * A deal changed: its title, description, client, owner or contact persons, a line or
  * a link. The payload is thin (ADR 0030): read the deal itself for its title,
  * client and lines.
  */

@@ -67,7 +67,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_deal` | One deal (`id`) with its client, owner, stage, status, contacts, lines, value (one-off and monthly per currency, never converted, `approximate` for weekly or daily lines) and links. Staff only. |
 | `foresi_list_deal_stages` | The stages and the lost reasons, each in its order; archived ones with `include_archived`. Staff only. |
 | `foresi_create_deal` | **Write.** Opens a deal: `title`, `client_party_id`, optional `stage_id`, `owner_user_id`, `description`, `contact_person_ids`. Staff only. |
-| `foresi_update_deal` | **Write.** Changes the fields given of a deal (`deal_id`): `title`, `description`, `owner_user_id`, `contact_person_ids`. Staff only. |
+| `foresi_update_deal` | **Write.** Changes the fields given of a deal (`deal_id`): `title`, `description`, `owner_user_id`, `client_party_id`, `contact_person_ids`. Another client takes the contact persons of the same call or none; a linked deal keeps its client. Staff only. |
 | `foresi_change_deal_stage` | **Write.** Moves an open deal (`deal_id`) to `stage_id`. Staff only. |
 | `foresi_win_deal` | **Write.** Marks an open deal (`deal_id`) won. Staff only. |
 | `foresi_lose_deal` | **Write.** Marks an open deal (`deal_id`) lost, with an optional `lost_reason_id` and `note`. Staff only. |

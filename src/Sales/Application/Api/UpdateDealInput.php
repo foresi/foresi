@@ -24,7 +24,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_update_deal',
     scope: 'sales:write',
     title: 'Update a deal',
-    description: 'Changes the fields given of a deal and keeps the rest: its title, description, owner or contact persons (the whole list, in order; an empty list removes them all). Its stage, status and lines change with their own tools.',
+    description: 'Changes the fields given of a deal and keeps the rest: its title, description, owner, client or contact persons (the whole list, in order; an empty list removes them all). Changing the client replaces the contact persons with those given in the same call, each linked to the new client, or removes them all when none are given; an archived client is refused, and so is a deal linked to other deals until its links are removed. Its stage, status and lines change with their own tools.',
     response: 'SalesDeal',
     staffOnly: true,
 )]
@@ -44,6 +44,8 @@ final readonly class UpdateDealInput
         public string|Omitted $ownerUserId = new Omitted(),
         #[Field('The ids of the client\'s contact persons, in order; they replace the ones before.', items: 'string')]
         public array|Omitted $contactPersonIds = new Omitted(),
+        #[Field('The id of another client, a contact of the address book that is not archived (foresi_search_contacts). The contact persons given in the same call are checked against it; without them the deal has none. Refused while the deal is linked to other deals.', format: 'uuid')]
+        public string|Omitted $clientPartyId = new Omitted(),
     ) {
     }
 }

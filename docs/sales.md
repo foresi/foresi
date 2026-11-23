@@ -13,7 +13,7 @@ Everything is available through the [REST API](api.md#sales) and the [MCP server
 ## Deals
 
 - A **title**, up to 200 characters, such as "Roof audit for the warehouse", and a **description** in Markdown, up to 10,000 characters.
-- A **client**: a contact of the address book. An archived client takes no new deal; its old deals stay and still read.
+- A **client**: a contact of the address book. An archived client takes no new deal, nor a deal moved to it; its old deals stay and still read. The client can change: the deal then takes the contact persons given with the change, checked against the new client, or none. A deal linked to other deals keeps its client until the links are removed (`client_has_links`), as a link joins deals of one client.
 - **Contact persons**: some of the client's contact persons, in order, whom the deal is talked through with. Only persons linked to the client are accepted.
 - An **owner**: an owner or member of the organisation; the person who creates the deal when left out.
 - A **stage** and a **status**.
@@ -57,6 +57,8 @@ A deal can **follow from** another deal of the same client, such as a monthly se
 **Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, **+ Filter** (status, owner, client, the trash) and the Columns sheet (title, client, owner, value, status and more). A row opens the deal.
 
 - **New deal** in the page header opens a dialog with the title, the client, the owner, the stage and the contact persons. Without JavaScript the dialog is a page.
+- **Edit** on a deal opens the same dialog with its client in the same search field; a linked deal shows its client read-only, with a note that it changes once the links are removed.
+- Once the client is known, the dialog lists its contact persons to tick (or says it has none yet), and they reload for another client chosen, with the persons ticked before dropped. **Add a person** under them adds a person to the client while the deal is saved, the same two ways as the contact's own dialog: a person of the address book, or a new one with a name, e-mail and position. The person is linked to the client, as its primary contact person when it has none, and becomes the last of the deal's contact persons. A refused person is shown at its field and nothing is saved. A person as the client has no contact persons, so neither shows for one.
 - The deal's page shows its stage, status, client and contact persons, its lines and value, and the deals it follows from or is followed by. **Edit**, **Won**, **Lost**, **Reopen**, **New follow-up deal** and **⋯ → Delete** or **Restore** are in its header. Changing the stage and adding or editing lines open dialogs.
 
 ## On a contact
@@ -82,7 +84,7 @@ The new-document and new-activity screens take several links as `links[]=kind:id
 
 ## Events
 
-`sales.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the lines, the links or the contact persons records `.updated`. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
+`sales.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the client, the lines, the links or the contact persons records `.updated`. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
 
 ## API and MCP
 
