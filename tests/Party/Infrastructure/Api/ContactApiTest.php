@@ -246,10 +246,8 @@ final class ContactApiTest extends ApiTestCase
         self::assertSame([$beta->id()], $ids(['field' => 'contact_persons', 'op' => 'is_empty']));
         self::assertSame([$alpha->id()], $ids(['field' => 'contact_persons.name', 'op' => 'contains', 'value' => 'petra']));
         self::assertSame([$beta->id()], $ids(['field' => 'contact_persons.name', 'op' => 'does_not_contain', 'value' => 'petra']));
-        // Other modules relate their records to a contact: none here has an invoice or a project.
-        self::assertSame([], $ids(['field' => 'invoices', 'op' => 'is_not_empty']));
-        self::assertSame([$beta->id(), $alpha->id()], $ids(['field' => 'invoices', 'op' => 'is_empty'], ['field' => 'projects', 'op' => 'is_empty']));
-        self::assertSame([], $ids(['field' => 'projects.name', 'op' => 'contains', 'value' => 'web']));
+        // Two relations together: tests/Party/Integration has the ones other modules add.
+        self::assertSame([$alpha->id()], $ids(['field' => 'contact_persons', 'op' => 'is_not_empty'], ['field' => 'contact_persons.name', 'op' => 'contains', 'value' => 'petra']));
     }
 
     /**
@@ -260,7 +258,6 @@ final class ContactApiTest extends ApiTestCase
         yield 'not JSON' => [['filter' => '{conditions'], 'filter'];
         yield 'an unknown field' => [['filter' => '{"conditions": [{"field": "colour", "op": "is", "value": "red"}]}'], 'filter.conditions[0].field'];
         yield 'an unknown role' => [['filter' => '{"conditions": [{"field": "role", "op": "is", "value": "friend"}]}'], 'filter.conditions[0].value'];
-        yield 'a view of another list' => [['view' => 'invoicing.invoices.paid'], 'view'];
     }
 
     /**

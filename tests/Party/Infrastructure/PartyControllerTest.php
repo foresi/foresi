@@ -177,8 +177,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorCount(1, 'main tbody tr');
         self::assertSelectorTextContains('main table', 'Person Supplier');
         self::assertSame('Suppliers, unsaved changes2', $this->tabs($crawler)[2]);
-        // The export holds what the list shows.
-        self::assertCount(1, $crawler->filter('form[action="/contacts/export"] input[name="f"]'));
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Supplier persons']));
         $crawler = $this->client->followRedirect();
         self::assertSelectorCount(1, 'main tbody tr');
@@ -577,52 +575,6 @@ final class PartyControllerTest extends WebTestCase
         self::assertSelectorTextContains('main table', 'Second Company');
     }
 
-    public function testCsvExportContainsOnlyTheSelectedContacts(): void
-    {
-        $this->signIn();
-        $mine = $this->party('Example Company s.r.o.', number: '12345687', vat: 'CZ12345687', email: 'info@example.com');
-        $this->party('Not Selected');
-        $formula = $this->party('=HYPERLINK("http://example.com")');
-
-        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id(), $formula->id(), 'abc', '']]);
-
-        self::assertResponseIsSuccessful();
-        $response = $this->client->getResponse();
-        self::assertSame('text/csv; charset=utf-8', $response->headers->get('Content-Type'));
-        self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.csv$/', (string) $response->headers->get('Content-Disposition'));
-        $csv = $this->client->getInternalResponse()->getContent();
-        self::assertStringStartsWith("\xEF\xBB\xBF\"Číslo kontaktu ve Foresi\";Název;Druh;", $csv);
-        self::assertStringContainsString(';"Example Company s.r.o.";Firma;12345687;', $csv);
-        self::assertStringContainsString(';CZ12345687;info@example.com;', $csv);
-        self::assertStringNotContainsString('Not Selected', $csv);
-        self::assertStringContainsString("'=HYPERLINK", $csv);
-        self::assertCount(3, array_filter(explode("\n", $csv), static fn (string $line): bool => '' !== $line), 'header and two selected contacts');
-    }
-
-    public function testXlsxExportIsAWorkbookWithTheSameContacts(): void
-    {
-        $this->signIn();
-        $mine = $this->party('Example Company s.r.o.', number: '12345687');
-
-        $this->client->request('POST', '/contacts/export', ['_token' => $this->token('party_action'), 'ids' => [$mine->id()], 'format' => 'xlsx']);
-
-        self::assertResponseIsSuccessful();
-        $response = $this->client->getResponse();
-        self::assertSame('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type'));
-        self::assertMatchesRegularExpression('/^attachment; filename=contacts-\d{8}\.xlsx$/', (string) $response->headers->get('Content-Disposition'));
-        $content = $this->client->getInternalResponse()->getContent();
-        self::assertStringStartsWith('PK', $content);
-        $path = tempnam(sys_get_temp_dir(), 'foresi-xlsx');
-        file_put_contents($path, $content);
-        try {
-            $rows = [...new \Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader()->rows($path, new \Foresi\Import\Application\Source\SourceSettings(\Foresi\Import\Contract\SourceFormat::Xlsx, headerRow: 1))];
-        } finally {
-            unlink($path);
-        }
-        self::assertCount(1, $rows);
-        self::assertContains('Example Company s.r.o.', $rows[0]);
-    }
-
     public function testLookupReturnsTheMappedRegistryRecord(): void
     {
         $this->signIn();
@@ -889,10 +841,10 @@ final class PartyControllerTest extends WebTestCase
     private function token(string $id): string
     {
         self::assertSame('party_action', $id);
-        // The export form of the list carries the token of the page actions (the list needs a contact for that).
+        // The archive form of the list carries the token of the page actions (the list needs a contact for that).
         $crawler = $this->client->request('GET', '/contacts');
 
-        return (string) $crawler->filter('form[action="/contacts/export"] input[name="_token"]')->attr('value');
+        return (string) $crawler->filter('form[action="/contacts/archive"] input[name="_token"]')->attr('value');
     }
 
     /**
