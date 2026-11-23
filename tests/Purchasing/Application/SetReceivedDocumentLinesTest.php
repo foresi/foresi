@@ -54,9 +54,10 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();
         $this->lines()->set($id, [$this->line('Hosting', 100_000)]);
+        $kept = $this->document($id)->lines()[0]->id();
         $version = $this->document($id)->version();
 
-        $this->lines()->set($id, [$this->line('Hosting', 100_000)]);
+        $this->lines()->set($id, [$this->line('Hosting', 100_000, $kept)]);
 
         self::assertSame($version, $this->document($id)->version());
         self::assertCount(1, $this->events('purchasing.received_document.changed'));
@@ -131,8 +132,8 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         return self::getContainer()->get(SetReceivedDocumentLines::class);
     }
 
-    private function line(string $text, int $base): ReceivedDocumentLineInput
+    private function line(string $text, int $base, ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21');
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21', $id);
     }
 }

@@ -51,7 +51,14 @@ final class DocumentLines
         $targets = self::targets($recap, $total, null);
         $sums = [];
         $checked = [];
+        $ids = [];
         foreach ($lines as $line) {
+            if (null !== $line->id) {
+                if (isset($ids[$line->id])) {
+                    throw new ReceivedDocumentRefused(ReceivedDocumentRefused::DUPLICATE_LINE_ID);
+                }
+                $ids[$line->id] = true;
+            }
             $text = trim($line->text);
             if ('' === $text) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::LINE_TEXT_REQUIRED);
@@ -68,7 +75,7 @@ final class DocumentLines
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::UNKNOWN_VAT_RATE);
             }
             $sums[$key] = ($sums[$key] ?? Money::ofMinor(0, $currency))->plus($line->base);
-            $checked[] = new ReceivedDocumentLineInput($text, $line->base, $rate);
+            $checked[] = new ReceivedDocumentLineInput($text, $line->base, $rate, $line->id);
         }
         // An empty recap without a total has no rate 0 to add up to.
         if ([] === $targets) {

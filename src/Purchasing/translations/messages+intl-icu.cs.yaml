@@ -221,6 +221,7 @@ purchasing:
     unknown_vat_rate: "Řádek má sazbu DPH, která v rekapitulaci není."
     line_text_required: "Každý řádek potřebuje text."
     line_text_too_long: "Text řádku může mít nejvýš 255 znaků."
+    duplicate_line_id: "Řádek smí být v seznamu jen jednou."
     lines_too_many: "Doklad může mít nejvýš 100 řádků."
     supplier_unknown: "Dodavatel není v adresáři."
     exchange_rate_unavailable: "Kurz ČNB k tomuto dni zatím není; zadejte ho ručně."

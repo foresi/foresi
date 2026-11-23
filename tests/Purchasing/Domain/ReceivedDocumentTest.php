@@ -456,13 +456,71 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
         [$first, $second] = $document->lines();
 
-        $document->setLines([$this->line('Hosting', 50_000), $this->line('Domains', 20_000), $this->line('Mail', 30_000)]);
+        $document->setLines([$this->line('Hosting', 50_000, id: $first->id()), $this->line('Domains', 20_000, id: $second->id()), $this->line('Mail', 30_000)]);
         self::assertSame([$first, $second], \array_slice($document->lines(), 0, 2));
         self::assertSame([[0, 'Hosting', 50_000], [1, 'Domains', 20_000], [2, 'Mail', 30_000]], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor()], $document->lines()));
 
-        $document->setLines([$this->line('Everything', 100_000)]);
+        $document->setLines([$this->line('Everything', 100_000, id: $first->id())]);
         self::assertSame([$first], $document->lines());
         self::assertSame('Everything', $first->text());
+    }
+
+    public function testALineKeepsItsIdWhenAnEarlierLineIsRemoved(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+
+        $document->setLines([$this->line('Domain', 100_000, id: $second->id())]);
+
+        self::assertSame([$second->id()], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): string => $line->id(), $document->lines()));
+        self::assertSame([0, 'Domain'], [$document->lines()[0]->position(), $document->lines()[0]->text()]);
+        self::assertNotSame($first->id(), $document->lines()[0]->id());
+    }
+
+    public function testALineKeepsItsIdWhenItsTextAndBaseChange(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+
+        $document->setLines([$this->line('Cloud hosting', 60_000, id: $first->id()), $this->line('Domain names', 40_000, id: $second->id())]);
+
+        self::assertSame([$first->id(), $second->id()], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): string => $line->id(), $document->lines()));
+        self::assertSame([['Cloud hosting', 60_000], ['Domain names', 40_000]], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): array => [$line->text(), $line->base()->minor()], $document->lines()));
+    }
+
+    public function testReorderingLinesKeepsTheirIds(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+        $version = $document->version();
+
+        self::assertTrue($document->setLines([$this->line('Domain', 30_000, id: $second->id()), $this->line('Hosting', 70_000, id: $first->id())]));
+
+        self::assertSame($version + 1, $document->version());
+        self::assertSame([[$second->id(), 0, 'Domain'], [$first->id(), 1, 'Hosting']], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): array => [$line->id(), $line->position(), $line->text()], $document->lines()));
+    }
+
+    public function testALineWithoutAnIdIsNew(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+
+        // One without an id and one with an id the document does not hold are new; the stored ones left out go.
+        $document->setLines([$this->line('Hosting', 70_000), $this->line('Domain', 30_000, id: Id::generate())]);
+
+        $ids = array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): string => $line->id(), $document->lines());
+        self::assertCount(2, $ids);
+        self::assertSame([], array_intersect($ids, [$first->id(), $second->id()]));
+    }
+
+    public function testADuplicateLineIdIsRefused(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        $first = $document->lines()[0];
+        $version = $document->version();
+
+        $this->assertRefused(ReceivedDocumentRefused::DUPLICATE_LINE_ID, fn (): bool => $document->setLines([$this->line('Hosting', 70_000, id: $first->id()), $this->line('Domain', 30_000, id: $first->id())]));
+        self::assertSame($version, $document->version());
     }
 
     public function testSettingLinesRaisesTheVersionAndChecksTheRecap(): void
@@ -482,10 +540,12 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
         $version = $document->version();
 
+        [$first, $second] = $document->lines();
+
         // Written as the stored ones once checked: trimmed, the rate as the recap writes it.
-        self::assertFalse($document->setLines([$this->line(' Hosting ', 70_000), $this->line('Domain', 30_000)]));
+        self::assertFalse($document->setLines([$this->line(' Hosting ', 70_000, id: $first->id()), $this->line('Domain', 30_000, id: $second->id())]));
         self::assertSame($version, $document->version());
-        self::assertTrue($document->setLines([$this->line('Domain', 30_000), $this->line('Hosting', 70_000)]));
+        self::assertTrue($document->setLines([$this->line('Domain', 30_000, id: $second->id()), $this->line('Hosting', 70_000, id: $first->id())]));
         self::assertSame($version + 1, $document->version());
 
         $without = $this->recorded($this->content());
@@ -524,9 +584,9 @@ final class ReceivedDocumentTest extends TestCase
         return array_map(static fn (LineView $line): array => [$line->key, $line->text, $line->base->minor(), $line->baseCzk?->minor(), $line->vatRate, $line->implicit], $lines);
     }
 
-    private function line(string $text, int $base, string $rate = '21'): ReceivedDocumentLineInput
+    private function line(string $text, int $base, string $rate = '21', ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), $rate);
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), $rate, $id);
     }
 
     /**

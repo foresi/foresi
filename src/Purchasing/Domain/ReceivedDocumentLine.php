@@ -18,13 +18,12 @@ use Foresi\Shared\Domain\Money;
  * was for, its base in the document's currency and the VAT rate of the recap
  * it falls under, as the recap writes the rate. The lines split the bases of
  * the recap; they never change the recap, which stays the only source of VAT.
- * The document checks and keeps them (DocumentLines), rewriting them in place,
- * so a line keeps its id and position and only the last ones come and go.
+ * The document checks and keeps them (DocumentLines): a line keeps its id when
+ * its text, base, rate or position change, and only a line left out goes.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'received_document_line')]
-#[ORM\Index(name: 'idx_received_document_line_document', columns: ['document_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_received_document_line_position', columns: ['document_id', 'position'])]
+#[ORM\Index(name: 'idx_received_document_line_document', columns: ['document_id', 'position'])]
 class ReceivedDocumentLine implements Audited, AuditRooted
 {
     #[ORM\Column(name: 'base_minor', type: 'bigint')]
@@ -41,7 +40,7 @@ class ReceivedDocumentLine implements Audited, AuditRooted
         #[ORM\JoinColumn(name: 'document_id', nullable: false, onDelete: 'CASCADE')]
         private readonly ReceivedDocument $document,
         #[ORM\Column(type: 'integer')]
-        private readonly int $position,
+        private int $position,
         #[ORM\Column(type: 'string', length: DocumentLines::MAX_TEXT_LENGTH)]
         private string $text,
         Money $base,
@@ -91,14 +90,15 @@ class ReceivedDocumentLine implements Audited, AuditRooted
      */
     public function toInput(): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($this->text, $this->base(), $this->vatRate);
+        return new ReceivedDocumentLineInput($this->text, $this->base(), $this->vatRate, $this->id);
     }
 
     /**
      * Takes the values of a checked line in its place.
      */
-    public function rewrite(ReceivedDocumentLineInput $line): void
+    public function rewrite(ReceivedDocumentLineInput $line, int $position): void
     {
+        $this->position = $position;
         $this->text = $line->text;
         $this->baseMinor = $line->base->minor();
         $this->vatRate = $line->vatRate;

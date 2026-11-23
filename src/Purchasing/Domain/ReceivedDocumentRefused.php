@@ -54,6 +54,7 @@ final class ReceivedDocumentRefused extends \DomainException
     public const string LINE_TEXT_REQUIRED = 'line_text_required';
     public const string LINE_TEXT_TOO_LONG = 'line_text_too_long';
     public const string LINES_TOO_MANY = 'lines_too_many';
+    public const string DUPLICATE_LINE_ID = 'duplicate_line_id';
     // Refused by the use cases, which know more than the document.
     public const string SUPPLIER_UNKNOWN = 'supplier_unknown';
     public const string EXCHANGE_RATE_UNAVAILABLE = 'exchange_rate_unavailable';
@@ -76,7 +77,7 @@ final class ReceivedDocumentRefused extends \DomainException
         self::TREATMENT_FOR_KIND, self::SUPPLIER_NUMBER_TOO_LONG, self::VARIABLE_SYMBOL, self::EVIDENCE_NUMBER_MISSING,
         self::EVIDENCE_NUMBER_FIXED, self::EVIDENCE_NUMBER_INVALID, self::ORIGINAL_FILE_FIXED, self::ORIGINAL_FILE_INVALID,
         self::REASON_MISSING, self::REASON_TOO_LONG, self::SUPPLY_CODE_NOT_ALLOWED, self::SUPPLY_CODE_INVALID,
-        self::LINES_DO_NOT_ADD_UP, self::UNKNOWN_VAT_RATE, self::LINE_TEXT_REQUIRED, self::LINE_TEXT_TOO_LONG, self::LINES_TOO_MANY,
+        self::LINES_DO_NOT_ADD_UP, self::UNKNOWN_VAT_RATE, self::LINE_TEXT_REQUIRED, self::LINE_TEXT_TOO_LONG, self::LINES_TOO_MANY, self::DUPLICATE_LINE_ID,
         self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
         self::STALE, self::LOCKED, self::NOT_RECORDED, self::PAYMENT_AMOUNT, self::OVERPAID, self::PAID,
         self::BANK_MOVEMENT_INVALID,

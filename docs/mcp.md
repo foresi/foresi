@@ -37,7 +37,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_received_document` | One received document with its VAT recap, lines and payments. |
 | `foresi_list_received_document_payments` | The payments of one received document, by the day paid. |
 | `foresi_record_received_document` | **Write.** Records a received document from its fields and optional `lines`, with no file, and gives it the firm's next evidence number. |
-| `foresi_set_received_document_lines` | **Write.** Replaces the `lines` of a received document (`document_id`): `{text, base, vat_rate}`, adding up per rate to the bases of its VAT recap; an empty list removes them. |
+| `foresi_set_received_document_lines` | **Write.** Replaces the `lines` of a received document (`document_id`): `{id, text, base, vat_rate}`, adding up per rate to the bases of its VAT recap; send back the `key` of a line as its `id` to keep it, a line without `id` is new, and lines left out are removed; an empty list removes them. |
 | `foresi_trash_received_document` | **Write, destructive.** Moves a received document (`document_id`) to the trash with a `reason`; a person restores it in Foresi. |
 | `foresi_add_received_document_payment` | **Write.** Records a payment of a recorded received document: `paid_on`, `amount`, `method` and an optional `bank_movement_id`. Never more than what remains. |
 | `foresi_remove_received_document_payment` | **Write, destructive.** Removes a payment (`payment_id`) of a received document (`document_id`) recorded by mistake. |

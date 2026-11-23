@@ -74,6 +74,7 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::LINE_TEXT_REQUIRED => 'lines',
         ReceivedDocumentRefused::LINE_TEXT_TOO_LONG => 'lines',
         ReceivedDocumentRefused::LINES_TOO_MANY => 'lines',
+        ReceivedDocumentRefused::DUPLICATE_LINE_ID => 'lines',
         ReceivedDocumentRefused::PAYMENT_AMOUNT => 'amount',
         ReceivedDocumentRefused::BANK_MOVEMENT_INVALID => 'bankMovementId',
     ];

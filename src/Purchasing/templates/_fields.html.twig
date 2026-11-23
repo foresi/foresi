@@ -90,6 +90,7 @@
         {% for line in values.lines %}
             {% set i = loop.index0 %}
             <div class="grid grid-cols-2 items-end gap-2 rounded-panel border border-container p-3 sm:grid-cols-[minmax(0,1fr)_10rem_6rem_auto] sm:border-0 sm:p-0" data-line-row>
+                <input type="hidden" name="lines[{{ i }}][id]" value="{{ line.id|default('') }}">
                 <twig:Ui:TextInput :name="'lines[' ~ i ~ '][text]'" :id="'lines-' ~ i ~ '-text'" :label="'purchasing.lines.text'|trans" :value="line.text" :error="errors['lines-' ~ i ~ '-text']|default(null)" maxlength="255" autocomplete="off" />
                 <twig:Ui:TextInput :name="'lines[' ~ i ~ '][base]'" :id="'lines-' ~ i ~ '-base'" :label="'purchasing.lines.base'|trans" :value="line.base" :error="errors['lines-' ~ i ~ '-base']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
                 <twig:Ui:Select :name="'lines[' ~ i ~ '][rate]'" :id="'lines-' ~ i ~ '-rate'" :label="'purchasing.lines.rate'|trans" :options="lineRates[i]" :value="line.rate" :error="errors['lines-' ~ i ~ '-rate']|default(null)" />

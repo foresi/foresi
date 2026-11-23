@@ -28,7 +28,7 @@ use Foresi\Shared\Application\Api\Operation;
     description: 'Records a document the firm received from a supplier (an invoice, a receipt, a credit note, an advance request) straight from its values, with no file; it gets the next evidence number of the firm and counts in the VAT reports. '
         .'The supplier must be a contact: find it with foresi_search_contacts (by registration_number or name), or create it with foresi_create_contact. '
         .'Amounts are decimals in the document currency, such as "1210.00"; a credit note has a negative total. The VAT recap is one line per rate, "rate:base:vat", such as "21:1000.00:210.00"; a document in another currency may add the VAT in CZK it prints, "21:100.00:21.00:510.30". '
-        .'The lines, optional, say what the document was for: {text, base, vat_rate}, the bases per rate adding up to the base of that rate in the recap (to the total at rate "0" for a document without a recap); set them later with foresi_set_received_document_lines. '
+        .'The lines, optional, say what the document was for: {text, base, vat_rate}, new lines without an id, the bases per rate adding up to the base of that rate in the recap (to the total at rate "0" for a document without a recap); set them later with foresi_set_received_document_lines. '
         .'Before recording, search the firm\'s documents for the supplier number to avoid recording one twice. Record its payments with foresi_add_received_document_payment or foresi_mark_received_document_paid.',
     status: 201,
     response: 'ReceivedDocumentDetail',
@@ -70,7 +70,7 @@ final readonly class RecordReceivedDocumentInput
         public ?string $originalDocumentId = null,
         #[Field('The code of the supply of a domestic reverse charge, for the control statement; optional.', maxLength: ReceivedDocument::MAX_SUPPLY_CODE_LENGTH)]
         public ?string $supplyCode = null,
-        #[Field('The lines, in their order: objects of text (at most 255 characters), base (a decimal in the document currency, such as "1000.00") and vat_rate (a rate of the VAT recap, such as "21"); at most 100. Per rate the bases add up to the base of the recap. None when left out.', items: Field::OBJECTS)]
+        #[Field('The lines, in their order: objects of an optional id (send back the id of a line to keep it; a line without id is new; lines left out are removed), text (at most 255 characters), base (a decimal in the document currency, such as "1000.00") and vat_rate (a rate of the VAT recap, such as "21"); at most 100. Per rate the bases add up to the base of the recap. None when left out.', items: Field::OBJECTS)]
         public array $lines = [],
     ) {
     }
