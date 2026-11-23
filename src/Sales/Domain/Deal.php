@@ -16,7 +16,8 @@ use Foresi\Shared\Domain\Id;
  * A chance to sell something to a client: its title, the owner who works on
  * it, the stage it is at and whether it is open, won or lost. Only an open
  * deal moves between stages and is won or lost; a won or lost one is
- * reopened first, which forgets when and why it closed. Its lines, contact
+ * reopened first, which forgets when and why it closed. It can move to
+ * another client, whose rules the application checks. Its lines, contact
  * persons and links are kept beside it, by its id. Going to the trash keeps
  * everything, and restoring brings it back as it was.
  */
@@ -74,7 +75,7 @@ class Deal implements Audited
         string $title,
         string $description,
         #[ORM\Column(name: 'client_party_id', type: 'guid')]
-        private readonly string $clientPartyId,
+        private string $clientPartyId,
         #[ORM\Column(name: 'owner_user_id', type: 'guid')]
         private string $ownerUserId,
         #[ORM\Column(name: 'stage_id', type: 'guid')]
@@ -96,6 +97,20 @@ class Deal implements Audited
         $this->title = $this->checkedTitle($title);
         $this->description = $this->checkedDescription($description);
         $this->touch($now);
+    }
+
+    /**
+     * @return bool whether it moved: false when it is the deal's client already
+     */
+    public function changeClient(string $clientPartyId, \DateTimeImmutable $now): bool
+    {
+        if ($clientPartyId === $this->clientPartyId) {
+            return false;
+        }
+        $this->clientPartyId = $clientPartyId;
+        $this->touch($now);
+
+        return true;
     }
 
     public function assignTo(string $ownerUserId, \DateTimeImmutable $now): void

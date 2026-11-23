@@ -337,7 +337,7 @@ final class DealScreensTest extends WebTestCase
         $this->firm();
         $this->browser->signIn();
 
-        foreach (['/sales/deals', '/sales/deals/new', '/settings/sales'] as $page) {
+        foreach (['/sales/deals', '/sales/deals/new', '/sales/deals/client-persons', '/settings/sales'] as $page) {
             $this->client->request('GET', $page);
             self::assertResponseStatusCodeSame(403, $page);
         }

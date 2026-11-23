@@ -66,6 +66,28 @@ interface PartyDirectory
 - `personsOf()` of a person, or of an unknown id, is an empty list.
 - It reads as the person signed in: only the owners and members of the organisation read contacts, and a guest is refused, as on the address book's screens, API and MCP tools.
 
+### Adding a contact person
+
+`Foresi\Party\Contract\ContactPersonWrites` adds a contact person to a company or sole trader for modules such as Sales (a person added to the client from the deal's dialog), the same two ways as the contact's own dialog:
+
+```php
+interface ContactPersonWrites
+{
+    /** @return list<PartyPersonSummary> persons of the address book, not archived, the company does not list yet */
+    public function candidatesOf(string $companyId): array;
+
+    /** @throws UnknownParty @throws ContactPersonRefused */
+    public function link(string $companyId, string $personId, string $position): PartyPersonSummary;
+
+    /** @throws UnknownParty @throws ContactPersonRefused */
+    public function addNew(string $companyId, string $name, string $email, string $position): PartyPersonSummary;
+}
+```
+
+- `link()` takes one of the candidates only; `addNew()` writes a person with no address of its own and links it. The person becomes the company's primary contact person when it has none yet.
+- `ContactPersonRefused` names each field that is wrong (`name`, `email`, `position`, `person`) with its reason (`required`, `too_long`, `email_invalid`, `person_invalid`); nothing is written.
+- `candidatesOf()` of a person, or of an unknown id, is an empty list. A write joins the unit of work it is called in, and acts as the person signed in, with the address book's own access rules.
+
 ### Adding a tab to a contact
 
 A module that keeps something of a contact, such as its deals, adds a tab after the contact's own five (Overview, Contact persons, Addresses, Bank accounts, History). It implements `Foresi\Ui\Contract\Slot\SlotProvider` and answers the slot `Foresi\Party\Contract\ContactTabs::SLOT` (`party.contact_tabs`), whose context holds `contactId`, with a `SlotItem` whose data holds:

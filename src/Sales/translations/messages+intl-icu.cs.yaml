@@ -82,6 +82,7 @@ sales:
             client: Klient
             client_placeholder: Hledat v adresáři
             client_empty: Žádný kontakt neodpovídá.
+            client_linked_help: Klienta jde změnit, až odeberete propojení s ostatními obchody.
             contact_persons: Kontaktní osoby
             owner: Vlastník
             stage: Fáze
@@ -92,6 +93,25 @@ sales:
             won_at: Datum výhry
             lost_at: Datum prohry
             created_at: Vytvořeno
+        person:
+            add: Přidat osobu
+            none: Klient zatím nemá žádné kontaktní osoby.
+            mode:
+                label: Jak přidat osobu
+                existing: Z adresáře
+                new: Nová osoba
+            person: Osoba
+            person_placeholder: Vyberte osobu
+            no_candidates: V adresáři není žádná osoba, kterou by šlo přidat. Založte raději novou osobu.
+            name: Jméno a příjmení
+            email: E-mail
+            position: Pozice
+            position_help: Například jednatel nebo účetní.
+            error:
+                required: Vyplňte toto pole.
+                too_long: Hodnota je příliš dlouhá.
+                email_invalid: Zadejte platný e-mail.
+                person_invalid: Vyberte osobu, která u klienta ještě není uvedena.
         none:
             contact_persons: Žádné
             lost_reason: Bez důvodu
@@ -235,6 +255,7 @@ sales:
         lost_note_too_long: Poznámka má nejvýš 1 000 znaků.
         client_unknown: Vyberte kontakt z adresáře.
         client_archived: Kontakt je archivovaný; obnovte ho, chcete-li s ním začít obchod.
+        client_has_links: Obchod je propojený s dalšími obchody klienta; než klienta změníte, odeberte propojení.
         contact_person_not_of_client: Vyberte kontaktní osoby klienta.
         owner_not_staff: Vlastníkem je vlastník nebo člen organizace.
         stage_unknown: Vyberte fázi.

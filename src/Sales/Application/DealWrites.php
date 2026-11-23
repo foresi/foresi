@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Application;
 
+use Foresi\Party\Contract\ContactPersonRefused;
+use Foresi\Party\Contract\ContactPersonWrites;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\PartySummary;
@@ -42,9 +44,9 @@ use Foresi\Shared\Application\Event\EventRecorder;
  * The writes of a deal itself, from its screens, the API and MCP alike (ADR
  * 0032). Each runs in one unit of work with its sales.deal event, and only the
  * owners and members of the organisation write. The client is a contact of
- * the address book, not archived for a new deal; the contact persons are
- * linked to it; the owner is an owner or member. A deal in the trash is not
- * found, except to trash or restore it.
+ * the address book, not archived for a new deal or a deal moved to it; the
+ * contact persons are linked to it; the owner is an owner or member. A deal in
+ * the trash is not found, except to trash or restore it.
  */
 final readonly class DealWrites
 {
@@ -55,17 +57,22 @@ final readonly class DealWrites
         private EventRecorder $events,
         private SalesClock $clock,
         private PartyDirectory $parties,
+        private ContactPersonWrites $contactPersons,
     ) {
     }
 
     /**
+     * A new deal; the person of the dialog, when one is given, is added to the client and
+     * becomes the last of its contact persons.
+     *
      * @throws SalesRefused
+     * @throws ContactPersonRefused nothing is stored
      */
-    public function create(CreateDealInput $input): Deal
+    public function create(CreateDealInput $input, ?ContactPersonDraft $newPerson = null): Deal
     {
         $caller = $this->access->denyUnlessStaff();
 
-        return $this->work->run(function () use ($input, $caller): Deal {
+        return $this->work->run(function () use ($input, $caller, $newPerson): Deal {
             $client = $this->newDealClient($input->clientPartyId);
             $persons = $this->persons($client->id, $input->contactPersonIds);
             $deal = SalesRefused::unless(fn (): Deal => new Deal(
@@ -76,6 +83,9 @@ final readonly class DealWrites
                 $this->startStage($input->stageId)->id(),
                 $this->clock->now(),
             ));
+            if ($newPerson instanceof ContactPersonDraft) {
+                $persons = $this->withNewPerson($client->id, $persons, $newPerson);
+            }
             $this->store->add($deal);
             $this->replaceContacts($deal, $persons);
             $this->events->record(new DealCreated($deal->id(), $deal->status()->value, $deal->stageId()));
@@ -85,13 +95,20 @@ final readonly class DealWrites
     }
 
     /**
+     * Changes the fields given. Another client takes the contact persons given in the same
+     * call, checked against it, or none; a deal linked to other deals keeps its client, as a
+     * link joins deals of one client only. The person of the dialog, when one is given, is
+     * added to the client (the new one, when it changes) and becomes the last of the deal's
+     * contact persons.
+     *
      * @throws SalesRefused
+     * @throws ContactPersonRefused nothing is stored
      */
-    public function update(UpdateDealInput $input): Deal
+    public function update(UpdateDealInput $input, ?ContactPersonDraft $newPerson = null): Deal
     {
         $this->access->denyUnlessStaff();
 
-        return $this->work->run(function () use ($input): Deal {
+        return $this->work->run(function () use ($input, $newPerson): Deal {
             $deal = $this->deal($input->dealId);
             $now = $this->clock->now();
             SalesRefused::unless(static fn () => $deal->describe(
@@ -102,8 +119,21 @@ final readonly class DealWrites
             if (!$input->ownerUserId instanceof Omitted) {
                 $deal->assignTo($this->owner($input->ownerUserId), $now);
             }
-            if (!$input->contactPersonIds instanceof Omitted) {
-                $this->replaceContacts($deal, $this->persons($deal->clientPartyId(), $input->contactPersonIds));
+            $persons = $input->contactPersonIds instanceof Omitted ? null : $input->contactPersonIds;
+            if (!$input->clientPartyId instanceof Omitted && $input->clientPartyId !== $deal->clientPartyId()) {
+                $client = $this->newDealClient($input->clientPartyId);
+                if ([] !== $this->store->linksOf($deal->id())) {
+                    throw SalesRefused::conflict('client_has_links', 'The deal is linked to other deals, and a link joins deals of one client only; remove its links with foresi_remove_deal_link first.', 'clientPartyId');
+                }
+                $deal->changeClient($client->id, $now);
+                $persons ??= [];
+            }
+            $persons = null === $persons ? null : $this->persons($deal->clientPartyId(), $persons);
+            if ($newPerson instanceof ContactPersonDraft) {
+                $persons = $this->withNewPerson($deal->clientPartyId(), $persons ?? array_map(static fn (DealContact $contact): string => $contact->personId(), $this->store->contactsOf($deal->id())), $newPerson);
+            }
+            if (null !== $persons) {
+                $this->replaceContacts($deal, $persons);
             }
             $this->updated($deal);
 
@@ -316,6 +346,27 @@ final readonly class DealWrites
             if (!\in_array($id, $persons, true)) {
                 $persons[] = $id;
             }
+        }
+
+        return $persons;
+    }
+
+    /**
+     * The contact persons with the person of the dialog added to the client and put last.
+     *
+     * @param list<string> $persons
+     *
+     * @return list<string>
+     *
+     * @throws ContactPersonRefused
+     */
+    private function withNewPerson(string $clientId, array $persons, ContactPersonDraft $draft): array
+    {
+        $person = $draft->isExisting()
+            ? $this->contactPersons->link($clientId, (string) $draft->personId, $draft->position)
+            : $this->contactPersons->addNew($clientId, $draft->name, $draft->email, $draft->position);
+        if (!\in_array($person->id, $persons, true)) {
+            $persons[] = $person->id;
         }
 
         return $persons;
