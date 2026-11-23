@@ -1146,6 +1146,58 @@ nelmio_api_doc:
                                 account_hint: { type: string, example: '705-<number of your tax office>/0710' }
                                 variable_symbol: { type: string, example: '12345678' }
                                 source_url: { type: string, format: uri }
+                MarginDocumentAllocation:
+                    type: object
+                    description: Who bears the cost of a recorded received document, line by line.
+                    required: [document_id, label, url, trashed, document_allocation, lines, known_gaps]
+                    properties:
+                        document_id: { type: string, format: uuid }
+                        label: { type: string, description: 'The number and the supplier of the document, for people.' }
+                        url: { type: string, description: 'Where a person reads the document in Foresi.' }
+                        trashed: { type: boolean, description: 'A document in the trash has no shares; its mapping stays for a restore.' }
+                        document_allocation:
+                            type: object
+                            nullable: true
+                            description: 'The assignment of the whole document, for every line without a mapping of its own; null without one.'
+                            properties:
+                                recipient: { type: string, description: 'own, or the id of a contact.' }
+                                recipient_name: { type: string, nullable: true }
+                        known_gaps: { type: array, items: { type: string, enum: [missing_exchange_rate] }, description: 'missing_exchange_rate: a line of a foreign document has no base in CZK yet, so it has no share; it counts as unknown, never as zero.' }
+                        lines:
+                            type: array
+                            items:
+                                type: object
+                                required: [key, text, base_czk, allocation, shares]
+                                properties:
+                                    key: { type: string, description: 'The id of the line, which stays the same when the line is edited or moved; rate:21 for the implicit line of a document without lines.' }
+                                    text: { type: string }
+                                    base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The base without VAT in CZK; null while a foreign document has no exchange rate.' }
+                                    allocation:
+                                        type: object
+                                        nullable: true
+                                        description: 'The mapping of this line as it was typed; null when the line has none.'
+                                        properties:
+                                            kind: { type: string, enum: [whole, percent, fixed] }
+                                            shares:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        recipient: { type: string, description: 'own, or the id of a contact.' }
+                                                        recipient_name: { type: string, nullable: true }
+                                                        percent: { type: string, nullable: true, example: '33.33' }
+                                                        amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                                        rest: { type: boolean }
+                                    shares:
+                                        type: array
+                                        description: 'What follows from the mapping, in whole hellers of the base in CZK.'
+                                        items:
+                                            type: object
+                                            properties:
+                                                recipient: { type: string, nullable: true, description: 'own, the id of a contact, or null while nobody claims the cost.' }
+                                                recipient_name: { type: string, nullable: true }
+                                                amount: { $ref: '#/components/schemas/Money' }
+                                                source: { type: string, enum: [line, document, planned_item, supplier, unassigned] }
                 CalendarFeed:
                     type: object
                     description: One of your calendar feeds. Its address is never shown again after it is created.

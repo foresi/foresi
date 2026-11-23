@@ -140,6 +140,9 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_reopen_vat_period` | **Write.** Removes the settled mark of a period (`key`); a period a bank payment pays stays settled. |
 | `foresi_assign_vat_payment` | **Write.** Places a bank movement (`movement_id`): `period` it pays, or `null` for no VAT payment. It wins over the automatic matching. |
 | `foresi_reset_vat_payment` | **Write.** Gives a placed bank movement (`movement_id`) back to the automatic matching. |
+| `foresi_get_document_allocation` | Who bears the cost of a recorded received document (`document_id`): each line with its `key`, `base_czk`, its own allocation and its shares (`recipient`, `recipient_name`, `amount`, `source`), the assignment of the whole document and `known_gaps`. Staff only. |
+| `foresi_set_line_allocation` | **Write.** Splits the cost of one line (`document_id`, `line_key`) by `kind` (`whole`, `percent` or `fixed`) and its `shares` (`recipient` as `own` or a contact id, `percent`, `amount`, `rest`); `kind: null` clears it. Answers the document with its shares. Staff only. |
+| `foresi_assign_received_document` | **Write.** Gives the whole cost of a document (`document_id`) to one `recipient` (`own` or a contact id), for the lines without a mapping of their own; `null` clears it. Staff only. |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |

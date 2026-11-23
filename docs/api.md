@@ -662,6 +662,18 @@ A period the firm does not have is `404 not_found`, and a key that is no month o
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v1/vat/periods?from=2026-11&to=2027-03"
 ```
 
+## Margin
+
+Who bears the cost of a received document: the firm itself (`own`) or one of its clients, a contact. The reads need `margin:read`, the writes `margin:write`; only the owners and the members of the organisation work with the margin, so a guest is refused. A recipient is the string `own` or the id of an existing, active contact.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/margin/documents/{documentId}` | The recorded received document with `lines`: each has its `key`, `text`, `base_czk` (without VAT, `null` while a foreign document has no exchange rate), its own `allocation` (`kind` and `shares`, or `null`) and its `shares`, each with `recipient` (`own`, a contact id, or `null` while unassigned), `recipient_name`, `amount` in CZK and its `source` (`line`, `document`, `planned_item`, `supplier` or `unassigned`). It also has `document_allocation` (the assignment of the whole document, or `null`), `trashed` and `known_gaps` (`missing_exchange_rate`). |
+| `PUT /api/v1/margin/documents/{documentId}/lines/{lineKey}/allocation` | Replaces the mapping of one line and answers the document as the read does. `kind` is `whole` (one share), `percent` (two or more shares with a `percent` such as `"33.33"`, adding up to exactly 100) or `fixed` (shares with an `amount` in CZK such as `"800.00"`, and one share with `rest: true`); `kind: null` clears it. The shares are counted at once, in whole hellers: a percent is rounded down per share and the last share takes the remainder; a fixed amount is capped at what the line has left. A document without lines has one implicit line per VAT rate, keyed `rate:21`. |
+| `POST /api/v1/margin/documents/{documentId}/assign` | Gives the whole document to `recipient`, for every line without a mapping of its own; `recipient: null` clears it. Answers as the read. |
+
+A document the margin has no costs for (unknown, or a draft) is `404 unknown_document`, and a line key the document does not have `404 unknown_line`. A client that is no active contact is `400 invalid_parameter` with `unknown_contact`, and a mapping that cannot be followed with `whole_needs_one`, `percent_must_add_up`, `fixed_needs_a_rest` or `duplicate_recipient` (`parameter` is `shares`; `recipient` in the assignment); `recipient_invalid`, `kind_invalid`, `share_invalid` and `amount_invalid` name a value that could not be read.
+
 ## Documents
 
 Contracts and other documents made from templates, their signers and their signed copies. What the statuses mean and how manual signing works is in [documents.md](documents.md). The reads need `documents:read`, the writes `documents:write`, and only the owners and members of the organisation may use them: a guest's token is never accepted. Bodies are JSON with snake case fields.
