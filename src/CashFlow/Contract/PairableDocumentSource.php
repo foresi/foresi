@@ -27,6 +27,16 @@ interface PairableDocumentSource
     public function one(string $subjectType, string $subjectId): ?PairableDocument;
 
     /**
+     * Several documents of one type at once, so a list of pairings costs one lookup per source.
+     * The unknown and the trashed are left out.
+     *
+     * @param list<string> $subjectIds
+     *
+     * @return iterable<PairableDocument>
+     */
+    public function many(string $subjectType, array $subjectIds): iterable;
+
+    /**
      * The documents of one counterparty whose date falls from the first day to the last day, both included.
      *
      * @return iterable<PairableDocument>

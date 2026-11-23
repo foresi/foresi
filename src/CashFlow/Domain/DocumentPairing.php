@@ -145,6 +145,18 @@ class DocumentPairing
         $this->state = PairingState::Confirmed;
         $this->point($item, $on);
         $this->decide($userId, $now);
+        $this->listCandidate(new PairingCandidate($item->id(), $on));
+    }
+
+    /**
+     * The chosen occurrence is always among the candidates, also when a person picks one Cash flow did not offer.
+     */
+    private function listCandidate(PairingCandidate $candidate): void
+    {
+        $listed = array_any($this->candidates(), static fn (PairingCandidate $stored): bool => $stored->plannedItemId === $candidate->plannedItemId && $stored->occurrenceOn->format('Y-m-d') === $candidate->occurrenceOn->format('Y-m-d'));
+        if (!$listed) {
+            $this->candidates[] = $candidate->toArray();
+        }
     }
 
     /**

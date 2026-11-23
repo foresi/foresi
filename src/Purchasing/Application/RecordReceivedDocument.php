@@ -87,8 +87,9 @@ final readonly class RecordReceivedDocument
             $this->access->firm(true);
             $content = $this->contents->of($input, null, true);
             $document = new ReceivedDocument(ReceivedDocumentContent::blank(), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
-            $this->recording->record($document, $content, $userId);
+            // Added before it is recorded, so a listener of the recording event finds it.
             $this->documents->add($document);
+            $this->recording->record($document, $content, $userId);
 
             return $document;
         });

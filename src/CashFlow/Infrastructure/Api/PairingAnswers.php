@@ -34,7 +34,9 @@ final readonly class PairingAnswers
             $names[$item->id()] = $item->name();
         }
 
-        return array_map(fn (DocumentPairing $pairing): array => CashFlowJson::pairing($pairing, $names, $this->pairing->document($pairing->subjectType(), $pairing->subjectId())?->subject->url), $pairings);
+        $documents = $this->pairing->documents($pairings);
+
+        return array_map(static fn (DocumentPairing $pairing): array => CashFlowJson::pairing($pairing, $names, ($documents[$pairing->subjectType().':'.$pairing->subjectId()] ?? null)?->subject->url), $pairings);
     }
 
     /**

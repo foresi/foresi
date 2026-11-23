@@ -57,6 +57,21 @@ final class DocumentPairingTest extends TestCase
         self::assertSame('2026-11-25', $pairing->candidates()[1]->occurrenceOn->format('Y-m-d'));
     }
 
+    public function testConfirmingAnItemThatWasNotOfferedAddsItToTheCandidates(): void
+    {
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, [
+            $this->candidate($this->a, '2026-11-20'),
+            $this->candidate($this->a, '2026-12-20'),
+        ], null, $this->now());
+
+        $pairing->confirm($this->b, $this->day('2026-11-25'), self::USER, $this->now());
+        $pairing->confirm($this->b, $this->day('2026-11-25'), self::USER, $this->now());
+
+        self::assertCount(3, $pairing->candidates());
+        self::assertSame($this->b->id(), $pairing->candidates()[2]->plannedItemId);
+        self::assertSame($this->b->id(), $pairing->plannedItemId());
+    }
+
     public function testAProposalWithOneCandidateAlsoPointsAtIt(): void
     {
         $pairing = DocumentPairing::propose('received_document', 'doc-1', PairingFixtures::supplier(), [$this->candidate($this->a, '2026-11-20')], $this->a, $this->now());

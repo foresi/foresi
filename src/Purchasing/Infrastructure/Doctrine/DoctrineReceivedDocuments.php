@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
@@ -28,6 +29,18 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
     public function find(string $id): ?ReceivedDocument
     {
         return Id::isValid($id) ? $this->entityManager->find(ReceivedDocument::class, $id) : null;
+    }
+
+    public function findMany(array $ids): array
+    {
+        $ids = array_values(array_filter($ids, Id::isValid(...)));
+        if ([] === $ids) {
+            return [];
+        }
+
+        return $this->entityManager->createQuery('SELECT d FROM '.ReceivedDocument::class.' d WHERE d.id IN (:ids)')
+            ->setParameter('ids', $ids, ArrayParameterType::STRING)
+            ->getResult();
     }
 
     public function lock(string $id): ReceivedDocument

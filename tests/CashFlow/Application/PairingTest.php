@@ -311,6 +311,20 @@ final class PairingTest extends CashFlowTestCase
         return $this->documents->add(new PairableDocument(new FlowSubject('received_document', $id), $this->supplier->id(), FlowDirection::Out, Money::of('32.00', Currency::USD), $on));
     }
 
+    public function testTheDocumentsOfSeveralPairingsComeFromOneLookupPerSource(): void
+    {
+        $this->monthly('Cloud Host', '32.00', '2026-05-20');
+        $this->document('doc-1', '32.00', '2026-11-18');
+        $this->document('doc-2', '50.00', '2026-10-18');
+        $this->pairing->consider($this->documents->one('received_document', 'doc-1') ?? self::fail());
+        $this->pairing->consider($this->documents->one('received_document', 'doc-2') ?? self::fail());
+        $this->documents->remove('received_document', 'doc-2');
+
+        $found = $this->pairing->documents($this->store()->pairings());
+
+        self::assertSame(['received_document:doc-1'], array_keys($found));
+    }
+
     private function row(string $id): DocumentPairing
     {
         $this->em->clear();

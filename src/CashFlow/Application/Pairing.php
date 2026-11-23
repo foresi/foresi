@@ -124,6 +124,31 @@ final readonly class Pairing implements DocumentPairer
     }
 
     /**
+     * The documents of pairings as their sources give them, a lookup per source and type.
+     *
+     * @param list<DocumentPairing> $pairings
+     *
+     * @return array<string, PairableDocument> by "type:id"; a document that is unknown or in the trash is missing
+     */
+    public function documents(array $pairings): array
+    {
+        $ids = [];
+        foreach ($pairings as $pairing) {
+            $ids[$pairing->subjectType()][] = $pairing->subjectId();
+        }
+        $found = [];
+        foreach ($ids as $type => $subjectIds) {
+            foreach ($this->sources as $source) {
+                foreach ($source->many($type, $subjectIds) as $document) {
+                    $found[$document->subject->type.':'.$document->subject->id] = $document;
+                }
+            }
+        }
+
+        return $found;
+    }
+
+    /**
      * Takes another look at one document, read again from its source; nothing when no source knows it.
      */
     public function reconsiderSubject(FlowSubject $subject): void

@@ -36,6 +36,15 @@ final class FakePairableDocuments implements PairableDocumentSource
         return $this->documents[$subjectType.':'.$subjectId] ?? null;
     }
 
+    public function many(string $subjectType, array $subjectIds): iterable
+    {
+        foreach ($subjectIds as $id) {
+            if (isset($this->documents[$subjectType.':'.$id])) {
+                yield $this->documents[$subjectType.':'.$id];
+            }
+        }
+    }
+
     public function of(string $counterpartyId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
         foreach ($this->documents as $document) {
