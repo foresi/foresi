@@ -8,14 +8,19 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Contract;
 
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+
 /**
  * Lets Cash flow read documents again, to decide whether another document
  * falls in a period, to consider siblings after a document is forgotten and to
  * backfill. A document module implements it and tags it
  * "app.cash_flow_pairable_documents".
  */
+#[AutoconfigureTag(self::TAG)]
 interface PairableDocumentSource
 {
+    public const string TAG = 'app.cash_flow_pairable_documents';
+
     /**
      * @return PairableDocument|null null when the document is unknown to this source or trashed
      */
