@@ -49,4 +49,4 @@ margin:
     error:
       recipient: Vyberte firmu samotnou nebo klienta.
       client: Klienta v řádku vyberte ze seznamu.
-      amount: Částka je číslo v Kč s nejvýše dvěma desetinnými místy, větší než nula.
+      amount: Částka je číslo v Kč s nejvýše dvěma desetinnými místy.

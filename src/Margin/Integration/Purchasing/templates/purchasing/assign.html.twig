@@ -16,6 +16,8 @@
 {% block dialog_body %}
     <form method="post" id="margin-assign-form" action="{{ path('app_margin_assign', {id: documentId}) }}" class="grid gap-4" novalidate data-margin-assign-form>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Purchasing\\MarginController::TOKEN')) }}">
+        {# The first submit button of a form is what Enter presses: it is Save, never Clear (the footer buttons come later). #}
+        <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
         {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
         <twig:Ui:Select name="type" id="margin-type" :label="'margin.screen.recipient'|trans" :value="values.type" :options="{'': '', own: 'margin.screen.own'|trans, client: 'margin.screen.client'|trans}" />
         <twig:Ui:Combobox name="contactId" id="margin-contact" textName="query" :label="'margin.screen.client'|trans" :help="'margin.screen.client_help'|trans" :placeholder="'margin.screen.client_placeholder'|trans" :value="values.contactId" :text="values.query" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />

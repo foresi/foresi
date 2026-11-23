@@ -128,7 +128,7 @@ final readonly class LineForm
 
     private function field(?Money $money): string
     {
-        return $money instanceof Money ? \sprintf('%d%s%02d', intdiv($money->minor(), 100), $this->separator(), $money->minor() % 100) : '';
+        return $money instanceof Money ? \sprintf('%d%s%02d', intdiv(abs($money->minor()), 100), $this->separator(), abs($money->minor()) % 100) : '';
     }
 
     private function separator(): string

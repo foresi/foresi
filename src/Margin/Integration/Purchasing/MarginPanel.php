@@ -10,7 +10,6 @@ namespace Foresi\Margin\Integration\Purchasing;
 
 use Foresi\Margin\Application\AllocationReads;
 use Foresi\Margin\Application\LineAllocationView;
-use Foresi\Margin\Application\MappingView;
 use Foresi\Margin\Application\ShareView;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Purchasing\Contract\PurchasingSlots;
@@ -21,7 +20,7 @@ use Foresi\Ui\Format\MoneyText;
 
 /**
  * The Margin panel of the page of a received document: who bears the cost of each line, how much, and where that
- * came from. Nothing is offered to a person who may not work with the margin, nor for a document without costs.
+ * came from. Nothing is offered to a person who may not work with the margin, nor for a document Margin does not know.
  */
 final readonly class MarginPanel implements SlotProvider
 {
@@ -54,7 +53,6 @@ final readonly class MarginPanel implements SlotProvider
                 'key' => $line->key,
                 'text' => $line->text,
                 'base' => $line->baseCzk instanceof Money ? $this->text->shown($line->baseCzk) : null,
-                'own' => $line->mapping instanceof MappingView,
                 'shares' => array_map(fn (ShareView $share): array => [
                     'recipient' => $share->recipient,
                     'name' => $share->recipientName,

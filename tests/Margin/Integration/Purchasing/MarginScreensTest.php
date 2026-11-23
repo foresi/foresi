@@ -10,6 +10,7 @@ namespace Foresi\Tests\Margin\Integration\Purchasing;
 
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
+use Foresi\Margin\Application\CostShareCalculation;
 use Foresi\Margin\Domain\CostShare;
 use Foresi\Margin\Domain\DocumentAllocation;
 use Foresi\Margin\Domain\LineAllocation;
@@ -21,6 +22,7 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
@@ -153,6 +155,47 @@ final class MarginScreensTest extends WebTestCase
         self::assertSame(0, $this->stored(DocumentAllocation::class));
     }
 
+    public function testEnterInTheFormSavesAndNeverClears(): void
+    {
+        $this->start(Role::Owner);
+        $id = $this->record();
+        $key = $this->lineKeys($id)[0];
+        $dialog = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
+        $this->client->submit($dialog->filter('#margin-line-form')->form(['kind' => 'whole', 'shares[0][type]' => 'own']));
+        self::assertSame(1, $this->stored(LineAllocation::class));
+
+        // What Enter presses is the first submit button associated with the form; the footer buttons come later.
+        $again = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
+        $form = $again->filter('#margin-line-form')->form();
+        $first = $again->filter('#margin-line-form button[type="submit"]')->first();
+        self::assertSame('save', $first->attr('value'));
+        $this->client->request('POST', '/margin/documents/'.$id.'/lines/'.$key, $form->getPhpValues() + ['_action' => $first->attr('value')]);
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertSame(1, $this->stored(LineAllocation::class), 'Enter did not clear the split.');
+
+        $dialog = $this->client->request('GET', '/margin/documents/'.$id.'/assign');
+        self::assertSame('save', $dialog->filter('#margin-assign-form button[type="submit"]')->first()->attr('value'));
+    }
+
+    public function testAForeignDocumentWithoutARateShowsTheKnownGapNote(): void
+    {
+        $this->start(Role::Owner);
+        $id = $this->record(Currency::EUR);
+        $connection = $this->browser->em()->getConnection();
+        $recap = json_decode(\is_string($stored = $connection->fetchOne('SELECT vat_recap FROM received_document WHERE id = ?', [$id])) ? $stored : '[]', true, flags: \JSON_THROW_ON_ERROR);
+        $recap = array_map(static fn (mixed $row): array => ['base_czk' => null] + (array) $row, (array) $recap);
+        $connection->executeStatement('UPDATE received_document SET exchange_rate = NULL, vat_recap = ? WHERE id = ?', [json_encode($recap, \JSON_THROW_ON_ERROR), $id]);
+        $this->browser->em()->clear();
+        self::getContainer()->get(CostShareCalculation::class)->recalculate($id);
+
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $page->filter('[data-margin-gap]'));
+        self::assertCount(2, $page->filter('[data-margin-line-gap]'));
+        self::assertCount(0, $page->filter('[data-margin-share]'));
+    }
+
     public function testTheContactSearchOffersActiveContactsByName(): void
     {
         $this->start(Role::Owner);
@@ -199,11 +242,11 @@ final class MarginScreensTest extends WebTestCase
     /**
      * A recorded document of two lines, 700 and 300 CZK without VAT.
      */
-    private function record(): string
+    private function record(Currency $currency = Currency::CZK): string
     {
         $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
-            ReceivedDocumentKind::TaxInvoice,
-            PurchaseTaxTreatment::Domestic,
+            Currency::CZK === $currency ? ReceivedDocumentKind::TaxInvoice : ReceivedDocumentKind::ForeignInvoice,
+            Currency::CZK === $currency ? PurchaseTaxTreatment::Domestic : PurchaseTaxTreatment::EuService,
             $this->supplier->id(),
             'INV-1',
             '2026123',
@@ -211,14 +254,14 @@ final class MarginScreensTest extends WebTestCase
             new \DateTimeImmutable('2026-11-18'),
             null,
             new \DateTimeImmutable('2026-11-18'),
-            Currency::CZK,
-            Money::of('1210.00', Currency::CZK),
+            $currency,
+            Money::of(Currency::CZK === $currency ? '1210.00' : '1000.00', $currency),
+            Currency::CZK === $currency ? null : ExchangeRate::of('25'),
             null,
-            null,
-            [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', Currency::CZK), Money::of('210.00', Currency::CZK))],
+            [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', $currency), Money::of(Currency::CZK === $currency ? '210.00' : '0.00', $currency))],
             lines: [
-                new ReceivedDocumentLineInput('Hosting', Money::of('700.00', Currency::CZK), '21'),
-                new ReceivedDocumentLineInput('Domain', Money::of('300.00', Currency::CZK), '21'),
+                new ReceivedDocumentLineInput('Hosting', Money::of('700.00', $currency), '21'),
+                new ReceivedDocumentLineInput('Domain', Money::of('300.00', $currency), '21'),
             ],
         ));
         $this->browser->em()->flush();

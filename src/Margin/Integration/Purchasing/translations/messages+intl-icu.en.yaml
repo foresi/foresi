@@ -49,4 +49,4 @@ margin:
     error:
       recipient: Choose the firm itself or a client.
       client: Pick the client of a row from the list.
-      amount: An amount is a number in CZK with at most two decimals, above zero.
+      amount: An amount is a number in CZK with at most two decimals.

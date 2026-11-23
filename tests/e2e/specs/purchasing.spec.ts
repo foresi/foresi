@@ -196,6 +196,26 @@ test.describe('received documents', () => {
   });
 });
 
+test.describe('margin', () => {
+  test('a document is assigned to own use and the panel shows the recipient', async ({ page }) => {
+    await page.goto('/purchasing?tab=recorded');
+    await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260004' }).click();
+    await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
+    const panel = page.locator('[data-purchasing-margin]');
+    // Nobody bears the cost yet.
+    await expect(panel.locator('[data-margin-share="unassigned"]').first()).toBeVisible();
+
+    await panel.getByRole('link', { name: 'Přiřadit…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Přiřadit…' });
+    await dialog.locator('#margin-type').selectOption({ label: 'Vlastní spotřeba' });
+    await dialog.getByRole('button', { name: 'Uložit' }).click();
+
+    await expect(page.locator('[role=status]').filter({ hasText: 'Doklad je přiřazený.' })).toBeVisible();
+    await expect(panel.locator('[data-margin-whole]')).toContainText('Vlastní spotřeba');
+    await expect(panel.locator('[data-margin-share="document"]').first()).toContainText('Vlastní spotřeba');
+  });
+});
+
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
     // An instance holds one firm (ADR 0039), so the list holds the seeded documents too.
