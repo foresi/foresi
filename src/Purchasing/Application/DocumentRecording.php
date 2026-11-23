@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Application;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Purchasing\Contract\Event\ReceivedDocumentChanged;
 use Foresi\Purchasing\Contract\Event\ReceivedDocumentRecorded;
 use Foresi\Purchasing\Domain\EvidenceSeries;
 use Foresi\Purchasing\Domain\ReceivedDocument;
@@ -26,7 +27,8 @@ use Psr\Clock\ClockInterface;
  * the next evidence number of the series, made with the standard format
  * when there is none yet; the number counts in the year of the received
  * date. Its supplier becomes a supplier of the firm. Recording a draft records
- * purchasing.received_document.recorded; saving a recorded document again does not.
+ * purchasing.received_document.recorded; saving a recorded document again
+ * records purchasing.received_document.changed with what "edited".
  */
 final readonly class DocumentRecording
 {
@@ -68,6 +70,8 @@ final readonly class DocumentRecording
                 $total->currency()->value,
                 $document->dueDate()?->format('Y-m-d'),
             ));
+        } else {
+            $this->events->record(new ReceivedDocumentChanged($document->id(), ReceivedDocumentChanged::EDITED));
         }
     }
 

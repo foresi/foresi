@@ -14,7 +14,8 @@ Owners and team members of the organisation. A guest never sees received documen
 - **Kind.** A tax invoice, a simplified receipt (a simplified tax document), a foreign invoice, a credit note (a corrective tax document), an advance request or another document. The kind decides what a document needs: advance requests and other documents carry no VAT, so they are always "not a VAT document" and need no VAT recap; a credit note names the recorded document it corrects, and only a credit note does.
 - **Supplier.** A contact of the address book. The document keeps a frozen copy of the supplier's name, registration number, VAT ID and address as the document states them, so a later edit of the contact never changes a recorded document.
 - **Supplier's number and our evidence number.** The supplier's number is the number printed on the document, the one the control statement reports. The evidence number is the firm's own number in its books (see [Evidence number](#evidence-number)).
-- **VAT recap.** One row per VAT rate: the rate as the document prints it (21, 12, 0 or any other, since a supplier abroad may use any rate), the base and the VAT in the currency of the document, and for a document in another currency the VAT in CZK it states. Invoice lines are not stored; a recap is enough for the control statement and the VAT return.
+- **VAT recap.** One row per VAT rate: the rate as the document prints it (21, 12, 0 or any other, since a supplier abroad may use any rate), the base and the VAT in the currency of the document, and for a document in another currency the VAT in CZK it states. The recap is the only source of the VAT: it is enough for the control statement and the VAT return.
+- **Lines.** Optional: what the document was for, split by the rates of its recap (see [Lines](#lines)).
 
 ## Drafts and recorded documents
 
@@ -93,6 +94,12 @@ A save that went through tells its warnings in a notice. A warning never stops t
 
 The trash and the history work as for invoices (see [ADR 0013](adr/0013-invoice-numbers-and-trash.md)). Every change reaches the audit log, and each document shows its history: created, recorded, changed, trashed and restored, with who and when.
 
+## Lines
+
+A document may say what it was for in lines: each has a text (at most 255 characters), a base without VAT in the document's currency and a rate of its VAT recap. Per rate, the bases of the lines add up to the base of that rate in the recap; a document without a recap (not a VAT document, an advance request) has the one rate 0, and its lines add up to its total. At most 100 lines. The lines never change the recap, the VAT, the CZK amounts or the total: the recap stays the only source of the VAT. The base in CZK of a line is its base at the document's rate, and the last line of each rate takes the rounding difference to the recap's base in CZK.
+
+A document without lines reads as one implicit line per rate of its recap, named by the kind of the document, so a report always has lines to read. A draft and a recorded document take lines, a document in the trash or of a closed month does not. A save that changes the recap of a document with lines must send lines that fit the new recap, or it is refused with `lines_do_not_add_up`. The lines are set over the [REST API](api.md#received-documents) and [MCP](mcp.md), or given when a document is recorded there.
+
 ## Payments
 
 A recorded document keeps its payments, built the way the payments of issued invoices are ([ADR 0019](adr/0019-payments-and-allocations.md)): the day, the amount in the document's currency, the method (`bank_transfer`, `card`, `cash` or `other`) and, when known, the bank movement that paid it. A document may have several; together they are never more than its total. What is paid and what remains are derived from them, never stored. For a credit note the payments are what the supplier returned, and its negative total remains until they reach it.
@@ -100,6 +107,16 @@ A recorded document keeps its payments, built the way the payments of issued inv
 **Mark as paid** records one payment of all that remains, dated today in the organisation's time zone, so a document marked as paid at 00:30 in Prague is paid that day, not the day before in UTC. A draft, a document in the trash and one paid in full take no payment. A closed month does not stop one, as a payment changes nothing the VAT reports read. A payment recorded by mistake is removed, and the audit log keeps it.
 
 Payments are recorded over the [REST API](api.md#received-documents) and [MCP](mcp.md) for now; the screens show them in a later step. Recording a document for the first time records the event `purchasing.received_document.recorded`, and the payment that leaves nothing to pay `purchasing.received_document.paid`, for the event feed and webhooks.
+
+A recorded document records more events, each with the document as its subject and no amounts (ADR 0030):
+
+| Event | When | Payload |
+| --- | --- | --- |
+| `purchasing.received_document.changed` | It was saved again (`what` is `edited`), or its lines were set to other lines (`what` is `lines`). | `received_document_id`, `what` |
+| `purchasing.received_document.trashed` | It was moved to the trash. | `received_document_id` |
+| `purchasing.received_document.restored` | It came back from the trash. | `received_document_id` |
+
+A draft records none of them; its first recording records `recorded`, never `changed`. One save records one event.
 
 ## Operating it
 
@@ -112,6 +129,5 @@ Not in this release:
 - **Export** of the control statement and the VAT return from the stored values, and a month close that locks the documents of a closed month.
 - **Own evidence series** per firm, with another format, in the settings of the firm.
 - **Quarterly VAT payers**: deduction periods by quarter.
-- **Invoice lines** on a received document, for the lines of a long usage invoice; the recap per rate is all that is stored.
 - **A proportional or reduced deduction** (sections 75 and 76 of the VAT Act) beside the treatment.
 - **Pairing outgoing bank payments** with a document by its due date, variable symbol and total, recorded as its payment; and payments on the document's page.

@@ -470,11 +470,28 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content());
         $version = $document->version();
 
-        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn () => $document->setLines([$this->line('Hosting', 99_999)]));
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): bool => $document->setLines([$this->line('Hosting', 99_999)]));
         self::assertSame([$version, []], [$document->version(), $document->lines()]);
 
-        $document->setLines([$this->line('Hosting', 100_000)]);
+        self::assertTrue($document->setLines([$this->line('Hosting', 100_000)]));
         self::assertSame($version + 1, $document->version());
+    }
+
+    public function testSettingTheSameLinesAgainChangesNothing(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        $version = $document->version();
+
+        // Written as the stored ones once checked: trimmed, the rate as the recap writes it.
+        self::assertFalse($document->setLines([$this->line(' Hosting ', 70_000), $this->line('Domain', 30_000)]));
+        self::assertSame($version, $document->version());
+        self::assertTrue($document->setLines([$this->line('Domain', 30_000), $this->line('Hosting', 70_000)]));
+        self::assertSame($version + 1, $document->version());
+
+        $without = $this->recorded($this->content());
+        $version = $without->version();
+        self::assertFalse($without->setLines([]));
+        self::assertSame($version, $without->version());
     }
 
     public function testATrashedDocumentTakesNoLines(): void
@@ -482,7 +499,7 @@ final class ReceivedDocumentTest extends TestCase
         $document = $this->recorded($this->content());
         $document->trash(new \DateTimeImmutable(self::AT), null, 'Duplicate');
 
-        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $document->setLines([$this->line('Hosting', 100_000)]));
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn (): bool => $document->setLines([$this->line('Hosting', 100_000)]));
     }
 
     public function testLinesDoNotChangeTheRecap(): void

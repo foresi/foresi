@@ -103,15 +103,16 @@ final class AuditListener
     }
 
     /**
-     * A collection of the inverse side keeps nothing of its own: each item holds
-     * the reference, so adding, changing or removing an audited item is an entry
-     * of the item. A collection of the owning side (a join table) has no such entry.
+     * A one-to-many collection keeps nothing of its own: each item holds the
+     * reference, so adding, changing or removing an audited item is an entry of
+     * the item. A many-to-many collection (a join table), owning or inverse, has
+     * no such entry.
      *
      * @param PersistentCollection<array-key, object> $collection
      */
     private function itemsAuditedOnTheirOwn(PersistentCollection $collection): bool
     {
-        return !$collection->getMapping()->isOwningSide()
+        return $collection->getMapping()->isOneToMany()
             && $collection->getTypeClass()->getReflectionClass()->implementsInterface(Audited::class);
     }
 

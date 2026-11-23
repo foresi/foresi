@@ -57,6 +57,11 @@ final class DocumentLinesTest extends TestCase
         ], $this->recap(['21', 100_000]), $this->czk(121_000), Currency::CZK));
     }
 
+    public function testARateThatIsNoRateIsRefused(): void
+    {
+        $this->assertRefused(ReceivedDocumentRefused::VAT_RATE, fn (): array => DocumentLines::check([$this->line('Hosting', 100_000, 'twenty-one')], $this->recap(['21', 100_000]), null, Currency::CZK));
+    }
+
     public function testTheTextIsTrimmedAndTheRateWrittenAsTheRecapWritesIt(): void
     {
         $lines = DocumentLines::check([$this->line('  Hosting  ', 100_000, '21.00')], $this->recap(['21', 100_000]), null, Currency::CZK);

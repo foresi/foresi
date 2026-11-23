@@ -53,6 +53,95 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertSame($created, $this->json()['data']);
     }
 
+    public function testADocumentWithoutLinesAnswersOneImplicitLinePerRate(): void
+    {
+        $id = $this->recorded('FV-11');
+
+        $this->get('/api/v1/received-documents/'.$id, secret: $this->writer);
+
+        self::assertSame([[
+            'key' => 'rate:21',
+            'text' => 'Tax invoice',
+            'base' => ['amount_minor' => 100_000, 'currency' => 'CZK'],
+            'base_czk' => ['amount_minor' => 100_000, 'currency' => 'CZK'],
+            'vat_rate' => '21',
+            'implicit' => true,
+        ]], $this->at('data', 'lines'));
+    }
+
+    public function testSettingLinesOverRestAnswersTheDocumentWithThem(): void
+    {
+        $id = $this->recorded('FV-12');
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [
+            ['text' => 'Hosting', 'base' => '700.00', 'vat_rate' => '21'],
+            ['text' => 'Domain', 'base' => '300.00', 'vat_rate' => '21'],
+        ]]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([['Hosting', 70_000, false], ['Domain', 30_000, false]], [
+            [$this->at('data', 'lines', 0, 'text'), $this->at('data', 'lines', 0, 'base', 'amount_minor'), $this->at('data', 'lines', 0, 'implicit')],
+            [$this->at('data', 'lines', 1, 'text'), $this->at('data', 'lines', 1, 'base', 'amount_minor'), $this->at('data', 'lines', 1, 'implicit')],
+        ]);
+        self::assertSame(['amount_minor' => 100_000, 'currency' => 'CZK'], $this->at('data', 'base'), 'The lines leave the recap as it is.');
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => []]);
+        self::assertResponseIsSuccessful();
+        self::assertTrue($this->at('data', 'lines', 0, 'implicit'), 'An empty list removes the lines.');
+    }
+
+    public function testLinesThatDoNotAddUpAreRefusedWithTheirCode(): void
+    {
+        $id = $this->recorded('FV-13');
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['text' => 'Hosting', 'base' => '999.99', 'vat_rate' => '21']]]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'lines_do_not_add_up']);
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['text' => 'Hosting', 'base' => '1000.00', 'vat_rate' => 'high']]]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'vat_rate']);
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['text' => 'Hosting', 'base' => 1000, 'vat_rate' => '21']]]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'line_invalid']);
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['text' => 'Hosting', 'base' => '1000.001', 'vat_rate' => '21']]]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'amount_invalid']);
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['text' => 'Hosting', 'base' => '1000', 'vat_rate' => '12']]]);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'unknown_vat_rate']);
+
+        $this->send('PUT', '/api/v1/received-documents/01940000-0000-7000-8000-000000000001/lines', ['lines' => []]);
+        $this->assertProblem(404, 'not_found');
+    }
+
+    public function testRecordOverMcpWithLines(): void
+    {
+        $call = $this->tool('foresi_record_received_document', [
+            'kind' => 'tax_invoice',
+            'supplier_id' => $this->customerId,
+            'supplier_number' => 'FV-14',
+            'issue_date' => '2026-11-02',
+            'received_date' => '2026-11-03',
+            'total' => '1210.00',
+            'vat_recap' => ['21:1000.00:210.00'],
+            'lines' => [['text' => 'Hosting', 'base' => '600.00', 'vat_rate' => '21'], ['text' => 'Mail', 'base' => '400.00', 'vat_rate' => '21']],
+        ]);
+
+        self::assertFalse($call['isError'] ?? false, (string) json_encode($call));
+        $lines = $this->pathOf($call, 'structuredContent', 'data', 'lines');
+        self::assertIsArray($lines);
+        self::assertSame(['Hosting', 'Mail'], array_column($lines, 'text'));
+
+        $id = $this->pathOf($call, 'structuredContent', 'data', 'id');
+        self::assertIsString($id);
+        $set = $this->tool('foresi_set_received_document_lines', ['document_id' => $id, 'lines' => [['text' => 'Everything', 'base' => '1000.00', 'vat_rate' => '21']]]);
+        self::assertFalse($set['isError'] ?? false, (string) json_encode($set));
+        self::assertSame('Everything', $this->pathOf($set, 'structuredContent', 'data', 'lines', 0, 'text'));
+
+        $refused = $this->tool('foresi_record_received_document', ['supplier_number' => 'FV-15', 'kind' => 'tax_invoice', 'supplier_id' => $this->customerId, 'issue_date' => '2026-11-02', 'total' => '1210.00', 'vat_recap' => ['21:1000.00:210.00'], 'lines' => [['text' => 'Hosting', 'base' => '1.00', 'vat_rate' => '21']]]);
+        self::assertTrue($refused['isError'] ?? false);
+        self::assertStringContainsString('lines_do_not_add_up', (string) json_encode($refused));
+    }
+
     public function testWhatTheApiCannotReadIsRefusedByItsField(): void
     {
         $this->send('POST', '/api/v1/received-documents', ['issue_date' => '2026-13-01'] + $this->fields());

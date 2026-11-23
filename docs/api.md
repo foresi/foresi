@@ -122,7 +122,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
 | `/api/v1/received-documents` | `received_documents:read` | Received documents, newest first, with what is paid and what remains. |
-| `/api/v1/received-documents/{documentId}` | `received_documents:read` | One received document with its VAT recap and payments. |
+| `/api/v1/received-documents/{documentId}` | `received_documents:read` | One received document with its VAT recap, lines and payments. |
 | `/api/v1/received-documents/{documentId}/payments` | `received_documents:read` | The payments of one received document, by the day paid. |
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
@@ -261,7 +261,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), a received document was recorded or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), a received document was recorded, changed, trashed, restored or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -723,7 +723,7 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen
 
 ## Received documents
 
-The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, the exchange rate, the deduction period and `payments`.
+The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, `lines`, the exchange rate, the deduction period and `payments`. Each line has `key` (the id of a stored line, or `rate:21` for an implicit one), `text`, `base`, `base_czk` (null while the document has no exchange rate), `vat_rate` and `implicit`. A document without stored lines answers one implicit line per rate of its recap, its text the kind of the document, such as `Tax invoice`; one without a recap answers one line at rate `0` for its total, and none without a total. See [lines](purchasing.md#lines).
 
 Query parameters of `GET /api/v1/received-documents`:
 
@@ -751,6 +751,7 @@ The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-d
 | `POST /api/v1/received-documents/{documentId}/payments` | `201` with the document and its new payment. |
 | `POST /api/v1/received-documents/{documentId}/mark-paid` | The document paid in full by one payment of all that remains, dated today in the organisation's time zone. |
 | `DELETE /api/v1/received-documents/{documentId}/payments/{paymentId}` | The document without the payment, for one recorded by mistake. |
+| `PUT /api/v1/received-documents/{documentId}/lines` | The document with its new lines. Body: `lines`, all of them in their order; an empty list removes them. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
@@ -773,6 +774,7 @@ Recording takes the next evidence number of the firm, as the screen does, and ne
 | `exchange_rate` | CZK for one unit of the currency; the published rate of the tax point when left out. |
 | `original_document_id` | The recorded document a credit note corrects. |
 | `supply_code` | The code of the supply of a domestic reverse charge. |
+| `lines` | Optional, at most 100: objects of `text` (at most 255 characters), `base` (a decimal in the document's currency, without VAT) and `vat_rate` (a rate of `vat_recap`, such as `"21"`). Per rate the bases add up to the base of the recap; a document without a recap adds them up to its total at rate `"0"`. |
 
 Fields of a payment: `paid_on` (`YYYY-MM-DD`, required), `amount` (a decimal in the document's currency, required, positive also for a credit note), `method` (`bank_transfer`, the default, `card`, `cash` or `other`) and `bank_movement_id` (optional). Mark as paid takes only `method` and `bank_movement_id`. A payment recorded by mistake is removed and recorded again; a document paid in full before stays so in the event feed.
 
@@ -780,7 +782,7 @@ What a received document write refuses:
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. The lines are refused with `parameter` `lines` and `lines_do_not_add_up`, `unknown_vat_rate`, `vat_rate`, `line_text_required`, `line_text_too_long`, `lines_too_many` or `line_invalid` (a line that is no object of strings). |
 | 404 | `not_found` | The organisation has no such received document. |
 | 404 | `firm_unknown` | The instance has no firm yet: its first-run setup has not happened. |
 | 409 | `overpaid` | The payment is more than what remains. |

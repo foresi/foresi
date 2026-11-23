@@ -13,15 +13,20 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\PaymentBalance;
 use Foresi\Purchasing\Application\Query\PaidDocument;
 use Foresi\Purchasing\Application\Query\PayableDocument;
+use Foresi\Purchasing\Domain\LineView;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Purchasing\Domain\VatRecapRow;
+use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Received documents as the REST API and the MCP tools write them. Amounts are
  * Money in minor units; paid and remaining are positive, also for a credit
- * note, whose total is negative.
+ * note, whose total is negative. The detail has the lines as reports read
+ * them: the stored ones, or one implicit line per rate named by the English
+ * name of the document's kind.
  */
 final class ReceivedDocumentJson
 {
@@ -49,7 +54,7 @@ final class ReceivedDocumentJson
     /**
      * @return array<string, mixed>
      */
-    public static function detail(PaidDocument $paid, LegalEntity $firm): array
+    public static function detail(PaidDocument $paid, LegalEntity $firm, TranslatorInterface $translator): array
     {
         $document = $paid->document;
 
@@ -60,6 +65,7 @@ final class ReceivedDocumentJson
                 'vat_id' => $document->supplier()->vatId,
             ],
             'vat_recap' => array_map(self::recapRow(...), $document->vatRecap()->rows()),
+            'lines' => array_map(static fn (LineView $line): array => self::line($line, $translator), $document->effectiveLines()),
             'exchange_rate' => $document->exchangeRate()?->toString(),
             'exchange_rate_date' => JsonValues::date($document->exchangeRateDate()),
             'deduction_period' => $document->deductionPeriod()?->format('Y-m'),
@@ -107,10 +113,10 @@ final class ReceivedDocumentJson
             'tax_point_date' => JsonValues::date($document->taxPointDate()),
             'due_date' => JsonValues::date($document->dueDate()),
             'received_date' => JsonValues::date($document->receivedDate()),
-            'total' => $total instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($total) : null,
+            'total' => $total instanceof Money ? JsonValues::money($total) : null,
             'base' => JsonValues::money($document->base()),
             'vat' => JsonValues::money($document->vat()),
-            'vat_czk' => $document->vatCzk() instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($document->vatCzk()) : null,
+            'vat_czk' => $document->vatCzk() instanceof Money ? JsonValues::money($document->vatCzk()) : null,
             'paid' => JsonValues::money($balance->paid),
             'remaining' => JsonValues::money($balance->remaining),
             'is_paid' => $balance->isPaid(),
@@ -125,14 +131,30 @@ final class ReceivedDocumentJson
     /**
      * @return array<string, mixed>
      */
+    private static function line(LineView $line, TranslatorInterface $translator): array
+    {
+        return [
+            'key' => $line->key,
+            // The API speaks English whatever the language of the person.
+            'text' => $line->implicit ? $translator->trans('purchasing.kind.'.$line->text, locale: 'en') : $line->text,
+            'base' => JsonValues::money($line->base),
+            'base_czk' => $line->baseCzk instanceof Money ? JsonValues::money($line->baseCzk) : null,
+            'vat_rate' => $line->vatRate,
+            'implicit' => $line->implicit,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private static function recapRow(VatRecapRow $row): array
     {
         return [
             'rate' => $row->rate->percent(),
             'base' => JsonValues::money($row->base),
             'vat' => JsonValues::money($row->vat),
-            'base_czk' => $row->baseCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($row->baseCzk) : null,
-            'vat_czk' => $row->vatCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($row->vatCzk) : null,
+            'base_czk' => $row->baseCzk instanceof Money ? JsonValues::money($row->baseCzk) : null,
+            'vat_czk' => $row->vatCzk instanceof Money ? JsonValues::money($row->vatCzk) : null,
         ];
     }
 }

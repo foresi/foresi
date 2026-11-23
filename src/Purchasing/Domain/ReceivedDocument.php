@@ -243,17 +243,27 @@ class ReceivedDocument implements Audited
     }
 
     /**
-     * Replaces the lines; an empty list removes them. They split the recap as it stands.
+     * Replaces the lines; an empty list removes them. They split the recap as it
+     * stands. Lines that come out the same as the stored ones, once checked,
+     * change nothing, the version neither.
      *
      * @param list<ReceivedDocumentLineInput> $lines
      *
+     * @return bool whether the lines changed
+     *
      * @throws ReceivedDocumentRefused in the trash, or for lines that do not fit the recap
      */
-    public function setLines(array $lines): void
+    public function setLines(array $lines): bool
     {
         $this->refuseTrashed();
-        $this->keepLines(DocumentLines::check($lines, $this->vatRecap(), $this->total(), $this->currency));
+        $checked = DocumentLines::check($lines, $this->vatRecap(), $this->total(), $this->currency);
+        if ($this->sameLines($checked)) {
+            return false;
+        }
+        $this->keepLines($checked);
         ++$this->version;
+
+        return true;
     }
 
     /**
@@ -605,6 +615,25 @@ class ReceivedDocument implements Audited
         $lines = $content->lines ?? array_map(static fn (ReceivedDocumentLine $line): ReceivedDocumentLineInput => $line->toInput(), $this->lines());
 
         return DocumentLines::check($lines, $recap, $content->total, $content->currency);
+    }
+
+    /**
+     * @param list<ReceivedDocumentLineInput> $lines checked ones
+     */
+    private function sameLines(array $lines): bool
+    {
+        $stored = $this->lines();
+        if (\count($stored) !== \count($lines)) {
+            return false;
+        }
+        foreach ($lines as $position => $line) {
+            $kept = $stored[$position];
+            if ($kept->text() !== $line->text || !$kept->base()->equals($line->base) || $kept->vatRate() !== $line->vatRate) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
