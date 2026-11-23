@@ -52,7 +52,7 @@ final class ProductLists implements ListDefinitionSource
         return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::ARCHIVED, FieldType::Boolean, 'catalog.products.field.archived'),
             new Field(self::BILLING_KIND, FieldType::Enum, 'catalog.product.field.billing_kind', options: $kinds, optionLabels: array_combine($kinds, array_map(static fn (string $kind): string => 'catalog.billing_kind.'.$kind, $kinds))),
-        ]), $this->defaults());
+        ]), $this->defaults(), [self::BILLING_KIND]);
     }
 
     /**

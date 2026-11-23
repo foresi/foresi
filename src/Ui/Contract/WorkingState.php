@@ -11,14 +11,16 @@ namespace Foresi\Ui\Contract;
 /**
  * What WorkingDisplay read: how the list shows now, the display payload that shows it (for the
  * rows a list renders in a context of their own), whether it differs from the view, and the
- * query that keeps it in the list's links.
+ * query that keeps it in the list's links. On a list with quick filters it says which fields are
+ * pinned under the tabs, in their order.
  */
 final readonly class WorkingState
 {
     /**
      * @param array<array-key, mixed>|null $payload the display payload the list shows; null for the registry's defaults
      * @param list<ResolvedColumn>         $columns every column the list's context offers, in the default order
-     * @param array<string, string>        $query   cols and density, only when they differ from the view
+     * @param array<string, string>        $query   cols, density and pins, only when they differ from the view
+     * @param list<string>                 $pinned  the keys of the fields pinned as quick filters, in order
      */
     public function __construct(
         public ListDisplay $display,
@@ -27,6 +29,7 @@ final readonly class WorkingState
         public string $density,
         public bool $modified,
         public array $query,
+        public array $pinned = [],
     ) {
     }
 
@@ -39,7 +42,7 @@ final readonly class WorkingState
     }
 
     /**
-     * The columns of the Columns sheet (Ui:ColumnPicker): the shown ones in their order, then the
+     * The columns of the Display sheet (Ui:ColumnPicker): the shown ones in their order, then the
      * hidden ones the context offers, in the default order.
      *
      * @return list<array{key: string, label: string, visible: bool, locked: bool}>

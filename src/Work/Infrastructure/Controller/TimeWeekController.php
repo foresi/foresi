@@ -14,6 +14,7 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Domain\Role;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Ui\View\QuickPins;
 use Foresi\Work\Application\TimeDay;
 use Foresi\Work\Application\TimeEntryRow;
 use Foresi\Work\Application\TimeQueries;
@@ -66,7 +67,9 @@ final class TimeWeekController extends AbstractController
         $week = $this->time->week($day, '' === $person ? null : $person) ?? throw new NotFoundHttpException();
         $monday = $week->monday;
         $thisMonday = $today->setISODate((int) $today->format('o'), (int) $today->format('W'));
-        $query = '' === $person ? [] : ['person' => $person];
+        // The week keeps no view: its quick filter, pinned in the Display sheet, stays in its address.
+        $pins = QuickPins::read($request->query->all(), [] === $people ? [] : ['person' => $this->translator->trans('work.time.person')], ['person']);
+        $query = ('' === $person ? [] : ['person' => $person]) + $pins->query;
         $url = fn (\DateTimeImmutable $monday): string => $this->generateUrl(self::ROUTE, ($monday->format('Y-m-d') === $thisMonday->format('Y-m-d') ? [] : ['week' => $monday->format('Y-m-d')]) + $query);
         $here = $url($monday);
         $mine = '' === $person;
@@ -87,6 +90,14 @@ final class TimeWeekController extends AbstractController
             // An owner alone in the organisation has no one else to switch to.
             'people' => [] === $people ? [] : ['' => $this->translator->trans('work.time.person_me')] + $people,
             'person' => $person,
+            'pinned' => $pins->pinned,
+            'pinnable' => $pins->pinnable,
+            'pinsQuery' => $pins->query,
+            'picker' => [
+                'keep' => ['week' => $monday->format('Y-m-d') === $thisMonday->format('Y-m-d') ? null : $monday->format('Y-m-d'), 'person' => '' === $person ? null : $person],
+                'resetHref' => $url($monday),
+                'modified' => $pins->modified,
+            ],
         ]);
     }
 

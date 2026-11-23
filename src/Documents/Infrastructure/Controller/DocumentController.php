@@ -37,6 +37,7 @@ use Foresi\Documents\Infrastructure\Screen\DocumentScreen;
 use Foresi\Documents\Infrastructure\Screen\TemplatePreview;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Id;
+use Foresi\Ui\View\QuickPins;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -95,6 +96,9 @@ final class DocumentController extends AbstractController
         $type = $request->query->getString('type');
         $trashed = self::TRASHED === $request->query->getString('status');
         $status = DocumentStatus::tryFrom($request->query->getString('status'));
+        // The list keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        $pins = QuickPins::read($request->query->all(), ['type' => $this->translator->trans('documents.filter.type'), 'status' => $this->translator->trans('documents.filter.status')], ['type', 'status']);
+        $set = array_filter(['type' => Id::isValid($type) ? $type : null, 'status' => $trashed ? self::TRASHED : $status?->value], static fn (?string $value): bool => null !== $value);
         $documents = $this->store->documents(new DocumentFilter(
             typeId: Id::isValid($type) ? $type : null,
             status: $status,
@@ -107,8 +111,16 @@ final class DocumentController extends AbstractController
             'rows' => $this->screen->rows(\array_slice($documents, 0, self::SHOWN)),
             'more' => \count($documents) > self::SHOWN,
             'filters' => [
-                ['name' => 'type', 'label' => $this->translator->trans('documents.filter.type'), 'options' => $this->screen->typeFilterOptions(), 'value' => Id::isValid($type) ? $type : '', 'pinned' => true],
-                ['name' => 'status', 'label' => $this->translator->trans('documents.filter.status'), 'options' => $this->screen->statusOptions() + [self::TRASHED => $this->translator->trans('documents.filter.trashed')], 'value' => $trashed ? self::TRASHED : ($status->value ?? ''), 'pinned' => true],
+                ['name' => 'type', 'label' => $this->translator->trans('documents.filter.type'), 'options' => $this->screen->typeFilterOptions(), 'value' => Id::isValid($type) ? $type : ''],
+                ['name' => 'status', 'label' => $this->translator->trans('documents.filter.status'), 'options' => $this->screen->statusOptions() + [self::TRASHED => $this->translator->trans('documents.filter.trashed')], 'value' => $trashed ? self::TRASHED : ($status->value ?? '')],
+            ],
+            'pinned' => $pins->pinned,
+            'pinnable' => $pins->pinnable,
+            'pinsQuery' => $pins->query,
+            'picker' => [
+                'keep' => $set,
+                'resetHref' => $this->generateUrl(self::LIST_ROUTE, $set),
+                'modified' => $pins->modified,
             ],
             'narrowed' => Id::isValid($type) || null !== $status || $trashed,
             'trash' => $trashed,

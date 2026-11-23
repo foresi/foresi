@@ -77,8 +77,13 @@ final readonly class ViewJson
                 'label' => null === $field->group ? $this->english($field->label) : $this->translator->trans('ui.view_filter.related', ['relation' => $this->english($field->group), 'field' => $this->english($field->label)], locale: 'en'),
                 'operators' => $field->operators,
                 'options' => $field->options,
+                // How its quick filter picks values, and whether several at once.
+                'quick_pick' => $field->quickPick->value,
+                'multi_pick' => $field->multiPick(),
             ], array_values($list->fields)),
             'columns' => $this->columns($list->key),
+            // The quick filters a view that pins none of its own shows.
+            'pinned' => $list->pinned,
             'default_views' => array_map($list->systemKey(...), $list->defaults),
         ];
     }

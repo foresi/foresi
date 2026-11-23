@@ -26,14 +26,18 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
     }
 
     /**
-     * @param array<string, mixed>         $context the list's context, as ListColumnRegistry::display() takes it
-     * @param array<array-key, mixed>|null $saved   the view's stored display payload; null for the registry's defaults
-     * @param array<array-key, mixed>      $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it) and density
-     * @param string                       $density the density the list shows by default
-     * @param list<string>                 $groups  what the list can group by, its default first; none for a list that does not group
+     * @param array<string, mixed>                                    $context the list's context, as ListColumnRegistry::display() takes it
+     * @param array<array-key, mixed>|null                            $saved   the view's stored display payload; null for the registry's defaults
+     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it) and density
+     * @param string                                                  $density the density the list shows by default
+     * @param list<string>                                            $groups  what the list can group by, its default first; none for a list that does not group
+     * @param array{fields: list<string>, default: list<string>}|null $pins    the fields a quick filter can be pinned for and those pinned by default
      */
-    public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = []): WorkingState
+    public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = [], ?array $pins = null): WorkingState
     {
+        // The view's quick filters, or the list's own while it keeps none (a shipped view).
+        $basePins = null === $pins ? [] : (self::pins($saved['pinned'] ?? null, $pins['fields']) ?? self::pins($pins['default'], $pins['fields']) ?? []);
+        $wantedPins = null === $pins || !\array_key_exists(self::PINNED, $query) ? null : (self::pins($query[self::PINNED], $pins['fields']) ?? []);
         $base = $this->registry->display($list, $context, $saved);
         $baseDensity = $base->density ?? $density;
         $keys = $this->keys($query[self::COLUMNS] ?? null);
@@ -44,13 +48,13 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $wantedGroup = \is_string($wantedGroup) && \in_array($wantedGroup, $groups, true) ? $wantedGroup : null;
 
         if (null !== $keys) {
-            // The column that names the row leads and never moves (the Columns sheet shows it so);
+            // The column that names the row leads and never moves (the Display sheet shows it so);
             // the registry drops a locked column the context does not offer.
             $locked = array_map(static fn (Column $column): string => $column->key, array_filter($this->registry->columns($list), static fn (Column $column): bool => $column->locked));
             $keys = [...$locked, ...array_diff($keys, $locked)];
         }
         $payload = $saved;
-        if (null !== $keys || null !== $wanted || null !== $wantedGroup) {
+        if (null !== $keys || null !== $wanted || null !== $wantedGroup || null !== $wantedPins) {
             $widths = [];
             foreach ($base->columns as $column) {
                 $widths[$column->key()] = $column->width;
@@ -59,7 +63,7 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
                 ? array_map(static fn (ResolvedColumn $column): array => array_filter(['key' => $column->key(), 'width' => $column->width], static fn (mixed $value): bool => null !== $value), $base->columns)
                 : array_map(static fn (string $key): array => array_filter(['key' => $key, 'width' => $widths[$key] ?? null], static fn (mixed $value): bool => null !== $value), $keys);
             $group = $wantedGroup ?? $base->groupBy;
-            $payload = ['columns' => $columns, 'density' => $wanted ?? $baseDensity] + (null === $group ? [] : ['group_by' => $group]);
+            $payload = ['columns' => $columns, 'density' => $wanted ?? $baseDensity] + (null === $group ? [] : ['group_by' => $group]) + (null === $pins ? [] : ['pinned' => $wantedPins ?? $basePins]);
         }
 
         $display = $this->registry->display($list, $context, $payload);
@@ -67,18 +71,49 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $all = $this->registry->display($list, $context, ['columns' => array_map(static fn (Column $column): string => $column->key, $this->registry->columns($list))])->columns;
         $shownDensity = $display->density ?? $density;
         $shownGroup = $this->group($display->groupBy, $groups);
-        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity || $shownGroup !== $baseGroup;
+        $shownPins = $wantedPins ?? $basePins;
+        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity || $shownGroup !== $baseGroup || $shownPins !== $basePins;
         if (!$modified) {
-            return new WorkingState($base, $saved, $all, $baseDensity, false, []);
+            return new WorkingState($base, $saved, $all, $baseDensity, false, [], $basePins);
         }
 
         $kept = array_filter([
             self::COLUMNS => $display->keys() === $base->keys() ? null : implode(',', $display->keys()),
             self::DENSITY => $shownDensity === $baseDensity ? null : $shownDensity,
             self::GROUP => $shownGroup === $baseGroup ? null : $shownGroup,
+            // Empty pins none.
+            self::PINNED => $shownPins === $basePins ? null : implode(',', $shownPins),
         ], static fn (?string $value): bool => null !== $value);
 
-        return new WorkingState($display, $payload, $all, $shownDensity, true, $kept);
+        return new WorkingState($display, $payload, $all, $shownDensity, true, $kept, $shownPins);
+    }
+
+    /**
+     * The quick filters a value names: a comma separated string (or a list, as a form without
+     * JavaScript sends it), each a field the list can pin, once and at most MAX_PINNED; null when
+     * it names none at all.
+     *
+     * @param list<string> $fields
+     *
+     * @return list<string>|null
+     */
+    public static function pins(mixed $value, array $fields): ?array
+    {
+        if (\is_string($value)) {
+            $value = '' === $value ? [] : explode(',', $value);
+        }
+        if (!\is_array($value)) {
+            return null;
+        }
+        $keys = [];
+        foreach ($value as $key) {
+            $key = \is_string($key) ? trim($key) : '';
+            if (\in_array($key, $fields, true) && !\in_array($key, $keys, true)) {
+                $keys[] = $key;
+            }
+        }
+
+        return \array_slice($keys, 0, self::MAX_PINNED);
     }
 
     /**

@@ -51,7 +51,7 @@ final class NotificationLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults());
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['reason', 'unread']);
     }
 
     /**

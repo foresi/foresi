@@ -4,45 +4,64 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * The filter icon at the end of a list's tabs (Shopify Polaris IndexFilters):
- * it opens the list's filter bar under the tabs, and folds it again while
- * nothing narrows the list. A list without a bar (empty, nothing filtered)
- * shows no icon. Without JavaScript the bar is always open and the icon hidden.
+ * The search and filter icons at the end of a list's tabs (Shopify Polaris IndexFilters):
+ * the filter icon opens the list's filter sheet at once, in one click, its green dot saying a
+ * search or a filter narrows the list; the search icon opens the search field at the start of the
+ * filter row under the tabs, and folds it again while it holds no text. The row itself shows while
+ * it has chips to show. An icon with nothing to open is hidden; without JavaScript both are, and
+ * the row with its <noscript> form is always there.
  */
 export default class extends Controller {
+    static values = { mode: { type: String, default: 'filter' } };
+
     connect() {
         this.bar = document.getElementById(this.element.getAttribute('aria-controls') ?? '');
-        this.element.hidden = !this.bar;
+        this.sheet = this.bar ? document.getElementById(`${this.bar.id}-sheet`) : null;
+        const search = this.bar?.querySelector('[data-filter-search]');
+        this.element.hidden = this.modeValue === 'search' ? !search : !this.sheet;
+        const dot = this.element.parentElement?.querySelector('[data-filter-active]');
+        if (dot) {
+            dot.hidden = !this.bar?.hasAttribute('data-filtered');
+        }
         this.render();
     }
 
+    // The filter icon: the sheet with every filter of the list.
     toggle() {
+        const dialog = this.sheet ? this.application.getControllerForElementAndIdentifier(this.sheet, 'dialog') : null;
+        dialog?.open(this.element);
+    }
+
+    search() {
         if (!this.bar) {
             return;
         }
-        if (this.bar.hasAttribute('data-collapsed')) {
+        const form = this.bar.querySelector('[data-filter-search]');
+        const field = form?.querySelector('input[type="search"]');
+        if (form?.hasAttribute('data-folded') || this.bar.hasAttribute('data-collapsed')) {
+            form?.removeAttribute('data-folded');
             this.bar.removeAttribute('data-collapsed');
             this.render();
-            this.focusBar();
+            field?.focus();
             return;
         }
-        // A bar that narrows the list stays open: its chips say what is set.
-        if (this.bar.hasAttribute('data-narrowed')) {
-            this.focusBar();
+        // An empty search folds again, and the row with it while it has nothing else to show.
+        if (field && field.value === '') {
+            form.setAttribute('data-folded', '');
+            if (!this.bar.hasAttribute('data-row')) {
+                this.bar.setAttribute('data-collapsed', '');
+            }
+            this.render();
             return;
         }
-        this.bar.setAttribute('data-collapsed', '');
-        this.render();
+        field?.focus();
     }
 
     render() {
-        if (this.bar) {
-            this.element.setAttribute('aria-expanded', String(!this.bar.hasAttribute('data-collapsed')));
+        if (this.modeValue !== 'search' || !this.bar) {
+            return;
         }
-    }
-
-    focusBar() {
-        const field = this.bar.querySelector('input[type="search"], input:not([type="hidden"]), button:not([hidden]), a[href]');
-        field?.focus();
+        const form = this.bar.querySelector('[data-filter-search]');
+        this.element.setAttribute('aria-expanded', String(!!form && !form.hasAttribute('data-folded') && !this.bar.hasAttribute('data-collapsed')));
     }
 }

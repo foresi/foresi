@@ -6,7 +6,8 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Ui:FilterBar: "+ Filter", "More filters" and, on a phone, "Filters (n)" open
  * the bar's side sheet, which sends its fields with one Apply. The chips are
- * menus of links and need nothing more.
+ * menus of links and need nothing more; a quick filter with no values to pick
+ * from opens the sheet with a row for its field.
  *
  * In the sheet's filter builder (spec D11) a field picked from "Add filter"
  * adds its row, from the row the server rendered for it in a <template>; ✕
@@ -25,6 +26,12 @@ export default class extends Controller {
         if (this.hasDialogOutlet) {
             this.dialogOutlet.open(event.currentTarget);
         }
+    }
+
+    // A quick filter with no values to pick from, or "Custom…" of one: the sheet with a row for its field.
+    pick(event) {
+        this.open(event);
+        this.addRow(event);
     }
 
     addRow(event) {

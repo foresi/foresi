@@ -120,7 +120,7 @@ final readonly class ForecastScreen
 
         return new ListDefinition(self::FILTER_LIST, [
             new Field(self::CERTAINTY, FieldType::Enum, 'cash_flow.filter.certainty', options: FlowCertainty::values(), optionLabels: $labels),
-        ], [new DefaultView(ListDefinition::ALL, 'cash_flow.filter.all')]);
+        ], [new DefaultView(ListDefinition::ALL, 'cash_flow.filter.all')], [self::CERTAINTY]);
     }
 
     /**

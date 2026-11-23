@@ -38,6 +38,8 @@ final class ReceivedDocumentLists implements ListDefinitionSource
     public const string SUPPLIER = 'supplier';
     public const string KIND = 'kind';
     public const string TREATMENT = 'treatment';
+    /** The month a document belongs to: its tax point, its issue date from abroad (ReceivedDocumentFilter::monthDay). */
+    public const string PERIOD = 'period';
 
     public const string DRAFTS = 'drafts';
     public const string RECORDED = 'recorded';
@@ -59,7 +61,7 @@ final class ReceivedDocumentLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), self::defaults());
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), self::defaults(), [self::PERIOD, self::SUPPLIER]);
     }
 
     /**
@@ -92,6 +94,7 @@ final class ReceivedDocumentLists implements ListDefinitionSource
             new Field(self::SUPPLIER, FieldType::Reference, 'purchasing.field.supplier', ['is', 'is_not', 'is_any_of', 'is_empty', 'is_not_empty'], source: self::CONTACT),
             new Field(self::KIND, FieldType::Enum, 'purchasing.field.kind', options: $kinds, optionLabels: $this->labels('purchasing.kind.', $kinds)),
             new Field(self::TREATMENT, FieldType::Enum, 'purchasing.field.treatment', options: $treatments, optionLabels: $this->labels('purchasing.treatment.', $treatments)),
+            new Field(self::PERIOD, FieldType::Date, 'purchasing.list.month', ['is']),
         ];
     }
 

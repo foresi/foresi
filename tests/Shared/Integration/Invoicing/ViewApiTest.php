@@ -85,13 +85,13 @@ final class ViewApiTest extends ApiTestCase
         $invoices = array_column($this->rows($this->at('data')), null, 'key')['invoicing.invoices'] ?? null;
         self::assertIsArray($invoices);
         $fields = array_column($this->rows($invoices['fields']), null, 'key');
-        self::assertSame(['key' => 'due_date', 'type' => 'date', 'label' => 'Due', 'operators' => ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between', 'is_empty', 'is_not_empty'], 'options' => []], $fields['due_date'] ?? null);
+        self::assertSame(['key' => 'due_date', 'type' => 'date', 'label' => 'Due', 'operators' => ['is', 'before', 'after', 'on_or_before', 'on_or_after', 'between', 'is_empty', 'is_not_empty'], 'options' => [], 'quick_pick' => 'months', 'multi_pick' => false], $fields['due_date'] ?? null);
         self::assertSame(['paid', 'unpaid', 'to_refund'], $this->in($fields, 'payment', 'options'));
         // The contacts' fields are their data source's attributes (spec DS1).
         $contacts = array_column($this->rows($this->at('data')), null, 'key')['party.contacts'] ?? null;
         self::assertIsArray($contacts);
         $fields = array_column($this->rows($contacts['fields']), null, 'key');
-        self::assertSame(['key' => 'email', 'type' => 'text', 'label' => 'E-mail', 'operators' => ['contains', 'does_not_contain', 'is', 'is_not', 'is_empty', 'is_not_empty'], 'options' => []], $fields['email'] ?? null);
+        self::assertSame(['key' => 'email', 'type' => 'text', 'label' => 'E-mail', 'operators' => ['contains', 'does_not_contain', 'is', 'is_not', 'is_empty', 'is_not_empty'], 'options' => [], 'quick_pick' => 'sheet', 'multi_pick' => false], $fields['email'] ?? null);
         self::assertSame(['has_any_of', 'has_all_of', 'has_none_of', 'is_empty', 'is_not_empty'], $this->in($fields, 'roles', 'operators'));
         $columns = $this->rows($invoices['columns']);
         self::assertNotSame([], $columns);

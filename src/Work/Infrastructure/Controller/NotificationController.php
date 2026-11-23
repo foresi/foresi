@@ -95,8 +95,8 @@ final class NotificationController extends AbstractController
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // Columns and density are kept for staff with the view; a guest has no saved views, only the address.
         $working = $this->actor->isStaff()
-            ? $this->rememberedDisplay->read(NotificationColumns::LIST, [], $list->key, $view, $request->query->all())
-            : $this->workingDisplay->read(NotificationColumns::LIST, [], $view->display, $request->query->all());
+            ? $this->rememberedDisplay->read(NotificationColumns::LIST, [], $list->key, $view, $request->query->all(), filters: $list)
+            : $this->workingDisplay->read(NotificationColumns::LIST, [], $view->display, $request->query->all(), pins: RememberedDisplay::pinsOf($list));
         $query += $working->query;
         if ([] === $inbox->rows && $page > 1) {
             return $this->redirectToRoute(self::ROUTE, $query);
@@ -115,7 +115,7 @@ final class NotificationController extends AbstractController
             'workingQuery' => $working->query,
             'filtered' => null !== $filterParam,
             'emptyState' => $this->emptyState($view),
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
@@ -220,7 +220,7 @@ final class NotificationController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

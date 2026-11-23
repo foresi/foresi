@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\View;
 
+use Foresi\Purchasing\Application\Query\ReceivedDocumentFilter;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\Condition;
@@ -25,7 +26,8 @@ use Symfony\Component\HttpFoundation\InputBag;
  * unless f= changed it.
  *
  * The fields the sheet had are conditions now (D11): an old ?supplier=, ?kind= or
- * ?treatment= adds its condition to the working filter, so bookmarks still narrow.
+ * ?treatment= adds its condition to the working filter, so bookmarks still narrow, and so
+ * does the month chip's ?month=, now the period quick filter.
  */
 final readonly class ReceivedDocumentViews
 {
@@ -59,6 +61,12 @@ final readonly class ReceivedDocumentViews
             } catch (InvalidFilter) {
                 // A value the field does not take narrows nothing, as the sheet ignored it.
             }
+        }
+
+        $month = ReceivedDocumentFilter::monthValue(ReceivedDocumentFilter::monthOf($input->getString('month')));
+        if (null !== $month) {
+            $working = new ViewFilter(array_values(array_filter($working->conditions, static fn (Condition $condition): bool => ReceivedDocumentLists::PERIOD !== $condition->field)))
+                ->with(new Condition(ReceivedDocumentLists::PERIOD, 'is', $month));
         }
 
         return [$views, $view, $working];

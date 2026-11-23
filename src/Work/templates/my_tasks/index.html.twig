@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     My unfinished tasks, in groups by when they are due, on saved views: All, Assigned to me and Watching,
-    and the person's own views; "+ Filter" (the client is one of its fields) and the Columns sheet as every
+    and the person's own views; "+ Filter" (the client is one of its fields) and the Display sheet as every
     list has them. A group with nothing in it is left out. The status, the responsible person, the due date
     and the priority change in the row.
 #}
@@ -17,17 +17,16 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
-        {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
+        {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
         <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
             <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.my_tasks.views'|trans" class="min-w-0 flex-1">
                 <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
             </twig:Ui:Tabs>
-            {{ include('@Ui/components/_view_actions.html.twig') }}
             {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'my-tasks-filters', toolsSearch: false, toolsColumns: {id: 'my-tasks-columns', action: path('app_my_tasks')}}) }}
         </div>
         {# The client is a condition of "+ Filter" (saved views D11). #}
         <twig:Ui:FilterBar id="my-tasks-filters" :collapsible="true" :action="path('app_my_tasks')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
-            :conditions="chips" :builder="builder" :empty="groups is empty" data-my-tasks-filter>
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="groups is empty" data-my-tasks-filter>
         </twig:Ui:FilterBar>
 
         {% for group in groups %}

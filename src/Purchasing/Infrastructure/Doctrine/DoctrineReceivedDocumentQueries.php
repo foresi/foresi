@@ -51,8 +51,6 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         ReceivedDocumentLists::KIND => 'd.kind',
         ReceivedDocumentLists::TREATMENT => 'd.treatment',
     ];
-    /** A document from abroad belongs to the month of its issue date (ReceivedDocumentFilter::byIssueDate). */
-    private const string FROM_ABROAD = '(d.kind = :abroadKind OR d.treatment IN (:abroadTreatments))';
 
     /**
      * @param iterable<ReceivedDocumentIdFilter> $idFilters
@@ -151,13 +149,9 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         $parameters = [];
         $month = ReceivedDocumentFilter::monthValue($filter->month);
         if (null !== $month) {
-            $range = DateRange::of($month, $this->clock->today());
-            $where .= ' AND (('.self::FROM_ABROAD.' AND d.issueDate >= :monthStart AND d.issueDate < :monthEnd)'
-                .' OR (NOT '.self::FROM_ABROAD.' AND ((d.taxPointDate >= :monthStart AND d.taxPointDate < :monthEnd) OR (d.taxPointDate IS NULL AND d.issueDate >= :monthStart AND d.issueDate < :monthEnd))))';
-            $parameters['monthStart'] = [$range->start, Types::DATE_IMMUTABLE];
-            $parameters['monthEnd'] = [$range->end, Types::DATE_IMMUTABLE];
-            $parameters['abroadKind'] = [ReceivedDocumentKind::ForeignInvoice->value, null];
-            $parameters['abroadTreatments'] = [[PurchaseTaxTreatment::EuService->value, PurchaseTaxTreatment::NonEuService->value], ArrayParameterType::STRING];
+            [$period, $periodParameters] = $this->period($month, 'month');
+            $where .= ' AND '.$period;
+            $parameters += $periodParameters;
         }
         $text = trim($filter->text);
         if ('' !== $text) {
@@ -182,6 +176,9 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             if (ReceivedDocumentLists::TRASHED === $condition->field) {
                 return [DqlConditions::derivedBoolean($condition, 'd.deletedAt IS NOT NULL'), []];
             }
+            if (ReceivedDocumentLists::PERIOD === $condition->field) {
+                return $this->period($condition->value, $name);
+            }
             foreach ($this->idFilters as $filter) {
                 if ($filter->field() === $condition->field) {
                     $ids = $filter->documentIds();
@@ -195,6 +192,30 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         [$condition, $parameters] = new DqlConditions($this->receivedLists->list(), self::VIEW_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), $prefix);
 
         return [([] === $view->on(ReceivedDocumentLists::TRASHED) ? $trash.' AND ' : '').$condition, $parameters];
+    }
+
+    /**
+     * The documents of a period by the day that places them (ReceivedDocumentFilter::monthDay): a
+     * document from abroad by its issue date, any other by its tax point, or its issue date without one.
+     *
+     * @return array{string, Parameters}
+     */
+    private function period(mixed $value, string $name): array
+    {
+        $range = DateRange::of($value, $this->clock->today());
+        [$start, $end, $kind, $treatments] = [$name.'Start', $name.'End', $name.'AbroadKind', $name.'AbroadTreatments'];
+        $abroad = '(d.kind = :'.$kind.' OR d.treatment IN (:'.$treatments.'))';
+
+        return [
+            '(('.$abroad.' AND d.issueDate >= :'.$start.' AND d.issueDate < :'.$end.')'
+                .' OR (NOT '.$abroad.' AND ((d.taxPointDate >= :'.$start.' AND d.taxPointDate < :'.$end.') OR (d.taxPointDate IS NULL AND d.issueDate >= :'.$start.' AND d.issueDate < :'.$end.'))))',
+            [
+                $start => [$range->start, Types::DATE_IMMUTABLE],
+                $end => [$range->end, Types::DATE_IMMUTABLE],
+                $kind => [ReceivedDocumentKind::ForeignInvoice->value, null],
+                $treatments => [[PurchaseTaxTreatment::EuService->value, PurchaseTaxTreatment::NonEuService->value], ArrayParameterType::STRING],
+            ],
+        ];
     }
 
     public function slice(ReceivedDocumentSliceFilter $filter, ?string $afterId, int $limit): array

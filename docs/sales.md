@@ -54,7 +54,7 @@ A deal can **follow from** another deal of the same client, such as a monthly se
 
 ## The deals list
 
-**Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, **+ Filter** (status, owner, client, the trash) and the Columns sheet (title, client, owner, value, status and more). A row opens the deal.
+**Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, **+ Filter** (status, owner, client, the trash) and the Display sheet (title, client, owner, value, status and more). A row opens the deal.
 
 - **New deal** in the page header opens a dialog with the title, the client, the owner, the stage and the contact persons. Without JavaScript the dialog is a page.
 - The deal's page shows its stage, status, client and contact persons, its lines and value, and the deals it follows from or is followed by. **Edit**, **Won**, **Lost**, **Reopen**, **New follow-up deal** and **⋯ → Delete** or **Restore** are in its header. Changing the stage and adding or editing lines open dialogs.

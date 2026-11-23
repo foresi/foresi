@@ -1,26 +1,39 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The filter row of a list. The chips are menus of links to this page; "Další filtry" opens the 400 px
-    sheet with one Apply. Below 640 px the row is the search and "Filtry (n)".
+    The filter row of a list, under its tabs. The search starts it; the quick filters are the chips the
+    view pins in its Display sheet, menus of links to this page; "Další filtry" opens the 400 px sheet with
+    one Apply. While something narrows the list the row has "Zrušit vše", and while the view has unsaved
+    changes "Uložit jako nový pohled" and "Uložit do pohledu". Below 640 px the row is the search and
+    "Filtry (n)".
 #}
 {% set firms = {'': 'Všechny firmy', 'f1': 'Example s.r.o.', 'f2': 'Sample a.s.'} %}
 {% set months = {'': 'Všechny měsíce', '2026-11': 'listopad 2026', '2026-10': 'říjen 2026'} %}
 {% set exports = {'': 'Vše', 'not_exported': 'Neexportováno', 'exported': 'Exportováno'} %}
 {% set search = {name: 'q', value: '', label: 'Hledat faktury', placeholder: 'Číslo, zákazník nebo popis'} %}
+{% set quick = [
+    {key: 'issue_date', label: 'Měsíc', pick: 'months', menu: true, multi: false, set: false, text: '', clearHref: path('catalogue'), lookup: null, groups: [{label: null, options: [{label: 'Tento měsíc', href: path('catalogue'), checked: false}, {label: 'Minulý měsíc', href: path('catalogue'), checked: false}]}, {label: 'Podle měsíce', options: [{label: 'listopad 2026', href: path('catalogue'), checked: false}]}]},
+    {key: 'payment', label: 'Stav platby', pick: 'values', menu: true, multi: true, set: true, text: 'Nezaplaceno, Po splatnosti', clearHref: path('catalogue'), lookup: null, groups: [{label: null, options: [{label: 'Zaplaceno', href: path('catalogue'), checked: false}, {label: 'Nezaplaceno', href: path('catalogue'), checked: true}, {label: 'Po splatnosti', href: path('catalogue'), checked: true}]}]},
+    {key: 'customer', label: 'Zákazník', pick: 'lookup', menu: true, multi: true, set: false, text: '', clearHref: path('catalogue'), groups: [], lookup: {url: path('catalogue'), base: path('catalogue'), param: 'f', conditions: '[]', field: 'customer', op: 'is_any_of', single: false, selected: []}},
+    {key: 'number', label: 'Číslo', pick: 'sheet', menu: false, multi: false, set: false, text: '', clearHref: path('catalogue'), lookup: null, groups: []},
+] %}
 <div class="grid w-full gap-5">
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
-<div class="w-full"><twig:Ui:FilterBar id="cat-filters" :action="path('catalogue')" :search="search" :filters="[
-    {name: 'firm', label: 'Firma', options: firms, value: '', pinned: true},
-    {name: 'month', label: 'Měsíc', options: months, value: '', pinned: true},
+<div class="w-full"><twig:Ui:FilterBar id="cat-filters" :action="path('catalogue')" :search="search" :pinned="['firm', 'month']" :filters="[
+    {name: 'firm', label: 'Firma', options: firms, value: ''},
+    {name: 'month', label: 'Měsíc', options: months, value: ''},
     {name: 'export', label: 'Export pro účetní', options: exports, value: ''},
 ]" /></div>
 {% endblock %}{% endembed %}
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'filtered'} %}{% block sample %}
-<div class="w-full"><twig:Ui:FilterBar id="cat-filters-set" :action="path('catalogue')" :search="search|merge({value: 'example'})" :filters="[
-    {name: 'firm', label: 'Firma', options: firms, value: 'f1', pinned: true},
-    {name: 'month', label: 'Měsíc', options: months, value: '', pinned: true},
+<div class="w-full"><twig:Ui:FilterBar id="cat-filters-set" :action="path('catalogue')" :search="search|merge({value: 'example'})" :pinned="['firm', 'month']" :filters="[
+    {name: 'firm', label: 'Firma', options: firms, value: 'f1'},
+    {name: 'month', label: 'Měsíc', options: months, value: ''},
     {name: 'export', label: 'Export pro účetní', options: exports, value: 'exported'},
 ]" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'quick'} %}{% block sample %}
+<p class="m-0 text-small text-muted">Rychlé filtry pohledu, jak je pole deklaruje: měsíc nabízí období a měsíce s daty, stav platby hodnoty (víc najednou), zákazník hledá v kontaktech, číslo otevře řádek ve filtru.</p>
+<div class="w-full"><twig:Ui:FilterBar id="cat-filters-quick" :action="path('catalogue')" :search="search" :quick="quick" :conditions="[]" :builder="{fields: [], rows: [], kept: [], rules: {}, param: 'f'}" /></div>
 {% endblock %}{% endembed %}
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'empty'} %}{% block sample %}
 <p class="m-0 text-small text-muted">Prázdný seznam, který nic nezužuje, lištu nemá.</p>

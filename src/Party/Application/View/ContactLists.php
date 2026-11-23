@@ -52,7 +52,7 @@ final class ContactLists implements ListDefinitionSource
         return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::ARCHIVED, FieldType::Boolean, 'party.view.archived'),
             new Field(self::UNRELIABLE_PAYER, FieldType::Boolean, 'party.field.unreliablePayerResult'),
-        ]), $this->defaults());
+        ]), $this->defaults(), ['roles', 'kind']);
     }
 
     /**

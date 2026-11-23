@@ -103,8 +103,7 @@ test.describe('the week', () => {
     await expect(friday.locator('[data-time-billable]')).toBeVisible();
 
     // An owner reads the week of anyone of the team.
-    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
-    await page.locator('[data-filter-toggle]').click();
+    // The person is the week's quick filter, a chip under the tabs.
     await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
     await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
     await expect(page).toHaveURL(new RegExp(`week=${lastMonday}`));

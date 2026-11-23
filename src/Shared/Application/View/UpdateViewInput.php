@@ -33,6 +33,7 @@ final readonly class UpdateViewInput
      * @param list<mixed>|Omitted      $conditions
      * @param list<mixed>|Omitted      $sort
      * @param list<mixed>|Omitted|null $columns
+     * @param list<mixed>|Omitted|null $pinned
      */
     public function __construct(
         #[Field('The id of the view, as foresi_list_views gives it.')]
@@ -59,6 +60,8 @@ final readonly class UpdateViewInput
         public bool|Omitted $hidden = new Omitted(),
         #[Field('What the rows are grouped by, on a list that groups them; null for the list\'s default.', maxLength: 64)]
         public string|Omitted|null $groupBy = new Omitted(),
+        #[Field('The quick filters shown as chips under the tabs, in order: keys of the list\'s fields, at most 4; an empty list pins none, null the list\'s own.', items: 'string')]
+        public array|Omitted|null $pinned = new Omitted(),
     ) {
     }
 }

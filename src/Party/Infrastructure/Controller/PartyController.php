@@ -125,8 +125,8 @@ final class PartyController extends AbstractController
         $counts = $this->contacts->counts();
         $import = $importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [];
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $import;
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ContactSource::LIST, [], $list->key, $view, $request->query->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ContactSource::LIST, [], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, 'app_contacts', '' === $text ? [] : ['q' => $text]);
         $archived = [] !== array_filter($shown->on(ContactLists::ARCHIVED), static fn (Condition $condition): bool => true === $condition->value);
@@ -137,7 +137,7 @@ final class PartyController extends AbstractController
             // The archived contacts are archived already: the list offers no bulk archive.
             'archived' => $archived,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_contacts', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true]))),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_contacts', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             'text' => $text,
             'sort' => $sort,
             'sortKept' => $viewSort === $sort ? null : $sort,
@@ -382,7 +382,7 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * The Columns sheet: what it keeps of the list, and the list without the changed columns.
+     * The Display sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string|null> $query
      *

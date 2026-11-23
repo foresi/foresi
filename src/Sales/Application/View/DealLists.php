@@ -57,7 +57,7 @@ final class DealLists implements ListDefinitionSource
             new Field(self::OWNER, FieldType::Reference, 'sales.deals.field.owner', ['is', 'is_not', 'is_any_of'], source: self::MEMBER),
             new Field(self::CLIENT, FieldType::Reference, 'sales.deals.field.client', ['is', 'is_not', 'is_any_of'], source: self::CONTACT),
             new Field(self::TRASHED, FieldType::Boolean, 'sales.deals.field.trashed'),
-        ]), $this->defaults());
+        ]), $this->defaults(), [self::STATUS, self::OWNER]);
     }
 
     /**

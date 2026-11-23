@@ -105,7 +105,8 @@ final class ReceivedDocumentListController extends AbstractController
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = $this->list->page(new ReceivedDocumentFilter(
             $this->tabOf($view, $shown),
-            ReceivedDocumentFilter::monthOf($input->getString('month')),
+            // The month is the period quick filter now, a condition of the working filter (ReceivedDocumentViews).
+            null,
             $input->getString('q'),
             max(1, $input->getInt('page', 1)),
             $shown,
@@ -114,13 +115,12 @@ final class ReceivedDocumentListController extends AbstractController
         $filter = $page->filter;
         $query = array_filter([
             'view' => $view->isAll() ? null : $view->key,
-            'month' => $filter->month,
             'q' => '' === $filter->text ? null : $filter->text,
             WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
         $hasFirm = $this->list->hasFirm();
-        // The columns and density changed in the Columns sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all());
+        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, PurchasingNavigation::ROUTE, '' === $filter->text ? [] : ['q' => $filter->text]);
 
@@ -130,7 +130,7 @@ final class ReceivedDocumentListController extends AbstractController
             'noFirm' => !$hasFirm,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
-            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(PurchasingNavigation::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(PurchasingNavigation::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned, months: [ReceivedDocumentLists::PERIOD => $page->months]),
             ...$bar,
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
@@ -138,7 +138,6 @@ final class ReceivedDocumentListController extends AbstractController
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
-            'months' => $this->monthOptions($page->months, $filter->month),
             'baseUrl' => $this->generateUrl(PurchasingNavigation::ROUTE, $query),
             'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
             'filtered' => [] !== array_diff_key($query, ['view' => true] + array_flip(WorkingDisplay::KEYS)),
@@ -359,26 +358,6 @@ final class ReceivedDocumentListController extends AbstractController
             'url' => $this->generateUrl('app_purchasing_suppliers'),
             'name' => fn (string $contact): ?string => $this->suppliers->find($contact)?->name,
         ]];
-    }
-
-    /**
-     * The month chip (spec D5): the periods relative to today first, then the months
-     * with a document, and the one asked for, though it has none.
-     *
-     * @param list<string> $months
-     *
-     * @return array<int|string, string|array<int|string, string>>
-     */
-    private function monthOptions(array $months, ?string $month): array
-    {
-        $options = ['' => $this->translator->trans('purchasing.list.all_months')];
-        foreach (ReceivedDocumentFilter::RELATIVE_MONTHS as $period) {
-            $options[$period] = $this->translator->trans('purchasing.list.month_period.'.$period);
-        }
-        $absolute = null === $month || \in_array($month, ReceivedDocumentFilter::RELATIVE_MONTHS, true) ? [] : [$month];
-        $choices = $this->screen->months([...$months, ...$absolute]);
-
-        return [] === $choices ? $options : $options + [$this->translator->trans('purchasing.list.month_period.by_month') => $choices];
     }
 
     /**

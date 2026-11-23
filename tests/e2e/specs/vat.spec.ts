@@ -61,9 +61,8 @@ test.describe('VAT', () => {
     await sheet.getByRole('button', { name: 'Zavřít' }).first().click();
 
     // "Zdroj není Odhad daní, pojištění a DPH" leaves the VAT out; the invoice stays.
-    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    // The filter icon at the end of the tabs opens the filter sheet at once (Shopify Polaris IndexFilters).
     await page.locator('[data-filter-toggle]').click();
-    await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Zdroj' }).click();
     const row = page.locator('[data-filter-sheet-form] [data-filter-row="certainty"]');

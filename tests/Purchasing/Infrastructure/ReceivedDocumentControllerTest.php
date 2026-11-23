@@ -94,7 +94,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
 
     public function testTheTabsAreTheShippedViewsCountedWithinTheSearchAndTheOldTabsStillOpen(): void
     {
-        // Saved views, D12: the tabs it had, with the same counts (D9), counted within the firm, the month and the search.
+        // Saved views, D12: the tabs it had, with the same counts (D9), counted within the search; the month is a condition of the working filter, which counts no tab.
         $this->signedIn();
         $recorded = $this->recorded();
         $this->draft('%PDF-1.4 a draft');
@@ -116,8 +116,10 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $crawler = $this->page('/purchasing?view=recorded&q=fv-2026');
         self::assertSame(['All1', 'To complete0', 'Recorded1', 'Trash0'], $this->tabs($crawler));
         self::assertStringContainsString('R20260001', $crawler->filter('main table tbody')->text());
+        // An old ?month= link is the period quick filter now: a change to All nobody saved, the tabs counting their own views.
         $crawler = $this->page('/purchasing?month=2026-10');
-        self::assertSame(['All1', 'To complete0', 'Recorded1', 'Trash0'], $this->tabs($crawler), 'A draft names no month yet.');
+        self::assertSame(['All, unsaved changes2', 'To complete1', 'Recorded1', 'Trash1'], $this->tabs($crawler));
+        self::assertCount(1, $crawler->filter('main table tbody tr'), 'A draft names no month yet.');
         self::assertCount(1, $crawler->filter('main table tbody tr a[href="/purchasing/'.$recorded.'"]'));
     }
 
@@ -129,13 +131,17 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $crawler = $this->page('/purchasing?month=last_month');
 
         self::assertCount(1, $crawler->filter('main table tbody tr'), 'Today is in November; the document is of October.');
-        self::assertSame(['', 'this_month', 'last_month', 'this_quarter', 'this_year', '2026-10'], $crawler->filter('select[name="month"]')->first()->filter('option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
-        self::assertSame('last_month', $crawler->filter('select[name="month"]')->first()->filter('option[selected]')->attr('value'));
+        // The period quick filter offers the periods, then the months with a document.
+        $options = $crawler->filter('[data-filter-chips] [data-quick-filter="period"] [role="menuitemradio"]');
+        self::assertSame(['this month', 'last month', 'this quarter', 'last quarter', 'this year', 'last year', 'October 2026'], $options->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame(['last month'], $options->filter('[aria-checked="true"]')->each(static fn (Crawler $option): string => trim($option->text())));
+        self::assertSame('Month: last month', trim($crawler->filter('[data-filter-chips] [data-quick-filter="period"][data-set] button')->first()->text()));
         self::assertCount(0, $this->page('/purchasing?month=this_month')->filter('main table tbody tr'));
         self::assertCount(1, $this->page('/purchasing?month=this_quarter')->filter('main table tbody tr'));
-        // The month is the only chip: an instance holds one firm (ADR 0039), and an old ?firm= narrows nothing.
+        // The month and the supplier are the view's quick filters: an instance holds one firm (ADR 0039), and an old ?firm= narrows nothing.
         $crawler = $this->page('/purchasing?firm=0190a8a8-0000-7000-8000-000000000000');
-        self::assertSame(['month'], $crawler->filter('[data-filter-chips] [data-filter-chip]')->each(static fn (Crawler $chip): string => (string) $chip->attr('data-filter-chip')));
+        self::assertSame(['period', 'supplier'], $crawler->filter('[data-filter-chips] [data-quick-filter]')->each(static fn (Crawler $chip): string => (string) $chip->attr('data-quick-filter')));
+        self::assertCount(0, $crawler->filter('[data-filter-chips] [data-quick-filter][data-set], [data-filter-chip]'));
         self::assertCount(1, $crawler->filter('main table tbody tr'));
     }
 

@@ -1273,16 +1273,18 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?month=2026-10&sort=number');
 
         self::assertSame([$october->number()], $this->numbers($crawler));
-        // The sort is a change to All nobody saved (spec D10); the month is not.
-        self::assertSame(['All, unsaved changes 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('/invoices?view=unpaid&sort=number&month=2026-10', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
-        // A list of the months with a document, not a native month field that overflows and Safari lacks.
-        self::assertSame(['select', 'Month'], [$crawler->filter('#invoice-filters-month-field')->nodeName(), $crawler->filter('label[for="invoice-filters-month-field"]')->text()]);
-        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-10' => 'October 2026'], $this->monthOptions($crawler));
-        self::assertSame('2026-10', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
-        self::assertStringContainsString('month=2026-10', $crawler->filter('thead a')->first()->attr('href') ?? '');
+        // An old ?month= link is the date quick filter now, a change to All nobody saved (spec D10)
+        // like any other condition: the tabs count their own views and open them without it.
+        self::assertSame(['All, unsaved changes 2', 'Paid 0', 'Unpaid 2', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
+        self::assertSame('/invoices?view=unpaid&sort=number', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        // A menu of the periods and the months with a document, not a native month field that overflows and Safari lacks.
+        self::assertSame('Tax point: October 2026', $this->monthChip($crawler));
+        self::assertSame(['this month', 'last month', 'this quarter', 'last quarter', 'this year', 'last year', 'November 2026', 'October 2026'], $this->monthOptions($crawler));
+        self::assertSame(['October 2026'], $this->monthChecked($crawler));
+        $param = 'f='.$this->monthParam(['month' => '2026-10']);
+        self::assertStringContainsString($param, $crawler->filter('thead a')->first()->attr('href') ?? '');
         $return = $crawler->filter('tr[data-id="'.$october->id().'"] form input[name="return"]')->first()->attr('value');
-        self::assertSame('sort=number&month=2026-10', $return);
+        self::assertSame('sort=number&'.$param, $return);
         self::assertSame(['app_invoices', ['month' => '2026-10']], InvoiceListController::routeOf(['month' => '2026-10', 'other' => 'x']));
 
         self::assertSame([$november->number()], $this->numbers($this->client->request('GET', '/invoices?month=2026-11')));
@@ -1291,12 +1293,14 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?month=2026-09');
         self::assertSelectorTextContains('main', 'No invoice matches');
         self::assertCount(0, $crawler->filter('[data-list-sums]'));
-        // A month without a document stays chosen, so the filter it shows is the one applied.
-        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-10' => 'October 2026', '2026-09' => 'September 2026'], $this->monthOptions($crawler));
-        self::assertSame('2026-09', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
+        // A month without a document stays chosen on its chip, so the filter it shows is the one applied.
+        self::assertSame('Tax point: September 2026', $this->monthChip($crawler));
+        self::assertSame(['this month', 'last month', 'this quarter', 'last quarter', 'this year', 'last year', 'November 2026', 'October 2026'], $this->monthOptions($crawler));
+        self::assertSame([], $this->monthChecked($crawler));
 
         $crawler = $this->client->request('GET', '/invoices');
-        self::assertSame('', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
+        self::assertSame('Tax point', $this->monthChip($crawler));
+        self::assertSame([], $this->monthChecked($crawler));
     }
 
     public function testLastMonthIsTheMonthBeforeTodayWhenTheListOpens(): void
@@ -1310,9 +1314,10 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices?month=last_month');
 
         self::assertSame([$october->number()], $this->numbers($crawler));
-        self::assertSame('last_month', $crawler->filter('#invoice-filters-month-field option[selected]')->attr('value'));
-        self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'Overdue 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('/invoices?view=unpaid&month=last_month', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
+        self::assertSame(['last month'], $this->monthChecked($crawler));
+        // The link the chip picks it with names the period, never the month it is today.
+        self::assertStringContainsString('f='.$this->monthParam(['relative' => 'last_month']), (string) $crawler->filter('[data-quick-filter="tax_point_date"] [role="menuitemradio"][aria-checked="true"]')->attr('href'));
+        self::assertSame('/invoices?view=unpaid', $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(2)->attr('href'));
         self::assertSame([$november->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_month')));
         self::assertSame([$november->number(), $october->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_quarter')));
         self::assertSame([$november->number(), $october->number(), $september->number()], $this->numbers($this->client->request('GET', '/invoices?month=this_year')));
@@ -1679,7 +1684,9 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->followRedirect();
 
         self::assertSame([$small->number()], $this->numbers($crawler));
-        self::assertSame(['Customer: Acme Example', 'Total: ≤ 1,000.5'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
+        // The customer is a quick filter of the view, so its chip shows it; the amount is a condition of its own.
+        self::assertSame('Customer: Acme Example', trim($crawler->filter('[data-filter-chips] [data-quick-filter="customer"][data-set] summary')->text()));
+        self::assertSame(['Total: ≤ 1,000.5'], $crawler->filter('[data-filter-chips] [data-filter-condition] span')->each(static fn (Crawler $chip): string => $chip->text()));
     }
 
     public function testTheColumnsOfTheInvoiceAreFieldsOfTheBuilder(): void
@@ -1759,24 +1766,47 @@ final class InvoiceListControllerTest extends WebTestCase
         $advance = $this->issue('2026-08-20', '2026-09-01');
         self::getContainer()->get(Connection::class)->executeStatement("UPDATE invoice SET kind = 'advance', tax_point_date = '2026-07-31' WHERE id = ?", [$advance->id()]);
 
-        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-11' => 'November 2026', '2026-09' => 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
-        self::assertSame(['' => 'All months', 'this_month' => 'This month', 'last_month' => 'Last month', 'this_quarter' => 'This quarter', 'this_year' => 'This year', '2026-08' => 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances')));
+        $periods = ['this month', 'last month', 'this quarter', 'last quarter', 'this year', 'last year'];
+        self::assertSame([...$periods, 'November 2026', 'September 2026'], $this->monthOptions($this->client->request('GET', '/invoices')));
+        self::assertSame([...$periods, 'August 2026'], $this->monthOptions($this->client->request('GET', '/advances'), 'issue_date'));
         // An empty list that nothing narrows has no filter bar.
         self::assertSame([], $this->monthOptions($this->client->request('GET', '/corrections')));
     }
 
     /**
-     * @return array<string, string>
+     * The month quick filter's chip as it reads: the field, and what it is set to.
      */
-    private function monthOptions(Crawler $crawler): array
+    private function monthChip(Crawler $crawler, string $field = 'tax_point_date'): string
     {
-        $options = [];
-        foreach ($crawler->filter('#invoice-filters-month-field option') as $option) {
-            self::assertInstanceOf(\DOMElement::class, $option);
-            $options[$option->getAttribute('value')] = trim($option->textContent);
-        }
+        return trim($crawler->filter('[data-filter-chips] [data-quick-filter="'.$field.'"] button')->first()->text());
+    }
 
-        return $options;
+    /**
+     * The periods and months the month quick filter offers, in order.
+     *
+     * @return list<string>
+     */
+    private function monthOptions(Crawler $crawler, string $field = 'tax_point_date'): array
+    {
+        return $crawler->filter('[data-filter-chips] [data-quick-filter="'.$field.'"] [role="menuitemradio"]')->each(static fn (Crawler $option): string => trim($option->text()));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function monthChecked(Crawler $crawler, string $field = 'tax_point_date'): array
+    {
+        return $crawler->filter('[data-filter-chips] [data-quick-filter="'.$field.'"] [role="menuitemradio"][aria-checked="true"]')->each(static fn (Crawler $option): string => trim($option->text()));
+    }
+
+    /**
+     * The working filter of the invoices of a month or period, as their address carries it.
+     *
+     * @param array<string, string> $value
+     */
+    private function monthParam(array $value): string
+    {
+        return WorkingFilter::encode(new ViewFilter([new Condition('tax_point_date', 'is', $value)]));
     }
 
     public function testTheListShowsNoSumsUnderTheTable(): void

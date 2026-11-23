@@ -50,7 +50,7 @@ final readonly class TimeReportLists implements ListDefinitionSource
 
     public static function list(): ListDefinition
     {
-        return new ListDefinition(self::KEY, self::fields(), self::defaults());
+        return new ListDefinition(self::KEY, self::fields(), self::defaults(), ['worked_on', 'person']);
     }
 
     /**

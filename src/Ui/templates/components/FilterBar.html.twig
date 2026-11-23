@@ -1,8 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The filter row of a list: the search, up to two pinned chips, the set filters as chips, "More
-    filters" and "Clear all"; on a phone the search and "Filters (n)". The chips and the sheet need
-    JavaScript, so without it (scripting: none) they step aside for the <noscript> form.
+    The filter row of a list under its tabs: the search, the quick filters (up to four pinned chips),
+    the set filters as chips, "+ Filter" or "More filters", "Clear all" and, while the view shows
+    changes nobody saved, "Save as new view" and "Save to view"; on a phone the search and
+    "Filters (n)". The chips and the sheet need JavaScript, so without it (scripting: none) they step
+    aside for the <noscript> form.
 #}
 {% set bar = this %}
 {% set noJs = '[@media(scripting:none)]:hidden' %}
@@ -17,6 +19,63 @@
         <span class="truncate pl-3 pr-1 font-medium">{{ chip.label }}</span>
         <a href="{{ chip.href }}" aria-label="{{ chip.removeLabel }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-condition-remove>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
     </span>
+{% endmacro %}
+{% macro quick(item, sheetId) %}
+    {# A quick filter of the view (FilterSheet), as its field declares it: a menu of its values, a search of the records it points to, or the sheet with a row for its field. #}
+    {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+    {% set items %}
+        {% for group in item.groups %}
+            {% if group.label %}
+                <twig:Ui:MenuSection :label="group.label">
+                    {% for option in group.options %}<twig:Ui:MenuItem :href="option.href" :checked="option.checked">{{ option.label }}</twig:Ui:MenuItem>{% endfor %}
+                </twig:Ui:MenuSection>
+            {% else %}
+                {% for option in group.options %}<twig:Ui:MenuItem :href="option.href" :checked="option.checked">{{ option.label }}</twig:Ui:MenuItem>{% endfor %}
+            {% endif %}
+        {% endfor %}
+        {% if item.pick == 'months' %}<twig:Ui:MenuItem type="button" icon="sliders-horizontal" data-action="filter-bar#pick" data-field="{{ item.key }}">{{ 'ui.view_filter.quick.custom'|trans }}</twig:Ui:MenuItem>{% endif %}
+    {% endset %}
+    {% set id = sheetId ~ '-quick-' ~ item.key|replace({'.': '-', '_': '-'}) %}
+    {% set label = item.set ? item.label ~ ': ' ~ item.text : item.label %}
+    {% if item.pick == 'lookup' %}
+        {# A search of the records the field points to, in a popover under its chip; each found one is a link to the list with it picked. #}
+        {% set lookup = item.lookup %}
+        <details class="relative inline-flex" data-controller="quick-lookup" data-quick-filter="{{ item.key }}"{% if item.set %} data-set{% endif %}
+            data-quick-lookup-url-value="{{ lookup.url }}" data-quick-lookup-base-value="{{ lookup.base }}" data-quick-lookup-param-value="{{ lookup.param }}"
+            data-quick-lookup-conditions-value="{{ lookup.conditions }}" data-quick-lookup-field-value="{{ lookup.field }}" data-quick-lookup-op-value="{{ lookup.op }}"
+            data-quick-lookup-single-value="{{ lookup.single ? 'true' : 'false' }}" data-quick-lookup-selected-value="{{ lookup.selected|map(s => s.id)|json_encode }}"
+            data-quick-lookup-empty-value="{{ 'ui.view_filter.quick.none_found'|trans }}" data-action="toggle->quick-lookup#toggled">
+            <summary class="{{ item.set ? 'inline-flex h-control max-w-full cursor-pointer list-none items-center gap-1.5 rounded-control border border-green bg-green-tint px-3 font-medium text-green' : 'inline-flex h-control cursor-pointer list-none items-center gap-1.5 rounded-control border border-dashed border-control-line bg-white px-3 font-semibold text-muted hover:border-green hover:text-ink' }} [&::-webkit-details-marker]:hidden {{ focus }}">
+                {% if not item.set %}{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{% endif %}<span class="truncate">{{ label }}</span>{{ ux_icon('lucide:chevron-down', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}
+            </summary>
+            <div class="absolute left-0 top-full z-30 mt-1 grid w-72 gap-2 rounded-panel border border-container bg-white p-2 shadow-overlay" data-quick-lookup-panel>
+                <twig:Ui:SearchField :id="id ~ '-search'" name="quick-lookup" :label="'ui.view_filter.quick.search'|trans({field: item.label})" :placeholder="'ui.view_filter.quick.search'|trans({field: item.label})" class="w-full" form="none" data-quick-lookup-target="input" data-action="input->quick-lookup#search keydown->quick-lookup#keydown" />
+                {% if lookup.selected is not empty %}
+                    <ul class="m-0 grid list-none gap-0.5 p-0" data-quick-lookup-selected>
+                        {% for picked in lookup.selected %}
+                            <li><a href="{{ picked.href }}" class="flex min-h-touch items-center gap-2 rounded-control px-2 text-ink no-underline hover:bg-head {{ focus }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: picked.label}) }}">{{ ux_icon('lucide:check', {class: 'size-4 shrink-0 text-green', 'aria-hidden': 'true'}) }}<span class="min-w-0 flex-1 truncate">{{ picked.label }}</span></a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                <ul class="m-0 grid max-h-64 list-none gap-0.5 overflow-y-auto p-0" data-quick-lookup-target="results"></ul>
+                <p class="m-0 px-2 text-small text-muted" role="status" aria-live="polite" data-quick-lookup-target="status"></p>
+            </div>
+        </details>
+        {% if item.set %}<a href="{{ item.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: item.label}) }}" class="-ml-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-green-tint {{ focus }}" data-filter-clear>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>{% endif %}
+    {% elseif item.set %}
+        <span class="inline-flex h-control max-w-full items-center rounded-control border border-green bg-green-tint text-green" data-quick-filter="{{ item.key }}" data-set>
+            {% if item.menu %}
+                <twig:Ui:Menu :id="id" :label="label" variant="chip-set" align="start" :menuLabel="item.label" menuClass="max-h-80 min-w-56 overflow-y-auto">{{ items }}</twig:Ui:Menu>
+            {% else %}
+                <button type="button" class="h-control truncate rounded-control pl-3 pr-1 font-medium text-green hover:bg-white/60 {{ focus }}" aria-haspopup="dialog" aria-controls="{{ sheetId }}" data-action="filter-bar#open">{{ label }}</button>
+            {% endif %}
+            <a href="{{ item.clearHref }}" aria-label="{{ 'ui.filter_bar.clear_one'|trans({label: item.label}) }}" class="mr-1 grid size-7 shrink-0 place-items-center rounded-control text-green no-underline hover:bg-white/60 {{ focus }}" data-filter-clear>{{ ux_icon('lucide:x', {class: 'size-4', 'aria-hidden': 'true'}) }}</a>
+        </span>
+    {% elseif item.menu %}
+        <twig:Ui:Menu :id="id" :label="item.label" icon="plus" variant="chip" align="start" :menuLabel="item.label" menuClass="max-h-80 min-w-56 overflow-y-auto" data-quick-filter="{{ item.key }}">{{ items }}</twig:Ui:Menu>
+    {% else %}
+        <twig:Ui:Button variant="chip" icon="plus" aria-haspopup="dialog" :aria-controls="sheetId" data-action="filter-bar#pick" data-field="{{ item.key }}" data-quick-filter="{{ item.key }}">{{ item.label }}</twig:Ui:Button>
+    {% endif %}
 {% endmacro %}
 {% macro chip(view) %}
     {# The options are rendered here: macros of this template are out of reach inside the menu's content block. #}
@@ -46,11 +105,12 @@
     {% endif %}
 {% endmacro %}
 {% if bar.shown %}
-    {# Folded, the bar waits for its filter icon; without JavaScript it is always open. #}
-    <div {{ attributes.defaults({id: id, class: 'grid min-w-0 gap-2 [@media(scripting:enabled)]:data-[collapsed]:hidden', 'data-controller': 'filter-bar', 'data-filter-bar-dialog-outlet': '#' ~ id ~ '-sheet', 'data-filter-bar': ''}) }}{% if bar.collapsed %} data-collapsed{% endif %}{% if bar.narrowed %} data-narrowed{% endif %}>
+    {# With nothing to show the row waits for the search icon; the filter icon opens its sheet. Without JavaScript it is always open. #}
+    <div {{ attributes.defaults({id: id, class: 'grid min-w-0 gap-2 [@media(scripting:enabled)]:data-[collapsed]:hidden', 'data-controller': 'filter-bar', 'data-filter-bar-dialog-outlet': '#' ~ id ~ '-sheet', 'data-filter-bar': ''}) }}{% if bar.collapsed %} data-collapsed{% endif %}{% if bar.hasRow %} data-row{% endif %}{% if bar.narrowed %} data-filtered{% endif %}>
         <div class="flex min-w-0 flex-wrap items-center gap-2">
             {% if search %}
-                <form method="get" action="{{ action }}" role="search" class="flex min-w-0 flex-1 items-center gap-2 sm:max-w-80" data-filter-search>
+                {# The search starts the row; with no text it waits for the search icon of the tabs. #}
+                <form method="get" action="{{ action }}" role="search" class="flex min-w-0 flex-1 items-center gap-2 sm:max-w-80 [@media(scripting:enabled)]:data-[folded]:hidden" data-filter-search{% if bar.searchFolded %} data-folded{% endif %}>
                     {% for name, value in bar.hidden(false, true) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                     <twig:Ui:SearchField :name="search.name" :id="id ~ '-q'" :value="bar.searchValue" :label="search.label" :placeholder="search.placeholder ?? null" maxlength="{{ search.maxlength ?? 100 }}" class="min-w-0 flex-1" />
                     <noscript><twig:Ui:Button type="submit" icon="search">{{ 'ui.filter_bar.search'|trans }}</twig:Ui:Button></noscript>
@@ -58,23 +118,28 @@
             {% endif %}
             {% if hasSheet %}
                 <div class="flex min-w-0 flex-wrap items-center gap-2 max-sm:hidden {{ noJs }}" data-filter-chips>
-                    {% for view in bar.pinned %}{{ _self.chip(view) }}{% endfor %}
+                    {% for item in quick %}{{ _self.quick(item, id ~ '-sheet') }}{% endfor %}
+                    {% for view in bar.pinnedViews %}{{ _self.chip(view) }}{% endfor %}
                     {% for view in bar.rest %}{% if view.set %}{{ _self.chip(view) }}{% endif %}{% endfor %}
-                    {% for chip in conditions %}{{ _self.condition(chip) }}{% endfor %}
+                    {% for chip in bar.loose %}{{ _self.condition(chip) }}{% endfor %}
                     {% if builder %}
                         <twig:Ui:Button variant="ghost" icon="plus" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" data-filter-more>{{ 'ui.view_filter.add'|trans }}</twig:Ui:Button>
                     {% elseif bar.rest is not empty %}
                         <twig:Ui:Button variant="ghost" icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" data-filter-more>{{ 'ui.filter_bar.more'|trans }}</twig:Ui:Button>
                     {% endif %}
-                    {% if bar.narrowed %}<a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>{% endif %}
                 </div>
                 <twig:Ui:Button icon="list-filter" aria-haspopup="dialog" :aria-controls="id ~ '-sheet'" data-action="filter-bar#open" class="sm:hidden {{ noJs }}" data-filter-open>
                     {{- 'ui.filter_bar.filters'|trans }}{% if setCount > 0 %} <span class="num">({{ setCount }})</span>{% endif -%}
                 </twig:Ui:Button>
-            {% elseif bar.narrowed %}
-                <a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>
             {% endif %}
             {% block end %}{% endblock %}
+            {% if bar.narrowed or bar.modified %}
+                {# What clears and keeps the row, at its end (Polaris IndexFilters: Cancel, Save as, Save). #}
+                <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2" data-filter-row-actions>
+                    {% if bar.narrowed %}<a href="{{ bar.clearHref }}" class="px-2 font-medium text-green no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-filter-clear-all>{{ 'ui.filter_bar.clear_all'|trans }}</a>{% endif %}
+                    {% if bar.modified %}{{ include('@Ui/components/_view_actions.html.twig', {viewBar: viewBar}) }}{% endif %}
+                </div>
+            {% endif %}
         </div>
         {% if setCount > 0 %}
             {# On a phone the set filters show under the search, each with its ✕. #}
@@ -93,8 +158,8 @@
                 <form method="get" action="{{ bar.action }}" id="{{ formId }}" class="grid gap-4" data-filter-sheet-form data-action="change->filter-bar#sync">
                     {% for name, value in bar.hidden(true, false) %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
                     {% for view in bar.views %}
-                        {# A pinned filter has its chip on a wider screen; its field here is for the phone. #}
-                        <div class="min-w-0{{ view.pinned ? ' sm:hidden' : '' }}">
+                        {# Every filter is here, a pinned one too: the filter icon opens this sheet at once. #}
+                        <div class="min-w-0">
                             {% if view.type == 'date' %}
                                 <twig:Ui:TextInput type="date" :name="view.name" :id="view.id ~ '-field'" :label="view.label" :value="view.value" />
                             {% else %}

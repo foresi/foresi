@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Ui\Column;
 
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewUserStates;
@@ -38,16 +39,18 @@ final readonly class RememberedDisplay
      * @param string                  $list    the list's key among the saved views' lists
      * @param array<array-key, mixed> $query   the list's query
      * @param list<string>            $groups  what the list can group by, its default first (WorkingDisplay::read())
+     * @param ListDefinition|null     $filters the list's filter fields, whose quick filters the view pins; null for a list without
      */
-    public function read(string $columns, array $context, string $list, ListView $view, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = []): WorkingState
+    public function read(string $columns, array $context, string $list, ListView $view, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = [], ?ListDefinition $filters = null): WorkingState
     {
+        $pins = $filters instanceof ListDefinition ? self::pinsOf($filters) : null;
         $user = $this->actor->userId();
         $named = [] !== array_intersect_key($query, array_flip(WorkingDisplay::KEYS));
         if (null === $user) {
-            return $this->display->read($columns, $context, $view->display, $query, $density, $groups);
+            return $this->display->read($columns, $context, $view->display, $query, $density, $groups, $pins);
         }
         $remembered = $named || null === $view->id ? null : $this->states->display($view->id, $user);
-        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups);
+        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups, $pins);
         if ($named) {
             if ($working->modified) {
                 // A shipped view nobody stored yet is stored first, so the state has its id.
@@ -61,8 +64,19 @@ final readonly class RememberedDisplay
     }
 
     /**
+     * What WorkingDisplay takes of a list's quick filters: the fields one can pin and those the
+     * list pins by default.
+     *
+     * @return array{fields: list<string>, default: list<string>}
+     */
+    public static function pinsOf(ListDefinition $list): array
+    {
+        return ['fields' => array_keys($list->fields), 'default' => $list->pinned];
+    }
+
+    /**
      * The address of a remembered display payload, which WorkingDisplay wrote: its
-     * columns in order, its density and what it groups by.
+     * columns in order, its density, what it groups by and the quick filters it pins.
      *
      * @param array<array-key, mixed> $display
      *
@@ -80,6 +94,10 @@ final readonly class RememberedDisplay
         $group = $display['group_by'] ?? null;
 
         // An empty density is the view's own.
-        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : ''] + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : []);
+        $pinned = $display['pinned'] ?? null;
+
+        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : '']
+            + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : [])
+            + (\is_array($pinned) ? [WorkingDisplay::PINNED => implode(',', array_filter($pinned, \is_string(...)))] : []);
     }
 }
