@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Pdf;
 
 use Foresi\Invoicing\Application\PrintableText;
+use Foresi\Shared\Infrastructure\Pdf\PdfEngine;
 
 /**
  * What the bundled font holds and how wide it sets a text. A document prints in
@@ -24,7 +25,7 @@ final class PdfFont implements PrintableText
     /** @var array<int, int>|null width in thousandths of the type size, by code point */
     private ?array $widths = null;
 
-    public function __construct(private readonly string $directory = __DIR__.'/../../../Shared/resources/pdf-fonts')
+    public function __construct(private readonly string $directory = PdfEngine::FONT_DIRECTORY)
     {
     }
 
@@ -83,8 +84,13 @@ final class PdfFont implements PrintableText
         }
         $faces = [];
         foreach (self::FACES as $file) {
+            $path = $this->directory.'/'.$file;
+            $definition = is_readable($path) ? file_get_contents($path) : false;
+            if (false === $definition) {
+                throw new \RuntimeException(\sprintf('The PDF font definition %s cannot be read.', $path));
+            }
             /** @var array{cw: array<int|string, int>} $face */
-            $face = json_decode((string) file_get_contents($this->directory.'/'.$file), true, flags: \JSON_THROW_ON_ERROR);
+            $face = json_decode($definition, true, flags: \JSON_THROW_ON_ERROR);
             $faces[] = $face['cw'];
         }
         $widths = [];
