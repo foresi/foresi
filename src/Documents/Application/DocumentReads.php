@@ -16,7 +16,9 @@ use Foresi\Shared\Domain\Id;
 
 /**
  * What the REST reads and the MCP read tools of Documents answer: for the
- * owners and members only, as the writes are (ADR 0041).
+ * owners and members only, as the writes are (ADR 0041). A list leaves out the
+ * documents in the trash unless it asks for them; one document read by its id
+ * is shown from the trash too, so it can be restored.
  */
 final readonly class DocumentReads
 {
@@ -65,14 +67,15 @@ final readonly class DocumentReads
     }
 
     /**
-     * The documents of the filter, newest first. The filter comes as sent, so
-     * that each wrong value names its parameter.
+     * The documents of the filter, newest first: those out of the trash, or
+     * with trashed those in it. The filter comes as sent, so that each wrong
+     * value names its parameter.
      *
      * @return list<Document>
      *
      * @throws DocumentsRefused
      */
-    public function documents(?string $typeId = null, ?string $status = null, ?string $linkedKind = null, ?string $linkedId = null, ?int $limit = null, ?int $offset = null): array
+    public function documents(?string $typeId = null, ?string $status = null, ?string $linkedKind = null, ?string $linkedId = null, ?int $limit = null, ?int $offset = null, bool $trashed = false): array
     {
         $this->access->denyUnlessStaff();
         if (null !== $typeId && !Id::isValid($typeId)) {
@@ -94,7 +97,7 @@ final readonly class DocumentReads
             throw DocumentsRefused::invalid('offset_invalid', 'offset', 'offset is 0 or more.');
         }
 
-        return $this->store->documents(new DocumentFilter($typeId, $state, $linkedKind, $linkedId, $limit, $offset));
+        return $this->store->documents(new DocumentFilter($typeId, $state, $linkedKind, $linkedId, $limit, $offset, $trashed));
     }
 
     /**

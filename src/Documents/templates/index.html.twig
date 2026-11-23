@@ -1,9 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     Documents under Sales: every document, newest first, with its type, status and the records it
-    belongs to. The type and the status are the two pinned filter chips (Ui:FilterBar). A row opens the
-    document in the side sheet; "+ New document" in the header opens the dialog and follows to the new
-    document. Variables: columns, rows, more, filters, narrowed, hasTypes.
+    belongs to. The type and the status are the two pinned filter chips (Ui:FilterBar); the status "In the
+    trash" lists the cancelled documents in the trash instead. A row opens the document in the side sheet;
+    "+ New document" in the header opens the dialog and follows to the new document. Variables: columns,
+    rows, more, filters, narrowed, trash, hasTypes.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -21,7 +22,11 @@
         <twig:Ui:FilterBar id="documents-filters" :action="path('app_documents')" :filters="filters" :empty="rows is empty" data-documents-filter />
         <twig:Ui:DataTable :caption="'documents.list.title'|trans" :columns="columns" :rows="rows">
             <twig:block name="empty">
-                {% if narrowed %}
+                {% if trash %}
+                    <twig:Ui:EmptyState icon="trash-2" :title="'documents.empty.trash_title'|trans" :text="'documents.empty.trash_text'|trans" data-documents-trash-empty>
+                        <twig:Ui:Button :href="path('app_documents')">{{ 'documents.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif narrowed %}
                     <twig:Ui:EmptyState icon="search" :title="'documents.empty.filtered_title'|trans" data-documents-filtered-empty>
                         <twig:Ui:Button :href="path('app_documents')">{{ 'documents.empty.reset'|trans }}</twig:Ui:Button>
                     </twig:Ui:EmptyState>

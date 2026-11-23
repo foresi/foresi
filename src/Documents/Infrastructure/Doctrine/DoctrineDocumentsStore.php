@@ -93,7 +93,8 @@ final readonly class DoctrineDocumentsStore implements DocumentsStore
     {
         $query = $this->em->createQueryBuilder()->select('d')->from(Document::class, 'd')
             ->orderBy('d.createdAt', 'DESC')->addOrderBy('d.id', 'DESC')
-            ->setMaxResults(min(max(1, $filter->limit), DocumentFilter::MAX_LIMIT))->setFirstResult(max(0, $filter->offset));
+            ->setMaxResults(min(max(1, $filter->limit), DocumentFilter::MAX_LIMIT))->setFirstResult(max(0, $filter->offset))
+            ->where($filter->trashed ? 'd.trashedAt IS NOT NULL' : 'd.trashedAt IS NULL');
         if (null !== $filter->typeId) {
             $query->andWhere('d.typeId = :type')->setParameter('type', $filter->typeId);
         }

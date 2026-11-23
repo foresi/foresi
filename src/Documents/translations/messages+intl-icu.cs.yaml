@@ -7,6 +7,7 @@ documents:
         footer: 'Strana {page} z {pages}'
     cancel: Zrušit
     keep: Ponechat
+    in_trash: 'Dokument je v koši, mimo seznam dokumentů i záznamy, ke kterým patří. Obnovte ho, chcete-li ho mít zpět.'
     save: Uložit
     create: Vytvořit
     list:
@@ -31,10 +32,13 @@ documents:
         status: Stav
         any_type: Všechny typy
         any_status: Všechny stavy
+        trashed: V koši
     empty:
         title: Zatím žádné dokumenty
         text: 'Vytvořte dokument ze šablony, vygenerujte jeho PDF a zaznamenejte, kdo ho podepsal.'
         filtered_title: Filtrům neodpovídá žádný dokument
+        trash_title: Koš je prázdný
+        trash_text: 'Do koše jde jen zrušený dokument. Zůstane v něm i s historií, dokud ho neobnovíte.'
         reset: Zrušit filtry
         no_types_title: Zatím žádné typy dokumentů
         no_types_text: 'Dokumenty vznikají ze šablon určitého typu. Nejdřív přidejte typ a šablonu.'
@@ -48,6 +52,9 @@ documents:
         mark_signed: 'Označit, že {name} podepsal(a)'
         cancel: Zrušit dokument
         again: Vygenerovat znovu
+        trash: Přesunout do koše
+        restore: Obnovit
+        undo: Vrátit
         open_pdf: Otevřít PDF
         open_signed: Otevřít podepsanou kopii
     field:
@@ -127,6 +134,8 @@ documents:
         signed_copy: Podepsaná kopie je uložená.
         cancelled: Dokument byl zrušen.
         again: Z dokumentu vznikl nový koncept.
+        trashed: 'Dokument {title} byl přesunut do koše.'
+        restored: Dokument byl obnoven.
         signer_added: '{name} je mezi podepisujícími.'
         signer_saved: 'Podepisující {name} je uložen(a).'
         signer_removed: Podepisující byl(a) odebrán(a).
@@ -151,6 +160,8 @@ documents:
         not_draft: Měnit jde jen koncept; vygenerovaný dokument je zmrazený. Zrušte ho a vygenerujte znovu.
         not_ready: Jako odeslaný jde označit jen vygenerovaný, připravený dokument.
         not_final: Znovu jde vygenerovat jen dokončený, odmítnutý nebo zrušený dokument.
+        not_cancelled: Do koše jde jen zrušený dokument. Nejdřív ho zrušte.
+        trashed: Dokument je v koši. Nejdřív ho obnovte.
         not_signable: Podpisy se zaznamenávají u vygenerovaného dokumentu, který je připravený nebo k podpisu.
         final: Dokončený, odmítnutý nebo zrušený dokument už nejde měnit.
         signed_copy_exists: Dokument už podepsanou kopii má.

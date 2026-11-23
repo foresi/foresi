@@ -11,7 +11,8 @@ namespace Foresi\Documents\Application;
 use Foresi\Documents\Domain\DocumentStatus;
 
 /**
- * Which documents a list shows: of a type, in a status, linked to a record.
+ * Which documents a list shows: of a type, in a status, linked to a record;
+ * those out of the trash, or with trashed those in it.
  */
 final readonly class DocumentFilter
 {
@@ -24,6 +25,7 @@ final readonly class DocumentFilter
         public ?string $linkId = null,
         public int $limit = 50,
         public int $offset = 0,
+        public bool $trashed = false,
     ) {
     }
 }

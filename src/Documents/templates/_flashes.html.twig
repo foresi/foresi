@@ -1,5 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The messages of the documents screens: what was done, or what was refused and why. #}
+{# The messages of the documents screens: what was done, or what was refused and why; a document sent to the trash says so with its Undo in the message, as deals do. #}
+{% for undo in app.flashes(constant('Foresi\\Documents\\Infrastructure\\Controller\\DocumentController::UNDO_FLASH')) %}
+    <twig:Ui:Alert tone="success" class="mb-4" :actionLabel="undo.label" :actionHref="undo.href" :actionToken="csrf_token(undo.token)" data-document-trashed>{{ undo.message }}</twig:Ui:Alert>
+{% endfor %}
 {% for tone in ['success', 'error'] %}
     {% for message in app.flashes(tone) %}
         <twig:Ui:Alert :tone="tone" class="mb-4" data-document-flash="{{ tone }}">{{ message }}</twig:Ui:Alert>

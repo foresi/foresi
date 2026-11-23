@@ -1772,6 +1772,8 @@ nelmio_api_doc:
                         created_at: { type: string, format: date-time }
                         generated_at: { type: string, format: date-time, nullable: true }
                         completed_at: { type: string, format: date-time, nullable: true }
+                        trashed: { type: boolean, description: 'True for a cancelled document in the trash.' }
+                        trashed_at: { type: string, format: date-time, nullable: true }
                 DocumentsDocument:
                     allOf:
                         - $ref: '#/components/schemas/DocumentsDocumentRow'

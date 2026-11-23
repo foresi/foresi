@@ -665,7 +665,7 @@ Contracts and other documents made from templates, their signers and their signe
 
 | Method and path | Answer |
 | --- | --- |
-| `GET /api/v1/documents` | The documents, newest first, each with `id`, `title`, `status`, `type` and the days it was created, generated and completed. Filters: `type_id`, `status` (`draft`, `ready`, `out_for_signature`, `completed`, `declined`, `cancelled`, `expired`), and `linked_kind` with `linked_id` for the documents of a record, such as `contact`. Paging: `limit` (1 to 200, 50 by default) and `offset`. A filter that cannot be used is `400 invalid_parameter`, naming it. |
+| `GET /api/v1/documents` | The documents, newest first, each with `id`, `title`, `status`, `type`, the days it was created, generated and completed, `trashed` and `trashed_at`; those in the trash are left out unless `trashed=true`, which lists only them. Filters: `type_id`, `status` (`draft`, `ready`, `out_for_signature`, `completed`, `declined`, `cancelled`, `expired`), and `linked_kind` with `linked_id` for the documents of a record, such as `contact`. Paging: `limit` (1 to 200, 50 by default) and `offset`. A filter that cannot be used is `400 invalid_parameter`, naming it. |
 | `GET /api/v1/documents/{documentId}` | The document with `template`, `links` (each with `available`, false when the record is gone), `signers` in signing order, `files` (`pdf`, `signed`, `certificate`, each `null` or `{attachment_id, sha256}`), the frozen `values`, `provider` and `envelope_id`. |
 | `GET /api/v1/documents/{documentId}/files/{file}` | The bytes of the file (`pdf`, `signed` or `certificate`) as an attachment, `application/pdf`. `404 not_found` while the document has no such file. |
 | `GET /api/v1/document-types` | The types by name; archived ones with `include_archived=true`. |
@@ -683,6 +683,8 @@ Contracts and other documents made from templates, their signers and their signe
 | `POST /api/v1/documents/{documentId}/mark-sent` | The document out for signature. |
 | `POST /api/v1/documents/{documentId}/signed-copy` | The document with its signed copy: `file_name` and `content_base64`, a PDF up to 10 MB. From ready it also marks it sent. |
 | `POST /api/v1/documents/{documentId}/cancel` | The cancelled document. |
+| `POST /api/v1/documents/{documentId}/trash` | The cancelled document, now in the trash; any other status is `409 not_cancelled`. Trashing it again changes nothing. |
+| `POST /api/v1/documents/{documentId}/restore` | The document, back from the trash. |
 | `POST /api/v1/documents/{documentId}/generate-again` | `201` with a new draft of a final document: the same type, links and signers, the latest template version. |
 | `POST /api/v1/documents/{documentId}/signers` | `201` with the signer: `name`, `side` (`ours` or `theirs`), `order` (1 to 99), `email`, `party_person_id`. |
 | `PATCH /api/v1/documents/{documentId}/signers/{signerId}` | The signer with its new fields. |
