@@ -27,12 +27,11 @@
                 <input type="hidden" name="clientId" value="{{ client.id }}">
                 <input type="hidden" name="clientFixed" value="1">
             {% endif %}
-            <div class="grid gap-1" data-deal-client>
-                <p class="m-0 text-small text-ink">{{ 'sales.deal.field.client'|trans }}</p>
-                <p class="m-0 font-medium text-ink">{{ client.displayName }}</p>
-                {% if clientLinked %}<p class="m-0 text-caption text-muted" data-deal-client-linked>{{ 'sales.deal.field.client_linked_help'|trans }}</p>{% endif %}
-                {% if errors.clientId is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.clientId }}</p>{% endif %}
-            </div>
+            {# Read-only: the label and the client's name as a link to the contact (Ui:Field plain, the link of Ui:Value). #}
+            <twig:Ui:Field id="client" :plain="true" :label="'sales.deal.field.client'|trans" :error="errors.clientId|default(null)" data-deal-client>
+                <p class="m-0 text-ink"><a href="{{ path('app_contact_show', {id: client.id}) }}" data-turbo="false" class="underline decoration-control-line underline-offset-2 hover:decoration-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-deal-client-link>{{ client.displayName }}</a></p>
+                {% if clientLinked %}<p class="m-0 mt-0.5 text-caption text-muted" data-deal-client-linked>{{ 'sales.deal.field.client_linked_help'|trans }}</p>{% endif %}
+            </twig:Ui:Field>
         {% else %}
             <div data-action="combobox:pick->deal-client#load combobox:clear->deal-client#clear">
                 <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'sales.deal.field.client'|trans" :placeholder="'sales.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_sales_deal_clients')" :emptyText="'sales.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
