@@ -342,7 +342,7 @@ final readonly class ForecastScreen
     /**
      * The items of one cell: what a period expects in one direction, of one category or all.
      *
-     * @return array{title: string, total: string, items: list<array<string, mixed>>}
+     * @return array{title: string, total: string, items: list<array{subject: string, label: string, href: ?string, inPlace: bool, certainty: string, certaintyTone: string, source: ?string, day: string, due: ?string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string, expected: ?array{label: string, href: string}}>}
      */
     public function items(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category): array
     {
