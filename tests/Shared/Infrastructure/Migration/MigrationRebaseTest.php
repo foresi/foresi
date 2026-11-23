@@ -139,18 +139,52 @@ final class MigrationRebaseTest extends KernelTestCase
      */
     private function onGlobalHistory(): void
     {
-        foreach ($this->afterBaselines() as $version) {
-            $migration = self::getContainer()->get('doctrine.migrations.dependency_factory')->getMigrationRepository()->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration();
-            $schema = new \Doctrine\DBAL\Schema\Schema();
-            $migration->up($schema);
-            foreach ($schema->getTables() as $table) {
-                $this->db->createSchemaManager()->dropTable($table->getName());
+        // Every migration in order on one schema, as the database got them: what one after
+        // the baselines creates goes, and the columns it adds to a table that was there go too.
+        $repository = self::getContainer()->get('doctrine.migrations.dependency_factory')->getMigrationRepository();
+        $afterBaselines = $this->afterBaselines();
+        $schema = new \Doctrine\DBAL\Schema\Schema();
+        $dropTables = [];
+        $dropColumns = [];
+        foreach ($this->migrations() as $version) {
+            $before = $this->columnsByTable($schema);
+            $repository->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration()->up($schema);
+            if (!\in_array($version, $afterBaselines, true)) {
+                continue;
             }
+            foreach ($this->columnsByTable($schema) as $table => $columns) {
+                if (!\array_key_exists($table, $before)) {
+                    $dropTables[] = $table;
+                } elseif (!\in_array($table, $dropTables, true)) {
+                    foreach (array_diff($columns, $before[$table]) as $column) {
+                        $dropColumns[] = [$table, $column];
+                    }
+                }
+            }
+        }
+        foreach ($dropColumns as [$table, $column]) {
+            $this->db->executeStatement(\sprintf('ALTER TABLE %s DROP COLUMN %s', $table, $column));
+        }
+        foreach ($dropTables as $table) {
+            $this->db->createSchemaManager()->dropTable($table);
         }
         $this->db->executeStatement('DELETE FROM doctrine_migration_versions');
         foreach (GlobalMigrationHistory::VERSIONS as $version) {
             $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-20 12:00:00', 'execution_time' => 5]);
         }
+    }
+
+    /**
+     * @return array<string, list<string>> the column names of each table
+     */
+    private function columnsByTable(\Doctrine\DBAL\Schema\Schema $schema): array
+    {
+        $columns = [];
+        foreach ($schema->getTables() as $table) {
+            $columns[$table->getName()] = array_map(static fn (\Doctrine\DBAL\Schema\Column $column): string => $column->getName(), $table->getColumns());
+        }
+
+        return $columns;
     }
 
     /**

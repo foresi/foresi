@@ -38,7 +38,7 @@ final readonly class PlannedItemTerms
             throw new \InvalidArgumentException('A planned item has a name and a positive amount.');
         }
         if ((PlannedVatMode::None === $vatMode) !== (null === $vatRate)
-            || (null !== $vatRate && (1 !== preg_match('/^[0-9]{1,3}\.[0-9]{2}\z/', $vatRate) || (float) $vatRate > 100))) {
+            || (null !== $vatRate && 1 !== preg_match('/^(?:100\.00|[0-9]{1,2}\.[0-9]{2})\z/', $vatRate))) {
             throw new \InvalidArgumentException('A planned item with a VAT mode has a rate from 0.00 to 100.00, and one without has none.');
         }
     }

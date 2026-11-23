@@ -156,7 +156,13 @@ final class PlannedItemVatTest extends CashFlowTestCase
             self::assertSame([$reason, $field], $this->refused($mode, $rate), \sprintf('%s at %s is refused.', $mode, $rate ?? 'null'));
         }
 
-        self::assertSame(['100', '21', '12.5', '0', '7.05'], array_map(fn (string $rate): ?string => $this->item('included', $rate)->vatRate(), ['100.00', '21', '12.5', '0', '007.05']));
+        try {
+            $this->item('gross', '21');
+            self::fail('An unknown mode is refused.');
+        } catch (CashFlowRefused $refused) {
+            self::assertSame('vat_mode is one of none, included, excluded.', $refused->getMessage());
+        }
+        self::assertSame(['100', '100', '21', '12.5', '0', '7.05'], array_map(fn (string $rate): ?string => $this->item('included', $rate)->vatRate(), ['100.00', '100', '21', '12.5', '0', '007.05']));
         self::assertSame([null, '21'], [$this->item('none', ' ')->vatRate(), $this->item('included', ' 21 ')->vatRate()], 'A blank rate is none, and a rate is trimmed.');
     }
 

@@ -10,8 +10,8 @@ namespace Foresi\Shared\Infrastructure\Migration;
 
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractNamedObject;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Metadata\ExecutedMigration;
 use Doctrine\Migrations\Metadata\Storage\TableMetadataStorageConfiguration;
@@ -31,9 +31,10 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * the baselines of the installed modules come, in one transaction, and no
  * DDL runs. It acts only on a database that executed every global version and
  * nothing else, and whose schema is in sync with the mapping. The tables that
- * only a migration after the baselines creates, such as those of a module added
- * later, are left out of that comparison: such a database has never had them,
- * and doctrine:migrations:migrate creates them after the rebase.
+ * a migration after the baselines creates, such as those of a module added
+ * later, or changes, such as a column added to a table of a baseline, are left
+ * out of that comparison: such a database has never had them as the mapping
+ * has them, and doctrine:migrations:migrate brings them there after the rebase.
  */
 final readonly class MigrationRebase
 {
@@ -137,7 +138,7 @@ final readonly class MigrationRebase
     /**
      * Whether the schema matches the mapping, leaving out the table of the
      * executed versions as doctrine:schema:validate does, and the entities whose
-     * tables only migrations after the baselines create.
+     * tables migrations after the baselines create or change.
      */
     private function inSync(): bool
     {
@@ -150,14 +151,15 @@ final readonly class MigrationRebase
         $table = $storage instanceof TableMetadataStorageConfiguration ? $storage->getTableName() : 'doctrine_migration_versions';
         $configuration = $this->entityManager->getConnection()->getConfiguration();
         $filter = $configuration->getSchemaAssetsFilter();
-        $configuration->setSchemaAssetsFilter(static function (mixed $asset) use ($filter, $table): bool {
+        // The changed tables are there in the database, so they leave the comparison by name too.
+        $configuration->setSchemaAssetsFilter(static function (mixed $asset) use ($filter, $table, $later): bool {
             $name = match (true) {
                 $asset instanceof AbstractNamedObject => $asset->getObjectName()->toString(),
                 $asset instanceof AbstractAsset => $asset->getName(),
                 default => \is_string($asset) ? $asset : '',
             };
 
-            return $name !== $table && true === $filter($asset);
+            return $name !== $table && !\in_array($name, $later, true) && true === $filter($asset);
         });
         try {
             return [] === new SchemaTool($this->entityManager)->getUpdateSchemaSql($classes);
@@ -167,7 +169,8 @@ final readonly class MigrationRebase
     }
 
     /**
-     * The tables that migrations after the baselines create, played on an empty schema.
+     * The tables that migrations after the baselines create or change the
+     * columns of, played in order on an empty schema.
      *
      * @return list<string>
      */
@@ -176,10 +179,15 @@ final readonly class MigrationRebase
         $schema = new Schema();
         $tables = [];
         foreach ($this->migrations->getMigrationRepository()->getMigrations()->getItems() as $available) {
-            $before = $this->tableNames($schema);
+            $before = $this->columnsByTable($schema);
             $available->getMigration()->up($schema);
-            if (!str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE)) {
-                array_push($tables, ...array_diff($this->tableNames($schema), $before));
+            if (str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE)) {
+                continue;
+            }
+            foreach ($this->columnsByTable($schema) as $table => $columns) {
+                if (($before[$table] ?? null) !== $columns) {
+                    $tables[] = $table;
+                }
             }
         }
 
@@ -187,11 +195,16 @@ final readonly class MigrationRebase
     }
 
     /**
-     * @return list<string>
+     * @return array<string, list<string>> the column names of each table
      */
-    private function tableNames(Schema $schema): array
+    private function columnsByTable(Schema $schema): array
     {
-        return array_map(static fn (Table $table): string => $table->getName(), $schema->getTables());
+        $columns = [];
+        foreach ($schema->getTables() as $table) {
+            $columns[$table->getName()] = array_map(static fn (Column $column): string => $column->getName(), $table->getColumns());
+        }
+
+        return $columns;
     }
 
     /**

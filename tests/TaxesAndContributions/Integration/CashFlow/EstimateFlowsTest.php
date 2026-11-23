@@ -104,6 +104,7 @@ final class EstimateFlowsTest extends TaxesTestCase
 
         $flows = $this->flows();
 
+        self::assertSame([FlowCategory::Taxes, FlowCategory::Insurance], self::getContainer()->get(EstimateFlows::class)->categories());
         $tax = $flows['income_tax.advance.2026-12'];
         self::assertSame([FlowCategory::Taxes, FlowCertainty::Estimate, FlowDirection::Out, [FlowFlag::Estimated]], [$tax->category, $tax->certainty, $tax->direction, $tax->flags]);
         self::assertSame(['2026-12-15', 5_000_000, 'Europe/Prague'], [$tax->expectedOn->format('Y-m-d'), $tax->amount->minor(), $tax->expectedOn->getTimezone()->getName()]);

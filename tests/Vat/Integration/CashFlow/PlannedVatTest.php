@@ -27,6 +27,8 @@ use Foresi\CashFlow\Contract\ReadFlow;
 use Foresi\CashFlow\Infrastructure\Source\PlannedItemFlows;
 use Foresi\ExchangeRate\Application\ExchangeRates;
 use Foresi\Identity\Application\ApiTokenContext;
+use Foresi\Identity\Application\ApiTokenGrant;
+use Foresi\Identity\Domain\ApiScope;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatPeriodLength;
@@ -49,6 +51,8 @@ use Foresi\Vat\Contract\VatPlanSource;
 use Foresi\Vat\Infrastructure\Api\VatJson;
 use Foresi\Vat\Integration\CashFlow\PlannedVat;
 use Foresi\Vat\Integration\CashFlow\VatFlows;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
@@ -151,6 +155,113 @@ final class PlannedVatTest extends VatTestCase
         self::assertSame([[0, 51_450, 'Hosting']], array_map(static fn (PlannedVatAmount $plan): array => [$plan->output->minor(), $plan->input->minor(), $plan->label], $plans), 'The VAT in CZK in the ratio of the amount; a flow without VAT counts nothing.');
         self::assertSame([], iterator_to_array($source->between($this->day('2026-10-01'), $this->day('2026-11-19')), false), 'Nothing before today.');
         self::assertCount(1, $reader->queries, 'A range before today reads nothing.');
+        self::assertCount(1, iterator_to_array($source->between($this->day('2026-11-20'), $this->day('2026-11-20')), false), 'Today alone is read.');
+    }
+
+    public function testWithoutTheCashFlowScopeAPlanHasNoSubjectOrLabel(): void
+    {
+        $reader = new class implements ForecastReader {
+            public function read(ForecastQuery $query): ForecastRead
+            {
+                return new ForecastRead([
+                    new ReadFlow('cash-flow.planned_items', new FlowSubject('planned_item', 'p-1'), FlowDirection::In, Money::ofMinor(12_100, Currency::CZK), Money::ofMinor(12_100, Currency::CZK), $query->from, FlowCategory::Revenue, FlowCertainty::Plan, [], 'Consulting', Money::ofMinor(2_100, Currency::CZK)),
+                ], [], [], false);
+            }
+        };
+        $token = new readonly class implements ApiTokenContext {
+            public function grant(): ApiTokenGrant
+            {
+                return new ApiTokenGrant('019a0000-0000-7000-8000-000000000001', '019a0000-0000-7000-8000-0000000000aa', 'Example', [ApiScope::from('vat:read')], new \DateTimeImmutable('2027-12-01'));
+            }
+
+            public function requireScope(ApiScope $scope): ApiTokenGrant
+            {
+                return $this->grant();
+            }
+        };
+        $source = new PlannedVat($reader, self::getContainer()->get(InstanceClock::class), $token);
+
+        $plans = iterator_to_array($source->between($this->day('2026-11-20'), $this->day('2026-11-30')), false);
+
+        self::assertFalse($source->mayReadDetails());
+        self::assertSame([[null, null, 2_100]], array_map(static fn (PlannedVatAmount $plan): array => [$plan->subject, $plan->label, $plan->output->minor()], $plans), 'The amount counts; what it is stays hidden.');
+    }
+
+    public function testAFailingPlanSourceIsLoggedAndTheOthersStillCount(): void
+    {
+        $logger = new class extends AbstractLogger {
+            /** @var list<array{string, string, mixed, bool}> the level, the message, the source and whether an exception came */
+            public array $logs = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->logs[] = [\is_string($level) ? $level : '', (string) $message, $context['source'] ?? null, ($context['exception'] ?? null) instanceof \Throwable];
+            }
+        };
+        $periods = $this->vat([
+            $this->planSource('test.a_plans', true, [], fails: true),
+            $this->planSource('test.b_plans', true, [['2026-11-25', 100, 0], ['2026-11-26', 50, 0]]),
+            $this->planSource('test.c_plans', true, [['2026-11-27', 0, 30]]),
+        ], $logger);
+
+        $list = $periods->list('2026-11', '2026-11');
+
+        self::assertContains('test.a_plans', $list->unavailableSources);
+        self::assertSame([150, 30], [$list->periods[0]->amounts->plansPart->output->minor(), $list->periods[0]->amounts->plansPart->input->minor()], 'The sources after the failing one still count.');
+        self::assertContains(['error', 'The VAT of the plans of {source} could not be read.', 'test.a_plans', true], $logger->logs);
+    }
+
+    public function testTheDetailLeavesOutThePlansOfARestrictedSourceAndTheStepsNameEachSourceOnce(): void
+    {
+        $periods = $this->vat([
+            $this->planSource('test.restricted_plans', false, [['2026-11-25', 100, 10]]),
+            $this->planSource('test.b_plans', true, [['2026-11-25', 200, 20], ['2026-11-26', 300, 30]]),
+            $this->planSource('test.a_plans', true, [['2026-11-27', 400, 40]]),
+        ]);
+
+        $detail = $periods->get('2026-11');
+
+        self::assertSame([['test.b_plans', 200], ['test.b_plans', 300], ['test.a_plans', 400]], array_map(static fn (PlannedVatAmount $plan): array => [$plan->source, $plan->output->minor()], $detail->plans), 'The restricted plans count in the amounts but are not listed.');
+        self::assertSame([1_000, 100], [$detail->period->amounts->plansPart->output->minor(), $detail->period->amounts->plansPart->input->minor()]);
+        $sources = [];
+        foreach ($detail->period->amounts->steps as $step) {
+            $sources[$step->name] = $step->sources;
+        }
+        self::assertSame(['test.a_plans', 'test.b_plans', 'test.restricted_plans'], $sources[CalculationStep::INPUT], 'Each source once, in order.');
+    }
+
+    /**
+     * @param list<array{string, int, int}> $plans the day, the output and the input in CZK minor units
+     */
+    private function planSource(string $key, bool $details, array $plans, bool $fails = false): VatPlanSource
+    {
+        return new readonly class($key, $details, $plans, $fails) implements VatPlanSource {
+            /**
+             * @param list<array{string, int, int}> $plans
+             */
+            public function __construct(private string $key, private bool $details, private array $plans, private bool $fails)
+            {
+            }
+
+            public function key(): string
+            {
+                return $this->key;
+            }
+
+            public function mayReadDetails(): bool
+            {
+                return $this->details;
+            }
+
+            public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable
+            {
+                if ($this->fails) {
+                    throw new \RuntimeException('The plans could not be read.');
+                }
+
+                return array_map(fn (array $plan): PlannedVatAmount => new PlannedVatAmount($this->key, null, null, new \DateTimeImmutable($plan[0], new \DateTimeZone('Europe/Prague')), Money::ofMinor($plan[1], Currency::CZK), Money::ofMinor($plan[2], Currency::CZK)), $this->plans);
+            }
+        };
     }
 
     public function testFailingPlannedItemsLeaveThePlansUnavailable(): void
@@ -209,11 +320,11 @@ final class PlannedVatTest extends VatTestCase
      *
      * @param list<VatPlanSource> $plans
      */
-    private function vat(array $plans): VatPeriods
+    private function vat(array $plans, LoggerInterface $logger = new NullLogger()): VatPeriods
     {
         $container = self::getContainer();
 
-        return new VatPeriods($container->get(VatAccess::class), $container->get(VatRules::class), $container->get(FirmVatStatuses::class), $container->get(InstanceClock::class), [], new NullLogger(), $container->get(ExchangeRates::class), store: $container->get(VatStore::class), plans: $plans);
+        return new VatPeriods($container->get(VatAccess::class), $container->get(VatRules::class), $container->get(FirmVatStatuses::class), $container->get(InstanceClock::class), [], $logger, $container->get(ExchangeRates::class), store: $container->get(VatStore::class), plans: $plans);
     }
 
     /**

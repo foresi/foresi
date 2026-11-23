@@ -33,7 +33,7 @@ final readonly class PlannedItemVatRule
     {
     }
 
-    public function isPayerOn(\DateTimeImmutable $day): bool
+    private function isPayerOn(\DateTimeImmutable $day): bool
     {
         $stretch = $this->statuses->on(new \DateTimeImmutable($day->format('Y-m-d'), $this->clock->timezone()));
 
