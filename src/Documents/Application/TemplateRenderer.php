@@ -13,6 +13,7 @@ use Twig\Error\Error as TwigError;
 use Twig\Error\SyntaxError;
 use Twig\Extension\SandboxExtension;
 use Twig\Loader\ArrayLoader;
+use Twig\Markup;
 use Twig\Node\Expression\ConstantExpression;
 use Twig\Node\Expression\GetAttrExpression;
 use Twig\Node\Expression\NameExpression;
@@ -31,7 +32,8 @@ use Twig\Template;
  * Renders the body of a document template in a Twig environment of its own,
  * always sandboxed: the tags if, for and set, a short list of filters, no
  * functions, no methods and no properties of objects. Values are scalars and
- * nested arrays only, and every output is HTML-escaped.
+ * nested arrays only, and every output is HTML-escaped, except the <img> of an
+ * image variable (DocumentVariables::printable()).
  *
  * A template that uses a variable with no value, or anything outside the
  * sandbox, is refused with what it used: never an error page.
@@ -245,8 +247,8 @@ final readonly class TemplateRenderer
         foreach ($values as $value) {
             if (\is_array($value)) {
                 self::checkValues($value);
-            } elseif (null !== $value && !\is_scalar($value)) {
-                throw new \InvalidArgumentException('Template values are scalars and arrays only.');
+            } elseif (null !== $value && !\is_scalar($value) && !$value instanceof Markup) {
+                throw new \InvalidArgumentException('Template values are scalars, arrays and the markup of an image only.');
             }
         }
     }

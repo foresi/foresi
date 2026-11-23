@@ -85,7 +85,7 @@ final class DocumentsApiTest extends ApiTestCase
 
         $this->get('/api/v1/document-templates/'.$templateId);
         self::assertResponseIsSuccessful();
-        self::assertSame([['name' => 'firm.name', 'label' => 'Firm name', 'example' => 'Example Firm s.r.o.']], $this->at('data', 'variables'));
+        self::assertSame([['name' => 'firm.name', 'label' => 'Firm name', 'example' => 'Example Firm s.r.o.', 'image' => false]], $this->at('data', 'variables'));
         $template = $this->json()['data'];
         $this->get('/api/v1/document-templates', ['type_id' => $typeId]);
         self::assertSame([$templateId], $this->ids());

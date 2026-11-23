@@ -151,7 +151,7 @@ final class DocumentController extends AbstractController
             $version = $this->store->latestVersion($document->templateId());
             if ($version instanceof \Foresi\Documents\Domain\TemplateVersion) {
                 $links = array_map(static fn (DocumentLink $link): RecordLink => new RecordLink($link->kind(), $link->targetId()), $this->store->links($document));
-                $draftPreview = $this->preview->preview($version->body(), $this->variables->values($links), $version->page());
+                $draftPreview = $this->preview->preview($version->body(), $this->variables->printable($this->variables->values($links), preview: true), $version->page());
             }
         }
 

@@ -16,7 +16,7 @@ A **template** belongs to a type and has **versions**. A version holds the HTML 
 
 ### The template subset
 
-The body is HTML in the subset that the PDF renderer draws well: headings, paragraphs, lists, tables, a few inline tags and a short list of CSS properties in `mm`, `pt` and `%`. The full list, with what is not available (images, links, floats, flexbox, italic Inter), is in [ADR 0042](adr/0042-document-pdf-renderer.md#the-template-subset). The footer "page X of Y" is drawn by the module.
+The body is HTML in the subset that the PDF renderer draws well: headings, paragraphs, lists, tables, a few inline tags and a short list of CSS properties in `mm`, `pt` and `%`. The full list, with what is not available (images other than the firm's logo, links, floats, flexbox, italic faces), is in [ADR 0042](adr/0042-document-pdf-renderer.md#the-template-subset). The footer "page X of Y" is drawn by the module.
 
 Placeholders are Twig in a sandbox, such as `{{ client.name }}`. Allowed are:
 
@@ -24,7 +24,7 @@ Placeholders are Twig in a sandbox, such as `{{ client.name }}`. Allowed are:
 - the filters `escape`, `upper`, `lower`, `date`, `number_format`, `nl2br`, `default`, `join` and `length`;
 - no functions, no methods and no properties of objects.
 
-Values are HTML escaped. A body that uses anything else is refused when it is saved, with the construct in `details.construct` (`template_not_allowed`). The variables a body can use, with a label and an example each, are in the template detail (`variables`), and the ones a version uses are in `version.uses`.
+Values are HTML escaped, except an image variable such as `firm.logo`, which prints an `<img>`. A body that uses anything else is refused when it is saved, with the construct in `details.construct` (`template_not_allowed`). The variables a body can use, with a label, an example and whether it is an image each, are in the template detail (`variables`), and the ones a version uses are in `version.uses`.
 
 ### Variables from the address book
 
@@ -35,6 +35,7 @@ The address book (Party) offers two sources when Documents is installed:
 | `firm.name`, `firm.registration_number`, `firm.vat_id` | The firm of the instance, as its settings hold it when the document is generated. |
 | `firm.address_lines` | The firm's address as rows: `{% for item in firm.address_lines %}{{ item.line }}<br>{% endfor %}` (street, postal code with city, country). |
 | `firm.bank_account` | The IBAN of the primary bank account, in groups of four. |
+| `firm.logo` | The firm's logo, the one invoices print, as an image fitted into 52 × 16 mm; nothing when the firm has none. Place it with `{{ firm.logo }}`, or `{% if firm.logo %}…{% endif %}` around what belongs with it. A rule such as `.brand img { width: 20mm; height: 8mm }` sets another size; give both, keeping the logo's proportions. The frozen values keep the name of the stored image, not a path. |
 | `client.name`, `client.registration_number`, `client.vat_id`, `client.address_lines` | The contact the document links to (the first `contact` link): its billing address, or else its first address. |
 | `client.persons` | The contact persons of a company in the order they were linked, as rows with `name`, `position`, `email` and `phone`. |
 

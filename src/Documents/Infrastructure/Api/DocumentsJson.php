@@ -60,7 +60,7 @@ final readonly class DocumentsJson
         $variables = [];
         foreach ($this->variables->definitions() as $prefix => $definitions) {
             foreach ($definitions as $definition) {
-                $variables[] = ['name' => $prefix.'.'.$definition->name, 'label' => $definition->label, 'example' => $definition->example];
+                $variables[] = ['name' => $prefix.'.'.$definition->name, 'label' => $definition->label, 'example' => $definition->example, 'image' => $definition->image];
             }
         }
 

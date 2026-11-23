@@ -138,7 +138,7 @@ final readonly class DocumentWrites
             }
             $version = $this->store->latestVersion($document->templateId()) ?? throw new \LogicException('A template has at least one version.');
             $values = $this->variables->values($this->links($document));
-            $html = $this->renderer->render($version->body(), $values);
+            $html = $this->renderer->render($version->body(), $this->variables->printable($values));
             $pdf = $this->pdf->render($html, $version->page(), $document->title(), $this->language);
             $stored = $this->files->store($document->id(), $this->fileName($document->title()).'.pdf', $pdf);
             $document->generate($version, $values, $stored->attachmentId, $stored->sha256, $this->clock->now());

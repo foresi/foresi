@@ -26,6 +26,8 @@ final readonly class PdfEngine
     public const string FONT_DIRECTORY = __DIR__.'/../../resources/pdf-fonts';
     private const string FONT = 'intertnum';
     private const string DISPLAY_FONT = 'interdisplay';
+    /** The serif, for markup that asks for it with font-family: gelasio. */
+    private const string SERIF_FONT = 'gelasio';
     private const float FONT_SIZE = 9.0;
     /** How far above the bottom of the content the footer line starts, in millimetres. */
     private const float FOOTER_ABOVE_CONTENT_BOTTOM_MM = 8.0;
@@ -92,6 +94,11 @@ final readonly class PdfEngine
         $regular = $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
         $pdf->font->insert($pdf->pon, self::FONT, 'B', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnumb.json');
         $pdf->font->insert($pdf->pon, self::DISPLAY_FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/interdisplay.json');
+        // Every inserted face is embedded, so the serif only when the markup asks for it.
+        if (1 === preg_match('/'.self::SERIF_FONT.'/i', $htmlHead.$htmlBody)) {
+            $pdf->font->insert($pdf->pon, self::SERIF_FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/gelasio.json');
+            $pdf->font->insert($pdf->pon, self::SERIF_FONT, 'B', self::FONT_SIZE, ifile: $this->fontDirectory.'/gelasiob.json');
+        }
         // Back to the regular face as the current font.
         $pdf->font->insert($pdf->pon, self::FONT, '', self::FONT_SIZE, ifile: $this->fontDirectory.'/intertnum.json');
 
