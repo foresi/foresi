@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\TaxesAndContributions\Application;
+namespace Foresi\Tests\TaxesAndContributions\Integration\Country;
 
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\CzechDeadlines;
 use Foresi\Country\Integration\TaxesAndContributions\CzechRepublic\CzechSoleTrader;

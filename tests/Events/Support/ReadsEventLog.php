@@ -6,13 +6,15 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Invoicing\Application;
+namespace Foresi\Tests\Events\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 
 /**
- * The events a test left in the log, in the order they were recorded.
+ * The events a test left in the log, in the order they were recorded. With the
+ * tests of Events, which every application has, so the tests of any module can
+ * use it.
  */
 trait ReadsEventLog
 {
