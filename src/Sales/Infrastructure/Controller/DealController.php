@@ -1,0 +1,935 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Sales\Infrastructure\Controller;
+
+use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\PartyDirectory;
+use Foresi\Party\Contract\PartyPersonSummary;
+use Foresi\Party\Contract\PartySummary;
+use Foresi\Sales\Application\Api\AddDealLinkInput;
+use Foresi\Sales\Application\Api\ChangeDealStageInput;
+use Foresi\Sales\Application\Api\CreateDealInput;
+use Foresi\Sales\Application\Api\CreateFollowUpDealInput;
+use Foresi\Sales\Application\Api\LoseDealInput;
+use Foresi\Sales\Application\Api\RemoveDealLinkInput;
+use Foresi\Sales\Application\Api\ReopenDealInput;
+use Foresi\Sales\Application\Api\RestoreDealInput;
+use Foresi\Sales\Application\Api\TrashDealInput;
+use Foresi\Sales\Application\Api\UpdateDealInput;
+use Foresi\Sales\Application\Api\WinDealInput;
+use Foresi\Sales\Application\DealDetail;
+use Foresi\Sales\Application\DealLinkView;
+use Foresi\Sales\Application\DealLinkWrites;
+use Foresi\Sales\Application\DealReads;
+use Foresi\Sales\Application\DealValue;
+use Foresi\Sales\Application\DealValues;
+use Foresi\Sales\Application\DealWrites;
+use Foresi\Sales\Application\SalesAccess;
+use Foresi\Sales\Application\SalesRefused;
+use Foresi\Sales\Application\SalesStore;
+use Foresi\Sales\Application\View\DealLists;
+use Foresi\Sales\Application\View\DealQueries;
+use Foresi\Sales\Application\View\DealRow;
+use Foresi\Sales\Contract\SalesSlots;
+use Foresi\Sales\Domain\Deal;
+use Foresi\Sales\Domain\DealLine;
+use Foresi\Sales\Domain\LostReason;
+use Foresi\Sales\Domain\Stage;
+use Foresi\Sales\Infrastructure\Column\DealColumns;
+use Foresi\Sales\Infrastructure\Screen\DealScreen;
+use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ListViews;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewState;
+use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Contract\Guard;
+use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingDisplay;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\Slot\SlotRegistry;
+use Foresi\Ui\View\ViewBar;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
+
+/**
+ * The deals, for the owners and members. The list runs on saved views as
+ * every list does (All, Open, Won, Lost, Trash, "+ Filter", Columns) and
+ * groups the deals by stage, one table per stage with its count and value,
+ * as Odoo's list grouped by stage shows them. A deal is a page of its own:
+ * its header holds Won, Lost and Reopen (Pipedrive and Odoo), Edit, the
+ * stage, New follow-up deal and the actions other modules add; its sections
+ * the lines and their value, the linked deals and the sections other modules
+ * add. New, Edit, Lost, a follow-up and a link each open in a dialog; without
+ * JavaScript every dialog is a page of its own.
+ */
+final class DealController extends AbstractController
+{
+    public const string ROUTE = 'app_sales_deals';
+    public const string NEW_ROUTE = 'app_sales_deal_new';
+    public const string DEAL_ROUTE = 'app_sales_deal';
+    public const string TOKEN = 'sales';
+    public const string UNDO_FLASH = 'sales_undo';
+
+    /** The list's one sort, by title; "-title" backwards. */
+    private const string SORT_TITLE = 'title';
+    private const int MAX_QUERY = 100;
+
+    public function __construct(
+        private readonly DealLists $dealLists,
+        private readonly DealQueries $queries,
+        private readonly DealReads $reads,
+        private readonly DealWrites $writes,
+        private readonly DealLinkWrites $links,
+        private readonly SalesStore $store,
+        private readonly SalesAccess $access,
+        private readonly DealScreen $screen,
+        private readonly PartyDirectory $parties,
+        private readonly PartyQuery $partyQuery,
+        private readonly ListViews $listViews,
+        private readonly ActorRole $actorRole,
+        private readonly RememberedDisplay $rememberedDisplay,
+        private readonly ViewBar $viewBar,
+        private readonly FilterSheet $filterSheet,
+        private readonly SlotRegistry $slots,
+    ) {
+    }
+
+    #[Route('/sales/deals', name: self::ROUTE, methods: ['GET'])]
+    public function index(Request $request): Response
+    {
+        $this->denyUnlessStaff();
+        $input = $request->query;
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        if ($input->has(FilterRows::MARKER)) {
+            return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
+        }
+        [$views, $view, $shown] = $this->views($input);
+        $list = $this->dealLists->list();
+        $filterParam = WorkingFilter::param($shown, $view->filter);
+        $viewSort = ViewState::sortParam($view->sort, self::SORT_TITLE);
+        $sort = $input->getString('sort', $viewSort);
+        $sort = self::SORT_TITLE === ltrim($sort, '-') ? $sort : self::SORT_TITLE;
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $working = $this->rememberedDisplay->read(DealColumns::LIST, [], $list->key, $view, $input->all());
+        $query += $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_TITLE, $working, self::ROUTE, []);
+        $sections = $this->sections($this->queries->index($shown, str_starts_with($sort, '-')), $working);
+
+        return $this->render('@Sales/deals/index.html.twig', [
+            'view' => $view->isAll() ? '' : $view->key,
+            'emptyTitle' => $this->screen->trans(DealLists::TRASHED === $view->key ? 'sales.deals.empty.trash_title' : 'sales.deals.empty.view_title'),
+            'working' => $filterParam ?? '',
+            ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references()),
+            'sortKept' => $viewSort === $sort ? null : $sort,
+            ...$bar,
+            ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
+            'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
+            'sections' => $sections,
+            'density' => $working->tableDensity(),
+            'picker' => $this->picker($working, $query),
+            'workingQuery' => $working->query,
+            'filtered' => null !== $filterParam,
+            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
+        ]);
+    }
+
+    /**
+     * The contacts the client field and the client filter offer: any contact of the address book.
+     */
+    #[Route('/sales/deals/clients', name: 'app_sales_deal_clients', methods: ['GET'])]
+    public function clients(Request $request): JsonResponse
+    {
+        $this->denyUnlessStaff();
+        $page = $this->partyQuery->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), null, false, 'name', 1);
+
+        return $this->json(['results' => array_map(fn (PartyRow $row): array => [
+            'id' => $row->id,
+            'label' => $row->displayName,
+            'hint' => $row->email ?? $row->registrationNumber ?? $this->screen->trans('party.kind.'.$row->kind->value),
+        ], $page->rows)]);
+    }
+
+    /**
+     * The owners and members the owner filter offers.
+     */
+    #[Route('/sales/deals/owners', name: 'app_sales_deal_owners', methods: ['GET'])]
+    public function owners(Request $request): JsonResponse
+    {
+        $this->denyUnlessStaff();
+
+        return $this->json(['results' => $this->screen->ownerResults(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY))]);
+    }
+
+    /**
+     * A new deal in a dialog: its title, client, owner, stage and notes. Opened from a
+     * contact (?client=<id>) the client is set and its contact persons are offered.
+     */
+    #[Route('/sales/deals/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
+    public function new(Request $request): Response
+    {
+        $userId = $this->denyUnlessStaff();
+        $source = $request->isMethod('POST') ? $request->request : $request->query;
+        $clientId = trim($source->getString($request->isMethod('POST') ? 'clientId' : 'client'));
+        $client = '' === $clientId ? null : $this->parties->find($clientId);
+        $stages = $this->reads->stages();
+        $values = [
+            'title' => '',
+            'clientId' => $client instanceof PartySummary ? $client->id : '',
+            'clientQuery' => '',
+            'ownerUserId' => $userId,
+            'stageId' => [] === $stages ? '' : $stages[0]->id(),
+            'description' => '',
+            'contactPersonIds' => [],
+        ];
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $values = $this->postedDeal($request) + $values;
+            $values['clientId'] = $clientId;
+            try {
+                $deal = $this->writes->create(new CreateDealInput($values['title'], $values['clientId'], '' === $values['stageId'] ? null : $values['stageId'], '' === $values['ownerUserId'] ? null : $values['ownerUserId'], $values['description'], $values['contactPersonIds']));
+                $this->addFlash('success', $this->screen->trans('sales.deal.flash.created', ['title' => $deal->title()]));
+
+                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $deal->id()], Response::HTTP_SEE_OTHER);
+            } catch (SalesRefused $refused) {
+                $this->denyIfForbidden($refused);
+                $errors = $this->errors($refused);
+            }
+        }
+
+        return $this->render('@Sales/deals/form.html.twig', [
+            'deal' => null,
+            'action' => $this->generateUrl(self::NEW_ROUTE),
+            'values' => $values,
+            'errors' => $errors,
+            'client' => $client,
+            'persons' => $this->persons($client?->id),
+            'owners' => $this->screen->owners(),
+            'stages' => $this->stageOptions($stages),
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    #[Route('/sales/deals/{id}', name: self::DEAL_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
+    public function show(string $id): Response
+    {
+        $detail = $this->detail($id);
+        $deal = $detail->deal;
+        $return = $this->generateUrl(self::DEAL_ROUTE, ['id' => $id]);
+        $context = ['dealId' => $deal->id(), 'clientId' => $deal->clientPartyId(), 'contactPersonIds' => $detail->contactPersonIds, 'return' => $return];
+        $stages = $this->reads->stages();
+
+        return $this->render('@Sales/deals/show.html.twig', [
+            'deal' => $deal,
+            'badge' => $deal->isTrashed() ? ['label' => $this->screen->trans('sales.deal.trashed'), 'tone' => 'gray'] : $this->screen->status($deal),
+            'stageName' => $this->screen->stage($detail->stage),
+            'stages' => array_map(fn (Stage $stage): array => ['id' => $stage->id(), 'name' => $this->screen->stage($stage), 'current' => $stage->id() === $deal->stageId()], $stages),
+            'details' => $this->details($detail),
+            'lines' => $this->lineRows($detail),
+            'value' => $this->valueView($detail->value),
+            'links' => $this->linkViews($detail),
+            'linkable' => !$deal->isTrashed() && [] !== $this->linkOptions($detail),
+            'slotActions' => $deal->isTrashed() ? [] : $this->slotActions($context),
+            'slotSections' => $deal->isTrashed() ? [] : $this->slotSections($context),
+            'context' => $context,
+        ]);
+    }
+
+    #[Route('/sales/deals/{id}/edit', name: 'app_sales_deal_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    public function edit(string $id, Request $request): Response
+    {
+        $detail = $this->detail($id);
+        $deal = $detail->deal;
+        $values = ['title' => $deal->title(), 'ownerUserId' => $deal->ownerUserId(), 'description' => $deal->description(), 'contactPersonIds' => $detail->contactPersonIds];
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $values = array_intersect_key($this->postedDeal($request), $values);
+            try {
+                $this->writes->update(new UpdateDealInput($id, $values['title'], $values['description'], $values['ownerUserId'], $values['contactPersonIds']));
+                $this->addFlash('success', $this->screen->trans('sales.deal.flash.saved'));
+
+                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
+            } catch (SalesRefused $refused) {
+                $this->denyIfForbidden($refused);
+                $errors = $this->errors($refused);
+            }
+        }
+
+        return $this->render('@Sales/deals/form.html.twig', [
+            'deal' => $deal,
+            'action' => $this->generateUrl('app_sales_deal_edit', ['id' => $id]),
+            'values' => $values,
+            'errors' => $errors,
+            'client' => $this->parties->find($deal->clientPartyId()),
+            'persons' => $this->persons($deal->clientPartyId()),
+            'owners' => $this->screen->owners($deal->ownerUserId()),
+            'stages' => [],
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    #[Route('/sales/deals/{id}/stage', name: 'app_sales_deal_stage', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function stage(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        if ($this->act(fn (): Deal => $this->writes->changeStage(new ChangeDealStageInput($id, $request->request->getString('stageId'))))) {
+            $this->addFlash('success', $this->screen->trans('sales.deal.flash.stage_changed'));
+        }
+
+        return $this->back($id);
+    }
+
+    #[Route('/sales/deals/{id}/win', name: 'app_sales_deal_win', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function win(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        if ($this->act(fn (): Deal => $this->writes->win(new WinDealInput($id)))) {
+            $this->addFlash('success', $this->screen->trans('sales.deal.flash.won'));
+        }
+
+        return $this->back($id);
+    }
+
+    /**
+     * Marking a deal lost asks why, with a reason from the list and an optional note, as
+     * Pipedrive's and Odoo's lost-reason prompts do; neither is required.
+     */
+    #[Route('/sales/deals/{id}/lose', name: 'app_sales_deal_lose', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    public function lose(string $id, Request $request): Response
+    {
+        $deal = $this->detail($id)->deal;
+        $values = ['lostReasonId' => '', 'note' => ''];
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $values = ['lostReasonId' => trim($request->request->getString('lostReasonId')), 'note' => trim($request->request->getString('note'))];
+            try {
+                $this->writes->lose(new LoseDealInput($id, '' === $values['lostReasonId'] ? null : $values['lostReasonId'], '' === $values['note'] ? null : $values['note']));
+                $this->addFlash('success', $this->screen->trans('sales.deal.flash.lost'));
+
+                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
+            } catch (SalesRefused $refused) {
+                $this->denyIfForbidden($refused);
+                $field = $refused->field();
+                $errors = [null !== $field && \in_array($field, ['lostReasonId', 'note'], true) ? $field : 'lostReasonId' => $this->screen->refusal($refused)];
+            }
+        }
+
+        return $this->render('@Sales/deals/lose.html.twig', [
+            'deal' => $deal,
+            'values' => $values,
+            'errors' => $errors,
+            'reasons' => ['' => $this->screen->trans('sales.lose.no_reason')] + array_combine(array_map(static fn (LostReason $reason): string => $reason->id(), $this->reads->lostReasons()), array_map($this->screen->reason(...), $this->reads->lostReasons())),
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    #[Route('/sales/deals/{id}/reopen', name: 'app_sales_deal_reopen', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function reopen(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        if ($this->act(fn (): Deal => $this->writes->reopen(new ReopenDealInput($id)))) {
+            $this->addFlash('success', $this->screen->trans('sales.deal.flash.reopened'));
+        }
+
+        return $this->back($id);
+    }
+
+    /**
+     * The deal goes to the trash, and the list says so with Undo, as the activities do.
+     */
+    #[Route('/sales/deals/{id}/trash', name: 'app_sales_deal_trash', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function trash(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        $deal = $this->detail($id)->deal;
+        if (!$this->act(fn (): Deal => $this->writes->trash(new TrashDealInput($id)))) {
+            return $this->back($id);
+        }
+        $this->addFlash(self::UNDO_FLASH, [
+            'message' => $this->screen->trans('sales.deal.flash.trashed', ['title' => $deal->title()]),
+            'label' => $this->screen->trans('sales.deal.undo'),
+            'href' => $this->generateUrl('app_sales_deal_restore', ['id' => $id]),
+            'token' => self::TOKEN,
+        ]);
+
+        return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/sales/deals/{id}/restore', name: 'app_sales_deal_restore', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        if ($this->act(fn (): Deal => $this->writes->restore(new RestoreDealInput($id)))) {
+            $this->addFlash('success', $this->screen->trans('sales.deal.flash.restored'));
+        }
+
+        return $this->back($id);
+    }
+
+    /**
+     * A follow-up deal in a dialog: its title and the lines of this deal to copy. It is
+     * for the same client and contact persons and follows from this deal.
+     */
+    #[Route('/sales/deals/{id}/follow-up', name: 'app_sales_deal_follow_up', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    public function followUp(string $id, Request $request): Response
+    {
+        $detail = $this->detail($id);
+        $values = ['title' => '', 'lineIds' => []];
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $values = ['title' => trim($request->request->getString('title')), 'lineIds' => $this->strings($request->request->all('lineIds'))];
+            try {
+                $deal = $this->writes->createFollowUp(new CreateFollowUpDealInput($id, $values['title'], $values['lineIds']));
+                $this->addFlash('success', $this->screen->trans('sales.deal.flash.created', ['title' => $deal->title()]));
+
+                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $deal->id()], Response::HTTP_SEE_OTHER);
+            } catch (SalesRefused $refused) {
+                $this->denyIfForbidden($refused);
+                $errors = ['lineIds' === $refused->field() ? 'lineIds' : 'title' => $this->screen->refusal($refused)];
+            }
+        }
+
+        return $this->render('@Sales/deals/follow_up.html.twig', [
+            'deal' => $detail->deal,
+            'values' => $values,
+            'errors' => $errors,
+            'lines' => array_map(fn (DealLine $line): array => ['id' => $line->id(), 'name' => $line->name(), 'text' => $this->screen->lineAmount($line).' · '.$this->screen->billing($line)], $detail->lines),
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    /**
+     * A link to another deal of the same client, which this deal follows from, in a dialog.
+     */
+    #[Route('/sales/deals/{id}/links/new', name: 'app_sales_deal_link_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    public function newLink(string $id, Request $request): Response
+    {
+        $detail = $this->detail($id);
+        $values = ['toDealId' => ''];
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $values = ['toDealId' => trim($request->request->getString('toDealId'))];
+            try {
+                $this->links->add(new AddDealLinkInput($id, $values['toDealId']));
+                $this->addFlash('success', $this->screen->trans('sales.link.flash.added'));
+
+                return $this->back($id);
+            } catch (SalesRefused $refused) {
+                $this->denyIfForbidden($refused);
+                $errors = ['toDealId' => $this->screen->refusal($refused)];
+            }
+        }
+
+        return $this->render('@Sales/deals/link.html.twig', [
+            'deal' => $detail->deal,
+            'values' => $values,
+            'errors' => $errors,
+            'options' => $this->linkOptions($detail),
+        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+    }
+
+    #[Route('/sales/deals/{id}/links/{linkId}/remove', name: 'app_sales_deal_link_remove', requirements: ['id' => Requirement::UUID, 'linkId' => Requirement::UUID], methods: ['POST'])]
+    public function removeLink(string $id, string $linkId, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        if ($this->act(fn (): Deal => $this->links->remove(new RemoveDealLinkInput($id, $linkId)))) {
+            $this->addFlash('success', $this->screen->trans('sales.link.flash.removed'));
+        }
+
+        return $this->back($id);
+    }
+
+    /**
+     * Ends the request when the deal cannot be read: 403 for a guest, 404 for an unknown deal.
+     */
+    private function detail(string $id): DealDetail
+    {
+        try {
+            return $this->reads->deal($id);
+        } catch (SalesRefused $refused) {
+            $this->denyIfForbidden($refused);
+            throw new NotFoundHttpException($refused->getMessage(), $refused);
+        }
+    }
+
+    /**
+     * Runs a write of the deal's header; a refusal of its state, such as winning a deal
+     * that is not open, is a message on the deal's page.
+     *
+     * @param \Closure(): Deal $write
+     */
+    private function act(\Closure $write): bool
+    {
+        try {
+            $write();
+
+            return true;
+        } catch (SalesRefused $refused) {
+            $this->denyIfForbidden($refused);
+            if (RefusalKind::NotFound === $refused->kind()) {
+                throw new NotFoundHttpException($refused->getMessage(), $refused);
+            }
+            $this->addFlash('error', $this->screen->refusal($refused));
+
+            return false;
+        }
+    }
+
+    private function back(string $id): RedirectResponse
+    {
+        return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * The deals of the view by stage, in the order of the stages: one section per stage
+     * that holds a deal shown, as a list grouped by stage shows only the groups it has
+     * (Odoo), with the count and the value of its deals.
+     *
+     * @param list<Deal> $deals
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function sections(array $deals, WorkingState $working): array
+    {
+        $byStage = [];
+        foreach ($deals as $deal) {
+            $byStage[$deal->stageId()][] = $deal;
+        }
+        $sections = [];
+        foreach ($this->reads->stages(true) as $stage) {
+            if (isset($byStage[$stage->id()])) {
+                $sections[] = $this->section($stage->id(), $this->screen->stage($stage), $byStage[$stage->id()], $working);
+                unset($byStage[$stage->id()]);
+            }
+        }
+        foreach ($byStage as $stageId => $rest) {
+            $sections[] = $this->section($stageId, $this->screen->stage(null), $rest, $working);
+        }
+
+        return $sections;
+    }
+
+    /**
+     * @param list<Deal> $deals
+     *
+     * @return array<string, mixed>
+     */
+    private function section(string $id, string $title, array $deals, WorkingState $working): array
+    {
+        $rows = [];
+        $values = [];
+        foreach ($deals as $deal) {
+            $value = DealValues::of($this->store->linesOf($deal->id()));
+            $values[] = $value;
+            $row = new DealRow($deal, $value);
+            $rows[] = [
+                'id' => $deal->id(),
+                'href' => $this->generateUrl(self::DEAL_ROUTE, ['id' => $deal->id()]),
+                // A deal is a page of its own, with its lines, links and sections.
+                'opens' => Opens::PAGE,
+                'label' => $deal->title(),
+                'secondary' => implode(' · ', array_filter([$this->screen->client($deal->clientPartyId()), $this->screen->value($value)], static fn (string $part): bool => '' !== $part)),
+                'cells' => $working->display->cells($row),
+            ];
+        }
+        $total = $this->screen->value($this->sum($values));
+
+        return [
+            'id' => $id,
+            'title' => $title,
+            'rows' => $rows,
+            'count' => $this->screen->trans('sales.deals.count', ['count' => \count($rows)]),
+            'total' => '' === $total ? null : $total,
+        ];
+    }
+
+    /**
+     * The values of several deals added up, one-off and monthly apart, per currency.
+     *
+     * @param list<DealValue> $values
+     */
+    private function sum(array $values): DealValue
+    {
+        $oneOff = [];
+        $monthly = [];
+        $approximate = false;
+        foreach ($values as $value) {
+            $oneOff = self::added($oneOff, $value->oneOff);
+            $monthly = self::added($monthly, $value->monthly);
+            $approximate = $approximate || ([] !== $value->monthly && $value->approximate);
+        }
+        ksort($oneOff);
+        ksort($monthly);
+
+        return new DealValue($oneOff, $monthly, $approximate);
+    }
+
+    /**
+     * @param array<string, Money> $into
+     * @param array<string, Money> $amounts
+     *
+     * @return array<string, Money>
+     */
+    private static function added(array $into, array $amounts): array
+    {
+        foreach ($amounts as $currency => $money) {
+            $into[$currency] = isset($into[$currency]) ? $into[$currency]->plus($money) : $money;
+        }
+
+        return $into;
+    }
+
+    /**
+     * @return list<array{label: string, value: mixed, empty?: string}>
+     */
+    private function details(DealDetail $detail): array
+    {
+        $deal = $detail->deal;
+        $persons = array_map(static fn (PartyPersonSummary $person): string => $person->displayName, $detail->contactPersons);
+        $details = [
+            ['label' => $this->screen->trans('sales.deal.field.client'), 'value' => ['links' => [['text' => $this->screen->client($deal->clientPartyId()), 'href' => $this->generateUrl('app_contact_show', ['id' => $deal->clientPartyId(), 'tab' => 'deals'])]]]],
+            ['label' => $this->screen->trans('sales.deal.field.contact_persons'), 'value' => [] === $persons ? null : implode(', ', $persons), 'empty' => $this->screen->trans('sales.deal.none.contact_persons')],
+            ['label' => $this->screen->trans('sales.deal.field.owner'), 'value' => $this->screen->owner($deal->ownerUserId())],
+            ['label' => $this->screen->trans('sales.deal.field.stage'), 'value' => $this->screen->stage($detail->stage)],
+        ];
+        $reason = $detail->lostReason;
+        if (null !== $deal->lostAt()) {
+            $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_reason'), 'value' => $reason instanceof LostReason ? $this->screen->reason($reason) : null, 'empty' => $this->screen->trans('sales.deal.none.lost_reason')];
+            $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_note'), 'value' => $deal->lostNote(), 'empty' => $this->screen->trans('sales.deal.none.lost_note')];
+        }
+
+        return $details;
+    }
+
+    /**
+     * The lines of the deal as the rows of a table, with Edit, Up, Down and Remove.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function lineRows(DealDetail $detail): array
+    {
+        $deal = $detail->deal;
+        $last = \count($detail->lines) - 1;
+        $rows = [];
+        foreach ($detail->lines as $index => $line) {
+            $edit = $this->generateUrl('app_sales_deal_line_edit', ['id' => $deal->id(), 'lineId' => $line->id()]);
+            $price = $line->unitPrice();
+            $actions = [];
+            if (!$deal->isTrashed()) {
+                $actions[] = ['label' => $this->screen->trans('sales.line.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true];
+                if ($index > 0) {
+                    $actions[] = ['label' => $this->screen->trans('sales.line.move_up'), 'href' => $this->generateUrl('app_sales_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'up']];
+                }
+                if ($index < $last) {
+                    $actions[] = ['label' => $this->screen->trans('sales.line.move_down'), 'href' => $this->generateUrl('app_sales_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'down']];
+                }
+                $actions[] = ['label' => $this->screen->trans('sales.line.remove'), 'href' => $this->generateUrl('app_sales_deal_line_remove', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST',
+                    'confirm' => ['title' => $this->screen->trans('sales.line.confirm.remove', ['name' => $line->name()]), 'accept' => $this->screen->trans('sales.line.remove'), 'cancel' => $this->screen->trans('sales.keep'), 'tone' => 'danger']];
+            }
+            $rows[] = [
+                'id' => $line->id(),
+                'href' => $deal->isTrashed() ? null : $edit,
+                'opens' => Opens::DIALOG,
+                'label' => $line->name(),
+                'secondary' => $this->screen->lineAmount($line),
+                'cells' => [
+                    'name' => $line->name(),
+                    'quantity' => $this->screen->lineAmount($line),
+                    'billing' => $this->screen->billing($line),
+                    'total' => $price instanceof Money ? $this->screen->money($price->multipliedBy($line->quantity())) : '',
+                ],
+                'actions' => $actions,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array{has: bool, oneOff: list<string>, monthly: list<string>, approximate: bool}
+     */
+    private function valueView(DealValue $value): array
+    {
+        return [
+            'has' => $value->hasValue(),
+            'oneOff' => array_values(array_map($this->screen->money(...), $value->oneOff)),
+            'monthly' => array_values(array_map($this->screen->money(...), $value->monthly)),
+            'approximate' => $value->approximate,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function linkViews(DealDetail $detail): array
+    {
+        $views = [];
+        foreach ($detail->links as $view) {
+            $views[] = [
+                'id' => $view->link->id(),
+                'title' => $view->other->title(),
+                'href' => $this->generateUrl(self::DEAL_ROUTE, ['id' => $view->other->id()]),
+                'relation' => $this->screen->trans($view->outgoing ? 'sales.link.follows_from' : 'sales.link.followed_by'),
+                'status' => $this->screen->status($view->other),
+                'remove' => $detail->deal->isTrashed() ? null : $this->generateUrl('app_sales_deal_link_remove', ['id' => $detail->deal->id(), 'linkId' => $view->link->id()]),
+            ];
+        }
+
+        return $views;
+    }
+
+    /**
+     * The other deals of the client this deal may follow from: not itself, not one linked already.
+     *
+     * @return array<string, string> titles by id
+     */
+    private function linkOptions(DealDetail $detail): array
+    {
+        $linked = array_map(static fn (DealLinkView $view): string => $view->other->id(), $detail->links);
+        $options = [];
+        foreach ($this->reads->dealsOfClient($detail->deal->clientPartyId()) as $deal) {
+            if ($deal->id() !== $detail->deal->id() && !\in_array($deal->id(), $linked, true)) {
+                $options[$deal->id()] = $deal->title();
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return list<array{label: string, href: string, icon: ?string, dialog: bool, key: string}>
+     */
+    private function slotActions(array $context): array
+    {
+        $actions = [];
+        foreach ($this->slots->items(SalesSlots::DEAL_ACTIONS, $context) as $item) {
+            $label = $item->data['label'] ?? null;
+            $href = $item->data['href'] ?? null;
+            $icon = $item->data['icon'] ?? null;
+            if (!\is_string($label) || '' === $label || !\is_string($href) || null === DealScreen::localPath($href)) {
+                continue;
+            }
+            try {
+                Guard::icon(\is_string($icon) ? $icon : null);
+            } catch (\InvalidArgumentException) {
+                $icon = null;
+            }
+            $actions[] = ['label' => $label, 'href' => $href, 'icon' => \is_string($icon) ? $icon : null, 'dialog' => true === ($item->data['dialog'] ?? false), 'key' => \is_string($item->data['key'] ?? null) ? $item->data['key'] : ''];
+        }
+
+        return $actions;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return list<array{key: string, href: ?string, template: ?string, data: array<string, mixed>}>
+     */
+    private function slotSections(array $context): array
+    {
+        $sections = [];
+        foreach ($this->slots->items(SalesSlots::DEAL_SECTIONS, $context) as $item) {
+            $key = $item->data['key'] ?? null;
+            $href = $item->data['href'] ?? null;
+            if (!\is_string($key) || 1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key)) {
+                continue;
+            }
+            $href = \is_string($href) ? DealScreen::localPath($href) : null;
+            if (null === $href && null === $item->template) {
+                continue;
+            }
+            $sections[] = ['key' => $key, 'href' => $href, 'template' => $item->template, 'data' => $item->data + $context];
+        }
+
+        return $sections;
+    }
+
+    /**
+     * @return list<array{id: string, name: string}> the contact persons of the client
+     */
+    private function persons(?string $clientId): array
+    {
+        if (null === $clientId) {
+            return [];
+        }
+
+        return array_map(static fn (PartyPersonSummary $person): array => ['id' => $person->id, 'name' => $person->displayName], $this->parties->personsOf($clientId));
+    }
+
+    /**
+     * @param list<Stage> $stages
+     *
+     * @return array<string, string>
+     */
+    private function stageOptions(array $stages): array
+    {
+        return array_combine(array_map(static fn (Stage $stage): string => $stage->id(), $stages), array_map($this->screen->stage(...), $stages));
+    }
+
+    /**
+     * @return array{title: string, ownerUserId: string, stageId: string, description: string, contactPersonIds: list<string>, clientQuery: string}
+     */
+    private function postedDeal(Request $request): array
+    {
+        $posted = $request->request;
+
+        return [
+            'title' => trim($posted->getString('title')),
+            'ownerUserId' => trim($posted->getString('ownerUserId')),
+            'stageId' => trim($posted->getString('stageId')),
+            'description' => $posted->getString('description'),
+            'contactPersonIds' => $this->strings($posted->all('contactPersonIds')),
+            'clientQuery' => trim($posted->getString('clientQuery')),
+        ];
+    }
+
+    /**
+     * @param array<mixed> $values
+     *
+     * @return list<string>
+     */
+    private function strings(array $values): array
+    {
+        return array_values(array_filter($values, static fn (mixed $value): bool => \is_string($value) && '' !== $value));
+    }
+
+    /**
+     * @return array<string, string> the message of the refused field, by form field
+     */
+    private function errors(SalesRefused $refused): array
+    {
+        $field = $refused->field();
+        $field = match (true) {
+            'clientPartyId' === $field, 'client_archived' === $refused->reason() => 'clientId',
+            null !== $field && \in_array($field, ['title', 'description', 'ownerUserId', 'stageId', 'contactPersonIds'], true) => $field,
+            default => 'title',
+        };
+
+        return [$field => $this->screen->refusal($refused)];
+    }
+
+    /**
+     * @return array<string, array{url: string, name: \Closure(string): ?string}>
+     */
+    private function references(): array
+    {
+        return [
+            DealLists::MEMBER => ['url' => $this->generateUrl('app_sales_deal_owners'), 'name' => fn (string $userId): string => $this->screen->owner($userId)],
+            DealLists::CONTACT => ['url' => $this->generateUrl('app_sales_deal_clients'), 'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName],
+        ];
+    }
+
+    /**
+     * @param InputBag<string> $input
+     *
+     * @return array{list<ListView>, ListView, ViewFilter}
+     */
+    private function views(InputBag $input): array
+    {
+        $list = $this->dealLists->list();
+        $views = $this->listViews->of($list, $this->actorRole->userId());
+        $view = ListViews::chosen($views, $input->getString('view'));
+
+        return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter];
+    }
+
+    /**
+     * @param InputBag<string> $input
+     *
+     * @return array<string, mixed>
+     */
+    private function builtQuery(InputBag $input): array
+    {
+        [, $view] = $this->views($input);
+        $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true]);
+
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->dealLists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+    }
+
+    /**
+     * @param list<ListView>        $views
+     * @param array<string, string> $query
+     *
+     * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
+     */
+    private function tabs(array $views, string $active, array $query, bool $modified): array
+    {
+        [$primary, $overflow] = ListViews::placed($views);
+        $link = fn (ListView $view): array => [
+            'label' => $view->translated ? $this->screen->trans($view->name) : $view->name,
+            'href' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key] + array_diff_key($query, ['view' => true, 'sort' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
+            'active' => $view->key === $active,
+            'modified' => $modified && $view->key === $active,
+            'private' => $view->private,
+        ];
+
+        return ['tabs' => array_map($link, $primary), 'moreViews' => array_map($link, $overflow)];
+    }
+
+    /**
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function picker(WorkingState $working, array $query): array
+    {
+        $kept = array_diff_key($query, array_flip(WorkingDisplay::KEYS));
+
+        return [
+            'keep' => $kept,
+            'columns' => $working->picker(),
+            'density' => $working->density,
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'modified' => $working->modified,
+        ];
+    }
+
+    /**
+     * @return string the id of the person looking
+     */
+    private function denyUnlessStaff(): string
+    {
+        try {
+            return $this->access->denyUnlessStaff();
+        } catch (SalesRefused) {
+            throw new AccessDeniedHttpException('Only the owners and members of the organisation work with its deals.');
+        }
+    }
+
+    private function denyIfForbidden(SalesRefused $refused): void
+    {
+        if (RefusalKind::Forbidden === $refused->kind()) {
+            throw new AccessDeniedHttpException($refused->getMessage(), $refused);
+        }
+    }
+
+    private function checkToken(Request $request): void
+    {
+        if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Invalid CSRF token.');
+        }
+    }
+}

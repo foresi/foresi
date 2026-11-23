@@ -1,0 +1,68 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new deal, or one changed. New is a dialog over the list or the contact it was opened from (the client
+    then set and its contact persons offered); Edit is a dialog over the deal, with its title, notes, owner
+    and contact persons. Each URL is a page of its own too.
+    Variables: deal (null for a new one), action, values, errors, client (PartySummary or null), persons
+    (id, name), owners (by user id), stages (by id; none for Edit).
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = deal ? 'sales.deal.edit'|trans : 'sales.deal.new'|trans %}
+{% set back = deal ? path('app_sales_deal', {id: deal.id}) : path('app_sales_deals') %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'sales.deals.title'|trans, href: path('app_sales_deals')}]|merge(deal ? [{label: deal.title, href: back}] : [])|merge([{label: heading}]) %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="deal-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+        <twig:Ui:TextInput name="title" id="title" :label="'sales.deal.field.title'|trans" :placeholder="'sales.deal.field.title_placeholder'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="200" autocomplete="off" required />
+        {% if not deal %}
+            {% if client %}
+                <input type="hidden" name="clientId" value="{{ client.id }}">
+                <div class="grid gap-1" data-deal-client>
+                    <p class="m-0 text-small text-ink">{{ 'sales.deal.field.client'|trans }}</p>
+                    <p class="m-0 font-medium text-ink">{{ client.displayName }}</p>
+                    {% if errors.clientId is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.clientId }}</p>{% endif %}
+                </div>
+            {% else %}
+                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'sales.deal.field.client'|trans" :placeholder="'sales.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_sales_deal_clients')" :emptyText="'sales.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
+            {% endif %}
+        {% endif %}
+        {% if persons is not empty %}
+            <fieldset class="m-0 grid gap-2 border-0 p-0" data-deal-persons>
+                <legend class="mb-1 p-0 text-small text-ink">{{ 'sales.deal.field.contact_persons'|trans }}</legend>
+                {% for person in persons %}
+                    <twig:Ui:Checkbox name="contactPersonIds[]" :id="'person-' ~ person.id" :label="person.name" :value="person.id" :checked="person.id in values.contactPersonIds" />
+                {% endfor %}
+                {% if errors.contactPersonIds is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.contactPersonIds }}</p>{% endif %}
+            </fieldset>
+        {% endif %}
+        <div class="grid gap-4 sm:grid-cols-2">
+            <twig:Ui:Select name="ownerUserId" id="ownerUserId" :label="'sales.deal.field.owner'|trans" :options="owners" :value="values.ownerUserId" :error="errors.ownerUserId|default(null)" />
+            {% if stages is not empty %}
+                <twig:Ui:Select name="stageId" id="stageId" :label="'sales.deal.field.stage'|trans" :options="stages" :value="values.stageId" :error="errors.stageId|default(null)" />
+            {% endif %}
+        </div>
+        <twig:Ui:Textarea name="description" id="description" :label="'sales.deal.field.description'|trans" :help="'sales.deal.field.description_help'|trans" :value="values.description" :error="errors.description|default(null)" :rows="4" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="deal-form" variant="primary">{{ (deal ? 'sales.save' : 'sales.deal.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="deal ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="deal-form" variant="primary">{{ (deal ? 'sales.save' : 'sales.deal.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new line of a deal, or one changed. A new line is picked from the catalog, which copies the product with
+    the quantity given, or typed in with its own name, unit, price and billing (Pipedrive and HubSpot add
+    products to a deal this way); while a product is chosen the typed fields hide (deal-line). The period shows
+    only for a recurring line. A dialog over the deal; the same URL is a page.
+    Variables: deal, line (null for a new one), action, values, errors, products (labels by id), billingKinds,
+    units, currencies.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = line ? 'sales.line.edit'|trans : 'sales.line.new'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'sales.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set column = 'sm:col-span-2' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="deal-line-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+        <div class="grid gap-4 sm:grid-cols-2" data-controller="deal-line">
+            {% if not line %}
+                <div class="{{ column }}">
+                    <twig:Ui:Select name="productId" id="productId" :label="'sales.line.field.product'|trans" :help="'sales.line.field.product_help'|trans" :options="{'': 'sales.line.typed'|trans}|merge(products)" :value="values.productId" :error="errors.productId|default(null)" data-deal-line-target="product" data-action="change->deal-line#changed" />
+                </div>
+            {% endif %}
+            <twig:Ui:TextInput name="quantity" id="quantity" :label="'sales.line.field.quantity'|trans" :value="values.quantity" :error="errors.quantity|default(null)" inputmode="decimal" autocomplete="off" required />
+            <div class="{{ column }} grid gap-4 sm:grid-cols-2" data-deal-line-target="typed">
+                <div class="{{ column }}"><twig:Ui:TextInput name="name" id="name" :label="'sales.line.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" autocomplete="off" /></div>
+                <twig:Ui:TextInput name="unit" id="unit" :label="'sales.line.field.unit'|trans" :help="'sales.line.field.unit_help'|trans" :value="values.unit" :error="errors.unit|default(null)" maxlength="32" autocomplete="off" />
+                <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                    <twig:Ui:TextInput name="unitPrice" id="unitPrice" :label="'sales.line.field.unit_price'|trans" :help="'sales.line.field.unit_price_help'|trans" :value="values.unitPrice" :error="errors.unitPrice|default(null)" inputmode="decimal" autocomplete="off" />
+                    <twig:Ui:Select name="currency" id="currency" :label="'sales.line.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />
+                </div>
+                <div class="{{ column }}">
+                    <twig:Ui:Select name="billingKind" id="billingKind" :label="'sales.line.field.billing_kind'|trans" :options="billingKinds" :value="values.billingKind" :error="errors.billingKind|default(null)" data-deal-line-target="kind" data-action="change->deal-line#changed" />
+                </div>
+                <div class="{{ column }} grid gap-4 sm:grid-cols-3" data-deal-line-target="period">
+                    <twig:Ui:TextInput name="interval" id="interval" :label="'sales.line.field.interval'|trans" :value="values.interval" :error="errors.interval|default(null)" inputmode="numeric" autocomplete="off" maxlength="2" />
+                    <twig:Ui:Select name="recurrenceUnit" id="recurrenceUnit" :label="'sales.line.field.recurrence_unit'|trans" :options="units" :value="values.recurrenceUnit" :error="errors.recurrenceUnit|default(null)" />
+                    <twig:Ui:TextInput name="cycles" id="cycles" :label="'sales.line.field.cycles'|trans" :help="'sales.line.field.cycles_help'|trans" :value="values.cycles" :error="errors.cycles|default(null)" inputmode="numeric" autocomplete="off" maxlength="3" />
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="deal-line-form" variant="primary">{{ (line ? 'sales.save' : 'sales.line.add')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="line ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="deal-line-form" variant="primary">{{ (line ? 'sales.save' : 'sales.line.add')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

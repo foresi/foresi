@@ -1,0 +1,33 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Settings → Sales: the stages of a deal in their order and the reasons a deal is lost, as Pipedrive lets a
+    team rename, add and order its stages and keep predefined lost reasons. A new one and a rename open in a
+    dialog over the page, Up and Down move a stage, and archiving asks first; a stage that holds open deals
+    is not archived and the message says why. Variables: columns, stages, reasons.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'sales.settings.title'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) %}
+
+{% block title %}{{ 'sales.settings.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_sales_stage_new')" data-dialog aria-haspopup="dialog" data-sales-stage-new>{{ 'sales.settings.new_stage'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button icon="plus" :href="path('app_sales_lost_reason_new')" data-dialog aria-haspopup="dialog" data-sales-reason-new>{{ 'sales.settings.new_reason'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Sales/_flashes.html.twig') }}
+    <div class="grid gap-6">
+        <section class="grid gap-2" aria-labelledby="sales-stages-title" data-sales-stages>
+            <h2 id="sales-stages-title" class="m-0 text-body font-semibold text-ink">{{ 'sales.settings.stages'|trans }}</h2>
+            <p class="m-0 text-small text-muted">{{ 'sales.settings.stages_text'|trans }}</p>
+            <twig:Ui:DataTable :caption="'sales.settings.stages'|trans" :columns="columns" :rows="stages" :actionToken="token" />
+        </section>
+        <section class="grid gap-2" aria-labelledby="sales-reasons-title" data-sales-reasons>
+            <h2 id="sales-reasons-title" class="m-0 text-body font-semibold text-ink">{{ 'sales.settings.reasons'|trans }}</h2>
+            <twig:Ui:DataTable :caption="'sales.settings.reasons'|trans" :columns="columns" :rows="reasons" :actionToken="token" />
+        </section>
+    </div>
+{% endblock %}
