@@ -56,7 +56,11 @@ sales:
         new: Nový obchod
         create: Vytvořit obchod
         edit: Upravit
-        detail: Obchod
+        details: Detail
+        sections: Části obchodu
+        tab:
+            activities: Aktivity
+            documents: Dokumenty
         win: Vyhráno
         lose: Prohráno
         reopen: Znovu otevřít
@@ -85,6 +89,9 @@ sales:
             description_help: Markdown, například **tučně** nebo seznam.
             lost_reason: Důvod prohry
             lost_note: Poznámka k prohře
+            won_at: Datum výhry
+            lost_at: Datum prohry
+            created_at: Vytvořeno
         none:
             contact_persons: Žádné
             lost_reason: Bez důvodu

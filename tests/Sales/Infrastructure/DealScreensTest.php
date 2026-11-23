@@ -127,6 +127,16 @@ final class DealScreensTest extends WebTestCase
         self::assertSelectorTextContains('[data-header-badge]', 'Meeting');
         self::assertCount(1, $crawler->filter('[data-deal-win]'));
         self::assertSame('/sales/deals/'.$deal->id().'/lose', $crawler->filter('[data-deal-lose]')->attr('href'));
+        // Won is the primary action, at most one module's action stands beside it, and the rest wait in the "⋯" menu.
+        self::assertLessThanOrEqual(1, $crawler->filter('[data-more-actions-buttons] a, [data-more-actions-buttons] button')->count());
+        foreach (['[data-deal-lose]', '[data-deal-edit]', '[data-deal-follow-up]', '[data-deal-trash]'] as $action) {
+            self::assertCount(1, $crawler->filter('[data-more-actions-menu] '.$action), $action);
+        }
+        // The details are in the side column, the stage among them while the deal is open.
+        self::assertSelectorTextContains('[data-deal-layout] aside[data-deal-details]', 'Stage');
+        self::assertSelectorTextContains('[data-deal-details]', 'Created');
+        self::assertCount(1, $crawler->filter('[data-deal-main] [data-deal-lines]'));
+        self::assertCount(1, $crawler->filter('[data-deal-details] [data-deal-links]'));
 
         // A refused field is shown in the dialog.
         $form = $this->client->request('GET', '/sales/deals/new?client='.$this->company->id())->filter('#deal-form')->form();
@@ -145,6 +155,12 @@ final class DealScreensTest extends WebTestCase
         self::assertSame(DealStatus::Won, $this->deal('Roof audit')->status());
         $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
         self::assertSelectorTextContains('main header', 'Won');
+        // A won deal shows its status alone, not the stage it was closed in.
+        self::assertCount(0, $crawler->filter('[data-header-badge]'));
+        self::assertCount(0, $crawler->filter('[data-deal-stage]'));
+        self::assertSelectorTextContains('[data-deal-details]', 'Won on');
+        self::assertSelectorTextNotContains('[data-deal-details]', 'Stage');
+        self::assertCount(0, $crawler->filter('[data-deal-lose]'));
         self::assertCount(0, $crawler->filter('[data-deal-win]'));
         $this->client->submit($crawler->filter('[data-deal-reopen]')->form());
         self::assertSame(DealStatus::Open, $this->deal('Roof audit')->status());
@@ -163,6 +179,8 @@ final class DealScreensTest extends WebTestCase
         $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
         self::assertSelectorTextContains('main', 'Timing');
         self::assertSelectorTextContains('main', 'They will come back in spring.');
+        self::assertCount(0, $crawler->filter('[data-header-badge]'));
+        self::assertSelectorTextContains('[data-deal-details]', 'Lost on');
 
         // Reopen clears the reason and the note.
         $this->client->submit($crawler->filter('[data-deal-reopen]')->form());

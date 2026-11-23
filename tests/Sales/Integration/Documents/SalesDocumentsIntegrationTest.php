@@ -96,6 +96,12 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         self::assertNotNull($action->attr('data-dialog'));
         $href = (string) $action->attr('href');
         self::assertSame('/documents/new?link_kind=deal&link_id='.$deal->id().'&links%5B0%5D=contact:'.$this->company->id(), $href);
+        // The documents are a tab of their own, loaded only when it is chosen.
+        self::assertCount(0, $crawler->filter('turbo-frame#deal-section-documents'));
+        self::assertCount(1, $crawler->filter('[data-more-actions-menu] [data-deal-action="new-document"]'));
+        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id().'?tab=documents');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Documents'], $crawler->filter('[data-deal-tabs] nav a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));
         $section = $crawler->filter('[data-deal-section="documents"] turbo-frame#deal-section-documents');
         self::assertSame('/documents/for/deal/'.$deal->id(), $section->attr('src'));
         self::assertSame('lazy', $section->attr('loading'));

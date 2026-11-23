@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { expect, test } from '@playwright/test';
+import { openMoreActions } from '../support/header';
 import { signIn } from '../support/session';
 
 // The world of this spec in tests/e2e/seed/sales.php: the stages the migration seeds, the NDA
@@ -46,13 +47,16 @@ test.describe('sales', () => {
     await expect(page.locator('[data-deal-lines]')).toContainText('12 000,00 Kč');
 
     // New document from the deal: the NDA with the deal and the client linked, listed on the deal.
-    await page.locator('[data-deal-action="new-document"]').click();
+    await (await openMoreActions(page)).locator('[data-deal-action="new-document"]').click();
     const document = page.getByRole('dialog', { name: 'Nový dokument' });
     await expect(document.locator('#document-form')).toBeVisible();
     await expect(document.locator('[data-document-link]')).toHaveText([/Roof audit/, new RegExp(CLIENT)]);
     await document.getByLabel('Šablona').selectOption({ label: 'NDA for a deal' });
     await document.getByLabel('Název').fill('NDA for the roof audit');
     await document.getByRole('button', { name: 'Vytvořit' }).click();
+    await expect(document).toBeHidden();
+    // The documents are the deal's second tab, after the activities.
+    await page.goto(`${audit}?tab=documents`);
     const documents = page.locator('turbo-frame#deal-section-documents [data-record-documents]');
     await expect(documents).toContainText('NDA for the roof audit');
 
@@ -71,7 +75,7 @@ test.describe('sales', () => {
     await page.locator('[data-deal-win] button').click();
     await expect(page.locator('[data-deal-reopen]')).toBeVisible();
     await expect(page.locator('main header').first()).toContainText('Vyhraný');
-    await page.locator('[data-deal-follow-up]').click();
+    await (await openMoreActions(page)).locator('[data-deal-follow-up]').click();
     const followUp = page.getByRole('dialog', { name: 'Nový navazující obchod' });
     await expect(followUp.locator('#deal-follow-up-form')).toBeVisible();
     await followUp.getByLabel('Název').fill('Roof maintenance');

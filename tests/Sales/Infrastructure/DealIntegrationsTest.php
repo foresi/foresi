@@ -29,7 +29,7 @@ final class DealIntegrationsTest extends SalesScreenTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount($documents ? 1 : 0, $crawler->filter('[data-deal-action="new-document"]'));
-        self::assertCount($documents ? 1 : 0, $crawler->filter('[data-deal-section="documents"]'));
+        self::assertCount($documents ? 1 : 0, $crawler->filter('[data-deal-tabs] nav a[href$="?tab=documents"]'));
         self::assertCount($activities ? 2 : 0, $crawler->filter('[data-deal-action$="-activity"]'));
         self::assertCount($activities ? 1 : 0, $crawler->filter('[data-deal-section="activities"]'));
         // Sales' own sections are there either way.

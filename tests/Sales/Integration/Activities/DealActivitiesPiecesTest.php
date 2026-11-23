@@ -72,12 +72,13 @@ final class DealActivitiesPiecesTest extends SalesTestCase
 
     public function testTheTimelineSectionComesBackToTheDeal(): void
     {
+        self::getContainer()->get(LocaleSwitcher::class)->setLocale('en');
         $section = self::getContainer()->get(DealActivitiesSection::class);
         $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [], 'return' => '/sales/deals/'.self::UNKNOWN];
 
         $items = $this->items($section->items(SalesSlots::DEAL_SECTIONS, $context));
         self::assertCount(1, $items);
-        self::assertSame(['key' => 'activities', 'href' => '/activities/for/deal/'.self::UNKNOWN.'?return=/sales/deals/'.self::UNKNOWN], $items[0]->data);
+        self::assertSame(['key' => 'activities', 'label' => 'Activities', 'href' => '/activities/for/deal/'.self::UNKNOWN.'?return=/sales/deals/'.self::UNKNOWN], $items[0]->data);
         self::assertSame(10, $items[0]->weight);
 
         // Without a page to come back to, the timeline comes back to itself.
@@ -97,7 +98,7 @@ final class DealActivitiesPiecesTest extends SalesTestCase
         $items = $this->items($actions->items(SalesSlots::DEAL_ACTIONS, $context));
 
         self::assertCount(2, $items);
-        self::assertSame(['key' => 'log-activity', 'label' => 'Log activity', 'icon' => 'square-pen', 'dialog' => true, 'href' => '/activities/new?mode=log&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/sales/deals/'.self::UNKNOWN], $items[0]->data);
+        self::assertSame(['key' => 'log-activity', 'label' => 'Log activity', 'icon' => 'square-pen', 'dialog' => true, 'href' => '/activities/new?mode=log&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/sales/deals/'.self::UNKNOWN, 'prominent' => true], $items[0]->data);
         self::assertSame(['key' => 'plan-activity', 'label' => 'Plan activity', 'icon' => 'calendar', 'dialog' => true, 'href' => '/activities/new?mode=plan&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/sales/deals/'.self::UNKNOWN], $items[1]->data);
         self::assertSame([10, 11], [$items[0]->weight, $items[1]->weight]);
 

@@ -14,6 +14,7 @@ use Foresi\Sales\Contract\SalesSlots;
 use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The Activities section of a deal's page: the deal's timeline from
@@ -27,7 +28,7 @@ final readonly class DealActivitiesSection implements SlotProvider
     /** Before the documents at 20: what happened with the deal comes first. */
     private const int WEIGHT = 10;
 
-    public function __construct(private UrlGeneratorInterface $urls)
+    public function __construct(private UrlGeneratorInterface $urls, private TranslatorInterface $translator)
     {
     }
 
@@ -45,6 +46,7 @@ final readonly class DealActivitiesSection implements SlotProvider
 
         return [new SlotItem(data: [
             'key' => self::KEY,
+            'label' => $this->translator->trans('sales.deal.tab.activities'),
             'href' => $this->urls->generate(RecordActivities::ROUTE, $parameters),
         ], weight: self::WEIGHT)];
     }

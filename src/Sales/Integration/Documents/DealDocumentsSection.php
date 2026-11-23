@@ -14,6 +14,7 @@ use Foresi\Sales\Contract\SalesSlots;
 use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The Documents section of a deal's page: the documents linked to the deal,
@@ -27,7 +28,7 @@ final readonly class DealDocumentsSection implements SlotProvider
     /** After the activities at 10: what happened with the deal comes first. */
     private const int WEIGHT = 20;
 
-    public function __construct(private UrlGeneratorInterface $urls)
+    public function __construct(private UrlGeneratorInterface $urls, private TranslatorInterface $translator)
     {
     }
 
@@ -40,6 +41,7 @@ final readonly class DealDocumentsSection implements SlotProvider
 
         return [new SlotItem(data: [
             'key' => self::KEY,
+            'label' => $this->translator->trans('sales.deal.tab.documents'),
             'href' => $this->urls->generate(RecordDocuments::ROUTE, ['kind' => SalesRecords::KIND, 'id' => $dealId]),
         ], weight: self::WEIGHT)];
     }

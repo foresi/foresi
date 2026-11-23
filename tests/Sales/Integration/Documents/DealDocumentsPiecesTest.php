@@ -132,7 +132,7 @@ final class DealDocumentsPiecesTest extends SalesTestCase
 
         $sections = $this->items($section->items(SalesSlots::DEAL_SECTIONS, $context));
         self::assertCount(1, $sections);
-        self::assertSame(['key' => 'documents', 'href' => '/documents/for/deal/'.self::UNKNOWN], $sections[0]->data);
+        self::assertSame(['key' => 'documents', 'label' => 'Documents', 'href' => '/documents/for/deal/'.self::UNKNOWN], $sections[0]->data);
         self::assertSame(20, $sections[0]->weight);
         self::assertNull($sections[0]->template);
 
