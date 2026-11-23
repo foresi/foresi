@@ -2784,7 +2784,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "2b09b3441a69ec6ff9dabfba4f96e33a43d9cfb7"
+                "reference": "9732945fdad111b37b909ca48089afaf217382e5"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2800,8 +2800,12 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
                 "symfony/translation-contracts": "^3.8",
-                "symfony/uid": "7.4.*"
+                "symfony/uid": "7.4.*",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {

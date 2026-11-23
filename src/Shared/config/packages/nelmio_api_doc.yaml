@@ -543,6 +543,112 @@ nelmio_api_doc:
                         archived: { type: boolean }
                         archived_at: { type: string, format: date-time, nullable: true }
                         created_at: { type: string, format: date-time }
+                SalesDealSummary:
+                    type: object
+                    description: A deal with a client as a list shows it, without its lines, links and contact persons.
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        status: { type: string, enum: [open, won, lost] }
+                        client: { $ref: '#/components/schemas/Reference' }
+                        owner_user_id: { type: string, format: uuid, description: 'The owner or member who works on it.' }
+                        stage: { allOf: [{ $ref: '#/components/schemas/SalesStageReference' }], nullable: true }
+                        won_at: { type: string, format: date-time, nullable: true }
+                        lost_at: { type: string, format: date-time, nullable: true }
+                        lost_reason: { allOf: [{ $ref: '#/components/schemas/SalesStageReference' }], nullable: true }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+                SalesDeal:
+                    type: object
+                    description: A deal with a client, with its lines, their value, its links to other deals and its contact persons.
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        description: { type: string, description: Markdown. }
+                        status: { type: string, enum: [open, won, lost] }
+                        client: { $ref: '#/components/schemas/Reference' }
+                        owner_user_id: { type: string, format: uuid, description: 'The owner or member who works on it.' }
+                        stage: { allOf: [{ $ref: '#/components/schemas/SalesStageReference' }], nullable: true }
+                        won_at: { type: string, format: date-time, nullable: true }
+                        lost_at: { type: string, format: date-time, nullable: true }
+                        lost_reason: { allOf: [{ $ref: '#/components/schemas/SalesStageReference' }], nullable: true }
+                        lost_note: { type: string, nullable: true }
+                        contacts: { type: array, description: 'The contact persons of the client the deal is talked through with, in order.', items: { $ref: '#/components/schemas/Reference' } }
+                        lines:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    position: { type: integer }
+                                    product_id: { type: string, format: uuid, nullable: true, description: 'The product it was copied from; a later change of the product leaves the line as it is.' }
+                                    name: { type: string }
+                                    unit: { type: string }
+                                    quantity: { type: string, example: '1.500', description: 'A decimal number with three decimals.' }
+                                    unit_price: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Null for a line without a price, left out of the value.' }
+                                    billing_kind: { type: string, enum: [one_off, recurring] }
+                                    recurrence_unit: { type: string, enum: [day, week, month, year], nullable: true }
+                                    interval: { type: integer, nullable: true }
+                                    cycles: { type: integer, nullable: true }
+                        value:
+                            type: object
+                            description: What the priced lines are worth, one total per currency, never converted; both lists are empty without a priced line.
+                            properties:
+                                one_off: { type: array, items: { $ref: '#/components/schemas/Money' } }
+                                monthly: { type: array, items: { $ref: '#/components/schemas/Money' } }
+                                approximate: { type: boolean, description: 'A weekly or daily line was put on a month''s terms.' }
+                        links:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    type: { type: string, enum: [follows_from] }
+                                    direction: { type: string, enum: [outgoing, incoming], description: 'outgoing: this deal follows from the other; incoming: the other follows from this one.' }
+                                    deal:
+                                        type: object
+                                        properties:
+                                            id: { type: string, format: uuid }
+                                            title: { type: string }
+                                            status: { type: string, enum: [open, won, lost] }
+                        trashed: { type: boolean }
+                        trashed_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                        updated_at: { type: string, format: date-time }
+                SalesStageReference:
+                    type: object
+                    description: A stage or a lost reason as a deal names it.
+                    properties:
+                        id: { type: string, format: uuid }
+                        key: { type: string, nullable: true, description: 'Set on the ones Foresi seeded.' }
+                        name: { type: string }
+                SalesStage:
+                    type: object
+                    description: A stage a deal moves through.
+                    properties:
+                        id: { type: string, format: uuid }
+                        key: { type: string, nullable: true, description: 'Set on the stages Foresi seeded; their name is translated until renamed.' }
+                        name: { type: string }
+                        position: { type: integer }
+                        archived: { type: boolean }
+                        archived_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                SalesStageList:
+                    type: object
+                    description: The stages in their new order.
+                    properties:
+                        items: { type: array, items: { $ref: '#/components/schemas/SalesStage' } }
+                SalesLostReason:
+                    type: object
+                    description: A reason a deal is lost for.
+                    properties:
+                        id: { type: string, format: uuid }
+                        key: { type: string, nullable: true, description: 'Set on the reasons Foresi seeded; their name is translated until renamed.' }
+                        name: { type: string }
+                        position: { type: integer }
+                        archived: { type: boolean }
+                        archived_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
                 CashFlowPlannedItem:
                     type: object
                     description: Money a firm expects to receive or pay that no document carries yet, one-off or recurring.
