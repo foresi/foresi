@@ -94,12 +94,8 @@ final readonly class PairingWrites
             }
             $userId = $this->actor->userId() ?? throw CashFlowRefused::forbidden();
             $before = $this->facts($row);
+            // The occurrence a pairing points at is always one of its candidates, so this holds the periods it touched.
             $touched = $row->candidates();
-            $itemId = $row->plannedItemId();
-            $on = $row->occurrenceOn();
-            if (null !== $itemId && $on instanceof \DateTimeImmutable && !array_any($touched, static fn (PairingCandidate $candidate): bool => $candidate->plannedItemId === $itemId)) {
-                $touched[] = new PairingCandidate($itemId, $on);
-            }
             $row->decline($userId, $this->clock->now());
             $this->record($row, $before);
             $this->pairing->reconsiderNeighbours(new FlowSubject($input->subjectType, $input->subjectId), $row->counterpartyId(), $touched);

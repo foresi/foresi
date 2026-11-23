@@ -172,6 +172,97 @@ final class DocumentPairingTest extends TestCase
         self::assertSame($this->a->id(), $pairing->plannedItemId());
     }
 
+    public function testADocumentWithoutACounterpartyHasNoCounterpartyId(): void
+    {
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, [$this->candidate($this->a, '2026-11-20')], $this->a, $this->now());
+
+        self::assertNull($pairing->counterpartyId());
+    }
+
+    public function testConfirmingTheSameItemOnAnotherDayAddsThatDayToTheCandidates(): void
+    {
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, [
+            $this->candidate($this->a, '2026-11-20'),
+            $this->candidate($this->b, '2026-11-25'),
+        ], null, $this->now());
+
+        $pairing->confirm($this->a, $this->day('2026-12-20'), self::USER, $this->now());
+
+        self::assertSame(['2026-11-20', '2026-11-25', '2026-12-20'], array_map(static fn (PairingCandidate $candidate): string => $candidate->occurrenceOn->format('Y-m-d'), $pairing->candidates()));
+    }
+
+    public function testAPairingThatPointsAtTheItemCannotLetGoOfItUnlessItIsAProposal(): void
+    {
+        $auto = DocumentPairing::auto('received_document', 'doc-1', null, $this->a, $this->day('2026-11-20'), $this->now());
+        try {
+            $auto->dropCandidate($this->a->id(), null, $this->now());
+            self::fail('An automatic pairing let go of the item it points at.');
+        } catch (\LogicException $refusal) {
+            self::assertSame('The pairing points at the planned item.', $refusal->getMessage());
+        }
+
+        $proposal = DocumentPairing::propose('received_document', 'doc-2', null, [$this->candidate($this->a, '2026-11-20')], $this->a, $this->now());
+        $proposal->dropCandidate($this->a->id(), null, $this->now());
+
+        self::assertSame([], $proposal->candidates());
+        self::assertNull($proposal->plannedItemId());
+        self::assertNull($proposal->occurrenceOn());
+    }
+
+    public function testADecidedPairingKeepsItsDecisionWhenACandidateGoes(): void
+    {
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, [
+            $this->candidate($this->a, '2026-11-20'),
+            $this->candidate($this->b, '2026-11-25'),
+        ], null, $this->now());
+        $pairing->confirm($this->b, $this->day('2026-11-25'), self::USER, $this->now());
+
+        $pairing->dropCandidate($this->a->id(), null, new \DateTimeImmutable('2026-11-18 09:00:00'));
+
+        self::assertSame(PairingState::Confirmed, $pairing->state());
+        self::assertSame($this->b->id(), $pairing->plannedItemId());
+        self::assertSame('2026-11-25', $pairing->occurrenceOn()?->format('Y-m-d'));
+        self::assertSame([$this->b->id()], array_map(static fn (PairingCandidate $candidate): string => $candidate->plannedItemId, $pairing->candidates()));
+        self::assertSame('2026-11-18 09:00:00', $pairing->updatedAt()->format('Y-m-d H:i:s'));
+    }
+
+    public function testAProposalThatKeepsSeveralCandidatesPointsAtNone(): void
+    {
+        $c = PairingFixtures::item('Item C');
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, [
+            $this->candidate($this->a, '2026-11-20'),
+            $this->candidate($this->b, '2026-11-25'),
+            $this->candidate($c, '2026-11-27'),
+        ], null, $this->now());
+
+        $pairing->dropCandidate($this->a->id(), null, $this->now());
+
+        self::assertSame(PairingState::Proposed, $pairing->state());
+        self::assertNull($pairing->plannedItemId());
+        self::assertNull($pairing->occurrenceOn());
+        self::assertCount(2, $pairing->candidates());
+    }
+
+    public function testAProposalThatKeepsOneCandidateNeedsItsItemAndPointsAtIt(): void
+    {
+        $candidates = [$this->candidate($this->a, '2026-11-20'), $this->candidate($this->b, '2026-11-25')];
+
+        $pairing = DocumentPairing::propose('received_document', 'doc-1', null, $candidates, null, $this->now());
+        $pairing->dropCandidate($this->a->id(), $this->b, $this->now());
+        self::assertSame($this->b->id(), $pairing->plannedItemId());
+        self::assertSame('2026-11-25', $pairing->occurrenceOn()?->format('Y-m-d'));
+
+        foreach ([null, $this->a] as $only) {
+            $pairing = DocumentPairing::propose('received_document', 'doc-2', null, $candidates, null, $this->now());
+            try {
+                $pairing->dropCandidate($this->a->id(), $only, $this->now());
+                self::fail('The item of the one candidate was not checked.');
+            } catch (\LogicException $refusal) {
+                self::assertSame('The item of the one candidate is needed.', $refusal->getMessage());
+            }
+        }
+    }
+
     private function candidate(PlannedItem $item, string $on): PairingCandidate
     {
         return new PairingCandidate($item->id(), $this->day($on));

@@ -13,10 +13,14 @@ use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\PairableDocument;
 use Foresi\CashFlow\Domain\DocumentPairing;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
+use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
@@ -30,6 +34,7 @@ use Foresi\Purchasing\Integration\CashFlow\ReceivedDocumentPairables;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * What Cash flow sees of a received document: its direction, amount and day, and which documents it sees at all.
@@ -193,6 +198,48 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
         return self::getContainer()->get(CashFlowStore::class)->pairing('received_document', $id);
     }
 
+    public function testTheDayIsTheIssueDateBeforeTheDayItWasReceived(): void
+    {
+        $id = $this->record('2026-11-02', null, '1210.00', received: '2026-11-09');
+
+        self::assertSame('2026-11-02', $this->one($id)->on->format('Y-m-d'));
+    }
+
+    public function testTheLabelIsTheSupplierNumberAndTheSupplier(): void
+    {
+        $id = $this->record('2026-11-02', '2026-11-02', '1210.00', number: 'INV-77');
+        $blank = $this->record('2026-11-03', '2026-11-03', '1210.00', number: '');
+
+        self::assertSame('INV-77 Cloud Host s.r.o.', $this->one($id)->subject->label);
+        $evidence = $this->em->find(ReceivedDocument::class, $blank)?->evidenceNumber();
+        self::assertSame(trim(($evidence ?? '').' Cloud Host s.r.o.'), $this->one($blank)->subject->label);
+    }
+
+    public function testMoreDocumentsThanOneChunkAreAllRead(): void
+    {
+        $first = $this->record('2026-11-02', '2026-11-02', '1210.00', number: 'A');
+        $second = $this->record('2026-11-03', '2026-11-03', '500.00', number: 'B');
+        $documents = [$this->em->find(ReceivedDocument::class, $first) ?? self::fail(), $this->em->find(ReceivedDocument::class, $second) ?? self::fail()];
+        $calls = [];
+        $queries = self::createStub(ReceivedDocumentQueries::class);
+        $queries->method('slice')->willReturnCallback(static function (ReceivedDocumentSliceFilter $filter, ?string $after) use (&$calls, $documents): array {
+            $calls[] = $after;
+
+            return match ($after) {
+                null => [[$documents[0]], true],
+                $documents[0]->id() => [[$documents[1]], false],
+                default => [[], false],
+            };
+        });
+        $c = self::getContainer();
+        $source = new ReceivedDocumentPairables($c->get(ReceivedDocuments::class), $queries, $c->get(InstanceClock::class), $c->get(UrlGeneratorInterface::class));
+
+        $found = array_map(static fn (PairableDocument $document): string => $document->subject->id, iterator_to_array($source->since(new \DateTimeImmutable('2026-01-01')), false));
+
+        self::assertSame([$first, $second], $found);
+        self::assertSame([null, $first], $calls, 'The next chunk starts after the last document of the one before, and the last one ends the read.');
+    }
+
     private function source(): ReceivedDocumentPairables
     {
         return self::getContainer()->get(ReceivedDocumentPairables::class);
@@ -203,7 +250,7 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
         return $this->source()->one('received_document', $id) ?? self::fail('The document is not pairable.');
     }
 
-    private function record(string $issue, ?string $taxPoint, string $total, ReceivedDocumentKind $kind = ReceivedDocumentKind::TaxInvoice, ?string $original = null, string $number = 'INV-1'): string
+    private function record(string $issue, ?string $taxPoint, string $total, ReceivedDocumentKind $kind = ReceivedDocumentKind::TaxInvoice, ?string $original = null, string $number = 'INV-1', ?string $received = null): string
     {
         $minor = Money::of($total, Currency::CZK)->minor();
         $base = intdiv($minor * 100, 121);
@@ -216,7 +263,7 @@ final class ReceivedDocumentPairablesTest extends CashFlowTestCase
             new \DateTimeImmutable($issue),
             null === $taxPoint ? null : new \DateTimeImmutable($taxPoint),
             null,
-            new \DateTimeImmutable($issue),
+            new \DateTimeImmutable($received ?? $issue),
             Currency::CZK,
             Money::ofMinor($minor, Currency::CZK),
             null,

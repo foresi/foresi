@@ -10,17 +10,27 @@ namespace Foresi\Tests\CashFlow\Application;
 
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\CzkAmounts;
 use Foresi\CashFlow\Application\Forecast;
+use Foresi\CashFlow\Application\ForecastFlows;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\ExpectedFlow;
+use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\FlowCertainty;
+use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\FlowSubject;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Source\PlannedItemFlows;
 use Foresi\ExchangeRate\Application\ExchangeRates;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\Tests\CashFlow\Support\FakeSource;
 use Psr\Log\NullLogger;
 
 /**
@@ -64,6 +74,23 @@ final class PairingFulfilmentTest extends CashFlowTestCase
         $this->pair($rent, '2026-10-25', 'auto');
 
         self::assertSame('2026-11-25', $this->days($this->forecast(), $rent)[0]);
+    }
+
+    public function testAPairedOccurrenceIsLeftOutWhateverTheLinesBeforeItAreAndTheRestIsAList(): void
+    {
+        $rent = $this->planned(on: '2026-11-25', repeat: 'month');
+        $this->pair($rent, '2026-11-25', 'auto');
+        $container = self::getContainer();
+        $invoice = new ExpectedFlow('test.invoices', new FlowSubject('invoice', 'inv-1', '/api/v1/invoices/inv-1'), FlowDirection::In, Money::of('100.00', Currency::CZK), new \DateTimeImmutable('2026-11-18', new \DateTimeZone('Europe/Prague')), FlowCategory::Revenue, FlowCertainty::Document, 'Invoice inv-1', []);
+        $sources = [new FakeSource('test.invoices', [$invoice]), new PlannedItemFlows($container->get(CashFlowStore::class), $container->get(PlannedItemVatRule::class))];
+        $today = $container->get(InstanceClock::class)->today();
+        $flows = new ForecastFlows($container->get(CashFlowStore::class), new NullLogger(), $sources);
+
+        $collected = $flows->collect($today, $today, new \DateTimeImmutable('2027-01-31', $today->getTimezone()), new CzkAmounts($container->get(ExchangeRates::class), new NullLogger(), $today));
+
+        $days = array_map(static fn (\Foresi\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type.' '.$line->flow->expectedOn->format('Y-m-d'), $collected->lines);
+        self::assertSame(['invoice 2026-11-18', 'planned_item 2026-12-25', 'planned_item 2027-01-25'], $days);
+        self::assertSame([0, 1, 2], array_keys($collected->lines));
     }
 
     /**

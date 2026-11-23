@@ -254,6 +254,121 @@ final class PlannedItemPairingsTest extends CashFlowTestCase
         self::assertNull($this->store()->pairing('received_document', 'doc-2'));
     }
 
+    public function testDeletingAnItemLeavesThePairingsOfOtherItemsAlone(): void
+    {
+        $a = $this->monthly('Cloud Host', '32.00');
+        $b = $this->writes->create(new CreatePlannedItemInput('out', 'Voice API', 'software', '32.00', '2026-05-20', 'USD', 'month', 1, false, null, null, $this->other->id(), true));
+        $this->document('doc-1', '50.00', '2026-05-18');
+        $this->document('doc-2', '32.00', '2026-05-18', $this->other);
+        $this->considerAll();
+        $before = $this->row('doc-2');
+        self::assertSame([PairingState::Auto, $b->id()], [$before->state(), $before->plannedItemId()]);
+        $updated = $before->updatedAt();
+        $this->clock->modify('+2 hours');
+
+        $this->writes->delete(new DeletePlannedItemInput($a->id()));
+
+        self::assertEquals($updated, $this->row('doc-2')->updatedAt(), 'A pairing that does not list the item is not touched.');
+    }
+
+    public function testADeclinedRowThatListedOnlyTheDeletedItemStaysWithoutCandidates(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '50.00', '2026-05-18');
+        $this->considerAll();
+        $declined = $this->row('doc-1');
+        $declined->decline($this->owner->user()->id(), new \DateTimeImmutable('2026-11-17 10:00:00'));
+        $this->em->flush();
+
+        $this->writes->delete(new DeletePlannedItemInput($item->id()));
+
+        $row = $this->row('doc-1');
+        self::assertSame(PairingState::Declined, $row->state());
+        self::assertSame([], $row->candidates());
+    }
+
+    public function testEveryProposalThatListsOnlyTheDeletedItemIsRemoved(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '50.00', '2026-05-18');
+        $this->document('doc-2', '50.00', '2026-06-18');
+        $this->document('doc-3', '50.00', '2026-07-18');
+        $this->considerAll();
+
+        $this->writes->delete(new DeletePlannedItemInput($item->id()));
+
+        $this->em->clear();
+        self::assertSame([], $this->store()->pairings());
+    }
+
+    public function testEveryProposalThatKeepsOneCandidateLooksAtItsDocumentAgain(): void
+    {
+        $a = $this->monthly('Cloud Host', '32.00');
+        $b = $this->monthly('Voice API', '32.00');
+        $this->document('doc-1', '32.00', '2026-05-18');
+        $this->document('doc-2', '32.00', '2026-06-18');
+        $this->considerAll();
+        self::assertSame(PairingState::Proposed, $this->row('doc-2')->state());
+
+        $this->writes->delete(new DeletePlannedItemInput($a->id()));
+
+        self::assertSame([PairingState::Auto, $b->id()], [$this->row('doc-1')->state(), $this->row('doc-1')->plannedItemId()]);
+        self::assertSame([PairingState::Auto, $b->id()], [$this->row('doc-2')->state(), $this->row('doc-2')->plannedItemId()]);
+        $events = array_values(array_filter($this->events('cash-flow.document_pairing.changed'), static fn (array $event): bool => 'doc-1' === $event['subject_id']));
+        self::assertCount(3, $events);
+        self::assertSame(['proposed', $b->id(), '2026-05-20', null], [$events[1]['state'], $events[1]['planned_item_id'], $events[1]['occurrence_on'], $events[1]['previous_planned_item_id']], 'The proposal that keeps one candidate points at it.');
+        self::assertSame(['auto', $b->id(), '2026-05-20', $b->id()], [$events[2]['state'], $events[2]['planned_item_id'], $events[2]['occurrence_on'], $events[2]['previous_planned_item_id']]);
+    }
+
+    public function testChangingTheToleranceAloneLooksAtTheDocumentsAgain(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '33.00', '2026-05-18');
+        $this->considerAll();
+        self::assertSame(PairingState::Proposed, $this->row('doc-1')->state());
+
+        $this->writes->change(new ChangePlannedItemInput($item->id(), matchTolerance: '1.00'));
+
+        self::assertSame(PairingState::Auto, $this->row('doc-1')->state());
+    }
+
+    public function testChangingTheCurrencyAloneLooksAtTheDocumentsAgain(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '32.00', '2026-05-18');
+        $this->considerAll();
+        self::assertSame(PairingState::Auto, $this->row('doc-1')->state());
+
+        $this->writes->change(new ChangePlannedItemInput($item->id(), currency: 'EUR'));
+
+        self::assertSame(PairingState::Proposed, $this->row('doc-1')->state());
+    }
+
+    public function testChangingTheFirstDayAloneLooksAtTheDocumentsAgain(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '32.00', '2026-05-18');
+        $this->considerAll();
+        self::assertSame('2026-05-20', $this->row('doc-1')->occurrenceOn()?->format('Y-m-d'));
+
+        $this->writes->change(new ChangePlannedItemInput($item->id(), on: '2026-05-25'));
+
+        self::assertSame('2026-05-25', $this->row('doc-1')->occurrenceOn()->format('Y-m-d'));
+    }
+
+    public function testChangingTheUnitOfTheScheduleAloneLooksAtTheDocumentsAgain(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        // A Monday: June for a monthly item, the week of Wednesday 3 June for a weekly one.
+        $this->document('doc-1', '32.00', '2026-06-01');
+        $this->considerAll();
+        self::assertSame('2026-06-20', $this->row('doc-1')->occurrenceOn()?->format('Y-m-d'));
+
+        $this->writes->change(new ChangePlannedItemInput($item->id(), repeat: 'week'));
+
+        self::assertSame('2026-06-03', $this->row('doc-1')->occurrenceOn()->format('Y-m-d'));
+    }
+
     private function monthly(string $name, string $amount): PlannedItem
     {
         return $this->writes->create(new CreatePlannedItemInput('out', $name, 'software', $amount, '2026-05-20', 'USD', 'month', 1, false, null, null, $this->supplier->id(), true));
