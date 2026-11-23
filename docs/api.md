@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -208,6 +208,23 @@ The body of `POST /api/v1/invoices`:
 `PATCH` takes the same fields except `kind` and `currency`, which never change. `lines` replaces every line; left out, the lines stay as they are. `series_id` or `number` renumber the document, which is refused once it was sent, marked by hand (`number_locked`), sent by e-mail (`number_locked_sent`) or queued to be sent (`number_locked_sending`); a variable symbol that followed the number follows the new one. A document in the trash (`trashed`) and a tax document on payment (`tax_document_fixed`) do not change.
 
 What the rules refuse is answered with every problem at once: the first one gives the status, the `reason` and, for `400`, the `parameter`, and `problems` lists them all as `"parameter: reason"`, such as `["variable_symbol: variable_symbol_invalid", "customer_id: customer_unknown"]`. A line is named by its position, such as `lines[0].unit_price`. A state of the data that does not allow the change, such as `number_taken`, `number_locked` or `trashed`, is `409`. The trash refuses a sent document and one already in the trash with `409 not_trashable`, and one with payments with `409 has_payments`; correct a sent document with a correction document in Foresi.
+
+### Recurring invoices
+
+A recurring invoice is a template Foresi issues a sales invoice from on every date of its schedule, as the recurring invoices screen keeps them. Reading needs `invoices:read`, the writes `invoices:write`; they run the rules of the recurring form and answer `{"data": {...}}` with the template as `GET /api/v1/recurring-invoices/{recurringInvoiceId}` shows it: its `version`, schedule, `delivery`, lines in the shape the writes take them, and `next_issues`.
+
+| Method and path | What it does |
+| --- | --- |
+| `GET /api/v1/recurring-invoices` | The templates out of the trash, the soonest next issue first, 25 a page; `state` (`active`, `paused`, `ended`) and `page`. |
+| `GET /api/v1/recurring-invoices/{recurringInvoiceId}` | One template with its lines and next issues. |
+| `POST /api/v1/recurring-invoices/preview` | The fields of a create, and `count`: the template it would save and its next issues, without saving; `saves` is false with the `problems` the rules would refuse. Needs `invoices:read` only. |
+| `POST /api/v1/recurring-invoices` | Creates one. `201` with `Location`. |
+| `PATCH /api/v1/recurring-invoices/{recurringInvoiceId}` | Changes the fields given with the `version` it was read in; a save someone made since is refused with 409 `changed_meanwhile`. |
+| `POST /api/v1/recurring-invoices/{recurringInvoiceId}/pause` | Pauses it; the dates that pass meanwhile are skipped. |
+| `POST /api/v1/recurring-invoices/{recurringInvoiceId}/resume` | Resumes it from the next date on or after today. |
+| `POST /api/v1/recurring-invoices/{recurringInvoiceId}/end` | Ends it for good. |
+
+The body of a create: `delivery` is required, `send` (each invoice is e-mailed to the customer) or `review` (it is only issued and waits for a person to send it). `from_invoice_id` starts from an issued invoice as "Make recurring" does, taking its customer, lines, texts, payment, order number and due days; without it `customer_id` and `lines` (as for an invoice) are required. The schedule is `first_issue_on` (today or later), `repeat` (`day`, `week`, `month` by default, `year`), `every`, `last_day_of_month`, and `end`: `never`, `on_date` with `ends_on`, or `after_count` with `ends_after`. `tax_point` is `issue_date` or `last_day_of_month`, `due_days` 0 to 365. The rest are the fields of an invoice without its number and dates, and `name`, `copy_to_me` and `copy_to_others`.
 
 ### Contacts
 

@@ -169,6 +169,125 @@ nelmio_api_doc:
                         data: { type: array, items: { $ref: '#/components/schemas/InvoiceListItem' } }
                         next_cursor: { type: string, nullable: true }
                         applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
+                RecurringInvoiceSchedule:
+                    type: object
+                    properties:
+                        first_issue_on: { type: string, format: date }
+                        repeat: { type: string, enum: [day, week, month, year] }
+                        every: { type: integer }
+                        last_day_of_month: { type: boolean }
+                        end: { type: string, enum: [never, on_date, after_count] }
+                        ends_on: { type: string, format: date, nullable: true }
+                        ends_after: { type: integer, nullable: true }
+                RecurringInvoiceLine:
+                    type: object
+                    description: A line in the shape the writes take it.
+                    properties:
+                        text: { type: string }
+                        unit_price: { type: string, example: '1500.00' }
+                        quantity: { type: string, example: '1.0000' }
+                        unit: { type: string }
+                        price_type: { type: string, enum: [without_vat, with_vat, base_only] }
+                        vat: { type: string, enum: [base, reduced, second_reduced, reverse_charge, exempt, none] }
+                        discount: { type: string, example: '0.00' }
+                        supply_code: { type: string, nullable: true }
+                RecurringInvoiceIssue:
+                    type: object
+                    properties:
+                        issue_date: { type: string, format: date }
+                        tax_point_date: { type: string, format: date }
+                        due_date: { type: string, format: date }
+                        description: { type: string }
+                RecurringInvoiceListItem:
+                    type: object
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        state: { type: string, enum: [active, paused, ended] }
+                        customer: { $ref: '#/components/schemas/Reference' }
+                        description: { type: string }
+                        schedule: { $ref: '#/components/schemas/RecurringInvoiceSchedule' }
+                        delivery: { type: string, enum: [send, review], description: 'send e-mails each issued invoice to the customer; review only issues it, for a person to send.' }
+                        next_issue_on: { type: string, format: date, nullable: true }
+                        last_issue_on: { type: string, format: date, nullable: true }
+                        issued_count: { type: integer }
+                        failing: { type: boolean }
+                RecurringInvoicePage:
+                    type: object
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceListItem' } }
+                        page: { type: integer }
+                        pages: { type: integer }
+                        total: { type: integer }
+                RecurringInvoiceDetail:
+                    type: object
+                    description: A template Foresi issues a sales invoice from on every date of its schedule.
+                    properties:
+                        id: { type: string, format: uuid }
+                        version: { type: integer, description: 'Send it with a change, which is refused once someone saved since.' }
+                        name: { type: string }
+                        state: { type: string, enum: [active, paused, ended] }
+                        trashed: { type: boolean }
+                        currency: { type: string }
+                        customer: { $ref: '#/components/schemas/Reference' }
+                        series: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                        payment_method: { type: string, enum: [bank_transfer, cash, card] }
+                        bank_account: { type: string, nullable: true }
+                        constant_symbol: { type: string }
+                        order_number: { type: string }
+                        description: { type: string }
+                        text_before: { type: string }
+                        text_after: { type: string }
+                        language: { type: string, enum: [cs, en] }
+                        schedule: { $ref: '#/components/schemas/RecurringInvoiceSchedule' }
+                        tax_point: { type: string, enum: [issue_date, last_day_of_month] }
+                        due_days: { type: integer }
+                        delivery: { type: string, enum: [send, review] }
+                        copy_to_me: { type: boolean }
+                        copy_to_others: { type: boolean }
+                        next_issue_on: { type: string, format: date, nullable: true }
+                        last_issue_on: { type: string, format: date, nullable: true }
+                        issued_count: { type: integer }
+                        paused_at: { type: string, format: date-time, nullable: true }
+                        ended_at: { type: string, format: date-time, nullable: true }
+                        last_failure:
+                            type: object
+                            nullable: true
+                            properties:
+                                at: { type: string, format: date-time }
+                                code: { type: string, nullable: true }
+                        lines: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceLine' } }
+                        next_issues: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceIssue' }, description: 'The next invoices it issues; none while paused or ended.' }
+                        created_at: { type: string, format: date-time }
+                RecurringInvoicePreview:
+                    type: object
+                    description: What a create with the fields sent would save; nothing is saved.
+                    properties:
+                        saves: { type: boolean }
+                        problems: { type: array, items: { type: string }, description: 'What the rules would refuse, as "parameter: reason — message".' }
+                        customer:
+                            type: object
+                            properties:
+                                id: { type: string, format: uuid }
+                                name: { type: string, nullable: true }
+                        series_id: { type: string, format: uuid, nullable: true }
+                        name: { type: string }
+                        payment_method: { type: string, enum: [bank_transfer, cash, card] }
+                        bank_account: { type: string, nullable: true }
+                        constant_symbol: { type: string }
+                        order_number: { type: string }
+                        description: { type: string }
+                        text_before: { type: string }
+                        text_after: { type: string }
+                        language: { type: string, enum: [cs, en] }
+                        schedule: { $ref: '#/components/schemas/RecurringInvoiceSchedule' }
+                        tax_point: { type: string, enum: [issue_date, last_day_of_month] }
+                        due_days: { type: integer }
+                        delivery: { type: string, enum: [send, review] }
+                        copy_to_me: { type: boolean }
+                        copy_to_others: { type: boolean }
+                        lines: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceLine' } }
+                        next_issues: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceIssue' } }
                 Contact:
                     type: object
                     required: [id, kind, name, roles, registration_country, registration_number, vat_id, email, billing_address, archived]

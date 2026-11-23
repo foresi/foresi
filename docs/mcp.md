@@ -19,6 +19,14 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_trash_invoice` | **Write, destructive.** Moves an invoice (`invoice_id`) that was not sent to the trash with a `reason`. |
 | `foresi_restore_invoice` | **Write.** Brings an invoice (`invoice_id`) back from the trash. |
 | `foresi_mark_invoice_sent` | **Write, destructive.** Records that an invoice (`invoice_id`) went to the customer outside Foresi, such as handed over or e-mailed by hand. It cannot be undone: the invoice no longer goes to the trash and its number is fixed. One sent already is answered as it is; one in the trash is refused with `trashed`. |
+| `foresi_list_recurring_invoices` | The recurring invoices out of the trash, the soonest next issue first, 25 a page; takes `state` (`active`, `paused`, `ended`) and `page`. |
+| `foresi_get_recurring_invoice` | One recurring invoice with its `version`, schedule, delivery, lines and `next_issues`, the next invoices it issues with their dates. |
+| `foresi_preview_recurring_invoice` | What `foresi_create_recurring_invoice` would save with the same fields, and its next issues, without saving; `saves` is false with the `problems` the rules would refuse. With `from_invoice_id` it shows the lines an invoice gives. |
+| `foresi_create_recurring_invoice` | **Write.** Creates a recurring invoice, from scratch (`customer_id`, `lines`) or from an issued invoice (`from_invoice_id`, with `lines` to drop or change some). `delivery` is `send` (each invoice is e-mailed to the customer) or `review` (it is only issued, for a person to send). |
+| `foresi_update_recurring_invoice` | **Write.** Changes the fields given of a recurring invoice (`recurring_invoice_id`) with the `version` it was read in; a save someone made since is refused with `changed_meanwhile`. |
+| `foresi_pause_recurring_invoice` | **Write.** Pauses a recurring invoice; the dates that pass meanwhile are skipped. |
+| `foresi_resume_recurring_invoice` | **Write.** Resumes it from the next date on or after today; the summary names the dates the pause skipped. |
+| `foresi_end_recurring_invoice` | **Write, destructive.** Ends a recurring invoice for good. |
 | `foresi_search_contacts` | Searches contacts by text, role, registration number or VAT id, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_contact` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `foresi_search_payments` | Searches payments, newest first, with filters such as firm, invoice, direction and dates. |

@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Application\Api;
 
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\RecurringRefused;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Application\Refused;
 
@@ -50,17 +51,20 @@ final class InvoicingRefused extends \DomainException implements Refused
     /** The reason of the trash is missing or too long. */
     public const string REASON = 'reason_invalid';
 
-    private const string PREFIX = 'invoice.problem.';
+    /** The prefixes of the translation keys a reason leaves out. */
+    private const array PREFIXES = ['invoice.problem.', 'recurring.problem.'];
 
     /** What the data does not allow now, whatever is sent: 409. */
     private const array CONFLICTS = [
         'number_locked', 'number_locked_sent', 'number_locked_sending', 'number_taken', 'trashed', 'tax_document_fixed',
-        'changed_meanwhile', 'already_deducted',
+        'changed_meanwhile', 'already_deducted', 'ended', 'issued',
     ];
 
     /** The fields of IssueRules, as the inputs of the API name them. */
     private const array FIELDS = [
         'firm' => 'firmId', 'series' => 'seriesId', 'customer' => 'customerId', 'document' => null, 'version' => null,
+        // Those of RecurringRules, as the recurring inputs name them.
+        'recurrence.firstIssueOn' => 'firstIssueOn', 'recurrence' => 'end', 'state' => null,
     ];
 
     /** The fields of a line, as the line objects name them. */
@@ -83,10 +87,10 @@ final class InvoicingRefused extends \DomainException implements Refused
     /**
      * @param \Closure(IssueProblem): string $message the message of a problem, written for agents
      */
-    public static function of(IssueRefused $refused, \Closure $message): self
+    public static function of(IssueRefused|RecurringRefused $refused, \Closure $message): self
     {
         $problems = $refused->problems;
-        $first = $problems[0] ?? new IssueProblem('document', self::PREFIX.'invalid');
+        $first = $problems[0] ?? new IssueProblem('document', self::PREFIXES[0].'invalid');
         $reason = self::reasonOf($first);
         $listed = array_map(static fn (IssueProblem $problem): string => self::wire(self::fieldOf($problem->field) ?? 'document').': '.self::reasonOf($problem), $problems);
 
@@ -116,6 +120,11 @@ final class InvoicingRefused extends \DomainException implements Refused
     public static function notFound(?\Throwable $previous = null): self
     {
         return new self(self::NOT_FOUND, RefusalKind::NotFound, null, 'The organisation has no document with this id. Find the id with foresi_search_invoices.', previous: $previous);
+    }
+
+    public static function unknownRecurring(?\Throwable $previous = null): self
+    {
+        return new self(self::NOT_FOUND, RefusalKind::NotFound, null, 'The organisation has no recurring invoice with this id. Find the id with foresi_list_recurring_invoices.', previous: $previous);
     }
 
     public static function forbidden(?\Throwable $previous = null): self
@@ -155,7 +164,13 @@ final class InvoicingRefused extends \DomainException implements Refused
 
     private static function reasonOf(IssueProblem $problem): string
     {
-        return str_starts_with($problem->key, self::PREFIX) ? substr($problem->key, \strlen(self::PREFIX)) : $problem->key;
+        foreach (self::PREFIXES as $prefix) {
+            if (str_starts_with($problem->key, $prefix)) {
+                return substr($problem->key, \strlen($prefix));
+            }
+        }
+
+        return $problem->key;
     }
 
     /**

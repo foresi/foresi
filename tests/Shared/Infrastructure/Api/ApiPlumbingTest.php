@@ -167,6 +167,12 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/invoices/{invoiceId}/mark-sent' => ['post' => '200'],
                 '/api/v1/payments' => ['get' => '200'],
                 '/api/v1/payments/{id}' => ['get' => '200'],
+                '/api/v1/recurring-invoices' => ['get' => '200', 'post' => '201'],
+                '/api/v1/recurring-invoices/preview' => ['post' => '200'],
+                '/api/v1/recurring-invoices/{recurringInvoiceId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/recurring-invoices/{recurringInvoiceId}/pause' => ['post' => '200'],
+                '/api/v1/recurring-invoices/{recurringInvoiceId}/resume' => ['post' => '200'],
+                '/api/v1/recurring-invoices/{recurringInvoiceId}/end' => ['post' => '200'],
             ],
             'party' => [
                 '/api/v1/firm' => ['get' => '200'],
