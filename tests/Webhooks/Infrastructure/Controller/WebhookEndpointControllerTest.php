@@ -19,6 +19,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use Foresi\Party\Infrastructure\Events\PartyEventAccess;
 use Foresi\Purchasing\Infrastructure\Events\PurchasingEventAccess;
+use Foresi\Sales\Infrastructure\Events\SalesEventAccess;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Domain\Id;
 use Foresi\TaxesAndContributions\Infrastructure\Events\TaxesEventAccess;
@@ -198,7 +199,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, invoices, contacts or received documents: the access services
         // of the installed modules say no.
-        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'documents', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', TaxesEventAccess::class => 'taxes-and-contributions', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
+        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'documents', InvoicingEventAccess::class => 'invoicing', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', SalesEventAccess::class => 'sales', TaxesEventAccess::class => 'taxes-and-contributions', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }
