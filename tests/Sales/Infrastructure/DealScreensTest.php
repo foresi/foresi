@@ -223,9 +223,13 @@ final class DealScreensTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
         self::assertSelectorTextContains('[data-deal-lines] table', 'Monthly maintenance');
-        // One-off and monthly apart, per currency.
-        self::assertSelectorTextContains('[data-deal-value-one-off]', "50.00\u{a0}EUR");
-        self::assertSelectorTextContains('[data-deal-value-monthly]', "3,000.00\u{a0}Kč");
+        // One-off and monthly apart, per currency, in the footer of the lines table.
+        $footer = $crawler->filter('[data-deal-lines] tfoot tr');
+        self::assertCount(2, $footer);
+        self::assertStringContainsString('Total one-off', $footer->eq(0)->text());
+        self::assertStringContainsString("50.00\u{a0}EUR", $footer->eq(0)->text());
+        self::assertStringContainsString('Total monthly', $footer->eq(1)->text());
+        self::assertStringContainsString("3,000.00\u{a0}Kč", $footer->eq(1)->text());
 
         // The second line moves up.
         $up = $crawler->filter('[data-deal-lines] form')->reduce(static fn (Crawler $form): bool => 1 === $form->filter('input[name="direction"][value="up"]')->count())->first()->form();

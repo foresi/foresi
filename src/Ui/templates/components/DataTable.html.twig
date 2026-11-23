@@ -148,17 +148,21 @@
                             </tr>
                         {% endfor %}
                     </tbody>
-                    {% if totals is not null %}
+                    {% set totalRows = this.totalRows %}
+                    {% if totalRows is not empty %}
                         <tfoot>
-                            <tr>
-                                {% if selectable %}<td class="h-row border-t border-divider bg-head px-4"></td>{% endif %}
-                                {% for cell in this.totalCells %}
-                                    <td class="num h-row whitespace-nowrap border-t border-divider bg-head px-4 font-semibold text-ink {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}">
-                                        {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
-                                    </td>
-                                {% endfor %}
-                                {% if this.hasActions %}<td class="h-row border-t border-divider bg-head px-2"></td>{% endif %}
-                            </tr>
+                            {% for cells in totalRows %}
+                                {% set edge = loop.first ? ' border-t border-divider' : '' %}
+                                <tr>
+                                    {% if selectable %}<td class="h-row bg-head px-4{{ edge }}"></td>{% endif %}
+                                    {% for cell in cells %}
+                                        <td class="num h-row whitespace-nowrap bg-head px-4 font-semibold text-ink{{ edge }} {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}">
+                                            {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
+                                        </td>
+                                    {% endfor %}
+                                    {% if this.hasActions %}<td class="h-row bg-head px-2{{ edge }}"></td>{% endif %}
+                                </tr>
+                            {% endfor %}
                         </tfoot>
                     {% endif %}
                 </table>

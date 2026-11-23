@@ -167,10 +167,8 @@ sales:
             saved: Položka byla uložena.
             removed: Položka byla odebrána.
     value:
-        one_off: Jednorázově
-        monthly: Měsíčně
-        approximate: Přibližně, týdny nebo dny přepočtené na měsíce
-        none: Žádné položky s cenou, takže zatím bez hodnoty.
+        total_one_off: Celkem jednorázově
+        total_monthly: Celkem měsíčně
         per_month: '{amount} měsíčně'
     link:
         title: Propojené obchody

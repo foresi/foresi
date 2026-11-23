@@ -63,7 +63,10 @@ final class DataTable
     public array $rows = [];
 
     /**
-     * @var array<string, scalar|null>|null totals per column key
+     * The totals under their columns: one row per column key, or a list of such rows, one footer row
+     * each (a deal's one-off and monthly totals, as Polaris DataTable's totals in its footer).
+     *
+     * @var array<string, scalar|null>|list<array<string, scalar|null>>|null
      */
     public ?array $totals = null;
     public bool $selectable = false;
@@ -129,19 +132,29 @@ final class DataTable
     }
 
     /**
-     * The totals under their columns, left out with them on a phone or a narrower screen.
+     * The footer rows of totals, each cell under its column and left out with it on a phone or a
+     * narrower screen.
      *
-     * @return list<array{key: string, align: string, text: string, phone: bool, wide: bool}>
+     * @return list<list<array{align: string, text: string, phone: bool, wide: bool}>>
      */
-    public function totalCells(): array
+    public function totalRows(): array
     {
-        $cells = [];
-        foreach ($this->columnViews as $column) {
-            $value = $this->totals[$column['key']] ?? null;
-            $cells[] = ['key' => $column['key'], 'align' => $column['align'], 'text' => null === $value ? '' : (string) $value, 'phone' => $column['phone'], 'wide' => $column['wide']];
+        if (null === $this->totals || [] === $this->totals) {
+            return [];
+        }
+        /** @var list<array<string, scalar|null>> $rows */
+        $rows = array_is_list($this->totals) ? $this->totals : [$this->totals];
+        $views = [];
+        foreach ($rows as $totals) {
+            $cells = [];
+            foreach ($this->columnViews as $column) {
+                $value = $totals[$column['key']] ?? null;
+                $cells[] = ['align' => $column['align'], 'text' => null === $value ? '' : (string) $value, 'phone' => $column['phone'], 'wide' => $column['wide']];
+            }
+            $views[] = $cells;
         }
 
-        return $cells;
+        return $views;
     }
 
     /**
