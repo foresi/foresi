@@ -16,7 +16,6 @@ use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Contract\ActualFlow;
-use Foresi\CashFlow\Contract\CashFlowSource;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowDirection;
@@ -78,7 +77,7 @@ final class PlannedVatTest extends VatTestCase
 
         $list = $this->periods()->list('2026-11', '2027-01');
 
-        $amounts = array_map(static fn ($view): PeriodAmounts => $view->amounts, $list->periods);
+        $amounts = array_map(static fn (\Foresi\Vat\Application\PeriodView $view): PeriodAmounts => $view->amounts, $list->periods);
         self::assertSame([[0, 0], [210_000, 0], [0, 210_000]], array_map(static fn (PeriodAmounts $amounts): array => [$amounts->plansPart->output->minor(), $amounts->plansPart->input->minor()], $amounts), 'The consulting gives 2,100 of output in December, the rent 2,100 of input in January; the software states no VAT and taxes carry none.');
         self::assertSame([0, 210_000, -210_000], array_map(static fn (PeriodAmounts $amounts): int => $amounts->result->minor(), $amounts), 'The plans count in the result.');
         self::assertSame([
@@ -108,7 +107,7 @@ final class PlannedVatTest extends VatTestCase
         $writes->create(new CreatePlannedItemInput('in', 'Consulting', 'revenue', '12100.00', '2026-11-19', repeat: 'week', vatMode: 'included', vatRate: '21'));
         $this->em->flush();
 
-        $plans = array_map(static fn ($view): array => array_map(static fn (PlannedVatAmount $plan): string => $plan->on->format('Y-m-d'), $view->amounts->plans), $this->periods()->list('2026-11', '2026-12')->periods);
+        $plans = array_map(static fn (\Foresi\Vat\Application\PeriodView $view): array => array_map(static fn (PlannedVatAmount $plan): string => $plan->on->format('Y-m-d'), $view->amounts->plans), $this->periods()->list('2026-11', '2026-12')->periods);
 
         self::assertSame([['2026-11-26'], ['2026-12-17', '2026-12-24', '2026-12-31']], $plans, 'From today only, and not on the days the firm is not a payer.');
     }
@@ -175,7 +174,7 @@ final class PlannedVatTest extends VatTestCase
         $counted = new class(self::getContainer()->get(PlannedVat::class)) implements VatPlanSource {
             public int $reads = 0;
 
-            public function __construct(private PlannedVat $plans)
+            public function __construct(private readonly PlannedVat $plans)
             {
             }
 

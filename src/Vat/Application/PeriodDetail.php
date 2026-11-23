@@ -20,9 +20,9 @@ use Foresi\Vat\Contract\PlannedVatAmount;
 final readonly class PeriodDetail
 {
     /**
-     * @param list<DocumentVat>    $documents
-     * @param list<string>         $restrictedSources
-     * @param list<ScheduleAmount> $schedules
+     * @param list<DocumentVat>      $documents
+     * @param list<string>           $restrictedSources
+     * @param list<ScheduleAmount>   $schedules
      * @param list<PlannedVatAmount> $plans
      */
     public function __construct(

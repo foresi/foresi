@@ -85,7 +85,7 @@ final readonly class PlannedVat implements VatPlanSource
             $zero = Money::ofMinor(0, $vat->currency());
             $in = FlowDirection::In === $flow->direction;
             $subject = $details && null !== $flow->subject ? new VatSubject($flow->subject->type, $flow->subject->id, $flow->subject->url) : null;
-            $amounts[] = new PlannedVatAmount(self::KEY, $subject, null === $subject ? null : $flow->label, $flow->on, $in ? $vat : $zero, $in ? $zero : $vat);
+            $amounts[] = new PlannedVatAmount(self::KEY, $subject, $subject instanceof VatSubject ? $flow->label : null, $flow->on, $in ? $vat : $zero, $in ? $zero : $vat);
         }
 
         return $amounts;

@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Domain;
 
-use Brick\Math\BigDecimal;
-use Brick\Math\RoundingMode;
 use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\Shared\Domain\Money;
 
@@ -36,14 +34,14 @@ final readonly class PlannedItemVat
         if (PlannedVatMode::None === $mode || null === $rate) {
             return null;
         }
-        $percent = BigDecimal::of($rate);
-        $minor = BigDecimal::of($amount->minor());
+        // A rate has at most two decimals, so in hundredths it is whole and the product is exact.
+        $hundredths = (int) round((float) $rate * 100);
         if (PlannedVatMode::Included === $mode) {
-            $vat = Money::ofMinor($minor->multipliedBy($percent)->dividedBy($percent->plus(100), 0, RoundingMode::HalfUp)->toInt(), $amount->currency());
+            $vat = $amount->multipliedBy((string) $hundredths)->dividedBy((string) (10_000 + $hundredths));
 
             return new self($amount, $amount->minus($vat), $vat);
         }
-        $vat = Money::ofMinor($minor->multipliedBy($percent)->dividedBy(100, 0, RoundingMode::HalfUp)->toInt(), $amount->currency());
+        $vat = $amount->multipliedBy((string) $hundredths)->dividedBy('10000');
 
         return new self($amount->plus($vat), $amount, $vat);
     }

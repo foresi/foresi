@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\CashFlow\Infrastructure;
 
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\LegalEntity;
@@ -19,12 +21,10 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Party\Domain\VatStatusPeriod;
-use Foresi\Party\Contract\VatPeriodLength;
-use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

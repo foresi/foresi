@@ -193,14 +193,15 @@ final class PlannedItemVatTest extends CashFlowTestCase
 
         $this->em->persist(new VatStatusPeriod(VatStatus::NotRegistered, null, null));
         $this->em->flush();
-        self::assertFalse($rule->isMissing($rent), 'Not a payer: nothing is missing.');
+        $missing = [[$rule->isMissing($rent), $rule->isMissing($stated), $rule->isMissing($tax)]];
 
         $this->payerFrom('2026-11-18');
-        $this->clock->modify('2026-11-17 22:30:00');
-        self::assertFalse($rule->isMissing($rent), '23:30 in Prague on 17 November: not a payer yet.');
+        foreach (['2026-11-17 22:30:00', '2026-11-17 23:30:00'] as $now) {
+            $this->clock->modify($now);
+            $missing[] = [$rule->isMissing($rent), $rule->isMissing($stated), $rule->isMissing($tax)];
+        }
 
-        $this->clock->modify('2026-11-17 23:30:00');
-        self::assertSame([true, false, false], [$rule->isMissing($rent), $rule->isMissing($stated), $rule->isMissing($tax)], '00:30 in Prague on 18 November: a payer, and the rent states no VAT; taxes carry none.');
+        self::assertSame([[false, false, false], [false, false, false], [true, false, false]], $missing, 'Not a payer: nothing is missing. At 23:30 in Prague on 17 November not a payer yet; at 00:30 on 18 November a payer, and the rent states no VAT; taxes carry none.');
     }
 
     private function payerFrom(string $day, bool $notBefore = false): void
@@ -236,7 +237,7 @@ final class PlannedItemVatTest extends CashFlowTestCase
      */
     private function money(?PlannedItemVat $vat): ?array
     {
-        return null === $vat ? null : [$vat->flow->minor(), $vat->net->minor(), $vat->vat->minor()];
+        return $vat instanceof PlannedItemVat ? [$vat->flow->minor(), $vat->net->minor(), $vat->vat->minor()] : null;
     }
 
     /**

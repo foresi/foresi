@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Infrastructure\Api;
 
 use Foresi\CashFlow\Application\CashFlowAccess;
-use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\Api\ScopeGuard;

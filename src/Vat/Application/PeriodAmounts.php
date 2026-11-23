@@ -33,12 +33,12 @@ final readonly class PeriodAmounts
     public Money $result;
 
     /**
-     * @param list<CalculationStep> $steps      output, input and result
-     * @param list<DocumentVat>     $documents  the documents counted
-     * @param list<string>          $warnings
-     * @param list<string>          $missingCzk the labels of the documents and schedules counted without a CZK amount
-     * @param list<ScheduleAmount>  $schedules  the occurrences of schedules counted
-     * @param list<PlannedVatAmount> $plans     the plans counted
+     * @param list<CalculationStep>  $steps      output, input and result
+     * @param list<DocumentVat>      $documents  the documents counted
+     * @param list<string>           $warnings
+     * @param list<string>           $missingCzk the labels of the documents and schedules counted without a CZK amount
+     * @param list<ScheduleAmount>   $schedules  the occurrences of schedules counted
+     * @param list<PlannedVatAmount> $plans      the plans counted
      */
     public function __construct(
         public VatPeriod $period,

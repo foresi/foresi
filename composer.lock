@@ -1906,10 +1906,9 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "21bafe9a2b1c1fd3a98f697fcfa26c8979f8c111"
+                "reference": "be2c743c4d52c973f8f6e7465d65741e8333def0"
             },
             "require": {
-                "brick/math": "^1.0",
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",

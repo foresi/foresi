@@ -69,7 +69,7 @@ final readonly class ForecastFlows
         foreach ($this->sources as $source) {
             // Asked for its key only: a source left out is never asked for its flows,
             // nor one whose categories are all left out.
-            if (\in_array($source->key(), $excludeSources, true) || self::allLeftOut($source, $excludeCategories)) {
+            if (\in_array($source->key(), $excludeSources, true) || $this->allLeftOut($source, $excludeCategories)) {
                 continue;
             }
             try {
@@ -187,18 +187,13 @@ final readonly class ForecastFlows
      *
      * @param list<FlowCategory> $excludeCategories
      */
-    private static function allLeftOut(CashFlowSource $source, array $excludeCategories): bool
+    private function allLeftOut(CashFlowSource $source, array $excludeCategories): bool
     {
         if (!$source instanceof CategorisedSource) {
             return false;
         }
-        foreach ($source->categories() as $category) {
-            if (!\in_array($category, $excludeCategories, true)) {
-                return false;
-            }
-        }
 
-        return true;
+        return array_all($source->categories(), fn (FlowCategory $category): bool => \in_array($category, $excludeCategories, true));
     }
 
     /**

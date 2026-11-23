@@ -10,12 +10,12 @@ namespace Foresi\Tests\CashFlow\Application;
 
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowStore;
-use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\HiddenTotal;
 use Foresi\CashFlow\Application\PlannedFulfilment;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;

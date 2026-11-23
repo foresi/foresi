@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Infrastructure\Mcp;
 
 use Foresi\CashFlow\Application\CashFlowAccess;
-use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
 use Foresi\Instance\Application\InstanceClock;

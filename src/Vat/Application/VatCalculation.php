@@ -38,9 +38,9 @@ final class VatCalculation
     public const string RULE_RESULT = 'output VAT minus deductible input VAT';
 
     /**
-     * @param list<VatPeriod>      $periods   oldest first, clipped to the payer's stretches
-     * @param list<DocumentVat>    $documents
-     * @param list<VatStretch>     $stretches the firm's VAT statuses, oldest first
+     * @param list<VatPeriod>        $periods   oldest first, clipped to the payer's stretches
+     * @param list<DocumentVat>      $documents
+     * @param list<VatStretch>       $stretches the firm's VAT statuses, oldest first
      * @param list<ScheduleAmount>   $schedules the occurrences not issued yet, in CZK
      * @param list<PlannedVatAmount> $plans     the plans from today on, in CZK
      *
