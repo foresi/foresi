@@ -87,8 +87,8 @@ class Deal implements Audited
         private readonly \DateTimeImmutable $createdAt,
     ) {
         $this->id = Id::generate();
-        $this->title = self::title($title);
-        $this->description = self::description($description);
+        $this->title = self::checkedTitle($title);
+        $this->description = self::checkedDescription($description);
         $this->ownerUserId = $ownerUserId;
         $this->stageId = $stageId;
         $this->updatedAt = $createdAt;
@@ -99,8 +99,8 @@ class Deal implements Audited
      */
     public function describe(string $title, string $description, \DateTimeImmutable $now): void
     {
-        $this->title = self::title($title);
-        $this->description = self::description($description);
+        $this->title = self::checkedTitle($title);
+        $this->description = self::checkedDescription($description);
         $this->touch($now);
     }
 
@@ -312,7 +312,7 @@ class Deal implements Audited
     /**
      * @throws InvalidField
      */
-    private static function title(string $title): string
+    private static function checkedTitle(string $title): string
     {
         $title = trim($title);
         if ('' === $title) {
@@ -328,7 +328,7 @@ class Deal implements Audited
     /**
      * @throws InvalidField
      */
-    private static function description(string $description): string
+    private static function checkedDescription(string $description): string
     {
         $description = trim($description);
         if (mb_strlen($description) > self::MAX_DESCRIPTION) {

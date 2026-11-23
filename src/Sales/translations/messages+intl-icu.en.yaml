@@ -1,0 +1,16 @@
+sales:
+    stage:
+        inquiry: Inquiry
+        meeting: Meeting
+        proposal: Proposal
+        negotiation: Negotiation
+    lost_reason:
+        price: Price
+        timing: Timing
+        other_supplier: Chose another supplier
+        no_response: No response
+        other: Other
+    status:
+        open: Open
+        won: Won
+        lost: Lost

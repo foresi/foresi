@@ -1,0 +1,16 @@
+sales:
+    stage:
+        inquiry: Poptávka
+        meeting: Schůzka
+        proposal: Nabídka
+        negotiation: Vyjednávání
+    lost_reason:
+        price: Cena
+        timing: Načasování
+        other_supplier: Vybral jiného dodavatele
+        no_response: Bez odezvy
+        other: Jiný
+    status:
+        open: Otevřený
+        won: Vyhraný
+        lost: Prohraný
