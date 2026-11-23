@@ -232,6 +232,14 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             $conditions[] = 'd.dueDate < :dueBefore';
             $parameters['dueBefore'] = [$filter->dueBefore, Types::DATE_IMMUTABLE];
         }
+        if ($filter->dayFrom instanceof \DateTimeImmutable) {
+            $conditions[] = 'COALESCE(d.taxPointDate, d.issueDate, d.receivedDate) >= :dayFrom';
+            $parameters['dayFrom'] = [$filter->dayFrom, Types::DATE_IMMUTABLE];
+        }
+        if ($filter->dayTo instanceof \DateTimeImmutable) {
+            $conditions[] = 'COALESCE(d.taxPointDate, d.issueDate, d.receivedDate) <= :dayTo';
+            $parameters['dayTo'] = [$filter->dayTo, Types::DATE_IMMUTABLE];
+        }
         if (null !== $afterId) {
             $conditions[] = 'd.id < :after';
             $parameters['after'] = [$afterId, null];

@@ -14,7 +14,9 @@ use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\ExchangeRate\Contract\RateSource;
+use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
+use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
@@ -156,6 +158,97 @@ final class PairingScreensTest extends WebTestCase
         self::assertResponseRedirects('/purchasing/'.$id);
         $page = $this->client->followRedirect();
         self::assertCount(1, $page->filter('[role="alert"]'));
+        self::assertNull($this->state($id));
+    }
+
+    public function testADeclinedDocumentShowsNotPairedAndOffersToPair(): void
+    {
+        $this->monthly('Cloud Host', '1210.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $this->client->submit($page->filter('[data-pairing-unpair]')->form());
+
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+
+        $panel = $page->filter('[data-pairing-state="declined"]');
+        self::assertCount(1, $panel);
+        self::assertStringContainsString('Not paired', $panel->text());
+        self::assertStringContainsString('Pair…', $panel->filter('[data-pairing-choose]')->text());
+        self::assertCount(0, $panel->filter('[data-pairing-unpair], [data-pairing-candidate]'));
+    }
+
+    public function testAProposalOffersAnotherItemAndNotToPair(): void
+    {
+        $this->monthly('Cloud Host', '500.00');
+        $this->monthly('Cloud Host backup', '600.00');
+        $id = $this->record('2026-11-18', '1210.00');
+
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+
+        $panel = $page->filter('[data-pairing-state="proposed"]');
+        self::assertStringContainsString('Another item…', $panel->filter('[data-pairing-other]')->text());
+        self::assertStringContainsString('Do not pair', $panel->filter('[data-pairing-decline]')->text());
+        self::assertStringContainsString('may belong to one of these planned items', $panel->text());
+        self::assertCount(2, $panel->filter('[data-pairing-confirm]'));
+        self::assertCount(0, $panel->filter('[data-pairing-choose], [data-pairing-unpair]'));
+    }
+
+    public function testDecliningAProposalLeavesTheDocumentUnpaired(): void
+    {
+        $this->monthly('Cloud Host', '500.00');
+        $this->monthly('Cloud Host backup', '600.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+
+        $this->client->submit($page->filter('[data-pairing-decline]')->ancestors()->filter('form')->form());
+
+        self::assertResponseRedirects('/purchasing/'.$id);
+        self::assertSame(PairingState::Declined, $this->state($id));
+        $page = $this->client->followRedirect();
+        self::assertCount(1, $page->filter('[data-pairing-state="declined"] [data-pairing-declined]'));
+    }
+
+    public function testAConfirmedPairingIsNotMarkedAutomatic(): void
+    {
+        $item = $this->monthly('Cloud Host', '500.00');
+        $this->monthly('Cloud Host backup', '600.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $this->client->submit($page->filter('[data-pairing-candidate="'.$item->id().'"] form')->form());
+
+        $page = $this->client->followRedirect();
+
+        $panel = $page->filter('[data-pairing-state="confirmed"]');
+        self::assertStringContainsString('Paired with', $panel->text());
+        self::assertStringContainsString('Cloud Host', $panel->filter('[data-pairing-current]')->text());
+        self::assertStringNotContainsString('(automatically)', $panel->text());
+        self::assertCount(1, $panel->filter('[data-pairing-unpair]'));
+    }
+
+    public function testAGuestCannotChoosePairOrUnpairAndSeesNoPanel(): void
+    {
+        $item = $this->monthly('Cloud Host', '500.00', null);
+        $id = $this->record('2026-11-18', '1210.00');
+        $dialog = $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        $token = (string) $dialog->filter('#pairing-form input[name="_token"]')->attr('value');
+        $em = $this->browser->em();
+        $user = new User('guest@example.com', 'hash', 'Example Guest');
+        $customer = new Party(PartyKind::Company, 'Client A s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '');
+        $em->persist($customer);
+        $em->persist($user);
+        $em->persist(new Membership($user, Role::Guest, $customer));
+        $em->flush();
+        $this->client->loginUser(new SecurityUser($user->id(), $user->email(), 'hash'), 'main');
+
+        $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/purchasing/'.$id.'/pairing', ['_token' => $token, 'choice' => $item->id().'|2026-11-20']);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', '/purchasing/'.$id.'/pairing/unpair', ['_token' => $token]);
+        self::assertResponseStatusCodeSame(403);
+        $page = $this->client->request('GET', '/purchasing/'.$id);
+        self::assertResponseStatusCodeSame(403);
+        self::assertCount(0, $page->filter('[data-purchasing-pairing]'));
         self::assertNull($this->state($id));
     }
 

@@ -62,10 +62,10 @@ final readonly class ReceivedDocumentPairables implements PairableDocumentSource
 
     public function of(string $counterpartyId, \DateTimeImmutable $from, \DateTimeImmutable $to): iterable
     {
-        [$first, $last] = [$from->format('Y-m-d'), $to->format('Y-m-d')];
-        foreach ($this->recorded(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded, supplierId: $counterpartyId)) as $document) {
+        $filter = new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded, supplierId: $counterpartyId, dayFrom: $from, dayTo: $to);
+        foreach ($this->recorded($filter) as $document) {
             $pairable = $this->pairable($document);
-            if ($pairable instanceof PairableDocument && $pairable->on->format('Y-m-d') >= $first && $pairable->on->format('Y-m-d') <= $last) {
+            if ($pairable instanceof PairableDocument) {
                 yield $pairable;
             }
         }
@@ -73,10 +73,9 @@ final readonly class ReceivedDocumentPairables implements PairableDocumentSource
 
     public function since(\DateTimeImmutable $from): iterable
     {
-        $first = $from->format('Y-m-d');
-        foreach ($this->recorded(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded)) as $document) {
+        foreach ($this->recorded(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded, dayFrom: $from)) as $document) {
             $pairable = $this->pairable($document);
-            if ($pairable instanceof PairableDocument && $pairable->on->format('Y-m-d') >= $first) {
+            if ($pairable instanceof PairableDocument) {
                 yield $pairable;
             }
         }

@@ -16,8 +16,8 @@ use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\EditReceivedDocument;
+use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\RestoreReceivedDocument;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
@@ -129,7 +129,7 @@ final class PairingOnRecordingTest extends CashFlowTestCase
         $id = $this->record('2026-11-18', '1210.00');
         self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Entered twice');
         $this->em->flush();
-        self::assertNull($this->pairing($id));
+        self::assertNull($this->stateOf($id));
 
         self::getContainer()->get(RestoreReceivedDocument::class)->restore($id);
         $this->em->flush();
@@ -191,6 +191,11 @@ final class PairingOnRecordingTest extends CashFlowTestCase
         $this->em->clear();
 
         return self::getContainer()->get(CashFlowStore::class)->pairing('received_document', $documentId);
+    }
+
+    private function stateOf(string $documentId): ?PairingState
+    {
+        return $this->pairing($documentId)?->state();
     }
 
     private function backfill(): string
