@@ -135,7 +135,7 @@ final class DataTable
      * The footer rows of totals, each cell under its column and left out with it on a phone or a
      * narrower screen.
      *
-     * @return list<list<array{key: string, align: string, text: string, phone: bool, wide: bool}>>
+     * @return list<list<array{align: string, text: string, phone: bool, wide: bool}>>
      */
     public function totalRows(): array
     {
@@ -149,7 +149,7 @@ final class DataTable
             $cells = [];
             foreach ($this->columnViews as $column) {
                 $value = $totals[$column['key']] ?? null;
-                $cells[] = ['key' => $column['key'], 'align' => $column['align'], 'text' => null === $value ? '' : (string) $value, 'phone' => $column['phone'], 'wide' => $column['wide']];
+                $cells[] = ['align' => $column['align'], 'text' => null === $value ? '' : (string) $value, 'phone' => $column['phone'], 'wide' => $column['wide']];
             }
             $views[] = $cells;
         }

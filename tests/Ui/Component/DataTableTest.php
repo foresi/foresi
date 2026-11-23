@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Ui\Component;
 
 use Foresi\Ui\Avatar;
+use Foresi\Ui\Component\DataTable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -583,6 +584,16 @@ final class DataTableTest extends KernelTestCase
         // One divider above the footer, none between its rows.
         self::assertStringContainsString('border-t', (string) $rows->eq(0)->filter('td')->first()->attr('class'));
         self::assertStringNotContainsString('border-t', (string) $rows->eq(1)->filter('td')->first()->attr('class'));
+    }
+
+    public function testATotalIsText(): void
+    {
+        $table = new DataTable();
+        $table->columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'balance', 'label' => 'Balance', 'align' => 'right']];
+        $table->totals = ['balance' => 0];
+        $table->validate();
+
+        self::assertSame([[['align' => 'left', 'text' => '', 'phone' => true, 'wide' => false], ['align' => 'right', 'text' => '0', 'phone' => true, 'wide' => false]]], $table->totalRows());
     }
 
     public function testZeroTotalIsRendered(): void
