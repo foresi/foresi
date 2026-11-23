@@ -107,6 +107,31 @@ final class PdfRendererTest extends TestCase
     }
 
     #[Test]
+    public function anImageOfASourceThatNamesNoFilesPrintsNothing(): void
+    {
+        $source = new readonly class implements DocumentVariableSource {
+            public function prefix(): string
+            {
+                return 'firm';
+            }
+
+            public function definitions(): array
+            {
+                return [new VariableDefinition('logo', 'Firm logo', 'logo.png', image: true)];
+            }
+
+            public function values(array $links): array
+            {
+                return ['logo' => 'logo.png'];
+            }
+        };
+        $variables = new DocumentVariables([$source]);
+
+        self::assertSame(['firm' => ['logo' => '']], $variables->printable($variables->values([])));
+        self::assertInstanceOf(Markup::class, $variables->printable($variables->values([]), preview: true)['firm']['logo']);
+    }
+
+    #[Test]
     public function thePreviewCarriesTheLogoInline(): void
     {
         $logo = (string) tempnam(sys_get_temp_dir(), 'foresi-logo');

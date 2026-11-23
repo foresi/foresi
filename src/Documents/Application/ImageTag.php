@@ -41,12 +41,11 @@ final class ImageTag
     public static function forPreview(string $file, string $alt): ?Markup
     {
         $size = self::fitted($file);
-        $bytes = null === $size ? false : file_get_contents($file);
-        if (null === $size || false === $bytes) {
+        if (null === $size) {
             return null;
         }
 
-        return self::tag('data:'.$size[2].';base64,'.base64_encode($bytes), $alt, (string) round($size[0] * self::PX_PER_MM), (string) round($size[1] * self::PX_PER_MM));
+        return self::tag('data:'.$size[2].';base64,'.base64_encode((string) file_get_contents($file)), $alt, (string) round($size[0] * self::PX_PER_MM), (string) round($size[1] * self::PX_PER_MM));
     }
 
     /**
@@ -54,13 +53,11 @@ final class ImageTag
      */
     public static function placeholder(string $label): Markup
     {
-        [$width, $height] = self::BOX_MM;
-
         return new Markup(\sprintf(
-            '<span style="display:inline-flex;align-items:center;justify-content:center;width:%dpx;height:%dpx;border:1px dashed #9ca3af;color:#6b7280;font-size:9pt;vertical-align:middle">%s</span>',
-            round($width * self::PX_PER_MM),
-            round($height * self::PX_PER_MM),
-            htmlspecialchars($label, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'),
+            '<span style="display:inline-flex;align-items:center;justify-content:center;width:%smm;height:%smm;border:1px dashed #9ca3af;color:#6b7280;font-size:9pt;vertical-align:middle">%s</span>',
+            self::BOX_MM[0],
+            self::BOX_MM[1],
+            htmlspecialchars($label),
         ), 'UTF-8');
     }
 
@@ -70,7 +67,7 @@ final class ImageTag
     private static function fitted(string $file): ?array
     {
         $size = is_file($file) ? getimagesize($file) : false;
-        if (false === $size || 0 === $size[0] || 0 === $size[1] || !\in_array($size['mime'], ['image/png', 'image/jpeg'], true)) {
+        if (false === $size || !\in_array($size['mime'], ['image/png', 'image/jpeg'], true)) {
             return null;
         }
         $scale = min(self::BOX_MM[0] / $size[0], self::BOX_MM[1] / $size[1]);
@@ -80,8 +77,6 @@ final class ImageTag
 
     private static function tag(string $src, string $alt, string $width, string $height): Markup
     {
-        $attribute = static fn (string $value): string => htmlspecialchars($value, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
-
-        return new Markup(\sprintf('<img src="%s" alt="%s" width="%s" height="%s">', $attribute($src), $attribute($alt), $attribute($width), $attribute($height)), 'UTF-8');
+        return new Markup(\sprintf('<img src="%s" alt="%s" width="%s" height="%s">', htmlspecialchars($src), htmlspecialchars($alt), $width, $height), 'UTF-8');
     }
 }
