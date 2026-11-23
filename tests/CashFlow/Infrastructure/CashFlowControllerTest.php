@@ -209,6 +209,10 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertSame('Planned items', $sheet->filter('[data-cash-flow-item] [data-certainty]')->text());
         // A plan's source says no more than its certainty.
         self::assertCount(0, $sheet->filter('[data-cash-flow-item] [data-source]'));
+        // The plan opens in place, in the same sheet; a plan has no expected day to set.
+        self::assertMatchesRegularExpression('#^/cash-flow/planned-costs/[0-9a-f-]{36}$#', (string) $sheet->filter('[data-cash-flow-item] [data-in-place] a[data-cash-flow-item-link]')->attr('href'));
+        self::assertCount(0, $sheet->filter('[data-cash-flow-item-expected]'));
+        self::assertCount(1, $sheet->filter('#sheet-page[data-overlay-record]'), 'The items are a record, so its links load in place.');
         $this->client->request('GET', $link->attr('href'));
         self::assertResponseIsSuccessful();
     }

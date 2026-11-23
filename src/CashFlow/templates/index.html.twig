@@ -3,7 +3,7 @@
     The Cash flow page under Money: the four figures Float and QuickBooks lead with (the balance today
     and where it comes from, the lowest point, the minimum balance as a date on screen, the end of the
     horizon), what the forecast is missing, and the periods as a table, as Agicap lays out categories as
-    rows and periods as columns. A cell with money opens its items in the sheet. Enter balance and the
+    rows and periods as columns. A cell with money opens its items in the sheet, each linking to its record, as Fathom opens what makes up a forecast cell in a panel at the right; a document's expected day is set there. Enter balance and the
     minimum balance are small dialogs from the header. "+ Filter" narrows the chart, the table and the
     figures by how sure a flow is, as the filter builder of the list pages does; the balance today stays.
 #}
@@ -136,18 +136,6 @@
                     {% endif %}
                 </section>
 
-                {# The documents the forecast counts, with the day each is due and the day it is expected on, as Float and Xero's expected payment date. A row opens the document in its own sheet. #}
-                <section aria-labelledby="cash-flow-documents-title" class="grid grid-cols-1 gap-2" data-cash-flow-documents>
-                    <div class="grid gap-0.5">
-                        <h2 id="cash-flow-documents-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.expected.title'|trans }}</h2>
-                        <p class="m-0 text-small text-muted">{{ 'cash_flow.expected.intro'|trans }}</p>
-                    </div>
-                    <twig:Ui:DataTable :caption="'cash_flow.expected.title'|trans" :columns="documentColumns" :rows="documentRows">
-                        <twig:block name="empty">
-                            <twig:Ui:EmptyState icon="file-text" :title="'cash_flow.expected.empty_title'|trans" :text="'cash_flow.expected.empty_text'|trans" />
-                        </twig:block>
-                    </twig:Ui:DataTable>
-                </section>
             {% endif %}
         </div>
     {% endif %}
