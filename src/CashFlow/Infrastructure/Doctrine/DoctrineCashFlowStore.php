@@ -104,7 +104,7 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
             $query->andWhere('p.state = :state')->setParameter('state', $state);
         }
         if (null !== $plannedItemId) {
-            $query->andWhere('p.plannedItemId = :item')->setParameter('item', $plannedItemId);
+            $query->andWhere('IDENTITY(p.plannedItem) = :item')->setParameter('item', $plannedItemId);
         }
 
         /* @var list<DocumentPairing> */
@@ -116,7 +116,7 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
         /* @var list<DocumentPairing> */
         return $this->entityManager->createQueryBuilder()
             ->select('p')->from(DocumentPairing::class, 'p')
-            ->where('p.plannedItemId = :item')->andWhere('p.occurrenceOn = :on')
+            ->where('IDENTITY(p.plannedItem) = :item')->andWhere('p.occurrenceOn = :on')
             ->setParameter('item', $plannedItemId)->setParameter('on', $on, Types::DATE_IMMUTABLE)
             ->orderBy('p.createdAt')->addOrderBy('p.id')
             ->getQuery()->getResult();
@@ -127,7 +127,7 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
         /* @var list<DocumentPairing> */
         return $this->entityManager->createQueryBuilder()
             ->select('p')->from(DocumentPairing::class, 'p')
-            ->where('p.counterpartyId = :counterparty')->setParameter('counterparty', $counterpartyId)
+            ->where('IDENTITY(p.counterparty) = :counterparty')->setParameter('counterparty', $counterpartyId)
             ->orderBy('p.createdAt')->addOrderBy('p.id')
             ->getQuery()->getResult();
     }

@@ -10,6 +10,7 @@ namespace Foresi\CashFlow\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\CashFlow\Contract\PairingState;
+use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -32,8 +33,10 @@ class DocumentPairing
     #[ORM\Column(type: 'guid')]
     private string $id;
 
-    #[ORM\Column(name: 'planned_item_id', type: 'guid', nullable: true)]
-    private ?string $plannedItemId = null;
+    /** Null when the document is proposed with several candidates, or declined. */
+    #[ORM\ManyToOne(targetEntity: PlannedItem::class)]
+    #[ORM\JoinColumn(name: 'planned_item_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?PlannedItem $plannedItem = null;
 
     #[ORM\Column(name: 'occurrence_on', type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $occurrenceOn = null;
@@ -59,8 +62,9 @@ class DocumentPairing
         private readonly string $subjectType,
         #[ORM\Column(name: 'subject_id', type: 'string', length: self::MAX_SUBJECT_ID)]
         private readonly string $subjectId,
-        #[ORM\Column(name: 'counterparty_id', type: 'guid', nullable: true)]
-        private ?string $counterpartyId,
+        #[ORM\ManyToOne(targetEntity: Party::class)]
+        #[ORM\JoinColumn(name: 'counterparty_id', nullable: true, onDelete: 'RESTRICT')]
+        private ?Party $counterparty,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
@@ -72,10 +76,10 @@ class DocumentPairing
     /**
      * A document that belongs to exactly this occurrence, with no one to decide.
      */
-    public static function auto(string $subjectType, string $subjectId, ?string $counterpartyId, PairingCandidate $candidate, \DateTimeImmutable $now): self
+    public static function auto(string $subjectType, string $subjectId, ?Party $counterparty, PlannedItem $item, \DateTimeImmutable $on, \DateTimeImmutable $now): self
     {
-        $pairing = new self($subjectType, $subjectId, $counterpartyId, $now);
-        $pairing->becomeAuto($candidate, $counterpartyId, $now);
+        $pairing = new self($subjectType, $subjectId, $counterparty, $now);
+        $pairing->becomeAuto($item, $on, $counterparty, $now);
 
         return $pairing;
     }
@@ -84,11 +88,12 @@ class DocumentPairing
      * A document that may belong to one of the candidates, for a person to decide.
      *
      * @param list<PairingCandidate> $candidates at least one
+     * @param PlannedItem|null       $only       the item of the one candidate, when there is exactly one
      */
-    public static function propose(string $subjectType, string $subjectId, ?string $counterpartyId, array $candidates, \DateTimeImmutable $now): self
+    public static function propose(string $subjectType, string $subjectId, ?Party $counterparty, array $candidates, ?PlannedItem $only, \DateTimeImmutable $now): self
     {
-        $pairing = new self($subjectType, $subjectId, $counterpartyId, $now);
-        $pairing->becomeProposed($candidates, $counterpartyId, $now);
+        $pairing = new self($subjectType, $subjectId, $counterparty, $now);
+        $pairing->becomeProposed($candidates, $only, $counterparty, $now);
 
         return $pairing;
     }
@@ -98,13 +103,13 @@ class DocumentPairing
      *
      * @throws \LogicException when a person decided already
      */
-    public function becomeAuto(PairingCandidate $candidate, ?string $counterpartyId, \DateTimeImmutable $now): void
+    public function becomeAuto(PlannedItem $item, \DateTimeImmutable $on, ?Party $counterparty, \DateTimeImmutable $now): void
     {
         $this->denyWhenDecided();
         $this->state = PairingState::Auto;
-        $this->point($candidate);
-        $this->candidates = [$candidate->toArray()];
-        $this->counterpartyId = $counterpartyId;
+        $this->point($item, $on);
+        $this->candidates = [new PairingCandidate($item->id(), $on)->toArray()];
+        $this->counterparty = $counterparty;
         $this->updatedAt = $now;
     }
 
@@ -112,29 +117,33 @@ class DocumentPairing
      * Cash flow offers the candidates to a person. One candidate is also the occurrence.
      *
      * @param list<PairingCandidate> $candidates at least one
+     * @param PlannedItem|null       $only       the item of the one candidate; required with exactly one candidate, ignored otherwise
      *
-     * @throws \LogicException when a person decided already, or no candidate is given
+     * @throws \LogicException when a person decided already, no candidate is given, or $only is not the one candidate
      */
-    public function becomeProposed(array $candidates, ?string $counterpartyId, \DateTimeImmutable $now): void
+    public function becomeProposed(array $candidates, ?PlannedItem $only, ?Party $counterparty, \DateTimeImmutable $now): void
     {
         $this->denyWhenDecided();
         if ([] === $candidates) {
             throw new \LogicException('A proposal needs a candidate.');
         }
+        if (1 === \count($candidates) && (!$only instanceof PlannedItem || $only->id() !== $candidates[0]->plannedItemId)) {
+            throw new \LogicException('The item of the one candidate is needed.');
+        }
         $this->state = PairingState::Proposed;
-        $this->point(1 === \count($candidates) ? $candidates[0] : null);
+        $this->point(1 === \count($candidates) ? $only : null, 1 === \count($candidates) ? $candidates[0]->occurrenceOn : null);
         $this->candidates = array_map(static fn (PairingCandidate $candidate): array => $candidate->toArray(), $candidates);
-        $this->counterpartyId = $counterpartyId;
+        $this->counterparty = $counterparty;
         $this->updatedAt = $now;
     }
 
     /**
      * A person says the document belongs to this occurrence. The candidates stay.
      */
-    public function confirm(PairingCandidate $candidate, string $userId, \DateTimeImmutable $now): void
+    public function confirm(PlannedItem $item, \DateTimeImmutable $on, string $userId, \DateTimeImmutable $now): void
     {
         $this->state = PairingState::Confirmed;
-        $this->point($candidate);
+        $this->point($item, $on);
         $this->decide($userId, $now);
     }
 
@@ -144,7 +153,7 @@ class DocumentPairing
     public function decline(string $userId, \DateTimeImmutable $now): void
     {
         $this->state = PairingState::Declined;
-        $this->point(null);
+        $this->point(null, null);
         $this->decide($userId, $now);
     }
 
@@ -165,7 +174,7 @@ class DocumentPairing
 
     public function plannedItemId(): ?string
     {
-        return $this->plannedItemId;
+        return $this->plannedItem?->id();
     }
 
     public function occurrenceOn(): ?\DateTimeImmutable
@@ -188,7 +197,7 @@ class DocumentPairing
 
     public function counterpartyId(): ?string
     {
-        return $this->counterpartyId;
+        return $this->counterparty?->id();
     }
 
     public function decidedBy(): ?string
@@ -219,10 +228,10 @@ class DocumentPairing
         return PairingState::Confirmed === $this->state || PairingState::Declined === $this->state;
     }
 
-    private function point(?PairingCandidate $candidate): void
+    private function point(?PlannedItem $item, ?\DateTimeImmutable $on): void
     {
-        $this->plannedItemId = $candidate?->plannedItemId;
-        $this->occurrenceOn = $candidate?->occurrenceOn;
+        $this->plannedItem = $item;
+        $this->occurrenceOn = $on;
     }
 
     private function decide(string $userId, \DateTimeImmutable $now): void

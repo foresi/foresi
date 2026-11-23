@@ -41,6 +41,8 @@ final class Version20261123180000 extends AbstractMigration
         $table->addUniqueIndex(['subject_type', 'subject_id'], 'uniq_cash_flow_document_pairing_subject');
         $table->addIndex(['planned_item_id', 'occurrence_on'], 'idx_cash_flow_document_pairing_occurrence');
         $table->addIndex(['counterparty_id'], 'idx_cash_flow_document_pairing_counterparty');
+        $table->addForeignKeyConstraint('cash_flow_planned_item', ['planned_item_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_cash_flow_document_pairing_planned_item');
+        $table->addForeignKeyConstraint('party', ['counterparty_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_cash_flow_document_pairing_counterparty');
     }
 
     public function down(Schema $schema): void

@@ -12,33 +12,42 @@ use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PairingCandidate;
+use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Party\Domain\Party;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
+use Foresi\Tests\CashFlow\Support\PairingFixtures;
 
 /**
  * Document pairings stored and found by subject, occurrence, planned item, state and counterparty.
  */
 final class DocumentPairingStoreTest extends CashFlowTestCase
 {
-    private const string ITEM_A = '01937f4e-0000-7000-8000-00000000000a';
-    private const string ITEM_B = '01937f4e-0000-7000-8000-00000000000b';
-    private const string PARTY_1 = '01937f4e-0000-7000-8000-0000000000c1';
-    private const string PARTY_2 = '01937f4e-0000-7000-8000-0000000000c2';
-
     private CashFlowStore $store;
+    private PlannedItem $a;
+    private PlannedItem $b;
+    private Party $one;
+    private Party $two;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->store = self::getContainer()->get(CashFlowStore::class);
+        $this->a = PairingFixtures::item('Item A');
+        $this->b = PairingFixtures::item('Item B');
+        $this->one = PairingFixtures::supplier('Supplier One s.r.o.', '11111111');
+        $this->two = PairingFixtures::supplier('Supplier Two s.r.o.', '22222222');
+        foreach ([$this->a, $this->b, $this->one, $this->two] as $record) {
+            $this->em->persist($record);
+        }
+        $this->em->flush();
     }
 
     public function testFindsAPairingBySubjectAndKeepsEveryColumn(): void
     {
-        $pairing = DocumentPairing::propose('received_document', 'doc-1', self::PARTY_1, [
-            new PairingCandidate(self::ITEM_A, new \DateTimeImmutable('2026-11-20')),
-            new PairingCandidate(self::ITEM_B, new \DateTimeImmutable('2026-11-25')),
-        ], new \DateTimeImmutable('2026-11-17 10:00:00'));
-        $this->store->add($pairing);
+        $this->store->add(DocumentPairing::propose('received_document', 'doc-1', $this->one, [
+            new PairingCandidate($this->a->id(), new \DateTimeImmutable('2026-11-20')),
+            new PairingCandidate($this->b->id(), new \DateTimeImmutable('2026-11-25')),
+        ], null, new \DateTimeImmutable('2026-11-17 10:00:00')));
         $this->em->flush();
         $this->em->clear();
 
@@ -46,39 +55,53 @@ final class DocumentPairingStoreTest extends CashFlowTestCase
 
         self::assertNotNull($found);
         self::assertSame(PairingState::Proposed, $found->state());
-        self::assertSame(self::PARTY_1, $found->counterpartyId());
+        self::assertSame($this->one->id(), $found->counterpartyId());
         self::assertNull($found->plannedItemId());
-        self::assertSame(self::ITEM_B, $found->candidates()[1]->plannedItemId);
+        self::assertSame($this->b->id(), $found->candidates()[1]->plannedItemId);
         self::assertSame('2026-11-25', $found->candidates()[1]->occurrenceOn->format('Y-m-d'));
         self::assertNull($this->store->pairing('received_document', 'doc-2'));
         self::assertNull($this->store->pairing('invoice', 'doc-1'));
     }
 
+    public function testAStoredCandidateComesBackEqualToTheOccurrenceDay(): void
+    {
+        $this->store->add(DocumentPairing::auto('received_document', 'doc-1', $this->one, $this->a, new \DateTimeImmutable('2026-11-20'), new \DateTimeImmutable('2026-11-17 10:00:00')));
+        $this->em->flush();
+        $this->em->clear();
+
+        $found = $this->store->pairing('received_document', 'doc-1');
+
+        self::assertNotNull($found);
+        self::assertCount(1, $found->candidates());
+        self::assertEquals($found->occurrenceOn(), $found->candidates()[0]->occurrenceOn);
+        self::assertSame('2026-11-20 00:00:00', $found->candidates()[0]->occurrenceOn->format('Y-m-d H:i:s'));
+        self::assertSame($this->a->id(), $found->candidates()[0]->plannedItemId);
+    }
+
     public function testFindsPairingsOfAnOccurrenceAnItemAStateAndACounterparty(): void
     {
-        $this->add('doc-1', self::PARTY_1, self::ITEM_A, '2026-11-20');
-        $this->add('doc-2', self::PARTY_1, self::ITEM_A, '2026-11-20');
-        $this->add('doc-3', self::PARTY_1, self::ITEM_A, '2026-12-20');
-        $this->add('doc-4', self::PARTY_2, self::ITEM_B, '2026-11-20');
-        $declined = DocumentPairing::auto('received_document', 'doc-5', self::PARTY_2, new PairingCandidate(self::ITEM_B, new \DateTimeImmutable('2026-11-20')), new \DateTimeImmutable('2026-11-17 10:00:00'));
+        $this->auto('doc-1', $this->one, $this->a, '2026-11-20');
+        $this->auto('doc-2', $this->one, $this->a, '2026-11-20');
+        $this->auto('doc-3', $this->one, $this->a, '2026-12-20');
+        $this->auto('doc-4', $this->two, $this->b, '2026-11-20');
+        $declined = DocumentPairing::auto('received_document', 'doc-5', $this->two, $this->b, new \DateTimeImmutable('2026-11-20'), new \DateTimeImmutable('2026-11-17 10:00:00'));
         $declined->decline('01937f4e-0000-7000-8000-0000000000f1', new \DateTimeImmutable('2026-11-17 11:00:00'));
         $this->store->add($declined);
         $this->em->flush();
         $this->em->clear();
 
-        self::assertSame(['doc-1', 'doc-2'], $this->subjects($this->store->pairingsOfOccurrence(self::ITEM_A, new \DateTimeImmutable('2026-11-20'))));
-        self::assertSame(['doc-1', 'doc-2', 'doc-3'], $this->subjects($this->store->pairings(plannedItemId: self::ITEM_A)));
+        self::assertSame(['doc-1', 'doc-2'], $this->subjects($this->store->pairingsOfOccurrence($this->a->id(), new \DateTimeImmutable('2026-11-20'))));
+        self::assertSame(['doc-1', 'doc-2', 'doc-3'], $this->subjects($this->store->pairings(plannedItemId: $this->a->id())));
         self::assertSame(['doc-5'], $this->subjects($this->store->pairings(PairingState::Declined)));
         self::assertSame(['doc-1', 'doc-2', 'doc-3', 'doc-4'], $this->subjects($this->store->pairings(PairingState::Auto)));
-        self::assertSame(['doc-4'], $this->subjects($this->store->pairings(PairingState::Auto, self::ITEM_B)));
-        self::assertSame(['doc-1', 'doc-2', 'doc-3'], $this->subjects($this->store->pairingsOfCounterparty(self::PARTY_1)));
-        self::assertSame([], $this->store->pairingsOfCounterparty(self::PARTY_1.'-none'));
+        self::assertSame(['doc-4'], $this->subjects($this->store->pairings(PairingState::Auto, $this->b->id())));
+        self::assertSame(['doc-1', 'doc-2', 'doc-3'], $this->subjects($this->store->pairingsOfCounterparty($this->one->id())));
+        self::assertSame([], $this->store->pairingsOfCounterparty($this->a->id()));
     }
 
     public function testRemovesAPairing(): void
     {
-        $this->add('doc-1', self::PARTY_1, self::ITEM_A, '2026-11-20');
-        $this->em->flush();
+        $this->auto('doc-1', $this->one, $this->a, '2026-11-20');
 
         $pairing = $this->store->pairing('received_document', 'doc-1');
         self::assertNotNull($pairing);
@@ -89,9 +112,9 @@ final class DocumentPairingStoreTest extends CashFlowTestCase
         self::assertNull($this->store->pairing('received_document', 'doc-1'));
     }
 
-    private function add(string $subjectId, string $partyId, string $itemId, string $on): void
+    private function auto(string $subjectId, Party $party, PlannedItem $item, string $on): void
     {
-        $this->store->add(DocumentPairing::auto('received_document', $subjectId, $partyId, new PairingCandidate($itemId, new \DateTimeImmutable($on)), new \DateTimeImmutable('2026-11-17 10:00:00')));
+        $this->store->add(DocumentPairing::auto('received_document', $subjectId, $party, $item, new \DateTimeImmutable($on), new \DateTimeImmutable('2026-11-17 10:00:00')));
         $this->em->flush();
     }
 
