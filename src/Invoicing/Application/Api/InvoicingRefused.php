@@ -90,7 +90,7 @@ final class InvoicingRefused extends \DomainException implements Refused
     public static function of(IssueRefused|RecurringRefused $refused, \Closure $message): self
     {
         $problems = $refused->problems;
-        $first = $problems[0] ?? new IssueProblem('document', self::PREFIXES[0].'invalid');
+        $first = $problems[0] ?? new IssueProblem('document', 'invalid');
         $reason = self::reasonOf($first);
         $listed = array_map(static fn (IssueProblem $problem): string => self::wire(self::fieldOf($problem->field) ?? 'document').': '.self::reasonOf($problem), $problems);
 

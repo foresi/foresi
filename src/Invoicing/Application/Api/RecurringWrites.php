@@ -221,7 +221,7 @@ final readonly class RecurringWrites
     {
         $this->allowed();
 
-        return $this->templates->page(new RecurringFilter($state, false, max(1, $page)));
+        return $this->templates->page(new RecurringFilter($state, false, $page));
     }
 
     /**
@@ -246,7 +246,7 @@ final readonly class RecurringWrites
         }
         $rows = $this->preview->next($this->inputOfTemplate($template), $template->issuedCount(), $this->clock->today(), $count + 1);
         // The preview starts today; an occurrence issued today already is not next.
-        $rows = array_values(array_filter($rows, static fn (PreviewRow $row): bool => $row->issue->format('Y-m-d') >= $next->format('Y-m-d')));
+        $rows = array_filter($rows, static fn (PreviewRow $row): bool => $row->issue->format('Y-m-d') >= $next->format('Y-m-d'));
 
         return \array_slice($rows, 0, $count);
     }
@@ -337,7 +337,7 @@ final readonly class RecurringWrites
         $name = mb_substr(trim(preg_replace('/\s+/u', ' ', $draft->description) ?? ''), 0, RecurringInvoice::MAX_NAME_LENGTH);
 
         return $this->base(
-            $draft->customerId ?? $source->customerParty()->id(),
+            $source->customerParty()->id(),
             $draft->seriesId,
             $draft->paymentMethod,
             $draft->bankAccount,
@@ -464,7 +464,7 @@ final readonly class RecurringWrites
      */
     private function reverseCharge(string $customerId): bool
     {
-        return $this->customers->find($customerId)?->defaults->reverseCharge ?? false;
+        return $this->customers->find($customerId)->defaults->reverseCharge ?? false;
     }
 
     private function days(\DateTimeImmutable $issue, \DateTimeImmutable $due): int

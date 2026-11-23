@@ -87,7 +87,7 @@ final readonly class InvoiceWrites
             $draft = $this->defaults->withCustomer($draft, $customer);
         }
         $currency = null === $input->currency ? $draft->currency : $this->currency($input->currency);
-        $lines = ApiLines::read($input->lines, $currency, VatRegime::of($firm->vatStatus()), $customer?->defaults->reverseCharge ?? false);
+        $lines = ApiLines::read($input->lines, $currency, VatRegime::of($firm->vatStatus()), $customer->defaults->reverseCharge ?? false);
 
         return $this->issue->issue(new InvoiceInput(
             $this->id($input->seriesId, 'seriesId'),
