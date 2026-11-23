@@ -77,11 +77,12 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * every list does (All, Open, Won, Lost, Trash, "+ Filter", Columns) and
  * groups the deals by stage, one table per stage with its count and value,
  * as Odoo's list grouped by stage shows them. A deal is a page of its own:
- * its header holds Won, Lost and Reopen (Pipedrive and Odoo), Edit, the
- * stage, New follow-up deal and the actions other modules add; its sections
- * the lines and their value, the linked deals and the sections other modules
- * add. New, Edit, Lost, a follow-up and a link each open in a dialog; without
- * JavaScript every dialog is a page of its own.
+ * its header holds Won or Reopen, one prominent action of another module and
+ * the rest in "⋯"; its main column the lines and their value, and the
+ * sections other modules add as tabs (?tab=), the first by default; its side
+ * column the details, the notes and the linked deals. New, Edit, Lost, a
+ * follow-up and a link each open in a dialog; without JavaScript every dialog
+ * is a page of its own.
  */
 final class DealController extends AbstractController
 {
@@ -231,13 +232,18 @@ final class DealController extends AbstractController
     }
 
     #[Route('/sales/deals/{id}', name: self::DEAL_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
-    public function show(string $id): Response
+    public function show(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
         $deal = $detail->deal;
         $return = $this->generateUrl(self::DEAL_ROUTE, ['id' => $id]);
         $context = ['dealId' => $deal->id(), 'clientId' => $deal->clientPartyId(), 'contactPersonIds' => $detail->contactPersonIds, 'return' => $return];
         $stages = $this->reads->stages();
+        $sections = $deal->isTrashed() ? [] : $this->slotSections($context);
+        // The tab asked for, or the first one, the timeline, when it names none of them.
+        $keys = array_column($sections, 'key');
+        $tab = $request->query->getString('tab');
+        $tab = \in_array($tab, $keys, true) ? $tab : ($keys[0] ?? null);
 
         return $this->render('@Sales/deals/show.html.twig', [
             'deal' => $deal,
@@ -250,7 +256,12 @@ final class DealController extends AbstractController
             'links' => $this->linkViews($detail),
             'linkable' => !$deal->isTrashed() && [] !== $this->linkOptions($detail),
             'slotActions' => $deal->isTrashed() ? [] : $this->slotActions($context),
-            'slotSections' => $deal->isTrashed() ? [] : $this->slotSections($context),
+            'tabs' => array_map(fn (array $section): array => [
+                'label' => $section['label'],
+                'href' => $this->generateUrl(self::DEAL_ROUTE, ['id' => $id, 'tab' => $section['key'] === ($keys[0] ?? null) ? null : $section['key']]),
+                'active' => $section['key'] === $tab,
+            ], $sections),
+            'section' => array_values(array_filter($sections, static fn (array $section): bool => $section['key'] === $tab))[0] ?? null,
             'context' => $context,
         ]);
     }
@@ -611,13 +622,24 @@ final class DealController extends AbstractController
             ['label' => $this->screen->trans('sales.deal.field.client'), 'value' => ['links' => [['text' => $this->screen->client($deal->clientPartyId()), 'href' => $this->generateUrl('app_contact_show', ['id' => $deal->clientPartyId(), 'tab' => 'deals'])]]]],
             ['label' => $this->screen->trans('sales.deal.field.contact_persons'), 'value' => [] === $persons ? null : implode(', ', $persons), 'empty' => $this->screen->trans('sales.deal.none.contact_persons')],
             ['label' => $this->screen->trans('sales.deal.field.owner'), 'value' => $this->screen->owner($deal->ownerUserId())],
-            ['label' => $this->screen->trans('sales.deal.field.stage'), 'value' => $this->screen->stage($detail->stage)],
         ];
+        $date = $this->screen->trans('format.date');
+        // The stage while the deal is open; once it is closed, the day it was won or lost.
+        if ($deal->isOpen()) {
+            $details[] = ['label' => $this->screen->trans('sales.deal.field.stage'), 'value' => $this->screen->stage($detail->stage)];
+        }
+        $won = $deal->wonAt();
+        if ($won instanceof \DateTimeImmutable) {
+            $details[] = ['label' => $this->screen->trans('sales.deal.field.won_at'), 'value' => $won->format($date)];
+        }
         $reason = $detail->lostReason;
-        if ($deal->lostAt() instanceof \DateTimeImmutable) {
+        $lost = $deal->lostAt();
+        if ($lost instanceof \DateTimeImmutable) {
+            $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_at'), 'value' => $lost->format($date)];
             $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_reason'), 'value' => $reason instanceof LostReason ? $this->screen->reason($reason) : null, 'empty' => $this->screen->trans('sales.deal.none.lost_reason')];
             $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_note'), 'value' => $deal->lostNote(), 'empty' => $this->screen->trans('sales.deal.none.lost_note')];
         }
+        $details[] = ['label' => $this->screen->trans('sales.deal.field.created_at'), 'value' => $deal->createdAt()->format($date)];
 
         return $details;
     }
@@ -720,7 +742,7 @@ final class DealController extends AbstractController
     /**
      * @param array<string, mixed> $context
      *
-     * @return list<array{label: string, href: string, icon: ?string, dialog: bool, key: string}>
+     * @return list<array{label: string, href: string, icon: ?string, dialog: bool, key: string, prominent: bool}>
      */
     private function slotActions(array $context): array
     {
@@ -737,7 +759,7 @@ final class DealController extends AbstractController
             } catch (\InvalidArgumentException) {
                 $icon = null;
             }
-            $actions[] = ['label' => $label, 'href' => $href, 'icon' => \is_string($icon) ? $icon : null, 'dialog' => true === ($item->data['dialog'] ?? false), 'key' => \is_string($item->data['key'] ?? null) ? $item->data['key'] : ''];
+            $actions[] = ['label' => $label, 'href' => $href, 'icon' => \is_string($icon) ? $icon : null, 'dialog' => true === ($item->data['dialog'] ?? false), 'key' => \is_string($item->data['key'] ?? null) ? $item->data['key'] : '', 'prominent' => true === ($item->data['prominent'] ?? false)];
         }
 
         return $actions;
@@ -746,22 +768,23 @@ final class DealController extends AbstractController
     /**
      * @param array<string, mixed> $context
      *
-     * @return list<array{key: string, href: ?string, template: ?string, data: array<string, mixed>}>
+     * @return list<array{key: string, label: string, href: ?string, template: ?string, data: array<string, mixed>}>
      */
     private function slotSections(array $context): array
     {
         $sections = [];
         foreach ($this->slots->items(SalesSlots::DEAL_SECTIONS, $context) as $item) {
             $key = $item->data['key'] ?? null;
+            $label = $item->data['label'] ?? null;
             $href = $item->data['href'] ?? null;
-            if (!\is_string($key) || 1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key)) {
+            if (!\is_string($key) || 1 !== preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $key) || !\is_string($label) || '' === $label) {
                 continue;
             }
             $href = \is_string($href) ? DealScreen::localPath($href) : null;
             if (null === $href && null === $item->template) {
                 continue;
             }
-            $sections[] = ['key' => $key, 'href' => $href, 'template' => $item->template, 'data' => $item->data + $context];
+            $sections[] = ['key' => $key, 'label' => $label, 'href' => $href, 'template' => $item->template, 'data' => $item->data + $context];
         }
 
         return $sections;

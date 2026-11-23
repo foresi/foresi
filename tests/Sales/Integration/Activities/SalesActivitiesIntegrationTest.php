@@ -47,8 +47,18 @@ final class SalesActivitiesIntegrationTest extends SalesScreenTestCase
         self::assertSame(['log-activity', 'plan-activity'], \array_slice($crawler->filter('[data-deal-action]')->each(static fn (Crawler $a): string => (string) $a->attr('data-deal-action')), 0, 2));
         $timeline = (string) $crawler->filter('[data-deal-section="activities"] turbo-frame#deal-section-activities')->attr('src');
         self::assertSame('/activities/for/deal/'.$deal->id().'?return=/sales/deals/'.$deal->id(), $timeline);
-        // The timeline comes before the documents.
-        self::assertSame(['activities', 'documents'], $crawler->filter('[data-deal-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-deal-section')));
+        // The timeline is the first tab, shown by default; the documents are the next one, loaded only when chosen.
+        self::assertSame([$page, $page.'?tab=documents'], $crawler->filter('[data-deal-tabs] nav a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
+        self::assertSame(['Activities'], $crawler->filter('[data-deal-tabs] nav a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSame(['activities'], $crawler->filter('[data-deal-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-deal-section')));
+        // A tab that is not there shows the first one.
+        $other = $this->client->request('GET', $page.'?tab=nothing');
+        self::assertSame(['activities'], $other->filter('[data-deal-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-deal-section')));
+        self::assertSame(['Activities'], $other->filter('[data-deal-tabs] nav a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        // Log activity is the one button beside Won; Plan activity waits in the "⋯" menu, and on a phone Log activity too.
+        self::assertSame(['log-activity'], $crawler->filter('[data-more-actions-buttons] [data-deal-action]')->each(static fn (Crawler $a): string => (string) $a->attr('data-deal-action')));
+        self::assertCount(1, $crawler->filter('[data-more-actions-menu] [data-deal-action="plan-activity"]'));
+        self::assertStringContainsString('Log activity', $crawler->filter('[data-more-actions-phone]')->text());
 
         $crawler = $this->client->request('GET', (string) $crawler->filter('[data-deal-action="log-activity"]')->attr('href'));
         self::assertResponseIsSuccessful();

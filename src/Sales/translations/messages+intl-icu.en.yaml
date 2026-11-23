@@ -56,7 +56,11 @@ sales:
         new: New deal
         create: Create deal
         edit: Edit
-        detail: Deal
+        details: Details
+        sections: Parts of the deal
+        tab:
+            activities: Activities
+            documents: Documents
         win: Won
         lose: Lost
         reopen: Reopen
@@ -85,6 +89,9 @@ sales:
             description_help: Markdown, such as **bold** or a list.
             lost_reason: Lost reason
             lost_note: Note on the loss
+            won_at: Won on
+            lost_at: Lost on
+            created_at: Created
         none:
             contact_persons: None
             lost_reason: No reason given

@@ -71,6 +71,8 @@ final readonly class DealActivityActions implements SlotProvider
                 'icon' => 'square-pen',
                 'dialog' => true,
                 'href' => $href('log'),
+                // What a seller does most on a deal, so it stands beside Won (HubSpot, Pipedrive).
+                'prominent' => true,
             ], weight: self::WEIGHT),
             new SlotItem(data: [
                 'key' => self::PLAN,

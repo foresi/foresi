@@ -21,18 +21,20 @@ namespace Foresi\Sales\Contract;
  *  - "contactPersonIds" (list<string>): the deal's contact persons, in their order;
  *  - "return" (string): the local address of the deal's page, to come back to after a dialog.
  *
- * DEAL_ACTIONS: buttons in the page header, after Sales' own. The item's data holds
- * "label" (string) and "href" (string, a local address), and optionally "icon" (an icon
- * of the locked set), "dialog" (bool, true opens the address in a dialog over the page)
- * and "key" (string, written as data-deal-action on the button). An item without a
- * label or an href is left out.
+ * DEAL_ACTIONS: actions of the page header, in its "⋯" menu after Sales' own. The item's
+ * data holds "label" (string) and "href" (string, a local address), and optionally "icon"
+ * (an icon of the locked set), "dialog" (bool, true opens the address in a dialog over the
+ * page), "key" (string, written as data-deal-action) and "prominent" (bool, true asks for
+ * a button beside the primary action: the first prominent item by weight gets it, on a
+ * phone it stays in the menu). An item without a label or an href is left out.
  *
- * DEAL_SECTIONS: sections of the page under the lines and the linked deals. The item's
- * data holds "key" (string, lowercase letters, digits and dashes) and either "href" (a
+ * DEAL_SECTIONS: tabs of the page under the lines, the active one shown (?tab=<key>, the
+ * first by weight when none is asked for). The item's data holds "key" (string, lowercase
+ * letters, digits and dashes), "label" (string, the tab's name) and either "href" (a
  * local address of a page fragment, loaded into <turbo-frame id="deal-section-<key>">
  * by a lazy frame: the response holds a frame of the id the Turbo-Frame header names)
  * or the item's template, included with its data and the context. An item with
- * neither, or without a key, is left out.
+ * neither, or without a key or a label, is left out.
  */
 final class SalesSlots
 {
