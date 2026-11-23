@@ -87,6 +87,9 @@ final class RegistryWorkingDisplayTest extends TestCase
 
         $listed = $this->working()->read(self::LIST, [], null, ['pins' => ['', 'city']], pins: self::PINS);
         self::assertSame(['city'], $listed->pinned);
+
+        self::assertSame(['city', 'kind'], $this->working()->read(self::LIST, [], null, ['pins' => 'city, kind'], pins: self::PINS)->pinned, 'A space around a name is no part of it.');
+        self::assertSame(['city', 'kind'], RegistryWorkingDisplay::pins([' city ', 'kind'], ['kind', 'city']));
     }
 
     public function testTheViewsOwnQuickFiltersInTheAddressAreNoChange(): void

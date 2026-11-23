@@ -214,6 +214,25 @@ final class ColumnPickerTest extends KernelTestCase
         );
     }
 
+    public function testTheQuickFiltersSplitIntoThePinnedAndTheOthersEachWithItsOwnId(): void
+    {
+        $picker = $this->mount(['quick' => [
+            ['key' => 'due', 'label' => 'Due', 'pinned' => true],
+            ['key' => 'paid', 'label' => 'Paid'],
+            ['key' => 'customer.city', 'label' => 'City', 'pinned' => true],
+            ['key' => 'kind', 'label' => 'Kind', 'pinned' => false],
+        ]]);
+
+        self::assertSame([
+            ['key' => 'due', 'label' => 'Due', 'pinned' => true, 'id' => 'cols-pin-due'],
+            ['key' => 'customer.city', 'label' => 'City', 'pinned' => true, 'id' => 'cols-pin-customer-city'],
+        ], $picker->pins());
+        self::assertSame([
+            ['key' => 'paid', 'label' => 'Paid', 'pinned' => false, 'id' => 'cols-pin-paid'],
+            ['key' => 'kind', 'label' => 'Kind', 'pinned' => false, 'id' => 'cols-pin-kind'],
+        ], $picker->pinnable(), 'A quick filter that does not say it is pinned is not.');
+    }
+
     public function testAListWithoutColumnsShowsItsQuickFiltersAlone(): void
     {
         $crawler = new Crawler($this->render(['columns' => [], 'density' => null, 'quick' => [['key' => 'person', 'label' => 'Person', 'pinned' => true]]]));

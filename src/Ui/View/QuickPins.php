@@ -35,7 +35,7 @@ final readonly class QuickPins
      */
     public static function read(array $query, array $fields, array $default): self
     {
-        $names = array_map(strval(...), array_keys($fields));
+        $names = array_keys($fields);
         $own = RegistryWorkingDisplay::pins($default, $names) ?? [];
         $pinned = \array_key_exists(WorkingDisplay::PINNED, $query) ? (RegistryWorkingDisplay::pins($query[WorkingDisplay::PINNED], $names) ?? []) : $own;
         $pinnable = [];

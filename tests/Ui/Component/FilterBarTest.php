@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Ui\Component\FilterBar;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -39,6 +40,45 @@ final class FilterBarTest extends KernelTestCase
         ]);
 
         return new Crawler($html);
+    }
+
+    public function testThePinnedFiltersFollowTheOrderTheBarPinsThemIn(): void
+    {
+        $bar = $this->mount(['pinned' => ['month', 'firm']]);
+
+        self::assertSame(['month', 'firm'], array_map(static fn (array $view): string => $view['name'], $bar->pinnedViews()));
+    }
+
+    public function testTheLooseConditionsAreThoseNoQuickFilterShows(): void
+    {
+        $bar = $this->mount(['conditions' => [
+            ['label' => 'Payment: paid', 'href' => '/invoices?f=a', 'removeLabel' => 'Remove filter Payment', 'field' => 'payment', 'pinned' => true],
+            ['label' => 'Total: ≥ 100', 'href' => '/invoices?f=b', 'removeLabel' => 'Remove filter Total', 'field' => 'total'],
+            ['label' => 'Due date: before today', 'href' => '/invoices?f=c', 'removeLabel' => 'Remove filter Due date', 'field' => 'due', 'pinned' => false],
+        ]]);
+
+        self::assertSame(['/invoices?f=b', '/invoices?f=c'], array_map(static fn (array $chip): mixed => $chip['href'], $bar->loose()));
+        self::assertSame([0, 1], array_keys($bar->loose()));
+    }
+
+    /**
+     * @param array<string, mixed> $props
+     */
+    private function mount(array $props = []): FilterBar
+    {
+        $component = $this->mountTwigComponent('Ui:FilterBar', $props + [
+            'id' => 'list-filters',
+            'action' => '/invoices',
+            'pinned' => ['firm', 'month'],
+            'filters' => [
+                ['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => ''],
+                ['name' => 'month', 'label' => 'Month', 'options' => self::MONTHS, 'value' => ''],
+                ['name' => 'kind', 'label' => 'Kind', 'options' => self::KINDS, 'value' => ''],
+            ],
+        ]);
+        self::assertInstanceOf(FilterBar::class, $component);
+
+        return $component;
     }
 
     public function testTheSearchAppliesOnEnterKeepingTheTabWithItsButtonOnlyWithoutScript(): void

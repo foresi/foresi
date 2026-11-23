@@ -113,7 +113,6 @@ final class FilterBar
             throw new \InvalidArgumentException('The search of a filter bar needs a name and a label.');
         }
         $pinned = 0;
-        $this->pinned = array_values(array_filter($this->pinned, \is_string(...)));
         foreach ($this->filters as $filter) {
             $type = $filter['type'] ?? 'select';
             if (!\in_array($type, ['select', 'date'], true)) {

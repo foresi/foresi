@@ -354,6 +354,30 @@ final class SavedViewsTest extends TestCase
         $this->assertRefusedBy('filter_invalid', 'pinned', fn (): SavedView => $this->views->create(new CreateViewInput('test.items', 'Many', pinned: ['paid', 'paid', 'paid', 'paid', 'paid'])));
     }
 
+    public function testTheStoredQuickFiltersAreReadInTheirOrderWhenTheRestOfTheDisplayChanges(): void
+    {
+        $view = $this->views->create(new CreateViewInput('test.items', 'Stored', columns: ['number']));
+        $view->redisplay(['pinned' => [3 => 'paid', 5 => 'Not a key']], self::MEMBER, new \DateTimeImmutable('2026-11-18 10:00:00'));
+
+        $this->assertRefusedBy('filter_invalid', 'pinned[1]', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), density: 'dense')));
+    }
+
+    public function testARefusedQuickFilterIsNamedInTheMessage(): void
+    {
+        try {
+            $this->views->create(new CreateViewInput('test.items', 'Bad', pinned: ['paid', 'customer']));
+            self::fail('It was allowed.');
+        } catch (SavedViewRefused $refused) {
+            self::assertSame('The list "test.items" has no field "customer" to pin; find its fields with foresi_list_lists.', $refused->getMessage());
+        }
+        try {
+            $this->views->create(new CreateViewInput('test.items', 'Bad', pinned: [7]));
+            self::fail('It was allowed.');
+        } catch (SavedViewRefused $refused) {
+            self::assertSame('The list "test.items" has no field of that kind to pin; find its fields with foresi_list_lists.', $refused->getMessage());
+        }
+    }
+
     public function testAShippedViewKeepsNoQuickFiltersAndShowsItsListsOwn(): void
     {
         $paid = $this->views->get('test.items.paid');
