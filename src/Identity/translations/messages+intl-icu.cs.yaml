@@ -178,6 +178,7 @@ api_tokens:
     calendar: Kalendář
     cashflow: Cash flow
     catalog: Katalog
+    sales: Obchod
     taxes: Daně a odvody
     vat: DPH
     received_documents: Přijaté doklady
