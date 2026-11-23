@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The amount of the filed return of one period, which replaces the estimate as what the period expects:
+    a small dialog over the period's sheet. The person types it as the return states it and says whether
+    it is to pay or a refund. Variables: key, title, estimate, values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'vat.page.action.return_amount'|trans %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'vat.title'|trans, href: path('app_vat')}, {label: title, href: path('app_vat_period', {key: key})}, {label: heading}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'vat.page.return_amount.description'|trans({estimate: estimate}) %}
+
+{% block title %}{{ heading }} · {{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="vat-return-amount-form" action="{{ path('app_vat_return_amount', {key: key}) }}" class="grid gap-4" novalidate data-vat-return-amount-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Vat\\Infrastructure\\Controller\\VatController::TOKEN')) }}">
+        <twig:Ui:Select name="direction" id="direction" :label="'vat.page.return_amount.direction'|trans" :options="{payable: 'vat.page.result.payable'|trans, refund: 'vat.page.result.refund'|trans}" :value="values.direction" />
+        <twig:Ui:TextInput name="amount" id="amount" :label="'vat.page.return_amount.amount'|trans" :value="values.amount" :error="errors.amount is defined ? errors.amount|trans : null" inputmode="decimal" autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="vat-return-amount-form" variant="primary">{{ 'vat.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading ~ ' · ' ~ title" icon="pencil" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ dialog_description }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_vat_period', {key: key})">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="vat-return-amount-form" variant="primary">{{ 'vat.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

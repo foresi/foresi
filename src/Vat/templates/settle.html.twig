@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Marks one period paid without a bank payment, such as one paid from another account, with an optional
+    note: a small dialog over the period's sheet. Variables: key, title, values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'vat.page.settle.title'|trans({period: title}) %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'vat.title'|trans, href: path('app_vat')}, {label: title, href: path('app_vat_period', {key: key})}, {label: 'vat.page.action.settle'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'vat.page.settle.description'|trans %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="vat-settle-form" action="{{ path('app_vat_settle', {key: key}) }}" class="grid gap-4" novalidate data-vat-settle-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Vat\\Infrastructure\\Controller\\VatController::TOKEN')) }}">
+        <twig:Ui:TextInput name="note" id="note" :label="'vat.page.settle.note'|trans" :help="'vat.page.settle.note_help'|trans" :value="values.note" :error="errors.note is defined ? errors.note|trans : null" autocomplete="off" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="vat-settle-form" variant="primary">{{ 'vat.page.action.settle'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="circle-check" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ dialog_description }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_vat_period', {key: key})">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="vat-settle-form" variant="primary">{{ 'vat.page.action.settle'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

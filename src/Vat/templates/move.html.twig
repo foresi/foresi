@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Places a bank payment to or from the tax office in a period of the person's choice, or says it is not
+    a VAT payment: a small dialog over the VAT page or the period's sheet. Variables: movement, back,
+    choices, values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'vat.page.move.title'|trans %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'vat.title'|trans, href: path('app_vat')}, {label: title}] %}
+{% set dialog_size = 'sm' %}
+{% set noPeriod = constant('Foresi\\Vat\\Infrastructure\\Controller\\VatController::NO_PERIOD') %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="vat-move-form" action="{{ path('app_vat_payment_move', {movement: movement}) }}" class="grid gap-4" novalidate data-vat-move-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Vat\\Infrastructure\\Controller\\VatController::TOKEN')) }}">
+        {% if back %}<input type="hidden" name="back" value="{{ back }}">{% endif %}
+        <twig:Ui:Select name="period" id="period" :label="'vat.page.move.period'|trans" :options="choices|merge({(noPeriod): 'vat.page.move.none'|trans})" :value="values.period" :error="errors.period is defined ? errors.period|trans : null" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="vat-move-form" variant="primary">{{ 'vat.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="arrow-up-down" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back ? path('app_vat_period', {key: back}) : path('app_vat')">{{ 'vat.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="vat-move-form" variant="primary">{{ 'vat.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

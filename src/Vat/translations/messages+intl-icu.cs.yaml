@@ -1,7 +1,172 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    vat: DPH
 vat:
+  title: DPH
+  cancel: Zrušit
+  save: Uložit
   period:
     quarter: '{quarter}. čtvrtletí {year}'
   flow:
     payable: 'DPH za {period}'
     refund: 'Nadměrný odpočet DPH za {period} (finanční úřad jím nejdřív uhradí jiné nedoplatky, § 154 daňového řádu)'
+  page:
+    years: Roky
+    settings: Nastavení
+    table: Období DPH
+    open_period: otevřít období
+    column:
+      period: Období
+      output: Na výstupu
+      input: Na vstupu
+      result: Výsledek
+      due: Splatnost
+      state: Stav
+    result:
+      payable: K zaplacení
+      refund: Nadměrný odpočet
+      zero: Nic k zaplacení
+    state:
+      estimated: Odhad
+      return_entered: Částka z přiznání
+      settled: Uhrazeno
+      not_yet_paid: Zatím nezaplaceno
+      not_yet_received: Zatím nepřišlo
+    reason:
+      payer_date_missing:
+        title: Chybí den, odkdy je firma plátcem DPH
+        text: Doplň ho v DPH firmy a období se tu objeví.
+      not_a_payer:
+        title: Firma není plátcem DPH
+        text: Jakmile bude firma plátcem DPH od nějakého dne, uvidíš tu její období.
+      country_not_supported:
+        title: Pro zemi firmy nejsou pravidla DPH
+        text: Foresi zatím nemá pravidla DPH pro tuto zemi, a tak období nespočítá.
+      empty:
+        title: 'V roce {year} nejsou žádná období DPH'
+        text: 'Firma v roce {year} není plátcem DPH, nebo je rok moc daleko.'
+    warning:
+      title: Než se na čísla spolehneš, zkontroluj
+      quarter_not_allowed: Firma platí DPH čtvrtletně, ale nový plátce podává v prvním roce měsíčně (§ 99a ZDPH). Zkontroluj délku období v DPH firmy.
+      missing_czk_vat: 'Některé doklady nemají DPH v korunách a počítají se nulou: {periods}.'
+      fx_today: 'Některé opakované faktury v cizí měně jsou přepočtené dnešním kurzem: {periods}.'
+      payer_date_missing: Firma je plátcem DPH, ale chybí den, odkdy jím je.
+      firm_vat: Firma → DPH
+      unavailable_sources: 'Některé zdroje se nepodařilo načíst, čísla proto nemusí být úplná: {sources}.'
+      duplicates: '{count, plural, one {Plánovaná položka v kategorii DPH může DPH započítat podruhé:} few {# plánované položky v kategorii DPH mohou DPH započítat podruhé:} other {# plánovaných položek v kategorii DPH může DPH započítat podruhé:}}'
+    source:
+      invoicing:
+        issued_vat: vydané faktury
+        recurring_vat: opakované faktury
+      purchasing:
+        received_vat: přijaté doklady
+      cash-flow:
+        vat_payments: platby z banky
+    unassigned:
+      title: Platby bez období
+      description: Platby na účet finančního úřadu nebo z něj, které zatím neplatí žádné období DPH. Zařaď každou do jejího období.
+      place: Zařadit do období
+    payment:
+      in: Přišlo
+      out: Zaplaceno
+      manual: Zařazeno ručně
+      actions: Akce platby ze dne {day}
+      move: Přesunout
+      unpair: Odpárovat
+      reset: Párovat znovu automaticky
+      rule:
+        payable: Účet a variabilní symbol
+        refund: Účet finančního úřadu
+        other: Jiný variabilní symbol
+    footer:
+      estimate: Odhad, ne podklad pro přiznání.
+      unverified: 'Neověřeno:'
+      gaps: 'Zatím se nepočítá:'
+    unverified:
+      refund_timing: kdy finanční úřad vrátí nadměrný odpočet (§ 105 ZDPH)
+      refund_account: nadměrný odpočet spárovaný jen podle účtu finančního úřadu
+      office_account_2026: účet finančního úřadu od roku 2026
+      late_deduction_limit: dokdy lze uplatnit odpočet daně (§ 73 ZDPH)
+      quarter_limit_2026: obrat pro čtvrtletní období od roku 2026 (§ 99a ZDPH)
+      vat_by_tax_point_cash_basis: DPH podle DUZP u daňové evidence
+    gap:
+      schedules_not_counted: opakované faktury
+      plans_not_counted: plánované položky
+      deduction_before_registration: odpočet daně z doby před registrací (§ 79 ZDPH)
+    sheet:
+      span: '{start} – {end}'
+      breakdown: Odkud DPH je
+      part_column: Část
+      documents: Doklady
+      documents_none: V tomto období se nepočítá žádný doklad.
+      schedules: Opakované faktury
+      restricted: Některé doklady se počítají, ale nemůžeš je otevřít.
+      steps: Jak výsledek vzniká
+      payments: Platby
+      payments_none: Toto období zatím neplatí žádná platba z banky.
+      difference: 'Zaplaceno {paid}, očekáváno {expected}, rozdíl {difference}. Období je uhrazené, rozdíl je pro informaci.'
+      difference_none: 'Zaplaceno {paid}, jak se čekalo.'
+      return_amount: 'Částka z přiznání: {amount}, odhad byl {estimate}.'
+      settled_mark: Označeno jako uhrazené ručně.
+      missing_czk: 'Počítá se nulou, bez DPH v korunách:'
+    part:
+      documents: Doklady
+      schedules: Plány opakování
+      plans: Plány
+      not_counted: Zatím se nepočítá
+    step:
+      output:
+        title: DPH na výstupu
+        rule: DPH vydaných dokladů a opakovaných faktur s DUZP v období.
+      input:
+        title: DPH na vstupu
+        rule: Odpočet DPH z přijatých dokladů v období.
+      result:
+        title: Výsledek
+        rule: DPH na výstupu minus DPH na vstupu; kladný k zaplacení, záporný je nadměrný odpočet.
+    action:
+      return_amount: Zadat částku z přiznání
+      clear_return_amount: Odebrat částku z přiznání
+      settle: Označit jako uhrazené
+      reopen: Znovu otevřít
+      more: Další akce období
+    return_amount:
+      description: 'Částka z podaného přiznání nahradí odhad {estimate} jako to, co období čeká.'
+      amount: Částka
+      direction: Přiznání vychází
+    settle:
+      title: 'Označit {period} jako uhrazené'
+      description: Pro období zaplacené z jiného účtu nebo vyrovnané jinak. DPH tím zmizí z cash flow.
+      note: Poznámka
+      note_help: Nepovinná, třeba odkud se platilo.
+    move:
+      title: Přesunout platbu
+      period: Období
+      none: Není platba DPH
+    settings_form:
+      description: Kam firma platí DPH. Platby na tento účet se párují s obdobími DPH.
+      office_account: Účet finančního úřadu
+      office_account_hint: 'Doporučeno: {hint}'
+      variable_symbol: Variabilní symbol
+      variable_symbol_help: 'Prázdné vezme doporučený: {symbol} (DIČ bez CZ).'
+      variable_symbol_help_plain: Prázdné vezme ten, který doporučuje země.
+      source: Odkud platební údaje jsou
+      new_tab: otevře se v novém panelu
+    error:
+      amount_invalid: Zadej částku, třeba 1500.
+      key_invalid: Toto období neexistuje.
+      not_found: Toto období neexistuje.
+      note_too_long: Poznámka je moc dlouhá.
+      movement_id_invalid: Tato platba neexistuje.
+      office_account_invalid: Zadej účet finančního úřadu.
+      variable_symbol_invalid: Variabilní symbol je moc dlouhý.
+    flash:
+      return_amount: Částka z přiznání je uložená.
+      return_amount_cleared: Částka z přiznání je odebraná.
+      settled: Období je označené jako uhrazené.
+      reopened: Období je znovu otevřené.
+      payment_moved: Platba je zařazená.
+      payment_unpaired: Platba už není platbou DPH.
+      payment_reset: Platba se zase páruje automaticky.
+      settings: Kam firma platí DPH, je uložené.

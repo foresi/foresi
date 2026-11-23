@@ -68,6 +68,8 @@ const WORLD_OF: Record<string, string> = {
   'cash-flow@example.com': 'cash-flow',
   'taxes@example.com': 'taxes',
   'taxes-member@example.com': 'taxes',
+  'vat@example.com': 'vat',
+  'vat-guest@example.com': 'vat',
   'documents@example.com': 'documents',
   'activities@example.com': 'activities',
 };
