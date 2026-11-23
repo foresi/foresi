@@ -101,6 +101,7 @@ final class PlannedItemController extends AbstractController
             $item = $this->writes->create(new CreatePlannedItemInput(
                 $direction->value, $d['name'], $d['category'], $d['amount'], $d['on'], $d['currency'], $d['repeat'], $d['every'], $d['lastDayOfMonth'],
                 $d['endsOn'], $d['endsAfter'], $d['counterpartyId'], $d['included'], $d['matchAccount'], $d['matchVariableSymbol'], $d['matchTolerance'],
+                $d['vatMode'], $d['vatRate'],
             ));
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
@@ -147,6 +148,7 @@ final class PlannedItemController extends AbstractController
             $this->writes->change(new ChangePlannedItemInput(
                 $id, $d['name'], $d['category'], $d['amount'], $d['currency'], $d['on'], $d['repeat'], $d['every'], $d['lastDayOfMonth'],
                 $d['endsOn'], $d['endsAfter'], $d['counterpartyId'], $d['included'], $d['matchAccount'], $d['matchVariableSymbol'], $d['matchTolerance'],
+                $d['vatMode'], $d['vatRate'],
             ));
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
@@ -316,6 +318,8 @@ final class PlannedItemController extends AbstractController
         if ('' === $values['counterpartyQuery']) {
             $values['counterpartyId'] = '';
         }
+        $values['vatMode'] = trim($request->request->getString('vatMode'));
+        $values['vatRate'] = trim($request->request->getString('vatRate'));
 
         return $values;
     }
@@ -326,7 +330,7 @@ final class PlannedItemController extends AbstractController
      *
      * @param array<string, string> $values
      *
-     * @return array{name: string, category: string, amount: string, currency: string, on: string, repeat: ?string, every: int, lastDayOfMonth: bool, endsOn: ?string, endsAfter: ?int, counterpartyId: ?string, included: bool, matchAccount: ?string, matchVariableSymbol: ?string, matchTolerance: ?string}
+     * @return array{name: string, category: string, amount: string, currency: string, on: string, repeat: ?string, every: int, lastDayOfMonth: bool, endsOn: ?string, endsAfter: ?int, counterpartyId: ?string, included: bool, matchAccount: ?string, matchVariableSymbol: ?string, matchTolerance: ?string, vatMode: string, vatRate: ?string}
      *
      * @throws CashFlowRefused
      */
@@ -351,6 +355,9 @@ final class PlannedItemController extends AbstractController
             $endsAfter = (int) $values['endsAfter'];
         }
         $tolerance = TypedNumber::decimal($values['matchTolerance'], $locale);
+        // Without a VAT mode the rate field is ignored, as the form hides it.
+        $vatMode = '' === $values['vatMode'] ? 'none' : $values['vatMode'];
+        $vatRate = 'none' === $vatMode ? '' : TypedNumber::decimal($values['vatRate'], $locale);
 
         return [
             'name' => $values['name'],
@@ -368,6 +375,8 @@ final class PlannedItemController extends AbstractController
             'matchAccount' => '' === $values['matchAccount'] ? null : $values['matchAccount'],
             'matchVariableSymbol' => '' === $values['matchVariableSymbol'] ? null : $values['matchVariableSymbol'],
             'matchTolerance' => '' === $tolerance ? null : $tolerance,
+            'vatMode' => $vatMode,
+            'vatRate' => '' === $vatRate ? null : $vatRate,
         ];
     }
 
@@ -380,7 +389,7 @@ final class PlannedItemController extends AbstractController
             'endsOn' => 'endsOn',
             'endsAfter' => 'endsAfter',
             'counterpartyId' => 'counterpartyQuery',
-            'name', 'category', 'amount', 'currency', 'on', 'repeat', 'every', 'matchAccount', 'matchVariableSymbol', 'matchTolerance' => $refused->field(),
+            'name', 'category', 'amount', 'currency', 'on', 'repeat', 'every', 'matchAccount', 'matchVariableSymbol', 'matchTolerance', 'vatMode', 'vatRate' => $refused->field(),
             default => 'name',
         };
 

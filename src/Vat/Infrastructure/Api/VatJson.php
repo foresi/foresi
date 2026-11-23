@@ -19,7 +19,9 @@ use Foresi\Vat\Application\ScheduleAmount;
 use Foresi\Vat\Application\VatPart;
 use Foresi\Vat\Application\VatSettingsView;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PlannedVatAmount;
 use Foresi\Vat\Contract\PossibleDuplicate;
+use Foresi\Vat\Contract\VatSubject;
 
 /**
  * The VAT module as REST and MCP write it: snake_case keys, money in minor
@@ -58,6 +60,7 @@ final class VatJson
             'period' => self::period($detail->period),
             'documents' => array_map(self::document(...), $detail->documents),
             'schedules' => array_map(self::schedule(...), $detail->schedules),
+            'plans' => array_map(self::plan(...), $detail->plans),
             'restricted_sources' => $detail->restrictedSources,
         ];
     }
@@ -95,6 +98,21 @@ final class VatJson
             'output_in_currency' => JsonValues::money($schedule->output),
             'fx_today' => $amount->fxToday,
             'missing_czk' => $amount->missingCzk,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function plan(PlannedVatAmount $plan): array
+    {
+        return [
+            'source' => $plan->source,
+            'subject' => $plan->subject instanceof VatSubject ? ['type' => $plan->subject->type, 'id' => $plan->subject->id, 'url' => $plan->subject->url] : null,
+            'label' => $plan->label,
+            'on' => JsonValues::date($plan->on),
+            'output' => JsonValues::money($plan->output),
+            'input' => JsonValues::money($plan->input),
         ];
     }
 

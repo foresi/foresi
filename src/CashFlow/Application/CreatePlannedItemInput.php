@@ -23,7 +23,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_create_planned_item',
     scope: 'cashflow:write',
     title: 'Create a planned item',
-    description: 'Plans money a firm expects to receive or pay that no document carries yet, such as rent, software, insurance or tax advances, or a client not invoiced yet. It is kept outside the books and appears in foresi_cash_flow_forecast. Without repeat it falls once on its day; with repeat it recurs from that day every N days, weeks, months or years, until ends_on or after ends_after occurrences. Find contact ids with foresi_search_contacts.',
+    description: 'Plans money a firm expects to receive or pay that no document carries yet, such as rent, software, insurance or tax advances, or a client not invoiced yet. It is kept outside the books and appears in foresi_cash_flow_forecast. Without repeat it falls once on its day; with repeat it recurs from that day every N days, weeks, months or years, until ends_on or after ends_after occurrences. With vat_mode included or excluded and vat_rate, the VAT counts on the days the firm is a VAT payer: the answer gives net, vat and vat_missing (true while the firm is a payer and no VAT is stated). Find contact ids with foresi_search_contacts.',
     status: 201,
     response: 'CashFlowPlannedItem',
 )]
@@ -62,6 +62,10 @@ final readonly class CreatePlannedItemInput
         public ?string $matchVariableSymbol = null,
         #[Field('How far a payment may differ from the amount and still match, a decimal number such as "50.00".')]
         public ?string $matchTolerance = null,
+        #[Field('How the amount stands to its VAT: none, included (the amount holds the VAT) or excluded (the VAT comes on top). The VAT counts only on the days the firm is a VAT payer.', enum: ['none', 'included', 'excluded'])]
+        public string $vatMode = 'none',
+        #[Field('The VAT rate in percent, 0 to 100 with at most two decimals, such as "21"; with vat_mode included or excluded only.')]
+        public ?string $vatRate = null,
     ) {
     }
 }

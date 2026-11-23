@@ -11,6 +11,7 @@ namespace Foresi\CashFlow\Application;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Domain\MatchRule;
 use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
 
@@ -58,9 +59,11 @@ final class PlannedFulfilment
 
     /**
      * @param list<ActualFlow> $actuals
+     * @param Money|null       $expected what the occurrence moves, with the VAT on top when it has it; the item's amount when null
      */
-    public static function isFulfilled(PlannedItem $item, \DateTimeImmutable $day, array $actuals): bool
+    public static function isFulfilled(PlannedItem $item, \DateTimeImmutable $day, array $actuals, ?Money $expected = null): bool
     {
+        $expected ??= $item->amount();
         [$first, $last] = self::period($item, $day);
         [$first, $last] = [$first->format('Y-m-d'), $last->format('Y-m-d')];
         $counterparty = $item->isRecurring() ? $item->counterparty()?->id() : null;
@@ -73,7 +76,7 @@ final class PlannedFulfilment
             if (null !== $counterparty && $actual->counterpartyId === $counterparty) {
                 return true;
             }
-            if (self::meets($rule, $item, $actual)) {
+            if (self::meets($rule, $expected, $actual)) {
                 return true;
             }
         }
@@ -81,12 +84,12 @@ final class PlannedFulfilment
         return false;
     }
 
-    private static function meets(MatchRule $rule, PlannedItem $item, ActualFlow $actual): bool
+    private static function meets(MatchRule $rule, Money $expected, ActualFlow $actual): bool
     {
-        if (!$actual->meets($rule->counterpartyAccount(), $rule->variableSymbol()) || $actual->amount->currency() !== $item->amount()->currency()) {
+        if (!$actual->meets($rule->counterpartyAccount(), $rule->variableSymbol()) || $actual->amount->currency() !== $expected->currency()) {
             return false;
         }
 
-        return abs($actual->amount->minor() - $item->amount()->minor()) <= ($rule->toleranceMinor() ?? 0);
+        return abs($actual->amount->minor() - $expected->minor()) <= ($rule->toleranceMinor() ?? 0);
     }
 }

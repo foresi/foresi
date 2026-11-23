@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Contract\FlowCategory;
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\MatchRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Domain\PlannedItemTerms;
@@ -58,7 +59,37 @@ final readonly class PlannedItemRules
             null === $draft->counterpartyId ? null : $this->access->counterparty($draft->counterpartyId),
             $draft->included,
             $this->matchRule($draft, $currency),
+            ...$this->vat($draft),
         );
+    }
+
+    /**
+     * The VAT mode and the rate with two decimals: none takes no rate, and
+     * included or excluded a rate from 0 to 100 percent.
+     *
+     * @return array{vatMode: PlannedVatMode, vatRate: ?string}
+     *
+     * @throws CashFlowRefused
+     */
+    private function vat(PlannedItemDraft $draft): array
+    {
+        $mode = PlannedVatMode::tryFrom($draft->vatMode) ?? throw CashFlowRefused::invalid('vat_mode_unknown', 'vatMode', 'vat_mode is one of '.implode(', ', PlannedVatMode::values()).'.');
+        $rate = $this->blankToNull($draft->vatRate);
+        if (PlannedVatMode::None === $mode) {
+            if (null !== $rate) {
+                throw CashFlowRefused::invalid('vat_rate_without_mode', 'vatRate', 'A VAT rate needs vat_mode included or excluded.');
+            }
+
+            return ['vatMode' => $mode, 'vatRate' => null];
+        }
+        if (null === $rate) {
+            throw CashFlowRefused::invalid('vat_rate_required', 'vatRate', 'A planned item with VAT included or excluded states its rate, such as "21".');
+        }
+        if (1 !== preg_match('/^([0-9]{1,3})(?:\.([0-9]{1,2}))?\z/', $rate, $m) || (int) $m[1] > 100 || ('100' === $m[1] && (int) ($m[2] ?? 0) > 0)) {
+            throw CashFlowRefused::invalid('vat_rate_invalid', 'vatRate', 'A VAT rate is a percent from 0 to 100 with at most two decimals, such as "21" or "12.5".');
+        }
+
+        return ['vatMode' => $mode, 'vatRate' => \sprintf('%d.%s', (int) $m[1], str_pad($m[2] ?? '', 2, '0'))];
     }
 
     /**

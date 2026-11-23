@@ -9,10 +9,13 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Infrastructure\Screen;
 
 use Foresi\CashFlow\Application\PlannedItemRules;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Domain\PlannedItemVat;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\Schedule\Recurrence;
@@ -43,6 +46,7 @@ final readonly class PlannedItemScreen
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urls,
+        private PlannedItemVatRule $vat,
     ) {
     }
 
@@ -110,7 +114,8 @@ final readonly class PlannedItemScreen
                     'repeat' => $this->repeat($item),
                     'next' => $on instanceof \DateTimeImmutable ? $this->day($on) : ['empty' => $this->trans('cash_flow.planned.none.next')],
                     'amount' => $this->amount($item),
-                    'included' => ['badges' => [$this->included($item)]],
+                    // A payer's item without its VAT is marked, so the VAT periods can count it once it is stated.
+                    'included' => ['badges' => $this->vat->isMissing($item) ? [$this->included($item), $this->vatMissing()] : [$this->included($item)]],
                 ],
             ];
         }, $items);
@@ -128,6 +133,7 @@ final readonly class PlannedItemScreen
 
         return array_values(array_filter([
             ['label' => $this->trans('cash_flow.planned.field.amount'), 'value' => $this->amount($item)],
+            ['label' => $this->trans('cash_flow.planned.field.vat'), 'value' => $this->vatText($item), 'empty' => $this->trans('cash_flow.planned.none.vat')],
             ['label' => $this->trans('cash_flow.planned.field.category'), 'value' => $this->category($item->category())],
             ['label' => $this->trans('cash_flow.planned.column.repeat'), 'value' => $this->repeat($item)],
             ['label' => $this->trans($recurrence instanceof Recurrence ? 'cash_flow.planned.field.first_on' : 'cash_flow.planned.field.on'), 'value' => $this->day($item->firstOn(), true)],
@@ -197,6 +203,7 @@ final readonly class PlannedItemScreen
                 'repeat' => '', 'every' => '1', 'lastDayOfMonth' => '', 'end' => RecurrenceEnd::Never->value, 'endsOn' => '', 'endsAfter' => '',
                 'counterpartyId' => '', 'counterpartyQuery' => '', 'included' => '1',
                 'matchAccount' => '', 'matchVariableSymbol' => '', 'matchTolerance' => '',
+                'vatMode' => PlannedVatMode::None->value, 'vatRate' => '',
             ];
         }
         $recurrence = $item->recurrence($this->clock->timezone());
@@ -221,13 +228,15 @@ final readonly class PlannedItemScreen
             'matchAccount' => $match->counterpartyAccount() ?? '',
             'matchVariableSymbol' => $match->variableSymbol() ?? '',
             'matchTolerance' => null === $tolerance ? '' : $this->field(Money::ofMinor($tolerance, $item->amount()->currency()), $locale),
+            'vatMode' => $item->vatMode()->value,
+            'vatRate' => null === $item->vatRate() ? '' : $this->rateField($item->vatRate(), $locale),
         ];
     }
 
     /**
      * The choices of the form's selects.
      *
-     * @return array{categories: array<string, string>, currencies: array<string, string>, repeats: array<string, string>, ends: array<string, string>}
+     * @return array{categories: array<string, string>, currencies: array<string, string>, repeats: array<string, string>, ends: array<string, string>, vatModes: array<string, string>}
      */
     public function options(): array
     {
@@ -244,11 +253,17 @@ final readonly class PlannedItemScreen
             $ends[$end->value] = $this->trans('cash_flow.planned.end.'.$end->value);
         }
 
+        $vatModes = [];
+        foreach (PlannedVatMode::cases() as $mode) {
+            $vatModes[$mode->value] = $this->trans('cash_flow.planned.vat_mode.'.$mode->value);
+        }
+
         return [
             'categories' => $categories,
             'currencies' => array_combine(PlannedItemRules::CURRENCIES, PlannedItemRules::CURRENCIES),
             'repeats' => $repeats,
             'ends' => $ends,
+            'vatModes' => $vatModes,
         ];
     }
 
@@ -294,6 +309,41 @@ final readonly class PlannedItemScreen
         return $item->isIncluded()
             ? ['label' => $this->trans('cash_flow.planned.state.included'), 'tone' => 'green']
             : ['label' => $this->trans('cash_flow.planned.state.left_out'), 'tone' => 'gray'];
+    }
+
+    /**
+     * "10 000,00 Kč + 21 % VAT 2 100,00 Kč", or null when no VAT is stated.
+     */
+    private function vatText(PlannedItem $item): ?string
+    {
+        $vat = $item->vat();
+        if (!$vat instanceof PlannedItemVat) {
+            return null;
+        }
+
+        return $this->trans('cash_flow.planned.vat.'.$item->vatMode()->value, [
+            'rate' => $this->rateField((string) $item->vatRate(), $this->locales->getLocale()),
+            'net' => $this->money->shown($vat->net),
+            'vat' => $this->money->shown($vat->vat),
+        ]);
+    }
+
+    /**
+     * @return array{label: string, tone: string}
+     */
+    private function vatMissing(): array
+    {
+        return ['label' => $this->trans('cash_flow.planned.state.vat_missing'), 'tone' => 'amber'];
+    }
+
+    /**
+     * "12,5" in Czech: a rate as the locale writes its decimals.
+     */
+    private function rateField(string $rate, string $locale): string
+    {
+        $symbol = new \NumberFormatter($locale, \NumberFormatter::DECIMAL)->getSymbol(\NumberFormatter::DECIMAL_SEPARATOR_SYMBOL);
+
+        return str_replace('.', $symbol, $rate);
     }
 
     private function end(Recurrence $recurrence): string

@@ -28,8 +28,10 @@ use Foresi\TaxesAndContributions\Contract\VatShare;
  * today to 31 December, counted the way the actual amounts are. An open
  * document splits into net and VAT in its own ratio, which the module that
  * issued or received it gives, and counts gross before the VAT-payer day and
- * net from it. A schedule or a plan counts as stated, with no VAT split, and
- * says so; so does a document whose records the caller may not read.
+ * net from it. A plan with its VAT stated counts at its net, the VAT being
+ * stated only on the days the firm is a payer. A schedule or a plan without
+ * it counts as stated, with no VAT split, and says so; so does a document
+ * whose records the caller may not read.
  */
 final readonly class YearEndForecast
 {
@@ -63,7 +65,11 @@ final readonly class YearEndForecast
         foreach ($read->amounts as $amount) {
             $gross = $amount->grossCzk;
             $net = $gross;
-            if (ForecastCertainty::Document !== $amount->certainty) {
+            if ($amount->vatCzk instanceof Money) {
+                $net = $gross->minus($amount->vatCzk);
+                $counted = $net;
+                $unverified = true;
+            } elseif (ForecastCertainty::Document !== $amount->certainty) {
                 $flags[] = ForecastView::FLAG_PLAN_NO_VAT_SPLIT;
                 $counted = $gross;
             } else {

@@ -19,6 +19,7 @@ use Foresi\Party\Contract\VatStretch;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PlannedVatAmount;
 use Foresi\Vat\Contract\PlannedVatSource;
 use Foresi\Vat\Contract\PossibleDuplicate;
 use Foresi\Vat\Contract\ScheduledVat;
@@ -27,6 +28,7 @@ use Foresi\Vat\Contract\VatDocumentSource;
 use Foresi\Vat\Contract\VatPayment;
 use Foresi\Vat\Contract\VatPaymentSource;
 use Foresi\Vat\Contract\VatPeriod;
+use Foresi\Vat\Contract\VatPlanSource;
 use Foresi\Vat\Contract\VatScheduleSource;
 use Foresi\Vat\Domain\VatSettings;
 use Psr\Log\LoggerInterface;
@@ -38,9 +40,9 @@ use Psr\Log\LoggerInterface;
  * payer from 12 November 2026 has the period 2026-11 from 2026-11-12 to
  * 2026-11-30, due as the whole November is. Nothing is computed before a
  * stated date, nor without the rules of the firm's country. The amounts
- * come from the documents and the schedules of the installed sources
- * (VatCalculation); a scheduled amount in another currency is converted at
- * today's rate.
+ * come from the documents, the schedules and the plans of the installed
+ * sources (VatCalculation); a scheduled amount in another currency is
+ * converted at today's rate, as a plan is by the forecast.
  */
 final readonly class VatPeriods
 {
@@ -64,6 +66,7 @@ final readonly class VatPeriods
      * @param iterable<VatScheduleSource> $schedules
      * @param iterable<VatPaymentSource>  $payments     Cash flow's, when it is installed
      * @param iterable<PlannedVatSource>  $plannedItems Cash flow's, when it is installed
+     * @param iterable<VatPlanSource>     $plans        Cash flow's, when it is installed
      */
     public function __construct(
         private VatAccess $access,
@@ -77,6 +80,7 @@ final readonly class VatPeriods
         private ?VatStore $store = null,
         private iterable $payments = [],
         private iterable $plannedItems = [],
+        private iterable $plans = [],
     ) {
     }
 
@@ -116,8 +120,9 @@ final readonly class VatPeriods
             if ($view->period->key === $key) {
                 $documents = array_values(array_filter($view->amounts->documents, static fn (DocumentVat $document): bool => !\in_array($document->source, $restricted, true)));
                 $schedules = array_values(array_filter($view->amounts->schedules, static fn (ScheduleAmount $schedule): bool => !\in_array($schedule->schedule->source, $restricted, true)));
+                $plans = array_values(array_filter($view->amounts->plans, static fn (PlannedVatAmount $plan): bool => !\in_array($plan->source, $restricted, true)));
 
-                return new PeriodDetail($list, $view, $documents, $restricted, $schedules);
+                return new PeriodDetail($list, $view, $documents, $restricted, $schedules, $plans);
             }
         }
 
@@ -195,7 +200,8 @@ final readonly class VatPeriods
         $wholes = array_column($all, 0);
         [$documents, $unavailable, $restricted] = $this->documents($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
         [$schedules, $unscheduled, $hidden] = $this->scheduled($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
-        $amounts = VatCalculation::compute(array_column($all, 1), $documents, $stretches, $schedules);
+        [$plans, $unplanned, $private] = $this->planned($wholes[0]->start, $wholes[\count($wholes) - 1]->end);
+        $amounts = VatCalculation::compute(array_column($all, 1), $documents, $stretches, $schedules, $plans);
 
         $entries = [];
         foreach ($this->store?->entries() ?? [] as $entry) {
@@ -222,7 +228,7 @@ final readonly class VatPeriods
             $views[] = new PeriodView($clipped, $dueOn, $refundOn, $amounts[$i], $entry?->returnAmount(), $state, $paid[$clipped->key], $mark);
         }
 
-        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), [...$unavailable, ...$unscheduled, ...$failed], PeriodList::KNOWN_GAPS, $unassigned, $duplicates), [...$restricted, ...$hidden]];
+        return [new PeriodList(null, $rules->country(), $range[0], $range[1], $views, $warnings, $rules->unverified(), [...$unavailable, ...$unscheduled, ...$unplanned, ...$failed], PeriodList::KNOWN_GAPS, $unassigned, $duplicates), [...$restricted, ...$hidden, ...$private]];
     }
 
     /**
@@ -376,6 +382,40 @@ final readonly class VatPeriods
         }
 
         return [$amounts, $unavailable, $restricted];
+    }
+
+    /**
+     * The plans of every installed plan source on the days from $from to
+     * $to, the sources that failed to read, and those whose plans the caller
+     * may not see.
+     *
+     * @return array{list<PlannedVatAmount>, list<string>, list<string>}
+     */
+    private function planned(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $plans = [];
+        $unavailable = [];
+        $restricted = [];
+        foreach ($this->plans as $source) {
+            try {
+                $details = $source->mayReadDetails();
+                $read = [];
+                foreach ($source->between($from, $to) as $plan) {
+                    $read[] = $plan;
+                }
+            } catch (\Throwable $failure) {
+                $this->logger->error('The VAT of the plans of {source} could not be read.', ['source' => $source->key(), 'exception' => $failure]);
+                $unavailable[] = $source->key();
+
+                continue;
+            }
+            if (!$details) {
+                $restricted[] = $source->key();
+            }
+            array_push($plans, ...$read);
+        }
+
+        return [$plans, $unavailable, $restricted];
     }
 
     /**

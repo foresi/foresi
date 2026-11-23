@@ -9,7 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Tests\CashFlow\Infrastructure;
 
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -83,6 +86,38 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertSame(['id' => $id, 'deleted' => true], $this->json()['data']);
         $this->get('/api/v1/cash-flow/planned-items/'.$id, secret: $this->writer);
         $this->assertProblem(404, 'not_found');
+    }
+
+    public function testThePlannedItemStatesItsVatOnBothSurfaces(): void
+    {
+        $this->flushed(function (): void {
+            $this->em()->persist(new VatStatusPeriod(VatStatus::NotRegistered, null, null));
+            $this->em()->persist(new VatStatusPeriod(VatStatus::Registered, VatPeriodLength::Month, new \DateTimeImmutable('2026-11-12')));
+        });
+
+        $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'excluded', 'vat_rate' => '21'] + self::RENT);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(['excluded', '21', ['amount_minor' => 1000000, 'currency' => 'CZK'], ['amount_minor' => 210000, 'currency' => 'CZK'], false], [$this->at('data', 'vat_mode'), $this->at('data', 'vat_rate'), $this->at('data', 'net'), $this->at('data', 'vat'), $this->at('data', 'vat_missing')]);
+        $id = $this->at('data', 'id');
+        self::assertIsString($id);
+
+        $this->send('PATCH', '/api/v1/cash-flow/planned-items/'.$id, ['vat_mode' => 'included']);
+        self::assertSame(['included', '21', 826446, 173554], [$this->at('data', 'vat_mode'), $this->at('data', 'vat_rate'), $this->at('data', 'net', 'amount_minor'), $this->at('data', 'vat', 'amount_minor')], '10,000 with 21 % in it holds 1,735.54 of VAT.');
+
+        $this->send('PATCH', '/api/v1/cash-flow/planned-items/'.$id, ['vat_mode' => 'none']);
+        self::assertSame(['none', null, null, null, true], [$this->at('data', 'vat_mode'), $this->at('data', 'vat_rate'), $this->at('data', 'net'), $this->at('data', 'vat'), $this->at('data', 'vat_missing')], 'A payer\'s rent without its VAT misses it.');
+
+        $this->get('/api/v1/cash-flow/planned-items/'.$id, secret: $this->writer);
+        self::assertTrue($this->at('data', 'vat_missing'));
+        $this->get('/api/v1/cash-flow/planned-items', [], $this->writer);
+        self::assertTrue($this->at('data', 0, 'vat_missing'));
+        $call = $this->tool('foresi_list_planned_items', []);
+        self::assertTrue($this->in($call, 'structuredContent', 'data', 'items', 0, 'vat_missing'));
+
+        $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'included'] + self::RENT);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'vat_rate', 'reason' => 'vat_rate_required']);
+        $this->send('POST', '/api/v1/cash-flow/planned-items', ['vat_mode' => 'gross', 'vat_rate' => '21'] + self::RENT);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'vat_mode', 'reason' => 'invalid_input']);
     }
 
     public function testARefusalNamesTheParameterAsTheClientSendsIt(): void

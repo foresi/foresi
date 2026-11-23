@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Integration\CashFlow;
 
-use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\CategorisedSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
@@ -39,7 +39,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (B7). The estimate reads the forecast without this source, so the forecast
  * never asks it again from inside it.
  */
-final readonly class EstimateFlows implements CashFlowSource
+final readonly class EstimateFlows implements CategorisedSource
 {
     public const string KEY = ForecastAmounts::OWN_SOURCE;
 
@@ -57,6 +57,11 @@ final readonly class EstimateFlows implements CashFlowSource
     public function key(): string
     {
         return self::KEY;
+    }
+
+    public function categories(): array
+    {
+        return [FlowCategory::Taxes, FlowCategory::Insurance];
     }
 
     public function mayReadDetails(): bool

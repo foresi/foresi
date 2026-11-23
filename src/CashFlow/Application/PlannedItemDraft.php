@@ -30,6 +30,8 @@ final readonly class PlannedItemDraft
         public ?string $matchAccount,
         public ?string $matchVariableSymbol,
         public ?string $matchTolerance,
+        public string $vatMode = 'none',
+        public ?string $vatRate = null,
     ) {
     }
 }

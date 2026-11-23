@@ -9,6 +9,7 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "brick/math": "^1.0",
         "doctrine/dbal": "^4.5",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",

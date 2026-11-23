@@ -33,6 +33,7 @@ use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\YearEndForecast;
 use Foresi\TaxesAndContributions\Contract\AmountKind;
+use Foresi\TaxesAndContributions\Contract\AmountsView;
 use Foresi\TaxesAndContributions\Contract\AmountTotals;
 use Foresi\TaxesAndContributions\Contract\EstimateView;
 use Foresi\TaxesAndContributions\Contract\ExpenseMethod;
@@ -106,6 +107,26 @@ final class ForecastAmountsTest extends AdvanceTestCase
         self::assertSame(100_000, $estimate->yearEnd->method(ExpenseMethod::Actual)->totals->income->minor());
         self::assertNull($estimate->yearEndReason);
         self::assertNotContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $estimate->warnings);
+    }
+
+    public function testTaxesYearEndCountsAPlannedItemAtNet(): void
+    {
+        $writes = self::getContainer()->get(PlannedItemWrites::class);
+        $writes->create(new CreatePlannedItemInput('in', 'Consulting not invoiced yet', 'revenue', '12100.00', '2026-12-15', vatMode: 'included', vatRate: '21'));
+        $writes->create(new CreatePlannedItemInput('out', 'Refund to a client', 'revenue', '1210.00', '2026-12-16', vatMode: 'included', vatRate: '21'));
+        $writes->create(new CreatePlannedItemInput('out', 'Office rent', 'rent', '1000.00', '2026-12-01', vatMode: 'excluded', vatRate: '21'));
+        $writes->create(new CreatePlannedItemInput('out', 'Software', 'software', '300.00', '2026-12-01'));
+
+        $estimate = $this->estimates([self::getContainer()->get(PlannedItemFlows::class)])->of(2026);
+
+        self::assertInstanceOf(ForecastView::class, $estimate->forecast);
+        self::assertSame([1_089_000, 900_000, 189_000, 900_000], $this->figures($estimate->forecast->totalOfCertainty(ForecastCertainty::Plan, AmountKind::Income)), 'The consulting counts its 10,000 net, the refund takes 1,000 net back.');
+        self::assertSame([151_000, 130_000, 21_000, 130_000], $this->figures($estimate->forecast->totalOf(AmountKind::Cost)), 'The rent counts its 1,000 net; the software states no VAT and counts as stated.');
+        self::assertSame([ForecastView::FLAG_PLAN_NO_VAT_SPLIT], $estimate->forecast->flags, 'Only the software is not split.');
+        self::assertSame([AmountsView::UNVERIFIED_VAT_CASH_BASIS], $estimate->forecast->unverified);
+        self::assertInstanceOf(RegimeResult::class, $estimate->yearEnd);
+        self::assertSame(900_000, $estimate->yearEnd->method(ExpenseMethod::Actual)->totals->income->minor());
+        self::assertSame(130_000, $estimate->yearEnd->method(ExpenseMethod::Actual)->totals->costs->minor());
     }
 
     /**

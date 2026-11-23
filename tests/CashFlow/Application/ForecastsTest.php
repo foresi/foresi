@@ -12,6 +12,7 @@ use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\Forecasts;
@@ -629,7 +630,7 @@ final class ForecastsTest extends CashFlowTestCase
 
     private function plannedSource(): PlannedItemFlows
     {
-        return new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class));
+        return new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class));
     }
 
     /**
