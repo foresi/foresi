@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Vat\Infrastructure;
 
 use Foresi\Identity\Application\ApiTokens;
+use Foresi\Identity\Application\GuestScopes;
 use Foresi\Identity\Application\OAuth\OAuthStore;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
@@ -253,7 +254,15 @@ final class VatApiTest extends ApiTestCase
         $this->get('/api/v1/vat/periods', secret: $secret);
         self::assertResponseStatusCodeSame(401);
 
-        // Over MCP the connection works, but no VAT tool is listed or answers.
+        // Over MCP a guest connects only when some installed module opens a resource to guests
+        // (Work does); without one the token is refused like over REST.
+        if ([] === self::getContainer()->get(GuestScopes::class)->offered()) {
+            $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
+            self::assertResponseStatusCodeSame(401);
+
+            return;
+        }
+        // The connection works, but no VAT tool is listed or answers.
         $this->session = null;
         $this->mcp($secret, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'test', 'version' => '1.0']]);
         $tools = array_column((array) $this->in($this->mcp($secret, 'tools/list'), 'result', 'tools'), 'name');

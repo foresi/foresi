@@ -8,17 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Identity\OAuth;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiToken;
-use Foresi\Identity\Domain\OAuth\Pkce;
-use Foresi\Identity\Domain\Role;
-use Foresi\Identity\Domain\User;
-use Foresi\Shared\Application\Sealer;
-use Foresi\Tests\Identity\Support\IdentityFixtures;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DomCrawler\Crawler;
+use Foresi\Tests\Identity\Support\OAuthTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
@@ -26,25 +17,8 @@ use Symfony\Component\DomCrawler\Field\ChoiceFormField;
  * registration, the consent screen behind the sign-in, the token endpoint,
  * the access token on /mcp, rotation of the refresh token, and each refusal.
  */
-final class OAuthFlowTest extends WebTestCase
+final class OAuthFlowTest extends OAuthTestCase
 {
-    private const string MCP = 'http://localhost/mcp';
-    private const string REDIRECT = 'http://127.0.0.1/callback';
-    private const string VERIFIER = 'a-verifier-that-is-long-enough-for-pkce-0123456789';
-
-    private KernelBrowser $client;
-    private EntityManagerInterface $em;
-
-    protected function setUp(): void
-    {
-        $this->client = self::createClient();
-        $this->client->disableReboot();
-        $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $fixtures = new IdentityFixtures($this->em);
-        $fixtures->rebuildSchema();
-        $fixtures->join($fixtures->user());
-    }
-
     public function testTheMcpServerPointsToItsMetadata(): void
     {
         $this->client->request('POST', '/mcp');
@@ -142,41 +116,6 @@ final class OAuthFlowTest extends WebTestCase
         $this->assertTokenError('invalid_grant', ['grant_type' => 'refresh_token', 'refresh_token' => $tokens['refresh_token'], 'client_id' => $clientId]);
         self::assertSame(401, $this->mcp($renewed['access_token']));
         $this->assertTokenError('invalid_grant', ['grant_type' => 'refresh_token', 'refresh_token' => $renewed['refresh_token'], 'client_id' => $clientId]);
-    }
-
-    public function testAGuestConnectsTheirAgentWithOnlyWhatAGuestMayHold(): void
-    {
-        $fixtures = new IdentityFixtures($this->em);
-        $fixtures->join($fixtures->user('guest@example.com'), Role::Guest);
-        $clientId = $this->register();
-        $this->signIn(email: 'guest@example.com');
-
-        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read write contacts:write']));
-        self::assertResponseIsSuccessful();
-        $offered = $crawler->filter('input[name="scopes[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
-        self::assertSame(['projects:read', 'tasks:read', 'tasks:write'], $offered);
-        // What a guest reads stays ticked; writing tasks can be unticked.
-        self::assertNotNull($crawler->filter('#scope-tasks-read')->attr('disabled'));
-        self::assertNotNull($crawler->filter('#scope-tasks-write')->attr('checked'));
-
-        $this->client->submit($crawler->filter('button[value="allow"]')->form());
-        $answer = $this->answer();
-        $tokens = $this->token(['grant_type' => 'authorization_code', 'code' => $answer['code'] ?? '', 'redirect_uri' => self::REDIRECT, 'client_id' => $clientId, 'code_verifier' => self::VERIFIER, 'resource' => self::MCP]);
-        self::assertResponseIsSuccessful();
-        self::assertSame('projects:read tasks:write', $tokens['scope']);
-        self::assertSame(200, $this->mcp($tokens['access_token']));
-
-        // A refresh cannot widen what the guest gave.
-        $this->assertTokenError('invalid_scope', ['grant_type' => 'refresh_token', 'refresh_token' => $tokens['refresh_token'], 'client_id' => $clientId, 'scope' => 'contacts:read']);
-
-        // The guest sees and disconnects the agent on their own page.
-        $crawler = $this->client->request('GET', '/connected-apps');
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-api-connections="mine"]', 'Example Agent');
-        self::assertSelectorTextContains('[data-mcp-server]', self::MCP);
-        $this->client->submit($crawler->filter('[data-api-connections="mine"] form')->form());
-        self::assertResponseRedirects('/connected-apps');
-        self::assertSame(401, $this->mcp($tokens['access_token']));
     }
 
     public function testACodeWorksOnceAndOnlyWithItsVerifierRedirectAndClient(): void
@@ -295,145 +234,5 @@ final class OAuthFlowTest extends WebTestCase
         self::assertStringStartsWith('foresi_client_', $registered['client_id']);
         self::assertSame('none', $registered['token_endpoint_auth_method']);
         self::assertArrayNotHasKey('client_secret', $registered);
-    }
-
-    private function register(): string
-    {
-        $this->client->request('POST', '/oauth/register', server: ['CONTENT_TYPE' => 'application/json'], content: (string) json_encode(['client_name' => 'Example Agent', 'redirect_uris' => [self::REDIRECT]]));
-        self::assertResponseStatusCodeSame(201);
-        $clientId = $this->decoded()['client_id'];
-        self::assertIsString($clientId);
-
-        return $clientId;
-    }
-
-    private function approve(string $clientId): string
-    {
-        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId));
-        $this->client->submit($crawler->filter('button[value="allow"]')->form());
-
-        return $this->answer()['code'] ?? '';
-    }
-
-    private function location(): string
-    {
-        return (string) $this->client->getResponse()->headers->get('Location');
-    }
-
-    /**
-     * @return array<string, string> the query of the redirect back to the client
-     */
-    private function answer(): array
-    {
-        parse_str((string) parse_url($this->location(), \PHP_URL_QUERY), $query);
-        $answer = [];
-        foreach ($query as $name => $value) {
-            if (\is_string($name) && \is_string($value)) {
-                $answer[$name] = $value;
-            }
-        }
-
-        return $answer;
-    }
-
-    /**
-     * @param array<string, string> $change
-     */
-    private function query(string $clientId, array $change = []): string
-    {
-        return http_build_query($change + [
-            'response_type' => 'code',
-            'client_id' => $clientId,
-            'redirect_uri' => self::REDIRECT,
-            'state' => 'xyz',
-            'code_challenge' => Pkce::challenge(self::VERIFIER),
-            'code_challenge_method' => 'S256',
-            'resource' => self::MCP,
-        ], '', '&', \PHP_QUERY_RFC3986);
-    }
-
-    /**
-     * @param array<string, string> $parameters
-     *
-     * @return array<string, string> the answer, numbers as text
-     */
-    private function token(array $parameters): array
-    {
-        $this->client->request('POST', '/oauth/token', $parameters);
-        $answer = [];
-        foreach ($this->decoded() as $name => $value) {
-            if (\is_string($value) || \is_int($value)) {
-                $answer[$name] = (string) $value;
-            }
-        }
-
-        return $answer;
-    }
-
-    /**
-     * @param array<string, string> $parameters
-     */
-    private function assertTokenError(string $error, array $parameters, int $status = 400): void
-    {
-        $answer = $this->token($parameters);
-        self::assertResponseStatusCodeSame($status);
-        self::assertSame($error, $answer['error'] ?? null, $answer['error_description'] ?? '');
-    }
-
-    private function mcp(string $accessToken): int
-    {
-        $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$accessToken, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"ping"}');
-
-        return \Symfony\Component\HttpFoundation\Response::HTTP_UNAUTHORIZED === $this->client->getResponse()->getStatusCode() ? 401 : 200;
-    }
-
-    private function connection(): ApiToken
-    {
-        $this->em->clear();
-        $tokens = $this->em->getRepository(ApiToken::class)->findAll();
-        self::assertCount(1, $tokens);
-        self::assertNotNull($tokens[0]->oauthClientId());
-
-        return $tokens[0];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function json(string $method, string $path): array
-    {
-        $this->client->request($method, $path);
-        self::assertResponseIsSuccessful();
-
-        return $this->decoded();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function decoded(): array
-    {
-        $decoded = json_decode((string) $this->client->getResponse()->getContent(), true, 16, \JSON_THROW_ON_ERROR);
-        self::assertIsArray($decoded);
-        $members = [];
-        foreach ($decoded as $name => $value) {
-            if (\is_string($name)) {
-                $members[$name] = $value;
-            }
-        }
-
-        return $members;
-    }
-
-    private function signIn(bool $twoFactor = true, string $email = IdentityFixtures::EMAIL): void
-    {
-        $crawler = $this->client->request('GET', '/login');
-        $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => $email, '_password' => IdentityFixtures::PASSWORD]));
-        if ($twoFactor) {
-            $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
-            self::assertInstanceOf(User::class, $user);
-            $user->enrolTwoFactor(self::getContainer()->get(Sealer::class)->seal('JBSWY3DPEHPK3PXP'), ['recovery-hash']);
-            self::getContainer()->get(UserRepository::class)->save($user);
-        }
     }
 }
