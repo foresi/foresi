@@ -54,6 +54,31 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_product` | **Write.** Adds a product: name, unit, optional `unit_price`, and `billing_kind` `one_off` or `recurring` with `recurrence_unit`, `interval` and optional `cycles`. |
 | `foresi_update_product` | **Write.** Changes the fields given of a product (`product_id`); `null` clears an optional one. |
 | `foresi_archive_product` | **Write.** Archives a product (`product_id`): it is no longer offered. |
+| `foresi_search_deals` | The deals not in the trash whose title holds `query`, all of them without it, the newest first; narrow them with `status`, `stage_id`, `owner_user_id` and `client_party_id` (the deals of a client). Staff only. |
+| `foresi_get_deal` | One deal (`id`) with its client, owner, stage, status, contacts, lines, value (one-off and monthly per currency, never converted, `approximate` for weekly or daily lines) and links. Staff only. |
+| `foresi_list_deal_stages` | The stages and the lost reasons, each in its order; archived ones with `include_archived`. Staff only. |
+| `foresi_create_deal` | **Write.** Opens a deal: `title`, `client_party_id`, optional `stage_id`, `owner_user_id`, `description`, `contact_person_ids`. Staff only. |
+| `foresi_update_deal` | **Write.** Changes the fields given of a deal (`deal_id`): `title`, `description`, `owner_user_id`, `contact_person_ids`. Staff only. |
+| `foresi_change_deal_stage` | **Write.** Moves an open deal (`deal_id`) to `stage_id`. Staff only. |
+| `foresi_win_deal` | **Write.** Marks an open deal (`deal_id`) won. Staff only. |
+| `foresi_lose_deal` | **Write.** Marks an open deal (`deal_id`) lost, with an optional `lost_reason_id` and `lost_note`. Staff only. |
+| `foresi_reopen_deal` | **Write.** Opens a won or lost deal (`deal_id`) again. Staff only. |
+| `foresi_trash_deal` | **Write, destructive.** Puts a deal (`deal_id`) in the trash. Staff only. |
+| `foresi_restore_deal` | **Write.** Brings a deal (`deal_id`) back from the trash. Staff only. |
+| `foresi_create_follow_up_deal` | **Write.** Opens a deal for the same client and contact persons that follows from `deal_id`: `title`, optional `line_ids` to copy, `stage_id`, `owner_user_id`. Staff only. |
+| `foresi_add_deal_link` | **Write.** Links a deal (`deal_id`) as following from another deal (`from_deal_id`) of the same client. Staff only. |
+| `foresi_remove_deal_link` | **Write.** Removes a link (`link_id`) of a deal (`deal_id`); both deals stay. Staff only. |
+| `foresi_add_deal_line` | **Write.** Adds a line to a deal (`deal_id`): a `product_id` and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency` and billing. Staff only. |
+| `foresi_update_deal_line` | **Write.** Changes the fields given of a line (`deal_id`, `line_id`); `unit_price` `null` clears the price. Staff only. |
+| `foresi_remove_deal_line` | **Write, destructive.** Removes a line (`deal_id`, `line_id`) from a deal. Staff only. |
+| `foresi_reorder_deal_lines` | **Write.** Puts the lines of a deal (`deal_id`) in the order of `line_ids`, naming every line once. Staff only. |
+| `foresi_create_deal_stage` | **Write.** Adds a stage at the end of the order: `name`, optional `key`. Staff only. |
+| `foresi_update_deal_stage` | **Write.** Renames a stage (`stage_id`); `null` brings back the name of a seeded one. Staff only. |
+| `foresi_reorder_deal_stages` | **Write.** Puts the stages in the order of `stage_ids`, naming every stage not archived once. Staff only. |
+| `foresi_archive_deal_stage` | **Write, destructive.** Archives a stage (`stage_id`); refused while open deals sit in it. Staff only. |
+| `foresi_create_lost_reason` | **Write.** Adds a lost reason at the end of the list: `name`, optional `key`. Staff only. |
+| `foresi_update_lost_reason` | **Write.** Renames a lost reason (`reason_id`). Staff only. |
+| `foresi_archive_lost_reason` | **Write, destructive.** Archives a lost reason (`reason_id`). Staff only. |
 | `foresi_restore_product` | **Write.** Restores an archived product (`product_id`). |
 | `foresi_list_planned_items` | The planned items of the firm, oldest first, each with its `vat_mode`, `vat_rate`, `net`, `vat` and `vat_missing`. |
 | `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring, with its VAT included or on top (`vat_mode`, `vat_rate`). |
@@ -160,6 +185,8 @@ The contact tools take the fields of the [REST contact writes](api.md#contact-wr
 The cash-flow tools take the fields and parameters of the [REST cash flow](api.md#cash-flow), with the id of a planned item as `planned_item_id`, and answer what the REST API answers. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and `not_recurring`. See [cash-flow.md](cash-flow.md) for what the forecast counts.
 
 The catalog tools take the fields of the [REST catalog](api.md#catalog), with the id of a product as `product_id`, and answer what the REST API answers. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden` and `not_found`. See [catalog.md](catalog.md).
+
+The deal tools take the fields of the [REST sales](api.md#sales), with the ids as `deal_id`, `line_id`, `link_id`, `stage_id` and `reason_id`, and answer what the REST API answers; the reads need `sales:read`, the writes `sales:write`. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and the codes of the rules, such as `deal_not_open`, `link_other_client` and `stage_has_open_deals`. See [sales.md](sales.md).
 
 The tax tools take the fields of the [REST taxes and contributions](api.md#taxes-and-contributions), with the id of a status as `status_id`, and answer what the REST API answers. Only the owner of the organisation may call them; anyone else is refused with `owner_only`. They also refuse with `invalid_argument` (it names the argument and the `reason`), `not_found` and `status_day_taken`. See [taxes-and-contributions.md](taxes-and-contributions.md).
 

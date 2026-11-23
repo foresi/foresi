@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -139,6 +139,10 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
+| `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
+| `/api/v1/sales/deals/{dealId}` | `sales:read` | One deal with its lines, value, links and contact persons. |
+| `/api/v1/sales/stages` | `sales:read` | The stages of a deal, in order. |
+| `/api/v1/sales/lost-reasons` | `sales:read` | The reasons a deal is lost for, in order. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates and amounts, an estimate; see [VAT](#vat). |
@@ -546,6 +550,54 @@ Fields of a product:
 | `description` | Up to 2,000 characters. |
 
 A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence` or `cycles_invalid`.
+
+## Sales
+
+The deals of the firm with their stages, lines and links. What each field means is in [sales.md](sales.md). The reads need `sales:read`, the writes `sales:write`; only the owners and members of the organisation may use them, never a guest. Bodies are JSON with snake case fields.
+
+Reads:
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/sales/deals` | The deals not in the trash, newest first, each with its `status`, `client`, `owner_user_id`, `stage`, `won_at`, `lost_at` and `lost_reason`. Filters: `status` (`open`, `won`, `lost`), `stage_id`, `owner_user_id`, `client_party_id` (the deals of a client) and `q` (a text in the title). |
+| `GET /api/v1/sales/deals/{dealId}` | One deal, also one in the trash, with its `contacts`, `lines`, `value` and `links`. `value` holds `one_off` and `monthly`, one amount per currency and never converted, and `approximate: true` when a weekly or daily line was put on a month's terms. A `follows_from` link is outgoing when this deal follows from the other. |
+| `GET /api/v1/sales/stages` | The stages in their order; archived ones with `include_archived=true`. |
+| `GET /api/v1/sales/lost-reasons` | The lost reasons in their order; archived ones with `include_archived=true`. |
+
+Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dealId}` shows it unless it says otherwise:
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/sales/deals` | `201` with the new deal: `title`, `client_party_id`, and optionally `stage_id`, `owner_user_id`, `description` and `contact_person_ids`. The first stage and the caller are the defaults. |
+| `PATCH /api/v1/sales/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `contact_person_ids` (the whole list; an empty list removes them all). |
+| `POST /api/v1/sales/deals/{dealId}/stage` | An open deal moved to `stage_id`. A won or lost deal is refused with `deal_not_open`. |
+| `POST /api/v1/sales/deals/{dealId}/win` | The open deal won. |
+| `POST /api/v1/sales/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `lost_note`. |
+| `POST /api/v1/sales/deals/{dealId}/reopen` | The won or lost deal open again. |
+| `POST /api/v1/sales/deals/{dealId}/trash` | The deal in the trash. Trashing it again changes nothing. |
+| `POST /api/v1/sales/deals/{dealId}/restore` | The deal back from the trash. |
+| `POST /api/v1/sales/deals/{dealId}/follow-ups` | `201` with a new deal for the same client and contact persons that follows from this one: `title`, optionally `line_ids` to copy as they are, `stage_id` and `owner_user_id`. |
+| `POST /api/v1/sales/deals/{dealId}/links` | `201` with a link: `deal_id` of the deal it follows from and `type` (`follows_from`). |
+| `DELETE /api/v1/sales/deals/{dealId}/links/{linkId}` | The link removed; both deals stay. |
+| `POST /api/v1/sales/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). |
+| `PATCH /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` clears its period. The product it was copied from does not change. |
+| `DELETE /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line removed; the lines after it move up. |
+| `POST /api/v1/sales/deals/{dealId}/lines/reorder` | The lines in the order given: `line_ids`, naming every line once. |
+| `POST /api/v1/sales/stages` | `201` with a stage at the end of the order: `name` and an optional `key`, a lowercase identifier that never changes. |
+| `PATCH /api/v1/sales/stages/{stageId}` | The stage renamed; a stage Foresi seeded may be given `null` to show under its own name again. |
+| `POST /api/v1/sales/stages/reorder` | The stages in the order given: `stage_ids`, naming every stage that is not archived once. |
+| `POST /api/v1/sales/stages/{stageId}/archive` | The archived stage, or `409 stage_has_open_deals` while open deals sit in it. |
+| `POST /api/v1/sales/lost-reasons` | `201` with a lost reason at the end of the list: `name` and an optional `key`. |
+| `PATCH /api/v1/sales/lost-reasons/{reasonId}` | The lost reason renamed, as a stage. |
+| `POST /api/v1/sales/lost-reasons/{reasonId}/archive` | The archived lost reason; the deals lost for it keep it. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"title": "Roof audit for the warehouse", "client_party_id": "'$CLIENT_ID'"}' \
+  "https://app.example.com/api/v1/sales/deals"
+```
+
+A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`; a refused state change is a `409` with a code such as `deal_not_open`, `deal_not_closed`, `link_self`, `link_other_client`, `link_duplicate`, `client_archived`, `contact_person_not_of_client` or `stage_has_open_deals`.
 
 ## Taxes and contributions
 
