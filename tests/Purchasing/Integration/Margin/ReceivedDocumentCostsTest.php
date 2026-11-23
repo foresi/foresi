@@ -1,0 +1,142 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Purchasing\Integration\Margin;
+
+use Foresi\Margin\Application\CostShareCalculation;
+use Foresi\Margin\Application\CostSources;
+use Foresi\Margin\Application\KnownGaps;
+use Foresi\Margin\Contract\CostDocument;
+use Foresi\Margin\Domain\CostShare;
+use Foresi\Margin\Domain\DocumentAllocation;
+use Foresi\Margin\Domain\Recipient;
+use Foresi\Purchasing\Application\RestoreReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
+use Foresi\Purchasing\Integration\Margin\ReceivedDocumentCosts;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * The costs Purchasing gives Margin, and the shares Margin keeps of them as
+ * received documents are recorded, edited, trashed and restored.
+ */
+final class ReceivedDocumentCostsTest extends PurchasingTestCase
+{
+    public function testARecordedDocumentGivesItsLinesItsMonthAndItsLabel(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-30'))->document->id();
+        $this->em->clear();
+
+        $document = $this->costs()->document($id);
+
+        self::assertInstanceOf(CostDocument::class, $document);
+        self::assertSame([$id, $this->supplier->id(), '2026-11-30', false, '/purchasing/'.$id], [$document->id, $document->supplierId, $document->monthBasis->format('Y-m-d'), $document->trashed, $document->url]);
+        self::assertSame($this->em->find(\Foresi\Purchasing\Domain\ReceivedDocument::class, $id)?->evidenceNumber().' Supplier Example s.r.o.', $document->label);
+        self::assertSame(['rate:21', 100_000], [$document->lines[0]->key, $document->lines[0]->baseCzk?->minor()]);
+    }
+
+    public function testTheMonthFallsBackToTheIssueDateWithoutATaxPoint(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-10-28', taxPoint: null))->document->id();
+
+        self::assertSame('2026-10-28', $this->costs()->document($id)?->monthBasis->format('Y-m-d'));
+    }
+
+    public function testADraftAndAnUnknownIdAreNoCostDocuments(): void
+    {
+        self::assertNull($this->costs()->document($this->draft()));
+        self::assertNull($this->costs()->document(Uuid::v7()->toRfc4122()));
+        self::assertNull($this->costs()->document('not-an-id'));
+    }
+
+    public function testRecordingTrashingAndRestoringKeepTheSharesInStep(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
+        self::assertSame(['rate:21 - 100000 unassigned 2026-11-01'], $this->shares());
+
+        $this->em->persist(new DocumentAllocation(Uuid::v7()->toRfc4122(), $id, Recipient::own(), new \DateTimeImmutable(), 'user'));
+        $this->em->flush();
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Duplicate');
+        self::assertSame([], $this->shares());
+
+        self::getContainer()->get(RestoreReceivedDocument::class)->restore($id);
+        self::assertSame(['rate:21 own 100000 document 2026-11-01'], $this->shares());
+    }
+
+    public function testEditingTheLinesCountsTheSharesAgainUnderTheKeptIds(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
+        $this->editing()->edit($id, $this->input(issue: '2026-11-24', taxPoint: '2026-11-24', lines: [
+            new ReceivedDocumentLineInput('Hosting', Money::ofMinor(70_000, Currency::CZK), '21'),
+            new ReceivedDocumentLineInput('Domain', Money::ofMinor(30_000, Currency::CZK), '21'),
+        ]));
+
+        $shares = $this->shares();
+
+        $rows = array_map(static fn (string $row): string => explode(' ', $row, 2)[1], $shares);
+        sort($rows);
+        self::assertSame(['- 30000 unassigned 2026-11-01', '- 70000 unassigned 2026-11-01'], $rows);
+    }
+
+    public function testAForeignDocumentWithoutARateIsAKnownGap(): void
+    {
+        $id = $this->recording()->create($this->input(kind: ReceivedDocumentKind::ForeignInvoice, treatment: PurchaseTaxTreatment::EuService, currency: Currency::EUR, base: 10_000, rate: ExchangeRate::of('25')))->document->id();
+        self::assertSame(['rate:21 - 250000 unassigned 2026-10-01'], $this->shares());
+
+        // The rate is gone, as in a document recorded before it was published.
+        $connection = $this->em->getConnection();
+        $stored = $connection->fetchOne('SELECT vat_recap FROM received_document WHERE id = ?', [$id]);
+        self::assertIsString($stored);
+        $recap = json_decode($stored, true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($recap);
+        $recap = array_map(static fn (mixed $row): array => ['base_czk' => null] + (array) $row, $recap);
+        $connection->executeStatement('UPDATE received_document SET exchange_rate = NULL, vat_recap = ? WHERE id = ?', [json_encode($recap, \JSON_THROW_ON_ERROR), $id]);
+        $this->em->clear();
+        self::getContainer()->get(CostShareCalculation::class)->recalculate($id);
+
+        self::assertSame([], $this->shares());
+        self::assertSame([$id], new KnownGaps(new CostSources([$this->costs()]))->documentsMissingExchangeRate([$id]));
+    }
+
+    public function testTheDocumentsOfASupplierFromAMonthOn(): void
+    {
+        $october = $this->recording()->create($this->input(supplierNumber: 'OCT', issue: '2026-10-28', taxPoint: '2026-10-28'))->document->id();
+        $november = $this->recording()->create($this->input(supplierNumber: 'NOV', issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
+        $trashed = $this->recording()->create($this->input(supplierNumber: 'TRASH', issue: '2026-11-25', taxPoint: '2026-11-25'))->document->id();
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($trashed, 'Duplicate');
+
+        $ids = iterator_to_array($this->costs()->documentsOf($this->supplier->id(), new \DateTimeImmutable('2026-11-01')), false);
+
+        self::assertSame([$november], $ids);
+        self::assertContains($october, iterator_to_array($this->costs()->documentsOf($this->supplier->id(), new \DateTimeImmutable('2026-10-01')), false));
+    }
+
+    private function costs(): ReceivedDocumentCosts
+    {
+        return self::getContainer()->get(ReceivedDocumentCosts::class);
+    }
+
+    /**
+     * @return list<string> "line recipient amount source month", sorted
+     */
+    private function shares(): array
+    {
+        $this->em->flush();
+        $this->em->clear();
+        $rows = array_map(static fn (CostShare $share): string => \sprintf('%s %s %d %s %s', $share->lineKey(), $share->recipient()?->toString() ?? '-', $share->amount()->minor(), $share->source()->value, $share->month()->format('Y-m-d')), $this->em->getRepository(CostShare::class)->findAll());
+        sort($rows);
+
+        return $rows;
+    }
+}
