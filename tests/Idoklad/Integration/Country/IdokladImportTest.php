@@ -1,0 +1,543 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Idoklad\Integration\Country;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Idoklad\Application\Import\ContactsStage;
+use Foresi\Idoklad\Application\Import\IdokladImportRuns;
+use Foresi\Idoklad\Application\Import\RunIdokladImport;
+use Foresi\Idoklad\Application\Import\SeriesStage;
+use Foresi\Idoklad\Domain\IdokladImportRun;
+use Foresi\Idoklad\Domain\IdokladLink;
+use Foresi\Idoklad\Domain\IdokladPull;
+use Foresi\Idoklad\Domain\IdokladRecord;
+use Foresi\Idoklad\Domain\IdokladResource;
+use Foresi\Idoklad\Domain\ImportMode;
+use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Domain\Series;
+use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\PartyDetails;
+use Foresi\Party\Application\PartyInput;
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\AddressType;
+use Foresi\Party\Domain\LegalEntity;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Party\Domain\VatId;
+use Foresi\Party\Domain\VatStatus;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+final class IdokladImportTest extends KernelTestCase
+{
+    private const int CZECHIA = 2;
+    private const int SLOVAKIA = 1;
+
+    private EntityManagerInterface $em;
+
+    protected function setUp(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+        $this->em = $container->get('doctrine.orm.entity_manager');
+        $tool = new SchemaTool($this->em);
+        $metadata = $this->em->getMetadataFactory()->getAllMetadata();
+        $tool->dropSchema($metadata);
+        $tool->createSchema($metadata);
+
+        $this->em->persist(new LegalEntity('Example s.r.o.', new RegistrationNumber('CZ', '12345679'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
+        $this->record(IdokladResource::Countries, self::CZECHIA, ['Id' => self::CZECHIA, 'Code' => 'CZE', 'Name' => 'Česká republika', 'NameEnglish' => 'Czech Republic']);
+        $this->record(IdokladResource::Countries, self::SLOVAKIA, ['Id' => self::SLOVAKIA, 'Code' => 'SVK', 'Name' => 'Slovensko', 'NameEnglish' => 'Slovakia']);
+        $pull = new IdokladPull(new \DateTimeImmutable('2026-11-06 09:00:00'));
+        $pull->finish(new \DateTimeImmutable('2026-11-06 09:05:00'), 3);
+        $this->em->persist($pull);
+        $this->em->flush();
+    }
+
+    public function testACompanyIsCreatedWithEverythingItBrings(): void
+    {
+        $this->contact(501, [
+            'CompanyName' => 'Example Trading s.r.o.',
+            'IdentificationNumber' => '23456787',
+            'VatIdentificationNumber' => 'CZ23456787',
+            'Email' => 'billing@example.com',
+            'Phone' => '+420 123 456 789',
+            'Www' => 'https://example.com',
+            'Title' => 'Ing.',
+            'Firstname' => 'Jana',
+            'Surname' => 'Example',
+            'Iban' => 'CZ65 0800 0000 1920 0014 5399',
+            'DefaultInvoiceMaturity' => 21,
+            'SendReminders' => false,
+            'DeliveryAddresses' => [
+                ['Id' => 1, 'IsDefault' => false, 'Street' => 'Other Street 2', 'City' => 'Other City', 'PostalCode' => '200 00', 'CountryId' => self::CZECHIA],
+                ['Id' => 2, 'IsDefault' => true, 'Street' => 'Store Street 3', 'City' => 'Bratislava', 'PostalCode' => '811 01', 'CountryId' => self::SLOVAKIA],
+            ],
+        ]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        self::assertNull($run->error());
+        $entry = $this->entry($run, ContactsStage::KEY, 501);
+        self::assertSame('created', $entry['outcome']);
+        $party = $this->party($entry['target_id']);
+        self::assertSame('Example Trading s.r.o.', $party->displayName());
+        self::assertSame(PartyKind::Company, $party->kind());
+        self::assertSame('23456787', $party->registrationNumber()?->value);
+        self::assertSame('CZ23456787', $party->vatId()?->toString());
+        self::assertSame('+420 123 456 789', $party->phone());
+        self::assertSame('https://example.com', $party->website());
+        self::assertSame([PartyRole::Customer], $party->roles());
+        self::assertSame(21, $party->invoicingDefaults()->dueDays);
+        $details = self::getContainer()->get(PartyDetails::class);
+        self::assertSame('billing@example.com', $details->generalEmail($party)?->address());
+        self::assertSame('Example Street 9', $details->billingAddress($party)?->address()->street);
+        $delivery = array_values(array_filter($details->addresses($party), static fn ($address): bool => AddressType::Delivery === $address->type()));
+        self::assertSame('Store Street 3', $delivery[0]->address()->street, 'The default delivery address, not the first one.');
+        self::assertSame('SK', $delivery[0]->address()->countryCode);
+        self::assertSame('CZ6508000000192000145399', $details->bankAccounts($party)[0]->iban()->toString());
+        $links = $details->contactLinks($party);
+        self::assertCount(1, $links);
+        self::assertSame('Ing. Jana Example', $links[0]->person()->displayName());
+
+        self::assertFalse($party->invoicingDefaults()->sendReminders);
+
+        $link = $this->links()[0];
+        self::assertSame(IdokladResource::Contacts, $link->resource());
+        self::assertSame(501, $link->externalId());
+        self::assertSame($party->id(), $link->targetId());
+        self::assertSame($run->id(), $link->runId());
+        self::assertEquals($run->startedAt(), $link->createdAt());
+    }
+
+    public function testAPersonIsCreatedFromTheNameAndKeepsTheReminders(): void
+    {
+        $this->contact(502, ['Firstname' => 'Petr', 'Surname' => 'Example', 'SendReminders' => true]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $party = $this->party($this->entry($run, ContactsStage::KEY, 502)['target_id']);
+        self::assertSame('Petr Example', $party->displayName());
+        self::assertSame(PartyKind::Person, $party->kind());
+        self::assertTrue($party->invoicingDefaults()->sendReminders);
+    }
+
+    public function testAContactIsMatchedByRegistrationNumberAndGetsOnlyWhatItLacks(): void
+    {
+        $existing = $this->existing('Example Old Name a.s.', '34567895', phone: '+420 999 999 999');
+        $this->contact(503, [
+            'CompanyName' => 'Example New Name a.s.',
+            'IdentificationNumber' => '34567895',
+            'Email' => 'new@example.com',
+            'Phone' => '+420 111 111 111',
+            'Www' => 'https://example.com',
+            'Street' => 'New Street 1',
+            'Iban' => 'CZ65 0800 0000 1920 0014 5399',
+            'Firstname' => 'Jana',
+            'Surname' => 'Example',
+            'Mobile' => '+420 777 777 777',
+            'Note' => 'Imported note',
+            'DeliveryAddresses' => [['Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]],
+        ]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $entry = $this->entry($run, ContactsStage::KEY, 503);
+        self::assertSame('matched', $entry['outcome']);
+        self::assertSame($existing, $entry['target_id']);
+        self::assertSame(['filled' => 'mobile,website,private_note,delivery_street,delivery_city,delivery_postal_code,delivery_country'], $entry['values'], 'The bank account and the contact person it has are enough.');
+        self::assertSame([[IdokladResource::Contacts, 503, $existing]], array_map(static fn (IdokladLink $link): array => [$link->resource(), $link->externalId(), $link->targetId()], $this->links()));
+        $party = $this->party($existing);
+        self::assertSame('Example Old Name a.s.', $party->displayName());
+        self::assertSame('+420 999 999 999', $party->phone());
+        self::assertSame('https://example.com', $party->website());
+        $details = self::getContainer()->get(PartyDetails::class);
+        self::assertSame('old@example.com', $details->generalEmail($party)?->address());
+        self::assertSame('Old Street 1', $details->billingAddress($party)?->address()->street);
+        self::assertCount(1, $details->bankAccounts($party));
+        self::assertCount(1, $details->contactLinks($party));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM party WHERE kind = \'company\''));
+    }
+
+    public function testAContactIsMatchedByItsNormalisedNameAndGetsItsRegistrationNumber(): void
+    {
+        $existing = $this->existing('Example  Trading s.r.o.', null);
+        $this->contact(505, ['CompanyName' => ' example trading S.R.O. ', 'IdentificationNumber' => '23456787', 'VatIdentificationNumber' => 'CZ23456787', 'Iban' => 'CZ65 0800 0000 1920 0014 5399', 'Firstname' => 'Jana', 'Surname' => 'Example']);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $entry = $this->entry($run, ContactsStage::KEY, 505);
+        self::assertSame('matched', $entry['outcome']);
+        self::assertSame($existing, $entry['target_id']);
+        $party = $this->party($existing);
+        self::assertSame('23456787', $party->registrationNumber()?->value);
+        self::assertSame('CZ', $party->registrationNumber()->countryCode);
+        self::assertSame('CZ45678901', $party->vatId()?->toString());
+        self::assertSame('Example  Trading s.r.o.', $party->displayName());
+        self::assertSame(['filled' => 'registration_number,contact_first_name,contact_last_name,bank_account_iban,registration_country'], $entry['values']);
+        $details = self::getContainer()->get(PartyDetails::class);
+        self::assertSame('CZ6508000000192000145399', $details->bankAccounts($party)[0]->iban()->toString());
+        self::assertSame('Jana Example', $details->contactLinks($party)[0]->person()->displayName());
+    }
+
+    public function testTwoContactsOfTheSameNameAreRefusedAsAmbiguous(): void
+    {
+        $this->existing('Example Twin s.r.o.', null);
+        $this->existing('Example Twin s.r.o.', null);
+        $this->contact(507, ['CompanyName' => 'Example Twin s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
+        $this->contact(520, ['CompanyName' => 'Example After Twin s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        self::assertSame('created', $this->entry($run, ContactsStage::KEY, 520)['outcome'], 'The contacts after an ambiguous one are imported.');
+
+        $entry = $this->entry($run, ContactsStage::KEY, 507);
+        self::assertSame('refused', $entry['outcome']);
+        self::assertSame([ContactsStage::AMBIGUOUS], $entry['reasons']);
+        self::assertSame(['display_name' => 'Example Twin s.r.o.'], $entry['values']);
+        self::assertCount(1, $this->links());
+    }
+
+    public function testAContactWithoutAKnownCountryOrWithBadValuesIsRefused(): void
+    {
+        $this->contact(510, ['CompanyName' => 'Example Abroad Ltd', 'VatIdentificationNumber' => 'CZ23456787', 'CountryId' => 99]);
+        $this->contact(511, ['CompanyName' => 'Example Store s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'DeliveryAddresses' => [['Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00']]]);
+        $this->contact(512, ['CompanyName' => 'Example Mail s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'Email' => 'not an e-mail']);
+        $this->contact(513, ['CompanyName' => 'Example Number s.r.o.', 'IdentificationNumber' => '12345678']);
+        $this->contact(514, ['CompanyName' => '', 'Street' => '']);
+        $this->contact(517, ['CompanyName' => 'Example Nowhere s.r.o.', 'CountryId' => 99, 'Email' => 'not an e-mail', 'DeliveryAddresses' => [['Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => 98]]]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $refused = fn (int $id): array => [$this->entry($run, ContactsStage::KEY, $id)['outcome'], $this->entry($run, ContactsStage::KEY, $id)['reasons'], $this->entry($run, ContactsStage::KEY, $id)['values']];
+        self::assertSame(['refused', [ContactsStage::UNKNOWN_COUNTRY], ['billing_country' => '99']], $refused(510));
+        self::assertSame(['refused', [ContactsStage::UNKNOWN_COUNTRY], ['delivery_country' => '']], $refused(511));
+        self::assertSame(['refused', ['import.error.invalid_email'], ['email' => 'not']], $refused(512));
+        self::assertSame(['refused', ['import.error.invalid_registration_number'], ['registration_number' => '12345678']], $refused(513));
+        self::assertSame(['refused', ['import.error.required'], ['display_name' => '', 'billing_street' => '']], $refused(514));
+        self::assertSame(['refused', [ContactsStage::UNKNOWN_COUNTRY, 'import.error.invalid_email'], ['billing_country' => '99', 'delivery_country' => '98', 'email' => 'not']], $refused(517), 'Each reason once.');
+        self::assertSame(['contacts' => ['refused' => 6]], $run->counts());
+        self::assertSame(0, $this->rows('SELECT COUNT(*) FROM party'));
+        self::assertSame([], $this->links());
+    }
+
+    public function testCountriesAddressesAndValuesAreReadAsIdokladMeansThem(): void
+    {
+        $this->record(IdokladResource::Countries, 3, ['Id' => 3, 'Code' => 'SVK', 'Name' => 'Slovensko', 'NameEnglish' => 'Czech Republic']);
+        $this->contact(522, ['CompanyName' => 'Example Czech Name s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'CountryId' => 3]);
+        $this->contact(523, ['CompanyName' => 'Example Junk s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'DeliveryAddresses' => ['junk', ['IsDefault' => false, 'Street' => 'Store Street 3', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]]]);
+        $this->contact(525, ['CompanyName' => 'Example Flag s.r.o.', 'VatIdentificationNumber' => 'CZ23456787', 'Phone' => true]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $details = self::getContainer()->get(PartyDetails::class);
+        self::assertSame('SK', $details->billingAddress($this->party($this->entry($run, ContactsStage::KEY, 522)['target_id']))?->address()->countryCode, 'The Czech name of the country comes first.');
+        $junk = $this->party($this->entry($run, ContactsStage::KEY, 523)['target_id']);
+        self::assertSame(['Store Street 3'], array_values(array_map(static fn ($address): string => $address->address()->street, array_filter($details->addresses($junk), static fn ($address): bool => AddressType::Delivery === $address->type()))));
+        self::assertSame('', $this->party($this->entry($run, ContactsStage::KEY, 525)['target_id'])->phone(), 'A value of another type is no value.');
+    }
+
+    public function testAFoundContactGetsTheBillingAddressOnlyWhenItsAddressIsEmpty(): void
+    {
+        $bare = new Party(PartyKind::Company, ' Example Bare s.r.o. ', null, VatId::fromString('CZ45678901'), '', [PartyRole::Customer]);
+        $this->em->persist($bare);
+        $this->em->persist(new PartyAddress($bare, AddressType::Billing, new Address('Old Street 1', 'Old City', '300 00', 'CZ')));
+        $this->em->flush();
+        $create = self::getContainer()->get(CreateParty::class);
+        $addresses = [
+            'Example Empty s.r.o.' => new Address('', '', '', 'CZ'),
+            'Example Street s.r.o.' => new Address('Only Street 1', '', '', 'CZ'),
+            'Example City s.r.o.' => new Address('', 'Only City', '', 'CZ'),
+            'Example Postal s.r.o.' => new Address('', '', '100 00', 'CZ'),
+            'Šťastný Obchod s.r.o.' => new Address('Old Street 1', 'Old City', '300 00', 'CZ'),
+        ];
+        $id = 530;
+        foreach ($addresses as $name => $address) {
+            $create->createFrom(new PartyInput(PartyKind::Company, $name, null, VatId::fromString('CZ45678901'), '', '', [PartyRole::Customer], $address));
+            $this->contact($id++, ['CompanyName' => mb_strtoupper($name), 'VatIdentificationNumber' => 'CZ45678901']);
+        }
+        $this->contact($id, ['CompanyName' => 'Example Bare s.r.o.', 'VatIdentificationNumber' => 'CZ45678901']);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        self::assertNull($run->error());
+        $filled = fn (int $id): bool => str_contains((string) $this->entry($run, ContactsStage::KEY, $id)['values']['filled'], 'billing_street');
+        self::assertSame([true, false, false, false, false, false], array_map($filled, range(530, 535)));
+        self::assertSame(['matched'], array_values(array_unique(array_map(fn (int $id): string => $this->entry($run, ContactsStage::KEY, $id)['outcome'], range(530, 535)))));
+    }
+
+    public function testASeriesIsCreatedForTheYearsOfASequenceAndContinuesItsNumbers(): void
+    {
+        $this->sequence(1, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2025, 'LastNumber' => 41, 'IsDefault' => true]);
+        $this->sequence(2, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7, 'IsDefault' => true]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $first = $this->entry($run, SeriesStage::KEY, 1);
+        $second = $this->entry($run, SeriesStage::KEY, 2);
+        self::assertSame('created', $first['outcome']);
+        self::assertSame('20250042', $first['values']['next_number']);
+        self::assertSame('matched', $second['outcome']);
+        self::assertSame($first['target_id'], $second['target_id']);
+        self::assertSame('20260008', $second['values']['next_number']);
+        $series = $this->series($first['target_id']);
+        self::assertSame('Faktury', $series->name());
+        self::assertSame(DocumentKind::Invoice, $series->kind());
+        self::assertSame('{YYYY}{NNNN}', $series->format()->toString());
+        self::assertTrue($series->isDefault());
+        self::assertSame(['series' => ['created' => 1, 'matched' => 1]], $run->counts());
+    }
+
+    public function testEachDocumentTypeIsItsKindAndOthersAreRefused(): void
+    {
+        $this->sequence(3, ['DocumentType' => 1, 'Name' => 'Zálohy', 'NumberFormat' => 'ZRRNNN', 'Year' => 2026, 'LastNumber' => 0, 'IsDefault' => false]);
+        $this->sequence(4, ['DocumentType' => 3, 'Name' => 'Dobropisy', 'NumberFormat' => 'DRRRRMMNNN', 'Year' => 2026, 'LastNumber' => 2]);
+        $this->sequence(5, ['DocumentType' => 10, 'Name' => 'Daňové doklady', 'NumberFormat' => 'DD-RRRR-NNNN', 'Year' => 2026, 'LastNumber' => 5]);
+        $this->sequence(6, ['DocumentType' => 5, 'Name' => 'Přijaté', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 5]);
+        $this->sequence(7, ['DocumentType' => 0, 'Name' => 'Bad', 'NumberFormat' => 'RRRNNN', 'Year' => 2026, 'LastNumber' => 5]);
+        $this->sequence(8, ['DocumentType' => 0, 'Name' => 'Spaces', 'NumberFormat' => 'F RRNNN', 'Year' => 2026, 'LastNumber' => 5]);
+        $this->sequence(9, ['DocumentType' => 0, 'Name' => 'No year', 'NumberFormat' => 'XNNN', 'LastNumber' => 5]);
+        $this->sequence(10, ['DocumentType' => 0, 'Name' => 'Negative', 'NumberFormat' => 'YNNN', 'Year' => 2026, 'LastNumber' => -1]);
+        $this->sequence(20, ['DocumentType' => 0, 'Name' => 'Far', 'NumberFormat' => 'WNNN', 'Year' => 10000, 'LastNumber' => 1]);
+        $this->sequence(21, ['DocumentType' => 0, 'Name' => 'Huge', 'NumberFormat' => 'VNNN', 'Year' => 2026, 'LastNumber' => SeriesFormat::MAX_SEQUENCE + 1]);
+        $this->sequence(22, ['DocumentType' => 0, 'Name' => 'Ancient', 'NumberFormat' => 'UNNN', 'Year' => 0, 'LastNumber' => 1]);
+        $this->sequence(30, ['DocumentType' => 12, 'Name' => 'Vrubopisy', 'NumberFormat' => '{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 1]);
+        foreach ([2, 4, 6, 7, 9, 11] as $type) {
+            $this->sequence(40 + $type, ['DocumentType' => $type, 'Name' => 'Unused '.$type, 'NumberFormat' => 'Q{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
+        }
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $kind = fn (int $id): array => [$this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->kind(), $this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->format()->toString()];
+        self::assertSame([DocumentKind::Advance, 'Z{YY}{NNN}'], $kind(3));
+        self::assertSame([DocumentKind::CorrectionDocument, 'D{YYYY}{MM}{NNN}'], $kind(4));
+        self::assertSame([DocumentKind::PaymentTaxDocument, 'DD-{YYYY}-{NNNN}'], $kind(5));
+        self::assertSame('Z26001', $this->entry($run, SeriesStage::KEY, 3)['values']['next_number']);
+        self::assertFalse($this->series($this->entry($run, SeriesStage::KEY, 3)['target_id'])->isDefault());
+        self::assertSame('skipped', $this->entry($run, SeriesStage::KEY, 6)['outcome']);
+        self::assertSame([SeriesStage::TYPE_NOT_USED], $this->entry($run, SeriesStage::KEY, 6)['reasons']);
+        self::assertNull($this->entry($run, SeriesStage::KEY, 6)['target_id']);
+        foreach ([2, 4, 6, 7, 9, 11] as $type) {
+            self::assertSame(['skipped', [SeriesStage::TYPE_NOT_USED]], [$this->entry($run, SeriesStage::KEY, 40 + $type)['outcome'], $this->entry($run, SeriesStage::KEY, 40 + $type)['reasons']]);
+        }
+        self::assertSame(['refused', [SeriesStage::UNKNOWN_TYPE]], [$this->entry($run, SeriesStage::KEY, 30)['outcome'], $this->entry($run, SeriesStage::KEY, 30)['reasons']]);
+        self::assertSame(7, $run->counts()['series']['skipped']);
+        self::assertSame(['document_type' => 5, 'number_format' => 'RRRRNNNN', 'year' => 2026, 'last_number' => 5], $this->entry($run, SeriesStage::KEY, 6)['values']);
+        self::assertSame([SeriesStage::INVALID_FORMAT], $this->entry($run, SeriesStage::KEY, 7)['reasons']);
+        self::assertSame([SeriesStage::INVALID_FORMAT], $this->entry($run, SeriesStage::KEY, 8)['reasons']);
+        self::assertSame([SeriesStage::INVALID_COUNTER], $this->entry($run, SeriesStage::KEY, 9)['reasons']);
+        self::assertSame([SeriesStage::INVALID_COUNTER], $this->entry($run, SeriesStage::KEY, 10)['reasons']);
+        self::assertSame([SeriesStage::INVALID_COUNTER], $this->entry($run, SeriesStage::KEY, 20)['reasons']);
+        self::assertSame([SeriesStage::INVALID_COUNTER], $this->entry($run, SeriesStage::KEY, 21)['reasons']);
+        self::assertSame([SeriesStage::INVALID_COUNTER], $this->entry($run, SeriesStage::KEY, 22)['reasons']);
+        self::assertSame(3, $this->rows('SELECT COUNT(*) FROM series'));
+    }
+
+    public function testATakenNameWhateverItsCaseGetsTheFirstFreeNumber(): void
+    {
+        $catalog = self::getContainer()->get(SeriesCatalog::class);
+        $catalog->store(new Series('Ďábel', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
+        $catalog->store(new Series('ŘADA', SeriesFormat::fromString('J{NNN}'), DocumentKind::Invoice));
+        $this->sequence(28, ['DocumentType' => 0, 'Name' => 'ĎÁBEL', 'NumberFormat' => 'KRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
+        $this->sequence(29, ['DocumentType' => 0, 'Name' => 'řada', 'NumberFormat' => 'LRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        self::assertSame('ĎÁBEL 2', $this->series($this->entry($run, SeriesStage::KEY, 28)['target_id'])->name());
+        self::assertSame('řada 2', $this->series($this->entry($run, SeriesStage::KEY, 29)['target_id'])->name());
+    }
+
+    public function testSequencesOfSeveralKindsUnderOneNameEachGetASeries(): void
+    {
+        $this->sequence(30, ['DocumentType' => 1, 'Name' => 'Default', 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4, 'IsDefault' => true]);
+        $this->sequence(31, ['DocumentType' => 10, 'Name' => 'Default', 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
+        self::getContainer()->get(SeriesCatalog::class)->store(new Series('Default 2', SeriesFormat::fromString('H{NNN}'), DocumentKind::Invoice));
+        $this->sequence(33, ['DocumentType' => 3, 'Name' => 'default', 'NumberFormat' => 'O7{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3, 'IsDefault' => true]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $names = array_map(fn (int $id): string => $this->series($this->entry($run, SeriesStage::KEY, $id)['target_id'])->name(), [30, 31, 33]);
+        self::assertSame(['Default', 'Default 3', 'default 4'], $names, 'Names are unique across the kinds.');
+        self::assertSame(DocumentKind::PaymentTaxDocument, $this->series($this->entry($run, SeriesStage::KEY, 31)['target_id'])->kind());
+    }
+
+    public function testALongTakenNameKeepsItsNumberWithinTheLimit(): void
+    {
+        $long = str_repeat('č', Series::MAX_NAME_LENGTH);
+        $this->sequence(34, ['DocumentType' => 1, 'Name' => $long, 'NumberFormat' => 'Z9{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 4]);
+        $this->sequence(35, ['DocumentType' => 10, 'Name' => $long, 'NumberFormat' => 'D8{RRRR}{NNNN}', 'Year' => 2026, 'LastNumber' => 3]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        self::assertSame($long, $this->series($this->entry($run, SeriesStage::KEY, 34)['target_id'])->name(), 'The limit counts characters, not bytes.');
+        self::assertSame(str_repeat('č', Series::MAX_NAME_LENGTH - 2).' 2', $this->series($this->entry($run, SeriesStage::KEY, 35)['target_id'])->name());
+    }
+
+    public function testANewSeriesNeverTakesTheDefaultNorTheNameOfAnother(): void
+    {
+        $catalog = self::getContainer()->get(SeriesCatalog::class);
+        $standard = Series::standard(DocumentKind::Invoice);
+        $catalog->store($standard);
+        $this->sequence(12, ['DocumentType' => 0, 'Name' => ' Export ', 'NumberFormat' => 'EXRRNNN', 'Year' => 2026, 'LastNumber' => 1, 'IsDefault' => true]);
+        $this->sequence(13, ['DocumentType' => 0, 'Name' => 'STANDARD', 'NumberFormat' => 'SRRNNN', 'Year' => 2026, 'LastNumber' => 1]);
+        $this->sequence(14, ['DocumentType' => 3, 'Name' => ' ', 'NumberFormat' => 'ORRNNN', 'Year' => 2026, 'LastNumber' => 1]);
+
+        $run = $this->import()->run(ImportMode::Run);
+
+        $created = $this->series($this->entry($run, SeriesStage::KEY, 12)['target_id']);
+        self::assertFalse($created->isDefault());
+        self::assertSame('Export', $created->name());
+        self::assertTrue($this->series($standard->id())->isDefault());
+        self::assertSame('STANDARD 2', $this->series($this->entry($run, SeriesStage::KEY, 13)['target_id'])->name());
+        self::assertSame(DocumentKind::CorrectionDocument->standardSeriesName(), $this->series($this->entry($run, SeriesStage::KEY, 14)['target_id'])->name());
+    }
+
+    public function testACheckWritesNothingButItsReport(): void
+    {
+        $this->contact(515, ['CompanyName' => 'Example Check s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
+        $this->sequence(15, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7, 'IsDefault' => true]);
+        $tables = ['party', 'party_address', 'party_email', 'series', 'series_counter', 'idoklad_link', 'audit_entry'];
+        $before = array_map(fn (string $table): int => $this->rows('SELECT COUNT(*) FROM '.$table), $tables);
+
+        $run = $this->import()->run(ImportMode::Check);
+
+        self::assertNull($run->error());
+        self::assertSame(ImportMode::Check, $run->mode());
+        self::assertSame(['contacts' => ['created' => 1], 'series' => ['created' => 1]], $run->counts());
+        self::assertSame('20260008', $this->entry($run, SeriesStage::KEY, 15)['values']['next_number']);
+        self::assertSame($before, array_map(fn (string $table): int => $this->rows('SELECT COUNT(*) FROM '.$table), $tables));
+        $this->em->clear();
+        $stored = self::getContainer()->get(IdokladImportRuns::class)->all();
+        self::assertCount(1, $stored);
+        self::assertSame($run->counts(), $stored[0]->counts());
+        self::assertSame($run->report(), $stored[0]->report());
+    }
+
+    public function testARunIsStoredAndASecondRunFindsTheLinks(): void
+    {
+        $this->contact(516, ['CompanyName' => 'Example Again s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
+        $this->contact(519, ['CompanyName' => 'Example Again Too s.r.o.', 'VatIdentificationNumber' => 'CZ23456787']);
+        $this->sequence(16, ['DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 7]);
+        $first = $this->import()->run(ImportMode::Run);
+        $this->em->clear();
+        $this->em->getRepository(IdokladRecord::class)->findOneBy(['resource' => IdokladResource::NumericSequences, 'externalId' => 16])?->replace(['Id' => 16, 'DocumentType' => 0, 'Name' => 'Faktury', 'NumberFormat' => 'RRRRNNNN', 'Year' => 2026, 'LastNumber' => 9], new \DateTimeImmutable('2026-11-06 11:00:00'));
+        $this->em->flush();
+
+        $second = $this->import()->run(ImportMode::Run);
+
+        self::assertSame(['contacts' => ['already_linked' => 2], 'series' => ['already_linked' => 1]], $second->counts());
+        self::assertSame($this->entry($first, ContactsStage::KEY, 516)['target_id'], $this->entry($second, ContactsStage::KEY, 516)['target_id']);
+        self::assertSame('20260010', $this->entry($second, SeriesStage::KEY, 16)['values']['next_number'], 'A linked series follows iDoklad on.');
+        self::assertSame(2, $this->rows('SELECT COUNT(*) FROM party'));
+        self::assertCount(3, $this->links());
+        $this->em->clear();
+        $runs = self::getContainer()->get(IdokladImportRuns::class)->all();
+        self::assertSame([$second->id(), $first->id()], array_map(static fn (IdokladImportRun $run): string => $run->id(), $runs));
+        $stored = $runs[1];
+        self::assertSame(ImportMode::Run, $stored->mode());
+        self::assertSame($this->em->getRepository(IdokladPull::class)->findAll()[0]->id(), $stored->pullId());
+        self::assertSame($first->startedAt()->format('Y-m-d H:i:s'), $stored->startedAt()->format('Y-m-d H:i:s'));
+        self::assertNotNull($stored->finishedAt());
+        self::assertSame(['stage' => 'contacts', 'external_id' => 516, 'outcome' => 'created', 'target_id' => $this->entry($first, ContactsStage::KEY, 516)['target_id'], 'reasons' => [], 'values' => []], $stored->report()[0]);
+    }
+
+    private function import(): RunIdokladImport
+    {
+        return self::getContainer()->get('test.idoklad_import');
+    }
+
+    /**
+     * A Czech company in Example City unless the fields say otherwise.
+     *
+     * @param array<string, mixed> $fields
+     */
+    private function contact(int $id, array $fields): void
+    {
+        $this->record(IdokladResource::Contacts, $id, $fields + ['Id' => $id, 'Street' => 'Example Street 9', 'City' => 'Example City', 'PostalCode' => '100 00', 'CountryId' => self::CZECHIA]);
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function sequence(int $id, array $fields): void
+    {
+        $this->record(IdokladResource::NumericSequences, $id, $fields + ['Id' => $id]);
+    }
+
+    /**
+     * @param array<mixed> $payload
+     */
+    private function record(IdokladResource $resource, int $id, array $payload): void
+    {
+        $this->em->persist(new IdokladRecord($resource, $id, $payload, new \DateTimeImmutable('2026-11-06 09:01:00')));
+        $this->em->flush();
+    }
+
+    /**
+     * A company with an e-mail and a billing address; with a registration
+     * number also a bank account and a contact person, else a VAT id.
+     */
+    private function existing(string $name, ?string $registrationNumber, string $phone = ''): string
+    {
+        $create = self::getContainer()->get(CreateParty::class);
+        $party = $create->createFrom(new PartyInput(PartyKind::Company, $name, null === $registrationNumber ? null : new RegistrationNumber('CZ', $registrationNumber), null === $registrationNumber ? VatId::fromString('CZ45678901') : null, 'old@example.com', $phone, [PartyRole::Customer], new Address('Old Street 1', 'Old City', '300 00', 'CZ')));
+        if (null === $registrationNumber) {
+            return $party->id();
+        }
+        $target = self::getContainer()->get(\Foresi\Import\Application\Target\TargetRegistry::class)->get('party');
+        $target->update($party->id(), ['bank_account_iban' => 'CZ5508000000001234567899', 'contact_name' => 'Old Person'], \Foresi\Import\Contract\BlankCells::Keep);
+
+        return $party->id();
+    }
+
+    /**
+     * @return array{stage: string, external_id: int, outcome: string, target_id: string|null, reasons: list<string>, values: array<string, int|string|bool|null>}
+     */
+    private function entry(IdokladImportRun $run, string $stage, int $id): array
+    {
+        foreach ($run->report() as $entry) {
+            if ($stage === $entry['stage'] && $id === $entry['external_id']) {
+                return $entry;
+            }
+        }
+
+        self::fail(\sprintf('The report has no entry for %s %d.', $stage, $id));
+    }
+
+    private function party(?string $id): Party
+    {
+        return $this->em->find(Party::class, (string) $id) ?? self::fail('The contact is stored.');
+    }
+
+    private function series(?string $id): Series
+    {
+        return $this->em->find(Series::class, (string) $id) ?? self::fail('The series is stored.');
+    }
+
+    /**
+     * @return list<IdokladLink>
+     */
+    private function links(): array
+    {
+        return $this->em->getRepository(IdokladLink::class)->findAll();
+    }
+
+    private function rows(string $sql): int
+    {
+        $count = $this->em->getConnection()->fetchOne($sql);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
+    }
+}
