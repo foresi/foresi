@@ -288,8 +288,6 @@ final class LegalEntityControllerTest extends WebTestCase
         self::assertSelectorNotExists('form[action$="/archive"]');
         self::assertSame('12345695', $crawler->filter('#registrationNumber')->attr('value'));
         self::assertSelectorNotExists('#bankAccounts');
-        self::assertSelectorTextContains('#bank-accounts-note', 'The firm\'s bank accounts are kept in its bank settings.');
-        self::assertSame('/settings/firm/bank', $crawler->filter('#bank-accounts-note a')->attr('href'));
 
         self::assertSelectorNotExists('select#vatStatus');
         self::assertSelectorNotExists('#vatValidFrom');

@@ -85,6 +85,7 @@ final class FirmBankControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/settings/firm');
 
+        self::assertSelectorTextContains('#bank-accounts-note', 'The firm\'s bank accounts are kept in its bank settings.');
         self::assertSame($this->url(), $crawler->filter('#bank-accounts-note a')->attr('href'));
     }
 
