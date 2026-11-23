@@ -1,0 +1,45 @@
+{
+    "name": "foresi/margin",
+    "description": "The margin of the firm per client: which client or the firm itself each cost of a received document belongs to, and the shares of the cost that follow from it.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "brick/math": "^1.0",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "symfony/dependency-injection": "^7.4 || ^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Margin\\": ""
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
+    },
+    "extra": {
+        "foresi": {
+            "module": "margin",
+            "kind": "module",
+            "namespace": "Foresi\\Margin\\",
+            "bundle": "Foresi\\Margin\\MarginBundle",
+            "optional": [
+                "cash-flow",
+                "invoicing",
+                "purchasing"
+            ],
+            "scopes": [
+                "margin"
+            ]
+        }
+    }
+}

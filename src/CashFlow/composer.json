@@ -45,7 +45,9 @@
             "kind": "module",
             "namespace": "Foresi\\CashFlow\\",
             "bundle": "Foresi\\CashFlow\\CashFlowBundle",
-            "optional": [],
+            "optional": [
+                "margin"
+            ],
             "scopes": [
                 "cashflow"
             ]

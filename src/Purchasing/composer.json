@@ -51,6 +51,7 @@
             "bundle": "Foresi\\Purchasing\\PurchasingBundle",
             "optional": [
                 "cash-flow",
+                "margin",
                 "taxes-and-contributions",
                 "vat"
             ],
