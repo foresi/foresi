@@ -64,6 +64,10 @@ final readonly class PlannedItemWrites
             $item = new PlannedItem($direction, $terms, $this->clock->now());
             $this->store->add($item);
             $this->events->record(new PlannedItemCreated($item->id(), $firmId, $this->direction($item), self::decimal($item->amount()), $item->amount()->currency()->value, $item->isRecurring()));
+            // The documents of the counterparty recorded before the item may belong to it.
+            if ($item->isRecurring()) {
+                $this->reconsiderDocuments([$item->counterparty()?->id()]);
+            }
 
             return $item;
         });
@@ -162,6 +166,8 @@ final readonly class PlannedItemWrites
             }
             $item->endOn($on);
             $this->events->record(new PlannedItemEnded($item->id(), $this->access->firm()->id(), $this->direction($item), $on->format('Y-m-d')));
+            // A document paired with an occurrence after the end, or proposed for one, is looked at again.
+            $this->reconsiderDocuments([$item->counterparty()?->id()]);
 
             return $item;
         });

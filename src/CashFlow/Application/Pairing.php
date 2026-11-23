@@ -37,7 +37,10 @@ use Psr\Clock\ClockInterface;
  *
  * Only a person changes a confirmed or declined row. Every change of a row
  * records DocumentPairingChanged, and nothing is recorded when nothing changed.
- * The writes run in one unit of work, which nests in the caller's.
+ * The writes run in one unit of work, which nests in the caller's. What the
+ * caller has changed so far is written first (inside its transaction), so the
+ * sources and the pairings read back what is true now: a document recorded in
+ * the same unit of work is among the documents of its period.
  */
 final readonly class Pairing implements DocumentPairer
 {
@@ -59,6 +62,7 @@ final readonly class Pairing implements DocumentPairer
     public function consider(PairableDocument $document): void
     {
         $this->transaction->run(function () use ($document): void {
+            $this->store->flush();
             $touched = $this->settle($document, null);
             $this->reconsiderSiblings($document->subject, null, $touched);
         });
@@ -67,6 +71,7 @@ final readonly class Pairing implements DocumentPairer
     public function forget(FlowSubject $subject): void
     {
         $this->transaction->run(function () use ($subject): void {
+            $this->store->flush();
             $row = $this->store->pairing($subject->type, $subject->id);
             if (!$row instanceof DocumentPairing) {
                 return;

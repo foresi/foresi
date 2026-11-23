@@ -109,9 +109,9 @@ A second document arriving in the period of an `auto` occurrence turns the first
 
 **What changes a pairing.**
 
-- A planned item that is **changed** (counterparty, direction, amount, VAT, tolerance, schedule, included) or has an occurrence **skipped**: the documents it may concern are looked at again, 13 months back and 13 months ahead.
+- A recurring planned item that is **created**, **changed** (counterparty, direction, amount, VAT, tolerance, schedule, included) or **ended**: the documents of its counterparty are looked at again, 13 months back and 13 months ahead. An occurrence that is **skipped**: the documents of its period are looked at again.
 - A planned item that is **deleted** is refused with `has_pairings` while an `auto` or `confirmed` pairing points at it. Proposals that list it lose it as a candidate; one left with none is removed, one left with one points at it.
-- A document that is recorded is considered at once, in the same transaction. When it is trashed or no longer complete, its source stops offering it, and it is forgotten: its row goes and the other documents of the occurrence are looked at again.
+- A document that is recorded, changed or restored from the trash is considered at once, in the same transaction. When it is trashed or no longer complete, its source stops offering it, and it is forgotten: its row goes and the other documents of the occurrence are looked at again.
 
 Each change of a row records the event `cash-flow.document_pairing.changed` (version 1) with the document (`subject_type`, `subject_id`), the `state` (null when the row was removed), the `planned_item_id`, the `occurrence_on` and the `previous_planned_item_id`. Owners and team members read it in the event feed and through webhooks.
 

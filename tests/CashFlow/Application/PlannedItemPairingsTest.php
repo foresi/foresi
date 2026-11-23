@@ -14,6 +14,7 @@ use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Application\ChangePlannedItemInput;
 use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Application\DeletePlannedItemInput;
+use Foresi\CashFlow\Application\EndPlannedItemInput;
 use Foresi\CashFlow\Application\Pairing;
 use Foresi\CashFlow\Application\PlannedItemRules;
 use Foresi\CashFlow\Application\PlannedItemVatRule;
@@ -227,6 +228,30 @@ final class PlannedItemPairingsTest extends CashFlowTestCase
         $this->writes->skip(new SkipPlannedOccurrenceInput($item->id(), '2026-05-20'));
 
         self::assertSame(PairingState::Confirmed, $this->row('doc-1')->state());
+    }
+
+    public function testCreatingAnItemPairsTheDocumentsRecordedBefore(): void
+    {
+        $this->document('doc-1', '32.00', '2026-10-18');
+
+        $item = $this->monthly('Cloud Host', '32.00');
+
+        $row = $this->row('doc-1');
+        self::assertSame([PairingState::Auto, $item->id(), '2026-10-20'], [$row->state(), $row->plannedItemId(), $row->occurrenceOn()?->format('Y-m-d')]);
+    }
+
+    public function testEndingAnItemDropsThePairingsOfTheOccurrencesAfterTheEnd(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-1', '32.00', '2026-09-18');
+        $this->document('doc-2', '32.00', '2026-11-18');
+        $this->considerAll();
+        self::assertSame(PairingState::Auto, $this->row('doc-2')->state());
+
+        $this->writes->end(new EndPlannedItemInput($item->id(), '2026-10-31'));
+
+        self::assertSame(PairingState::Auto, $this->row('doc-1')->state());
+        self::assertNull($this->store()->pairing('received_document', 'doc-2'));
     }
 
     private function monthly(string $name, string $amount): PlannedItem

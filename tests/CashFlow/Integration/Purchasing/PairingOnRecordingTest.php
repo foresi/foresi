@@ -52,6 +52,31 @@ final class PairingOnRecordingTest extends CashFlowTestCase
         self::assertCount(1, $this->events('cash-flow.document_pairing.changed'));
     }
 
+    public function testASecondDocumentRecordedInThePeriodTurnsTheFirstIntoAProposal(): void
+    {
+        $this->monthlyFor('Cloud Host', '1210.00');
+        $first = $this->record('2026-11-18', '1210.00');
+        self::assertSame(PairingState::Auto, $this->stateOf($first));
+
+        $second = $this->record('2026-11-19', '75.00');
+
+        self::assertSame(PairingState::Proposed, $this->stateOf($second));
+        self::assertSame(PairingState::Proposed, $this->stateOf($first));
+    }
+
+    public function testTrashingTheSecondDocumentLetsTheFirstPairAgain(): void
+    {
+        $this->monthlyFor('Cloud Host', '1210.00');
+        $first = $this->record('2026-11-18', '1210.00');
+        $second = $this->record('2026-11-19', '75.00');
+
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($second, 'Entered twice');
+        $this->em->flush();
+
+        self::assertNull($this->stateOf($second));
+        self::assertSame(PairingState::Auto, $this->stateOf($first));
+    }
+
     public function testADocumentOfAnotherAmountIsProposed(): void
     {
         $this->monthlyFor('Cloud Host', '500.00');
@@ -72,17 +97,19 @@ final class PairingOnRecordingTest extends CashFlowTestCase
     {
         $id = $this->record('2026-11-18', '1210.00');
         $this->monthlyFor('Cloud Host', '1210.00');
-        $before = $this->pairing($id);
+        // A document recorded before pairing existed has no row.
+        $this->em->remove($this->pairing($id) ?? self::fail('Creating the item pairs the document.'));
+        $this->em->flush();
+        $events = \count($this->events('cash-flow.document_pairing.changed'));
 
         $first = $this->backfill();
         $second = $this->backfill();
 
-        self::assertNull($before);
-        self::assertSame(PairingState::Auto, ($this->pairing($id) ?? self::fail('No pairing.'))->state());
+        self::assertSame(PairingState::Auto, $this->stateOf($id));
         self::assertStringContainsString('Considered 1 documents', $first);
         self::assertStringContainsString('auto', $first);
         self::assertSame($first, $second);
-        self::assertCount(1, $this->events('cash-flow.document_pairing.changed'));
+        self::assertCount($events + 1, $this->events('cash-flow.document_pairing.changed'));
     }
 
     public function testADocumentOlderThanThirteenMonthsIsLeftAlone(): void

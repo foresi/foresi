@@ -13,6 +13,7 @@ use Foresi\CashFlow\Contract\PairedOccurrence;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Contract\PlannedPairings;
 use Foresi\CashFlow\Domain\DocumentPairing;
+use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -47,19 +48,8 @@ final readonly class PairingReads implements PlannedPairings
     }
 
     /**
-     * @return list<DocumentPairing> oldest first; with a planned item, the pairings that point at it
-     *
-     * @throws CashFlowRefused
-     */
-    public function all(?PairingState $state = null, ?string $plannedItemId = null): array
-    {
-        $this->access->denyUnlessStaff();
-
-        return $this->store->pairings($state, $plannedItemId);
-    }
-
-    /**
-     * The same, for a state and a planned item as a client writes them.
+     * The pairings for a state and a planned item as a client writes them; with a planned item, those paired
+     * with it and those that list it among their candidates.
      *
      * @return list<DocumentPairing>
      *
@@ -73,7 +63,14 @@ final readonly class PairingReads implements PlannedPairings
             throw CashFlowRefused::invalid('planned_item_invalid', 'plannedItemId', 'The planned item id is a UUID. Find it with foresi_list_planned_items.');
         }
 
-        return $this->store->pairings($parsed, $plannedItemId);
+        $pairings = $this->store->pairings($parsed);
+        if (null === $plannedItemId) {
+            return $pairings;
+        }
+
+        // Paired with the item, or proposed with it among the candidates.
+        return array_values(array_filter($pairings, static fn (DocumentPairing $pairing): bool => $pairing->plannedItemId() === $plannedItemId
+            || array_any($pairing->candidates(), static fn (PairingCandidate $candidate): bool => $candidate->plannedItemId === $plannedItemId)));
     }
 
     private function pairs(DocumentPairing $pairing): bool

@@ -136,7 +136,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/forecast` | `cashflow:read` | The cash-flow forecast of the firm; see [Cash flow](#cash-flow). |
 | `/api/v1/cash-flow/planned-items` | `cashflow:read` | The planned items of the firm, oldest first, without paging. |
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
-| `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id`. |
+| `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id` (paired with the item, or listing it among the candidates). |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |

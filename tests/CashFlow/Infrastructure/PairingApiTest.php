@@ -207,6 +207,12 @@ final class PairingApiTest extends ApiTestCase
         self::assertSame(['doc-1'], array_column(array_column($this->rows(), 'subject'), 'id'));
         $this->get('/api/v1/cash-flow/pairings', ['planned_item_id' => $a], $this->reader);
         self::assertSame([], $this->rows());
+        $this->document('doc-2', '100.00', '2026-12-18');
+        $this->considerAll();
+        $this->get('/api/v1/cash-flow/pairings', ['planned_item_id' => $a], $this->reader);
+        self::assertSame(['doc-2'], array_column(array_column($this->rows(), 'subject'), 'id'), 'A proposal lists the item among its candidates.');
+        $this->get('/api/v1/cash-flow/pairings', ['planned_item_id' => $b, 'state' => 'proposed'], $this->reader);
+        self::assertSame(['doc-2'], array_column(array_column($this->rows(), 'subject'), 'id'));
         $this->get('/api/v1/cash-flow/pairings', ['state' => 'declined'], $this->reader);
         self::assertSame([], $this->rows());
         $this->get('/api/v1/cash-flow/pairings', ['state' => 'maybe'], $this->reader);
