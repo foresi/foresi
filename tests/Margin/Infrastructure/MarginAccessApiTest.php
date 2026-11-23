@@ -14,9 +14,12 @@ use Foresi\Identity\Application\OAuth\OAuthStore;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenSecret;
+use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
+use Foresi\Margin\Domain\LineAllocation;
+use Foresi\Party\Domain\Party;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Uid\Uuid;
@@ -29,6 +32,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MarginAccessApiTest extends ApiTestCase
 {
+    private const array TOOLS = ['foresi_get_document_allocation', 'foresi_set_line_allocation', 'foresi_assign_received_document'];
+
     private ?string $session = null;
 
     public function testATokenWithoutTheScopeIsRefused(): void
@@ -47,6 +52,44 @@ final class MarginAccessApiTest extends ApiTestCase
         $this->assertProblem(404, 'unknown_document');
     }
 
+    public function testAMemberTurnedGuestWithATokenOfTheMarginScopesIsRefusedOnEveryOperation(): void
+    {
+        $secret = $this->issued([ApiScope::from('margin:read'), ApiScope::from('margin:write')]);
+        $membership = $this->em()->getRepository(Membership::class)->findOneBy(['user' => $this->user->id()]);
+        self::assertInstanceOf(Membership::class, $membership);
+        $membership->changeRole(Role::Guest, $this->em()->find(Party::class, $this->customerId));
+        $this->em()->flush();
+        $id = Uuid::v7()->toRfc4122();
+
+        // Over REST a guest's token is never accepted (ADR 0041), whatever scopes it was issued with.
+        $this->get('/api/v1/margin/documents/'.$id, secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => null], $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => 'own'], $secret);
+        self::assertResponseStatusCodeSame(401);
+        self::assertSame(0, $this->em()->getRepository(LineAllocation::class)->count([]));
+
+        $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
+        if (401 === $this->client->getResponse()->getStatusCode()) {
+            return;
+        }
+        // Where a guest may connect, no margin tool is listed, and none answers.
+        $this->session = $this->client->getResponse()->headers->get('Mcp-Session-Id');
+        $tools = array_column((array) $this->in($this->mcp($secret, 'tools/list'), 'result', 'tools'), 'name');
+        self::assertSame([], array_values(array_filter($tools, static fn (mixed $name): bool => \in_array($name, self::TOOLS, true))));
+        $arguments = [
+            'foresi_get_document_allocation' => ['document_id' => $id],
+            'foresi_set_line_allocation' => ['document_id' => $id, 'line_key' => 'rate:21', 'kind' => null],
+            'foresi_assign_received_document' => ['document_id' => $id, 'recipient' => 'own'],
+        ];
+        foreach ($arguments as $tool => $arguments) {
+            $call = $this->in($this->mcp($secret, 'tools/call', ['name' => $tool, 'arguments' => $arguments]), 'result');
+            self::assertIsArray($call);
+            self::assertTrue($call['isError'] ?? false, $tool);
+        }
+    }
+
     public function testAGuestIsRefused(): void
     {
         $guest = $this->fixtures->user('guest@example.com');
@@ -62,7 +105,12 @@ final class MarginAccessApiTest extends ApiTestCase
         });
 
         // Over REST a guest's token is never accepted (ADR 0041).
-        $this->get('/api/v1/margin/documents/'.Uuid::v7()->toRfc4122(), secret: $secret);
+        $id = Uuid::v7()->toRfc4122();
+        $this->get('/api/v1/margin/documents/'.$id, secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => null], $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => 'own'], $secret);
         self::assertResponseStatusCodeSame(401);
 
         if ([] === self::getContainer()->get(GuestScopes::class)->offered()) {
@@ -75,10 +123,16 @@ final class MarginAccessApiTest extends ApiTestCase
         $this->session = null;
         $this->mcp($secret, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => new \stdClass(), 'clientInfo' => ['name' => 'test', 'version' => '1.0']]);
         $tools = array_column((array) $this->in($this->mcp($secret, 'tools/list'), 'result', 'tools'), 'name');
-        self::assertSame([], array_values(array_filter($tools, static fn (mixed $name): bool => \is_string($name) && str_contains($name, 'allocation'))));
-        $call = $this->in($this->mcp($secret, 'tools/call', ['name' => 'foresi_get_document_allocation', 'arguments' => ['document_id' => Uuid::v7()->toRfc4122()]]), 'result');
-        self::assertIsArray($call);
-        self::assertTrue($call['isError'] ?? false);
+        self::assertSame([], array_values(array_filter($tools, static fn (mixed $name): bool => \in_array($name, self::TOOLS, true))));
+        foreach ([
+            'foresi_get_document_allocation' => ['document_id' => $id],
+            'foresi_set_line_allocation' => ['document_id' => $id, 'line_key' => 'rate:21', 'kind' => null],
+            'foresi_assign_received_document' => ['document_id' => $id, 'recipient' => 'own'],
+        ] as $tool => $arguments) {
+            $call = $this->in($this->mcp($secret, 'tools/call', ['name' => $tool, 'arguments' => $arguments]), 'result');
+            self::assertIsArray($call);
+            self::assertTrue($call['isError'] ?? false, $tool);
+        }
     }
 
     private function line(string $documentId, string $key): string
