@@ -63,6 +63,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -449,7 +450,7 @@ final class RecurringFormController extends AbstractController
         }
         $firmUrl = $this->generateUrl('app_firm');
         // Accounts are kept on the firm's bank tab, which only an owner may open.
-        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
+        $bankUrl = $this->owner->isOwner() ? $this->bankUrl() : null;
         $bankAccounts = $this->options->bankAccounts($template?->bankAccount());
         $targets = new InvoiceErrorTargets($context->isPayer(), false, [] !== $bankAccounts, '' !== $values['customerId'], $firmUrl, $bankUrl);
         $links = array_map(fn (array $error): array => $error + ['link' => \in_array($error['id'], self::WITHOUT_LINK, true) ? null : $targets->of($error['id'])], $errors);
@@ -722,6 +723,19 @@ final class RecurringFormController extends AbstractController
     private function today(): \DateTimeImmutable
     {
         return $this->clock->today();
+    }
+
+    /**
+     * The bank tab of the firm, or null without Banking: Invoicing knows that
+     * screen by its route only.
+     */
+    private function bankUrl(): ?string
+    {
+        try {
+            return $this->generateUrl('app_firm_bank');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**
