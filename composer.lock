@@ -2711,10 +2711,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "47f0606e6c0028efc7f0c0fe5018ad1751ef5e8e"
+                "reference": "479bbb7bfae18c7a1c89b1056002d7538cc89c4c"
             },
             "require": {
                 "brick/math": "^1.0",
+                "doctrine/collections": "^3.1",
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
@@ -3152,7 +3153,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "adb4dfbcc25e935e60ea8a370fa32257b883a41e"
+                "reference": "95da8543a345de82510ec80c618f4672c1996b62"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3168,9 +3169,11 @@
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4",
+                "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
                 "zircote/swagger-php": "^7.5"
             },
