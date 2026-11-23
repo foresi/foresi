@@ -84,6 +84,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -644,7 +645,7 @@ final class InvoiceController extends AbstractController
         }
         $firmUrl = $this->generateUrl('app_firm');
         // The bank tab is the owner's: staff learn the account is missing, not where to add it.
-        $bankUrl = $this->owner->isOwner() ? $this->generateUrl('app_firm_bank') : null;
+        $bankUrl = $this->owner->isOwner() ? $this->bankUrl() : null;
         $targets = new InvoiceErrorTargets($context->isPayer(), $invoice?->isDelivered() ?? false, [] !== $this->bankAccounts($context), '' !== $values['customerId'], $firmUrl, $bankUrl);
 
         return $this->render('@Invoicing/form.html.twig', [
@@ -1038,6 +1039,19 @@ final class InvoiceController extends AbstractController
     private function today(InvoiceFormContext $context): \DateTimeImmutable
     {
         return \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($context->country->timezone())->setTime(0, 0);
+    }
+
+    /**
+     * The bank tab of the firm, or null without Banking: Invoicing knows that
+     * screen by its route only.
+     */
+    private function bankUrl(): ?string
+    {
+        try {
+            return $this->generateUrl('app_firm_bank');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**

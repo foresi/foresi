@@ -18,6 +18,7 @@ use Foresi\Invoicing\Application\EditInvoice;
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Application\ImportedDocuments;
 use Foresi\Invoicing\Application\ImportIssuedDocument;
+use Foresi\Invoicing\Application\ImportPayment;
 use Foresi\Invoicing\Application\InvoiceBalances;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\InvoicePdf;
@@ -228,6 +229,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias(DocumentLinks::class, RouterDocumentLinks::class)->public();
         $services->alias(SentFiles::class, DiskSentFiles::class)->public();
         $services->set(ImportIssuedDocument::class)->public();
+        $services->set(ImportPayment::class)->public();
         $services->set(UndoImportedDocuments::class)->public();
         $services->alias(OriginalDocuments::class, DiskOriginalDocuments::class)->public();
         $services->alias(ImportedDocuments::class, DoctrineImportedDocuments::class)->public();

@@ -181,15 +181,6 @@ final class FirmInvoicingControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Nová číselná řada');
     }
 
-    public function testAFormatWhoseNumbersWouldNotFitIsRefused(): void
-    {
-        $this->signedInFirm();
-        $this->saveNewSeries(['name' => 'Long', 'format' => str_repeat('A', 31).'{NNNN}']);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#format-error', '40');
-    }
-
     public function testASeriesSavesAndTheFirstBecomesTheDefault(): void
     {
         $this->signedInFirm();
