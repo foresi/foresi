@@ -28,6 +28,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Ui\Format\MoneyText;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -49,6 +50,25 @@ final readonly class ForecastScreen
     /** The filter builder's list of the page: one condition, the certainty of a flow. */
     public const string FILTER_LIST = 'cash_flow.forecast';
     public const string CERTAINTY = 'certainty';
+
+    /**
+     * Where the record of an item opens in place, in the same sheet
+     * (docs/design/overlays.md), by the subject type its source gives; a
+     * planned item by its direction. A module that is not installed has no
+     * route, so its items stay plain text.
+     */
+    private const array RECORDS = [
+        'invoice' => 'app_invoice_show',
+        'recurring_invoice' => 'app_recurring_show',
+        'received_document' => 'app_purchasing_document',
+        'planned_item:in' => 'app_cash_flow_planned_income_item',
+        'planned_item:out' => 'app_cash_flow_planned_costs_item',
+    ];
+
+    /** Where an item that is no record is read: a page of its own, which closes the sheet. */
+    private const array PAGES = [
+        'tax_payment' => 'app_taxes',
+    ];
 
     public function __construct(
         private Forecasts $forecasts,
@@ -322,7 +342,7 @@ final readonly class ForecastScreen
     /**
      * The items of one cell: what a period expects in one direction, of one category or all.
      *
-     * @return array{title: string, total: string, items: list<array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string}>}
+     * @return array{title: string, total: string, items: list<array{subject: string, label: string, href: ?string, inPlace: bool, certainty: string, certaintyTone: string, source: ?string, day: string, due: ?string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string, expected: ?array{label: string, href: string}}>}
      */
     public function items(PeriodForecast $period, FlowDirection $direction, ?FlowCategory $category): array
     {
@@ -333,7 +353,7 @@ final readonly class ForecastScreen
                 continue;
             }
             $total = $total->plus($line->amount);
-            $items[] = $this->item($line);
+            $items[] = $this->item($line, self::viewOf($period->period->key()));
         }
         $what = $this->trans(FlowDirection::In === $direction ? 'cash_flow.table.in' : 'cash_flow.table.out');
         if ($category instanceof FlowCategory) {
@@ -377,9 +397,15 @@ final readonly class ForecastScreen
      * or an estimate in its own outlined badge, so an estimate never reads as a
      * document or a bank movement; what it comes from follows when it says more.
      *
-     * @return array{label: string, certainty: string, certaintyTone: string, source: ?string, day: string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string}
+     * A document, a recurring invoice or a planned item links to its record,
+     * which opens in place in the sheet; a tax payment to its page. A document
+     * moved by an expected day says its due day too, and a document gets the
+     * small dialog that sets or changes the expected day, as the list under the
+     * table had them (Float and Xero's expected payment date).
+     *
+     * @return array{subject: string, label: string, href: ?string, inPlace: bool, certainty: string, certaintyTone: string, source: ?string, day: string, due: ?string, flags: list<array{label: string, tone: string}>, amount: string, czk: ?string, expected: ?array{label: string, href: string}}
      */
-    private function item(ForecastLine $line): array
+    private function item(ForecastLine $line, string $view): array
     {
         $estimate = FlowCertainty::Estimate === $line->flow->certainty;
         $flags = [];
@@ -393,17 +419,51 @@ final readonly class ForecastScreen
         $certainty = $this->trans('cash_flow.certainty.'.$line->flow->certainty->value);
         $source = $this->subjectName($line->flow->subject->type, $line->flow->certainty->value);
 
+        $subject = $line->flow->subject;
+        $moved = FlowCertainty::Document === $line->flow->certainty && $line->flow->hasFlag(FlowFlag::ExpectedDate);
+        $record = self::RECORDS[$subject->type] ?? self::RECORDS[$subject->type.':'.$line->flow->direction->value] ?? null;
+        $href = null === $record ? $this->route(self::PAGES[$subject->type] ?? null, []) : $this->route($record, ['id' => $subject->id]);
+        $expected = null;
+        if (FlowCertainty::Document === $line->flow->certainty) {
+            $expected = [
+                'label' => $this->trans($moved ? 'cash_flow.expected.action.change' : 'cash_flow.expected.action.set'),
+                'href' => $this->urls->generate('app_cash_flow_expected', ['type' => $subject->type, 'id' => $subject->id] + (self::WEEKS === $view ? ['view' => $view] : [])),
+            ];
+        }
+
         return [
+            'subject' => $subject->type.'-'.$subject->id,
             'label' => $line->flow->label,
+            'href' => $href,
+            'inPlace' => null !== $record && null !== $href,
             'certainty' => $certainty,
             'certaintyTone' => $estimate ? 'outline' : 'gray',
             // Only a document says more by its kind (an invoice, a received document); a schedule or a plan is named by its source already.
             'source' => FlowCertainty::Document === $line->flow->certainty && $source !== $certainty ? $source : null,
             'day' => $this->day($line->countedOn),
+            'due' => $moved && $line->dueOn()->format('Y-m-d') !== $line->countedOn->format('Y-m-d') ? $this->trans('cash_flow.items.due', ['day' => $this->day($line->dueOn())]) : null,
             'flags' => $flags,
             'amount' => $this->money->shown($line->flow->amount),
             'czk' => $line->flow->amount->currency() === $line->amount->currency() ? null : $this->money->shown($line->amount),
+            'expected' => $expected,
         ];
+    }
+
+    /**
+     * The URL of a route of another module, or null when it is not installed.
+     *
+     * @param array<string, string> $parameters
+     */
+    private function route(?string $name, array $parameters): ?string
+    {
+        if (null === $name) {
+            return null;
+        }
+        try {
+            return $this->urls->generate($name, $parameters);
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**

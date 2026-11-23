@@ -64,6 +64,7 @@ cash_flow:
   items:
     empty: Nothing is expected here.
     total: Total
+    due: 'due {day}'
   subject:
     invoice: Invoice
     recurring_invoice: Recurring invoice
@@ -133,27 +134,12 @@ cash_flow:
       amount_required: Enter the minimum balance, or clear it.
       amount_invalid: Enter an amount with at most two decimals, such as 50000.
   expected:
-    title: Expected from documents
-    intro: Open invoices and received documents, by the day the forecast counts them.
     dialog_title: Expected day
     description: '{document}, due {due}: the forecast counts it on the day you set instead.'
     description_no_due: '{document} has no due date. The forecast counts it on the day you set.'
     clear: Clear
     flash_saved: '{document} is expected on {day}.'
     flash_cleared: '{document} is expected on its due day again.'
-    empty_title: No open documents
-    empty_text: Open invoices, recurring invoices and received documents show here with the day they are expected.
-    column:
-      document: Document
-      source: Kind
-      due: Due
-      expected: Expected
-      flags: Flags
-      amount: Amount
-    none:
-      due: No due date
-      expected: On the due day
-      flags: None
     action:
       set: Set expected day
       change: Change expected day

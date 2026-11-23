@@ -105,8 +105,6 @@ final class CashFlowController extends AbstractController
             'chart' => $this->screen->chart($forecast),
             'views' => $this->screen->views($view, $keep),
             'minimumSet' => $forecast->minimum instanceof Money,
-            'documentColumns' => $this->documents->columns(),
-            'documentRows' => $this->documents->rows($forecast, ForecastScreen::WEEKS === $view ? $view : null),
         ]);
     }
 

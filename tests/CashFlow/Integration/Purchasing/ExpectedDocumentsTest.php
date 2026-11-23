@@ -43,10 +43,10 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
- * Expected from documents on the Cash flow page: the open documents with their
- * due day, the day they are expected on and their flags, a row that opens the
- * document in its own sheet, and the small dialog that sets or clears the
- * expected day (Float and Xero's expected payment date).
+ * The open documents in the sheet of a cell on the Cash flow page: their kind,
+ * the day they are counted on and their flags, a link that opens the document
+ * in place, and the small dialog that sets or clears the expected day (Float
+ * and Xero's expected payment date).
  */
 final class ExpectedDocumentsTest extends WebTestCase
 {
@@ -81,30 +81,28 @@ final class ExpectedDocumentsTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheOpenDocumentsShowTheirDueDayAndFlagsAndOpenInTheirSheet(): void
+    public function testTheItemsOfACellLinkToTheirDocumentAndOfferTheExpectedDay(): void
     {
         $overdue = $this->received('LATE-1', '2026-10-01', '2026-11-05');
         $undated = $this->received('NODUE-1', '2026-11-10', null);
         $onTime = $this->received('LATER-1', '2026-11-15', '2026-12-10');
 
-        $crawler = $this->client->request('GET', '/cash-flow');
-
+        $page = $this->client->request('GET', '/cash-flow');
         self::assertResponseIsSuccessful();
-        $late = $crawler->filter('[data-cash-flow-documents] tr[data-id="received_document-'.$overdue.'"]');
-        self::assertCount(1, $late);
+        self::assertCount(0, $page->filter('[data-cash-flow-documents]'), 'The list under the table is gone: the cells open their items.');
+
+        $late = $this->item($overdue);
         self::assertStringContainsString('LATE-1 Landlord Example s.r.o.', $late->text());
         self::assertStringContainsString('Received document', $late->text());
-        self::assertStringContainsString('Nov 5', $late->text());
         self::assertStringContainsString('Overdue', $late->text());
-        self::assertStringContainsString('-12,100', $late->text(), 'Money out has a minus.');
-        self::assertSame('/purchasing/'.$overdue, $late->filter('a[data-row-link]')->attr('href'));
-        self::assertStringContainsString('/cash-flow/expected/received_document/'.$overdue, $late->html());
-        $none = $crawler->filter('[data-cash-flow-documents] tr[data-id="received_document-'.$undated.'"]');
-        self::assertStringContainsString('No due date', $none->text());
-        $later = $crawler->filter('[data-cash-flow-documents] tr[data-id="received_document-'.$onTime.'"]');
-        self::assertStringContainsString('Dec 10', $later->text());
-        self::assertStringContainsString('On the due day', $later->text());
-        self::assertStringContainsString('None', $later->text(), 'A document without a flag says so.');
+        self::assertStringContainsString('12,100', $late->text());
+        // The document opens in place, in the same sheet.
+        self::assertSame('/purchasing/'.$overdue, $late->filter('[data-in-place] a[data-cash-flow-item-link]')->attr('href'));
+        self::assertSame('/cash-flow/expected/received_document/'.$overdue, $late->filter('a[data-cash-flow-item-expected][data-dialog]')->attr('href'));
+        self::assertSame('Set expected day', $late->filter('a[data-cash-flow-item-expected]')->text());
+        self::assertCount(0, $late->filter('[data-due]'), 'Counted on its due day, it says no more.');
+        self::assertStringContainsString('No due date', $this->item($undated)->text());
+        self::assertStringContainsString('Dec 10', $this->item($onTime)->text());
     }
 
     public function testTheExpectedDayIsSetInTheDialogAndClearedAgain(): void
@@ -122,9 +120,11 @@ final class ExpectedDocumentsTest extends WebTestCase
 
         $this->dialog('POST', $url, ['expectedOn' => '2026-12-03'] + $values);
         self::assertSame('{"location":"\\/cash-flow"}', $this->client->getResponse()->getContent());
-        $row = $this->client->request('GET', '/cash-flow')->filter('tr[data-id="received_document-'.$document.'"]');
+        $row = $this->item($document);
         self::assertStringContainsString('Dec 3', $row->text());
         self::assertStringContainsString('Expected day', $row->text());
+        self::assertSame('due Nov 5', $row->filter('[data-due]')->text(), 'Moved by an expected day, it says its due day too.');
+        self::assertSame('Change expected day', $row->filter('a[data-cash-flow-item-expected]')->text());
         self::assertStringNotContainsString('Overdue', $row->text(), 'Counted on the day it is expected, it is no longer overdue.');
 
         $crawler = $this->dialog('GET', $url.'?view=weeks');
@@ -134,8 +134,7 @@ final class ExpectedDocumentsTest extends WebTestCase
         self::assertSame('2026-12-03', $values['expectedOn']);
         $this->dialog('POST', $url.'?view=weeks', ['clear' => '1'] + $values);
         self::assertSame('{"location":"\\/cash-flow?view=weeks"}', $this->client->getResponse()->getContent());
-        $row = $this->client->request('GET', '/cash-flow')->filter('tr[data-id="received_document-'.$document.'"]');
-        self::assertStringContainsString('Overdue', $row->text());
+        self::assertStringContainsString('Overdue', $this->item($document)->text());
     }
 
     public function testAnEmptyDayIsRefusedAndADocumentOutsideTheForecastIsNotFound(): void
@@ -153,6 +152,22 @@ final class ExpectedDocumentsTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         $this->dialog('GET', '/cash-flow/expected/planned_item/'.$document);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * The item of a received document in the sheet of money out of the month it is counted in.
+     */
+    private function item(string $document): Crawler
+    {
+        foreach (['2026-11', '2026-12'] as $period) {
+            $sheet = $this->client->request('GET', '/cash-flow/items?period='.$period.'&direction=out', server: ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => 'sheet']);
+            self::assertResponseIsSuccessful();
+            $item = $sheet->filter('[data-cash-flow-item][data-subject="received_document-'.$document.'"]');
+            if (1 === $item->count()) {
+                return $item;
+            }
+        }
+        self::fail('The document is in no sheet of money out.');
     }
 
     /**
