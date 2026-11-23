@@ -114,7 +114,7 @@ A recorded document records more events, each with the document as its subject a
 
 | Event | When | Payload |
 | --- | --- | --- |
-| `purchasing.received_document.changed` | It was saved again (`what` is `edited`), or its lines were set to other lines (`what` is `lines`). | `received_document_id`, `what` |
+| `purchasing.received_document.changed` | It was saved again (`what` is `edited`; it may change anything, the lines included), or its lines were set to other lines alone (`what` is `lines`). | `received_document_id`, `what` |
 | `purchasing.received_document.trashed` | It was moved to the trash. | `received_document_id` |
 | `purchasing.received_document.restored` | It came back from the trash. | `received_document_id` |
 

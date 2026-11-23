@@ -512,6 +512,17 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-lines] button[value="add_line"]'));
     }
 
+    public function testABlankUploadedDraftShowsNoLinesSection(): void
+    {
+        $this->signedIn();
+        $id = $this->draft();
+
+        $crawler = $this->page('/purchasing/'.$id);
+
+        self::assertCount(0, $crawler->filter('[data-purchasing-lines]'));
+        self::assertStringNotContainsString('The whole document as one line', $crawler->text());
+    }
+
     public function testLinesAreAddedAndRemovedWithoutSavingAndTellWhatIsLeft(): void
     {
         $this->signedIn();

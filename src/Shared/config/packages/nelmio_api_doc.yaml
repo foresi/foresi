@@ -1489,7 +1489,7 @@ nelmio_api_doc:
                                   items:
                                       type: object
                                       properties:
-                                          key: { type: string, description: 'The id of a stored line, or rate:<rate> of an implicit one.', example: 'rate:21' }
+                                          key: { type: string, description: 'The id of a stored line, or rate:<rate> of an implicit one. The key of a stored line is stable only while the lines stay as they are: lines are rewritten by position when they change, so read the lines again after purchasing.received_document.changed.', example: 'rate:21' }
                                           text: { type: string, example: 'Hosting' }
                                           base: { $ref: '#/components/schemas/Money' }
                                           base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }

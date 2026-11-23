@@ -40,6 +40,16 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'lines']]], $this->events('purchasing.received_document.changed'));
     }
 
+    public function testEditingARecordedDocumentWithChangedLinesRecordsOnlyTheEditedEvent(): void
+    {
+        $id = $this->recording()->record($this->draft(), $this->input())->document->id();
+
+        $this->editing()->edit($id, $this->input(lines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+
+        self::assertSame(['Hosting', 'Domain'], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): string => $line->text(), $this->document($id)->lines()));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('purchasing.received_document.changed'));
+    }
+
     public function testTheSameLinesAgainRecordNothing(): void
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();

@@ -135,10 +135,10 @@
             {% endif %}
 
             {% set foreign = document.currency.value != 'CZK' %}
-            <section class="grid gap-2" aria-labelledby="lines-title" data-purchasing-lines>
-                <h2 id="lines-title" class="m-0 text-small font-semibold text-ink">{{ 'purchasing.lines.title'|trans }}</h2>
-                {% if lines.whole %}<p class="m-0 text-small text-muted">{{ 'purchasing.lines.whole'|trans }}</p>{% endif %}
-                {% if lines.rows is not empty %}
+            {% if lines.rows is not empty %}
+                <section class="grid gap-2" aria-labelledby="lines-title" data-purchasing-lines>
+                    <h2 id="lines-title" class="m-0 text-small font-semibold text-ink">{{ 'purchasing.lines.title'|trans }}</h2>
+                    {% if lines.whole %}<p class="m-0 text-small text-muted">{{ 'purchasing.lines.whole'|trans }}</p>{% endif %}
                     {# The same ARIA table as the rows in CZK above. #}
                     {% set columns = foreign ? 'grid-cols-[minmax(4rem,1fr)_repeat(3,minmax(0,auto))] sm:grid-cols-[minmax(0,1fr)_5rem_repeat(2,10rem)]' : 'grid-cols-[minmax(4rem,1fr)_repeat(2,minmax(0,auto))] sm:grid-cols-[minmax(0,1fr)_5rem_10rem]' %}
                     <div role="table" aria-labelledby="lines-title" tabindex="0" class="overflow-x-auto rounded-panel border border-container bg-white text-small {{ focus }}">
@@ -157,8 +157,8 @@
                             </div>
                         {% endfor %}
                     </div>
-                {% endif %}
-            </section>
+                </section>
+            {% endif %}
 
             <twig:Ui:Card :title="'purchasing.history.title'|trans" icon="history">
                 <twig:Ui:Timeline :items="timeline" data-purchasing-history />
