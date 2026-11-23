@@ -214,8 +214,12 @@ final readonly class ReceivedDocumentWrites
         $base = \is_array($line) ? $line['base'] ?? null : null;
         $rate = \is_array($line) ? $line['vat_rate'] ?? null : null;
         $id = \is_array($line) ? $line['id'] ?? null : null;
-        if (null !== $id && (!\is_string($id) || !Id::isValid($id))) {
-            throw PurchasingRefused::unreadable(PurchasingRefused::LINE, 'lines', 'The id of a line is the key a read of the document gave it, a uuid; leave it out for a new line.');
+        if (null !== $id && !\is_string($id)) {
+            throw PurchasingRefused::unreadable(PurchasingRefused::LINE, 'lines', 'The id of a line is a string, the key a read of the document gave it; leave it out for a new line.');
+        }
+        // The key of an implicit line, such as "rate:21", names no stored line: the line is new.
+        if (null !== $id && !Id::isValid($id)) {
+            $id = null;
         }
         if (!\is_string($text) || !\is_string($base) || !\is_string($rate)) {
             throw PurchasingRefused::unreadable(PurchasingRefused::LINE, 'lines', 'A line is {text, base, vat_rate} of strings, with an optional id, such as {"text": "Hosting", "base": "1000.00", "vat_rate": "21"}.');

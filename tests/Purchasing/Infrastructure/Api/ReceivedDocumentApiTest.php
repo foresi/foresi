@@ -130,6 +130,12 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'duplicate_line_id']);
 
         $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['id' => 'rate:21', 'text' => 'Hosting', 'base' => '1000.00', 'vat_rate' => '21']]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Hosting', $this->at('data', 'lines', 0, 'text'));
+        self::assertNotSame('rate:21', $this->at('data', 'lines', 0, 'key'), 'An implicit key is no id: the line is new.');
+        self::assertFalse($this->at('data', 'lines', 0, 'implicit'));
+
+        $this->send('PUT', '/api/v1/received-documents/'.$id.'/lines', ['lines' => [['id' => 5, 'text' => 'Hosting', 'base' => '1000.00', 'vat_rate' => '21']]]);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'lines', 'reason' => 'line_invalid']);
     }
 

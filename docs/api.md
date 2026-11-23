@@ -787,7 +787,7 @@ What a received document write refuses:
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. The lines are refused with `parameter` `lines` and `lines_do_not_add_up`, `unknown_vat_rate`, `vat_rate`, `line_text_required`, `line_text_too_long`, `lines_too_many`, `duplicate_line_id` or `line_invalid` (a line that is no object of strings). |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which, such as `date_invalid`, `amount_invalid`, `currency_unsupported`, `vat_recap_line_invalid`, `supplier_unknown`, `vat_recap_missing`, `exchange_rate_missing`, `variable_symbol` or `payment_amount`. The lines are refused with `parameter` `lines` and `lines_do_not_add_up`, `unknown_vat_rate`, `vat_rate`, `line_text_required`, `line_text_too_long`, `lines_too_many`, `duplicate_line_id` or `line_invalid` (a line that is no object of strings, or whose `id` is not a string). An `id` that is a string but no uuid, such as the key `rate:21` of an implicit line, is not refused: the line is new. |
 | 404 | `not_found` | The organisation has no such received document. |
 | 404 | `firm_unknown` | The instance has no firm yet: its first-run setup has not happened. |
 | 409 | `overpaid` | The payment is more than what remains. |
