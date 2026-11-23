@@ -83,7 +83,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertSame(['All2', 'To complete2', 'Recorded0', 'Trash0'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('main table tbody tr'));
         self::assertStringContainsString('Draft of', $crawler->filter('main table tbody')->text());
-        $sidebar = $crawler->filter('#sidebar [data-nav-group] a[href="/purchasing"]');
+        $sidebar = $crawler->filter('#sidebar [data-nav-section] a[href="/purchasing"]');
         self::assertStringContainsString('Costs', $sidebar->text());
         self::assertStringContainsString('2', $sidebar->text());
         // Every action sits in the page header.

@@ -68,20 +68,20 @@ test.describe('navigation', () => {
       await expect(sidebar.getByRole('heading', { level: 2, name: 'Přehled' })).toBeVisible();
     }
     // The inbox sits under the start page: where a person begins, not a part of the projects.
-    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-group="main"]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
+    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
     await shot(page, 'sidebar');
 
     for (const [label, area, links] of [
-      ['Prodej', 'sales', [/Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/, 'Dokumenty', /Produkty/]],
+      ['Prodej', 'sales', ['Dokumenty', /Produkty/, /Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/]],
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
-      ['Nastavení', 'settings', ['Lidé', 'Firma', 'Štítky', 'API a MCP', 'Webhooky', 'Import a export', 'Dokumenty', 'Aktivity']],
+      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Aktivity', 'Import a export', 'API a MCP', 'Webhooky']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);
       const shown = sidebar.locator(`[data-nav-area="${area}"][data-shown]`);
-      await expect(shown.locator('[data-nav-group]').getByRole('link')).toHaveText([...links]);
+      await expect(shown.locator('[data-nav-section]').getByRole('link')).toHaveText([...links]);
       await expect(shown.locator('[aria-current="page"]')).toHaveCount(1);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     }

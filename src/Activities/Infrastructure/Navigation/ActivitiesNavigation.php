@@ -10,6 +10,7 @@ namespace Foresi\Activities\Infrastructure\Navigation;
 
 use Foresi\Activities\Application\ActivitiesAccess;
 use Foresi\Activities\Infrastructure\Controller\ActivitySettingsController;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
@@ -30,6 +31,6 @@ final readonly class ActivitiesNavigation implements NavigationItemProvider
         if (!$this->access->isStaff()) {
             return;
         }
-        yield new NavigationItem('settings', 'nav.item.activity_settings', 'calendar', ActivitySettingsController::ROUTE, weight: 45, routePrefixes: [ActivitySettingsController::ROUTE], area: NavigationArea::SETTINGS);
+        yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.activity_settings', 'calendar', ActivitySettingsController::ROUTE, weight: 45, routePrefixes: [ActivitySettingsController::ROUTE], section: CoreNavigationAreas::SECTION_FIRM);
     }
 }

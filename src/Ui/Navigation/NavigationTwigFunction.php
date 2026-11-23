@@ -18,16 +18,7 @@ final readonly class NavigationTwigFunction
     }
 
     /**
-     * @return list<array{key: string, labelKey: string, items: list<NavigationEntry>}>
-     */
-    #[AsTwigFunction('nav_groups')]
-    public function groups(?string $currentRoute, bool $member): array
-    {
-        return $this->registry->groups($currentRoute, $member);
-    }
-
-    /**
-     * @return list<array{area: NavigationArea, current: bool, groups: list<array{key: string, labelKey: string, items: list<NavigationEntry>}>}>
+     * @return list<array{area: NavigationArea, current: bool, headings: bool, sections: list<array{key: string, labelKey: string, items: list<NavigationEntry>}>}>
      */
     #[AsTwigFunction('nav_areas')]
     public function areas(?string $currentRoute, bool $member): array

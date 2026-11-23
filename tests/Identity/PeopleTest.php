@@ -261,7 +261,7 @@ final class PeopleTest extends WebTestCase
         self::assertSelectorExists('a[href="/settings/people/invite"]');
         self::assertSelectorExists('[data-avatar-cell]');
         self::assertSelectorTextContains('tbody', 'Alex Example');
-        self::assertCount(1, $crawler->filter('#sidebar [data-nav-group] a[href="/settings/people"]'));
+        self::assertCount(1, $crawler->filter('#sidebar [data-nav-section] a[href="/settings/people"]'));
 
         $this->client->getCookieJar()->clear();
         $this->signIn(self::MEMBER);

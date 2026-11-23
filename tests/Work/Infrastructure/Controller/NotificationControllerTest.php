@@ -89,11 +89,11 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('false', $crawler->filter('[data-notifications]')->attr('data-turbo-prefetch'));
         // The header reads them all; there are two unread, and the sidebar says so in its main group.
         self::assertSame('/notifications/read', $crawler->filter('[data-notifications-read-all]')->attr('action'));
-        self::assertSame('2', trim($crawler->filter('#sidebar [data-nav-group="main"] a[href="/notifications"] [data-nav-count]')->text()));
+        self::assertSame('2', trim($crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] a[href="/notifications"] [data-nav-count]')->text()));
         self::assertSame('page', $crawler->filter('#sidebar a[href="/notifications"]')->attr('aria-current'));
         // The inbox marks its area: the rail puts the unread dot on Overview alone.
         self::assertSame(['overview'], $crawler->filter('#rail [data-nav-unread]')->each(static fn (Crawler $dot): string => (string) $dot->closest('[data-nav-area]')?->attr('data-nav-area')));
-        self::assertSame(['/', '/notifications'], $crawler->filter('#sidebar [data-nav-group="main"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['/', '/notifications'], $crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
         self::assertSame(['All', 'Done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => trim($a->text())));
         self::assertCount(0, $crawler->filter('[data-notifications-kept]'));
         self::assertCount(0, $crawler->filter('main nav[aria-label="Pagination"]'));
@@ -359,7 +359,7 @@ final class NotificationControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-view-actions]'));
         $crawler = $this->client->request('GET', '/notifications');
         self::assertStringContainsString('Example Company: Shared the task with you', $crawler->filter('[data-notifications] tbody tr')->text());
-        self::assertSame(['/shared', '/notifications', '/connected-apps'], $crawler->filter('#sidebar [data-nav-group="main"] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/connected-apps'], $crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
         self::assertSame('1', trim($crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]')->text()));
 
         // The row of the owner is not theirs.

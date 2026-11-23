@@ -10,20 +10,22 @@
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set settings = constant('Foresi\\Ui\\Contract\\Navigation\\NavigationArea::SETTINGS') %}
 {% set commands = [] %}
+{# The palette groups the items by the sections the sidebar shows: an area with headings by its sections, every other one under "Go to". #}
 {% for entry in areas %}
-    {% for group in entry.groups %}
-        {% for item in group.items %}
-            {% set commands = commands|merge([{label: item.labelKey|trans, href: path(item.route), icon: item.icon, group: 'shell.palette.go_to'|trans}]) %}
+    {% for section in entry.sections %}
+        {% set group = entry.headings ? section.labelKey|trans : 'shell.palette.go_to'|trans %}
+        {% for item in section.items %}
+            {% set commands = commands|merge([{label: item.labelKey|trans, href: path(item.route), icon: item.icon, group: group}]) %}
             {% if item.commandRoute %}
-                {% set commands = commands|merge([{label: item.commandLabelKey|trans, href: path(item.commandRoute), icon: 'plus', group: 'shell.palette.go_to'|trans}]) %}
+                {% set commands = commands|merge([{label: item.commandLabelKey|trans, href: path(item.commandRoute), icon: 'plus', group: group}]) %}
             {% endif %}
         {% endfor %}
     {% endfor %}
 {% endfor %}
 
 {% macro area(entry, focus) %}
-    {% set first = (entry.groups|first).items|first %}
-    {% set unread = entry.groups|filter(g => g.items|filter(i => i.marksArea and i.count)|length > 0)|length > 0 %}
+    {% set first = (entry.sections|first).items|first %}
+    {% set unread = entry.sections|filter(s => s.items|filter(i => i.marksArea and i.count)|length > 0)|length > 0 %}
     <a href="{{ path(first.route) }}" data-nav-area="{{ entry.area.id }}" data-nav-sync{% if entry.current %} aria-current="true"{% endif %} class="group relative flex w-15 flex-col items-center gap-0.5 rounded-panel py-1.5 text-micro font-medium text-muted no-underline hover:text-ink aria-[current=true]:text-ink max-shell:hidden {{ focus }}">
         <span class="grid h-8 w-10 place-items-center rounded-control group-hover:bg-frame group-aria-[current=true]:bg-white group-aria-[current=true]:text-green group-aria-[current=true]:shadow-raised">{{ ux_icon('lucide:' ~ entry.area.icon, {class: 'size-5', 'aria-hidden': 'true'}) }}</span>
         <span class="max-w-full truncate px-0.5">{{ entry.area.labelKey|trans }}</span>

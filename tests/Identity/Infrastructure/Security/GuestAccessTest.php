@@ -145,7 +145,7 @@ final class GuestAccessTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        $links = $crawler->filter('#sidebar [data-nav-group] li > a')->each(static fn ($link): string => (string) $link->attr('href'));
+        $links = $crawler->filter('#sidebar [data-nav-section] li > a')->each(static fn ($link): string => (string) $link->attr('href'));
         self::assertContains('/', $links);
         self::assertContains('/contacts', $links);
         self::assertNotContains('/shared', $links);

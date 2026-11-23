@@ -30,7 +30,7 @@ test.describe('documents', () => {
 
   test('a new NDA is generated, signed in two orders and completed', async ({ page }) => {
     await page.goto('/documents');
-    await expect(page.locator('#sidebar a[href="/documents"]')).toBeVisible();
+    await expect(page.locator('#sidebar [data-nav-section] a[href="/documents"]')).toBeVisible();
 
     // New document, in its dialog; the dialog follows to the new document.
     await page.locator('header [data-document-new]').click();

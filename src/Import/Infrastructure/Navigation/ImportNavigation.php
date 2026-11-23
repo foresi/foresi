@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Import\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
@@ -26,7 +27,7 @@ final readonly class ImportNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('settings', 'nav.item.import', 'upload', 'app_imports', weight: 20, routePrefixes: ['app_import'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.import', 'upload', 'app_imports', weight: 16, routePrefixes: ['app_import'], section: CoreNavigationAreas::SECTION_CONNECTIONS);
         }
     }
 }

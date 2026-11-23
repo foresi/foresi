@@ -32,7 +32,7 @@ final readonly class DocumentsNavigation implements NavigationItemProvider
         if (!$this->access->isStaff()) {
             return;
         }
-        yield new NavigationItem('sales', 'nav.item.documents', 'file-text', DocumentController::LIST_ROUTE, weight: 30, commandLabelKey: 'documents.action.new', commandRoute: DocumentController::NEW_ROUTE, routePrefixes: [DocumentController::LIST_ROUTE, DocumentController::SHOW_ROUTE], area: CoreNavigationAreas::SALES);
-        yield new NavigationItem('settings', 'nav.item.document_settings', 'file-text', DocumentSettingsController::ROUTE, weight: 40, routePrefixes: [DocumentSettingsController::ROUTE], area: NavigationArea::SETTINGS);
+        yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.documents', 'file-text', DocumentController::LIST_ROUTE, weight: 30, commandLabelKey: 'documents.action.new', commandRoute: DocumentController::NEW_ROUTE, routePrefixes: [DocumentController::LIST_ROUTE, DocumentController::SHOW_ROUTE], section: CoreNavigationAreas::SECTION_SELLING);
+        yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.document_settings', 'file-text', DocumentSettingsController::ROUTE, weight: 40, routePrefixes: [DocumentSettingsController::ROUTE], section: CoreNavigationAreas::SECTION_FIRM);
     }
 }

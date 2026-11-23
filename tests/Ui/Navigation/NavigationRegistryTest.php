@@ -14,100 +14,71 @@ use Foresi\Ui\Contract\Navigation\NavigationAreaProvider;
 use Foresi\Ui\Contract\Navigation\NavigationCountProvider;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationSection;
+use Foresi\Ui\Navigation\NavigationEntry;
 use Foresi\Ui\Navigation\NavigationRegistry;
 use PHPUnit\Framework\TestCase;
 
 final class NavigationRegistryTest extends TestCase
 {
-    public function testGroupsComeInTheFixedOrderWhateverTheRegistrationOrder(): void
-    {
-        $registry = $this->registry(
-            new NavigationItem('extensions', 'e', 'plug', 'r_e', area: 'extensions'),
-            new NavigationItem('work', 'w', 'check', 'r_w'),
-            new NavigationItem('contacts', 'c', 'users', 'r_c'),
-            new NavigationItem('money', 'm', 'landmark', 'r_m', area: 'money'),
-            new NavigationItem('sales', 's', 'target', 'r_s'),
-            new NavigationItem('main', 'a', 'layout-grid', 'r_a'),
-            new NavigationItem('settings', 'x', 'settings', 'r_x'),
-        );
-
-        self::assertSame(['main', 'sales', 'money', 'contacts', 'work', 'extensions', 'settings'], array_map(static fn (array $g): string => $g['key'], $registry->groups(null, true)));
-    }
-
-    public function testEmptyGroupsAreLeftOut(): void
-    {
-        $groups = $this->registry(new NavigationItem('money', 'm', 'landmark', 'r_m', area: 'money'))->groups(null, true);
-
-        self::assertCount(1, $groups);
-        self::assertSame('money', $groups[0]['key']);
-        self::assertSame('nav.group.money', $groups[0]['labelKey']);
-    }
-
     public function testItemsAreOrderedByWeightThenRegistrationOrder(): void
     {
-        $groups = $this->registry(
-            new NavigationItem('main', 'late', 'plus', 'r1', weight: 200),
-            new NavigationItem('main', 'first', 'plus', 'r2', weight: 10),
-            new NavigationItem('main', 'tie-a', 'plus', 'r3'),
-            new NavigationItem('main', 'tie-b', 'plus', 'r4'),
-        )->groups(null, true);
+        $areas = $this->areaRegistry(
+            new NavigationItem('overview', 'late', 'plus', 'r1', weight: 200),
+            new NavigationItem('overview', 'first', 'plus', 'r2', weight: 10),
+            new NavigationItem('overview', 'tie-a', 'plus', 'r3'),
+            new NavigationItem('overview', 'tie-b', 'plus', 'r4'),
+        )->areas(null, true);
 
-        self::assertSame(['first', 'tie-a', 'tie-b', 'late'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $i): string => $i->labelKey, $groups[0]['items']));
+        self::assertSame(['first', 'tie-a', 'tie-b', 'late'], self::labels($areas[0]['sections'][0]['items']));
     }
 
     public function testItemsOfSeveralProvidersAreMerged(): void
     {
         $registry = new NavigationRegistry([
-            $this->provider(new NavigationItem('main', 'a', 'plus', 'r1')),
-            $this->provider(new NavigationItem('main', 'b', 'plus', 'r2')),
-        ]);
+            $this->provider(new NavigationItem('overview', 'a', 'plus', 'r1')),
+            $this->provider(new NavigationItem('overview', 'b', 'plus', 'r2')),
+        ], [new CoreNavigationAreas()]);
 
-        self::assertCount(2, $registry->groups(null, true)[0]['items']);
+        self::assertCount(2, $registry->areas(null, true)[0]['sections'][0]['items']);
     }
 
     public function testTheItemOfTheCurrentRouteIsMarked(): void
     {
-        $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1'), new NavigationItem('main', 'b', 'plus', 'r2'))->groups('r2', true);
+        $items = $this->overview('r2', new NavigationItem('overview', 'a', 'plus', 'r1'), new NavigationItem('overview', 'b', 'plus', 'r2'));
 
-        self::assertFalse($groups[0]['items'][0]->current);
-        self::assertTrue($groups[0]['items'][1]->current);
+        self::assertFalse($items[0]->current);
+        self::assertTrue($items[1]->current);
     }
 
     public function testTheItemStaysCurrentOnTheRoutesOfItsPrefixes(): void
     {
-        $item = new NavigationItem('main', 'a', 'plus', 'app_things', routePrefixes: ['app_thing_', 'app_other']);
+        $item = new NavigationItem('overview', 'a', 'plus', 'app_things', routePrefixes: ['app_thing_', 'app_other']);
 
-        self::assertTrue($this->registry($item)->groups('app_thing_edit', true)[0]['items'][0]->current);
-        self::assertTrue($this->registry($item)->groups('app_other', true)[0]['items'][0]->current);
-        self::assertFalse($this->registry($item)->groups('app_thingy', true)[0]['items'][0]->current);
-        self::assertFalse($this->registry($item)->groups(null, true)[0]['items'][0]->current);
+        self::assertTrue($this->overview('app_thing_edit', $item)[0]->current);
+        self::assertTrue($this->overview('app_other', $item)[0]->current);
+        self::assertFalse($this->overview('app_thingy', $item)[0]->current);
+        self::assertFalse($this->overview(null, $item)[0]->current);
     }
 
     public function testAnItemOfItsOwnWinsOverAnotherItemsPrefix(): void
     {
-        $list = new NavigationItem('sales', 'a', 'plus', 'app_invoices', routePrefixes: ['app_invoice']);
-        $log = new NavigationItem('sales', 'b', 'plus', 'app_invoice_sends');
+        $list = new NavigationItem('overview', 'a', 'plus', 'app_invoices', routePrefixes: ['app_invoice']);
+        $log = new NavigationItem('overview', 'b', 'plus', 'app_invoice_sends');
 
-        $onLog = $this->registry($list, $log)->groups('app_invoice_sends', true)[0]['items'];
-        $onEdit = $this->registry($list, $log)->groups('app_invoice_edit', true)[0]['items'];
+        $onLog = $this->overview('app_invoice_sends', $list, $log);
+        $onEdit = $this->overview('app_invoice_edit', $list, $log);
 
         self::assertSame([false, true], [$onLog[0]->current, $onLog[1]->current]);
         self::assertSame([true, false], [$onEdit[0]->current, $onEdit[1]->current]);
     }
 
-    public function testNothingIsCurrentWithoutARoute(): void
-    {
-        $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1'))->groups(null, true);
-
-        self::assertFalse($groups[0]['items'][0]->current);
-    }
-
     public function testCountsAreEvaluatedForAMember(): void
     {
-        $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(7)), new NavigationItem('main', 'b', 'plus', 'r2'))->groups(null, true);
+        $items = $this->overview(null, new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(7)), new NavigationItem('overview', 'b', 'plus', 'r2'));
 
-        self::assertSame(7, $groups[0]['items'][0]->count);
-        self::assertNull($groups[0]['items'][1]->count);
+        self::assertSame(7, $items[0]->count);
+        self::assertNull($items[1]->count);
     }
 
     public function testCountProvidersAreNeverCalledWithoutAnActiveMembership(): void
@@ -123,81 +94,73 @@ final class NavigationRegistryTest extends TestCase
             }
         };
 
-        $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1', $counter))->groups(null, false);
+        $areas = $this->areaRegistry(new NavigationItem('overview', 'a', 'plus', 'r1', $counter))->areas(null, false);
 
         self::assertSame(0, $counter->calls);
-        self::assertNull($groups[0]['items'][0]->count);
+        self::assertNull($areas[0]['sections'][0]['items'][0]->count);
     }
 
     public function testAProviderMayDeclineToCount(): void
     {
-        $groups = $this->registry(new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(null)))->groups(null, true);
-
-        self::assertNull($groups[0]['items'][0]->count);
+        self::assertNull($this->overview(null, new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(null)))[0]->count);
     }
 
     public function testACountAboveItsCapIsWrittenAsTheCapWithAPlus(): void
     {
-        $groups = $this->registry(
-            new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(100), countCap: 99),
-            new NavigationItem('main', 'b', 'plus', 'r2', $this->counter(99), countCap: 99),
-            new NavigationItem('main', 'c', 'plus', 'r3', $this->counter(1000)),
-            new NavigationItem('main', 'd', 'plus', 'r4', $this->counter(null), countCap: 99),
-        )->groups(null, true);
+        $items = $this->overview(
+            null,
+            new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(100), countCap: 99),
+            new NavigationItem('overview', 'b', 'plus', 'r2', $this->counter(99), countCap: 99),
+            new NavigationItem('overview', 'c', 'plus', 'r3', $this->counter(1000)),
+            new NavigationItem('overview', 'd', 'plus', 'r4', $this->counter(null), countCap: 99),
+        );
 
-        self::assertSame(['99+', '99', '1000', null], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $entry): ?string => $entry->countText(), $groups[0]['items']));
-        self::assertSame(100, $groups[0]['items'][0]->count);
-        self::assertSame(99, $groups[0]['items'][0]->countCap);
+        self::assertSame(['99+', '99', '1000', null], array_map(static fn (NavigationEntry $entry): ?string => $entry->countText(), $items));
+        self::assertSame(100, $items[0]->count);
+        self::assertSame(99, $items[0]->countCap);
     }
 
     public function testOnlyAnItemThatMarksItsAreaCarriesTheMarkToTheSidebar(): void
     {
-        $groups = $this->registry(
-            new NavigationItem('main', 'a', 'plus', 'r1', $this->counter(3), marksArea: true),
-            new NavigationItem('main', 'b', 'plus', 'r2', $this->counter(3)),
-        )->groups(null, true);
+        $items = $this->overview(
+            null,
+            new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(3), marksArea: true),
+            new NavigationItem('overview', 'b', 'plus', 'r2', $this->counter(3)),
+        );
 
-        self::assertSame([true, false], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $entry): bool => $entry->marksArea, $groups[0]['items']));
-        self::assertFalse(new \Foresi\Ui\Navigation\NavigationEntry('a', 'plus', 'r1', 3, false)->marksArea, 'An entry marks its area only when told to.');
+        self::assertSame([true, false], array_map(static fn (NavigationEntry $entry): bool => $entry->marksArea, $items));
+        self::assertFalse(new NavigationEntry('a', 'plus', 'r1', 3, false)->marksArea, 'An entry marks its area only when told to.');
     }
 
     public function testACapOfOneIsAllowedAndBelowItRefused(): void
     {
-        self::assertSame(1, new NavigationItem('main', 'a', 'plus', 'r1', countCap: 1)->countCap);
+        self::assertSame(1, new NavigationItem('overview', 'a', 'plus', 'r1', countCap: 1)->countCap);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessageIsOrContains('A count cap is a positive number.');
 
-        new NavigationItem('main', 'a', 'plus', 'r1', countCap: 0);
-    }
-
-    public function testUnknownGroupIsRefused(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageIsOrContains('Unknown navigation group "nope"');
-
-        new NavigationItem('nope', 'a', 'plus', 'r1');
+        new NavigationItem('overview', 'a', 'plus', 'r1', countCap: 0);
     }
 
     public function testIconOutsideTheLockedSetIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationItem('main', 'a', 'no-such-icon', 'r1');
+        new NavigationItem('overview', 'a', 'no-such-icon', 'r1');
     }
 
     public function testRouteAndLabelAreRequired(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationItem('main', '', 'plus', 'r1');
+        new NavigationItem('overview', '', 'plus', 'r1');
     }
 
     public function testRouteIsRequired(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationItem('main', 'a', 'plus', '');
+        new NavigationItem('overview', 'a', 'plus', '');
     }
 
     public function testCoreProvidesSixBusinessAreasAndSettings(): void
@@ -211,28 +174,77 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame('nav.area_caption.sales', $areas[1]->captionKey);
     }
 
-    public function testAGroupThatMapsToOneAreaGivesTheAreaOnItsOwn(): void
+    public function testSalesAndSettingsHaveTwoSectionsAndTheOtherAreasOne(): void
     {
-        self::assertSame(
-            ['overview', 'sales', 'contacts', 'projects', 'settings'],
-            array_map(static fn (string $group): string => new NavigationItem($group, 'a', 'plus', 'r1')->area, ['main', 'sales', 'contacts', 'work', 'settings']),
+        $sections = array_map(
+            static fn (NavigationArea $a): array => array_map(static fn (NavigationSection $s): string => $s->key.' '.$s->labelKey, $a->sections),
+            iterator_to_array(new CoreNavigationAreas()->areas(), false),
         );
-        self::assertSame('purchasing', new NavigationItem('money', 'a', 'plus', 'r1', area: 'purchasing')->area);
+
+        self::assertSame([
+            ['main nav.area.overview'],
+            ['selling nav.section.selling', 'billing nav.section.billing'],
+            ['main nav.area.purchasing'],
+            ['main nav.area.money'],
+            ['main nav.area.contacts'],
+            ['main nav.area.projects'],
+            ['firm nav.section.firm', 'connections nav.section.connections'],
+        ], $sections);
+        $weights = array_map(
+            static fn (NavigationArea $a): array => array_map(static fn (NavigationSection $s): int => $s->weight, $a->sections),
+            iterator_to_array(new CoreNavigationAreas()->areas(), false),
+        );
+        self::assertSame([[100], [10, 20], [100], [100], [100], [100], [10, 20]], $weights);
     }
 
-    public function testAnItemOfAGroupThatSpansAreasMustNameItsArea(): void
+    public function testAnAreaOrdersItsSectionsByWeightThenTheOrderGiven(): void
+    {
+        $area = new NavigationArea('sales', 'l', 'c', 'plus', sections: [
+            new NavigationSection('late', 'L', 50),
+            new NavigationSection('tie_a', 'A'),
+            new NavigationSection('early', 'E', 5),
+            new NavigationSection('tie_b', 'B'),
+        ]);
+
+        self::assertSame(['early', 'late', 'tie_a', 'tie_b'], array_map(static fn (NavigationSection $s): string => $s->key, $area->sections));
+    }
+
+    public function testASectionWeighsAHundredByDefault(): void
+    {
+        self::assertSame(100, new NavigationSection('billing', 'l')->weight);
+    }
+
+    public function testAnAreaDefiningASectionTwiceIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageIsOrContains('A navigation item in group "money" needs an area.');
+        $this->expectExceptionMessageIsOrContains('Navigation area "sales" defines a section twice.');
 
-        new NavigationItem('money', 'a', 'plus', 'r1');
+        new NavigationArea('sales', 'l', 'c', 'plus', sections: [new NavigationSection('a', 'A'), new NavigationSection('a', 'B')]);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function malformedSections(): iterable
+    {
+        yield 'uppercase key' => ['Billing', 'l'];
+        yield 'key with trailing junk' => ['billing-x', 'l'];
+        yield 'no label' => ['billing', ''];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('malformedSections')]
+    public function testAMalformedSectionIsRefused(string $key, string $label): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NavigationSection($key, $label);
     }
 
     public function testAMalformedAreaIdIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationItem('main', 'a', 'plus', 'r1', area: 'Not An Id');
+        new NavigationItem('Not An Id', 'a', 'plus', 'r1');
     }
 
     public function testAnAreaWeighsAHundredByDefault(): void
@@ -263,7 +275,7 @@ final class NavigationRegistryTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NavigationItem('main', 'a', 'plus', 'r1', area: 'sales-x');
+        new NavigationItem('sales-x', 'a', 'plus', 'r1');
     }
 
     public function testAnAreaWithAnIconOutsideTheLockedSetIsRefused(): void
@@ -273,27 +285,69 @@ final class NavigationRegistryTest extends TestCase
         new NavigationArea('sales', 'l', 'c', 'no-such-icon');
     }
 
-    public function testItemsAreGroupedByAreaWithTheirGroupsAsSections(): void
+    public function testItemsAreGroupedByArea(): void
     {
         $areas = $this->areaRegistry(
-            new NavigationItem('money', 'bank', 'landmark', 'r_bank', area: 'money'),
-            new NavigationItem('money', 'costs', 'file-text', 'r_costs', area: 'purchasing'),
+            new NavigationItem('money', 'bank', 'landmark', 'r_bank'),
+            new NavigationItem('purchasing', 'costs', 'file-text', 'r_costs'),
             new NavigationItem('sales', 'invoices', 'receipt-text', 'r_inv'),
-            new NavigationItem('main', 'dashboard', 'layout-grid', 'r_dash'),
-            new NavigationItem('main', 'notifications', 'inbox', 'r_notif'),
+            new NavigationItem('overview', 'dashboard', 'layout-grid', 'r_dash'),
+            new NavigationItem('overview', 'notifications', 'inbox', 'r_notif'),
             new NavigationItem('settings', 'people', 'user', 'r_people'),
         )->areas('r_costs', true);
 
         self::assertSame(['overview', 'sales', 'purchasing', 'money', 'settings'], array_map(static fn (array $a): string => $a['area']->id, $areas));
-        self::assertSame(['main'], array_map(static fn (array $g): string => $g['key'], $areas[0]['groups']));
-        self::assertSame(['dashboard', 'notifications'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[0]['groups'][0]['items']));
-        self::assertSame(['costs'], array_map(static fn (\Foresi\Ui\Navigation\NavigationEntry $e): string => $e->labelKey, $areas[2]['groups'][0]['items']));
+        self::assertSame(['main'], array_map(static fn (array $s): string => $s['key'], $areas[0]['sections']));
+        self::assertSame(['dashboard', 'notifications'], self::labels($areas[0]['sections'][0]['items']));
+        self::assertSame(['costs'], self::labels($areas[2]['sections'][0]['items']));
         self::assertSame([false, false, true, false, false], array_map(static fn (array $a): bool => $a['current'], $areas));
+    }
+
+    public function testItemsAreListedInTheSectionTheyNameInTheOrderOfTheAreasSections(): void
+    {
+        $areas = $this->areaRegistry(
+            new NavigationItem('sales', 'invoices', 'receipt-text', 'r_inv', weight: 10, section: CoreNavigationAreas::SECTION_BILLING),
+            new NavigationItem('sales', 'documents', 'file-text', 'r_doc', weight: 30, section: CoreNavigationAreas::SECTION_SELLING),
+        )->areas(null, true);
+
+        self::assertSame(['selling', 'billing'], array_map(static fn (array $s): string => $s['key'], $areas[0]['sections']));
+        self::assertSame(['nav.section.selling', 'nav.section.billing'], array_map(static fn (array $s): string => $s['labelKey'], $areas[0]['sections']));
+        self::assertSame([['documents'], ['invoices']], array_map(static fn (array $s): array => self::labels($s['items']), $areas[0]['sections']));
+    }
+
+    public function testAnItemNamingAnUnknownOrNoSectionGoesToTheAreasLastSection(): void
+    {
+        $areas = $this->areaRegistry(
+            new NavigationItem('sales', 'plugin', 'puzzle', 'r_plugin', section: 'nowhere'),
+            new NavigationItem('sales', 'unnamed', 'puzzle', 'r_unnamed'),
+            new NavigationItem('sales', 'documents', 'file-text', 'r_doc', section: CoreNavigationAreas::SECTION_SELLING),
+            new NavigationItem('overview', 'elsewhere', 'puzzle', 'r_else', section: CoreNavigationAreas::SECTION_BILLING),
+        )->areas(null, true);
+
+        self::assertSame([['documents'], ['plugin', 'unnamed']], array_map(static fn (array $s): array => self::labels($s['items']), $areas[1]['sections']));
+        self::assertSame(['billing'], array_map(static fn (array $s): string => $s['key'], array_slice($areas[1]['sections'], 1)));
+        self::assertSame([['elsewhere']], array_map(static fn (array $s): array => self::labels($s['items']), $areas[0]['sections']));
+    }
+
+    public function testHeadingsShowFromSevenItemsOfAnAreaWithMoreThanOneSection(): void
+    {
+        $sales = static fn (int $count): array => array_map(
+            static fn (int $i): NavigationItem => new NavigationItem('sales', 'i'.$i, 'plus', 'r'.$i, section: 0 === $i ? CoreNavigationAreas::SECTION_SELLING : CoreNavigationAreas::SECTION_BILLING),
+            range(0, $count - 1),
+        );
+        $overview = array_map(static fn (int $i): NavigationItem => new NavigationItem('overview', 'o'.$i, 'plus', 'o'.$i), range(0, 7));
+
+        self::assertFalse($this->areaRegistry(...$sales(6))->areas(null, true)[0]['headings']);
+        self::assertTrue($this->areaRegistry(...$sales(7))->areas(null, true)[0]['headings']);
+        self::assertFalse($this->areaRegistry(...$overview)->areas(null, true)[0]['headings'], 'One section never gets a heading.');
+        $onlyBilling = array_map(static fn (int $i): NavigationItem => new NavigationItem('sales', 'b'.$i, 'plus', 'b'.$i, section: CoreNavigationAreas::SECTION_BILLING), range(0, 7));
+        self::assertFalse($this->areaRegistry(...$onlyBilling)->areas(null, true)[0]['headings'], 'Empty sections are left out, so one filled section gets no heading.');
+        self::assertCount(1, $this->areaRegistry(...$onlyBilling)->areas(null, true)[0]['sections']);
     }
 
     public function testAreasWithoutItemsAreLeftOut(): void
     {
-        $areas = $this->areaRegistry(new NavigationItem('main', 'shared', 'share-2', 'r1'))->areas(null, true);
+        $areas = $this->areaRegistry(new NavigationItem('overview', 'shared', 'share-2', 'r1'))->areas(null, true);
 
         self::assertSame(['overview'], array_map(static fn (array $a): string => $a['area']->id, $areas));
         self::assertFalse($areas[0]['current']);
@@ -304,8 +358,8 @@ final class NavigationRegistryTest extends TestCase
         $registry = new NavigationRegistry(
             [$this->provider(
                 new NavigationItem('settings', 's', 'settings', 'r1'),
-                new NavigationItem('extensions', 'b', 'puzzle', 'r2', area: 'late'),
-                new NavigationItem('extensions', 'a', 'puzzle', 'r3', area: 'early'),
+                new NavigationItem('late', 'b', 'puzzle', 'r2'),
+                new NavigationItem('early', 'a', 'puzzle', 'r3'),
             )],
             [$this->areas(
                 new NavigationArea('settings', 'l', 'c', 'settings', 1),
@@ -320,7 +374,7 @@ final class NavigationRegistryTest extends TestCase
     public function testAreasOfEqualWeightKeepTheirRegistrationOrder(): void
     {
         $registry = new NavigationRegistry(
-            [$this->provider(...array_map(static fn (string $id): NavigationItem => new NavigationItem('extensions', $id, 'puzzle', 'r_'.$id, area: $id), ['c', 'a', 'b']))],
+            [$this->provider(...array_map(static fn (string $id): NavigationItem => new NavigationItem($id, $id, 'puzzle', 'r_'.$id), ['c', 'a', 'b']))],
             [$this->areas(new NavigationArea('b', 'l', 'c', 'puzzle'), new NavigationArea('c', 'l', 'c', 'puzzle')), $this->areas(new NavigationArea('a', 'l', 'c', 'puzzle'))],
         );
 
@@ -329,7 +383,7 @@ final class NavigationRegistryTest extends TestCase
 
     public function testAnItemInAnUnregisteredAreaFailsLoudly(): void
     {
-        $registry = $this->areaRegistry(new NavigationItem('extensions', 'orphan', 'puzzle', 'r1', area: 'nowhere'));
+        $registry = $this->areaRegistry(new NavigationItem('nowhere', 'orphan', 'puzzle', 'r1'));
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessageIsOrContains('Navigation item "orphan" names the area "nowhere", which no provider registers.');
@@ -357,18 +411,18 @@ final class NavigationRegistryTest extends TestCase
                 return ++$this->calls;
             }
         };
-        $registry = $this->areaRegistry(new NavigationItem('main', 'a', 'inbox', 'r1', $counter));
+        $registry = $this->areaRegistry(new NavigationItem('overview', 'a', 'inbox', 'r1', $counter));
 
-        self::assertNull($registry->areas(null, false)[0]['groups'][0]['items'][0]->count);
+        self::assertNull($registry->areas(null, false)[0]['sections'][0]['items'][0]->count);
         self::assertSame(0, $counter->calls);
-        self::assertSame(1, $registry->areas(null, true)[0]['groups'][0]['items'][0]->count);
+        self::assertSame(1, $registry->areas(null, true)[0]['sections'][0]['items'][0]->count);
     }
 
     public function testCurrentIsTheItemWhoseOwnRouteThePageIsBeforeAnyPrefix(): void
     {
         $registry = $this->registry(
-            new NavigationItem('work', 'projects', 'columns-3', 'app_projects', routePrefixes: ['app_project', 'app_task']),
-            new NavigationItem('work', 'mine', 'square-check-big', 'app_project_mine'),
+            new NavigationItem('projects', 'projects', 'columns-3', 'app_projects', routePrefixes: ['app_project', 'app_task']),
+            new NavigationItem('projects', 'mine', 'square-check-big', 'app_project_mine'),
         );
 
         self::assertSame('projects', $registry->current('app_task')?->labelKey);
@@ -386,7 +440,27 @@ final class NavigationRegistryTest extends TestCase
             }
         };
 
-        self::assertSame('inbox', $this->registry(new NavigationItem('main', 'inbox', 'inbox', 'app_inbox', $count))->current('app_inbox')?->labelKey);
+        self::assertSame('inbox', $this->registry(new NavigationItem('overview', 'inbox', 'inbox', 'app_inbox', $count))->current('app_inbox')?->labelKey);
+    }
+
+    /**
+     * @param list<NavigationEntry> $items
+     *
+     * @return list<string>
+     */
+    private static function labels(array $items): array
+    {
+        return array_map(static fn (NavigationEntry $e): string => $e->labelKey, $items);
+    }
+
+    /**
+     * The items of the overview area, its one section.
+     *
+     * @return list<NavigationEntry>
+     */
+    private function overview(?string $currentRoute, NavigationItem ...$items): array
+    {
+        return $this->areaRegistry(...$items)->areas($currentRoute, true)[0]['sections'][0]['items'];
     }
 
     private function registry(NavigationItem ...$items): NavigationRegistry

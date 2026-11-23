@@ -26,12 +26,12 @@ final readonly class InvoicingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('sales', 'nav.item.invoices', 'receipt-text', 'app_invoices', weight: 10, commandLabelKey: 'invoice.new', commandRoute: 'app_invoice_new', routePrefixes: ['app_invoice'], area: CoreNavigationAreas::SALES);
-            yield new NavigationItem('sales', 'nav.item.advances', 'banknote', 'app_advances', weight: 12, area: CoreNavigationAreas::SALES);
-            yield new NavigationItem('sales', 'nav.item.tax_documents', 'file-signature', 'app_tax_documents', weight: 13, area: CoreNavigationAreas::SALES);
-            yield new NavigationItem('sales', 'nav.item.corrections', 'file-pen-line', 'app_corrections', weight: 14, area: CoreNavigationAreas::SALES);
-            yield new NavigationItem('sales', 'nav.item.recurring', 'refresh-cw', 'app_recurring', weight: 15, commandLabelKey: 'recurring.form.new_title', commandRoute: 'app_recurring_new', routePrefixes: ['app_recurring'], area: CoreNavigationAreas::SALES);
-            yield new NavigationItem('sales', 'nav.item.sent_mail', 'send', 'app_invoice_sends', weight: 20, area: CoreNavigationAreas::SALES);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.invoices', 'receipt-text', 'app_invoices', weight: 10, commandLabelKey: 'invoice.new', commandRoute: 'app_invoice_new', routePrefixes: ['app_invoice'], section: CoreNavigationAreas::SECTION_BILLING);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.advances', 'banknote', 'app_advances', weight: 12, section: CoreNavigationAreas::SECTION_BILLING);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.tax_documents', 'file-signature', 'app_tax_documents', weight: 13, section: CoreNavigationAreas::SECTION_BILLING);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.corrections', 'file-pen-line', 'app_corrections', weight: 14, section: CoreNavigationAreas::SECTION_BILLING);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.recurring', 'refresh-cw', 'app_recurring', weight: 15, commandLabelKey: 'recurring.form.new_title', commandRoute: 'app_recurring_new', routePrefixes: ['app_recurring'], section: CoreNavigationAreas::SECTION_BILLING);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.sent_mail', 'send', 'app_invoice_sends', weight: 20, section: CoreNavigationAreas::SECTION_BILLING);
         }
     }
 }

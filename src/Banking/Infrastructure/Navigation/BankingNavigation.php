@@ -26,7 +26,7 @@ final readonly class BankingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('money', 'nav.item.bank', 'landmark', 'app_bank_movements', weight: 10, routePrefixes: ['app_bank_movement', 'app_bank_message'], area: CoreNavigationAreas::MONEY);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.bank', 'landmark', 'app_bank_movements', weight: 10, routePrefixes: ['app_bank_movement', 'app_bank_message']);
         }
     }
 }

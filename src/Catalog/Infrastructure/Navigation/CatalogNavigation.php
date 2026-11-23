@@ -27,7 +27,7 @@ final readonly class CatalogNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem('sales', 'nav.item.products', 'tag', ProductController::ROUTE, weight: 40, commandLabelKey: 'catalog.product.new', commandRoute: 'app_catalog_product_new', routePrefixes: ['app_catalog_product'], area: CoreNavigationAreas::SALES);
+            yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.products', 'tag', ProductController::ROUTE, weight: 40, commandLabelKey: 'catalog.product.new', commandRoute: 'app_catalog_product_new', routePrefixes: ['app_catalog_product'], section: CoreNavigationAreas::SECTION_SELLING);
         }
     }
 }

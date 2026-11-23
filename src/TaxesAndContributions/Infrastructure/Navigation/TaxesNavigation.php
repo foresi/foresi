@@ -28,7 +28,7 @@ final readonly class TaxesNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->access->isOwner()) {
-            yield new NavigationItem('money', 'nav.item.taxes', 'landmark', TaxesController::ROUTE, weight: 50, routePrefixes: ['app_taxes'], area: CoreNavigationAreas::MONEY);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.taxes', 'landmark', TaxesController::ROUTE, weight: 50, routePrefixes: ['app_taxes']);
         }
     }
 }

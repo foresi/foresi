@@ -12,15 +12,15 @@ use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationAreaProvider;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
+use Foresi\Ui\Contract\Navigation\NavigationSection;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
- * Collects the items of all providers into the navigation structure: flat
- * groups for the sidebar, and the same items by area, with their groups as the
- * sections of each area.
+ * Collects the items of all providers into the navigation structure: the areas,
+ * each with the sections it defines and the items in them.
  *
- * @phpstan-type Group array{key: string, labelKey: string, items: list<NavigationEntry>}
- * @phpstan-type Area array{area: NavigationArea, current: bool, groups: list<Group>}
+ * @phpstan-type Section array{key: string, labelKey: string, items: list<NavigationEntry>}
+ * @phpstan-type Area array{area: NavigationArea, current: bool, headings: bool, sections: list<Section>}
  */
 final readonly class NavigationRegistry
 {
@@ -37,19 +37,13 @@ final readonly class NavigationRegistry
     }
 
     /**
-     * @param string|null $currentRoute route of the page being shown
-     * @param bool        $member       counts run queries on the instance's data, so they are skipped without an active membership
-     *
-     * @return list<Group>
-     */
-    public function groups(?string $currentRoute, bool $member): array
-    {
-        return $this->grouped($this->entries($currentRoute, $member));
-    }
-
-    /**
      * The areas that have items, by weight then registration order, with the
      * settings area always last. An area is current when one of its items is.
+     * Its empty sections are left out, and it shows section headings only from
+     * NavigationArea::SECTION_HEADINGS_FROM items and more than one section.
+     *
+     * @param string|null $currentRoute route of the page being shown
+     * @param bool        $member       counts run queries on the instance's data, so they are skipped without an active membership
      *
      * @return list<Area>
      *
@@ -82,11 +76,12 @@ final readonly class NavigationRegistry
             if ([] === $entries) {
                 continue;
             }
-            $groups = $this->grouped($entries);
+            $sections = $this->sectioned($areas[$id], $entries);
             $result[] = [
                 'area' => $areas[$id],
                 'current' => array_any($entries, static fn (array $entry): bool => $entry[2]->current),
-                'groups' => $groups,
+                'headings' => \count($sections) > 1 && \count($entries) >= NavigationArea::SECTION_HEADINGS_FROM,
+                'sections' => $sections,
             ];
         }
 
@@ -127,12 +122,7 @@ final readonly class NavigationRegistry
      */
     private function entries(?string $currentRoute, bool $member): array
     {
-        $items = [];
-        foreach ($this->providers as $provider) {
-            foreach ($provider->items() as $item) {
-                $items[] = $item;
-            }
-        }
+        $items = $this->items();
 
         // A page that is an item of its own is that item's, even where another item's prefix covers it.
         $owned = array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute);
@@ -157,29 +147,30 @@ final readonly class NavigationRegistry
     /**
      * @param list<array{NavigationItem, int, NavigationEntry}> $entries
      *
-     * @return list<Group>
+     * @return list<Section>
      */
-    private function grouped(array $entries): array
+    private function sectioned(NavigationArea $area, array $entries): array
     {
-        $byGroup = array_fill_keys(NavigationItem::GROUPS, []);
+        $bySection = array_fill_keys(array_map(static fn (NavigationSection $section): string => $section->key, $area->sections), []);
         foreach ($entries as $entry) {
-            $byGroup[$entry[0]->groupKey][] = $entry;
+            $bySection[$area->section($entry[0]->section)->key][] = $entry;
         }
 
-        $groups = [];
-        foreach ($byGroup as $key => $items) {
+        $sections = [];
+        foreach ($area->sections as $section) {
+            $items = $bySection[$section->key];
             if ([] === $items) {
                 continue;
             }
             usort($items, static fn (array $a, array $b): int => [$a[0]->weight, $a[1]] <=> [$b[0]->weight, $b[1]]);
-            $groups[] = [
-                'key' => $key,
-                'labelKey' => 'nav.group.'.$key,
+            $sections[] = [
+                'key' => $section->key,
+                'labelKey' => $section->labelKey,
                 'items' => array_map(static fn (array $entry): NavigationEntry => $entry[2], $items),
             ];
         }
 
-        return $groups;
+        return $sections;
     }
 
     private function isCurrent(NavigationItem $item, ?string $currentRoute, bool $owned): bool

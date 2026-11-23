@@ -30,10 +30,10 @@ final readonly class CashFlowNavigation implements NavigationItemProvider
     {
         if ($this->staff->isStaff()) {
             // The cash flow's own routes, and not the planned items' pages, which have items of their own.
-            yield new NavigationItem('money', 'nav.item.cash_flow', 'trending-up', CashFlowController::ROUTE, weight: 20, routePrefixes: [CashFlowController::ROUTE.'_items', CashFlowController::ROUTE.'_balance', CashFlowController::ROUTE.'_minimum'], area: CoreNavigationAreas::MONEY);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.cash_flow', 'trending-up', CashFlowController::ROUTE, weight: 20, routePrefixes: [CashFlowController::ROUTE.'_items', CashFlowController::ROUTE.'_balance', CashFlowController::ROUTE.'_minimum']);
             // Planned money in and out, after the Cash flow, as P1 of the approved design (2026-11-19).
-            yield new NavigationItem('money', 'nav.item.planned_income', 'arrow-down', 'app_cash_flow_planned_income', weight: 30, routePrefixes: ['app_cash_flow_planned_income'], area: CoreNavigationAreas::MONEY);
-            yield new NavigationItem('money', 'nav.item.planned_costs', 'arrow-up', 'app_cash_flow_planned_costs', weight: 40, routePrefixes: ['app_cash_flow_planned_costs'], area: CoreNavigationAreas::MONEY);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.planned_income', 'arrow-down', 'app_cash_flow_planned_income', weight: 30, routePrefixes: ['app_cash_flow_planned_income']);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.planned_costs', 'arrow-up', 'app_cash_flow_planned_costs', weight: 40, routePrefixes: ['app_cash_flow_planned_costs']);
         }
     }
 }

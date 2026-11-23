@@ -71,17 +71,19 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $this->client->request('GET', '/');
 
-        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firm');
+        self::assertSelectorTextContains('#sidebar [data-nav-area="settings"] [data-nav-section]', 'Firm');
     }
 
-    public function testTheSettingsGroupHoldsPeopleFirmLabelsApiAccessAndTheImportHistory(): void
+    public function testTheSettingsHoldTheFirmAndItsConnectionsUnderTheirHeadings(): void
     {
         $this->signIn();
 
         $crawler = $this->client->request('GET', '/');
 
-        $links = $crawler->filter('#sidebar [data-nav-group="settings"] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/people People', '/settings/firm Firm', '/settings/labels Labels', '/settings/api API and MCP', '/settings/webhooks Webhooks', '/imports Import and export', '/settings/documents Documents', '/settings/activities Activities'], $links);
+        $settings = $crawler->filter('#sidebar [data-nav-area="settings"]');
+        self::assertSame(['Firm', 'Connections'], $settings->filter('[data-nav-section] h3')->each(static fn ($h): string => trim($h->text())));
+        $links = $settings->filter('[data-nav-section] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
+        self::assertSame(['/settings/firm Firm', '/settings/people People', '/settings/labels Labels', '/settings/documents Documents', '/settings/activities Activities', '/imports Import and export', '/settings/api API and MCP', '/settings/webhooks Webhooks'], $links);
     }
 
     public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsTheFirmMarkedInTheSidebar(): void
@@ -111,7 +113,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('#sidebar [data-nav-group="settings"] a[href="/settings/firm"]');
+        self::assertSelectorNotExists('#sidebar [data-nav-area="settings"] [data-nav-section] a[href="/settings/firm"]');
     }
 
     public function testTheScreensAreTranslated(): void
@@ -122,7 +124,7 @@ final class LegalEntityControllerTest extends WebTestCase
         $this->client->request('GET', '/settings/firm');
 
         self::assertSelectorTextContains('h1', 'Firma');
-        self::assertSelectorTextContains('#sidebar [data-nav-group="settings"]', 'Firma');
+        self::assertSelectorTextContains('#sidebar [data-nav-area="settings"] [data-nav-section]', 'Firma');
     }
 
     public function testTheSetupFormOffersTheRegistryLookupOfTheContactForm(): void

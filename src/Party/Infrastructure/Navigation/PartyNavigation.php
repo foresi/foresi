@@ -29,9 +29,9 @@ final readonly class PartyNavigation implements NavigationItemProvider
         if (!$this->role->isStaff()) {
             return;
         }
-        yield new NavigationItem('contacts', 'nav.item.contacts', 'users', 'app_contacts', $this->count, weight: 10, routePrefixes: ['app_contact'], area: CoreNavigationAreas::CONTACTS);
+        yield new NavigationItem(CoreNavigationAreas::CONTACTS, 'nav.item.contacts', 'users', 'app_contacts', $this->count, weight: 10, routePrefixes: ['app_contact']);
         if ($this->role->isOwner()) {
-            yield new NavigationItem('settings', 'nav.item.firm', 'building-2', 'app_firm', weight: 10, routePrefixes: ['app_firm', 'app_series'], area: NavigationArea::SETTINGS);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.firm', 'building-2', 'app_firm', weight: 10, routePrefixes: ['app_firm', 'app_series'], section: CoreNavigationAreas::SECTION_FIRM);
         }
     }
 }
