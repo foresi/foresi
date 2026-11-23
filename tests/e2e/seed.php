@@ -88,6 +88,8 @@ const WORLDS = [
     'cash-flow' => ['Example Cash Flow', 'cash-flow@example.com', 'Cash Flow Example'],
     // A sole trader for the Taxes and contributions page, and the team member taxes-member@example.com.
     'taxes' => ['Example Taxes', 'taxes@example.com', 'Taxes Example'],
+    // A monthly VAT payer from 12 November 2026 with one issued invoice, and the guest vat-guest@example.com.
+    'vat' => ['Example VAT', 'vat@example.com', 'VAT Example'],
     // The NDA type the migration seeds and one template of it, for the documents spec.
     'documents' => ['Example Documents', 'documents@example.com', 'Documents Example'],
     // A client and a calendar feed with a known address, for the activities spec.

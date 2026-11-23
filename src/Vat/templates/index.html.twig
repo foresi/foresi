@@ -1,0 +1,121 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page Money → VAT, for the owners and the members. The years are tabs, places rather than saved
+    views (docs/design/list-pages.md, 7), as on the Taxes and contributions page. Above the table, what to
+    check first (the firm's VAT statuses, documents without a CZK amount, planned items that may count the
+    VAT twice) and the bank payments that pay no period yet. One row per period, its result and its state
+    in a neutral or brand badge: a past period is "not yet paid", never overdue and never red. A row opens
+    its period in the side sheet (docs/design/overlays.md). Where the firm pays its VAT is the header's
+    action, a dialog. Variables: year, tabs, reason, rows, warnings, duplicates, unassigned, footer.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'vat.title'|trans}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link = 'text-current underline decoration-control-line underline-offset-2 hover:decoration-ink ' ~ focus %}
+{% set head = 'h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted' %}
+{% set cell = 'num h-row whitespace-nowrap border-b border-divider px-4 text-right' %}
+
+{% block title %}{{ 'vat.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="settings" :href="path('app_vat_settings')" data-dialog aria-haspopup="dialog" data-vat-settings>{{ 'vat.page.settings'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-6">
+        {% for message in app.flashes('success') %}
+            <twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+
+        <twig:Ui:Tabs :items="tabs" :label="'vat.page.years'|trans" data-vat-years />
+
+        {% if warnings is not empty or duplicates is not empty or reason == 'payer_date_missing' %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" data-vat-warnings>
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for warning in warnings %}
+                        <li data-vat-warning="{{ warning.key }}">{{ warning.text }}</li>
+                    {% endfor %}
+                    {% if reason == 'payer_date_missing' %}
+                        <li data-vat-warning="payer_date_missing">{{ 'vat.page.warning.payer_date_missing'|trans }} <a href="{{ path('app_firm_vat') }}" class="{{ link }}" data-vat-firm-vat>{{ 'vat.page.warning.firm_vat'|trans }}</a></li>
+                    {% endif %}
+                    {% if duplicates is not empty %}
+                        <li data-vat-warning="possible_duplicates">
+                            {{ 'vat.page.warning.duplicates'|trans({count: duplicates|length}) }}
+                            <ul class="m-0 mt-0.5 grid list-none gap-0.5 p-0">
+                                {% for item in duplicates %}
+                                    <li data-vat-duplicate>{% if item.href %}<a href="{{ item.href }}" class="{{ link }}">{{ item.name }}</a>{% else %}{{ item.name }}{% endif %}</li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    {% endif %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if unassigned is not empty %}
+            <section aria-labelledby="vat-unassigned-title" class="grid max-w-3xl grid-cols-1 gap-2" data-vat-unassigned>
+                <div class="grid gap-0.5">
+                    <h2 id="vat-unassigned-title" class="m-0 text-body font-semibold text-ink">{{ 'vat.page.unassigned.title'|trans }}</h2>
+                    <p class="m-0 text-small text-muted">{{ 'vat.page.unassigned.description'|trans }}</p>
+                </div>
+                <ul class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for payment in unassigned %}
+                        <li class="flex min-h-row flex-wrap items-center gap-3 border-b border-divider px-4 py-1.5 last:border-b-0" data-vat-unassigned-payment="{{ payment.id }}">
+                            <span class="num text-text">{{ payment.on }}</span>
+                            <span class="min-w-0 flex-1 text-text">{{ payment.direction }} · {{ payment.rule }}</span>
+                            <span class="num font-medium text-ink">{{ payment.amount }}</span>
+                            <twig:Ui:Button size="sm" :href="path('app_vat_payment_move', {movement: payment.id})" data-dialog aria-haspopup="dialog" data-vat-place>{{ 'vat.page.unassigned.place'|trans }}</twig:Ui:Button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if reason is not null %}
+            <twig:Ui:EmptyState icon="percent" :title="('vat.page.reason.' ~ reason ~ '.title')|trans" :text="('vat.page.reason.' ~ reason ~ '.text')|trans" data-vat-empty="{{ reason }}" />
+        {% elseif rows is empty %}
+            <twig:Ui:EmptyState icon="percent" :title="'vat.page.reason.empty.title'|trans({year: year})" :text="'vat.page.reason.empty.text'|trans({year: year})" data-vat-empty="empty" />
+        {% else %}
+            <div class="relative overflow-x-auto rounded-panel border border-container bg-white" data-vat-periods>
+                <table class="w-full border-collapse text-small">
+                    <caption class="sr-only">{{ 'vat.page.table'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="{{ head }} w-full text-left">{{ 'vat.page.column.period'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-right">{{ 'vat.page.column.output'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-right">{{ 'vat.page.column.input'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-right">{{ 'vat.page.column.result'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-left">{{ 'vat.page.column.due'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-left">{{ 'vat.page.column.state'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr class="relative hover:bg-head" data-vat-period="{{ row.key }}" data-state="{{ row.state }}">
+                                <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left font-medium text-ink">
+                                    <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="text-ink no-underline after:absolute after:inset-0 hover:text-green {{ focus }}">{{ row.label }}<span class="sr-only"> {{ 'vat.page.open_period'|trans }}</span></a>
+                                </th>
+                                <td class="{{ cell }} text-text" data-vat-output>{{ row.output }}</td>
+                                <td class="{{ cell }} text-text" data-vat-input>{{ row.input }}</td>
+                                <td class="{{ cell }} text-ink" data-vat-result><span class="text-caption text-muted">{{ row.resultLabel }}</span> <span class="font-medium">{{ row.result }}</span></td>
+                                <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-left text-text" data-vat-due>{{ row.due ?? '' }}</td>
+                                <td class="h-row whitespace-nowrap border-b border-divider px-4" data-vat-state><twig:Ui:Badge :tone="row.tone">{{ row.stateLabel }}</twig:Ui:Badge></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <footer class="grid max-w-3xl gap-1 border-t border-divider pt-3 text-caption text-muted" data-vat-footer>
+            <p class="m-0 font-medium text-text">{{ 'vat.page.footer.estimate'|trans }}</p>
+            {% if footer.unverified is not empty %}
+                <p class="m-0" data-vat-unverified><span class="font-medium text-text">{{ 'vat.page.footer.unverified'|trans }}</span> {{ footer.unverified|join(' · ') }}</p>
+            {% endif %}
+            {% if footer.gaps is not empty %}
+                <p class="m-0" data-vat-gaps><span class="font-medium text-text">{{ 'vat.page.footer.gaps'|trans }}</span> {{ footer.gaps|join(' · ') }}</p>
+            {% endif %}
+        </footer>
+    </div>
+{% endblock %}

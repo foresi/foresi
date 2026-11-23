@@ -1,0 +1,181 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One VAT period, a record in the side sheet over the VAT page (docs/design/overlays.md); the same URL
+    is a page. The header enters the amount of the filed return (a dialog), marks the period paid (a
+    dialog with a note) or opens it again, and removes the return amount from its "⋯" menu. The body: the
+    result and its state, the breakdown by documents, recurring invoices and plans (a part not counted
+    yet says so), the documents behind it with their links, the steps of the calculation, and the bank
+    payments, each with Move and Unpair in its row menu. A difference between what was paid and what was
+    expected is plain information. Variables: key, year, period.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'vat.title'|trans, href: path('app_vat', {year: year})}, {label: period.title}] %}
+{% set token = csrf_token(constant('Foresi\\Vat\\Infrastructure\\Controller\\VatController::TOKEN')) %}
+{% set record_reload = true %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link = 'text-current underline decoration-control-line underline-offset-2 hover:decoration-ink ' ~ focus %}
+{% set head = 'h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted' %}
+{% set cell = 'num h-row whitespace-nowrap border-b border-divider px-4 text-right' %}
+
+{% block title %}{{ period.title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="vat-period-actions" :menuLabel="'vat.page.action.more'|trans">
+        <twig:block name="primary">
+            <twig:Ui:Button variant="primary" icon="pencil" :size="record_action_size" :href="path('app_vat_return_amount', {key: key})" data-dialog aria-haspopup="dialog" data-vat-return-amount>{{ 'vat.page.action.return_amount'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="buttons">
+            {% if period.settledMark %}
+                <form method="post" action="{{ path('app_vat_reopen', {key: key}) }}" data-vat-reopen>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" icon="refresh-cw" :size="record_action_size">{{ 'vat.page.action.reopen'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif not period.settled %}
+                <twig:Ui:Button icon="circle-check" :size="record_action_size" :href="path('app_vat_settle', {key: key})" data-dialog aria-haspopup="dialog" data-vat-settle>{{ 'vat.page.action.settle'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            {% if period.settledMark %}
+                <form method="post" action="{{ path('app_vat_reopen', {key: key}) }}" role="none">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'vat.page.action.reopen'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% elseif not period.settled %}
+                <twig:Ui:MenuItem icon="circle-check" :href="path('app_vat_settle', {key: key})" data-dialog aria-haspopup="dialog">{{ 'vat.page.action.settle'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+        </twig:block>
+        {% if period.returnAmount is not null %}
+            <form method="post" action="{{ path('app_vat_return_amount_clear', {key: key}) }}" role="none" data-vat-clear-return-amount>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:MenuItem type="submit" icon="x">{{ 'vat.page.action.clear_return_amount'|trans }}</twig:Ui:MenuItem>
+            </form>
+        {% endif %}
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-5" data-vat-sheet="{{ key }}">
+        {% for message in app.flashes('success') %}
+            <twig:Ui:Alert tone="success" role="status">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+
+        <div class="flex flex-wrap items-baseline justify-between gap-3" data-vat-summary>
+            <div class="grid gap-0.5">
+                <p class="m-0 text-small text-muted">{{ period.span }}</p>
+                <p class="m-0 text-body text-ink"><span class="text-small text-muted">{{ period.row.resultLabel }}</span> <span class="num font-semibold" data-vat-sheet-result>{{ period.row.result }}</span>{% if period.row.due %} <span class="text-small text-muted">· {{ 'vat.page.column.due'|trans }} <span class="num">{{ period.row.due }}</span></span>{% endif %}</p>
+            </div>
+            <twig:Ui:Badge :tone="period.row.tone" data-vat-sheet-state="{{ period.row.state }}">{{ period.row.stateLabel }}</twig:Ui:Badge>
+        </div>
+
+        {% if period.returnAmount is not null or period.settledMark or period.difference %}
+            <div class="grid gap-1 text-small text-text" data-vat-notes>
+                {% if period.returnAmount is not null %}<p class="m-0" data-vat-return-amount-text>{{ 'vat.page.sheet.return_amount'|trans({amount: period.returnAmount, estimate: period.estimate}) }}</p>{% endif %}
+                {% if period.settledMark %}<p class="m-0" data-vat-settled-mark>{{ 'vat.page.sheet.settled_mark'|trans }}</p>{% endif %}
+                {% if period.difference %}<p class="m-0" data-vat-difference>{{ period.difference }}</p>{% endif %}
+            </div>
+        {% endif %}
+
+        <section aria-labelledby="vat-breakdown-title" class="grid gap-2" data-vat-breakdown>
+            <h2 id="vat-breakdown-title" class="m-0 text-body font-semibold text-ink">{{ 'vat.page.sheet.breakdown'|trans }}</h2>
+            <div class="relative overflow-x-auto rounded-panel border border-container bg-white">
+                <table class="w-full border-collapse text-small">
+                    <caption class="sr-only">{{ 'vat.page.sheet.breakdown'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="{{ head }} w-full text-left">{{ 'vat.page.sheet.part_column'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-right">{{ 'vat.page.column.output'|trans }}</th>
+                            <th scope="col" class="{{ head }} text-right">{{ 'vat.page.column.input'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for part in period.parts %}
+                            <tr data-vat-part="{{ part.key }}">
+                                <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left font-normal text-text">{{ part.label }}</th>
+                                {% if part.empty %}
+                                    <td colspan="2" class="h-row whitespace-nowrap border-b border-divider px-4 text-right text-muted" data-vat-part-empty>{{ part.empty }}</td>
+                                {% else %}
+                                    <td class="{{ cell }} text-ink">{{ part.output }}</td>
+                                    <td class="{{ cell }} text-ink">{{ part.input }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section aria-labelledby="vat-documents-title" class="grid gap-2" data-vat-documents>
+            <h2 id="vat-documents-title" class="m-0 text-body font-semibold text-ink">{{ 'vat.page.sheet.documents'|trans }}</h2>
+            {% if period.documents is empty and period.schedules is empty %}
+                <p class="m-0 text-small text-muted">{{ 'vat.page.sheet.documents_none'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for document in period.documents %}
+                        <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 py-1.5 text-small last:border-b-0" data-vat-document>
+                            <span class="min-w-0 flex-1 truncate font-medium text-ink">{% if document.href %}<a href="{{ document.href }}" class="{{ link }}">{{ document.label }}</a>{% else %}{{ document.label }}{% endif %}</span>
+                            <span class="num text-muted">{{ document.on }}</span>
+                            <span class="num w-28 text-right text-ink"><span class="sr-only">{{ 'vat.page.column.output'|trans }} </span>{{ document.output }}</span>
+                            <span class="num w-28 text-right text-ink"><span class="sr-only">{{ 'vat.page.column.input'|trans }} </span>{{ document.input }}</span>
+                        </li>
+                    {% endfor %}
+                    {% for schedule in period.schedules %}
+                        <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 py-1.5 text-small last:border-b-0" data-vat-schedule>
+                            <span class="min-w-0 flex-1 truncate font-medium text-ink">{% if schedule.href %}<a href="{{ schedule.href }}" class="{{ link }}">{{ schedule.label }}</a>{% else %}{{ schedule.label }}{% endif %}</span>
+                            <twig:Ui:Badge tone="outline">{{ 'vat.page.sheet.schedules'|trans }}</twig:Ui:Badge>
+                            <span class="num text-muted">{{ schedule.on }}</span>
+                            <span class="num w-28 text-right text-ink"><span class="sr-only">{{ 'vat.page.column.output'|trans }} </span>{{ schedule.output }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if period.restricted %}<p class="m-0 text-caption text-muted" data-vat-restricted>{{ 'vat.page.sheet.restricted'|trans }}</p>{% endif %}
+            {% if period.missingCzk is not empty %}<p class="m-0 text-caption text-muted" data-vat-missing-czk>{{ 'vat.page.sheet.missing_czk'|trans }} {{ period.missingCzk|join(', ') }}</p>{% endif %}
+        </section>
+
+        <section aria-labelledby="vat-steps-title" class="grid gap-2" data-vat-steps>
+            <h2 id="vat-steps-title" class="m-0 text-body font-semibold text-ink">{{ 'vat.page.sheet.steps'|trans }}</h2>
+            <ol class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                {% for step in period.steps %}
+                    <li class="grid gap-0.5 border-b border-divider px-4 py-2 text-small last:border-b-0" data-vat-step="{{ step.name }}">
+                        <p class="m-0 flex items-baseline justify-between gap-3"><span class="font-medium text-ink">{{ step.label }}</span><span class="num font-medium text-ink">{{ step.amount }}</span></p>
+                        <p class="m-0 text-caption text-muted">{{ step.rule }}</p>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <section aria-labelledby="vat-payments-title" class="grid gap-2" data-vat-payments>
+            <h2 id="vat-payments-title" class="m-0 text-body font-semibold text-ink">{{ 'vat.page.sheet.payments'|trans }}</h2>
+            {% if period.payments is empty %}
+                <p class="m-0 text-small text-muted">{{ 'vat.page.sheet.payments_none'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-0 rounded-panel border border-container bg-white p-0">
+                    {% for payment in period.payments %}
+                        <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 py-1 text-small last:border-b-0" data-vat-payment="{{ payment.id }}">
+                            <span class="num text-text">{{ payment.on }}</span>
+                            <span class="min-w-0 flex-1 text-text">{{ payment.direction }} · {{ payment.rule }}</span>
+                            {% if payment.manual %}<twig:Ui:Badge tone="gray">{{ 'vat.page.payment.manual'|trans }}</twig:Ui:Badge>{% endif %}
+                            <span class="num font-medium text-ink">{{ payment.amount }}</span>
+                            <twig:Ui:Menu id="vat-payment-{{ loop.index }}" :label="'vat.page.payment.actions'|trans({day: payment.on})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" data-vat-payment-menu>
+                                <twig:Ui:MenuItem icon="arrow-up-down" :href="path('app_vat_payment_move', {movement: payment.id, back: key})" data-dialog aria-haspopup="dialog" data-vat-payment-move>{{ 'vat.page.payment.move'|trans }}</twig:Ui:MenuItem>
+                                <form method="post" action="{{ path('app_vat_payment_unpair', {movement: payment.id}) }}" role="none" data-vat-payment-unpair>
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <input type="hidden" name="back" value="{{ key }}">
+                                    <twig:Ui:MenuItem type="submit" icon="x">{{ 'vat.page.payment.unpair'|trans }}</twig:Ui:MenuItem>
+                                </form>
+                                {% if payment.manual %}
+                                    <form method="post" action="{{ path('app_vat_payment_reset', {movement: payment.id}) }}" role="none" data-vat-payment-reset>
+                                        <input type="hidden" name="_token" value="{{ token }}">
+                                        <input type="hidden" name="back" value="{{ key }}">
+                                        <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'vat.page.payment.reset'|trans }}</twig:Ui:MenuItem>
+                                    </form>
+                                {% endif %}
+                            </twig:Ui:Menu>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

@@ -1,7 +1,172 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    vat: VAT
 vat:
+  title: VAT
+  cancel: Cancel
+  save: Save
   period:
     quarter: 'Q{quarter} {year}'
   flow:
     payable: 'VAT for {period}'
     refund: 'VAT refund for {period} (the tax office first uses it to pay other arrears)'
+  page:
+    years: Years
+    settings: Settings
+    table: VAT periods
+    open_period: open the period
+    column:
+      period: Period
+      output: Output VAT
+      input: Input VAT
+      result: Result
+      due: Due
+      state: State
+    result:
+      payable: To pay
+      refund: Refund
+      zero: Nothing to pay
+    state:
+      estimated: Estimate
+      return_entered: Amount from the return
+      settled: Paid
+      not_yet_paid: Not yet paid
+      not_yet_received: Not yet received
+    reason:
+      payer_date_missing:
+        title: The day the firm became a VAT payer is missing
+        text: Add the day to the VAT statuses of the firm and the periods appear here.
+      not_a_payer:
+        title: The firm is not a VAT payer
+        text: Once the firm is a VAT payer from a day, its VAT periods appear here.
+      country_not_supported:
+        title: No VAT rules for the country of the firm
+        text: Foresi has no VAT rules for this country yet, so it cannot count the periods.
+      empty:
+        title: 'No VAT periods in {year}'
+        text: 'The firm is not a VAT payer in {year}, or the year is too far ahead.'
+    warning:
+      title: Check before you rely on the numbers
+      quarter_not_allowed: The firm pays VAT by quarter, but a new payer files monthly in the first year. Check the period length in the VAT statuses of the firm.
+      missing_czk_vat: 'Some documents have no VAT amount in CZK and count as zero: {periods}.'
+      fx_today: 'Some recurring invoices in another currency are converted at the rate of today: {periods}.'
+      payer_date_missing: The firm is a VAT payer, but the day it became one is missing.
+      firm_vat: VAT statuses of the firm
+      unavailable_sources: 'Some sources could not be read, so the numbers may be incomplete: {sources}.'
+      duplicates: '{count, plural, one {A planned item of the category VAT may count the VAT a second time:} other {# planned items of the category VAT may count the VAT a second time:}}'
+    source:
+      invoicing:
+        issued_vat: issued invoices
+        recurring_vat: recurring invoices
+      purchasing:
+        received_vat: received documents
+      cash-flow:
+        vat_payments: bank payments
+    unassigned:
+      title: Payments without a period
+      description: Bank payments to or from the tax office that pay no VAT period yet. Place each one in its period.
+      place: Place in a period
+    payment:
+      in: Received
+      out: Paid
+      manual: Placed by hand
+      actions: Actions of the payment of {day}
+      move: Move
+      unpair: Unpair
+      reset: Match automatically again
+      rule:
+        payable: Account and variable symbol
+        refund: Account of the tax office
+        other: Other variable symbol
+    footer:
+      estimate: An estimate, not a basis for the VAT return.
+      unverified: 'Not verified:'
+      gaps: 'Not counted yet:'
+    unverified:
+      refund_timing: when the tax office pays a refund
+      refund_account: a refund matched by the account of the tax office alone
+      office_account_2026: the account of the tax office from 2026
+      late_deduction_limit: how late input VAT may still be deducted
+      quarter_limit_2026: the turnover limit for filing by quarter from 2026
+      vat_by_tax_point_cash_basis: VAT by the tax point for cash accounting
+    gap:
+      schedules_not_counted: recurring invoices
+      plans_not_counted: planned items
+      deduction_before_registration: input VAT from before the firm became a payer
+    sheet:
+      span: '{start} – {end}'
+      breakdown: Where the VAT comes from
+      part_column: Part
+      documents: Documents
+      documents_none: No documents count in this period.
+      schedules: Recurring invoices
+      restricted: Some documents are counted but you may not open them.
+      steps: How the result comes about
+      payments: Payments
+      payments_none: No bank payment pays this period yet.
+      difference: 'Paid {paid}, expected {expected}, difference {difference}. The period is paid; the difference is for information.'
+      difference_none: 'Paid {paid}, as expected.'
+      return_amount: 'Amount from the return: {amount}, the estimate was {estimate}.'
+      settled_mark: Marked as paid by hand.
+      missing_czk: 'Counted as zero, without a VAT amount in CZK:'
+    part:
+      documents: Documents
+      schedules: Recurring invoices
+      plans: Plans
+      not_counted: Not counted yet
+    step:
+      output:
+        title: Output VAT
+        rule: The VAT of the documents issued and the recurring invoices in the period.
+      input:
+        title: Input VAT
+        rule: The deductible VAT of the documents received in the period.
+      result:
+        title: Result
+        rule: Output VAT minus input VAT; positive to pay, negative to get back.
+    action:
+      return_amount: Enter the amount from the return
+      clear_return_amount: Remove the amount from the return
+      settle: Mark as paid
+      reopen: Reopen
+      more: More actions of the period
+    return_amount:
+      description: 'The amount of the filed return replaces the estimate of {estimate} as what the period expects.'
+      amount: Amount
+      direction: The return says
+    settle:
+      title: 'Mark {period} as paid'
+      description: For a period paid from another account or settled otherwise. The VAT leaves the cash flow.
+      note: Note
+      note_help: Optional, such as where it was paid from.
+    move:
+      title: Move the payment
+      period: Period
+      none: Not a VAT payment
+    settings_form:
+      description: Where the firm pays its VAT. The bank payments to this account are matched to the VAT periods.
+      office_account: Account of the tax office
+      office_account_hint: 'Suggested: {hint}'
+      variable_symbol: Variable symbol
+      variable_symbol_help: 'Empty takes the suggested one: {symbol}.'
+      variable_symbol_help_plain: Empty takes the one the country suggests.
+      source: Where the payment details come from
+      new_tab: opens in a new tab
+    error:
+      amount_invalid: Enter an amount, such as 1500.
+      key_invalid: This period does not exist.
+      not_found: This period does not exist.
+      note_too_long: The note is too long.
+      movement_id_invalid: This payment does not exist.
+      office_account_invalid: Enter the account of the tax office.
+      variable_symbol_invalid: The variable symbol is too long.
+    flash:
+      return_amount: The amount from the return is saved.
+      return_amount_cleared: The amount from the return is removed.
+      settled: The period is marked as paid.
+      reopened: The period is open again.
+      payment_moved: The payment is placed.
+      payment_unpaired: The payment is no longer a VAT payment.
+      payment_reset: The payment is matched automatically again.
+      settings: Where the firm pays its VAT is saved.
