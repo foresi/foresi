@@ -48,6 +48,9 @@ final class DealClientDialogTest extends SalesScreenTestCase
         self::assertSame([$this->petra->id(), $this->karel->id()], $crawler->filter('input[name="contactPersonIds[]"]')->each(static fn ($input): string => (string) $input->attr('value')));
         self::assertCount(0, $crawler->filter('input[name="contactPersonIds[]"][checked]'), 'A new client starts with no person ticked.');
         self::assertCount(1, $crawler->filter('details[data-deal-add-person]:not([open])'));
+        // "Add a person" is a plain action right under the last person, in the persons' own fieldset.
+        self::assertSame('Add a person', trim($crawler->filter('fieldset[data-deal-persons] > details[data-deal-add-person] > summary')->text()));
+        self::assertSame('details', $crawler->filter('fieldset[data-deal-persons] > *')->last()->nodeName());
         // The candidates: persons of the address book the client does not list yet.
         self::assertSame(['', $this->jana->id()], $crawler->filter('#personId option')->each(static fn ($option): string => (string) $option->attr('value')));
         self::assertSame('existing', $crawler->filter('input[name="personMode"][checked]')->attr('value'));
@@ -139,6 +142,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
         $crawler = $this->client->request('GET', '/sales/deals/'.$repair->id().'/edit', server: [self::DIALOG => '1']);
         self::assertSelectorTextContains('[data-deal-client]', 'Alpha Example s.r.o.');
+        self::assertSame('/contacts/'.$this->company->id(), $crawler->filter('[data-deal-client] a[data-deal-client-link]')->attr('href'), 'The client is read-only text, its name a link to the contact.');
         self::assertSelectorTextContains('[data-deal-client-linked]', 'Remove the links to other deals to change the client');
         self::assertCount(0, $crawler->filter('#deal-form input[name="clientId"]'));
 
