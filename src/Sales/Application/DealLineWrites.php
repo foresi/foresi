@@ -78,7 +78,7 @@ final readonly class DealLineWrites
                 $this->given($input->name, $line->name()),
                 $this->given($input->unit, $line->unit()),
                 $this->given($input->quantity, $line->quantity()),
-                $this->given($input->unitPrice, $price instanceof Money ? self::decimal($price->minor()) : null),
+                $this->given($input->unitPrice, $price instanceof Money ? $this->decimal($price->minor()) : null),
                 $this->given($input->currency, $price?->currency()->value ?? 'CZK'),
                 $kind,
                 $this->given($input->recurrenceUnit, $recurs ? $line->recurrenceUnit()?->value : null),
@@ -225,7 +225,7 @@ final readonly class DealLineWrites
      * Minor units as the decimal the rules read back, such as "1500.50". A
      * stored price is never negative.
      */
-    private static function decimal(int $minor): string
+    private function decimal(int $minor): string
     {
         return \sprintf('%d.%02d', intdiv($minor, 100), $minor % 100);
     }

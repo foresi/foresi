@@ -167,7 +167,7 @@ final class DealScreen implements ResetInterface
     public function billing(DealLine $line): string
     {
         $unit = $line->recurrenceUnit();
-        if (BillingKind::OneOff === $line->billingKind() || null === $unit) {
+        if (BillingKind::OneOff === $line->billingKind() || !$unit instanceof \Foresi\Shared\Domain\Schedule\RecurrenceUnit) {
             return $this->trans('sales.billing_kind.one_off');
         }
         $every = $this->trans('sales.line.every.'.$unit->value, ['count' => $line->interval() ?? 1]);
@@ -211,7 +211,7 @@ final class DealScreen implements ResetInterface
             'productId' => '',
             'name' => $line?->name() ?? '',
             'unit' => $line?->unit() ?? '',
-            'quantity' => null === $line ? '1' : $this->plainQuantity($line->quantity()),
+            'quantity' => $line instanceof DealLine ? $this->plainQuantity($line->quantity()) : '1',
             'unitPrice' => $price instanceof Money ? $this->decimal($price) : '',
             'currency' => $price?->currency()->value ?? 'CZK',
             'billingKind' => $line?->billingKind()->value ?? BillingKind::OneOff->value,

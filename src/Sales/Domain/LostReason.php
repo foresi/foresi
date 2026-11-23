@@ -35,9 +35,6 @@ class LostReason implements Audited
     #[ORM\Column(type: 'string', length: self::MAX_NAME, nullable: true)]
     private ?string $name;
 
-    #[ORM\Column(type: 'integer')]
-    private int $position;
-
     #[ORM\Column(name: 'archived_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $archivedAt = null;
 
@@ -47,14 +44,14 @@ class LostReason implements Audited
     public function __construct(
         ?string $key,
         ?string $name,
-        int $position,
+        #[ORM\Column(type: 'integer')]
+        private int $position,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
         $this->id = Id::generate();
         $this->key = SeededName::key($key);
         $this->name = SeededName::name($name, $this->key, self::MAX_NAME);
-        $this->position = $position;
     }
 
     /**

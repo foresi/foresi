@@ -43,8 +43,8 @@ final class DealLinksTest extends SalesTestCase
         self::assertSame(['Inspection', 'Maintenance'], array_map(static fn (DealLine $line): string => $line->name(), $detail->lines));
         self::assertSame([0, 1], array_map(static fn (DealLine $line): int => $line->position(), $detail->lines));
         self::assertNotSame($inspection->id(), $detail->lines[0]->id());
-        self::assertSame(['CZK' => 1_200_000], array_map(static fn ($money): int => $money->minor(), $detail->value->oneOff));
-        self::assertSame(['CZK' => 150_000], array_map(static fn ($money): int => $money->minor(), $detail->value->monthly));
+        self::assertSame(['CZK' => 1_200_000], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $detail->value->oneOff));
+        self::assertSame(['CZK' => 150_000], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $detail->value->monthly));
         self::assertCount(1, $detail->links);
         self::assertTrue($detail->links[0]->outgoing, 'The follow-up follows from the deal before.');
         self::assertSame($audit->id(), $detail->links[0]->other->id());
@@ -75,7 +75,7 @@ final class DealLinksTest extends SalesTestCase
         // The deal before still names both; only the one still linked shows as a person.
         $before = $this->reads()->deal($audit->id());
         self::assertSame([$this->petra->id(), $this->karel->id()], $before->contactPersonIds);
-        self::assertSame([$this->karel->id()], array_map(static fn ($person): string => $person->id, $before->contactPersons));
+        self::assertSame([$this->karel->id()], array_map(static fn (\Foresi\Party\Contract\PartyPersonSummary $person): string => $person->id, $before->contactPersons));
     }
 
     public function testNoSelfOrDuplicateLink(): void

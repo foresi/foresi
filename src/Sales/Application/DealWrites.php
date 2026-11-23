@@ -191,7 +191,7 @@ final readonly class DealWrites
         $userId = $this->access->denyUnlessStaff();
 
         return $this->work->run(function () use ($input, $userId): Deal {
-            $deal = $this->store->deal($input->dealId) ?? throw self::noDeal();
+            $deal = $this->store->deal($input->dealId) ?? throw $this->noDeal();
             if ($deal->trash($userId, $this->clock->now())) {
                 $this->events->record(new DealTrashed($deal->id(), $deal->status()->value, $deal->stageId()));
             }
@@ -210,7 +210,7 @@ final readonly class DealWrites
         $this->access->denyUnlessStaff();
 
         return $this->work->run(function () use ($input): Deal {
-            $deal = $this->store->deal($input->dealId) ?? throw self::noDeal();
+            $deal = $this->store->deal($input->dealId) ?? throw $this->noDeal();
             if ($deal->restore($this->clock->now())) {
                 $this->events->record(new DealRestored($deal->id(), $deal->status()->value, $deal->stageId()));
             }
@@ -265,13 +265,13 @@ final readonly class DealWrites
     {
         $deal = $this->store->deal($id);
         if (!$deal instanceof Deal || $deal->isTrashed()) {
-            throw self::noDeal();
+            throw $this->noDeal();
         }
 
         return $deal;
     }
 
-    private static function noDeal(): SalesRefused
+    private function noDeal(): SalesRefused
     {
         return SalesRefused::notFound('There is no deal with this id. Find it with foresi_search_deals.');
     }

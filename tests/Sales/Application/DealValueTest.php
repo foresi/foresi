@@ -140,9 +140,9 @@ final class DealValueTest extends TestCase
             'piece',
             $quantity,
             $money,
-            null === $unit ? BillingKind::OneOff : BillingKind::Recurring,
+            $unit instanceof RecurrenceUnit ? BillingKind::Recurring : BillingKind::OneOff,
             $unit,
-            null === $unit ? null : $interval,
+            $unit instanceof RecurrenceUnit ? $interval : null,
             null,
         ));
     }

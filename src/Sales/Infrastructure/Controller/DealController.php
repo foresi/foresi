@@ -575,8 +575,8 @@ final class DealController extends AbstractController
         $monthly = [];
         $approximate = false;
         foreach ($values as $value) {
-            $oneOff = self::added($oneOff, $value->oneOff);
-            $monthly = self::added($monthly, $value->monthly);
+            $oneOff = $this->added($oneOff, $value->oneOff);
+            $monthly = $this->added($monthly, $value->monthly);
             $approximate = $approximate || ([] !== $value->monthly && $value->approximate);
         }
         ksort($oneOff);
@@ -591,7 +591,7 @@ final class DealController extends AbstractController
      *
      * @return array<string, Money>
      */
-    private static function added(array $into, array $amounts): array
+    private function added(array $into, array $amounts): array
     {
         foreach ($amounts as $currency => $money) {
             $into[$currency] = isset($into[$currency]) ? $into[$currency]->plus($money) : $money;
@@ -614,7 +614,7 @@ final class DealController extends AbstractController
             ['label' => $this->screen->trans('sales.deal.field.stage'), 'value' => $this->screen->stage($detail->stage)],
         ];
         $reason = $detail->lostReason;
-        if (null !== $deal->lostAt()) {
+        if ($deal->lostAt() instanceof \DateTimeImmutable) {
             $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_reason'), 'value' => $reason instanceof LostReason ? $this->screen->reason($reason) : null, 'empty' => $this->screen->trans('sales.deal.none.lost_reason')];
             $details[] = ['label' => $this->screen->trans('sales.deal.field.lost_note'), 'value' => $deal->lostNote(), 'empty' => $this->screen->trans('sales.deal.none.lost_note')];
         }
@@ -837,7 +837,7 @@ final class DealController extends AbstractController
     private function references(): array
     {
         return [
-            DealLists::MEMBER => ['url' => $this->generateUrl('app_sales_deal_owners'), 'name' => fn (string $userId): string => $this->screen->owner($userId)],
+            DealLists::MEMBER => ['url' => $this->generateUrl('app_sales_deal_owners'), 'name' => $this->screen->owner(...)],
             DealLists::CONTACT => ['url' => $this->generateUrl('app_sales_deal_clients'), 'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName],
         ];
     }

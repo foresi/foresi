@@ -49,7 +49,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         self::assertSame(RecurrenceUnit::Month, $kept->recurrenceUnit());
         self::assertSame(1, $kept->interval());
         self::assertSame(12, $kept->cycles());
-        self::assertSame(['EUR' => 300_000], array_map(static fn ($money): int => $money->minor(), $this->reads()->deal($deal->id())->value->monthly));
+        self::assertSame(['EUR' => 300_000], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $this->reads()->deal($deal->id())->value->monthly));
     }
 
     public function testTypedLineWithoutProduct(): void
@@ -75,7 +75,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         self::assertSame('', $unpriced->unit());
         self::assertSame('1.000', $unpriced->quantity());
         self::assertSame(1, $unpriced->position());
-        self::assertSame(['CZK' => 135_075], array_map(static fn ($money): int => $money->minor(), $this->reads()->deal($deal->id())->value->oneOff));
+        self::assertSame(['CZK' => 135_075], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $this->reads()->deal($deal->id())->value->oneOff));
         self::assertFalse($this->reads()->deal($deal->id())->value->approximate, 'A line without a price adds nothing.');
     }
 
@@ -133,7 +133,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         self::assertSame('3.000', $updated->quantity());
         self::assertSame(50_000, $updated->unitPrice()?->minor());
         self::assertSame(RecurrenceUnit::Month, $updated->recurrenceUnit());
-        $oneOff = $this->lines()->update(new UpdateDealLineInput($deal->id(), $survey->id(), billingKind: 'one_off', unitPrice: null));
+        $oneOff = $this->lines()->update(new UpdateDealLineInput($deal->id(), $survey->id(), unitPrice: null, billingKind: 'one_off'));
         self::assertNull($oneOff->recurrenceUnit(), 'A line made one-off keeps no recurrence.');
         self::assertNull($oneOff->interval());
         self::assertNull($oneOff->unitPrice());

@@ -21,8 +21,8 @@ final class DealIntegrationsTest extends SalesScreenTestCase
     public function testTheDealShowsWhatTheInstalledModulesAdd(): void
     {
         $bundles = self::getContainer()->getParameter('kernel.bundles');
-        $documents = \in_array('Foresi\Documents\DocumentsBundle', $bundles, true);
-        $activities = \in_array('Foresi\Activities\ActivitiesBundle', $bundles, true);
+        $documents = \in_array(\Foresi\Documents\DocumentsBundle::class, $bundles, true);
+        $activities = \in_array(\Foresi\Activities\ActivitiesBundle::class, $bundles, true);
         $deal = $this->newDeal('Roof audit', [0]);
 
         $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());

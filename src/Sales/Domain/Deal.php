@@ -41,12 +41,6 @@ class Deal implements Audited
     #[ORM\Column(type: 'text')]
     private string $description;
 
-    #[ORM\Column(name: 'owner_user_id', type: 'guid')]
-    private string $ownerUserId;
-
-    #[ORM\Column(name: 'stage_id', type: 'guid')]
-    private string $stageId;
-
     /** A plain string, so a new status needs no data migration. */
     #[ORM\Column(type: 'string', length: 16, enumType: DealStatus::class)]
     private DealStatus $status = DealStatus::Open;
@@ -81,16 +75,16 @@ class Deal implements Audited
         string $description,
         #[ORM\Column(name: 'client_party_id', type: 'guid')]
         private readonly string $clientPartyId,
-        string $ownerUserId,
-        string $stageId,
+        #[ORM\Column(name: 'owner_user_id', type: 'guid')]
+        private string $ownerUserId,
+        #[ORM\Column(name: 'stage_id', type: 'guid')]
+        private string $stageId,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
         $this->id = Id::generate();
-        $this->title = self::checkedTitle($title);
-        $this->description = self::checkedDescription($description);
-        $this->ownerUserId = $ownerUserId;
-        $this->stageId = $stageId;
+        $this->title = $this->checkedTitle($title);
+        $this->description = $this->checkedDescription($description);
         $this->updatedAt = $createdAt;
     }
 
@@ -99,8 +93,8 @@ class Deal implements Audited
      */
     public function describe(string $title, string $description, \DateTimeImmutable $now): void
     {
-        $this->title = self::checkedTitle($title);
-        $this->description = self::checkedDescription($description);
+        $this->title = $this->checkedTitle($title);
+        $this->description = $this->checkedDescription($description);
         $this->touch($now);
     }
 
@@ -312,7 +306,7 @@ class Deal implements Audited
     /**
      * @throws InvalidField
      */
-    private static function checkedTitle(string $title): string
+    private function checkedTitle(string $title): string
     {
         $title = trim($title);
         if ('' === $title) {
@@ -328,7 +322,7 @@ class Deal implements Audited
     /**
      * @throws InvalidField
      */
-    private static function checkedDescription(string $description): string
+    private function checkedDescription(string $description): string
     {
         $description = trim($description);
         if (mb_strlen($description) > self::MAX_DESCRIPTION) {

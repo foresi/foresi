@@ -182,7 +182,7 @@ final readonly class SalesJson
      */
     private function stageReference(?Stage $stage): ?array
     {
-        return null === $stage ? null : ['id' => $stage->id(), 'key' => $stage->key(), 'name' => $this->stageNames->of($stage)];
+        return $stage instanceof Stage ? ['id' => $stage->id(), 'key' => $stage->key(), 'name' => $this->stageNames->of($stage)] : null;
     }
 
     /**
@@ -190,6 +190,6 @@ final readonly class SalesJson
      */
     private function reasonReference(?LostReason $reason): ?array
     {
-        return null === $reason ? null : ['id' => $reason->id(), 'key' => $reason->key(), 'name' => $this->reasonNames->of($reason)];
+        return $reason instanceof LostReason ? ['id' => $reason->id(), 'key' => $reason->key(), 'name' => $this->reasonNames->of($reason)] : null;
     }
 }

@@ -49,7 +49,6 @@ final class DealScreensTest extends WebTestCase
     /** @var array<string, LostReason> by key */
     private array $reasons = [];
     private Party $company;
-    private Party $petra;
 
     protected function setUp(): void
     {
@@ -70,11 +69,11 @@ final class DealScreensTest extends WebTestCase
             $this->em()->persist($this->reasons[$key] = new LostReason($key, null, $position, $now));
         }
         $this->company = new Party(PartyKind::Company, 'Alpha Example s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '', [PartyRole::Customer]);
-        $this->petra = new Party(PartyKind::Person, 'Petra Example', null, null, '');
+        $petra = new Party(PartyKind::Person, 'Petra Example', null, null, '');
         $this->em()->persist($this->company);
-        $this->em()->persist($this->petra);
+        $this->em()->persist($petra);
         $this->em()->flush();
-        self::getContainer()->get(LinkContactPerson::class)->link($this->company, $this->petra, '', false);
+        self::getContainer()->get(LinkContactPerson::class)->link($this->company, $petra, '', false);
     }
 
     public function testTheListGroupsTheDealsByStageOnSavedViews(): void
@@ -237,7 +236,7 @@ final class DealScreensTest extends WebTestCase
         $followUp = $this->deal('Roof maintenance');
         self::assertSame(['location' => '/sales/deals/'.$followUp->id()], json_decode((string) $this->client->getResponse()->getContent(), true));
         self::assertSame(['Monthly maintenance'], array_map(static fn (DealLine $line): string => $line->name(), $this->lines($followUp)));
-        $crawler = $this->client->request('GET', '/sales/deals/'.$followUp->id());
+        $this->client->request('GET', '/sales/deals/'.$followUp->id());
         self::assertSelectorTextContains('[data-deal-links]', 'Follows from');
         self::assertSelectorTextContains('[data-deal-links]', 'Roof audit');
     }

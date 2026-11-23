@@ -67,12 +67,12 @@ final class DealReadsTest extends SalesTestCase
         self::assertSame($this->stages['inquiry']->id(), $detail->stage?->id());
         self::assertSame($this->reasons['timing']->id(), $detail->lostReason?->id());
         self::assertSame(['Audit', 'Travel'], array_map(static fn (DealLine $line): string => $line->name(), $detail->lines));
-        self::assertSame(['CZK' => 1_200_000], array_map(static fn ($money): int => $money->minor(), $detail->value->oneOff));
-        self::assertSame(['EUR' => 21_667], array_map(static fn ($money): int => $money->minor(), $detail->value->monthly));
+        self::assertSame(['CZK' => 1_200_000], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $detail->value->oneOff));
+        self::assertSame(['EUR' => 21_667], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $detail->value->monthly));
         self::assertTrue($detail->value->approximate);
         self::assertSame([], $detail->links);
         self::assertSame([$this->petra->id()], $detail->contactPersonIds);
-        self::assertSame(['Petra Example'], array_map(static fn ($person): string => $person->displayName, $detail->contactPersons));
+        self::assertSame(['Petra Example'], array_map(static fn (\Foresi\Party\Contract\PartyPersonSummary $person): string => $person->displayName, $detail->contactPersons));
 
         self::assertNull($this->reads()->deal($this->deal('Open deal')->id())->lostReason);
         $this->assertRefused('not_found', fn (): mixed => $this->reads()->deal('0192f1a4-0000-7000-8000-000000000000'));

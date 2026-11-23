@@ -118,7 +118,7 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         // The document shows the deal as a link to its page, and the deal's section lists the document.
         $crawler = $this->client->request('GET', '/documents/'.$document->id());
         self::assertCount(1, $crawler->filter('[data-document-links] a[href="/sales/deals/'.$deal->id().'"]'));
-        $crawler = $this->client->request('GET', '/documents/for/deal/'.$deal->id(), server: ['HTTP_TURBO_FRAME' => 'deal-section-documents']);
+        $this->client->request('GET', '/documents/for/deal/'.$deal->id(), server: ['HTTP_TURBO_FRAME' => 'deal-section-documents']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('turbo-frame#deal-section-documents [data-record-documents]', 'NDA with Alpha Example');
     }

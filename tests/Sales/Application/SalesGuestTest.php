@@ -68,7 +68,7 @@ final class SalesGuestTest extends SalesTestCase
             fn (): mixed => $this->lines()->reorder(new ReorderDealLinesInput($deal->id(), [$line->id()])),
             fn (): mixed => $this->stageWrites()->create(new CreateDealStageInput('Site visit')),
             fn (): mixed => $this->stageWrites()->update(new UpdateDealStageInput($stage, 'Renamed')),
-            fn (): mixed => $this->stageWrites()->reorder(new ReorderDealStagesInput(array_map(static fn ($stage): string => $stage->id(), array_values($this->stages)))),
+            fn (): mixed => $this->stageWrites()->reorder(new ReorderDealStagesInput(array_map(static fn (\Foresi\Sales\Domain\Stage $stage): string => $stage->id(), array_values($this->stages)))),
             fn (): mixed => $this->stageWrites()->archive(new ArchiveDealStageInput($stage)),
             fn (): mixed => $this->reasonWrites()->create(new CreateLostReasonInput('Budget cut')),
             fn (): mixed => $this->reasonWrites()->update(new UpdateLostReasonInput($reason, 'Renamed')),
