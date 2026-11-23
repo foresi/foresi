@@ -60,6 +60,7 @@
             "bundle": "Foresi\\Invoicing\\InvoicingBundle",
             "optional": [
                 "cash-flow",
+                "margin",
                 "taxes-and-contributions",
                 "vat"
             ],

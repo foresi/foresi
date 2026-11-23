@@ -1,0 +1,53 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The split of one line of a received document: its kind (whole to one recipient, percents, fixed amounts with
+    one share that takes the rest) and a few rows of recipients. Rows left blank are ignored. A dialog over the
+    document, and a page of its own at the same URL. Variables: document, title, view, line, values (kind, rows),
+    kinds, error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: documentId})}] %}
+{% set dialog_size = 'lg' %}
+{% set dialog_description = line.text %}
+
+{% block title %}{{ 'margin.screen.split_title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-line-form" action="{{ path('app_margin_line', {id: documentId, key: line.key}) }}" class="grid gap-4" novalidate data-margin-line-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Purchasing\\MarginController::TOKEN')) }}">
+        {# The first submit button of a form is what Enter presses: it is Save, never Clear (the footer buttons come later). #}
+        <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:Select name="kind" id="margin-kind" :label="'margin.screen.kind.label'|trans" :help="'margin.screen.kind.help'|trans" :value="values.kind" :options="kinds" />
+        {% for row in values.rows %}
+            {% set n = loop.index0 %}
+            <div class="grid gap-3 rounded-control border border-container p-3 sm:grid-cols-2" data-margin-row>
+                <twig:Ui:Select :name="'shares[' ~ n ~ '][type]'" :id="'margin-type-' ~ n" :label="'margin.screen.row.recipient'|trans({n: loop.index})" :value="row.type" :options="{'': '', own: 'margin.screen.own'|trans, client: 'margin.screen.client'|trans}" />
+                <twig:Ui:Combobox :name="'shares[' ~ n ~ '][contactId]'" :id="'margin-contact-' ~ n" :textName="'shares[' ~ n ~ '][query]'" :label="'margin.screen.row.client'|trans({n: loop.index})" :placeholder="'margin.screen.client_placeholder'|trans" :value="row.contactId" :text="row.query" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />
+                <twig:Ui:TextInput :name="'shares[' ~ n ~ '][percent]'" :id="'margin-percent-' ~ n" :label="'margin.screen.row.percent'|trans({n: loop.index})" :value="row.percent" inputmode="decimal" autocomplete="off" />
+                <twig:Ui:TextInput :name="'shares[' ~ n ~ '][amount]'" :id="'margin-amount-' ~ n" :label="'margin.screen.row.amount'|trans({n: loop.index})" :value="row.amount" inputmode="decimal" autocomplete="off" />
+                <twig:Ui:Checkbox :name="'shares[' ~ n ~ '][rest]'" :id="'margin-rest-' ~ n" :label="'margin.screen.row.rest'|trans({n: loop.index})" value="1" :checked="row.rest" />
+            </div>
+        {% endfor %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {% if line.mapping is not null %}<twig:Ui:Button type="submit" form="margin-line-form" name="_action" value="clear" data-margin-clear>{{ 'margin.screen.clear'|trans }}</twig:Ui:Button>{% endif %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-line-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.screen.split_title'|trans" icon="percent" class="max-w-3xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ line.text }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            {% if line.mapping is not null %}<twig:Ui:Button type="submit" form="margin-line-form" name="_action" value="clear">{{ 'margin.screen.clear'|trans }}</twig:Ui:Button>{% endif %}
+            <twig:Ui:Button :href="path('app_purchasing_document', {id: documentId})">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-line-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

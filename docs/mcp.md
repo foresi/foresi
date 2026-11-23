@@ -37,7 +37,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_get_received_document` | One received document with its VAT recap, lines and payments. |
 | `foresi_list_received_document_payments` | The payments of one received document, by the day paid. |
 | `foresi_record_received_document` | **Write.** Records a received document from its fields and optional `lines`, with no file, and gives it the firm's next evidence number. |
-| `foresi_set_received_document_lines` | **Write.** Replaces the `lines` of a received document (`document_id`): `{text, base, vat_rate}`, adding up per rate to the bases of its VAT recap; an empty list removes them. |
+| `foresi_set_received_document_lines` | **Write.** Replaces the `lines` of a received document (`document_id`): `{id, text, base, vat_rate}`, adding up per rate to the bases of its VAT recap; send back the `key` of a line as its `id` to keep it, a line without `id` is new, and lines left out are removed; an empty list removes them. |
 | `foresi_trash_received_document` | **Write, destructive.** Moves a received document (`document_id`) to the trash with a `reason`; a person restores it in Foresi. |
 | `foresi_add_received_document_payment` | **Write.** Records a payment of a recorded received document: `paid_on`, `amount`, `method` and an optional `bank_movement_id`. Never more than what remains. |
 | `foresi_remove_received_document_payment` | **Write, destructive.** Removes a payment (`payment_id`) of a received document (`document_id`) recorded by mistake. |
@@ -140,6 +140,9 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_reopen_vat_period` | **Write.** Removes the settled mark of a period (`key`); a period a bank payment pays stays settled. |
 | `foresi_assign_vat_payment` | **Write.** Places a bank movement (`movement_id`): `period` it pays, or `null` for no VAT payment. It wins over the automatic matching. |
 | `foresi_reset_vat_payment` | **Write.** Gives a placed bank movement (`movement_id`) back to the automatic matching. |
+| `foresi_get_document_allocation` | Who bears the cost of a recorded received document (`document_id`): each line with its `key`, `base_czk`, its own allocation and its shares (`recipient`, `recipient_name`, `amount`, `source`), the assignment of the whole document and `known_gaps`. Staff only. |
+| `foresi_set_line_allocation` | **Write.** Splits the cost of one line (`document_id`, `line_key`) by `kind` (`whole`, `percent` or `fixed`) and its `shares` (`recipient` as `own` or a contact id, `percent`, `amount`, `rest`); `kind: null` clears it. Answers the document with its shares. Staff only. |
+| `foresi_assign_received_document` | **Write.** Gives the whole cost of a document (`document_id`) to one `recipient` (`own` or a contact id), for the lines without a mapping of their own; `null` clears it. Staff only. |
 | `foresi_list_calendar_feeds` | Your own calendar feeds: name, created, last fetched and revoked, never their addresses. Not for guests. |
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
@@ -205,6 +208,8 @@ The deal tools take the fields of the [REST sales](api.md#sales), with the ids a
 The tax tools take the fields of the [REST taxes and contributions](api.md#taxes-and-contributions), with the id of a status as `status_id`, and answer what the REST API answers. Only the owner of the organisation may call them; anyone else is refused with `owner_only`. They also refuse with `invalid_argument` (it names the argument and the `reason`), `not_found` and `status_day_taken`. See [taxes-and-contributions.md](taxes-and-contributions.md).
 
 The VAT tools take the fields of the [REST VAT](api.md#vat) and answer what the REST API answers; the reads need `vat:read`, the writes `vat:write`. The owners and members may call them, and a guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `range_too_long`). See [vat.md](vat.md).
+
+The margin tools take the fields of the [REST margin](api.md#margin) with the id of the document as `document_id` and the key of a line as `line_key`, and answer what the REST API answers; the read needs `margin:read`, the writes `margin:write`. The owners and members may call them, and a guest's connection never lists or calls them. They refuse with `invalid_argument` and the reason of the refusal (see [Margin](margin.md#refusals)). Margin works only while the Purchasing module is installed.
 
 The document tools take the fields of the [REST documents](api.md#documents), with the ids as `type_id`, `template_id`, `document_id` and `signer_id`, and answer what the REST API answers; the reads need `documents:read`, the writes `documents:write`. A guest's connection never lists or calls them. They refuse with `invalid_argument` (it names the argument and the `reason`, such as `template_variables_missing` with `missing`), `not_found` and the conflicts of the document's status. The stored files are not sent over MCP: download them from `GET /api/v1/documents/{document_id}/files/{file}`. See [documents.md](documents.md).
 

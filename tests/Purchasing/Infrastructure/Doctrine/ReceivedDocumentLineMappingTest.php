@@ -48,6 +48,26 @@ final class ReceivedDocumentLineMappingTest extends PurchasingTestCase
         self::assertSame(1, $this->em->getRepository(ReceivedDocumentLine::class)->count([]));
     }
 
+    public function testReorderedLinesKeepTheirIdsInTheDatabase(): void
+    {
+        $id = $this->withLines([$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]);
+        $document = $this->document($id);
+        [$first, $second] = array_map(static fn (ReceivedDocumentLine $line): string => $line->id(), $document->lines());
+
+        $document->setLines([$this->line('Domain', 30_000, $second), $this->line('Hosting', 70_000, $first)]);
+        $this->em->flush();
+        $this->em->clear();
+
+        $stored = $this->document($id)->lines();
+        self::assertSame([[$second, 0, 'Domain'], [$first, 1, 'Hosting']], array_map(static fn (ReceivedDocumentLine $line): array => [$line->id(), $line->position(), $line->text()], $stored));
+        self::assertSame(2, $this->em->getRepository(ReceivedDocumentLine::class)->count([]));
+
+        $this->document($id)->setLines([$this->line('Domain', 100_000, $second)]);
+        $this->em->flush();
+        $this->em->clear();
+        self::assertSame([[$second, 0]], array_map(static fn (ReceivedDocumentLine $line): array => [$line->id(), $line->position()], $this->document($id)->lines()));
+    }
+
     public function testRemovingTheLinesDeletesThem(): void
     {
         $id = $this->withLines([$this->line('Hosting', 100_000)]);
@@ -64,7 +84,7 @@ final class ReceivedDocumentLineMappingTest extends PurchasingTestCase
     {
         $id = $this->withLines([$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]);
         $document = $this->document($id);
-        $document->setLines([$this->line('Hosting', 100_000)]);
+        $document->setLines([$this->line('Hosting', 100_000, $document->lines()[0]->id())]);
         $this->em->flush();
 
         $entries = array_map(
@@ -101,8 +121,8 @@ final class ReceivedDocumentLineMappingTest extends PurchasingTestCase
         return array_map(static fn (ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor(), $line->base()->currency()->value, $line->vatRate()], $document->lines());
     }
 
-    private function line(string $text, int $base): ReceivedDocumentLineInput
+    private function line(string $text, int $base, ?string $id = null): ReceivedDocumentLineInput
     {
-        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21');
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), '21', $id);
     }
 }

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  title: Marže
+  refused:
+    whole_needs_one: "Celý náklad patří právě jednomu příjemci, bez procenta a částky."
+    percent_must_add_up: "Procenta jsou dvě nebo víc, každé nad 0 s nejvýš dvěma desetinnými místy a dohromady přesně 100."
+    fixed_needs_a_rest: "Pevné rozdělení má příjemce s kladnou částkou v Kč a právě jednoho příjemce, který dostane zbytek."
+    duplicate_recipient: "Příjemce smí být uveden jen jednou."
+    unknown_contact: "Klient není aktivní kontakt v adresáři."
+    unknown_document: "Doklad není zaúčtovaný doklad s náklady."
+    unknown_line: "Doklad nemá řádek s tímto klíčem."
+    kind_invalid: "Druh je celý, procenta nebo pevná částka."
+    share_invalid: "Každý podíl uvádí příjemce a má procento, částku nebo zbytek."
+    recipient_invalid: "Příjemce je firma sama nebo kontakt."
+    amount_invalid: "Částka je číslo v Kč s nejvýš dvěma desetinnými místy."
+    forbidden: "S marží pracují jen vlastníci a členové organizace."

@@ -181,6 +181,7 @@ api_tokens:
     sales: Obchod
     taxes: Daně a odvody
     vat: DPH
+    margin: Marže
     received_documents: Přijaté doklady
     views: Uložené pohledy
     projects: Projekty

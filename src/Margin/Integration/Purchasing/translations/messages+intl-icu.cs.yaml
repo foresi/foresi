@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  screen:
+    title: Marže
+    assign: Přiřadit…
+    assign_description: Přiřaďte celý náklad dokladu firmě samotné nebo klientovi. Řádek s vlastním rozdělením si ho ponechá.
+    whole: "Celý doklad patří:"
+    own: Vlastní spotřeba
+    unknown_contact: Klient, který už není v adresáři
+    unassigned_recipient: Nepřiřazeno
+    gap: Některý řádek ještě nemá základ v Kč, protože chybí kurz. Podíl dostane, až bude kurz zadaný.
+    line_gap: Zatím bez základu v Kč, a tedy bez podílu (chybí kurz).
+    no_lines: Doklad nemá žádné nákladové řádky.
+    split: Rozdělit…
+    split_line: "Rozdělit náklad řádku {text}"
+    split_title: Rozdělení nákladu řádku
+    split_lines: Rozdělit podle řádků
+    recipient: Příjemce
+    client: Klient
+    client_help: Napište alespoň tři písmena jména.
+    client_placeholder: Jméno klienta
+    client_empty: Žádný kontakt neodpovídá.
+    clear: Vymazat
+    cancel: Zrušit
+    submit: Uložit
+    source:
+      line: vlastní
+      document: doklad
+      planned_item: položka plánu
+      supplier: dodavatel
+      unassigned: nepřiřazeno
+    kind:
+      label: Jak rozdělit
+      help: Celé dá řádek prvnímu příjemci. Procenta musí dát dohromady 100. Pevná částka dá některým příjemcům částky v Kč a zbytek tomu, kdo je tak označený. Prázdné řádky se přeskočí.
+      whole: Celé jednomu
+      percent: Procenta
+      fixed: Pevná částka
+    row:
+      recipient: "Příjemce {n}"
+      client: "Klient {n}"
+      percent: "Procenta {n}"
+      amount: "Částka {n} (Kč)"
+      rest: "Příjemce {n} dostane zbytek"
+    flash:
+      assigned: Doklad je přiřazený.
+      cleared: Přiřazení dokladu je zrušené.
+      line_set: Rozdělení řádku je uložené.
+      line_cleared: Rozdělení řádku je zrušené.
+    error:
+      recipient: Vyberte firmu samotnou nebo klienta.
+      client: Klienta v řádku vyberte ze seznamu.
+      amount: Částka je číslo v Kč s nejvýše dvěma desetinnými místy.

@@ -553,6 +553,32 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertSame($version, $this->document($id)->version(), 'Nothing was saved.');
     }
 
+    public function testTheFormPostsTheIdOfEachSavedLineAndRemovingARowKeepsTheOthers(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+        $values = $this->values($this->page('/purchasing/'.$id));
+        $values['lines'] = [['text' => 'Hosting', 'base' => '700.00', 'rate' => '21'], ['text' => 'Domain', 'base' => '300.00', 'rate' => '21']];
+        $this->post($id, $values, 'save');
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        [$hosting, $domain] = array_map(static fn (ReceivedDocumentLine $line): string => $line->id(), $this->document($id)->lines());
+
+        $crawler = $this->page('/purchasing/'.$id);
+        self::assertSame([$hosting, $domain], $crawler->filter('[data-line-row] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')));
+
+        // A row added has no id; removing the first row keeps the id of the other.
+        $crawler = $this->post($id, $this->values($crawler), 'add_line');
+        self::assertSame([$hosting, $domain, ''], $crawler->filter('[data-line-row] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')));
+        $crawler = $this->post($id, $this->values($crawler), 'remove_line:0');
+        self::assertSame([$domain, ''], $crawler->filter('[data-line-row] input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')));
+
+        $values = $this->values($crawler);
+        $values['lines'] = [['id' => $domain, 'text' => 'Domain names', 'base' => '300.00', 'rate' => '21'], ['id' => $hosting, 'text' => 'Hosting', 'base' => '700.00', 'rate' => '21']];
+        $this->post($id, $values, 'save');
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertSame([[$domain, 'Domain names'], [$hosting, 'Hosting']], array_map(static fn (ReceivedDocumentLine $line): array => [$line->id(), $line->text()], $this->document($id)->lines()));
+    }
+
     public function testLinesThatDoNotAddUpAreRefusedAtTheLines(): void
     {
         $this->signedIn();

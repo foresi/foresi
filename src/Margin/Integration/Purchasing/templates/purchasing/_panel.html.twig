@@ -1,0 +1,54 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Margin panel of a received document (slot purchasing.document_sections, ADR 0038): each line with who bears
+    its cost and how much, and where each share came from as a neutral badge. "Assign…" in the header opens the
+    dialog; each line has its own editor. Variables: documentId, whole (the assignment of the document or null),
+    gap (a line has no base in CZK yet), lines (key, text, base, shares of recipient, name, amount,
+    source).
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+<twig:Ui:Card :title="'margin.screen.title'|trans" icon="percent" data-purchasing-margin>
+    <twig:block name="actions">
+        <twig:Ui:Button size="sm" :href="path('app_margin_assign', {id: documentId})" data-dialog aria-haspopup="dialog" data-margin-assign>{{ 'margin.screen.assign'|trans }}</twig:Ui:Button>
+    </twig:block>
+
+    {% if whole %}
+        <p class="m-0 mb-2 text-small text-text" data-margin-whole>
+            {{- 'margin.screen.whole'|trans }}
+            <span class="font-medium text-ink">{{ whole.own ? 'margin.screen.own'|trans : (whole.name ?? 'margin.screen.unknown_contact'|trans) }}</span>
+        </p>
+    {% endif %}
+    {% if gap %}
+        <p class="m-0 mb-2 text-small text-muted" data-margin-gap>{{ 'margin.screen.gap'|trans }}</p>
+    {% endif %}
+
+    <ul class="m-0 grid list-none gap-0 rounded-panel border border-container p-0">
+        {% for line in lines %}
+            <li class="grid gap-1 border-b border-divider px-4 py-2 last:border-b-0" data-margin-line="{{ line.key }}">
+                <div class="flex items-center gap-3">
+                    <span class="min-w-0 flex-1 break-words font-medium text-ink" data-margin-text>{{ line.text }}</span>
+                    <span class="num whitespace-nowrap text-muted" data-margin-base>{% if line.base is null %}<twig:Ui:EmptyValue />{% else %}{{ line.base }}{% endif %}</span>
+                    <twig:Ui:Button size="sm" :href="path('app_margin_line', {id: documentId, key: line.key})" data-dialog aria-haspopup="dialog" data-margin-edit :aria-label="'margin.screen.split_line'|trans({text: line.text})">{{ 'margin.screen.split'|trans }}</twig:Ui:Button>
+                </div>
+                {% if line.base is null %}
+                    <p class="m-0 text-small text-muted" data-margin-line-gap>{{ 'margin.screen.line_gap'|trans }}</p>
+                {% else %}
+                    {% for share in line.shares %}
+                        <div class="flex items-center gap-3 text-small text-text" data-margin-share="{{ share.source }}">
+                            <span class="min-w-0 flex-1 break-words">
+                                {%- if share.recipient is null %}{{ 'margin.screen.unassigned_recipient'|trans }}
+                                {%- elseif share.recipient == 'own' %}{{ 'margin.screen.own'|trans }}
+                                {%- else %}{{ share.name ?? 'margin.screen.unknown_contact'|trans }}{% endif -%}
+                            </span>
+                            <span class="num whitespace-nowrap">{{ share.amount }}</span>
+                            <twig:Ui:Badge tone="gray">{{ ('margin.screen.source.' ~ share.source)|trans }}</twig:Ui:Badge>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </li>
+        {% else %}
+            <li class="px-4 py-2 text-small text-muted" data-margin-none>{{ 'margin.screen.no_lines'|trans }}</li>
+        {% endfor %}
+    </ul>
+</twig:Ui:Card>

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  title: Margin
+  refused:
+    whole_needs_one: "A whole allocation has exactly one recipient and no percent or amount."
+    percent_must_add_up: "The percents must be two or more, each above 0 with up to two decimals, adding up to exactly 100."
+    fixed_needs_a_rest: "A fixed allocation has recipients with a positive amount in CZK and exactly one recipient that takes the rest."
+    duplicate_recipient: "A recipient may appear only once."
+    unknown_contact: "The client is not an active contact of the address book."
+    unknown_document: "The document is not a recorded document with costs."
+    unknown_line: "The document has no line with this key."
+    kind_invalid: "The kind is whole, percent or fixed."
+    share_invalid: "Each share names its recipient and has a percent, an amount or the rest."
+    recipient_invalid: "The recipient is the firm itself or a contact."
+    amount_invalid: "The amount is a number in CZK with at most two decimals."
+    forbidden: "Only the owners and the members of the organisation work with its margin."

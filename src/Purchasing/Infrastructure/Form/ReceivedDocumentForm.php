@@ -24,6 +24,7 @@ use Foresi\Purchasing\Domain\VatRate;
 use Foresi\Purchasing\Domain\VatRecap;
 use Foresi\Purchasing\Domain\VatRecapLine;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -39,7 +40,7 @@ use Symfony\Component\HttpFoundation\Request;
  * is none, and no lines at all is the whole document as one line.
  *
  * @phpstan-type Row array{rate: string, base: string, vat: string, statedVatCzk: string}
- * @phpstan-type Line array{text: string, base: string, rate: string}
+ * @phpstan-type Line array{id: string, text: string, base: string, rate: string}
  * @phpstan-type Values array{kind: string, treatment: string, supplierId: string, supplierQuery: string, supplierNumber: string, variableSymbol: string, issueDate: string, taxPointDate: string, dueDate: string, receivedDate: string, currency: string, total: string, exchangeRate: string, rateShown: string, rateFor: string, rateDate: string, supplyCode: string, originalDocumentId: string, recap: list<Row>, lines: list<Line>}
  */
 final readonly class ReceivedDocumentForm
@@ -117,7 +118,7 @@ final readonly class ReceivedDocumentForm
             'supplyCode' => $document->supplyCode() ?? '',
             'originalDocumentId' => $document->originalDocumentId() ?? '',
             'recap' => [] === $rows ? [self::emptyRow()] : $rows,
-            'lines' => array_map(fn (ReceivedDocumentLine $line): array => ['text' => $line->text(), 'base' => $this->text->field($line->base()), 'rate' => $line->vatRate()], $document->lines()),
+            'lines' => array_map(fn (ReceivedDocumentLine $line): array => ['id' => $line->id(), 'text' => $line->text(), 'base' => $this->text->field($line->base()), 'rate' => $line->vatRate()], $document->lines()),
         ];
     }
 
@@ -139,7 +140,7 @@ final readonly class ReceivedDocumentForm
         $lines = [];
         foreach (\array_slice($request->request->all('lines'), 0, DocumentLines::MAX_LINES) as $line) {
             if (\is_array($line)) {
-                $lines[] = ['text' => $text($line['text'] ?? null, DocumentLines::MAX_TEXT_LENGTH), 'base' => $text($line['base'] ?? null, 32), 'rate' => $text($line['rate'] ?? null, 32)];
+                $lines[] = ['id' => $this->lineId($line['id'] ?? null), 'text' => $text($line['text'] ?? null, DocumentLines::MAX_TEXT_LENGTH), 'base' => $text($line['base'] ?? null, 32), 'rate' => $text($line['rate'] ?? null, 32)];
             }
         }
 
@@ -188,7 +189,7 @@ final readonly class ReceivedDocumentForm
         }
         if ('add_line' === $action && \count($values['lines']) < DocumentLines::MAX_LINES) {
             // A new line takes the first rate of the recap, as its select shows first.
-            $values['lines'][] = ['text' => '', 'base' => '', 'rate' => (string) array_key_first($this->rates($values))];
+            $values['lines'][] = ['id' => '', 'text' => '', 'base' => '', 'rate' => (string) array_key_first($this->rates($values))];
         }
         if (1 === preg_match('/^remove_line:(\d+)$/D', $action, $match)) {
             unset($values['lines'][(int) $match[1]]);
@@ -446,6 +447,14 @@ final readonly class ReceivedDocumentForm
     }
 
     /**
+     * The id a row posted for the stored line it stands for; none for a new row or an id that is no id.
+     */
+    private function lineId(mixed $value): string
+    {
+        return \is_string($value) && Id::isValid($value) ? $value : '';
+    }
+
+    /**
      * @param Line                  $line
      * @param array<string, string> $errors
      */
@@ -470,7 +479,7 @@ final readonly class ReceivedDocumentForm
             return null;
         }
 
-        return new ReceivedDocumentLineInput($line['text'], $base, $rate);
+        return new ReceivedDocumentLineInput($line['text'], $base, $rate, '' === $line['id'] ? null : $line['id']);
     }
 
     /**

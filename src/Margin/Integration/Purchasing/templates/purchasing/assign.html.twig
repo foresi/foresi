@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Gives the whole cost of a received document to one recipient: the firm itself or a client found by name. A
+    dialog over the document, and a page of its own at the same URL. "Split by lines" leads to the editor of the
+    lines; "Clear" takes the assignment back. Variables: document, title, view, values (type, contactId, query),
+    error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'purchasing.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: documentId})}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'margin.screen.assign_description'|trans %}
+
+{% block title %}{{ 'margin.screen.assign'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-assign-form" action="{{ path('app_margin_assign', {id: documentId}) }}" class="grid gap-4" novalidate data-margin-assign-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Purchasing\\MarginController::TOKEN')) }}">
+        {# The first submit button of a form is what Enter presses: it is Save, never Clear (the footer buttons come later). #}
+        <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:Select name="type" id="margin-type" :label="'margin.screen.recipient'|trans" :value="values.type" :options="{'': '', own: 'margin.screen.own'|trans, client: 'margin.screen.client'|trans}" />
+        <twig:Ui:Combobox name="contactId" id="margin-contact" textName="query" :label="'margin.screen.client'|trans" :help="'margin.screen.client_help'|trans" :placeholder="'margin.screen.client_placeholder'|trans" :value="values.contactId" :text="values.query" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />
+        {% if view.lines is not empty %}
+            <p class="m-0 text-small text-muted"><a href="{{ path('app_margin_line', {id: documentId, key: view.lines|first.key}) }}" class="font-medium text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" data-turbo="false" data-margin-split-lines>{{ 'margin.screen.split_lines'|trans }}</a></p>
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {% if view.documentRecipient is not null %}<twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="clear" data-margin-clear>{{ 'margin.screen.clear'|trans }}</twig:Ui:Button>{% endif %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="assign" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.screen.assign'|trans" icon="users" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ 'margin.screen.assign_description'|trans }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            {% if view.documentRecipient is not null %}<twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="clear">{{ 'margin.screen.clear'|trans }}</twig:Ui:Button>{% endif %}
+            <twig:Ui:Button :href="path('app_purchasing_document', {id: documentId})">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="assign" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

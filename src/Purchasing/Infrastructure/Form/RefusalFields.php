@@ -54,6 +54,7 @@ final class RefusalFields
         ReceivedDocumentRefused::LINE_TEXT_REQUIRED => 'lines',
         ReceivedDocumentRefused::LINE_TEXT_TOO_LONG => 'lines',
         ReceivedDocumentRefused::LINES_TOO_MANY => 'lines',
+        ReceivedDocumentRefused::DUPLICATE_LINE_ID => 'lines',
     ];
 
     public static function of(string $reason): string

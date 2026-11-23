@@ -466,7 +466,11 @@ class ReceivedDocument implements Audited
      */
     public function lines(): array
     {
-        return array_values($this->lines->toArray());
+        $lines = $this->lines->toArray();
+        // Lines kept in place may have moved since they were loaded.
+        usort($lines, static fn (ReceivedDocumentLine $a, ReceivedDocumentLine $b): int => $a->position() <=> $b->position());
+
+        return $lines;
     }
 
     /**
@@ -628,7 +632,7 @@ class ReceivedDocument implements Audited
         }
         foreach ($lines as $position => $line) {
             $kept = $stored[$position];
-            if ($kept->text() !== $line->text || !$kept->base()->equals($line->base) || $kept->vatRate() !== $line->vatRate) {
+            if ($kept->id() !== $line->id || $kept->text() !== $line->text || !$kept->base()->equals($line->base) || $kept->vatRate() !== $line->vatRate) {
                 return false;
             }
         }
@@ -637,23 +641,30 @@ class ReceivedDocument implements Audited
     }
 
     /**
-     * Rewrites the stored lines in place with checked ones: a line keeps its id
-     * and position, and only the last ones come and go.
+     * Keeps the lines as checked ones say: a line with the id of a stored one
+     * rewrites it in place, so it keeps its id whatever else changes; any other
+     * line is new, and a stored line the list leaves out goes. The position is
+     * the order of the list.
      *
      * @param list<ReceivedDocumentLineInput> $lines
      */
     private function keepLines(array $lines): void
     {
-        $stored = $this->lines();
+        $stored = [];
+        foreach ($this->lines() as $line) {
+            $stored[$line->id()] = $line;
+        }
         foreach ($lines as $position => $line) {
-            if (isset($stored[$position])) {
-                $stored[$position]->rewrite($line);
+            $kept = null !== $line->id ? ($stored[$line->id] ?? null) : null;
+            if ($kept instanceof ReceivedDocumentLine) {
+                $kept->rewrite($line, $position);
+                unset($stored[$line->id]);
             } else {
                 $this->lines->add(new ReceivedDocumentLine(Id::generate(), $this, $position, $line->text, $line->base, $line->vatRate));
             }
         }
-        foreach (\array_slice($stored, \count($lines)) as $surplus) {
-            $this->lines->removeElement($surplus);
+        foreach ($stored as $gone) {
+            $this->lines->removeElement($gone);
         }
     }
 
