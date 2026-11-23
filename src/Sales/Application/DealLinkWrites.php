@@ -52,7 +52,8 @@ final readonly class DealLinkWrites
                 throw SalesRefused::invalid('link_other_client', 'toDealId', 'Only two deals of the same client are linked.');
             }
             foreach ($this->store->linksOf($from->id()) as $link) {
-                if ($link->type() === $type && $link->joins($to->id())) {
+                // follows_from is the only type: a pair is linked once, whichever way round.
+                if ($link->joins($to->id())) {
                     throw SalesRefused::conflict('link_duplicate', 'The two deals are linked already.', 'toDealId');
                 }
             }

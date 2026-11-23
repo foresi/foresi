@@ -49,10 +49,11 @@ final class DealRulesTest extends SalesTestCase
         self::assertSame($this->stages['inquiry']->id(), $deal->stageId(), 'A new deal starts at the first stage.');
 
         $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['proposal']->id()));
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'from_stage_id' => $this->stages['inquiry']->id(), 'to_stage_id' => $this->stages['proposal']->id()]], $this->events('sales.deal.stage_changed'));
+        $changed = $this->events('sales.deal.stage_changed');
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'from_stage_id' => $this->stages['inquiry']->id(), 'to_stage_id' => $this->stages['proposal']->id()]], $changed);
         // To the stage it is at already changes nothing and records nothing.
         $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['proposal']->id()));
-        self::assertCount(1, $this->events('sales.deal.stage_changed'));
+        self::assertSame($changed, $this->events('sales.deal.stage_changed'));
 
         $this->deals()->win(new WinDealInput($deal->id()));
         $refused = $this->assertRefused('deal_not_open', fn (): Deal => $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['meeting']->id())));

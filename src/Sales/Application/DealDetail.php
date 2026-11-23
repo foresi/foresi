@@ -22,9 +22,9 @@ final readonly class DealDetail
 {
     /**
      * @param list<DealLine>           $lines
-     * @param list<DealLinkView>       $links          the oldest first
+     * @param list<DealLinkView>       $links            the oldest first
      * @param list<string>             $contactPersonIds in their order
-     * @param list<PartyPersonSummary> $contactPersons the ones of them still linked to the client, in their order
+     * @param list<PartyPersonSummary> $contactPersons   the ones of them still linked to the client, in their order
      */
     public function __construct(
         public Deal $deal,

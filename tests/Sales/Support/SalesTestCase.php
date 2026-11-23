@@ -64,6 +64,8 @@ abstract class SalesTestCase extends KernelTestCase
     protected Party $petra;
     protected Party $karel;
     private int $companies = 0;
+    /** Valid registration numbers, one for each company a test makes. */
+    private const array NUMBERS = ['12345679', '87654321', '25596641', '27082440'];
 
     protected function setUp(): void
     {
@@ -158,8 +160,7 @@ abstract class SalesTestCase extends KernelTestCase
     /** A customer company; each one the tests make has another registration number. */
     protected function company(string $name, bool $archived = false): Party
     {
-        static $numbers = ['12345679', '87654321', '25596641', '27082440'];
-        $party = new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', $numbers[$this->companies++ % \count($numbers)]), null, '', [PartyRole::Customer]);
+        $party = new Party(PartyKind::Company, $name, new RegistrationNumber('CZ', self::NUMBERS[$this->companies++ % \count(self::NUMBERS)]), null, '', [PartyRole::Customer]);
         if ($archived) {
             $party->archive(new \DateTimeImmutable('2026-11-01 10:00:00'));
         }
