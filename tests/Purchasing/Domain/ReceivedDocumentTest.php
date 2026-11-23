@@ -554,6 +554,38 @@ final class ReceivedDocumentTest extends TestCase
         self::assertSame($version, $without->version());
     }
 
+    public function testWhatChangesOfAKeptLineIsWrittenWhateverTheRest(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+        $version = $document->version();
+
+        self::assertTrue($document->setLines([$this->line('Cloud hosting', 70_000, id: $first->id()), $this->line('Domain', 30_000, id: $second->id())]), 'Only a text changed.');
+        self::assertSame('Cloud hosting', $document->lines()[0]->text());
+        self::assertTrue($document->setLines([$this->line('Cloud hosting', 60_000, id: $first->id()), $this->line('Domain', 40_000, id: $second->id())]), 'Only the bases changed.');
+        self::assertSame([60_000, 40_000], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): int => $line->base()->minor(), $document->lines()));
+        self::assertSame($version + 2, $document->version());
+    }
+
+    public function testOnlyTheRateOfAKeptLineChanging(): void
+    {
+        $document = $this->recorded($this->content(
+            total: 116_500,
+            lines: [
+                new VatRecapLine(VatRate::of('21'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(10_500, Currency::CZK)),
+                new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(6_000, Currency::CZK)),
+            ],
+            documentLines: [$this->line('Hosting', 50_000, '21'), $this->line('Domain', 50_000, '12')],
+        ));
+        [$first, $second] = $document->lines();
+        $version = $document->version();
+
+        self::assertTrue($document->setLines([$this->line('Hosting', 50_000, '12', id: $first->id()), $this->line('Domain', 50_000, '21', id: $second->id())]));
+
+        self::assertSame($version + 1, $document->version());
+        self::assertSame(['12', '21'], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): string => $line->vatRate(), $document->lines()));
+    }
+
     public function testATrashedDocumentTakesNoLines(): void
     {
         $document = $this->recorded($this->content());

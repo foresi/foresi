@@ -54,10 +54,10 @@ final class DocumentLines
         $ids = [];
         foreach ($lines as $line) {
             if (null !== $line->id) {
-                if (isset($ids[$line->id])) {
+                if (\in_array($line->id, $ids, true)) {
                     throw new ReceivedDocumentRefused(ReceivedDocumentRefused::DUPLICATE_LINE_ID);
                 }
-                $ids[$line->id] = true;
+                $ids[] = $line->id;
             }
             $text = trim($line->text);
             if ('' === $text) {

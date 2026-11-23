@@ -144,6 +144,57 @@ final class AllocationTest extends TestCase
         Allocation::fromArray(['kind' => 'sideways', 'shares' => []]);
     }
 
+    /**
+     * @param array<string, mixed> $share
+     */
+    #[DataProvider('brokenArrays')]
+    public function testAnArrayWithABrokenShareIsRefused(array $share): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        Allocation::fromArray(['kind' => 'whole', 'shares' => [$share]]);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function brokenArrays(): iterable
+    {
+        yield 'no recipient' => [['percent' => '100']];
+        yield 'a recipient that is not text' => [['recipient' => 5]];
+        yield 'a percent that is not text' => [['recipient' => 'own', 'percent' => 100]];
+        yield 'an amount that is not whole hellers' => [['recipient' => 'own', 'amount_minor' => '100']];
+        yield 'a bad percent with a good amount' => [['recipient' => 'own', 'percent' => 100, 'amount_minor' => 100]];
+        yield 'a good percent with a bad amount' => [['recipient' => 'own', 'percent' => '100', 'amount_minor' => 1.5]];
+    }
+
+    public function testAShareWithoutRestInAnArrayTakesNotTheRest(): void
+    {
+        $allocation = Allocation::fromArray(['kind' => 'whole', 'shares' => [['recipient' => 'own']]]);
+
+        self::assertFalse($allocation->shares[0]->rest);
+        self::assertNull($allocation->shares[0]->percent);
+        self::assertNull($allocation->shares[0]->amountCzk);
+    }
+
+    public function testWholeTakesNeitherAnAmountNorTheRest(): void
+    {
+        $this->assertRefused('whole_needs_one', fn (): Allocation => new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own(), null, Money::of('1', Currency::CZK))]));
+        $this->assertRefused('whole_needs_one', fn (): Allocation => new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own(), rest: true)]));
+    }
+
+    public function testAPercentShareTakesNeitherAnAmountNorTheRest(): void
+    {
+        $this->assertRefused('percent_must_add_up', fn (): Allocation => new Allocation(AllocationKind::Percent, [
+            new AllocationShare(Recipient::own(), '50', Money::of('1', Currency::CZK)),
+            new AllocationShare(Recipient::client(self::CLIENT_A), '50'),
+        ]));
+        $this->assertRefused('percent_must_add_up', fn (): Allocation => new Allocation(AllocationKind::Percent, [
+            new AllocationShare(Recipient::own(), '50', rest: true),
+            new AllocationShare(Recipient::client(self::CLIENT_A), '50'),
+        ]));
+    }
+
     public function testPercent305020Of10001CzkGivesTheOddHellerToTheLastShare(): void
     {
         $allocation = new Allocation(AllocationKind::Percent, [
@@ -166,6 +217,14 @@ final class AllocationTest extends TestCase
         self::assertSame(self::CLIENT_A, Recipient::client(self::CLIENT_A)->toString());
         self::assertEquals(Recipient::client(self::CLIENT_A), Recipient::fromString(self::CLIENT_A));
         self::assertEquals(Recipient::own(), Recipient::fromString('own'));
+    }
+
+    public function testAClientIsKeptInLowerCase(): void
+    {
+        $recipient = Recipient::client(strtoupper(self::CLIENT_A));
+
+        self::assertSame(self::CLIENT_A, $recipient->contactId());
+        self::assertSame(self::CLIENT_A, $recipient->toString());
     }
 
     #[DataProvider('notContacts')]

@@ -9,8 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Integration\Margin;
 
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Margin\Domain\Allocation;
+use Foresi\Margin\Domain\AllocationKind;
+use Foresi\Margin\Domain\AllocationShare;
 use Foresi\Margin\Domain\CostShare;
+use Foresi\Margin\Domain\CostShareSource;
+use Foresi\Margin\Domain\DocumentAllocation;
 use Foresi\Margin\Domain\LineAllocation;
+use Foresi\Margin\Domain\Recipient;
 use Foresi\Party\Domain\Party;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Uid\Uuid;
@@ -205,6 +211,94 @@ final class MarginApiTest extends ApiTestCase
         $call = $this->tool('foresi_get_document_allocation', ['document_id' => Uuid::v7()->toRfc4122()]);
         self::assertTrue($call['isError'] ?? false);
         self::assertSame('unknown_document', $this->in($call, 'structuredContent', 'error', 'code'));
+    }
+
+    public function testTwoDocumentsKeepTheirOwnMappingsAndAssignments(): void
+    {
+        $first = $this->recorded('FV-10');
+        $second = $this->recorded('FV-11');
+
+        $this->send('PUT', $this->line($first, 'rate:21'), ['kind' => 'whole', 'shares' => [['recipient' => $this->customerId]]]);
+        $this->send('POST', '/api/v1/margin/documents/'.$first.'/assign', ['recipient' => $this->customerId]);
+        $this->get('/api/v1/margin/documents/'.$second, secret: $this->writer);
+        self::assertNull($this->at('data', 'document_allocation'), 'The other document is not assigned.');
+        self::assertNull($this->at('data', 'lines', 0, 'allocation'));
+        self::assertSame([null, 'unassigned'], [$this->at('data', 'lines', 0, 'shares', 0, 'recipient'), $this->at('data', 'lines', 0, 'shares', 0, 'source')]);
+
+        $this->send('PUT', $this->line($second, 'rate:21'), ['kind' => 'percent', 'shares' => [['recipient' => 'own', 'percent' => '25'], ['recipient' => $this->customerId, 'percent' => '75']]]);
+        $this->send('POST', '/api/v1/margin/documents/'.$second.'/assign', ['recipient' => 'own']);
+
+        $this->get('/api/v1/margin/documents/'.$first, secret: $this->writer);
+        self::assertSame(['whole', $this->customerId, $this->customerId], [$this->at('data', 'lines', 0, 'allocation', 'kind'), $this->at('data', 'document_allocation', 'recipient'), $this->at('data', 'lines', 0, 'shares', 0, 'recipient')]);
+        self::assertSame([[$this->customerId, 'Example Customer a.s.', 100_000, 'line']], $this->shares());
+        $this->get('/api/v1/margin/documents/'.$second, secret: $this->writer);
+        self::assertSame(['percent', 'own'], [$this->at('data', 'lines', 0, 'allocation', 'kind'), $this->at('data', 'document_allocation', 'recipient')]);
+        self::assertSame([['own', null, 25_000, 'line'], [$this->customerId, 'Example Customer a.s.', 75_000, 'line']], $this->shares());
+        self::assertSame(2, $this->em()->getRepository(LineAllocation::class)->count([]));
+        self::assertSame(2, $this->em()->getRepository(DocumentAllocation::class)->count([]));
+    }
+
+    public function testAMappingAndAnAssignmentAreChangedInPlace(): void
+    {
+        $id = $this->recorded('FV-12');
+        $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => 'whole', 'shares' => [['recipient' => 'own']]]);
+        $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => 'own']);
+
+        $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => 'whole', 'shares' => [['recipient' => $this->customerId]]]);
+        self::assertSame($this->customerId, $this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'recipient'));
+        $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => $this->customerId]);
+        self::assertSame($this->customerId, $this->at('data', 'document_allocation', 'recipient'));
+
+        $this->em()->clear();
+        self::assertSame(1, $this->em()->getRepository(LineAllocation::class)->count([]));
+        self::assertSame(1, $this->em()->getRepository(DocumentAllocation::class)->count([]));
+        $line = $this->em()->getRepository(LineAllocation::class)->findOneBy([]);
+        self::assertInstanceOf(LineAllocation::class, $line);
+        self::assertSame($this->customerId, $line->allocation()->shares[0]->recipient->toString());
+    }
+
+    public function testAFixedSplitTakesTheRestAndAnAmountWithSpacesAroundIt(): void
+    {
+        $id = $this->recorded('FV-13');
+
+        $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => 'fixed', 'shares' => [['recipient' => 'own', 'amount' => ' 300.00 '], ['recipient' => $this->customerId, 'rest' => true]]]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([['own', null, 30_000, 'line'], [$this->customerId, 'Example Customer a.s.', 70_000, 'line']], $this->shares());
+        self::assertSame([true, false], [$this->at('data', 'lines', 0, 'allocation', 'shares', 1, 'rest'), $this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'rest')]);
+        self::assertSame(30_000, $this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'amount', 'amount_minor'));
+    }
+
+    public function testAMappingOfALineThatIsGoneCanBeClearedButNotSet(): void
+    {
+        $id = $this->recorded('FV-15');
+        $this->flushed(function () use ($id): void {
+            $this->em()->persist(new LineAllocation(Uuid::v7()->toRfc4122(), $id, 'rate:12', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]), new \DateTimeImmutable(), 'user'));
+        });
+
+        $this->send('PUT', $this->line($id, 'rate:12'), ['kind' => 'whole', 'shares' => [['recipient' => 'own']]]);
+        $this->assertProblem(404, 'unknown_line');
+        self::assertSame(1, $this->em()->getRepository(LineAllocation::class)->count([]));
+
+        $this->send('PUT', $this->line($id, 'rate:12'), ['kind' => null]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(0, $this->em()->getRepository(LineAllocation::class)->count([]));
+    }
+
+    public function testAContactThatIsNoLongerThereHasNoNameAndTheSharesComeInTheOrderOfTheirIds(): void
+    {
+        $id = $this->recorded('FV-16');
+        $gone = Uuid::v7()->toRfc4122();
+        $this->flushed(function () use ($id, $gone): void {
+            $this->em()->persist(new LineAllocation(Uuid::v7()->toRfc4122(), $id, 'rate:21', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::client($gone))]), new \DateTimeImmutable(), 'user'));
+            // Written after the share of the recording, with a lower id.
+            $this->em()->persist(new CostShare('00000000-0000-7000-8000-000000000001', $id, 'rate:21', new \DateTimeImmutable('2026-11-01'), $gone, 1, CostShareSource::Line));
+        });
+
+        $this->get('/api/v1/margin/documents/'.$id, secret: $this->writer);
+
+        self::assertSame([$gone, null], [$this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'recipient'), $this->at('data', 'lines', 0, 'allocation', 'shares', 0, 'recipient_name')]);
+        self::assertSame([[$gone, null, 1, 'line'], [null, null, 100_000, 'unassigned']], $this->shares());
     }
 
     private function line(string $documentId, string $key): string

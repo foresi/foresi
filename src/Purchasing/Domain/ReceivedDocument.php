@@ -466,7 +466,7 @@ class ReceivedDocument implements Audited
      */
     public function lines(): array
     {
-        $lines = array_values($this->lines->toArray());
+        $lines = $this->lines->toArray();
         // Lines kept in place may have moved since they were loaded.
         usort($lines, static fn (ReceivedDocumentLine $a, ReceivedDocumentLine $b): int => $a->position() <=> $b->position());
 

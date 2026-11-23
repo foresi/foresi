@@ -53,7 +53,7 @@ final readonly class ShareSplitter
     }
 
     /**
-     * @return list<int>
+     * @return array<int, int> the amount of each share, by its position
      */
     private function percent(Allocation $allocation, int $size): array
     {
@@ -67,11 +67,11 @@ final readonly class ShareSplitter
         }
         $amounts[\count($amounts) - 1] += $size - $given;
 
-        return array_values($amounts);
+        return $amounts;
     }
 
     /**
-     * @return list<int>
+     * @return array<int, int> the amount of each share, by its position
      */
     private function fixed(Allocation $allocation, int $size): array
     {
@@ -92,6 +92,6 @@ final readonly class ShareSplitter
             $amounts[$rest] = $left;
         }
 
-        return array_values($amounts);
+        return $amounts;
     }
 }

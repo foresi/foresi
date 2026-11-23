@@ -48,7 +48,6 @@ final readonly class MarginPanel implements SlotProvider
         return [new SlotItem(self::TEMPLATE, [
             'whole' => null === $view->documentRecipient ? null : ['own' => 'own' === $view->documentRecipient, 'name' => $view->documentRecipientName],
             'gap' => [] !== $view->knownGaps,
-            'firstKey' => $view->lines[0]->key ?? null,
             'lines' => array_map(fn (LineAllocationView $line): array => [
                 'key' => $line->key,
                 'text' => $line->text,

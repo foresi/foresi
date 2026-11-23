@@ -169,6 +169,63 @@ final class CostShareCalculationTest extends KernelTestCase
         self::assertSame(['line-1 '.self::CLIENT_A.' -3000 line', 'line-1 own -7001 line'], $this->shares());
     }
 
+    public function testEveryLineIsCountedWhateverComesBeforeIt(): void
+    {
+        $this->document([new CostLine('line-1', 'No rate', null), $this->line('line-2', 10_000), $this->line('line-3', 20_000), $this->line('line-4', 30_000), $this->line('line-5', 40_000)]);
+        // A mapping of a line the document no longer has stands before the others, and two lines have their own.
+        $this->mapLine('gone', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]));
+        $this->mapLine('line-3', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::client(self::CLIENT_A))]));
+        $this->mapLine('line-4', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::client(self::CLIENT_B))]));
+
+        $this->recalculate();
+
+        self::assertSame([
+            'line-2 - 10000 unassigned',
+            'line-3 '.self::CLIENT_A.' 20000 line',
+            'line-4 '.self::CLIENT_B.' 30000 line',
+            'line-5 - 40000 unassigned',
+        ], $this->shares());
+        self::assertSame(['line-3', 'line-4'], array_map(static fn (LineAllocation $mapping): string => $mapping->lineKey(), $this->em->getRepository(LineAllocation::class)->findBy([], ['lineKey' => 'ASC'])));
+    }
+
+    public function testADocumentNeverTouchesTheMappingsOrSharesOfAnother(): void
+    {
+        $other = '0197a1de-0000-7000-8000-0000000000d2';
+        $this->source->documents[$other] = new CostDocument($other, null, new \DateTimeImmutable('2026-11-24', new \DateTimeZone('Europe/Prague')), [$this->line('other-line', 50_000)], false, 'EN-2', '/purchasing/'.$other);
+        $this->em->persist(new DocumentAllocation(Uuid::v7()->toRfc4122(), $other, Recipient::client(self::CLIENT_B), new \DateTimeImmutable(), 'user'));
+        $this->em->persist(new LineAllocation(Uuid::v7()->toRfc4122(), $other, 'other-line', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]), new \DateTimeImmutable(), 'user'));
+        $this->em->flush();
+        $this->calculation->recalculate($other);
+        $this->em->flush();
+        $this->em->clear();
+        $this->document([$this->line('line-1', 70_000)]);
+
+        $this->recalculate();
+
+        self::assertSame(['line-1 - 70000 unassigned', 'other-line own 50000 line'], $this->shares(), 'The other document keeps its shares, and this one is not assigned to its client.');
+        self::assertSame(1, $this->em->getRepository(LineAllocation::class)->count(['documentId' => $other]));
+    }
+
+    public function testAZeroAmountGivesNoShare(): void
+    {
+        $this->document([$this->line('line-1', 0), $this->line('line-2', 100)]);
+
+        $this->recalculate();
+
+        self::assertSame(['line-2 - 100 unassigned'], $this->shares());
+    }
+
+    public function testEveryDocumentWithAGapIsNamedNotJustTheFirst(): void
+    {
+        $this->document([new CostLine('line-1', 'Voice API', null)]);
+        $second = '0197a1de-0000-7000-8000-0000000000d2';
+        $this->source->documents[$second] = new CostDocument($second, null, new \DateTimeImmutable('2026-11-24'), [new CostLine('line-1', 'Voice API', null)], false, 'EN-2', '/purchasing/'.$second);
+
+        $gaps = new KnownGaps(new CostSources([$this->source]))->documentsMissingExchangeRate([self::DOCUMENT, 'unknown', $second]);
+
+        self::assertSame([self::DOCUMENT, $second], $gaps);
+    }
+
     /**
      * @param list<CostLine> $lines
      */

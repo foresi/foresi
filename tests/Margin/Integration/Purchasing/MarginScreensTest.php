@@ -14,6 +14,7 @@ use Foresi\Margin\Application\CostShareCalculation;
 use Foresi\Margin\Domain\CostShare;
 use Foresi\Margin\Domain\DocumentAllocation;
 use Foresi\Margin\Domain\LineAllocation;
+use Foresi\Margin\Integration\Purchasing\MarginPanel;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
@@ -22,6 +23,7 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Contract\PurchasingSlots;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
@@ -174,6 +176,34 @@ final class MarginScreensTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('Choose the firm itself or a client.', $page->filter('[data-margin-error]')->text());
         self::assertSame(0, $this->stored(LineAllocation::class));
+    }
+
+    public function testAKindThatIsNoneOfTheThreeIsToldAndNothingIsSaved(): void
+    {
+        $this->start(Role::Owner);
+        $id = $this->record();
+        $key = $this->lineKeys($id)[0];
+        $dialog = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
+        $values = $dialog->filter('#margin-line-form')->form(['shares[0][type]' => 'own'])->getPhpValues();
+
+        $page = $this->client->request('POST', '/margin/documents/'.$id.'/lines/'.$key, ['kind' => 'sideways'] + $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The kind is whole, percent or fixed.', $page->filter('[data-margin-error]')->text());
+        self::assertSame(0, $this->stored(LineAllocation::class));
+    }
+
+    public function testThePanelAppearsOnlyInTheDocumentSectionsOfADocument(): void
+    {
+        $this->start(Role::Owner);
+        $id = $this->record();
+        $this->client->request('GET', '/purchasing/'.$id);
+        $panel = self::getContainer()->get(MarginPanel::class);
+
+        self::assertCount(1, [...$panel->items(PurchasingSlots::DOCUMENT_SECTIONS, ['documentId' => $id])]);
+        self::assertSame([], [...$panel->items('other.slot', ['documentId' => $id])]);
+        self::assertSame([], [...$panel->items(PurchasingSlots::DOCUMENT_SECTIONS, ['documentId' => 5])]);
+        self::assertSame([], [...$panel->items(PurchasingSlots::DOCUMENT_SECTIONS, [])]);
     }
 
     public function testEnterInTheFormSavesAndNeverClears(): void

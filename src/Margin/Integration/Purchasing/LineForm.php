@@ -60,7 +60,7 @@ final readonly class LineForm
     public function fromRequest(InputBag $post): array
     {
         $rows = [];
-        foreach (\array_slice(array_values($post->all('shares')), 0, self::MAX_ROWS) as $row) {
+        foreach (\array_slice($post->all('shares'), 0, self::MAX_ROWS) as $row) {
             $row = \is_array($row) ? $row : [];
             $rows[] = [
                 'type' => $this->string($row, 'type'),

@@ -102,7 +102,10 @@ final readonly class Allocation
         $sum = 0;
         foreach ($this->shares as $share) {
             $hundredths = null === $share->percent ? null : Percent::hundredths($share->percent);
-            if (null === $hundredths || null !== $share->amountCzk || $share->rest || $hundredths <= 0) {
+            if (null === $hundredths) {
+                throw $this->notHundred();
+            }
+            if (null !== $share->amountCzk || $share->rest || $hundredths <= 0) {
                 throw $this->notHundred();
             }
             $sum += $hundredths;

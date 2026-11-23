@@ -146,6 +146,29 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
         self::assertContains($october, iterator_to_array($this->costs()->documentsOf($this->supplier->id(), new \DateTimeImmutable('2026-10-01')), false));
     }
 
+    public function testTheDocumentsOfASupplierComeInTheOrderOfTheirIds(): void
+    {
+        $first = $this->recording()->create($this->input(supplierNumber: 'A', issue: '2026-11-24', taxPoint: '2026-11-24'))->document->id();
+        $second = $this->recording()->create($this->input(supplierNumber: 'B', issue: '2026-11-25', taxPoint: '2026-11-25'))->document->id();
+        // The one recorded first gets the higher id, so the order of ids is not that of recording.
+        $high = 'ffffffff-ffff-7fff-8fff-ffffffffffff';
+        $connection = $this->em->getConnection();
+        $connection->executeStatement('DELETE FROM received_document_line WHERE document_id = ?', [$first]);
+        $connection->executeStatement('UPDATE received_document SET id = ? WHERE id = ?', [$high, $first]);
+        $this->em->clear();
+
+        self::assertSame([$second, $high], iterator_to_array($this->costs()->documentsOf($this->supplier->id(), new \DateTimeImmutable('2026-11-01')), false));
+    }
+
+    public function testADocumentWithoutAnyDayIsNoCostDocument(): void
+    {
+        $id = $this->recording()->create($this->input(issue: '2026-11-24', taxPoint: null))->document->id();
+        $this->em->getConnection()->executeStatement('UPDATE received_document SET issue_date = NULL, tax_point_date = NULL WHERE id = ?', [$id]);
+        $this->em->clear();
+
+        self::assertNull($this->costs()->document($id));
+    }
+
     private function costs(): ReceivedDocumentCosts
     {
         return self::getContainer()->get(ReceivedDocumentCosts::class);
