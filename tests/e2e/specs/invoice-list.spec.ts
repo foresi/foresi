@@ -86,6 +86,8 @@ test.describe.serial('the invoice list', () => {
     await expectNoSeriousViolations(page);
 
     // The search applies on Enter; there is no search button.
+    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-filter-toggle]').click();
     await page.getByRole('search').getByRole('searchbox').fill('ÚČETNÍ');
     await page.getByRole('search').getByRole('searchbox').press('Enter');
     await expect(page.locator('tbody tr')).toHaveCount(1);

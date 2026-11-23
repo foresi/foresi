@@ -161,6 +161,24 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(1, $this->render(['empty' => true, 'search' => ['name' => 'q', 'value' => 'x', 'label' => 'Search']])->filter('[data-filter-bar]'));
     }
 
+    public function testACollapsibleBarIsFoldedUntilSomethingNarrowsTheList(): void
+    {
+        // Folded only with script: without it the bar stays open (Shopify Polaris IndexFilters).
+        $folded = $this->render(['collapsible' => true])->filter('[data-filter-bar]');
+        self::assertNotNull($folded->attr('data-collapsed'));
+        self::assertNull($folded->attr('data-narrowed'));
+        self::assertStringContainsString('[@media(scripting:enabled)]:data-[collapsed]:hidden', (string) $folded->attr('class'));
+
+        $searched = $this->render(['collapsible' => true, 'search' => ['name' => 'q', 'value' => 'x', 'label' => 'Search']])->filter('[data-filter-bar]');
+        self::assertNull($searched->attr('data-collapsed'));
+        self::assertNotNull($searched->attr('data-narrowed'));
+
+        $filtered = $this->render(['collapsible' => true, 'conditions' => [['label' => 'Due: before today', 'href' => '/invoices', 'removeLabel' => 'Remove']]])->filter('[data-filter-bar]');
+        self::assertNull($filtered->attr('data-collapsed'));
+
+        self::assertNull($this->render()->filter('[data-filter-bar]')->attr('data-collapsed'));
+    }
+
     public function testADefaultOtherThanEmptyMeansNotSet(): void
     {
         $crawler = $this->render(['filters' => [

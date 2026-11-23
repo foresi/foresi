@@ -65,6 +65,8 @@ test.describe('taxes and contributions', () => {
     await sheet.getByRole('button', { name: 'Zavřít' }).first().click();
 
     // The filter "Zdroj není Odhad daní, pojištění a DPH" leaves them out, and with them every flow of this firm.
+    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-filter-toggle]').click();
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Zdroj' }).click();

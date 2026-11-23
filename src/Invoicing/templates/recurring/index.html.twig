@@ -28,16 +28,14 @@
         <div class="grid grid-cols-1 gap-4">
             {# The view's unsaved changes sit at the end of its tabs, as on every list (saved views D10). #}
             <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'recurring.list.views'|trans" class="min-w-0 sm:flex-1">
+                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'recurring.list.views'|trans" class="min-w-0 flex-1">
                     <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
                 </twig:Ui:Tabs>
                 {{ include('@Ui/components/_view_actions.html.twig') }}
+                {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'recurring-filters', toolsSearch: false, toolsColumns: {id: 'recurring-columns', action: path('app_recurring')}}) }}
             </div>
-            <twig:Ui:FilterBar id="recurring-filters" :action="path('app_recurring')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            <twig:Ui:FilterBar id="recurring-filters" :collapsible="true" :action="path('app_recurring')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
                 :conditions="chips" :builder="builder" :empty="rows is empty">
-                <twig:block name="end">
-                    <twig:Ui:ColumnPicker id="recurring-columns" :action="path('app_recurring')" :keep="picker.keep" :columns="picker.columns" :density="picker.density" :resetHref="picker.resetHref" :modified="picker.modified" />
-                </twig:block>
             </twig:Ui:FilterBar>
 
             <twig:Ui:DataTable :caption="'recurring.list.title'|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\RecurringListController::ACTION_TOKEN'))">

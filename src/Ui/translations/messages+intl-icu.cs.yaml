@@ -137,6 +137,8 @@ ui:
     apply: Použít
     clear_all: Zrušit vše
     clear_one: 'Zrušit filtr {label}'
+    toggle: Filtrovat
+    toggle_search: Hledat a filtrovat
   view_filter:
     add: Filtr
     add_row: Přidat filtr

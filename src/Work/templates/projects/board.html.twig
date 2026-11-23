@@ -35,14 +35,15 @@
             <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
         {% endif %}
 
-        <div class="flex flex-wrap items-end justify-between gap-3">
-            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}]" :label="'work.project.views'|trans" class="shrink-0" />
-            <twig:Ui:FilterBar id="board-filters" :action="path('app_project_board', {id: project.id})" class="w-full sm:w-auto" data-task-filters
-                :filters="[
-                    {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible, pinned: true},
-                    {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due, pinned: true},
-                ]" />
+        <div class="flex items-end gap-3">
+            <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}]" :label="'work.project.views'|trans" class="min-w-0 flex-1" />
+            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'board-filters'}) }}
         </div>
+        <twig:Ui:FilterBar id="board-filters" :collapsible="true" :action="path('app_project_board', {id: project.id})" data-task-filters
+            :filters="[
+                {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible, pinned: true},
+                {name: 'due', label: 'work.filter.due'|trans, options: dues, value: query.due, pinned: true},
+            ]" />
 
         <div class="overflow-x-auto pb-2 {{ focus }}" role="region" tabindex="0" aria-label="{{ 'work.board.columns'|trans }}"{% if editable %} data-controller="board" data-board-token-value="{{ token }}" data-board-moved-value="{{ 'work.board.moved'|trans({status: '__status__', position: '__position__', count: '__count__'}) }}"{% endif %} data-board>
             <div class="flex items-start gap-3">

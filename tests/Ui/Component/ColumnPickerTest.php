@@ -103,7 +103,18 @@ final class ColumnPickerTest extends KernelTestCase
     public function testAModifiedListMarksTheButton(): void
     {
         self::assertStringNotContainsString(', změněno', $this->render());
-        self::assertStringContainsString('<span class="sr-only">, změněno</span>', $this->render(['modified' => true]));
+        self::assertStringNotContainsString('data-column-picker-modified', $this->render());
+        $html = $this->render(['modified' => true]);
+        self::assertStringContainsString('aria-label="Sloupce, změněno"', $html);
+        self::assertStringContainsString('data-column-picker-modified', $html);
+    }
+
+    public function testTheButtonIsASmallIconWithItsLabelAsNameAndTooltip(): void
+    {
+        $html = $this->render();
+        self::assertMatchesRegularExpression('/<button[^>]*aria-label="Sloupce" title="Sloupce"[^>]*>/', $html);
+        self::assertStringContainsString('data-column-picker-open', $html);
+        self::assertStringNotContainsString('ml-auto', $html);
     }
 
     public function testAnUnknownDensityIsRefused(): void
