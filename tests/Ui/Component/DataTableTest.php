@@ -572,6 +572,19 @@ final class DataTableTest extends KernelTestCase
         self::assertStringContainsString('Celkem', $html);
     }
 
+    public function testAListOfTotalsIsOneFooterRowEach(): void
+    {
+        $crawler = new Crawler($this->render(['totals' => [['name' => 'Total one-off', 'balance' => '3 400'], ['name' => 'Total monthly', 'balance' => '900']]]));
+        $rows = $crawler->filter('tfoot tr');
+
+        self::assertCount(2, $rows);
+        self::assertSame(['Total one-off', '3 400'], [trim($rows->eq(0)->filter('td')->first()->text()), trim($rows->eq(0)->filter('td')->last()->text())]);
+        self::assertSame('Total monthly', trim($rows->eq(1)->filter('td')->first()->text()));
+        // One divider above the footer, none between its rows.
+        self::assertStringContainsString('border-t', (string) $rows->eq(0)->filter('td')->first()->attr('class'));
+        self::assertStringNotContainsString('border-t', (string) $rows->eq(1)->filter('td')->first()->attr('class'));
+    }
+
     public function testZeroTotalIsRendered(): void
     {
         $html = $this->render(['totals' => ['balance' => 0, 'name' => '']]);

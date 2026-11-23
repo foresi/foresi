@@ -167,10 +167,8 @@ sales:
             saved: The line was saved.
             removed: The line was removed.
     value:
-        one_off: One-off
-        monthly: Monthly
-        approximate: Approximate, from weeks or days counted as months
-        none: No priced lines, so no value yet.
+        total_one_off: Total one-off
+        total_monthly: Total monthly
         per_month: '{amount} a month'
     link:
         title: Linked deals

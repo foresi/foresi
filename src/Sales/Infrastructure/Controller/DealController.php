@@ -252,7 +252,7 @@ final class DealController extends AbstractController
             'stages' => array_map(fn (Stage $stage): array => ['id' => $stage->id(), 'name' => $this->screen->stage($stage), 'current' => $stage->id() === $deal->stageId()], $stages),
             'details' => $this->details($detail),
             'lines' => $this->lineRows($detail),
-            'value' => $this->valueView($detail->value),
+            'totals' => $this->totalRows($detail->value),
             'links' => $this->linkViews($detail),
             'linkable' => !$deal->isTrashed() && [] !== $this->linkOptions($detail),
             'slotActions' => $deal->isTrashed() ? [] : $this->slotActions($context),
@@ -689,16 +689,31 @@ final class DealController extends AbstractController
     }
 
     /**
-     * @return array{has: bool, oneOff: list<string>, monthly: list<string>, approximate: bool}
+     * The footer rows of the lines table: one-off and monthly apart, each under the
+     * Amount column with its currencies side by side, a kind with no priced line left
+     * out, "≈" when the monthly value is approximate.
+     *
+     * @return list<array{name: string, total: string}>
      */
-    private function valueView(DealValue $value): array
+    private function totalRows(DealValue $value): array
     {
-        return [
-            'has' => $value->hasValue(),
-            'oneOff' => array_values(array_map($this->screen->money(...), $value->oneOff)),
-            'monthly' => array_values(array_map($this->screen->money(...), $value->monthly)),
-            'approximate' => $value->approximate,
-        ];
+        $rows = [];
+        if ([] !== $value->oneOff) {
+            $rows[] = ['name' => $this->screen->trans('sales.value.total_one_off'), 'total' => $this->amounts($value->oneOff)];
+        }
+        if ([] !== $value->monthly) {
+            $rows[] = ['name' => $this->screen->trans('sales.value.total_monthly'), 'total' => ($value->approximate ? '≈ ' : '').$this->amounts($value->monthly)];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<string, Money> $amounts
+     */
+    private function amounts(array $amounts): string
+    {
+        return implode(' · ', array_map($this->screen->money(...), array_values($amounts)));
     }
 
     /**

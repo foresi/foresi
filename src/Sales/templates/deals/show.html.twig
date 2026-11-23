@@ -14,11 +14,13 @@
     phone; in the menu Lost, Edit, the other modules' actions and New follow-up deal; Trash last. Under the
     header the stages, the current one pressed, to move an open deal (Pipedrive's pipeline on a deal).
 
-    The main column: the lines and their value (one-off and monthly apart, per currency, "≈" when a monthly
-    value is approximate), then what other modules add (SalesSlots::DEAL_SECTIONS) as link tabs, the first,
-    Activities, by default and only the active one loaded, in its lazy frame (NN/g, Tabs, used right: the
-    most used tab first and selected). The side column: the details, the notes and the linked deals.
-    Variables: deal, badge, stageName, stages (id, name, current), details, lines, value, links, linkable,
+    The main column: the lines with their value in the table's footer under the Amount column (Polaris
+    DataTable's totals in its footer): one-off and monthly apart, per currency, a kind with no line left
+    out, "≈" when a monthly value is approximate. Then what other modules add (SalesSlots::DEAL_SECTIONS)
+    as link tabs, the first, Activities, by default and only the active one loaded, in its lazy frame
+    (NN/g, Tabs, used right: the most used tab first and selected). The side column: the details, the
+    notes and the linked deals.
+    Variables: deal, badge, stageName, stages (id, name, current), details, lines, totals, links, linkable,
     slotActions, tabs, section, context.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -132,25 +134,11 @@
                         {key: 'quantity', label: 'sales.line.column.quantity'|trans, phone: false},
                         {key: 'billing', label: 'sales.line.column.billing'|trans, phone: false},
                         {key: 'total', label: 'sales.line.column.total'|trans, align: 'right'},
-                    ]">
+                    ]" :totals="totals ?: null">
                         <twig:block name="empty">
                             <twig:Ui:EmptyState icon="tag" :title="'sales.line.empty_title'|trans" :text="'sales.line.empty_text'|trans" />
                         </twig:block>
                     </twig:Ui:DataTable>
-                    <dl class="m-0 grid gap-1 sm:grid-cols-2" data-deal-value>
-                        {% if value.has %}
-                            <div class="grid gap-0.5">
-                                <dt class="text-small text-muted">{{ 'sales.value.one_off'|trans }}</dt>
-                                <dd class="m-0 num font-semibold text-ink" data-deal-value-one-off>{{ value.oneOff is empty ? '–' : value.oneOff|join(' · ') }}</dd>
-                            </div>
-                            <div class="grid gap-0.5">
-                                <dt class="text-small text-muted">{{ 'sales.value.monthly'|trans }}</dt>
-                                <dd class="m-0 num font-semibold text-ink" data-deal-value-monthly>{% if value.monthly is empty %}–{% else %}{% if value.approximate %}<span title="{{ 'sales.value.approximate'|trans }}">≈ </span>{% endif %}{{ value.monthly|join(' · ') }}{% endif %}</dd>
-                            </div>
-                        {% else %}
-                            <div class="text-small text-muted">{{ 'sales.value.none'|trans }}</div>
-                        {% endif %}
-                    </dl>
                 </section>
 
                 {% if tabs is not empty %}
