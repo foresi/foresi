@@ -157,6 +157,31 @@ class DocumentPairing
         $this->decide($userId, $now);
     }
 
+    /**
+     * A planned item that is going away leaves the candidates. A proposal that keeps one candidate points at it;
+     * a confirmed or declined pairing keeps what the person decided. The caller removes a proposal left with none.
+     *
+     * @param PlannedItem|null $only the item of the one candidate left, when there is exactly one
+     *
+     * @throws \LogicException when the pairing points at the item, or a proposal keeps one candidate and $only is not it
+     */
+    public function dropCandidate(string $plannedItemId, ?PlannedItem $only, \DateTimeImmutable $now): void
+    {
+        if ($this->plannedItem?->id() === $plannedItemId && PairingState::Proposed !== $this->state) {
+            throw new \LogicException('The pairing points at the planned item.');
+        }
+        $this->candidates = array_values(array_filter($this->candidates, static fn (array $candidate): bool => $candidate['planned_item_id'] !== $plannedItemId));
+        $this->updatedAt = $now;
+        if (PairingState::Proposed !== $this->state) {
+            return;
+        }
+        $left = $this->candidates();
+        if (1 === \count($left) && (!$only instanceof PlannedItem || $only->id() !== $left[0]->plannedItemId)) {
+            throw new \LogicException('The item of the one candidate is needed.');
+        }
+        $this->point(1 === \count($left) ? $only : null, 1 === \count($left) ? $left[0]->occurrenceOn : null);
+    }
+
     public function id(): string
     {
         return $this->id;

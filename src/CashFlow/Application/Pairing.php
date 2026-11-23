@@ -19,6 +19,7 @@ use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
@@ -73,6 +74,102 @@ final readonly class Pairing implements DocumentPairer
             $touched = $this->touched($row);
             $this->remove($row);
             $this->reconsiderSiblings($subject, $subject, $touched);
+        });
+    }
+
+    /**
+     * Takes another look at the documents of a counterparty from one day to another, inclusive, which a person
+     * has not decided: after a planned item they may belong to changed.
+     */
+    public function reconsiderOf(string $counterpartyId, \DateTimeImmutable $from, \DateTimeImmutable $to): void
+    {
+        $this->transaction->run(function () use ($counterpartyId, $from, $to): void {
+            $seen = [];
+            foreach ($this->documentsOf($counterpartyId, $from, $to) as $document) {
+                $key = $document->subject->type.':'.$document->subject->id;
+                if (!isset($seen[$key])) {
+                    $seen[$key] = true;
+                    $this->consider($document);
+                }
+            }
+        });
+    }
+
+    /**
+     * Takes another look at the documents in the period of one occurrence of an item, such as after it is skipped.
+     */
+    public function reconsiderOccurrence(PlannedItem $item, \DateTimeImmutable $on): void
+    {
+        $counterparty = $item->counterparty();
+        if (!$counterparty instanceof Party) {
+            return;
+        }
+        [$first, $last] = PlannedFulfilment::period($item, $on->setTimezone($this->instanceClock->timezone()));
+        $this->reconsiderOf($counterparty->id(), $first, $last);
+    }
+
+    /**
+     * Takes another look at one document, read again from its source; nothing when no source knows it.
+     */
+    public function reconsiderSubject(FlowSubject $subject): void
+    {
+        foreach ($this->sources as $source) {
+            $document = $source->one($subject->type, $subject->id);
+            if ($document instanceof PairableDocument) {
+                $this->consider($document);
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Takes another look at the other documents that share a period with the occurrences a decision touched.
+     *
+     * @param list<PairingCandidate> $candidates
+     */
+    public function reconsiderNeighbours(FlowSubject $subject, ?string $counterpartyId, array $candidates): void
+    {
+        $this->transaction->run(function () use ($subject, $counterpartyId, $candidates): void {
+            $this->reconsiderSiblings($subject, null, array_map(static fn (PairingCandidate $candidate): array => [$counterpartyId, $candidate], $candidates));
+        });
+    }
+
+    /**
+     * Takes a planned item that is about to be removed out of the pairings that list it, the proposals included,
+     * so that none keeps a candidate that is gone. A proposal left with no candidate is removed; one left with
+     * some is kept, to be considered again once the item is gone.
+     *
+     * @return list<FlowSubject> the documents of the proposals that are left
+     */
+    public function release(PlannedItem $item): array
+    {
+        return $this->transaction->run(function () use ($item): array {
+            $left = [];
+            $now = $this->clock->now();
+            foreach ($this->store->pairings() as $row) {
+                $listed = array_any($row->candidates(), static fn (PairingCandidate $candidate): bool => $candidate->plannedItemId === $item->id());
+                if (!$listed && $row->plannedItemId() !== $item->id()) {
+                    continue;
+                }
+                $before = $this->facts($row);
+                $remaining = array_values(array_filter($row->candidates(), static fn (PairingCandidate $candidate): bool => $candidate->plannedItemId !== $item->id()));
+                if (PairingState::Proposed === $row->state() && [] === $remaining) {
+                    $this->remove($row);
+                    continue;
+                }
+                $only = 1 === \count($remaining) ? $this->store->plannedItem($remaining[0]->plannedItemId) : null;
+                $row->dropCandidate($item->id(), $only, $now);
+                $after = $this->facts($row);
+                if ($before !== $after) {
+                    $this->events->record(new DocumentPairingChanged($row->subjectType(), $row->subjectId(), $after[0], $after[1], $after[2], $before[1]));
+                }
+                if (PairingState::Proposed === $row->state()) {
+                    $left[] = new FlowSubject($row->subjectType(), $row->subjectId());
+                }
+            }
+
+            return $left;
         });
     }
 

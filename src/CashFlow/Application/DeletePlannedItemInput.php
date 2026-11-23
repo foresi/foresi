@@ -21,7 +21,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_delete_planned_item',
     scope: 'cashflow:write',
     title: 'Delete a planned item',
-    description: 'Deletes a planned item with all its occurrences; it cannot be restored. To keep it for later, change included to false, or end a recurring item instead.',
+    description: 'Deletes a planned item with all its occurrences; it cannot be restored. Refused with has_pairings while a document is paired with one of its occurrences (auto or confirmed); end a recurring item instead, or unpair the documents first. To keep it for later, change included to false. Proposals that list the item let go of it.',
     destructive: true,
 )]
 final readonly class DeletePlannedItemInput

@@ -131,4 +131,20 @@ final readonly class DoctrineCashFlowStore implements CashFlowStore
             ->orderBy('p.createdAt')->addOrderBy('p.id')
             ->getQuery()->getResult();
     }
+
+    public function pairedOccurrences(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        /* @var list<DocumentPairing> */
+        return $this->entityManager->createQueryBuilder()
+            ->select('p')->from(DocumentPairing::class, 'p')
+            ->where('p.state IN (:states)')->andWhere('p.occurrenceOn >= :from')->andWhere('p.occurrenceOn <= :to')
+            ->setParameter('states', [PairingState::Auto, PairingState::Confirmed])
+            ->setParameter('from', $from, Types::DATE_IMMUTABLE)->setParameter('to', $to, Types::DATE_IMMUTABLE)
+            ->getQuery()->getResult();
+    }
+
+    public function flush(): void
+    {
+        $this->entityManager->flush();
+    }
 }

@@ -142,11 +142,17 @@ final readonly class ForecastFlows
         foreach ($this->store->plannedItems() as $item) {
             $items[$item->id()] = $item;
         }
+        $paired = $this->pairedOccurrences($lines);
         $planned = [];
         $first = null;
         $last = null;
         foreach ($lines as $index => $line) {
             $item = 'planned_item' === $line->flow->subject->type ? ($items[$line->flow->subject->id] ?? null) : null;
+            // An occurrence a document is paired with is fulfilled, whatever the item says of its counterparty.
+            if ($item instanceof PlannedItem && isset($paired[$item->id().'|'.$line->flow->expectedOn->format('Y-m-d')])) {
+                unset($lines[$index]);
+                continue;
+            }
             if (!$item instanceof PlannedItem || (!$item->isRecurring() || !$item->counterparty() instanceof Party) && $item->matchRule()->isEmpty()) {
                 continue;
             }
@@ -156,7 +162,7 @@ final readonly class ForecastFlows
             $last = null === $last || $to > $last ? $to : $last;
         }
         if (!$first instanceof \DateTimeImmutable || !$last instanceof \DateTimeImmutable) {
-            return $lines;
+            return array_values($lines);
         }
         $actuals = [];
         foreach ($this->actualSources as $source) {
@@ -180,6 +186,37 @@ final readonly class ForecastFlows
         }
 
         return array_values($lines);
+    }
+
+    /**
+     * The occurrences with an auto or confirmed pairing in the days the planned lines fall on, read in one
+     * query: "item id|day" for each.
+     *
+     * @param list<ForecastLine> $lines
+     *
+     * @return array<string, true>
+     */
+    private function pairedOccurrences(array $lines): array
+    {
+        $first = null;
+        $last = null;
+        foreach ($lines as $line) {
+            if ('planned_item' !== $line->flow->subject->type) {
+                continue;
+            }
+            $day = $line->flow->expectedOn;
+            $first = null === $first || $day < $first ? $day : $first;
+            $last = null === $last || $day > $last ? $day : $last;
+        }
+        if (!$first instanceof \DateTimeImmutable || !$last instanceof \DateTimeImmutable) {
+            return [];
+        }
+        $paired = [];
+        foreach ($this->store->pairedOccurrences($first, $last) as $pairing) {
+            $paired[$pairing->plannedItemId().'|'.$pairing->occurrenceOn()?->format('Y-m-d')] = true;
+        }
+
+        return $paired;
     }
 
     /**

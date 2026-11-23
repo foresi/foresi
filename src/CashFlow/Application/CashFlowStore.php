@@ -70,4 +70,17 @@ interface CashFlowStore
      * @return list<DocumentPairing>
      */
     public function pairingsOfCounterparty(string $counterpartyId): array;
+
+    /**
+     * The auto and confirmed pairings of the occurrences from one day to another, inclusive, in one query.
+     *
+     * @return list<DocumentPairing>
+     */
+    public function pairedOccurrences(\DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
+    /**
+     * Writes what is changed so far to the database, inside the unit of work around it. Only for a use case
+     * that has to query what it has just changed.
+     */
+    public function flush(): void;
 }
