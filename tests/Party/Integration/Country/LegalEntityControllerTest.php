@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Party\Integration\Country;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Party\Domain\LegalEntity;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -33,6 +35,20 @@ final class LegalEntityControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorExists('#registrationNumber[aria-invalid="true"]');
+    }
+
+    public function testTheRegistrationNumberIsStoredWithoutItsSpaces(): void
+    {
+        $this->signIn();
+
+        $this->submitNew(['registrationNumber' => '1234 5687']);
+
+        self::assertResponseRedirects('/settings/firm');
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $em->clear();
+        $firms = $em->getRepository(LegalEntity::class)->findAll();
+        self::assertCount(1, $firms);
+        self::assertSame('12345687', $firms[0]->registrationNumber()->value);
     }
 
     private function signIn(string $locale = 'en'): void

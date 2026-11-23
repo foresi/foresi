@@ -48,17 +48,16 @@ final class ContactListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
+        // The relations to many of other modules (DS6) follow its own; tests/Party/Integration has those of Invoicing and Work.
         self::assertSame([
             'archived', 'unreliable_payer', 'name', 'kind', 'roles', 'registration_number', 'vat_id', 'email', 'phone', 'mobile', 'website',
             'registration_country', 'billing_city', 'billing_country', 'default_due_days', 'currency', 'payment_method', 'language',
             'reverse_charge', 'reminders', 'hourly_rate', 'vies_result', 'archived_at',
-            // Its relations to many (DS6), each with the name of a related record: its own and other modules'.
-            'contact_persons', 'contact_persons.name', 'invoices', 'invoices.name', 'projects', 'projects.name',
-        ], array_keys($fields));
-        self::assertSame(FieldType::Relation, $fields['invoices']->type);
-        self::assertSame(['is_not_empty', 'is_empty'], $fields['invoices']->operators);
-        self::assertSame('invoice.relation.invoices', $fields['invoices.name']->group);
-        self::assertSame('ci.number', $fields['invoices.name']->expression);
+            // Its own relation to many (DS6), with the name of a related record.
+            'contact_persons', 'contact_persons.name',
+        ], \array_slice(array_keys($fields), 0, 25));
+        self::assertSame(FieldType::Relation, $fields['contact_persons']->type);
+        self::assertSame(['is_not_empty', 'is_empty'], $fields['contact_persons']->operators);
         self::assertSame(FieldType::Boolean, $fields['unreliable_payer']->type);
         self::assertSame('party.field.unreliablePayerResult', $fields['unreliable_payer']->label);
         self::assertSame(FieldType::Text, $fields['email']->type);

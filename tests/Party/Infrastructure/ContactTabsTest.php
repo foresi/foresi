@@ -69,11 +69,9 @@ final class ContactTabsTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/contacts/'.$id);
         $tabs = $this->tabs($crawler);
-        // The Activities and Documents modules, installed here, add their tabs after the deals.
-        self::assertCount(8, $tabs);
+        // The deals follow the five of the address book; the tabs of the Activities and
+        // Documents modules come after them (tests/Party/Integration).
         self::assertSame(['Deals', '/contacts/'.$id.'?tab=deals'], $tabs[5]);
-        self::assertSame(['Activities', '/contacts/'.$id.'?tab=activities'], $tabs[6]);
-        self::assertSame(['Documents', '/contacts/'.$id.'?tab=documents'], $tabs[7]);
         self::assertSame('Overview', trim($crawler->filter('main nav[aria-label="Contact sections"] [aria-current="page"]')->text()));
         self::assertSelectorTextContains('main', 'Billing address');
 

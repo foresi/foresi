@@ -306,10 +306,10 @@ final class ContactPartsControllerTest extends WebTestCase
 
     private function actionToken(): string
     {
-        // The export form of the list carries the token of the page actions.
+        // The archive form of the list carries the token of the page actions.
         $crawler = $this->client->request('GET', '/contacts');
 
-        return (string) $crawler->filter('form[action="/contacts/export"] input[name="_token"]')->attr('value');
+        return (string) $crawler->filter('form[action="/contacts/archive"] input[name="_token"]')->attr('value');
     }
 
     private function em(): EntityManagerInterface

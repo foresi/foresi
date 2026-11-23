@@ -17,10 +17,12 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Form;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 
 final class LegalEntityControllerTest extends WebTestCase
 {
@@ -81,27 +83,45 @@ final class LegalEntityControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         $settings = $crawler->filter('#sidebar [data-nav-area="settings"]');
-        self::assertSame(['Firm', 'Connections'], $settings->filter('[data-nav-section] h3')->each(static fn ($h): string => trim($h->text())));
+        self::assertSame(['firm', 'connections'], $settings->filter('[data-nav-section]')->each(static fn ($section): string => (string) $section->attr('data-nav-section')));
+        // The modules installed here give the links of these; the others leave theirs out.
+        $router = self::getContainer()->get('router');
+        $installed = array_values(array_filter(
+            ['/settings/firm Firm', '/settings/people People', '/settings/labels Labels', '/settings/documents Documents', '/settings/activities Activities', '/imports Import and export', '/settings/api API and MCP', '/settings/webhooks Webhooks'],
+            static function (string $link) use ($router): bool {
+                try {
+                    $router->match(explode(' ', $link, 2)[0]);
+
+                    return true;
+                } catch (ResourceNotFoundException) {
+                    return false;
+                }
+            },
+        ));
         $links = $settings->filter('[data-nav-section] a')->each(static fn ($a): string => $a->attr('href').' '.trim($a->text()));
-        self::assertSame(['/settings/firm Firm', '/settings/people People', '/settings/labels Labels', '/settings/documents Documents', '/settings/activities Activities', '/imports Import and export', '/settings/api API and MCP', '/settings/webhooks Webhooks'], $links);
+        self::assertSame($installed, $links);
+        // The headings show from NavigationArea::SECTION_HEADINGS_FROM links on.
+        $headings = $settings->filter('[data-nav-section] h3')->each(static fn ($h): string => trim($h->text()));
+        self::assertSame(\count($links) >= NavigationArea::SECTION_HEADINGS_FROM ? ['Firm', 'Connections'] : [], $headings);
     }
 
-    public function testTheFirmPageHasTabsForDetailsInvoicingMailAndBankAndKeepsTheFirmMarkedInTheSidebar(): void
+    public function testTheFirmPageHasTabsForDetailsAndVatAndKeepsTheFirmMarkedInTheSidebar(): void
     {
         $this->signIn();
         $this->firm('Example Firm', '12345695');
 
         $crawler = $this->client->request('GET', '/settings/firm');
 
-        self::assertSame(['Details', 'VAT', 'Invoicing', 'E-mail', 'Bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())));
-        self::assertSame(['/settings/firm', '/settings/firm/vat', '/settings/firm/invoicing', '/settings/firm/mail', '/settings/firm/bank'], $crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => (string) $a->attr('href')));
+        // The address book's own two come first; tests/Party/Integration/Banking has the tabs of Invoicing and Banking.
+        self::assertSame(['Details', 'VAT'], \array_slice($crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => trim($a->text())), 0, 2));
+        self::assertSame(['/settings/firm', '/settings/firm/vat'], \array_slice($crawler->filter('main nav[aria-label="Firm sections"] a')->each(static fn ($a): string => (string) $a->attr('href')), 0, 2));
         self::assertSame('Details', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
         self::assertSame('/settings/firm', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
 
-        $crawler = $this->client->request('GET', '/settings/firm/invoicing');
+        $crawler = $this->client->request('GET', '/settings/firm/vat');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('Invoicing', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
+        self::assertSame('VAT', trim($crawler->filter('main nav[aria-label="Firm sections"] [aria-current="page"]')->text()));
         self::assertSame('/settings/firm', $crawler->filter('#sidebar [aria-current="page"]')->attr('href'));
     }
 
@@ -149,7 +169,7 @@ final class LegalEntityControllerTest extends WebTestCase
 
         $this->submitNew([
             'name' => 'Example Company s.r.o.',
-            'registrationNumber' => '1234 5687',
+            'registrationNumber' => '12345687',
             'vatId' => 'cz 12345687',
             'registerEntry' => 'Register entry C 1234',
         ]);

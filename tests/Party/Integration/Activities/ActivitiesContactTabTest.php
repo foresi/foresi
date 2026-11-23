@@ -16,6 +16,7 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Party\Infrastructure\Support\ExampleContactTab;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -41,6 +42,12 @@ final class ActivitiesContactTabTest extends WebTestCase
         $em = self::getContainer()->get('doctrine.orm.entity_manager');
         $em->persist(new ActivityType('meeting', null, ActivityTiming::Timed, 60, new \DateTimeImmutable()));
         $em->flush();
+    }
+
+    protected function tearDown(): void
+    {
+        ExampleContactTab::$enabled = false;
+        parent::tearDown();
     }
 
     public function testActivitiesTabLoadsTheTimelineOfTheContact(): void
@@ -81,6 +88,19 @@ final class ActivitiesContactTabTest extends WebTestCase
         $this->client->request('GET', $src, server: ['HTTP_TURBO_FRAME' => ContactTabs::FRAME]);
         self::assertSelectorTextContains('[data-activities-done] [data-activity-subject]', 'Kick-off meeting');
         self::assertSelectorTextContains('[data-activities-done] [data-activity-outcome]', 'Agreed on an audit');
+    }
+
+    public function testActivitiesTabFollowsTheTabsOfModulesBeforeIt(): void
+    {
+        // A module's tab of weight 100, the deals, comes before the activities.
+        ExampleContactTab::$enabled = true;
+        $id = $this->contact();
+
+        $crawler = $this->client->request('GET', '/contacts/'.$id);
+
+        $tabs = array_column($crawler->filter('main nav[aria-label="Contact sections"] a')->each(static fn (Crawler $a): array => [trim($a->text())]), 0);
+        self::assertSame(['Overview', 'Contact persons', 'Addresses', 'Bank accounts', 'History', 'Deals'], \array_slice($tabs, 0, 6));
+        self::assertSame('Activities', $tabs[6]);
     }
 
     private function contact(): string
