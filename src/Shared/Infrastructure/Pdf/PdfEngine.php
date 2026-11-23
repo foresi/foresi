@@ -22,6 +22,8 @@ use Com\Tecnick\Pdf\Tcpdf;
  */
 final readonly class PdfEngine
 {
+    /** The bundled fonts, for any module that measures text the way the engine sets it. */
+    public const string FONT_DIRECTORY = __DIR__.'/../../resources/pdf-fonts';
     private const string FONT = 'intertnum';
     private const string DISPLAY_FONT = 'interdisplay';
     private const float FONT_SIZE = 9.0;
@@ -38,7 +40,7 @@ final readonly class PdfEngine
      * @param list<string> $logoDirectories
      */
     public function __construct(
-        string $fontDirectory = __DIR__.'/../../resources/pdf-fonts',
+        string $fontDirectory = self::FONT_DIRECTORY,
         private array $logoDirectories = [],
     ) {
         $font = realpath($fontDirectory);
