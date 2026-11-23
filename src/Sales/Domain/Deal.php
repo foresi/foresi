@@ -99,18 +99,10 @@ class Deal implements Audited
         $this->touch($now);
     }
 
-    /**
-     * @return bool whether it moved: false when it is the deal's client already
-     */
-    public function changeClient(string $clientPartyId, \DateTimeImmutable $now): bool
+    public function changeClient(string $clientPartyId, \DateTimeImmutable $now): void
     {
-        if ($clientPartyId === $this->clientPartyId) {
-            return false;
-        }
         $this->clientPartyId = $clientPartyId;
         $this->touch($now);
-
-        return true;
     }
 
     public function assignTo(string $ownerUserId, \DateTimeImmutable $now): void

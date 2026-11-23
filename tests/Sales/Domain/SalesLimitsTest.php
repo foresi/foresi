@@ -52,6 +52,7 @@ final class SalesLimitsTest extends TestCase
         $changes = [
             'describe' => fn (\DateTimeImmutable $at) => $deal->describe('Roof audit, phase 2', '', $at),
             'assignTo' => fn (\DateTimeImmutable $at) => $deal->assignTo(Id::generate(), $at),
+            'changeClient' => fn (\DateTimeImmutable $at) => $deal->changeClient(Id::generate(), $at),
             'moveTo' => fn (\DateTimeImmutable $at): bool => $deal->moveTo(Id::generate(), $at),
             'win' => $deal->win(...),
             'reopen after win' => $deal->reopen(...),

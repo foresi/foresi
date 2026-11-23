@@ -76,7 +76,8 @@ final class ContactPersonWritesTest extends ContactTestCase
         self::assertInstanceOf(Party::class, $person);
         self::assertTrue($this->link($company, $person)->isPrimary());
 
-        $this->assertRefused(['name' => ContactPersonRefused::REQUIRED, 'email' => ContactPersonRefused::EMAIL, 'position' => ContactPersonRefused::TOO_LONG], fn (): PartyPersonSummary => $this->writes()->addNew($company->id(), '', 'not-an-address', str_repeat('a', 101)));
+        $refused = $this->assertRefused(['name' => ContactPersonRefused::REQUIRED, 'email' => ContactPersonRefused::EMAIL, 'position' => ContactPersonRefused::TOO_LONG], fn (): PartyPersonSummary => $this->writes()->addNew($company->id(), '', 'not-an-address', str_repeat('a', 101)));
+        self::assertSame('The contact person is refused: name required, email email_invalid, position too_long.', $refused->getMessage());
         $this->assertRefused(['person' => ContactPersonRefused::PERSON], fn (): PartyPersonSummary => $this->writes()->addNew($person->id(), 'Ivo Example', '', ''));
         self::assertCount(1, $this->directory()->personsOf($company->id()));
     }
@@ -85,14 +86,14 @@ final class ContactPersonWritesTest extends ContactTestCase
      * @param array<string, string> $reasons
      * @param \Closure(): mixed     $call
      */
-    private function assertRefused(array $reasons, \Closure $call): void
+    private function assertRefused(array $reasons, \Closure $call): ContactPersonRefused
     {
         try {
             $call();
         } catch (ContactPersonRefused $refused) {
             self::assertSame($reasons, $refused->reasons);
 
-            return;
+            return $refused;
         }
         self::fail('Expected the contact person to be refused.');
     }
