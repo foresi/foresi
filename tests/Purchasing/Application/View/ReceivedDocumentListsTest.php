@@ -43,7 +43,8 @@ final class ReceivedDocumentListsTest extends KernelTestCase
 
     public function testItsFieldsAreWhatTheSheetFilteredBy(): void
     {
-        $fields = $this->lists()->list()->fields;
+        // The condition of Cash flow's pairing is an integration's, so it is left out of what the module itself declares.
+        $fields = array_diff_key($this->lists()->list()->fields, ['pairing_to_confirm' => true]);
 
         self::assertSame(['trashed', 'state', 'supplier', 'kind', 'treatment', 'number', 'supplier_number', 'total', 'vat_czk'], array_keys($fields));
         self::assertSame(['trashed' => 'purchasing.list.tab.trash', 'state' => 'purchasing.list.column.state', 'supplier' => 'purchasing.field.supplier', 'kind' => 'purchasing.field.kind', 'treatment' => 'purchasing.field.treatment', 'number' => 'purchasing.list.column.number', 'supplier_number' => 'purchasing.list.column.supplierNumber', 'total' => 'purchasing.list.column.total', 'vat_czk' => 'purchasing.list.column.vatCzk'], array_map(static fn (Field $field): string => $field->label, $fields));

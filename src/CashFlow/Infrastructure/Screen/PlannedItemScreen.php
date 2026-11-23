@@ -8,12 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Infrastructure\Screen;
 
+use Foresi\CashFlow\Application\CashFlowStore;
+use Foresi\CashFlow\Application\Pairing;
 use Foresi\CashFlow\Application\PlannedItemRules;
 use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Contract\PlannedVatMode;
+use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Domain\PlannedItemVat;
 use Foresi\Instance\Application\InstanceClock;
@@ -47,6 +51,8 @@ final readonly class PlannedItemScreen
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urls,
         private PlannedItemVatRule $vat,
+        private CashFlowStore $store,
+        private Pairing $pairing,
     ) {
     }
 
@@ -167,6 +173,42 @@ final readonly class PlannedItemScreen
             'day' => $this->day($on, true),
             'skipped' => $item->isSkipped($on),
         ], $days);
+    }
+
+    /**
+     * The documents paired with the item's occurrences, automatically or by a person, the latest occurrence first.
+     *
+     * @return list<array{on: string, day: string, documents: list<array{label: string, href: ?string, auto: bool}>}>
+     */
+    public function pairedDocuments(PlannedItem $item): array
+    {
+        $rows = array_values(array_filter(
+            $this->store->pairings(null, $item->id()),
+            static fn (DocumentPairing $row): bool => \in_array($row->state(), [PairingState::Auto, PairingState::Confirmed], true) && $row->occurrenceOn() instanceof \DateTimeImmutable,
+        ));
+        $found = $this->pairing->documents($rows);
+        /** @var array<string, array{day: string, documents: list<array{label: string, href: ?string, auto: bool}>}> $byDay */
+        $byDay = [];
+        foreach ($rows as $row) {
+            $on = $row->occurrenceOn();
+            \assert($on instanceof \DateTimeImmutable);
+            $key = $on->format('Y-m-d');
+            $document = $found[$row->subjectType().':'.$row->subjectId()] ?? null;
+            $route = ForecastScreen::RECORDS[$row->subjectType()] ?? null;
+            $byDay[$key] ??= ['day' => $this->day($on, true), 'documents' => []];
+            $byDay[$key]['documents'][] = [
+                'label' => $document?->subject->label ?? $this->trans('cash_flow.planned.paired.document'),
+                'href' => null === $route ? null : $this->urls->generate($route, ['id' => $row->subjectId()]),
+                'auto' => PairingState::Auto === $row->state(),
+            ];
+        }
+        krsort($byDay);
+        $days = [];
+        foreach ($byDay as $key => $entry) {
+            $days[] = ['on' => $key, 'day' => $entry['day'], 'documents' => $entry['documents']];
+        }
+
+        return $days;
     }
 
     /**

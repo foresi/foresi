@@ -1,0 +1,61 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Plan panel of a received document (slot purchasing.document_sections, ADR 0038): the planned occurrence
+    Cash flow paired the document with or proposes, as Xero's bank rules suggest a match for a person to accept.
+    Paired automatically or confirmed: the item and month, with Unpair. Proposed: each candidate with Confirm, and
+    in the header "Another item…" (a dialog) and "Do not pair". Not paired, or nothing proposed: "Pair…".
+    Variables: documentId, pairing (PairingView or null).
+#}
+{% set token = csrf_token(constant('Foresi\\Purchasing\\Integration\\CashFlow\\PairingController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set state = pairing ? pairing.state.value : 'none' %}
+{% set paired = state == 'auto' or state == 'confirmed' %}
+
+<twig:Ui:Card :title="'purchasing.pairing.title'|trans" icon="calendar" data-purchasing-pairing :data-pairing-state="state">
+    <twig:block name="actions">
+        {% if paired %}
+            <form method="post" action="{{ path('app_purchasing_pairing_unpair', {id: documentId}) }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" size="sm" data-pairing-unpair>{{ 'purchasing.pairing.unpair'|trans }}</twig:Ui:Button>
+            </form>
+        {% elseif state == 'proposed' %}
+            <twig:Ui:Button size="sm" :href="path('app_purchasing_pairing_choose', {id: documentId})" data-dialog aria-haspopup="dialog" data-pairing-other>{{ 'purchasing.pairing.other'|trans }}</twig:Ui:Button>
+            <form method="post" action="{{ path('app_purchasing_pairing_unpair', {id: documentId}) }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" size="sm" data-pairing-decline>{{ 'purchasing.pairing.decline'|trans }}</twig:Ui:Button>
+            </form>
+        {% else %}
+            <twig:Ui:Button size="sm" :href="path('app_purchasing_pairing_choose', {id: documentId})" data-dialog aria-haspopup="dialog" data-pairing-choose>{{ 'purchasing.pairing.choose'|trans }}</twig:Ui:Button>
+        {% endif %}
+    </twig:block>
+
+    {% if paired and pairing.current %}
+        <p class="m-0 text-small text-text" data-pairing-current>
+            {{- 'purchasing.pairing.paired_with'|trans }}
+            <a href="{{ pairing.current.url }}" class="font-medium text-current underline underline-offset-2 {{ focus }}">{{ pairing.current.name }}</a>
+            <span class="num text-muted"> · {{ pairing.current.occurrenceOn|date('m/Y', false) }}</span>
+            {%- if state == 'auto' %} <span class="text-muted" data-pairing-auto>{{ 'purchasing.pairing.automatic'|trans }}</span>{% endif -%}
+        </p>
+    {% elseif state == 'proposed' %}
+        <p class="m-0 mb-2 text-small text-muted">{{ 'purchasing.pairing.proposed'|trans }}</p>
+        <ul class="m-0 grid list-none gap-0 rounded-panel border border-container p-0">
+            {% for candidate in pairing.candidates %}
+                <li class="flex min-h-row items-center gap-3 border-b border-divider px-4 last:border-b-0" data-pairing-candidate="{{ candidate.plannedItemId }}">
+                    <span class="min-w-0 flex-1 text-text">
+                        <a href="{{ candidate.url }}" class="font-medium text-current underline underline-offset-2 {{ focus }}">{{ candidate.name }}</a>
+                        <span class="num text-muted"> · {{ candidate.occurrenceOn|date('m/Y', false) }}</span>
+                    </span>
+                    <form method="post" action="{{ path('app_purchasing_pairing_pair', {id: documentId}) }}">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="choice" value="{{ candidate.plannedItemId }}|{{ candidate.occurrenceOn|date('Y-m-d', false) }}">
+                        <twig:Ui:Button type="submit" size="sm" variant="primary" data-pairing-confirm>{{ 'purchasing.pairing.confirm'|trans }}</twig:Ui:Button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% elseif state == 'declined' %}
+        <p class="m-0 text-small text-muted" data-pairing-declined>{{ 'purchasing.pairing.declined'|trans }}</p>
+    {% else %}
+        <p class="m-0 text-small text-muted" data-pairing-none>{{ 'purchasing.pairing.none'|trans }}</p>
+    {% endif %}
+</twig:Ui:Card>

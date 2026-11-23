@@ -95,6 +95,11 @@ final readonly class ReceivedDocumentPairables implements PairableDocumentSource
         } while (null !== $after);
     }
 
+    private function label(ReceivedDocument $document): string
+    {
+        return trim(\sprintf('%s %s', '' === $document->supplierNumber() ? ($document->evidenceNumber() ?? '') : $document->supplierNumber(), $document->supplier()->name));
+    }
+
     private function pairable(?ReceivedDocument $document): ?PairableDocument
     {
         if (!$document instanceof ReceivedDocument || !$document->isRecorded() || $document->isTrashed()) {
@@ -107,7 +112,7 @@ final readonly class ReceivedDocumentPairables implements PairableDocumentSource
         }
 
         return new PairableDocument(
-            new FlowSubject(self::TYPE, $document->id(), $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $document->id()], UrlGeneratorInterface::ABSOLUTE_PATH)),
+            new FlowSubject(self::TYPE, $document->id(), $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $document->id()], UrlGeneratorInterface::ABSOLUTE_PATH), $this->label($document)),
             $document->supplierParty()?->id(),
             ReceivedDocumentKind::CreditNote === $document->kind() ? FlowDirection::In : FlowDirection::Out,
             $total->isNegative() ? Money::ofMinor(-$total->minor(), $total->currency()) : $total,

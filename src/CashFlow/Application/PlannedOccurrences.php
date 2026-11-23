@@ -25,6 +25,9 @@ final readonly class PlannedOccurrences
     /** Occurrences read from the search start; the period holding a day is among the first few. */
     private const int WINDOW = 6;
 
+    /** The most days between() reads, enough for a daily item over four months. */
+    private const int BETWEEN_LIMIT = 130;
+
     public function __construct(private InstanceClock $clock)
     {
     }
@@ -70,6 +73,25 @@ final readonly class PlannedOccurrences
             : $item->firstOn();
 
         return $falls?->format('Y-m-d') === $day->format('Y-m-d') && !$item->isSkipped($day);
+    }
+
+    /**
+     * The days the item falls on from one day to another, both included, oldest first; a skipped day and any
+     * after the item's end are not among them.
+     *
+     * @return list<\DateTimeImmutable> midnight in the instance's zone
+     */
+    public function between(PlannedItem $item, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $zone = $this->clock->timezone();
+        [$first, $last] = [$from->setTimezone($zone)->setTime(0, 0), $to->setTimezone($zone)->setTime(0, 0)];
+        $recurrence = $item->recurrence($zone);
+        $days = $recurrence instanceof Recurrence ? RecurringSchedule::next($recurrence, 0, $first, self::BETWEEN_LIMIT) : [$item->firstOn()];
+
+        return array_values(array_filter(
+            $days,
+            fn (\DateTimeImmutable $day): bool => $day->format('Y-m-d') >= $first->format('Y-m-d') && $day->format('Y-m-d') <= $last->format('Y-m-d') && !$item->isSkipped($day),
+        ));
     }
 
     /**
