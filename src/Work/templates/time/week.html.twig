@@ -27,13 +27,14 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
-        <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="flex items-end gap-3">
             {{ include('@Work/time/_tabs.html.twig', {active: 'week'}) }}
-            {% if people is not empty %}
-                <twig:Ui:FilterBar id="time-filters" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}" class="w-full sm:w-auto" data-time-person-filter
-                    :filters="[{name: 'person', label: 'work.time.person'|trans, options: people, value: person, pinned: true}]" />
-            {% endif %}
+            {% if people is not empty %}{{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'time-filters'}) }}{% endif %}
         </div>
+        {% if people is not empty %}
+            <twig:Ui:FilterBar id="time-filters" :collapsible="true" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}" data-time-person-filter
+                :filters="[{name: 'person', label: 'work.time.person'|trans, options: people, value: person, pinned: true}]" />
+        {% endif %}
 
         <section class="grid gap-3" aria-labelledby="time-week-title" data-time-week>
             <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

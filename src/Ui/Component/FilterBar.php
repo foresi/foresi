@@ -73,6 +73,12 @@ final class FilterBar
     /** The list shows nothing: without a filter set there is no bar. */
     public bool $empty = false;
 
+    /**
+     * The bar opens from the filter icon at the end of the list's tabs (Shopify Polaris
+     * IndexFilters): folded while nothing narrows the list, open while something does.
+     */
+    public bool $collapsible = false;
+
     /** @var list<FilterView> */
     private array $views = [];
 
@@ -185,6 +191,14 @@ final class FilterBar
         }
 
         return $fields;
+    }
+
+    /**
+     * Whether the bar starts folded: it waits for its filter icon while nothing narrows the list.
+     */
+    public function collapsed(): bool
+    {
+        return $this->collapsible && !$this->narrowed();
     }
 
     public function shown(): bool

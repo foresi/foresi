@@ -137,6 +137,8 @@ ui:
     apply: Apply
     clear_all: Clear all
     clear_one: 'Clear the filter {label}'
+    toggle: Filter
+    toggle_search: Search and filter
   view_filter:
     add: Filter
     add_row: Add filter

@@ -60,6 +60,8 @@ test.describe.serial('the accountant pack', () => {
     await page.goto('/invoices');
     await expect(page.locator('tbody tr')).toHaveCount(3);
     // The month is a pinned chip: a menu of links, applied at once.
+    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-filter-toggle]').click();
     await page.locator('[data-filter-chip="month"]').getByRole('button', { name: 'Měsíc' }).click();
     await page.locator(`[data-filter-chip="month"] a[href*="month=${lastMonth}"]`).click();
 
@@ -113,6 +115,8 @@ test.describe.serial('the accountant pack', () => {
     }
     await expect(page.locator('tbody [data-icon-cell="archive"]')).toHaveCount(2);
     // The export state is a field of "+ Add filter" in the filter sheet, sent with Apply as a condition in f=.
+    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-filter-toggle]').click();
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Export pro účetní' }).click();

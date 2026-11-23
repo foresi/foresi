@@ -18,6 +18,8 @@ test.describe('the cash flow', () => {
     await expect(page.locator('[data-cash-flow-table]')).toBeVisible();
 
     // Certainty is a field of "+ Filter", sent with Apply as a condition in f=, as on the list pages.
+    // The filter bar opens from the filter icon at the end of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-filter-toggle]').click();
     await page.getByRole('button', { name: 'Filtr', exact: true }).click();
     await page.getByRole('button', { name: 'Přidat filtr' }).click();
     await page.getByRole('menuitem', { name: 'Zdroj' }).click();

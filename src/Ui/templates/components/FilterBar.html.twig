@@ -46,7 +46,8 @@
     {% endif %}
 {% endmacro %}
 {% if bar.shown %}
-    <div {{ attributes.defaults({id: id, class: 'grid min-w-0 gap-2', 'data-controller': 'filter-bar', 'data-filter-bar-dialog-outlet': '#' ~ id ~ '-sheet', 'data-filter-bar': ''}) }}>
+    {# Folded, the bar waits for its filter icon; without JavaScript it is always open. #}
+    <div {{ attributes.defaults({id: id, class: 'grid min-w-0 gap-2 [@media(scripting:enabled)]:data-[collapsed]:hidden', 'data-controller': 'filter-bar', 'data-filter-bar-dialog-outlet': '#' ~ id ~ '-sheet', 'data-filter-bar': ''}) }}{% if bar.collapsed %} data-collapsed{% endif %}{% if bar.narrowed %} data-narrowed{% endif %}>
         <div class="flex min-w-0 flex-wrap items-center gap-2">
             {% if search %}
                 <form method="get" action="{{ action }}" role="search" class="flex min-w-0 flex-1 items-center gap-2 sm:max-w-80" data-filter-search>
