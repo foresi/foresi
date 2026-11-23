@@ -59,6 +59,7 @@ final class TableOwnersTest extends KernelTestCase
         'vat_period_entry' => 'vat',
         'vat_payment_assignment' => 'vat',
         'activities_activity' => 'activities',
+        'sales_deal' => 'sales',
     ];
 
     public function testEveryTableHasTheModuleThatCreatesIt(): void
