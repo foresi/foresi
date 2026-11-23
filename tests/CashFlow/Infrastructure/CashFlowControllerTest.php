@@ -78,7 +78,7 @@ final class CashFlowControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-cash-flow-empty]'));
         self::assertCount(1, $crawler->filter('header [data-cash-flow-balance][data-dialog]'));
         self::assertCount(1, $crawler->filter('header [data-cash-flow-minimum][data-dialog]'));
-        self::assertCount(1, $crawler->filter('nav a[href="/cash-flow"]'));
+        self::assertCount(1, $crawler->filter('#sidebar [data-nav-sections] a[href="/cash-flow"]'));
         // Without JavaScript each dialog is a page of its own.
         foreach (['/cash-flow/balance', '/cash-flow/minimum-balance'] as $page) {
             $this->client->request('GET', $page);
