@@ -17,7 +17,10 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Application\EditReceivedDocument;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
+use Foresi\Purchasing\Application\RestoreReceivedDocument;
+use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\VatRate;
@@ -29,8 +32,8 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
- * Recording a received document lets Cash flow pair it with a planned occurrence in the same unit of work,
- * and the backfill command does the same for documents recorded before. Today is 17 November 2026 in Prague.
+ * Recording, changing, trashing and restoring a received document let Cash flow pair it with a planned
+ * occurrence, or forget it, in the same unit of work; the backfill command pairs documents recorded before. Today is 17 November 2026 in Prague.
  */
 final class PairingOnRecordingTest extends CashFlowTestCase
 {
@@ -91,6 +94,51 @@ final class PairingOnRecordingTest extends CashFlowTestCase
         self::assertNull($this->pairing($id));
     }
 
+    public function testChangingADocumentPairsItAgainByItsNewValues(): void
+    {
+        $item = $this->monthlyFor('Cloud Host', '1210.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        $auto = $this->pairing($id) ?? self::fail('No pairing.');
+        self::assertSame(PairingState::Auto, $auto->state());
+
+        self::getContainer()->get(EditReceivedDocument::class)->edit($id, $this->input('2026-11-18', '1500.00'));
+        $this->em->flush();
+
+        $row = $this->pairing($id) ?? self::fail('No pairing.');
+        self::assertSame(PairingState::Proposed, $row->state());
+        self::assertSame($item->id(), $row->plannedItemId());
+        self::assertCount(2, $this->events('cash-flow.document_pairing.changed'));
+    }
+
+    public function testTrashingADocumentRemovesItsPairing(): void
+    {
+        $this->monthlyFor('Cloud Host', '1210.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        self::assertInstanceOf(DocumentPairing::class, $this->pairing($id));
+
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Entered twice');
+        $this->em->flush();
+
+        self::assertNull($this->pairing($id));
+        self::assertCount(2, $this->events('cash-flow.document_pairing.changed'));
+    }
+
+    public function testRestoringADocumentPairsItAgain(): void
+    {
+        $item = $this->monthlyFor('Cloud Host', '1210.00');
+        $id = $this->record('2026-11-18', '1210.00');
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Entered twice');
+        $this->em->flush();
+        self::assertNull($this->pairing($id));
+
+        self::getContainer()->get(RestoreReceivedDocument::class)->restore($id);
+        $this->em->flush();
+
+        $row = $this->pairing($id) ?? self::fail('No pairing.');
+        self::assertSame(PairingState::Auto, $row->state());
+        self::assertSame($item->id(), $row->plannedItemId());
+    }
+
     private function monthlyFor(string $name, string $amount, string $on = '2026-05-20'): PlannedItem
     {
         return $this->writes()->create(new CreatePlannedItemInput('out', $name, 'software', $amount, $on, 'CZK', 'month', 1, false, null, null, $this->supplierId(), true));
@@ -109,9 +157,18 @@ final class PairingOnRecordingTest extends CashFlowTestCase
 
     private function record(string $day, string $total): string
     {
+        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create($this->input($day, $total));
+        $this->em->flush();
+
+        return $saved->document->id();
+    }
+
+    private function input(string $day, string $total): ReceivedDocumentInput
+    {
         $vat = Money::of($total, Currency::CZK)->minor();
         $base = intdiv($vat * 100, 121);
-        $saved = self::getContainer()->get(RecordReceivedDocument::class)->create(new ReceivedDocumentInput(
+
+        return new ReceivedDocumentInput(
             ReceivedDocumentKind::TaxInvoice,
             PurchaseTaxTreatment::Domestic,
             $this->supplierId(),
@@ -126,10 +183,7 @@ final class PairingOnRecordingTest extends CashFlowTestCase
             null,
             null,
             [new VatRecapLine(VatRate::of('21'), Money::ofMinor($base, Currency::CZK), Money::ofMinor($vat - $base, Currency::CZK))],
-        ));
-        $this->em->flush();
-
-        return $saved->document->id();
+        );
     }
 
     private function pairing(string $documentId): ?DocumentPairing
