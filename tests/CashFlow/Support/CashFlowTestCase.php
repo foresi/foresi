@@ -28,6 +28,7 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
@@ -69,8 +70,9 @@ abstract class CashFlowTestCase extends KernelTestCase
         $tool->createSchema($metadata);
         $this->clock = new MockClock('2026-11-17 10:00:00', 'UTC');
         Clock::set($this->clock);
+        InstanceZone::set(self::getContainer());
 
-        // A Czech firm gives the instance the zone Europe/Prague.
+        // A Czech firm; the instance counts its days in Prague, the zone set above.
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
         $this->em->persist($this->firm);
         $this->account = FirmAccounts::add($this->em, self::IBAN);

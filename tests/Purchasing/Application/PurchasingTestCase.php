@@ -39,6 +39,7 @@ use Foresi\Purchasing\Domain\VatRecapLine;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -80,8 +81,9 @@ abstract class PurchasingTestCase extends KernelTestCase
         $tool->createSchema($metadata);
         $this->clock = new MockClock('2026-11-10 09:00:00', 'UTC');
         Clock::set($this->clock);
+        InstanceZone::set(self::getContainer());
 
-        // A Czech firm gives the instance the zone Europe/Prague.
+        // A Czech firm; the instance counts its days in Prague, the zone set above.
         $this->firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
         $this->em->persist($this->firm);
         $this->supplier = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), VatId::fromString('CZ87654321'), '');

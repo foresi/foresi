@@ -14,6 +14,7 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Party;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -33,6 +34,7 @@ final class CalendarFeedsApiTest extends ApiTestCase
     {
         parent::setUp();
         Clock::set(new MockClock('2026-11-22 10:00:00', 'UTC'));
+        InstanceZone::set(self::getContainer());
         $this->writer = $this->issued([ApiScope::from('calendar:write')]);
     }
 
