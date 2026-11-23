@@ -7,6 +7,7 @@ documents:
         footer: 'Page {page} of {pages}'
     cancel: Cancel
     keep: Keep
+    in_trash: 'The document is in the trash, out of the document list and the records it belongs to. Restore it to have it back.'
     save: Save
     create: Create
     list:
@@ -31,10 +32,13 @@ documents:
         status: Status
         any_type: All types
         any_status: All statuses
+        trashed: In the trash
     empty:
         title: No documents yet
         text: 'Create a document from a template, generate its PDF and record who signed it.'
         filtered_title: No documents match the filters
+        trash_title: The trash is empty
+        trash_text: 'Only a cancelled document goes to the trash. It stays there with its history until you restore it.'
         reset: Clear the filters
         no_types_title: No document types yet
         no_types_text: 'Documents are made from templates of a document type. Add a type and a template first.'
@@ -48,6 +52,9 @@ documents:
         mark_signed: 'Mark {name} signed'
         cancel: Cancel document
         again: Generate again
+        trash: Move to trash
+        restore: Restore
+        undo: Undo
         open_pdf: Open the PDF
         open_signed: Open the signed copy
     field:
@@ -127,6 +134,8 @@ documents:
         signed_copy: The signed copy is stored.
         cancelled: The document was cancelled.
         again: A new draft was made from the document.
+        trashed: 'The document {title} was moved to the trash.'
+        restored: The document was restored.
         signer_added: '{name} was added to the signers.'
         signer_saved: 'The signer {name} was saved.'
         signer_removed: The signer was removed.
@@ -151,6 +160,8 @@ documents:
         not_draft: Only a draft can change; a generated document is frozen. Cancel it and generate it again instead.
         not_ready: Only a generated document that is ready can be marked sent.
         not_final: Only a completed, declined or cancelled document can be generated again.
+        not_cancelled: Only a cancelled document goes to the trash. Cancel it first.
+        trashed: The document is in the trash. Restore it first.
         not_signable: Signatures are recorded on a generated document that is ready or out for signature.
         final: A completed, declined or cancelled document cannot change.
         signed_copy_exists: The document already has its signed copy.

@@ -335,6 +335,40 @@ final class DocumentsApiTest extends ApiTestCase
         self::assertCount(2, $this->events('documents.signer.signed'));
     }
 
+    public function testACancelledDocumentGoesToTheTrashAndBackOverRestAndMcp(): void
+    {
+        [$documentId] = $this->readyDocumentWithASigner();
+
+        $this->send('POST', '/api/v1/documents/'.$documentId.'/trash');
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('not_cancelled', $this->at('code'));
+        $this->send('POST', '/api/v1/documents/'.$documentId.'/cancel');
+        $this->send('POST', '/api/v1/documents/'.$documentId.'/trash');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['cancelled', true, '2026-11-22T10:00:00+00:00'], [$this->at('data', 'status'), $this->at('data', 'trashed'), $this->at('data', 'trashed_at')]);
+        self::assertNotNull($this->at('data', 'files', 'pdf'), 'The trash keeps its files.');
+        self::assertNotNull($this->at('data', 'template', 'version_id'), 'The trash keeps its frozen template version.');
+        $this->send('POST', '/api/v1/documents/'.$documentId.'/trash');
+        self::assertResponseIsSuccessful();
+
+        $this->get('/api/v1/documents');
+        self::assertNotContains($documentId, $this->ids());
+        $this->get('/api/v1/documents', ['trashed' => 'true']);
+        self::assertSame([$documentId], $this->ids());
+        $rows = $this->json()['data'];
+        self::assertEquals(['items' => $rows], $this->in($this->call('foresi_list_documents', ['trashed' => true]), 'structuredContent', 'data'));
+        $this->get('/api/v1/documents/'.$documentId);
+        self::assertTrue($this->at('data', 'trashed'));
+
+        $restored = $this->call('foresi_restore_document', ['document_id' => $documentId]);
+        self::assertSame(['cancelled', false, null], [$this->in($restored, 'structuredContent', 'data', 'status'), $this->in($restored, 'structuredContent', 'data', 'trashed'), $this->in($restored, 'structuredContent', 'data', 'trashed_at')]);
+        $this->call('foresi_trash_document', ['document_id' => $documentId]);
+        $this->get('/api/v1/documents', ['trashed' => 'true']);
+        self::assertSame([$documentId], $this->ids());
+        self::assertCount(2, $this->events('documents.document.trashed'));
+        self::assertCount(1, $this->events('documents.document.restored'));
+    }
+
     /**
      * @return array{string, string} the ids of a ready document and its one signer
      */

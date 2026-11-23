@@ -53,7 +53,8 @@ final readonly class DocumentsApiController
     #[OA\Parameter(name: 'linked_id', description: 'With linked_kind: the id of the record.', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid'))]
     #[OA\Parameter(name: 'limit', description: 'How many documents, 1 to 200; 50 when left out.', in: 'query', schema: new OA\Schema(type: 'integer'))]
     #[OA\Parameter(name: 'offset', description: 'How many of the newest to skip; 0 when left out.', in: 'query', schema: new OA\Schema(type: 'integer'))]
-    #[OA\Response(response: 200, description: 'The documents, newest first, without values and signers.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentsDocumentRow'))], type: 'object'))]
+    #[OA\Parameter(name: 'trashed', description: 'true lists the documents in the trash instead of the others.', in: 'query', schema: new OA\Schema(type: 'boolean'))]
+    #[OA\Response(response: 200, description: 'The documents, newest first, without values and signers; those in the trash only with trashed.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentsDocumentRow'))], type: 'object'))]
     #[OA\Response(response: 400, description: 'A parameter cannot be used.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -67,6 +68,7 @@ final readonly class DocumentsApiController
             $this->text($request, 'linked_id'),
             $this->number($request, 'limit'),
             $this->number($request, 'offset'),
+            $request->query->getBoolean('trashed'),
         );
 
         return new JsonResponse(['data' => array_map($this->json->documentRow(...), $documents)]);
@@ -74,7 +76,7 @@ final readonly class DocumentsApiController
 
     #[Route('/api/v1/documents/{documentId}', name: DocumentsRoutes::DOCUMENT, methods: ['GET'])]
     #[OA\Tag(name: 'Documents')]
-    #[OA\Response(response: 200, description: 'The document with its links, signers, files and frozen values.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/DocumentsDocument')], type: 'object'))]
+    #[OA\Response(response: 200, description: 'The document with its links, signers, files and frozen values, also one in the trash.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/DocumentsDocument')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'There is no such document.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]

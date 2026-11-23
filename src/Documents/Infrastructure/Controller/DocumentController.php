@@ -16,6 +16,8 @@ use Foresi\Documents\Application\Api\GenerateDocumentInput;
 use Foresi\Documents\Application\Api\MarkDocumentSentInput;
 use Foresi\Documents\Application\Api\MarkSignerSignedInput;
 use Foresi\Documents\Application\Api\RemoveSignerInput;
+use Foresi\Documents\Application\Api\RestoreDocumentInput;
+use Foresi\Documents\Application\Api\TrashDocumentInput;
 use Foresi\Documents\Application\Api\UpdateSignerInput;
 use Foresi\Documents\Application\DocumentFilter;
 use Foresi\Documents\Application\DocumentsAccess;
@@ -54,7 +56,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * page at its address). Its header carries what its status allows next, as
  * PandaDoc and DocuSign move a document from draft to sent to completed:
  * Generate, Mark sent, Upload signed copy, mark a signer signed, Cancel and
- * Generate again. Its signers are grouped by their order, as DocuSign shows a
+ * Generate again; a cancelled one goes to the trash, with Undo in the message,
+ * and comes back with Restore, as deals do. The status filter's "In the trash"
+ * lists the trash. Its signers are grouped by their order, as DocuSign shows a
  * routing order, and are added, changed and removed in dialogs. Only the
  * owners and members of the organisation see them.
  */
@@ -64,6 +68,10 @@ final class DocumentController extends AbstractController
     public const string LIST_ROUTE = 'app_documents';
     public const string SHOW_ROUTE = 'app_document';
     public const string NEW_ROUTE = 'app_document_new';
+    public const string UNDO_FLASH = 'documents_undo';
+
+    /** The status filter's value for the documents in the trash. */
+    private const string TRASHED = 'trashed';
 
     /** The most documents a list shows; the filters narrow it. */
     private const int SHOWN = 200;
@@ -85,11 +93,13 @@ final class DocumentController extends AbstractController
     {
         $this->denyUnlessStaff();
         $type = $request->query->getString('type');
+        $trashed = self::TRASHED === $request->query->getString('status');
         $status = DocumentStatus::tryFrom($request->query->getString('status'));
         $documents = $this->store->documents(new DocumentFilter(
             typeId: Id::isValid($type) ? $type : null,
             status: $status,
             limit: self::SHOWN + 1,
+            trashed: $trashed,
         ));
 
         return $this->render('@Documents/index.html.twig', [
@@ -98,9 +108,10 @@ final class DocumentController extends AbstractController
             'more' => \count($documents) > self::SHOWN,
             'filters' => [
                 ['name' => 'type', 'label' => $this->translator->trans('documents.filter.type'), 'options' => $this->screen->typeFilterOptions(), 'value' => Id::isValid($type) ? $type : '', 'pinned' => true],
-                ['name' => 'status', 'label' => $this->translator->trans('documents.filter.status'), 'options' => $this->screen->statusOptions(), 'value' => $status->value ?? '', 'pinned' => true],
+                ['name' => 'status', 'label' => $this->translator->trans('documents.filter.status'), 'options' => $this->screen->statusOptions() + [self::TRASHED => $this->translator->trans('documents.filter.trashed')], 'value' => $trashed ? self::TRASHED : ($status->value ?? ''), 'pinned' => true],
             ],
-            'narrowed' => Id::isValid($type) || null !== $status,
+            'narrowed' => Id::isValid($type) || null !== $status || $trashed,
+            'trash' => $trashed,
             'hasTypes' => [] !== $this->screen->typeOptions(),
         ]);
     }
@@ -165,6 +176,7 @@ final class DocumentController extends AbstractController
             'pending' => $this->screen->pendingSigners($document),
             'draftPreview' => $draftPreview,
             'final' => $document->status()->isFinal(),
+            'trashed' => $document->isTrashed(),
             'signable' => \in_array($document->status(), [DocumentStatus::Ready, DocumentStatus::OutForSignature], true),
         ]);
     }
@@ -185,6 +197,38 @@ final class DocumentController extends AbstractController
     public function cancel(string $id, Request $request): RedirectResponse
     {
         return $this->act($id, $request, fn (): mixed => $this->writes->cancel(new CancelDocumentInput($id)), 'documents.flash.cancelled');
+    }
+
+    /**
+     * A cancelled document goes to the trash, and the list says so with Undo, as deals do.
+     */
+    #[Route('/documents/{id}/trash', name: 'app_document_trash', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function trash(string $id, Request $request): RedirectResponse
+    {
+        $this->denyUnlessStaff();
+        $this->checkToken($request);
+        $this->document($id);
+        try {
+            $document = $this->writes->trash(new TrashDocumentInput($id));
+        } catch (DocumentsRefused $refused) {
+            $this->refused($refused);
+
+            return $this->redirectToRoute(self::SHOW_ROUTE, ['id' => $id]);
+        }
+        $this->addFlash(self::UNDO_FLASH, [
+            'message' => $this->translator->trans('documents.flash.trashed', ['title' => $document->title()]),
+            'label' => $this->translator->trans('documents.action.undo'),
+            'href' => $this->generateUrl('app_document_restore', ['id' => $id]),
+            'token' => self::TOKEN,
+        ]);
+
+        return $this->redirectToRoute(self::LIST_ROUTE, status: Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/documents/{id}/restore', name: 'app_document_restore', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    public function restore(string $id, Request $request): RedirectResponse
+    {
+        return $this->act($id, $request, fn (): mixed => $this->writes->restore(new RestoreDocumentInput($id)), 'documents.flash.restored');
     }
 
     /**

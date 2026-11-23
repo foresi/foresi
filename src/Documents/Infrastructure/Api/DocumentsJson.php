@@ -134,6 +134,8 @@ final readonly class DocumentsJson
             'created_at' => JsonValues::timestamp($document->createdAt()),
             'generated_at' => JsonValues::timestamp($document->generatedAt()),
             'completed_at' => JsonValues::timestamp($document->completedAt()),
+            'trashed' => $document->isTrashed(),
+            'trashed_at' => JsonValues::timestamp($document->trashedAt()),
         ];
     }
 

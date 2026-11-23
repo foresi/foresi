@@ -251,6 +251,58 @@ final class DocumentScreensTest extends WebTestCase
         self::assertSame('Draft', trim($crawler->filter('[data-document-status]')->text()));
     }
 
+    public function testACancelledDocumentGoesToTheTrashWithUndoAndComesBackWithRestore(): void
+    {
+        $this->signedIn();
+        [$nda, $template] = $this->ndaWithTemplate('<h1>Mutual NDA</h1>');
+        $contactId = Id::generate();
+        $document = $this->document($nda, $template, 'NDA with Example Ltd', $contactId);
+        $page = '/documents/'.$document->id();
+
+        $crawler = $this->client->request('GET', $page);
+        self::assertCount(0, $crawler->filter('header form[data-document-trash]'), 'Only a cancelled document goes to the trash.');
+        $this->post($page.'/cancel', $crawler);
+        $crawler = $this->client->followRedirect();
+        self::assertCount(1, $crawler->filter('header form[data-document-trash]'));
+
+        $this->post($page.'/trash', $crawler);
+        self::assertResponseRedirects('/documents', 303);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-document-trashed]', 'NDA with Example Ltd');
+        self::assertCount(1, $crawler->filter('[data-document-trashed] form[action="'.$page.'/restore"]'));
+        self::assertSelectorTextNotContains('[data-documents]', 'NDA with Example Ltd');
+        $crawler = $this->client->request('GET', '/documents/for/contact/'.$contactId);
+        self::assertCount(0, $crawler->filter('[data-record-documents] tbody tr'), 'It leaves the documents of the record it belongs to.');
+        $this->client->request('GET', '/documents', ['status' => 'trashed']);
+        self::assertSelectorTextContains('[data-documents]', 'NDA with Example Ltd');
+
+        $crawler = $this->client->request('GET', $page);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-document-in-trash]'));
+        self::assertCount(0, $crawler->filter('header form[data-document-again]'));
+        self::assertCount(0, $crawler->filter('header form[data-document-trash]'));
+        self::assertCount(1, $crawler->filter('header form[data-document-restore]'));
+        $this->post($page.'/restore', $crawler);
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('[data-document-flash="success"]', 'The document was restored.');
+        self::assertCount(0, $crawler->filter('[data-document-in-trash]'));
+        self::assertCount(1, $crawler->filter('header form[data-document-again]'));
+        $this->client->request('GET', '/documents');
+        self::assertSelectorTextContains('[data-documents]', 'NDA with Example Ltd');
+    }
+
+    public function testTheTrashOfTheListSaysWhenItIsEmpty(): void
+    {
+        $this->signedIn();
+        $this->ndaWithTemplate('<h1>Mutual NDA</h1>');
+
+        $crawler = $this->client->request('GET', '/documents', ['status' => 'trashed']);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-documents-trash-empty]'));
+        self::assertSame('trashed', $crawler->filter('[data-documents-filter] select[name="status"] option[selected]')->attr('value'));
+    }
+
     public function testTheNewDocumentDialogTakesSeveralLinksFromTheAddress(): void
     {
         $contacts = new FakeLinkTarget();

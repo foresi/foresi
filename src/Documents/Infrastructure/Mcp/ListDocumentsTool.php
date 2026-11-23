@@ -45,8 +45,8 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
 
     public function description(): string
     {
-        return 'Returns the documents, newest first: {items} with the id, title, status, type and the days it was created, generated and completed. '
-            .'Filter by type_id, status, or linked_kind with linked_id for the documents of a record, such as a contact. Page with limit and offset. '
+        return 'Returns the documents not in the trash, newest first: {items} with the id, title, status, type, the days it was created, generated and completed, and trashed. '
+            .'Filter by type_id, status, or linked_kind with linked_id for the documents of a record, such as a contact. Page with limit and offset; trashed true lists the documents in the trash instead. '
             .'foresi_get_document gives the links, signers, files and frozen values of one.';
     }
 
@@ -66,6 +66,7 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
                 'linked_id' => ToolArguments::idSchema('With linked_kind: the id of the record.'),
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => DocumentFilter::MAX_LIMIT, 'default' => 50, 'description' => 'How many to return at most.'],
                 'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0, 'description' => 'How many of the newest to skip.'],
+                'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True lists the documents in the trash instead of the others.'],
             ],
             'additionalProperties' => false,
         ];
@@ -81,6 +82,7 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
                 ToolArguments::text($arguments, 'linked_id'),
                 $this->number($arguments, 'limit'),
                 $this->number($arguments, 'offset'),
+                ToolArguments::flag($arguments, 'trashed'),
             );
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);

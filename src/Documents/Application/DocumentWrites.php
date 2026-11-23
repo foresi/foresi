@@ -18,6 +18,8 @@ use Foresi\Documents\Application\Api\MarkDocumentSentInput;
 use Foresi\Documents\Application\Api\MarkSignerDeclinedInput;
 use Foresi\Documents\Application\Api\MarkSignerSignedInput;
 use Foresi\Documents\Application\Api\RemoveSignerInput;
+use Foresi\Documents\Application\Api\RestoreDocumentInput;
+use Foresi\Documents\Application\Api\TrashDocumentInput;
 use Foresi\Documents\Application\Api\UpdateDocumentInput;
 use Foresi\Documents\Application\Api\UpdateSignerInput;
 use Foresi\Documents\Contract\Event\DocumentCancelled;
@@ -25,7 +27,9 @@ use Foresi\Documents\Contract\Event\DocumentCompleted;
 use Foresi\Documents\Contract\Event\DocumentCreated;
 use Foresi\Documents\Contract\Event\DocumentDeclined;
 use Foresi\Documents\Contract\Event\DocumentGenerated;
+use Foresi\Documents\Contract\Event\DocumentRestored;
 use Foresi\Documents\Contract\Event\DocumentSentForSignature;
+use Foresi\Documents\Contract\Event\DocumentTrashed;
 use Foresi\Documents\Contract\Event\SignerSigned;
 use Foresi\Documents\Contract\RecordLink;
 use Foresi\Documents\Domain\Document;
@@ -41,7 +45,8 @@ use Psr\Clock\ClockInterface;
 
 /**
  * The life of a document: create, generate, send, sign manually, complete,
- * decline, cancel and generate again. A document completes exactly once, after
+ * decline, cancel, generate again, and put a cancelled one in the trash and
+ * bring it back. A document completes exactly once, after
  * whichever of its last signature and its signed copy comes second.
  */
 final readonly class DocumentWrites
@@ -218,6 +223,44 @@ final readonly class DocumentWrites
             $document = $this->document($input->documentId);
             DocumentsInvalid::unless('documentId', fn () => $document->cancel($this->clock->now()));
             $this->events->record(new DocumentCancelled($document->id(), $this->typeCode($document), $document->status()->value));
+
+            return $document;
+        });
+    }
+
+    /**
+     * Puts a cancelled document in the trash; trashing it again changes nothing and records nothing.
+     *
+     * @throws DocumentsRefused
+     */
+    public function trash(TrashDocumentInput $input): Document
+    {
+        $userId = $this->access->denyUnlessStaff();
+
+        return $this->transaction->run(function () use ($input, $userId): Document {
+            $document = $this->document($input->documentId);
+            if (DocumentsInvalid::unless('documentId', fn (): bool => $document->trash($userId, $this->clock->now()))) {
+                $this->events->record(new DocumentTrashed($document->id(), $this->typeCode($document), $document->status()->value));
+            }
+
+            return $document;
+        });
+    }
+
+    /**
+     * Brings a document back from the trash; one that is not there changes nothing and records nothing.
+     *
+     * @throws DocumentsRefused
+     */
+    public function restore(RestoreDocumentInput $input): Document
+    {
+        $this->access->denyUnlessStaff();
+
+        return $this->transaction->run(function () use ($input): Document {
+            $document = $this->document($input->documentId);
+            if ($document->restore()) {
+                $this->events->record(new DocumentRestored($document->id(), $this->typeCode($document), $document->status()->value));
+            }
 
             return $document;
         });

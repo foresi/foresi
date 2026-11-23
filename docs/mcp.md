@@ -144,7 +144,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
 | `foresi_revoke_calendar_feed` | **Write, destructive.** Revokes one of your calendar feeds (`feed_id`): its address stops working for good. Not for guests. |
-| `foresi_list_documents` | Documents, newest first, with their status and type; filters `type_id`, `status`, `linked_kind` with `linked_id`, paged with `limit` and `offset`. Staff only. |
+| `foresi_list_documents` | Documents not in the trash, newest first, with their status and type; filters `type_id`, `status`, `linked_kind` with `linked_id`, paged with `limit` and `offset`; `trashed` lists the trash instead. Staff only. |
 | `foresi_get_document` | One document (`document_id`) with its links, signers in signing order, stored files and frozen values. Staff only. |
 | `foresi_list_document_types` | The document types, by name; archived ones with `include_archived`. Staff only. |
 | `foresi_list_document_templates` | The document templates, by name, without their bodies; `type_id` and `include_archived` filter them. Staff only. |
@@ -161,6 +161,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_mark_document_sent` | **Write.** Marks a ready document sent for signature. Staff only. |
 | `foresi_attach_signed_document_copy` | **Write.** Attaches the signed copy, `file_name` and `content_base64` (a PDF up to 10 MB). Staff only. |
 | `foresi_cancel_document` | **Write, destructive.** Cancels a document that is not final. Staff only. |
+| `foresi_trash_document` | **Write, destructive.** Puts a cancelled document (`document_id`) in the trash; it keeps its history, files and template version. Staff only. |
+| `foresi_restore_document` | **Write.** Brings a document back from the trash. Staff only. |
 | `foresi_generate_document_again` | **Write.** Makes a new draft of a final document with the same links and signers. Staff only. |
 | `foresi_add_document_signer` | **Write.** Adds a signer: `name`, `side`, `order`, `email`, `party_person_id`. Staff only. |
 | `foresi_update_document_signer` | **Write.** Changes a signer (`signer_id`). Staff only. |

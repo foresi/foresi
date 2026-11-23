@@ -149,6 +149,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/documents/{documentId}/mark-sent' => ['post' => '200'],
                 '/api/v1/documents/{documentId}/signed-copy' => ['post' => '200'],
                 '/api/v1/documents/{documentId}/cancel' => ['post' => '200'],
+                '/api/v1/documents/{documentId}/trash' => ['post' => '200'],
+                '/api/v1/documents/{documentId}/restore' => ['post' => '200'],
                 '/api/v1/documents/{documentId}/generate-again' => ['post' => '201'],
                 '/api/v1/documents/{documentId}/signers' => ['post' => '201'],
                 '/api/v1/documents/{documentId}/signers/{signerId}' => ['delete' => '200', 'patch' => '200'],

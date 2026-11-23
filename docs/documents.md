@@ -63,6 +63,12 @@ A document has a type, a template, a title and links to the records it belongs t
 
 `completed`, `declined`, `cancelled` and `expired` are final. **Generate again** makes a new draft from a final document with the same type, links and signers and the latest version of the template.
 
+### The trash
+
+A **cancelled** document can be moved to the trash, for example the old copies left after a template was fixed and the document generated again. Any other status is refused with `not_cancelled`; cancel it first. In the trash it leaves the document list and the Documents section of the records it is linked to, such as a deal or a contact, but nothing is deleted: its history, its files and the template version it was generated from stay, for the audit. Opened by its address or id it shows that it is in the trash, with **Restore** in its header; it cannot be generated again until it is restored (`trashed`). The status filter **In the trash** of the document list lists the trash. Trashing a document twice, or restoring one that is not in the trash, changes nothing.
+
+On the document's page **Move to trash** is the last item of the header's menu, once the document is cancelled. The list then says so with **Undo**.
+
 Generating resolves the variables from the linked records, renders the PDF and stores it as an attachment of the document. A template that uses a variable with no value for the document (`deal.title` when no deal is linked) is refused with `template_variables_missing` and the names in `details.missing`. A link whose record was trashed or archived later stays on the document and shows as unavailable.
 
 The files of a document that has left draft are never deleted. Each stored file keeps its SHA-256.
@@ -91,21 +97,22 @@ The reads need `documents:read`, the writes `documents:write`. Bodies are JSON w
 | `GET /api/v1/document-types` | The types by name; `include_archived=true` lists the archived ones too. |
 | `GET /api/v1/document-templates` | The templates by name with their latest version, without the body; filter with `type_id`, `include_archived=true`. |
 | `GET /api/v1/document-templates/{templateId}` | One template: the latest version with its body, paper and `uses`, the versions, and the `variables` a body can use. |
-| `GET /api/v1/documents` | The documents, newest first. Filters: `type_id`, `status`, `linked_kind` with `linked_id`; paging with `limit` (1 to 200, 50 by default) and `offset`. |
-| `GET /api/v1/documents/{documentId}` | One document with its links, signers in signing order, files and frozen values. |
+| `GET /api/v1/documents` | The documents not in the trash, newest first. Filters: `type_id`, `status`, `linked_kind` with `linked_id`; paging with `limit` (1 to 200, 50 by default) and `offset`; `trashed=true` lists the documents in the trash instead. |
+| `GET /api/v1/documents/{documentId}` | One document with its links, signers in signing order, files and frozen values, also one in the trash (`trashed`, `trashed_at`). |
 | `GET /api/v1/documents/{documentId}/files/{file}` | The bytes of the stored file: `pdf`, `signed` or `certificate`. `404` until it exists. |
 | `POST /api/v1/document-types`, `PATCH .../{typeId}`, `POST .../{typeId}/archive` | Create, change and archive a type. |
 | `POST /api/v1/document-templates`, `POST .../{templateId}/versions`, `POST .../{templateId}/archive` | Create a template with its first version, save a version (in place or the next number), archive. |
 | `POST /api/v1/documents`, `PATCH .../{documentId}` | Create a draft with its `links` (`[{kind, id}]`), change a draft. |
 | `POST .../{documentId}/generate`, `/mark-sent`, `/signed-copy`, `/cancel`, `/generate-again` | Move the document on. The signed copy is `file_name` and `content_base64`. |
+| `POST .../{documentId}/trash`, `/restore` | Put a cancelled document in the trash, and bring it back. |
 | `POST .../{documentId}/signers`, `PATCH` and `DELETE .../signers/{signerId}`, `POST .../signers/{signerId}/mark-signed`, `/mark-declined` | Manage the signers and record their answer. |
 
 Every write takes an `Idempotency-Key`; a retry with the same key answers the same and acts once.
 
 ## MCP tools
 
-The read tools are `foresi_list_documents`, `foresi_get_document`, `foresi_list_document_types`, `foresi_list_document_templates` and `foresi_get_document_template`. The write tools are `foresi_create_document_type`, `foresi_update_document_type`, `foresi_archive_document_type`, `foresi_create_document_template`, `foresi_save_document_template_version`, `foresi_archive_document_template`, `foresi_create_document`, `foresi_update_document`, `foresi_generate_document`, `foresi_mark_document_sent`, `foresi_attach_signed_document_copy`, `foresi_cancel_document`, `foresi_generate_document_again`, `foresi_add_document_signer`, `foresi_update_document_signer`, `foresi_remove_document_signer`, `foresi_mark_document_signer_signed` and `foresi_mark_document_signer_declined`. They take the fields of the REST API and answer what it answers; see [the MCP server](mcp.md#tools).
+The read tools are `foresi_list_documents`, `foresi_get_document`, `foresi_list_document_types`, `foresi_list_document_templates` and `foresi_get_document_template`. The write tools are `foresi_create_document_type`, `foresi_update_document_type`, `foresi_archive_document_type`, `foresi_create_document_template`, `foresi_save_document_template_version`, `foresi_archive_document_template`, `foresi_create_document`, `foresi_update_document`, `foresi_generate_document`, `foresi_mark_document_sent`, `foresi_attach_signed_document_copy`, `foresi_cancel_document`, `foresi_trash_document`, `foresi_restore_document`, `foresi_generate_document_again`, `foresi_add_document_signer`, `foresi_update_document_signer`, `foresi_remove_document_signer`, `foresi_mark_document_signer_signed` and `foresi_mark_document_signer_declined`. They take the fields of the REST API and answer what it answers; see [the MCP server](mcp.md#tools).
 
 ## Events
 
-`documents.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined` and `.cancelled`, and `documents.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.
+`documents.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined`, `.cancelled`, `.trashed` and `.restored`, and `documents.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.

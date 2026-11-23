@@ -45,7 +45,8 @@ interface DocumentsStore
     public function document(string $id): ?Document;
 
     /**
-     * Newest first.
+     * The documents out of the trash the filter lets through, or with its
+     * trashed those in the trash, newest first.
      *
      * @return list<Document>
      */

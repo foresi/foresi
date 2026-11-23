@@ -92,6 +92,14 @@ class Document implements Audited
     #[ORM\Column(name: 'closed_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $closedAt = null;
 
+    /** When a cancelled document went to the trash; it is kept there for its history. */
+    #[ORM\Column(name: 'trashed_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $trashedAt = null;
+
+    /** Who put it in the trash. */
+    #[ORM\Column(name: 'trashed_by', type: 'guid', nullable: true)]
+    private ?string $trashedBy = null;
+
     /**
      * Its links and signers are records of their own (DocumentLink, Signer), kept
      * by the store, since changes to collections of audited entities are not audited.
@@ -119,6 +127,7 @@ class Document implements Audited
         if (!$this->status->isFinal()) {
             throw new DocumentConflict('not_final', 'Only a completed, declined or cancelled document can be generated again; this one can still change.');
         }
+        $this->requireNotTrashed();
         $copy = clone $this;
         $copy->id = Id::generate();
         $copy->status = DocumentStatus::Draft;
@@ -127,6 +136,8 @@ class Document implements Audited
         $copy->pdfAttachmentId = $copy->pdfSha256 = $copy->signedAttachmentId = $copy->signedSha256 = null;
         $copy->certificateAttachmentId = $copy->certificateSha256 = $copy->provider = $copy->envelopeId = null;
         $copy->generatedAt = $copy->sentAt = $copy->completedAt = $copy->closedAt = null;
+        $copy->trashedAt = null;
+        $copy->trashedBy = null;
         $copy->createdBy = $createdBy;
         $copy->createdAt = $now;
 
@@ -285,6 +296,44 @@ class Document implements Audited
         $this->closedAt = $now;
     }
 
+    /**
+     * Puts a cancelled document in the trash: it leaves the lists and keeps its
+     * history, files and template version. Trashing it again changes nothing.
+     *
+     * @return bool whether it went to the trash now
+     *
+     * @throws DocumentConflict when the document is not cancelled
+     */
+    public function trash(string $userId, \DateTimeImmutable $now): bool
+    {
+        if ($this->trashedAt instanceof \DateTimeImmutable) {
+            return false;
+        }
+        if (DocumentStatus::Cancelled !== $this->status) {
+            throw new DocumentConflict('not_cancelled', 'Only a cancelled document goes to the trash; cancel it first.');
+        }
+        $this->trashedAt = $now;
+        $this->trashedBy = $userId;
+
+        return true;
+    }
+
+    /**
+     * Brings it back from the trash; one that is not there changes nothing.
+     *
+     * @return bool whether it was in the trash
+     */
+    public function restore(): bool
+    {
+        if (!$this->trashedAt instanceof \DateTimeImmutable) {
+            return false;
+        }
+        $this->trashedAt = null;
+        $this->trashedBy = null;
+
+        return true;
+    }
+
     private function own(Signer $signer): void
     {
         if ($signer->documentId() !== $this->id) {
@@ -400,10 +449,32 @@ class Document implements Audited
         return $this->closedAt;
     }
 
+    public function isTrashed(): bool
+    {
+        return $this->trashedAt instanceof \DateTimeImmutable;
+    }
+
+    public function trashedAt(): ?\DateTimeImmutable
+    {
+        return $this->trashedAt;
+    }
+
+    public function trashedBy(): ?string
+    {
+        return $this->trashedBy;
+    }
+
     private function requireDraft(): void
     {
         if (DocumentStatus::Draft !== $this->status) {
             throw new DocumentConflict('not_draft', 'Only a draft can be edited; a generated document is frozen. Cancel it and generate it again instead.');
+        }
+    }
+
+    private function requireNotTrashed(): void
+    {
+        if ($this->trashedAt instanceof \DateTimeImmutable) {
+            throw new DocumentConflict('trashed', 'The document is in the trash; restore it first.');
         }
     }
 

@@ -3,12 +3,13 @@
     One document, a record (docs/design/overlays.md): a row of the list opens it in the side sheet; the
     same URL is a page. The header carries what its status allows next, as PandaDoc and DocuSign move a
     document from draft to sent to completed: Generate a draft; Mark sent and Upload signed copy once it
-    is ready; mark a pending signer signed; Cancel after asking; Generate again once it is final.
+    is ready; mark a pending signer signed; Cancel after asking; Generate again once it is final; Move to
+    trash, last, once it is cancelled, and Restore in the trash (as a deal's header).
     The preview is the generated PDF, or for a draft the template filled with the values of its links,
     in a sandboxed frame. The signers are grouped by their order, as DocuSign's routing order: one
     order signs at the same time, the orders follow each other; the order is shown, not enforced.
     A link whose record is gone shows as unavailable. Variables: document, status, details, links,
-    signing, groups, pending, draftPreview, final, signable.
+    signing, groups, pending, draftPreview, final, signable, trashed.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -23,7 +24,12 @@
 {% block actions %}
     <twig:Ui:MoreActions menuId="document-actions">
         <twig:block name="primary">
-            {% if document.status.value == 'draft' %}
+            {% if trashed %}
+                <form method="post" action="{{ path('app_document_restore', {id: document.id}) }}" data-document-restore>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="archive-restore" :size="record_action_size">{{ 'documents.action.restore'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif document.status.value == 'draft' %}
                 <form method="post" action="{{ path('app_document_generate', {id: document.id}) }}" data-document-generate>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Button type="submit" variant="primary" icon="file-text" :size="record_action_size">{{ 'documents.action.generate'|trans }}</twig:Ui:Button>
@@ -81,6 +87,12 @@
                     <twig:Ui:MenuItem type="submit" tone="danger" icon="x">{{ 'documents.action.cancel'|trans }}</twig:Ui:MenuItem>
                 </form>
             {% endif %}
+            {% if document.status.value == 'cancelled' and not trashed %}
+                <form method="post" action="{{ path('app_document_trash', {id: document.id}) }}" role="none" data-document-trash>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'documents.action.trash'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
         </twig:block>
     </twig:Ui:MoreActions>
 {% endblock %}
@@ -88,6 +100,9 @@
 {% block content %}
     <div class="grid gap-4">
         {{ include('@Documents/_flashes.html.twig') }}
+        {% if trashed %}
+            <twig:Ui:Alert tone="info" data-document-in-trash>{{ 'documents.in_trash'|trans }}</twig:Ui:Alert>
+        {% endif %}
 
         <div class="flex flex-wrap items-center gap-2">
             <twig:Ui:Badge :tone="status.tone" data-document-status>{{ status.label }}</twig:Ui:Badge>
