@@ -14,10 +14,12 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Purchasing\Domain\ExchangeRate;
+use Foresi\Purchasing\Domain\LineView;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Purchasing\Domain\SupplierSnapshot;
@@ -358,8 +360,161 @@ final class ReceivedDocumentTest extends TestCase
         self::assertTrue($column[0]->newInstance()->nullable);
     }
 
+    public function testADocumentWithoutLinesHasOneImplicitLinePerRate(): void
+    {
+        $document = $this->recorded($this->content(total: 177_000, lines: [
+            new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK)),
+            new VatRecapLine(VatRate::of('12'), Money::ofMinor(50_000, Currency::CZK), Money::ofMinor(6_000, Currency::CZK)),
+        ]));
+
+        self::assertSame([], $document->lines());
+        self::assertSame([
+            ['rate:21', 'tax_invoice', 100_000, 100_000, '21', true],
+            ['rate:12', 'tax_invoice', 50_000, 50_000, '12', true],
+        ], $this->views($document->effectiveLines()));
+    }
+
+    public function testADocumentWithoutARecapHasOneImplicitLineOfItsTotal(): void
+    {
+        $document = $this->recorded($this->content(kind: ReceivedDocumentKind::Other, treatment: PurchaseTaxTreatment::NotVatDocument, currency: Currency::EUR, total: 4_000, lines: [], rate: ExchangeRate::of('25.1')));
+
+        self::assertSame([['rate:0', 'other', 4_000, 100_400, '0', true]], $this->views($document->effectiveLines()));
+    }
+
+    public function testADocumentWithoutARecapAndATotalHasNoLines(): void
+    {
+        self::assertSame([], $this->draft()->effectiveLines());
+    }
+
+    public function testStoredLinesAreTheEffectiveLines(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line(' Hosting ', 70_000), $this->line('Domain', 30_000)]));
+
+        $lines = $document->lines();
+        self::assertSame([[0, 'Hosting', 70_000, '21'], [1, 'Domain', 30_000, '21']], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor(), $line->vatRate()], $lines));
+        self::assertSame([
+            [$lines[0]->id(), 'Hosting', 70_000, 70_000, '21', false],
+            [$lines[1]->id(), 'Domain', 30_000, 30_000, '21', false],
+        ], $this->views($document->effectiveLines()));
+    }
+
+    public function testCzkBasesOfLinesAddUpToTheRecapCzkBase(): void
+    {
+        $usd = static fn (int $minor): Money => Money::ofMinor($minor, Currency::USD);
+        $document = $this->recorded($this->content(
+            kind: ReceivedDocumentKind::ForeignInvoice,
+            treatment: PurchaseTaxTreatment::NonEuService,
+            currency: Currency::USD,
+            total: 3_200,
+            lines: [new VatRecapLine(VatRate::of('21'), $usd(3_200), $usd(0))],
+            rate: ExchangeRate::of('23.457'),
+            documentLines: [new ReceivedDocumentLineInput('Calls', $usd(1_000), '21'), new ReceivedDocumentLineInput('Numbers', $usd(1_000), '21'), new ReceivedDocumentLineInput('Support', $usd(1_200), '21')],
+        ));
+
+        $czk = array_map(static fn (LineView $line): ?int => $line->baseCzk?->minor(), $document->effectiveLines());
+        self::assertSame(75_062, $document->baseCzk()?->minor());
+        self::assertSame(75_062, array_sum($czk));
+        self::assertSame([23_457, 23_457, 75_062 - 2 * 23_457], $czk, 'The last line takes the difference.');
+    }
+
+    public function testChangingTheRecapWithStaleLinesIsRefused(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        $other = [new VatRecapLine(VatRate::of('21'), Money::ofMinor(200_000, Currency::CZK), Money::ofMinor(42_000, Currency::CZK))];
+        $version = $document->version();
+
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn () => $document->record($this->content(total: 242_000, lines: $other), null, new \DateTimeImmutable(self::AT)));
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn () => $document->checkRecordable($this->content(total: 242_000, lines: $other)));
+        self::assertSame([$version, 100_000], [$document->version(), $document->base()->minor()]);
+
+        $document->record($this->content(total: 242_000, lines: $other, documentLines: [$this->line('Hosting', 200_000)]), null, new \DateTimeImmutable(self::AT));
+        self::assertSame([200_000, 200_000], [$document->base()->minor(), $document->lines()[0]->base()->minor()]);
+    }
+
+    public function testSavingWithoutLinesKeepsTheStoredOnesAndAnEmptyListRemovesThem(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+
+        $document->record($this->content(supplierNumber: 'FV-2026-124'), null, new \DateTimeImmutable(self::AT));
+        self::assertCount(2, $document->lines());
+
+        $document->record($this->content(documentLines: []), null, new \DateTimeImmutable(self::AT));
+        self::assertSame([], $document->lines());
+        self::assertSame('rate:21', $document->effectiveLines()[0]->key);
+    }
+
+    public function testADraftTakesLinesToo(): void
+    {
+        $document = $this->draft();
+        $document->saveDraft($this->content(documentLines: [$this->line('Hosting', 100_000)]));
+
+        self::assertCount(1, $document->lines());
+    }
+
+    public function testRewritingTheLinesKeepsThemInPlace(): void
+    {
+        $document = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+        [$first, $second] = $document->lines();
+
+        $document->setLines([$this->line('Hosting', 50_000), $this->line('Domains', 20_000), $this->line('Mail', 30_000)]);
+        self::assertSame([$first, $second], \array_slice($document->lines(), 0, 2));
+        self::assertSame([[0, 'Hosting', 50_000], [1, 'Domains', 20_000], [2, 'Mail', 30_000]], array_map(static fn (\Foresi\Purchasing\Domain\ReceivedDocumentLine $line): array => [$line->position(), $line->text(), $line->base()->minor()], $document->lines()));
+
+        $document->setLines([$this->line('Everything', 100_000)]);
+        self::assertSame([$first], $document->lines());
+        self::assertSame('Everything', $first->text());
+    }
+
+    public function testSettingLinesRaisesTheVersionAndChecksTheRecap(): void
+    {
+        $document = $this->recorded($this->content());
+        $version = $document->version();
+
+        $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn () => $document->setLines([$this->line('Hosting', 99_999)]));
+        self::assertSame([$version, []], [$document->version(), $document->lines()]);
+
+        $document->setLines([$this->line('Hosting', 100_000)]);
+        self::assertSame($version + 1, $document->version());
+    }
+
+    public function testATrashedDocumentTakesNoLines(): void
+    {
+        $document = $this->recorded($this->content());
+        $document->trash(new \DateTimeImmutable(self::AT), null, 'Duplicate');
+
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $document->setLines([$this->line('Hosting', 100_000)]));
+    }
+
+    public function testLinesDoNotChangeTheRecap(): void
+    {
+        $without = $this->recorded($this->content());
+        $with = $this->recorded($this->content(documentLines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
+
+        self::assertSame($without->vatRecap()->toArray(), $with->vatRecap()->toArray());
+        self::assertSame(
+            [$without->base()->minor(), $without->vat()->minor(), $without->baseCzk()?->minor(), $without->vatCzk()?->minor(), $without->total()?->minor()],
+            [$with->base()->minor(), $with->vat()->minor(), $with->baseCzk()?->minor(), $with->vatCzk()?->minor(), $with->total()?->minor()],
+        );
+    }
+
     /**
-     * @param list<VatRecapLine>|null $lines
+     * @param list<LineView> $lines
+     *
+     * @return list<array{string, string, int, ?int, string, bool}>
+     */
+    private function views(array $lines): array
+    {
+        return array_map(static fn (LineView $line): array => [$line->key, $line->text, $line->base->minor(), $line->baseCzk?->minor(), $line->vatRate, $line->implicit], $lines);
+    }
+
+    private function line(string $text, int $base, string $rate = '21'): ReceivedDocumentLineInput
+    {
+        return new ReceivedDocumentLineInput($text, Money::ofMinor($base, Currency::CZK), $rate);
+    }
+
+    /**
+     * @param list<VatRecapLine>|null              $lines
+     * @param list<ReceivedDocumentLineInput>|null $documentLines
      */
     public function content(
         ReceivedDocumentKind $kind = ReceivedDocumentKind::TaxInvoice,
@@ -377,6 +532,7 @@ final class ReceivedDocumentTest extends TestCase
         string $supplierNumber = 'FV-2026-123',
         ?Currency $totalCurrency = null,
         ?string $supplyCode = null,
+        ?array $documentLines = null,
     ): ReceivedDocumentContent {
         $party = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), null, '');
 
@@ -398,6 +554,7 @@ final class ReceivedDocumentTest extends TestCase
             $lines ?? [new VatRecapLine(VatRate::of('21'), Money::ofMinor(100_000, Currency::CZK), Money::ofMinor(21_000, Currency::CZK))],
             $original,
             $supplyCode,
+            $documentLines,
         );
     }
 

@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\PersistentCollection;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Application\TokenAuditActor;
@@ -60,7 +61,7 @@ final class AuditListener
         }
 
         foreach ([...$uow->getScheduledCollectionUpdates(), ...$uow->getScheduledCollectionDeletions()] as $collection) {
-            if (null !== $collection->getOwner() && $this->audited($collection->getOwner())) {
+            if (null !== $collection->getOwner() && $this->audited($collection->getOwner()) && !$this->itemsAuditedOnTheirOwn($collection)) {
                 throw new \LogicException('Changes to collections of audited entities are not audited yet.');
             }
         }
@@ -99,6 +100,19 @@ final class AuditListener
     private function audited(object $entity): bool
     {
         return $entity instanceof Audited || $entity instanceof SavedView;
+    }
+
+    /**
+     * A collection of the inverse side keeps nothing of its own: each item holds
+     * the reference, so adding, changing or removing an audited item is an entry
+     * of the item. A collection of the owning side (a join table) has no such entry.
+     *
+     * @param PersistentCollection<array-key, object> $collection
+     */
+    private function itemsAuditedOnTheirOwn(PersistentCollection $collection): bool
+    {
+        return !$collection->getMapping()->isOwningSide()
+            && $collection->getTypeClass()->getReflectionClass()->implementsInterface(Audited::class);
     }
 
     /**
