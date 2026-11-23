@@ -182,10 +182,12 @@ cash_flow:
     state:
       included: Zahrnuto
       left_out: Vynecháno
+      vat_missing: Bez uvedené DPH
     none:
       next: Už žádný
       counterparty: Bez kontaktu
       match: Bez pravidla
+      vat: DPH neuvedena
     repeat:
       once: Neopakuje se
       last_day: poslední den v měsíci
@@ -208,6 +210,13 @@ cash_flow:
     match:
       variable_symbol: 'VS {symbol}'
       tolerance: '± {amount}'
+    vat_mode:
+      none: Bez DPH
+      included: Včetně DPH
+      excluded: DPH navíc
+    vat:
+      included: '{net} + {rate} % DPH {vat}, v ceně'
+      excluded: '{net} + {rate} % DPH {vat} navíc'
     field:
       name: Název
       category: Kategorie
@@ -235,6 +244,10 @@ cash_flow:
       match_account: Účet protistrany
       match_variable_symbol: Variabilní symbol
       match_tolerance: Tolerance
+      vat: DPH
+      vat_mode: DPH
+      vat_mode_help: Počítá se jen ve dnech, kdy je firma plátcem DPH.
+      vat_rate: Sazba DPH (%)
     occurrences:
       title: Další výskyty
       title_once: Den
@@ -280,3 +293,7 @@ cash_flow:
       tolerance_negative: Zadejte toleranci nula nebo více.
       not_an_occurrence: Položka na tento den nepřipadá.
       not_found: Plánovaná položka už neexistuje.
+      vat_mode_unknown: Vyberte, jak částka stojí k DPH.
+      vat_rate_required: Zadejte sazbu DPH, například 21.
+      vat_rate_invalid: Zadejte sazbu od 0 do 100 s nejvýše dvěma desetinnými místy, například 21 nebo 12,5.
+      vat_rate_without_mode: Sazba DPH potřebuje DPH v ceně nebo navíc.

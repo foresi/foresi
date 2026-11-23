@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
@@ -86,6 +87,14 @@ class PlannedItem implements Audited
     #[ORM\Column(name: 'skipped_on', type: 'json')]
     private array $skippedOn = [];
 
+    /** How the amount stands to its VAT; none for an item from before VAT could be stated. */
+    #[ORM\Column(name: 'vat_mode', type: 'string', length: 8, enumType: PlannedVatMode::class, options: ['default' => 'none'])]
+    private PlannedVatMode $vatMode;
+
+    /** The VAT rate in percent with two decimals, such as "21.00"; null without a VAT mode. */
+    #[ORM\Column(name: 'vat_rate', type: 'decimal', precision: 5, scale: 2, nullable: true)]
+    private ?string $vatRate;
+
     #[ORM\Embedded(class: MatchRule::class, columnPrefix: 'match_')]
     private MatchRule $matchRule;
 
@@ -113,6 +122,8 @@ class PlannedItem implements Audited
         $this->counterparty = $terms->counterparty;
         $this->included = $terms->included;
         $this->matchRule = $terms->matchRule;
+        $this->vatMode = $terms->vatMode;
+        $this->vatRate = $terms->vatRate;
         $this->schedule($terms->firstOn, $terms->recurrence);
     }
 
@@ -161,6 +172,27 @@ class PlannedItem implements Audited
     public function amount(): Money
     {
         return Money::ofMinor($this->amountMinor, $this->currency);
+    }
+
+    public function vatMode(): PlannedVatMode
+    {
+        return $this->vatMode;
+    }
+
+    /**
+     * The VAT rate in percent, such as "21" or "12.5"; null without a VAT mode.
+     */
+    public function vatRate(): ?string
+    {
+        return null === $this->vatRate ? null : PlannedItemTerms::rate($this->vatRate);
+    }
+
+    /**
+     * The flow, the net and the VAT of one occurrence as stated; null when no VAT is stated.
+     */
+    public function vat(): ?PlannedItemVat
+    {
+        return PlannedItemVat::of($this->amount(), $this->vatMode, $this->vatRate);
     }
 
     public function counterparty(): ?Party

@@ -29,7 +29,7 @@ final readonly class PeriodList
     public const string COUNTRY_NOT_SUPPORTED = 'country_not_supported';
 
     /** What the amounts of every period leave out until the module counts it. */
-    public const array KNOWN_GAPS = ['plans_not_counted', 'deduction_before_registration'];
+    public const array KNOWN_GAPS = ['deduction_before_registration'];
 
     /**
      * @param list<PeriodView>        $periods            oldest first

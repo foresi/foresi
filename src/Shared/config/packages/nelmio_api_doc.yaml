@@ -553,6 +553,11 @@ nelmio_api_doc:
                         name: { type: string }
                         category: { type: string, enum: [revenue, purchases, rent, software, payroll, taxes, insurance, vat, loans, owner_draws, other] }
                         amount: { $ref: '#/components/schemas/Money' }
+                        vat_mode: { type: string, enum: [none, included, excluded], description: 'How the amount stands to its VAT: none stated, included in the amount, or excluded and added on top. The VAT counts only on the days the firm is a VAT payer.' }
+                        vat_rate: { type: string, nullable: true, example: '21', description: 'The VAT rate in percent; null with vat_mode none.' }
+                        net: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The net of one occurrence as stated; null with vat_mode none.' }
+                        vat: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The VAT of one occurrence as stated; null with vat_mode none.' }
+                        vat_missing: { type: boolean, description: 'True while the firm is a VAT payer and the item states no VAT, but for the categories without VAT (vat, taxes, insurance, loans, owner_draws).' }
                         counterparty: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
                         'on': { type: string, format: date, description: 'The day of a one-off item, the first day of a recurring one.' }
                         repeat: { type: string, enum: [day, week, month, year], nullable: true }
@@ -756,7 +761,7 @@ nelmio_api_doc:
                         periods: { type: array, items: { $ref: '#/components/schemas/VatPeriod' } }
                         warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
                         unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
-                        known_gaps: { type: array, items: { type: string }, example: [plans_not_counted, deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
+                        known_gaps: { type: array, items: { type: string }, example: [deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
                         unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document and schedule sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat, invoicing.recurring_vat. What they hold counts nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
                         unassigned_payments: { type: array, description: 'The bank movements to or from the tax office that pay no period, oldest first, for a person to place with PUT /api/v1/vat/payments/{movementId}.', items: { $ref: '#/components/schemas/VatPayment' } }
                         possible_duplicates:
@@ -786,12 +791,13 @@ nelmio_api_doc:
                     allOf:
                         - { $ref: '#/components/schemas/VatPeriods' }
                         - type: object
-                          required: [period, documents, schedules, restricted_sources]
+                          required: [period, documents, schedules, plans, restricted_sources]
                           properties:
                               period: { $ref: '#/components/schemas/VatPeriod' }
                               documents: { type: array, description: 'The documents counted in the period, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatDocument' } }
                               schedules: { type: array, description: 'The occurrences of schedules not issued yet counted in the period, such as the next invoices of recurring templates, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatSchedule' } }
-                              restricted_sources: { type: array, items: { type: string }, example: [invoicing.issued_vat], description: The sources whose documents or schedules the token may not read; their amounts still count in the totals. }
+                              plans: { type: array, description: 'The plans counted in the period from today on, such as planned items with their VAT stated, of the sources the caller may read.', items: { $ref: '#/components/schemas/VatPlan' } }
+                              restricted_sources: { type: array, items: { type: string }, example: [invoicing.issued_vat], description: 'The sources whose documents, schedules or plans the token may not read; their amounts still count in the totals.' }
                 VatDocument:
                     type: object
                     required: [source, subject, label, counts_on, tax_point_on, output, input, missing_czk]
@@ -816,6 +822,16 @@ nelmio_api_doc:
                         output_in_currency: { $ref: '#/components/schemas/Money', description: The output VAT in the currency of the schedule. }
                         fx_today: { type: boolean, description: 'The output is converted from another currency at today''s rate.' }
                         missing_czk: { type: boolean, description: 'The currency has no rate today, so it counts zero.' }
+                VatPlan:
+                    type: object
+                    required: [source, subject, label, 'on', output, input]
+                    properties:
+                        source: { type: string, example: cash-flow.planned_vat }
+                        subject: { type: object, nullable: true, required: [type, id, url], properties: { type: { type: string, enum: [planned_item] }, id: { type: string, format: uuid }, url: { type: string, nullable: true } } }
+                        label: { type: string, nullable: true, example: Office rent, description: The name of the planned item. }
+                        'on': { type: string, format: date, description: 'The day of the occurrence; it decides the period, and it counts only when the firm is a payer on this day.' }
+                        output: { $ref: '#/components/schemas/Money', description: 'The output VAT in CZK of money planned in.' }
+                        input: { $ref: '#/components/schemas/Money', description: 'The input VAT in CZK of money planned out.' }
                 VatPart:
                     type: object
                     required: [output, input]

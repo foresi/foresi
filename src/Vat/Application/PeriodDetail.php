@@ -9,19 +9,21 @@ declare(strict_types=1);
 namespace Foresi\Vat\Application;
 
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PlannedVatAmount;
 
 /**
- * One VAT period with the documents and the scheduled occurrences behind its
- * amounts. Those of a source the caller may not read are left out and the
+ * One VAT period with the documents, the scheduled occurrences and the plans
+ * behind its amounts. Those of a source the caller may not read are left out and the
  * source is listed in $restrictedSources: its amounts still count in the
  * totals.
  */
 final readonly class PeriodDetail
 {
     /**
-     * @param list<DocumentVat>    $documents
-     * @param list<string>         $restrictedSources
-     * @param list<ScheduleAmount> $schedules
+     * @param list<DocumentVat>      $documents
+     * @param list<string>           $restrictedSources
+     * @param list<ScheduleAmount>   $schedules
+     * @param list<PlannedVatAmount> $plans
      */
     public function __construct(
         public PeriodList $list,
@@ -29,6 +31,7 @@ final readonly class PeriodDetail
         public array $documents,
         public array $restrictedSources,
         public array $schedules = [],
+        public array $plans = [],
     ) {
     }
 }

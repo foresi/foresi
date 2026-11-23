@@ -15,6 +15,7 @@ use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\HiddenTotal;
 use Foresi\CashFlow\Application\PlannedFulfilment;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;
@@ -124,7 +125,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $hidden = new FakeSource('test.invoices', [$flow('a', '2026-11-18', '100.00', FlowCategory::Revenue), $flow('b', '2026-11-19', '50.00', FlowCategory::Revenue), $flow('c', '2026-11-19', '7.00', FlowCategory::Other)], details: false);
         $this->planned(on: '2026-11-20');
 
-        $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [])->of();
+        $forecast = $this->forecasts([$hidden, new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class))], [])->of();
 
         $week = $forecast->periods[0];
         self::assertSame(['planned_item'], array_map(static fn (\Foresi\CashFlow\Application\ForecastLine $line): string => $line->flow->subject->type, $week->lines));
@@ -259,7 +260,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
         $working = new FakeActualSource('test.working', [$this->actual('2026-11-03', '10000.00', FlowDirection::Out, counterpartyId: $landlord->id())]);
         $logger = new SpyLogger();
 
-        $forecast = $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [$broken, $working], $logger)->of();
+        $forecast = $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class))], [$broken, $working], $logger)->of();
 
         self::assertSame('2026-12-25', $this->days($forecast, $rent)[0]);
         self::assertSame(['test.broken'], $forecast->unavailableSources);
@@ -274,7 +275,7 @@ final class PlannedFulfilmentTest extends CashFlowTestCase
      */
     private function forecast(array $actuals): Forecast
     {
-        return $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], $actuals)->of();
+        return $this->forecasts([new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class))], $actuals)->of();
     }
 
     /**

@@ -162,7 +162,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         self::assertSame('2026-11-12', $november->amounts->period->start->format('Y-m-d'), 'The amounts are those of the clipped period.');
         self::assertSame(0, $december->result->minor());
         self::assertSame([], $list->unavailableSources);
-        self::assertSame(['plans_not_counted', 'deduction_before_registration'], $list->knownGaps);
+        self::assertSame(['deduction_before_registration'], $list->knownGaps);
     }
 
     public function testTheSourcesReadTheWholeCalendarPeriods(): void

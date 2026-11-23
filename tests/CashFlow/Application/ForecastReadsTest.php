@@ -13,6 +13,7 @@ use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Application\CreatePlannedItemInput;
 use Foresi\CashFlow\Application\ForecastReads;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Contract\ActualFlow;
 use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\CashFlowSource;
@@ -33,6 +34,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 use Foresi\Tests\CashFlow\Support\FakeActualSource;
+use Foresi\Tests\CashFlow\Support\FakeCategorisedSource;
 use Foresi\Tests\CashFlow\Support\FakeSource;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -130,12 +132,23 @@ final class ForecastReadsTest extends CashFlowTestCase
         self::assertSame(['test.open', '2', 'Invoice 2'], [$second->source, $second->subject?->id, $second->label]);
     }
 
+    public function testASourceWhoseCategoriesAreAllLeftOutIsNeverAsked(): void
+    {
+        $vat = new FakeCategorisedSource('test.vat', [FlowCategory::Vat]);
+        $taxes = new FakeCategorisedSource('test.taxes', [FlowCategory::Taxes, FlowCategory::Insurance]);
+        $plain = new FakeSource('test.plain', [$this->flow('test.plain', '1', '2026-11-20', '1.00')]);
+
+        $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2026-12-31'), excludeCategories: [FlowCategory::Vat, FlowCategory::Taxes]), [$vat, $taxes, $plain]);
+
+        self::assertSame([0, 1, 1], [$vat->asked, $taxes->asked, \count($plain->asked)], 'Taxes may still give insurance; a source without categories is always asked.');
+    }
+
     public function testAFulfilledPlannedOccurrenceIsNotReturned(): void
     {
         $item = $this->writes()->create(new CreatePlannedItemInput('out', 'Social insurance advance', 'taxes', '5720.00', '2026-11-20', repeat: 'month', matchVariableSymbol: '4402051234'));
         $bank = new FakeActualSource('test.bank', [new ActualFlow('test.bank', new FlowSubject('bank_movement', 'm-1'), FlowDirection::Out, Money::of('5720.00', Currency::CZK), $this->day('2026-11-09'), variableSymbol: '4402051234')]);
 
-        $read = $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2027-01-31')), [new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class))], [$bank]);
+        $read = $this->read(new ForecastQuery($this->day('2026-11-17'), $this->day('2027-01-31')), [new PlannedItemFlows(self::getContainer()->get(CashFlowStore::class), self::getContainer()->get(PlannedItemVatRule::class))], [$bank]);
 
         self::assertSame(['2026-12-20', '2027-01-20'], array_map(static fn (ReadFlow $flow): string => $flow->on->format('Y-m-d'), $read->flows));
         self::assertSame($item->id(), $read->flows[0]->subject?->id);

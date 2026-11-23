@@ -10,14 +10,15 @@ namespace Foresi\Vat\Application;
 
 use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Contract\DocumentVat;
+use Foresi\Vat\Contract\PlannedVatAmount;
 use Foresi\Vat\Contract\VatPeriod;
 
 /**
  * The VAT of one period in CZK: the output VAT, the deductible input VAT and
  * the result, positive to pay and negative to get back. The breakdown keeps
  * the documents, the schedules and the plans apart; the steps say how the
- * result comes about. It holds the documents and the scheduled occurrences
- * counted, and the labels of those whose VAT has no CZK amount, which count
+ * result comes about. It holds the documents, the scheduled occurrences and
+ * the plans counted, and the labels of those whose VAT has no CZK amount, which count
  * zero.
  */
 final readonly class PeriodAmounts
@@ -32,11 +33,12 @@ final readonly class PeriodAmounts
     public Money $result;
 
     /**
-     * @param list<CalculationStep> $steps      output, input and result
-     * @param list<DocumentVat>     $documents  the documents counted
-     * @param list<string>          $warnings
-     * @param list<string>          $missingCzk the labels of the documents and schedules counted without a CZK amount
-     * @param list<ScheduleAmount>  $schedules  the occurrences of schedules counted
+     * @param list<CalculationStep>  $steps      output, input and result
+     * @param list<DocumentVat>      $documents  the documents counted
+     * @param list<string>           $warnings
+     * @param list<string>           $missingCzk the labels of the documents and schedules counted without a CZK amount
+     * @param list<ScheduleAmount>   $schedules  the occurrences of schedules counted
+     * @param list<PlannedVatAmount> $plans      the plans counted
      */
     public function __construct(
         public VatPeriod $period,
@@ -48,6 +50,7 @@ final readonly class PeriodAmounts
         public array $warnings,
         public array $missingCzk,
         public array $schedules = [],
+        public array $plans = [],
     ) {
         $this->output = $documentsPart->output->plus($schedulesPart->output)->plus($plansPart->output);
         $this->input = $documentsPart->input->plus($schedulesPart->input)->plus($plansPart->input);

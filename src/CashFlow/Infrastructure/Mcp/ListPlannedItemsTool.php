@@ -11,6 +11,7 @@ namespace Foresi\CashFlow\Infrastructure\Mcp;
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
 use Foresi\Instance\Application\InstanceClock;
@@ -22,7 +23,7 @@ use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
  */
 final readonly class ListPlannedItemsTool implements ReadTool
 {
-    public function __construct(private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access)
+    public function __construct(private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access, private PlannedItemVatRule $vat)
     {
     }
 
@@ -43,7 +44,7 @@ final readonly class ListPlannedItemsTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns the planned items of the firm, oldest first: {items} with the id, direction, name, category, amount, day or schedule, skipped days, whether the forecast includes it and its match rule. '
+        return 'Returns the planned items of the firm, oldest first: {items} with the id, direction, name, category, amount, day or schedule, skipped days, whether the forecast includes it, its match rule, and its VAT: vat_mode, vat_rate, the net and vat of one occurrence, and vat_missing, true while the firm is a VAT payer and the item states no VAT. '
             .'There are few, so there is no paging. Use an id with foresi_change_planned_item, foresi_skip_planned_occurrence, foresi_end_planned_item or foresi_delete_planned_item.';
     }
 
@@ -68,7 +69,7 @@ final readonly class ListPlannedItemsTool implements ReadTool
         $count = \count($items);
 
         return new ToolOutput(
-            ['items' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm), $items)],
+            ['items' => array_map(fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm, $this->vat->isMissing($item)), $items)],
             1 === $count ? '1 planned item.' : \sprintf('%d planned items, oldest first.', $count),
         );
     }

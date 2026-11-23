@@ -25,6 +25,8 @@ final readonly class ForecastAmount
         public \DateTimeImmutable $on,
         public Money $grossCzk,
         public ForecastCertainty $certainty,
+        /** The VAT the gross holds in CZK, with the sign of the gross; null when none is stated, as for a document. */
+        public ?Money $vatCzk = null,
     ) {
     }
 }

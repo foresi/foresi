@@ -18,6 +18,7 @@ use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\ExpectedDate;
 use Foresi\CashFlow\Domain\PlannedItem;
+use Foresi\CashFlow\Domain\PlannedItemVat;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -30,14 +31,19 @@ use Foresi\Shared\Infrastructure\Api\JsonValues;
 final class CashFlowJson
 {
     /**
+     * A planned item with the net and the VAT of one occurrence as stated,
+     * both null when no VAT is stated; vat_missing while the firm is a VAT
+     * payer and the item states none (PlannedItemVatRule).
+     *
      * @return array<string, mixed>
      */
-    public static function plannedItem(PlannedItem $item, \DateTimeZone $zone, LegalEntity $firm): array
+    public static function plannedItem(PlannedItem $item, \DateTimeZone $zone, LegalEntity $firm, bool $vatMissing = false): array
     {
         $recurrence = $item->recurrence($zone);
         $match = $item->matchRule();
         $tolerance = $match->toleranceMinor();
         $counterparty = $item->counterparty();
+        $vat = $item->vat();
 
         return [
             'id' => $item->id(),
@@ -46,6 +52,11 @@ final class CashFlowJson
             'name' => $item->name(),
             'category' => $item->category()->value,
             'amount' => JsonValues::money($item->amount()),
+            'vat_mode' => $item->vatMode()->value,
+            'vat_rate' => $item->vatRate(),
+            'net' => $vat instanceof PlannedItemVat ? JsonValues::money($vat->net) : null,
+            'vat' => $vat instanceof PlannedItemVat ? JsonValues::money($vat->vat) : null,
+            'vat_missing' => $vatMissing,
             'counterparty' => $counterparty instanceof \Foresi\Party\Domain\Party ? ['id' => $counterparty->id(), 'name' => $counterparty->displayName()] : null,
             'on' => JsonValues::date($item->firstOn()),
             'repeat' => $recurrence?->unit()->value,

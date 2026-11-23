@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\CashFlow\Infrastructure;
 
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\ExchangeRate\Contract\RateSource;
 use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\LegalEntity;
@@ -19,6 +21,7 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -195,6 +198,38 @@ final class PlannedItemControllerTest extends WebTestCase
         // A one-off item cannot be ended.
         $this->client->request('GET', '/cash-flow/planned-income/'.$id.'/end');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheFormStatesTheVatAndTheListMarksAPayersItemWithoutIt(): void
+    {
+        $em = self::getContainer()->get('doctrine.orm.entity_manager');
+        $em->persist(new VatStatusPeriod(VatStatus::NotRegistered, null, null));
+        $em->persist(new VatStatusPeriod(VatStatus::Registered, VatPeriodLength::Month, new \DateTimeImmutable('2026-11-12')));
+        $em->flush();
+        $values = $this->dialogForm('/cash-flow/planned-costs/new');
+        self::assertSame(['none', ''], [$values['vatMode'], $values['vatRate']]);
+
+        $crawler = $this->dialogPost('/cash-flow/planned-costs/new', ['name' => 'Office rent', 'category' => 'rent', 'amount' => '10000', 'on' => '2026-12-01', 'vatMode' => 'excluded', 'vatRate' => ''] + $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Enter the VAT rate, such as 21.', $crawler->filter('#vatRate')->ancestors()->first()->text());
+
+        $this->dialogPost('/cash-flow/planned-costs/new', ['name' => 'Office rent', 'category' => 'rent', 'amount' => '10000', 'on' => '2026-12-01', 'vatMode' => 'excluded', 'vatRate' => '12,5'] + $values);
+        self::assertSame('{"location":"\/cash-flow\/planned-costs"}', $this->client->getResponse()->getContent());
+        $item = $this->item();
+        self::assertSame(['excluded', '12.5'], [$item->vatMode()->value, $item->vatRate()]);
+        $sheet = $this->client->request('GET', '/cash-flow/planned-costs/'.$item->id());
+        self::assertMatchesRegularExpression('/VAT 10,000\.00\s+Kč \+ 12\.5 % VAT 1,250\.00\s+Kč on top/u', $sheet->filter('dl')->text());
+        $list = $this->client->request('GET', '/cash-flow/planned-costs');
+        self::assertStringNotContainsString('VAT not stated', $list->filter('[data-planned-items] tbody tr')->text());
+
+        $edit = $this->dialogForm('/cash-flow/planned-costs/'.$item->id().'/edit');
+        self::assertSame(['excluded', '12.5'], [$edit['vatMode'], $edit['vatRate']]);
+        $this->dialogPost('/cash-flow/planned-costs/'.$item->id().'/edit', ['vatMode' => 'none'] + $edit);
+        self::assertSame([PlannedVatMode::None, null], [$this->item()->vatMode(), $this->item()->vatRate()], 'Without a mode the rate field is ignored.');
+        $list = $this->client->request('GET', '/cash-flow/planned-costs');
+        self::assertStringContainsString('VAT not stated', $list->filter('[data-planned-items] tbody tr')->text());
+        $sheet = $this->client->request('GET', '/cash-flow/planned-costs/'.$item->id());
+        self::assertStringContainsString('No VAT stated', $sheet->filter('dl')->text());
     }
 
     public function testTheCashFlowPageLinksToBothPages(): void

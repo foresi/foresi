@@ -54,7 +54,11 @@ final readonly class ForecastAmounts implements ForecastAmountSource
             }
             [$kind, $gross] = $this->kindAndGross($flow);
             $subject = null === $flow->subject ? null : new Subject($flow->subject->type, $flow->subject->id, $flow->subject->url);
-            $amounts[] = new ForecastAmount($flow->source, $subject, $kind, $flow->on, $gross, $certainty);
+            $vat = $flow->vatCzk();
+            if ($vat instanceof Money && $gross->isNegative()) {
+                $vat = Money::ofMinor(-$vat->minor(), $vat->currency());
+            }
+            $amounts[] = new ForecastAmount($flow->source, $subject, $kind, $flow->on, $gross, $certainty, $vat);
         }
 
         return new ForecastedAmounts($amounts, $read->unavailableSources, $read->restrictedSources, $read->incomplete);

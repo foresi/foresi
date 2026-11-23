@@ -55,8 +55,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_update_product` | **Write.** Changes the fields given of a product (`product_id`); `null` clears an optional one. |
 | `foresi_archive_product` | **Write.** Archives a product (`product_id`): it is no longer offered. |
 | `foresi_restore_product` | **Write.** Restores an archived product (`product_id`). |
-| `foresi_list_planned_items` | The planned items of the firm, oldest first. |
-| `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring. |
+| `foresi_list_planned_items` | The planned items of the firm, oldest first, each with its `vat_mode`, `vat_rate`, `net`, `vat` and `vat_missing`. |
+| `foresi_create_planned_item` | **Write.** Plans money in or out that no document carries yet, once on its day or recurring, with its VAT included or on top (`vat_mode`, `vat_rate`). |
 | `foresi_change_planned_item` | **Write.** Changes the fields given of a planned item (`planned_item_id`); `included: false` leaves it out of the forecast. |
 | `foresi_skip_planned_occurrence` | **Write.** Leaves one occurrence (`on`) of a planned item out. |
 | `foresi_end_planned_item` | **Write.** Ends a recurring planned item on a day (`on`). |
@@ -95,7 +95,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_set_tax_year` | **Write.** Replaces the inputs of one `year`: expense methods, children, spouse, deductions, other bases, the previous year (bases, overview day and `previous_activity_months`, 1 to 12) and the return route. Owner only. |
 | `foresi_set_tax_authority_account` | **Write.** Sets the account and variable symbol of an `authority`. Owner only. |
 | `foresi_vat_periods` | The VAT periods of the firm (`from`, `to`, months or quarters), an estimate: each with its days, due date, expected refund date, amounts, what it expects, its state (never overdue) and the bank payments that pay it, the reason when there is nothing to compute, the warnings, the unverified rules, the known gaps, and the payment details in `settings`. |
-| `foresi_get_vat_period` | One VAT period (`key`, such as `2026-11` or `2026-Q4`) with its amounts, their breakdown and steps, and the documents and the recurring invoices not issued yet counted; `restricted_sources` names the sources whose documents or schedules the token may not read. |
+| `foresi_get_vat_period` | One VAT period (`key`, such as `2026-11` or `2026-Q4`) with its amounts, their breakdown and steps, and the documents, the recurring invoices not issued yet and the plans counted; `restricted_sources` names the sources whose documents, schedules or plans the token may not read. |
 | `foresi_set_vat_settings` | **Write.** Sets where the firm pays its VAT: `office_account` and `variable_symbol` (empty takes the suggested one). |
 | `foresi_set_vat_return_amount` | **Write.** Enters the amount of the filed return of a period (`key`, `amount` in CZK, negative for a refund), which replaces the estimate until the period is paid. |
 | `foresi_clear_vat_return_amount` | **Write.** Removes the return amount of a period (`key`), so the estimate counts again. |

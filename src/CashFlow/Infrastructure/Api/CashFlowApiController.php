@@ -12,6 +12,7 @@ use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\PlannedItemReads;
+use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\Api\ScopeGuard;
@@ -34,7 +35,7 @@ final readonly class CashFlowApiController
     public const string PLANNED_ITEMS = 'api_v1_cash_flow_planned_items';
     public const string PLANNED_ITEM = 'api_v1_cash_flow_planned_item';
 
-    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access)
+    public function __construct(private ScopeGuard $scope, private Forecasts $forecasts, private PlannedItemReads $items, private InstanceClock $clock, private CashFlowAccess $access, private PlannedItemVatRule $vat)
     {
     }
 
@@ -78,7 +79,7 @@ final readonly class CashFlowApiController
         $items = $this->items->all();
         $firm = $this->access->firm();
 
-        return new JsonResponse(['data' => array_map(static fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm), $items)]);
+        return new JsonResponse(['data' => array_map(fn (PlannedItem $item): array => CashFlowJson::plannedItem($item, $zone, $firm, $this->vat->isMissing($item)), $items)]);
     }
 
     #[Route('/api/v1/cash-flow/planned-items/{plannedItemId}', name: self::PLANNED_ITEM, methods: ['GET'])]
@@ -91,7 +92,9 @@ final readonly class CashFlowApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => CashFlowJson::plannedItem($this->items->one($plannedItemId), $this->clock->timezone(), $this->access->firm())]);
+        $item = $this->items->one($plannedItemId);
+
+        return new JsonResponse(['data' => CashFlowJson::plannedItem($item, $this->clock->timezone(), $this->access->firm(), $this->vat->isMissing($item))]);
     }
 
     private function optional(Request $request, string $name): ?string

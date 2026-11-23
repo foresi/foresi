@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The fields of a planned item, in Pulse's order: name, category, amount, the day, how it repeats and
+    The fields of a planned item, in Pulse's order: name, category, amount, its VAT, the day, how it repeats and
     when it stops, the contact, whether the forecast counts it ("Active"), and the match rule folded
     away. The direction is the page's, so it is not asked. The repeat fields show only for an item that
     repeats (planned-schedule); without JavaScript they all show and a one-off item ignores them.
@@ -13,6 +13,11 @@
         <twig:Ui:TextInput name="amount" id="amount" :label="'cash_flow.planned.field.amount'|trans" :value="values.amount" :error="errors.amount|default(null)" inputmode="decimal" autocomplete="off" required />
         <twig:Ui:Select name="currency" id="currency" :label="'cash_flow.planned.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />
     </div>
+    <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+        <twig:Ui:Select name="vatMode" id="vatMode" :label="'cash_flow.planned.field.vat_mode'|trans" :help="'cash_flow.planned.field.vat_mode_help'|trans" :options="vatModes" :value="values.vatMode" :error="errors.vatMode|default(null)" />
+        <twig:Ui:TextInput name="vatRate" id="vatRate" :label="'cash_flow.planned.field.vat_rate'|trans" :value="values.vatRate" :error="errors.vatRate|default(null)" inputmode="decimal" autocomplete="off" maxlength="6" />
+    </div>
+    <div class="hidden sm:block" aria-hidden="true"></div>
     <twig:Ui:TextInput type="date" name="on" id="on" :label="'cash_flow.planned.field.on_or_first'|trans" :value="values.on" :error="errors.on|default(null)" required />
     <twig:Ui:Select name="repeat" id="repeat" :label="'cash_flow.planned.field.repeat'|trans" :options="repeats" :value="values.repeat" :error="errors.repeat|default(null)" data-planned-schedule-target="repeat" data-action="change->planned-schedule#changed" />
     <div class="{{ column }} grid gap-4 sm:grid-cols-2" data-planned-schedule-target="recurring">

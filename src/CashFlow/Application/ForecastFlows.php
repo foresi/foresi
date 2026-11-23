@@ -10,6 +10,7 @@ namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Contract\ActualFlowSource;
 use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\CategorisedSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
@@ -66,8 +67,9 @@ final readonly class ForecastFlows
         $expected = $this->store->expectedDates();
         $lines = [];
         foreach ($this->sources as $source) {
-            // Asked for its key only: a source left out is never asked for its flows.
-            if (\in_array($source->key(), $excludeSources, true)) {
+            // Asked for its key only: a source left out is never asked for its flows,
+            // nor one whose categories are all left out.
+            if (\in_array($source->key(), $excludeSources, true) || $this->allLeftOut($source, $excludeCategories)) {
                 continue;
             }
             try {
@@ -172,12 +174,26 @@ final readonly class ForecastFlows
             array_push($actuals, ...$given);
         }
         foreach ($planned as $index => $item) {
-            if (PlannedFulfilment::isFulfilled($item, $lines[$index]->flow->expectedOn, $actuals)) {
+            if (PlannedFulfilment::isFulfilled($item, $lines[$index]->flow->expectedOn, $actuals, $lines[$index]->flow->amount)) {
                 unset($lines[$index]);
             }
         }
 
         return array_values($lines);
+    }
+
+    /**
+     * Whether every category a source's flows may fall in is left out.
+     *
+     * @param list<FlowCategory> $excludeCategories
+     */
+    private function allLeftOut(CashFlowSource $source, array $excludeCategories): bool
+    {
+        if (!$source instanceof CategorisedSource) {
+            return false;
+        }
+
+        return array_all($source->categories(), fn (FlowCategory $category): bool => \in_array($category, $excludeCategories, true));
     }
 
     /**

@@ -21,6 +21,7 @@ final readonly class ExpectedFlow
      * @param string         $label          what a person reads, such as a document number or a planned item's name
      * @param list<FlowFlag> $flags
      * @param string|null    $counterpartyId the contact the money comes from or goes to
+     * @param Money|null     $vat            the VAT the amount holds, in its currency; null when none is stated
      */
     public function __construct(
         public string $source,
@@ -33,9 +34,13 @@ final readonly class ExpectedFlow
         public string $label,
         public array $flags = [],
         public ?string $counterpartyId = null,
+        public ?Money $vat = null,
     ) {
         if ($amount->isNegative()) {
             throw new \InvalidArgumentException('An expected flow has a positive amount; its direction says which way it goes.');
+        }
+        if ($vat instanceof Money && ($vat->isNegative() || $vat->currency() !== $amount->currency())) {
+            throw new \InvalidArgumentException('The VAT of an expected flow is zero or more, in the currency of its amount.');
         }
     }
 
@@ -51,6 +56,6 @@ final readonly class ExpectedFlow
     {
         $flags = $this->hasFlag($flag) ? $this->flags : [...$this->flags, $flag];
 
-        return new self($this->source, $this->subject, $this->direction, $this->amount, $on, $this->category, $this->certainty, $this->label, $flags, $this->counterpartyId);
+        return new self($this->source, $this->subject, $this->direction, $this->amount, $on, $this->category, $this->certainty, $this->label, $flags, $this->counterpartyId, $this->vat);
     }
 }

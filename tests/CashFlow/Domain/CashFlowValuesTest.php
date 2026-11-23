@@ -16,6 +16,7 @@ use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Contract\FlowSubject;
 use Foresi\CashFlow\Contract\ForecastPeriod;
 use Foresi\CashFlow\Contract\PeriodKind;
+use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\MatchRule;
 use Foresi\CashFlow\Domain\MinimumBalance;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -83,6 +84,51 @@ final class CashFlowValuesTest extends TestCase
             try {
                 $terms($name, $amount);
                 self::fail('Expected a refusal of '.$name.' '.$amount);
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testTheVatOfAFlowIsZeroOrMoreInTheCurrencyOfItsAmount(): void
+    {
+        $flow = static fn (Money $vat): ExpectedFlow => new ExpectedFlow('test.source', new FlowSubject('invoice', 'inv-1'), FlowDirection::In, Money::of('121.00', Currency::EUR), new \DateTimeImmutable('2026-11-10'), FlowCategory::Revenue, FlowCertainty::Plan, 'FV-1', vat: $vat);
+        self::assertSame(2_100, $flow(Money::of('21.00', Currency::EUR))->vat?->minor());
+        self::assertSame(0, $flow(Money::of('0', Currency::EUR))->vat?->minor());
+
+        foreach ([Money::of('-0.01', Currency::EUR), Money::of('21.00', Currency::CZK)] as $vat) {
+            try {
+                $flow($vat);
+                self::fail('Expected a refusal of the VAT '.$vat->minor().' '.$vat->currency()->value);
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testTermsWithAVatModeHaveARateFromZeroToAHundredAndTermsWithoutHaveNone(): void
+    {
+        $terms = static fn (PlannedVatMode $mode, ?string $rate): PlannedItemTerms => new PlannedItemTerms('Rent', FlowCategory::Rent, Money::of('100.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, true, MatchRule::none(), $mode, $rate);
+        self::assertSame(['0.00', '7.05', '21.00', '100.00', null], [
+            $terms(PlannedVatMode::Included, '0.00')->vatRate,
+            $terms(PlannedVatMode::Excluded, '7.05')->vatRate,
+            $terms(PlannedVatMode::Included, '21.00')->vatRate,
+            $terms(PlannedVatMode::Included, '100.00')->vatRate,
+            $terms(PlannedVatMode::None, null)->vatRate,
+        ]);
+
+        foreach ([
+            [PlannedVatMode::None, '21.00'],
+            [PlannedVatMode::Included, null],
+            [PlannedVatMode::Included, '101.00'],
+            [PlannedVatMode::Included, '100.01'],
+            [PlannedVatMode::Included, '-1.00'],
+            [PlannedVatMode::Included, '21'],
+            [PlannedVatMode::Included, '21.001'],
+        ] as [$mode, $rate]) {
+            try {
+                $terms($mode, $rate);
+                self::fail(\sprintf('Expected a refusal of %s at %s', $mode->value, $rate ?? 'null'));
             } catch (\InvalidArgumentException) {
                 $this->addToAssertionCount(1);
             }

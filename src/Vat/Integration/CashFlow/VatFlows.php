@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Integration\CashFlow;
 
-use Foresi\CashFlow\Contract\CashFlowSource;
+use Foresi\CashFlow\Contract\CategorisedSource;
 use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
@@ -39,7 +39,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The owners and members see the flows one by one, a token only with
  * vat:read; anyone else gets their category totals only.
  */
-final readonly class VatFlows implements CashFlowSource
+final readonly class VatFlows implements CategorisedSource
 {
     public const string KEY = 'vat.periods';
 
@@ -57,6 +57,11 @@ final readonly class VatFlows implements CashFlowSource
     public function key(): string
     {
         return self::KEY;
+    }
+
+    public function categories(): array
+    {
+        return [FlowCategory::Vat];
     }
 
     public function mayReadDetails(): bool

@@ -88,6 +88,7 @@ final readonly class ForecastReads implements ForecastReader
                 $flow->certainty,
                 $flow->flags,
                 $restricted ? null : $flow->label,
+                $flow->vat,
             );
         }
 
