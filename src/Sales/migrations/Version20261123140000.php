@@ -19,7 +19,7 @@ use Symfony\Component\Uid\Uuid;
  * supplier, no response, other). They have no name of their own, so each
  * shows under its key's name in the person's language until someone renames it.
  */
-final class Version20261123120000 extends AbstractMigration
+final class Version20261123140000 extends AbstractMigration
 {
     private const array STAGES = ['inquiry', 'meeting', 'proposal', 'negotiation'];
     private const array LOST_REASONS = ['price', 'timing', 'other_supplier', 'no_response', 'other'];
