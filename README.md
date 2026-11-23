@@ -25,6 +25,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Payments | Payments recorded by hand or paired from the bank's payment e-mails | [bank-pairing.md](docs/bank-pairing.md) |
 | Received documents | Supplier invoices, receipts and credit notes beside the original file, with VAT treatments and foreign currencies | [purchasing.md](docs/purchasing.md) |
 | Catalog | Products with their unit, price and a one-off or recurring way of billing | [catalog.md](docs/catalog.md) |
+| Sales | Deals with stages, lines copied from the catalog, a value per currency, won or lost with a reason, and follow-up deals, on the client's page | [sales.md](docs/sales.md) |
 | Cash flow | How much money the firm will have, by weeks and months, twelve months ahead | [cash-flow.md](docs/cash-flow.md) |
 | Calendar | Secret iCal addresses that show what Foresi plans for you in your own calendar app | [calendar.md](docs/calendar.md) |
 | Taxes and contributions | The owner profile with dated statuses, the base of the estimate of taxes and contributions | [taxes-and-contributions.md](docs/taxes-and-contributions.md) |

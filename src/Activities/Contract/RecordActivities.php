@@ -15,6 +15,11 @@ namespace Foresi\Activities\Contract;
  * the screen it is shown on, where its dialogs go back to. The fragment lists
  * the planned activities first and the done ones below, and offers "Log
  * activity" and "Plan activity" with the record linked.
+ *
+ * A module may also open them itself, on /activities/new with mode=log or
+ * mode=plan, link_kind and link_id for the record, links[]=kind:id, repeated,
+ * for further records (a deal, its client and its contact persons), and
+ * return. A malformed or repeated link is left out.
  */
 final class RecordActivities
 {

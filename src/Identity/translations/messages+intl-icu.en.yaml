@@ -178,6 +178,7 @@ api_tokens:
     calendar: Calendar
     cashflow: Cash flow
     catalog: Catalog
+    sales: Sales
     taxes: Taxes and contributions
     vat: VAT
     received_documents: Received documents

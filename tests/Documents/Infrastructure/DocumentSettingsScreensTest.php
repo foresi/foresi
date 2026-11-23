@@ -150,11 +150,12 @@ final class DocumentSettingsScreensTest extends WebTestCase
         self::assertStringContainsString('EXAMPLE', $answer['html']);
         self::assertStringContainsString('padding:20mm 20mm 20mm 20mm', $answer['html']);
 
-        $this->client->request('POST', '/settings/documents/templates/'.$template->id().'/preview', ['body' => '<p>{{ deal.title }}</p>'] + $values);
+        // A variable no installed module offers (Sales offers deal.*).
+        $this->client->request('POST', '/settings/documents/templates/'.$template->id().'/preview', ['body' => '<p>{{ unknown.title }}</p>'] + $values);
         $answer = $this->json();
         self::assertNull($answer['html']);
         self::assertIsString($answer['error']);
-        self::assertStringContainsString('deal.title', $answer['error']);
+        self::assertStringContainsString('unknown.title', $answer['error']);
     }
 
     private function type(string $code): DocumentType

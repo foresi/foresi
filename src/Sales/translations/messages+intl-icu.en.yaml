@@ -1,0 +1,268 @@
+nav:
+    item:
+        deals: Deals
+        sales_settings: Sales
+sales:
+    cancel: Cancel
+    save: Save
+    keep: Keep
+    stage:
+        inquiry: Inquiry
+        meeting: Meeting
+        proposal: Proposal
+        negotiation: Negotiation
+    lost_reason:
+        price: Price
+        timing: Timing
+        other_supplier: Chose another supplier
+        no_response: No response
+        other: Other
+    status:
+        open: Open
+        won: Won
+        lost: Lost
+    billing_kind:
+        one_off: One-off
+        recurring: Recurring
+    deals:
+        title: Deals
+        views: Views of the deals
+        count: '{count, plural, one {# deal} other {# deals}}'
+        tab:
+            all: All
+            open: Open
+            won: Won
+            lost: Lost
+            trash: Trash
+        field:
+            status: Status
+            owner: Owner
+            client: Client
+            trashed: In the trash
+        column:
+            title: Title
+            client: Client
+            owner: Owner
+            value: Value
+            status: Status
+        empty:
+            title: No deals yet
+            text: Add what you are selling to a client, with its lines from the catalog, and follow it stage by stage.
+            filtered_title: No deal matches the filter
+            reset: Clear the filter
+            trash_title: The trash is empty
+            view_title: No deal in this view
+    deal:
+        new: New deal
+        create: Create deal
+        edit: Edit
+        detail: Deal
+        win: Won
+        lose: Lost
+        reopen: Reopen
+        trash: Move to trash
+        restore: Restore
+        undo: Undo
+        trashed: In the trash
+        in_trash: This deal is in the trash. Restore it to change it again.
+        follow_up: New follow-up deal
+        new_document: New document
+        log_activity: Log activity
+        plan_activity: Plan activity
+        stage_unknown: No stage
+        owner_unknown: Someone no longer here
+        client_unknown: A contact no longer here
+        field:
+            title: Title
+            title_placeholder: Such as Roof audit for the warehouse
+            client: Client
+            client_placeholder: Search the address book
+            client_empty: No contact matches.
+            contact_persons: Contact persons
+            owner: Owner
+            stage: Stage
+            description: Notes
+            description_help: Markdown, such as **bold** or a list.
+            lost_reason: Lost reason
+            lost_note: Note on the loss
+        none:
+            contact_persons: None
+            lost_reason: No reason given
+            lost_note: No note
+        flash:
+            created: 'The deal {title} was created.'
+            saved: The deal was saved.
+            stage_changed: The deal moved to another stage.
+            won: The deal was won.
+            lost: The deal was marked lost.
+            reopened: The deal is open again.
+            trashed: 'The deal {title} was moved to the trash.'
+            restored: The deal was restored.
+    lose:
+        title: Mark the deal lost
+        reason: Reason
+        no_reason: No reason
+        note: Note
+        note_help: What happened, in a sentence or two.
+        submit: Mark as lost
+    follow_up:
+        title: New follow-up deal
+        text: 'For the same client and contact persons. It follows from {title}.'
+        lines: Lines to copy
+        submit: Create deal
+    line:
+        title: Lines
+        new: Add line
+        add: Add line
+        edit: Edit line
+        remove: Remove
+        move_up: Move up
+        move_down: Move down
+        typed: Type the line in
+        empty_title: No lines yet
+        empty_text: Add a product of the catalog or type a line in; the deal's value comes from its lines.
+        confirm:
+            remove: 'Remove the line {name}?'
+        column:
+            name: Line
+            quantity: Quantity
+            billing: Billing
+            total: Amount
+        field:
+            product: From the catalog
+            product_help: A product is copied as it is now.
+            quantity: Quantity
+            name: Name
+            unit: Unit
+            unit_help: Such as hour, piece or month.
+            unit_price: Price per unit
+            unit_price_help: Without VAT; empty when it is not agreed yet.
+            currency: Currency
+            billing_kind: Billing
+            interval: Every
+            recurrence_unit: Period
+            cycles: Times
+            cycles_help: Leave empty for no end.
+        unit_of_time:
+            day: Days
+            week: Weeks
+            month: Months
+            year: Years
+        every:
+            day: '{count, plural, one {Every day} other {Every # days}}'
+            week: '{count, plural, one {Every week} other {Every # weeks}}'
+            month: '{count, plural, one {Every month} other {Every # months}}'
+            year: '{count, plural, one {Every year} other {Every # years}}'
+        billing_open: '{every}, no end'
+        billing_cycles: '{every}, {count, plural, one {once} other {# times}}'
+        flash:
+            added: The line was added.
+            saved: The line was saved.
+            removed: The line was removed.
+    value:
+        one_off: One-off
+        monthly: Monthly
+        approximate: Approximate, from weeks or days counted as months
+        none: No priced lines, so no value yet.
+        per_month: '{amount} a month'
+    link:
+        title: Linked deals
+        new: Link a deal
+        submit: Link
+        remove: Remove link
+        none: No linked deals.
+        follows_from: Follows from
+        followed_by: Followed by
+        follows_from_field: This deal follows from
+        follows_from_help: Another deal of the same client.
+        choose: Choose a deal
+        flash:
+            added: The deals were linked.
+            removed: The link was removed.
+    client:
+        tab: Deals
+        title: Deals
+        follows_from: Follows from
+        empty_title: No deals with this contact yet
+        empty_text: A deal keeps what you are selling to the contact, stage by stage.
+    settings:
+        title: Sales
+        stages: Stages
+        stages_text: A new deal starts at the first stage.
+        reasons: Lost reasons
+        new_stage: New stage
+        new_reason: New lost reason
+        rename_stage: Rename the stage
+        rename_reason: Rename the lost reason
+        archived: Archived
+        column:
+            name: Name
+            key: Key
+            state: State
+        field:
+            name: Name
+        action:
+            rename: Rename
+            move_up: Move up
+            move_down: Move down
+            archive: Archive
+        confirm:
+            archive: 'Archive {name}?'
+            archive_text: It is no longer offered; the deals that have it keep it.
+        flash:
+            saved: '{name} was saved.'
+            archived: '{name} was archived.'
+    document_variable:
+        deal:
+            title: Title of the deal
+            owner: Owner of the deal
+            stage: Stage of the deal
+            status: Status of the deal (open, won, lost)
+            lines: 'Lines of the deal (name, unit, quantity, unit_price, billing_period)'
+            one_off_totals: 'One-off value, one row per currency (currency, amount)'
+            monthly_totals: 'Monthly value, one row per currency (currency, amount)'
+    error:
+        forbidden: Only the owners and members work with the deals.
+        not_found: The deal does not exist.
+        title_required: Enter the title.
+        title_too_long: The title is at most 200 characters.
+        description_too_long: The notes are at most 10,000 characters.
+        lost_note_too_long: The note is at most 1,000 characters.
+        client_unknown: Choose a contact of the address book.
+        client_archived: The contact is archived; restore it to start a deal with it.
+        contact_person_not_of_client: Choose contact persons of the client.
+        owner_not_staff: The owner is an owner or member of the organisation.
+        stage_unknown: Choose a stage.
+        stage_archived: The stage is archived; choose another.
+        no_stage: Add a stage in Settings → Sales first.
+        deal_not_open: The deal is closed; reopen it first.
+        deal_not_closed: The deal is open already.
+        lost_reason_unknown: Choose a reason of the list.
+        lost_reason_archived: The reason is archived; choose another.
+        line_unknown: Choose lines of this deal.
+        link_other_client: Only a deal of the same client can be linked.
+        link_self: A deal cannot follow from itself.
+        link_duplicate: The deals are linked already.
+        link_type_unknown: The deals are linked as one following the other.
+        name_required: Enter the name.
+        name_too_long: The name is too long.
+        key_invalid: A key is a lowercase identifier of up to 40 characters.
+        key_taken: Another one has this key.
+        stage_has_open_deals: The stage still holds open deals. Move them to another stage, or close them, before you archive it.
+        order_mismatch: The order changed meanwhile; try again.
+        product_unknown: Choose a product of the catalog.
+        product_archived: The product is archived and no longer offered.
+        product_line_typed: A line from the catalog copies the product; change it once it is added.
+        quantity_invalid: Enter the quantity as a number with at most three decimals, such as 1.5.
+        quantity_not_positive: The quantity is more than zero.
+        unit_too_long: The unit is at most 32 characters.
+        unit_price_invalid: Enter the price as a number with at most two decimals, such as 1500.00.
+        currency_unknown: Choose a currency.
+        billing_kind_unknown: Choose one-off or recurring.
+        one_off_recurrence: A one-off line has no period.
+        recurrence_unit_required: Choose the period.
+        recurrence_unit_unknown: Choose days, weeks, months or years.
+        interval_required: Enter how often it is billed, 1 for every period.
+        interval_invalid: Enter a whole number from 1 to 99.
+        cycles_invalid: Enter a whole number from 1 to 999, or leave it empty for no end.
+        status_unknown: Choose open, won or lost.

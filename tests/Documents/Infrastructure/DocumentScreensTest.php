@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Documents\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Documents\Application\LinkTargets;
 use Foresi\Documents\Contract\RecordDocuments;
 use Foresi\Documents\Domain\Document;
 use Foresi\Documents\Domain\DocumentLink;
@@ -21,6 +22,7 @@ use Foresi\Documents\Domain\TemplateVersion;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Documents\Support\FakeLinkTarget;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -247,6 +249,36 @@ final class DocumentScreensTest extends WebTestCase
         self::assertNotSame('/documents/'.$document->id(), $location);
         $crawler = $this->client->followRedirect();
         self::assertSame('Draft', trim($crawler->filter('[data-document-status]')->text()));
+    }
+
+    public function testTheNewDocumentDialogTakesSeveralLinksFromTheAddress(): void
+    {
+        $contacts = new FakeLinkTarget();
+        $client = Id::generate();
+        $person = Id::generate();
+        $contacts->add($client, 'Example Client Ltd');
+        $contacts->add($person, 'Jane Example');
+        self::getContainer()->set(LinkTargets::class, new LinkTargets([$contacts]));
+        $this->signedIn();
+        [$nda, $template] = $this->ndaWithTemplate('<h1>Mutual NDA</h1>');
+
+        // A malformed entry and a repeat of the first link are left out.
+        $url = '/documents/new?type='.$nda->id().'&link_kind=contact&link_id='.$client.'&links[]=contact:'.$person.'&links[]=Contact:not-an-id&links[]=contact:'.$client;
+        $crawler = $this->client->request('GET', $url, server: [$this->dialogHeader() => '1']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Example Client Ltd', 'Jane Example'], $crawler->filter('#document-form [data-document-link] [data-document-link-label]')->each(static fn (Crawler $node): string => $node->text()));
+        self::assertSame(['contact:'.$person], $crawler->filter('#document-form input[name="links[]"]')->each(static fn (Crawler $node): string => (string) $node->attr('value')));
+        $values = $crawler->filter('#document-form')->form()->getPhpValues();
+
+        $this->client->request('POST', '/documents/new', ['templateId' => $template->id(), 'title' => 'NDA with Example Client Ltd'] + $values, server: [$this->dialogHeader() => '1']);
+        $document = $this->em()->getRepository(Document::class)->findOneBy(['title' => 'NDA with Example Client Ltd']);
+        self::assertInstanceOf(Document::class, $document);
+        $links = $this->em()->getRepository(DocumentLink::class)->findBy(['document' => $document]);
+        $pairs = array_map(static fn (DocumentLink $link): string => $link->kind().':'.$link->targetId(), $links);
+        sort($pairs);
+        $expected = ['contact:'.$client, 'contact:'.$person];
+        sort($expected);
+        self::assertSame($expected, $pairs);
     }
 
     public function testALinkToARecordThatIsGoneShowsAsUnavailable(): void

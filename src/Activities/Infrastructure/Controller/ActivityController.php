@@ -32,6 +32,7 @@ use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Id;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -76,6 +77,8 @@ final class ActivityController extends AbstractController
     /**
      * Logs a done activity (?mode=log) or plans one (?mode=plan), linked to the
      * record it was opened from (?link_kind=contact&link_id=...), with a file.
+     * Further records come as links[]=kind:id, repeated (a deal, its client and
+     * its contact persons); a malformed or repeated one is left out.
      */
     #[Route('/activities/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
     public function new(Request $request): Response
@@ -83,13 +86,13 @@ final class ActivityController extends AbstractController
         $this->denyUnlessStaff();
         $source = $request->isMethod('POST') ? $request->request : $request->query;
         $log = 'log' === $source->getString('mode');
-        $link = $this->link($source->getString('link_kind'), $source->getString('link_id'));
+        [$link, $more] = $this->links($source);
         $return = AttachmentController::localPath($source->getString('return'));
         if (!$request->isMethod('POST')) {
             $type = $log ? $this->screen->firstOf(ActivityTiming::Timed, ActivityTiming::None) : $this->screen->firstOf(ActivityTiming::Timed, ActivityTiming::Date);
             $values = ['typeId' => $type?->id() ?? '', 'subject' => '', 'body' => '', 'plannedOn' => '', 'plannedAt' => '', 'durationMinutes' => '', 'doneAt' => $log ? $this->screen->field($this->now()) : '', 'outcome' => ''];
 
-            return $this->form($log ? 'log' : 'plan', null, $values, [], $link, $return);
+            return $this->form($log ? 'log' : 'plan', null, $values, [], $link, $return, $more);
         }
 
         $this->checkToken($request);
@@ -105,10 +108,10 @@ final class ActivityController extends AbstractController
                 $log,
                 $log ? $this->text($values['doneAt']) : null,
                 $log ? $this->text($values['outcome']) : null,
-                $link instanceof RecordLink ? [['kind' => $link->kind, 'id' => $link->id]] : [],
+                array_map(static fn (RecordLink $link): array => ['kind' => $link->kind, 'id' => $link->id], array_values(array_filter([$link, ...$more]))),
             ));
         } catch (ActivitiesRefused $refused) {
-            return $this->form($log ? 'log' : 'plan', null, $values, $this->errors($refused), $link, $return);
+            return $this->form($log ? 'log' : 'plan', null, $values, $this->errors($refused), $link, $return, $more);
         }
         $this->attach($request, $activity);
         $this->addFlash('success', $this->translator->trans($log ? 'activities.flash.logged' : 'activities.flash.planned', ['subject' => $activity->subject()]));
@@ -262,8 +265,9 @@ final class ActivityController extends AbstractController
     /**
      * @param array<string, string> $values
      * @param array<string, string> $errors
+     * @param list<RecordLink>      $more   the links after the first
      */
-    private function form(string $mode, ?Activity $activity, array $values, array $errors, ?RecordLink $link, ?string $return): Response
+    private function form(string $mode, ?Activity $activity, array $values, array $errors, ?RecordLink $link, ?string $return, array $more = []): Response
     {
         return $this->render('@Activities/form.html.twig', [
             'mode' => $mode,
@@ -271,7 +275,8 @@ final class ActivityController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'link' => $link,
-            'linkView' => $link instanceof RecordLink ? $this->targets->describe($link) : null,
+            'more' => $more,
+            'linkViews' => array_map($this->targets->describe(...), array_values(array_filter([$link, ...$more]))),
             'types' => $this->screen->typeOptions($activity?->typeId()),
             'timings' => $this->screen->timings(),
             'return' => $return,
@@ -308,10 +313,10 @@ final class ActivityController extends AbstractController
     private function values(Request $request): array
     {
         $values = [];
-        foreach (self::FIELDS as $field) {
+        // The links are no form field; links[] is read with the link of the record.
+        foreach (array_diff(self::FIELDS, ['links']) as $field) {
             $values[$field] = 'body' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
         }
-        unset($values['links']);
 
         return $values;
     }
@@ -340,6 +345,34 @@ final class ActivityController extends AbstractController
         } catch (ActivitiesRefused $refused) {
             throw $this->notFoundOrDenied($refused);
         }
+    }
+
+    /**
+     * The link of the record the screen was opened from (link_kind and
+     * link_id) and the further links (links[]=kind:id), each dropped when it
+     * is malformed or repeats an earlier one, in the order given.
+     *
+     * @param InputBag<string>|InputBag<bool|float|int|string> $source
+     *
+     * @return array{?RecordLink, list<RecordLink>} the first link and the further ones
+     */
+    private function links(InputBag $source): array
+    {
+        $first = $this->link($source->getString('link_kind'), $source->getString('link_id'));
+        $seen = $first instanceof RecordLink ? [$first->kind.':'.$first->id => true] : [];
+        $more = [];
+        $entries = $source->all()['links'] ?? [];
+        foreach (\is_array($entries) ? $entries : [] as $entry) {
+            $parts = \is_string($entry) ? explode(':', $entry, 2) : [];
+            $link = 2 === \count($parts) ? $this->link($parts[0], $parts[1]) : null;
+            if (!$link instanceof RecordLink || isset($seen[$link->kind.':'.$link->id])) {
+                continue;
+            }
+            $seen[$link->kind.':'.$link->id] = true;
+            $more[] = $link;
+        }
+
+        return [$first, $more];
     }
 
     private function link(string $kind, string $id): ?RecordLink

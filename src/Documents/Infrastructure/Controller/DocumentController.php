@@ -37,6 +37,7 @@ use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Id;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -107,30 +108,32 @@ final class DocumentController extends AbstractController
     /**
      * A new document in a dialog: its type, a template of that type, its
      * title, and the link of the record it was opened from
-     * (?link_kind=contact&link_id=...), shown and sent along.
+     * (?link_kind=contact&link_id=...), shown and sent along. Further records
+     * come as links[]=kind:id, repeated (a deal and its client); a malformed
+     * or repeated one is left out.
      */
     #[Route('/documents/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
         $this->denyUnlessStaff();
         $source = $request->isMethod('POST') ? $request->request : $request->query;
-        $link = $this->link($source->getString('link_kind'), $source->getString('link_id'));
+        [$link, $more] = $this->links($source);
         if (!$request->isMethod('POST')) {
             $typeId = $request->query->getString('type');
             $types = $this->screen->typeOptions();
             $typeId = isset($types[$typeId]) ? $typeId : (array_key_first($types) ?? '');
 
-            return $this->newForm($link, ['typeId' => $typeId, 'templateId' => $this->screen->firstTemplate('' === $typeId ? null : $typeId)?->id() ?? '', 'title' => ''], [], Response::HTTP_OK);
+            return $this->newForm($link, $more, ['typeId' => $typeId, 'templateId' => $this->screen->firstTemplate('' === $typeId ? null : $typeId)?->id() ?? '', 'title' => ''], [], Response::HTTP_OK);
         }
 
         $this->checkToken($request);
         $values = ['typeId' => trim($request->request->getString('typeId')), 'templateId' => trim($request->request->getString('templateId')), 'title' => trim($request->request->getString('title'))];
         try {
-            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], $link instanceof RecordLink ? [['kind' => $link->kind, 'id' => $link->id]] : []));
+            $document = $this->writes->create(new CreateDocumentInput($values['typeId'], $values['templateId'], $values['title'], array_map(static fn (RecordLink $link): array => ['kind' => $link->kind, 'id' => $link->id], array_values(array_filter([$link, ...$more])))));
         } catch (DocumentsRefused $refused) {
             $this->denyIfForbidden($refused);
 
-            return $this->newForm($link, $values, $this->errors($refused, ['typeId', 'templateId', 'title', 'links'], 'title'), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->newForm($link, $more, $values, $this->errors($refused, ['typeId', 'templateId', 'title', 'links'], 'title'), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('documents.flash.created', ['title' => $document->title()]));
 
@@ -317,16 +320,18 @@ final class DocumentController extends AbstractController
     }
 
     /**
+     * @param list<RecordLink>                                         $more   the links after the first
      * @param array{typeId: string, templateId: string, title: string} $values
      * @param array<string, string>                                    $errors
      */
-    private function newForm(?RecordLink $link, array $values, array $errors, int $status): Response
+    private function newForm(?RecordLink $link, array $more, array $values, array $errors, int $status): Response
     {
         return $this->render('@Documents/new.html.twig', [
             'values' => $values,
             'errors' => $errors,
             'link' => $link,
-            'linkView' => $link instanceof RecordLink ? $this->targets->describe($link) : null,
+            'more' => $more,
+            'linkViews' => array_map($this->targets->describe(...), array_values(array_filter([$link, ...$more]))),
             'types' => $this->screen->typeOptions(),
             'templates' => $this->screen->templateOptions(),
         ], new Response(status: $status));
@@ -362,6 +367,34 @@ final class DocumentController extends AbstractController
     /**
      * The link of a new document, from the address it was opened at.
      */
+    /**
+     * The link of the record the screen was opened from (link_kind and
+     * link_id) and the further links (links[]=kind:id), each dropped when it
+     * is malformed or repeats an earlier one, in the order given.
+     *
+     * @param InputBag<string>|InputBag<bool|float|int|string> $source
+     *
+     * @return array{?RecordLink, list<RecordLink>} the first link and the further ones
+     */
+    private function links(InputBag $source): array
+    {
+        $first = $this->link($source->getString('link_kind'), $source->getString('link_id'));
+        $seen = $first instanceof RecordLink ? [$first->kind.':'.$first->id => true] : [];
+        $more = [];
+        $entries = $source->all()['links'] ?? [];
+        foreach (\is_array($entries) ? $entries : [] as $entry) {
+            $parts = \is_string($entry) ? explode(':', $entry, 2) : [];
+            $link = 2 === \count($parts) ? $this->link($parts[0], $parts[1]) : null;
+            if (!$link instanceof RecordLink || isset($seen[$link->kind.':'.$link->id])) {
+                continue;
+            }
+            $seen[$link->kind.':'.$link->id] = true;
+            $more[] = $link;
+        }
+
+        return [$first, $more];
+    }
+
     private function link(string $kind, string $id): ?RecordLink
     {
         $kind = trim($kind);

@@ -40,7 +40,11 @@ The address book (Party) offers two sources when Documents is installed:
 
 A value that is not known is empty, such as the VAT ID of a firm that is not a VAT payer. The client variables need a link to a contact that is in the address book: without one, or once the contact is archived, a template that uses them is refused when it is generated. The address book keeps no e-mail or phone of the firm, so there are no such variables.
 
+Sales offers `deal.*` when it is installed: the deal's title, owner, stage, status, lines and totals ([sales.md](sales.md#documents-and-activities)).
+
 A contact shows its documents on the **Documents** tab, with **New document** that opens the dialog with the contact linked.
+
+Another module opens the dialog at `/documents/new` with `link_kind` and `link_id` for its record, and with `links[]=kind:id`, repeated, for further records, such as a deal and its client. Each link is shown in the dialog and the document is created with all of them; a malformed or repeated link is left out.
 
 ## Documents and their statuses
 

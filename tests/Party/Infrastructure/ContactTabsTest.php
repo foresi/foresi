@@ -93,7 +93,7 @@ final class ContactTabsTest extends WebTestCase
         $id = $this->contact()->id();
 
         // A module's tab that is not installed is no tab at all.
-        $crawler = $this->client->request('GET', '/contacts/'.$id.'?tab=deals');
+        $crawler = $this->client->request('GET', '/contacts/'.$id.'?tab=quotes');
 
         self::assertResponseIsSuccessful();
         self::assertSame('Overview', trim($crawler->filter('main nav[aria-label="Contact sections"] [aria-current="page"]')->text()));

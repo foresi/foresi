@@ -1,0 +1,168 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One deal, a page of its own. The header holds the title, the stage and the status badge, and the actions:
+    Won and Lost while it is open, Reopen once it is closed (Pipedrive's and Odoo's deal header), Edit, New
+    follow-up deal and what other modules add (SalesSlots::DEAL_ACTIONS); Trash or Restore last, in the menu.
+    Under the header the stages, the current one pressed, to move the deal (Pipedrive's pipeline on a deal).
+    The sections: the deal's details, its lines and their value (one-off and monthly apart, per currency, "≈"
+    when a monthly value is approximate), the deals it is linked with, and what other modules add
+    (SalesSlots::DEAL_SECTIONS), each loaded by a lazy frame or included.
+    Variables: deal, badge, stageName, stages (id, name, current), details, lines, value, links, linkable,
+    slotActions, slotSections, context.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'sales.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title}] %}
+{% set badges = deal.trashed ? [] : [{label: stageName, tone: 'gray', icon: null}] %}
+{% set token = csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) %}
+{% set open = deal.open and not deal.trashed %}
+
+{% block title %}{{ deal.title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="deal-actions">
+        <twig:block name="primary">
+            {% if deal.trashed %}
+                <form method="post" action="{{ path('app_sales_deal_restore', {id: deal.id}) }}" class="contents" data-deal-restore>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="archive-restore">{{ 'sales.deal.restore'|trans }}</twig:Ui:Button>
+                </form>
+            {% elseif open %}
+                <form method="post" action="{{ path('app_sales_deal_win', {id: deal.id}) }}" class="contents" data-deal-win>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="circle-check">{{ 'sales.deal.win'|trans }}</twig:Ui:Button>
+                </form>
+            {% else %}
+                <form method="post" action="{{ path('app_sales_deal_reopen', {id: deal.id}) }}" class="contents" data-deal-reopen>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:Button type="submit" variant="primary" icon="refresh-cw">{{ 'sales.deal.reopen'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            {% if open %}
+                <twig:Ui:Button icon="x" :href="path('app_sales_deal_lose', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-lose>{{ 'sales.deal.lose'|trans }}</twig:Ui:Button>
+            {% endif %}
+            {% if not deal.trashed %}
+                <twig:Ui:Button icon="pencil" :href="path('app_sales_deal_edit', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-edit>{{ 'sales.deal.edit'|trans }}</twig:Ui:Button>
+            {% endif %}
+            {% if not deal.trashed %}
+                <twig:Ui:Button icon="plus" :href="path('app_sales_deal_follow_up', {id: deal.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-deal-follow-up>{{ 'sales.deal.follow_up'|trans }}</twig:Ui:Button>
+            {% endif %}
+            {% for action in slotActions %}
+                {% if action.dialog %}
+                    <twig:Ui:Button :icon="action.icon" :href="action.href" data-dialog aria-haspopup="dialog" data-deal-action="{{ action.key }}">{{ action.label }}</twig:Ui:Button>
+                {% else %}
+                    <twig:Ui:Button :icon="action.icon" :href="action.href" data-deal-action="{{ action.key }}">{{ action.label }}</twig:Ui:Button>
+                {% endif %}
+            {% endfor %}
+        </twig:block>
+        <twig:block name="last">
+            {% if not deal.trashed %}
+                <form method="post" action="{{ path('app_sales_deal_trash', {id: deal.id}) }}" role="none" data-deal-trash>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'sales.deal.trash'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {{ include('@Sales/_flashes.html.twig') }}
+        {% if open and stages is not empty %}
+            {# The stages in their order, the current one pressed, as Pipedrive's deal shows its pipeline under the title. #}
+            <div role="group" aria-label="{{ 'sales.deal.field.stage'|trans }}" class="flex flex-wrap gap-1" data-deal-stage>
+                {% for stage in stages %}
+                    <form method="post" action="{{ path('app_sales_deal_stage', {id: deal.id}) }}" class="contents">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="stageId" value="{{ stage.id }}">
+                        <twig:Ui:Button type="submit" size="sm" :pressed="stage.current">{{ stage.name }}</twig:Ui:Button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if deal.trashed %}
+            <twig:Ui:Alert tone="info" data-deal-in-trash>{{ 'sales.deal.in_trash'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'sales.deal.detail'|trans" icon="trending-up">
+            <twig:Ui:DescriptionList :items="details" />
+            {% if deal.description != '' %}
+                <div class="mt-4 text-body text-ink" data-deal-description>{{ deal.description|markdown }}</div>
+            {% endif %}
+        </twig:Ui:Card>
+
+        <section class="grid gap-2" aria-labelledby="deal-lines-title" data-deal-lines>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 id="deal-lines-title" class="m-0 text-heading font-semibold text-ink">{{ 'sales.line.title'|trans }}</h2>
+                {% if not deal.trashed %}
+                    <twig:Ui:Button icon="plus" size="sm" :href="path('app_sales_deal_line_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-line-new>{{ 'sales.line.new'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </div>
+            <twig:Ui:DataTable :caption="'sales.line.title'|trans" :actionToken="token" :rows="lines" :columns="[
+                {key: 'name', label: 'sales.line.column.name'|trans, truncate: true},
+                {key: 'quantity', label: 'sales.line.column.quantity'|trans, phone: false},
+                {key: 'billing', label: 'sales.line.column.billing'|trans, phone: false},
+                {key: 'total', label: 'sales.line.column.total'|trans, align: 'right'},
+            ]">
+                <twig:block name="empty">
+                    <twig:Ui:EmptyState icon="tag" :title="'sales.line.empty_title'|trans" :text="'sales.line.empty_text'|trans" />
+                </twig:block>
+            </twig:Ui:DataTable>
+            <dl class="m-0 grid gap-1 sm:grid-cols-2" data-deal-value>
+                {% if value.has %}
+                    <div class="grid gap-0.5">
+                        <dt class="text-small text-muted">{{ 'sales.value.one_off'|trans }}</dt>
+                        <dd class="m-0 num font-semibold text-ink" data-deal-value-one-off>{{ value.oneOff is empty ? '–' : value.oneOff|join(' · ') }}</dd>
+                    </div>
+                    <div class="grid gap-0.5">
+                        <dt class="text-small text-muted">{{ 'sales.value.monthly'|trans }}</dt>
+                        <dd class="m-0 num font-semibold text-ink" data-deal-value-monthly>{% if value.monthly is empty %}–{% else %}{% if value.approximate %}<span title="{{ 'sales.value.approximate'|trans }}">≈ </span>{% endif %}{{ value.monthly|join(' · ') }}{% endif %}</dd>
+                    </div>
+                {% else %}
+                    <div class="text-small text-muted">{{ 'sales.value.none'|trans }}</div>
+                {% endif %}
+            </dl>
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="deal-links-title" data-deal-links>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 id="deal-links-title" class="m-0 text-heading font-semibold text-ink">{{ 'sales.link.title'|trans }}</h2>
+                {% if linkable %}
+                    <twig:Ui:Button icon="link-2" size="sm" :href="path('app_sales_deal_link_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-link-new>{{ 'sales.link.new'|trans }}</twig:Ui:Button>
+                {% endif %}
+            </div>
+            {% if links is empty %}
+                <p class="m-0 text-small text-muted">{{ 'sales.link.none'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-2 p-0">
+                    {% for link in links %}
+                        <li class="flex flex-wrap items-center gap-2" data-deal-link="{{ link.id }}">
+                            <span class="text-small text-muted">{{ link.relation }}</span>
+                            <a href="{{ link.href }}" class="font-medium text-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ link.title }}</a>
+                            <twig:Ui:Badge :tone="link.status.tone">{{ link.status.label }}</twig:Ui:Badge>
+                            {% if link.remove %}
+                                <form method="post" action="{{ link.remove }}" class="contents" data-deal-link-remove>
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x">{{ 'sales.link.remove'|trans }}</twig:Ui:Button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        {% for section in slotSections %}
+            <section class="grid gap-2" data-deal-section="{{ section.key }}">
+                {% if section.template %}
+                    {{ include(section.template, section.data) }}
+                {% else %}
+                    <turbo-frame id="{{ constant('Foresi\\Sales\\Contract\\SalesSlots::SECTION_FRAME') ~ section.key }}" src="{{ section.href }}" loading="lazy" target="_top"></turbo-frame>
+                {% endif %}
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,268 @@
+nav:
+    item:
+        deals: Obchody
+        sales_settings: Obchody
+sales:
+    cancel: Zrušit
+    save: Uložit
+    keep: Ponechat
+    stage:
+        inquiry: Poptávka
+        meeting: Schůzka
+        proposal: Nabídka
+        negotiation: Vyjednávání
+    lost_reason:
+        price: Cena
+        timing: Načasování
+        other_supplier: Vybral jiného dodavatele
+        no_response: Bez odezvy
+        other: Jiný
+    status:
+        open: Otevřený
+        won: Vyhraný
+        lost: Prohraný
+    billing_kind:
+        one_off: Jednorázově
+        recurring: Opakovaně
+    deals:
+        title: Obchody
+        views: Pohledy na obchody
+        count: '{count, plural, one {# obchod} few {# obchody} other {# obchodů}}'
+        tab:
+            all: Vše
+            open: Otevřené
+            won: Vyhrané
+            lost: Prohrané
+            trash: Koš
+        field:
+            status: Stav
+            owner: Vlastník
+            client: Klient
+            trashed: V koši
+        column:
+            title: Název
+            client: Klient
+            owner: Vlastník
+            value: Hodnota
+            status: Stav
+        empty:
+            title: Zatím žádné obchody
+            text: Zapište, co klientovi prodáváte, s položkami z katalogu, a sledujte to fázi po fázi.
+            filtered_title: Filtru neodpovídá žádný obchod
+            reset: Zrušit filtr
+            trash_title: Koš je prázdný
+            view_title: V tomto pohledu není žádný obchod
+    deal:
+        new: Nový obchod
+        create: Vytvořit obchod
+        edit: Upravit
+        detail: Obchod
+        win: Vyhráno
+        lose: Prohráno
+        reopen: Znovu otevřít
+        trash: Přesunout do koše
+        restore: Obnovit
+        undo: Vrátit
+        trashed: V koši
+        in_trash: Obchod je v koši. Obnovte ho, chcete-li ho znovu měnit.
+        follow_up: Nový navazující obchod
+        new_document: Nový dokument
+        log_activity: Zapsat aktivitu
+        plan_activity: Naplánovat aktivitu
+        stage_unknown: Bez fáze
+        owner_unknown: Někdo, kdo tu už není
+        client_unknown: Kontakt, který tu už není
+        field:
+            title: Název
+            title_placeholder: Například Audit střechy skladu
+            client: Klient
+            client_placeholder: Hledat v adresáři
+            client_empty: Žádný kontakt neodpovídá.
+            contact_persons: Kontaktní osoby
+            owner: Vlastník
+            stage: Fáze
+            description: Poznámky
+            description_help: Markdown, například **tučně** nebo seznam.
+            lost_reason: Důvod prohry
+            lost_note: Poznámka k prohře
+        none:
+            contact_persons: Žádné
+            lost_reason: Bez důvodu
+            lost_note: Bez poznámky
+        flash:
+            created: 'Obchod {title} byl vytvořen.'
+            saved: Obchod byl uložen.
+            stage_changed: Obchod se posunul do jiné fáze.
+            won: Obchod je vyhraný.
+            lost: Obchod je označen jako prohraný.
+            reopened: Obchod je znovu otevřený.
+            trashed: 'Obchod {title} byl přesunut do koše.'
+            restored: Obchod byl obnoven.
+    lose:
+        title: Označit obchod jako prohraný
+        reason: Důvod
+        no_reason: Bez důvodu
+        note: Poznámka
+        note_help: Co se stalo, větou nebo dvěma.
+        submit: Označit jako prohraný
+    follow_up:
+        title: Nový navazující obchod
+        text: 'Pro stejného klienta a kontaktní osoby. Navazuje na {title}.'
+        lines: Položky ke zkopírování
+        submit: Vytvořit obchod
+    line:
+        title: Položky
+        new: Přidat položku
+        add: Přidat položku
+        edit: Upravit položku
+        remove: Odebrat
+        move_up: Posunout výš
+        move_down: Posunout níž
+        typed: Zapsat položku ručně
+        empty_title: Zatím žádné položky
+        empty_text: Přidejte produkt z katalogu nebo zapište položku ručně; hodnota obchodu vychází z položek.
+        confirm:
+            remove: 'Odebrat položku {name}?'
+        column:
+            name: Položka
+            quantity: Množství
+            billing: Fakturace
+            total: Částka
+        field:
+            product: Z katalogu
+            product_help: Produkt se zkopíruje, jak je teď.
+            quantity: Množství
+            name: Název
+            unit: Jednotka
+            unit_help: Například hodina, kus nebo měsíc.
+            unit_price: Cena za jednotku
+            unit_price_help: Bez DPH; prázdná, když ještě není dohodnutá.
+            currency: Měna
+            billing_kind: Fakturace
+            interval: Každých
+            recurrence_unit: Období
+            cycles: Kolikrát
+            cycles_help: Nechte prázdné, když nekončí.
+        unit_of_time:
+            day: Dny
+            week: Týdny
+            month: Měsíce
+            year: Roky
+        every:
+            day: '{count, plural, one {Každý den} few {Každé # dny} other {Každých # dní}}'
+            week: '{count, plural, one {Každý týden} few {Každé # týdny} other {Každých # týdnů}}'
+            month: '{count, plural, one {Každý měsíc} few {Každé # měsíce} other {Každých # měsíců}}'
+            year: '{count, plural, one {Každý rok} few {Každé # roky} other {Každých # let}}'
+        billing_open: '{every}, bez konce'
+        billing_cycles: '{every}, {count, plural, one {jednou} few {#krát} other {#krát}}'
+        flash:
+            added: Položka byla přidána.
+            saved: Položka byla uložena.
+            removed: Položka byla odebrána.
+    value:
+        one_off: Jednorázově
+        monthly: Měsíčně
+        approximate: Přibližně, týdny nebo dny přepočtené na měsíce
+        none: Žádné položky s cenou, takže zatím bez hodnoty.
+        per_month: '{amount} měsíčně'
+    link:
+        title: Propojené obchody
+        new: Propojit obchod
+        submit: Propojit
+        remove: Zrušit propojení
+        none: Žádné propojené obchody.
+        follows_from: Navazuje na
+        followed_by: Navazuje na něj
+        follows_from_field: Tento obchod navazuje na
+        follows_from_help: Jiný obchod stejného klienta.
+        choose: Vyberte obchod
+        flash:
+            added: Obchody byly propojeny.
+            removed: Propojení bylo zrušeno.
+    client:
+        tab: Obchody
+        title: Obchody
+        follows_from: Navazuje na
+        empty_title: S tímto kontaktem zatím nemáte obchody
+        empty_text: Obchod drží, co kontaktu prodáváte, fázi po fázi.
+    settings:
+        title: Obchody
+        stages: Fáze
+        stages_text: Nový obchod začíná v první fázi.
+        reasons: Důvody prohry
+        new_stage: Nová fáze
+        new_reason: Nový důvod prohry
+        rename_stage: Přejmenovat fázi
+        rename_reason: Přejmenovat důvod prohry
+        archived: Archivováno
+        column:
+            name: Název
+            key: Klíč
+            state: Stav
+        field:
+            name: Název
+        action:
+            rename: Přejmenovat
+            move_up: Posunout výš
+            move_down: Posunout níž
+            archive: Archivovat
+        confirm:
+            archive: 'Archivovat {name}?'
+            archive_text: Už se nebude nabízet; obchody, které ji mají, si ji ponechají.
+        flash:
+            saved: '{name} – uloženo.'
+            archived: '{name} – archivováno.'
+    document_variable:
+        deal:
+            title: Název obchodu
+            owner: Vlastník obchodu
+            stage: Fáze obchodu
+            status: Stav obchodu (otevřený, vyhraný, prohraný)
+            lines: 'Řádky obchodu (name, unit, quantity, unit_price, billing_period)'
+            one_off_totals: 'Jednorázová hodnota, řádek za každou měnu (currency, amount)'
+            monthly_totals: 'Měsíční hodnota, řádek za každou měnu (currency, amount)'
+    error:
+        forbidden: S obchody pracují jen vlastníci a členové.
+        not_found: Obchod neexistuje.
+        title_required: Zadejte název.
+        title_too_long: Název má nejvýš 200 znaků.
+        description_too_long: Poznámky mají nejvýš 10 000 znaků.
+        lost_note_too_long: Poznámka má nejvýš 1 000 znaků.
+        client_unknown: Vyberte kontakt z adresáře.
+        client_archived: Kontakt je archivovaný; obnovte ho, chcete-li s ním začít obchod.
+        contact_person_not_of_client: Vyberte kontaktní osoby klienta.
+        owner_not_staff: Vlastníkem je vlastník nebo člen organizace.
+        stage_unknown: Vyberte fázi.
+        stage_archived: Fáze je archivovaná; vyberte jinou.
+        no_stage: Nejdřív přidejte fázi v Nastavení → Obchody.
+        deal_not_open: Obchod je uzavřený; nejdřív ho znovu otevřete.
+        deal_not_closed: Obchod už je otevřený.
+        lost_reason_unknown: Vyberte důvod ze seznamu.
+        lost_reason_archived: Důvod je archivovaný; vyberte jiný.
+        line_unknown: Vyberte položky tohoto obchodu.
+        link_other_client: Propojit lze jen obchod stejného klienta.
+        link_self: Obchod nemůže navazovat sám na sebe.
+        link_duplicate: Obchody už jsou propojené.
+        link_type_unknown: Obchody se propojují tak, že jeden navazuje na druhý.
+        name_required: Zadejte název.
+        name_too_long: Název je příliš dlouhý.
+        key_invalid: Klíč je identifikátor malými písmeny o nejvýš 40 znacích.
+        key_taken: Tento klíč už má jiná.
+        stage_has_open_deals: Ve fázi jsou ještě otevřené obchody. Než ji archivujete, přesuňte je do jiné fáze nebo je uzavřete.
+        order_mismatch: Pořadí se mezitím změnilo; zkuste to znovu.
+        product_unknown: Vyberte produkt z katalogu.
+        product_archived: Produkt je archivovaný a už se nenabízí.
+        product_line_typed: Položka z katalogu kopíruje produkt; změňte ji, až bude přidaná.
+        quantity_invalid: Zadejte množství jako číslo s nejvýš třemi desetinnými místy, například 1,5.
+        quantity_not_positive: Množství je větší než nula.
+        unit_too_long: Jednotka má nejvýš 32 znaků.
+        unit_price_invalid: Zadejte cenu jako číslo s nejvýš dvěma desetinnými místy, například 1500,00.
+        currency_unknown: Vyberte měnu.
+        billing_kind_unknown: Vyberte jednorázově nebo opakovaně.
+        one_off_recurrence: Jednorázová položka nemá období.
+        recurrence_unit_required: Vyberte období.
+        recurrence_unit_unknown: Vyberte dny, týdny, měsíce nebo roky.
+        interval_required: Zadejte, jak často se fakturuje, 1 pro každé období.
+        interval_invalid: Zadejte celé číslo od 1 do 99.
+        cycles_invalid: Zadejte celé číslo od 1 do 999, nebo nechte prázdné, když nekončí.
+        status_unknown: Vyberte otevřený, vyhraný nebo prohraný.

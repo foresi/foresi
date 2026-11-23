@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Marking a deal lost, as Pipedrive's and Odoo's lost-reason prompts ask: a reason from the list of
+    Settings → Sales and a note of what happened, neither required. A dialog over the deal; the same URL is
+    a page. Variables: deal, values, errors, reasons.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'sales.lose.title'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'sales.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="deal-lose-form" action="{{ path('app_sales_deal_lose', {id: deal.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Sales\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+        <twig:Ui:Select name="lostReasonId" id="lostReasonId" :label="'sales.lose.reason'|trans" :options="reasons" :value="values.lostReasonId" :error="errors.lostReasonId|default(null)" />
+        <twig:Ui:Textarea name="note" id="note" :label="'sales.lose.note'|trans" :help="'sales.lose.note_help'|trans" :value="values.note" :error="errors.note|default(null)" :rows="3" maxlength="1000" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="deal-lose-form" variant="primary">{{ 'sales.lose.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="x" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'sales.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="deal-lose-form" variant="primary">{{ 'sales.lose.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
