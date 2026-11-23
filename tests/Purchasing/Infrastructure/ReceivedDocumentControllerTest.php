@@ -22,6 +22,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Domain\ReceivedDocument;
+use Foresi\Purchasing\Domain\ReceivedDocumentLine;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Domain\Id;
@@ -403,7 +404,9 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $dialog = $this->dialog('/purchasing/new');
         self::assertCount(1, $dialog->filter('form#received-document-new'));
         self::assertCount(0, $dialog->filter('[name="firm"]'), 'The document goes to the instance firm (ADR 0039).');
+        self::assertCount(1, $dialog->filter('[data-lines] button[value="add_line"]'));
         $values = $this->values($dialog);
+        $values['lines'] = [['text' => 'Hosting', 'base' => '1000.00', 'rate' => '21']];
 
         $this->client->request('POST', '/purchasing/new', $values + ['_action' => 'record'], server: self::DIALOG);
 
@@ -413,6 +416,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $document = $this->document(substr($location, \strlen('/purchasing/')));
         self::assertSame(ReceivedDocumentState::Recorded, $document->state());
         self::assertNull($document->originalAttachmentId());
+        self::assertSame(['Hosting'], array_map(static fn (ReceivedDocumentLine $line): string => $line->text(), $document->lines()));
     }
 
     public function testANewDocumentMissingItsTotalStaysInTheDialog(): void
@@ -443,6 +447,8 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertSame(243_100, $document->baseCzk()?->minor());
         $crawler = $this->client->followRedirect();
         self::assertStringContainsString('ČNB rate published on', $crawler->filter('main')->text());
+        $cells = $crawler->filter('[data-purchasing-line] [role="cell"]')->each(static fn (Crawler $cell): string => str_replace("\u{a0}", ' ', trim($cell->text())));
+        self::assertSame(['21 %', '100.00 EUR', '2,431.00 Kč'], $cells, 'A line of a document in another currency shows its base in CZK.');
     }
 
     public function testTheListIsFilteredBySupplierMonthAndText(): void
@@ -490,6 +496,117 @@ final class ReceivedDocumentControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(403, $url);
         }
         self::assertCount(0, $this->client->request('GET', '/shared')->filter('#sidebar a[href="/purchasing"]'));
+    }
+
+    public function testADocumentWithoutLinesShowsItselfAsOneLine(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+
+        $crawler = $this->page('/purchasing/'.$id);
+
+        $lines = $crawler->filter('[data-purchasing-lines]');
+        self::assertStringContainsString('The whole document as one line', $lines->text());
+        self::assertSame(['Tax invoice', '21 %', '1,000.00 Kč'], $lines->filter('[data-purchasing-line] [role="rowheader"], [data-purchasing-line] [role="cell"]')->each(static fn (Crawler $cell): string => str_replace("\u{a0}", ' ', trim($cell->text()))));
+        self::assertCount(0, $crawler->filter('[data-line-row]'), 'The form has no lines of its own.');
+        self::assertCount(1, $crawler->filter('[data-lines] button[value="add_line"]'));
+    }
+
+    public function testLinesAreAddedAndRemovedWithoutSavingAndTellWhatIsLeft(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+        $version = $this->document($id)->version();
+
+        $crawler = $this->post($id, $this->values($this->page('/purchasing/'.$id)), 'add_line');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-line-row]'));
+        self::assertSame(['21'], $crawler->filter('#lines-0-rate option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
+        $values = $this->values($crawler);
+        $values['lines'] = [['text' => 'Hosting', 'base' => '880.00', 'rate' => '21']];
+        $crawler = $this->post($id, $values, 'add_line');
+        self::assertCount(2, $crawler->filter('[data-line-row]'));
+        self::assertSame('Hosting', $crawler->filter('#lines-0-text')->attr('value'));
+        self::assertSame('120.00 Kč left to break down at 21 %', str_replace("\u{a0}", ' ', trim($crawler->filter('[data-lines-remaining]')->text())));
+
+        $crawler = $this->post($id, $this->values($crawler), 'remove_line:0');
+        self::assertCount(1, $crawler->filter('[data-line-row]'));
+        self::assertSame('', $crawler->filter('#lines-0-text')->attr('value'));
+        self::assertSame($version, $this->document($id)->version(), 'Nothing was saved.');
+    }
+
+    public function testLinesThatDoNotAddUpAreRefusedAtTheLines(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+        $version = $this->document($id)->version();
+        $values = $this->values($this->page('/purchasing/'.$id));
+        $values['lines'] = [['text' => 'Hosting', 'base' => '880.00', 'rate' => '21']];
+
+        $crawler = $this->post($id, $values, 'save');
+
+        self::assertResponseStatusCodeSame(422);
+        $message = 'The lines of each VAT rate must add up to the base of that rate in the recap';
+        self::assertStringContainsString($message, $crawler->filter('[data-lines] [role="alert"]')->text());
+        self::assertSame('#lines', $crawler->filter('[data-error-summary] a')->attr('href'));
+        self::assertCount(1, $crawler->filter('#lines'));
+        self::assertStringContainsString('120.00', $crawler->filter('[data-lines-remaining]')->text());
+        self::assertSame($version, $this->document($id)->version());
+        self::assertSame([], $this->document($id)->lines());
+    }
+
+    public function testALineWithoutItsTextOrWithNoAmountIsToldAtItsCell(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+        $values = $this->values($this->page('/purchasing/'.$id));
+        $values['lines'] = [['text' => '', 'base' => '1000.00', 'rate' => '21'], ['text' => 'Support', 'base' => 'a lot', 'rate' => '21']];
+
+        $crawler = $this->post($id, $values, 'save');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('true', $crawler->filter('#lines-0-text')->attr('aria-invalid'));
+        self::assertSame('true', $crawler->filter('#lines-1-base')->attr('aria-invalid'));
+        self::assertStringContainsString('Line 2: Base', $crawler->filter('[data-error-summary]')->text());
+    }
+
+    public function testBalancedLinesAreSavedAndChangeWithTheRecapInOneSave(): void
+    {
+        $this->signedIn();
+        $id = $this->recorded();
+        $values = $this->values($this->page('/purchasing/'.$id));
+        $values['lines'] = [['text' => 'Hosting', 'base' => '880.00', 'rate' => '21'], ['text' => 'Support', 'base' => '120.00', 'rate' => '21'], ['text' => '', 'base' => '', 'rate' => '21']];
+
+        $this->post($id, $values, 'save');
+
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        $crawler = $this->client->followRedirect();
+        $document = $this->document($id);
+        self::assertSame(['Hosting', 'Support'], array_map(static fn (ReceivedDocumentLine $line): string => $line->text(), $document->lines()), 'A row left empty is no line.');
+        self::assertSame([88_000, 12_000], array_map(static fn (ReceivedDocumentLine $line): int => $line->base()->minor(), $document->lines()));
+        self::assertStringNotContainsString('The whole document as one line', $crawler->filter('[data-purchasing-lines]')->text());
+        self::assertSame(['Hosting', 'Support'], $crawler->filter('[data-purchasing-line] [role="rowheader"]')->each(static fn (Crawler $cell): string => trim($cell->text())));
+        self::assertCount(2, $crawler->filter('[data-line-row]'));
+        self::assertCount(0, $crawler->filter('[data-lines-remaining]'));
+
+        // A new recap needs lines that fit it, in the same save.
+        $values = $this->values($crawler);
+        $values['total'] = '2420.00';
+        $values['recap'] = [['rate' => '21', 'base' => '2000.00', 'vat' => '420.00', 'statedVatCzk' => '']];
+        self::assertSame(['880.00', '120.00'], [$crawler->filter('#lines-0-base')->attr('value'), $crawler->filter('#lines-1-base')->attr('value')], 'The form shows the saved lines.');
+        $values['lines'] = [['text' => 'Hosting', 'base' => '1880.00', 'rate' => '21'], ['text' => 'Support', 'base' => '120.00', 'rate' => '21']];
+        $this->post($id, $values, 'save');
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertSame([188_000, 12_000], array_map(static fn (ReceivedDocumentLine $line): int => $line->base()->minor(), $this->document($id)->lines()));
+        self::assertSame(42_000, $this->document($id)->vatCzk()?->minor(), 'The recap stays the source of the VAT.');
+
+        // Removing every row removes the lines: the whole document is one line again.
+        $values = $this->values($this->page('/purchasing/'.$id));
+        unset($values['lines']);
+        $this->post($id, $values, 'save');
+        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertSame([], $this->document($id)->lines());
     }
 
     public function testEveryRefusalAndWarningIsTranslated(): void

@@ -5,8 +5,11 @@
     shows what they need: the exchange rate for another currency, the supply code for a domestic
     reverse charge, the original for a credit note, the CZK VAT a document in another currency states.
     The rows of the VAT recap are added and removed with buttons of the form, as the lines of an
-    invoice are without JavaScript. The first submit button refreshes, so Enter never records.
-    Needs values, errors, kinds, treatments, currencies, correctable and editable; contactDialog opens
+    invoice are without JavaScript, and so are the lines under it: each a text, a base and a rate of
+    the recap, with what is left to break down at each rate. The lines are sent with every save, so a
+    new recap and the lines that fit it are saved together. The first submit button refreshes, so
+    Enter never records. Needs values, errors, kinds, treatments, currencies, correctable, editable,
+    lineRates and remaining; contactDialog opens
     a new contact in a dialog, else in a new tab.
 #}
 {% set offset = 'md:pl-[calc(var(--spacing-label)+1rem)]' %}
@@ -79,5 +82,23 @@
             </div>
         {% endfor %}
         <div><twig:Ui:Button type="submit" name="_action" value="add_row" icon="plus" size="sm" :disabled="values.recap|length >= constant('Foresi\\Purchasing\\Domain\\VatRecap::MAX_ROWS')" data-recap-add>{{ 'purchasing.recap.add'|trans }}</twig:Ui:Button></div>
+    </section>
+
+    <section id="lines" class="grid gap-3 border-t border-divider pt-4" aria-labelledby="lines-heading"{% if errors.lines|default(null) %} aria-describedby="lines-error"{% endif %} data-lines>
+        <h2 id="lines-heading" class="m-0 text-heading font-semibold text-ink">{{ 'purchasing.lines.title'|trans }}</h2>
+        {% if errors.lines|default(null) %}<p id="lines-error" role="alert" class="m-0 text-small text-badge-red-text">{{ errors.lines }}</p>{% endif %}
+        {% for line in values.lines %}
+            {% set i = loop.index0 %}
+            <div class="grid grid-cols-2 items-end gap-2 rounded-panel border border-container p-3 sm:grid-cols-[minmax(0,1fr)_10rem_6rem_auto] sm:border-0 sm:p-0" data-line-row>
+                <twig:Ui:TextInput :name="'lines[' ~ i ~ '][text]'" :id="'lines-' ~ i ~ '-text'" :label="'purchasing.lines.text'|trans" :value="line.text" :error="errors['lines-' ~ i ~ '-text']|default(null)" maxlength="255" autocomplete="off" />
+                <twig:Ui:TextInput :name="'lines[' ~ i ~ '][base]'" :id="'lines-' ~ i ~ '-base'" :label="'purchasing.lines.base'|trans" :value="line.base" :error="errors['lines-' ~ i ~ '-base']|default(null)" inputmode="decimal" autocomplete="off" class="num text-right" />
+                <twig:Ui:Select :name="'lines[' ~ i ~ '][rate]'" :id="'lines-' ~ i ~ '-rate'" :label="'purchasing.lines.rate'|trans" :options="lineRates[i]" :value="line.rate" :error="errors['lines-' ~ i ~ '-rate']|default(null)" />
+                <twig:Ui:IconButton type="submit" name="_action" :value="'remove_line:' ~ i" icon="x" variant="ghost" :label="'purchasing.lines.remove'|trans({number: i + 1})" data-line-remove />
+            </div>
+        {% endfor %}
+        {% for left in remaining %}
+            <p class="m-0 text-small text-muted" data-lines-remaining>{{ 'purchasing.lines.remaining'|trans({amount: left.amount, rate: left.rate}) }}</p>
+        {% endfor %}
+        <div><twig:Ui:Button type="submit" name="_action" value="add_line" icon="plus" size="sm" :disabled="values.lines|length >= constant('Foresi\\Purchasing\\Domain\\DocumentLines::MAX_LINES')" data-line-add>{{ 'purchasing.lines.add'|trans }}</twig:Ui:Button></div>
     </section>
 </fieldset>

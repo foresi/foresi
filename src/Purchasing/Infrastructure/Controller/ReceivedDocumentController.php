@@ -47,6 +47,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * for an invoice; deleting a draft asks first.
  *
  * Who may do what is the use cases' and the query services' to decide.
+ *
+ * @phpstan-import-type Values from ReceivedDocumentForm
  */
 final class ReceivedDocumentController extends AbstractController
 {
@@ -173,7 +175,7 @@ final class ReceivedDocumentController extends AbstractController
     }
 
     /**
-     * @param array<string, mixed>  $values
+     * @param Values                $values
      * @param array<string, string> $errors message by input id
      */
     private function page(ReceivedDocumentDetail $detail, array $values, array $errors, int $version, int $status): Response
@@ -199,6 +201,9 @@ final class ReceivedDocumentController extends AbstractController
             'correctable' => ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable(!$detail->corrected instanceof ReceivedDocumentRow || \in_array($detail->corrected, $detail->correctable, true) ? $detail->correctable : [$detail->corrected, ...$detail->correctable]) : [],
             'corrected' => $detail->corrected instanceof ReceivedDocumentRow ? $this->screen->label($detail->corrected) : null,
             'figures' => $this->screen->figures($document),
+            'lines' => $this->screen->lines($document),
+            'lineRates' => $this->form->lineRates($values),
+            'remaining' => $this->form->remaining($values),
             'rateDate' => $document->exchangeRateDate()?->format($this->translator->trans('format.date')),
             'deduction' => [
                 'period' => $document->deductionPeriod()?->format('m/Y'),

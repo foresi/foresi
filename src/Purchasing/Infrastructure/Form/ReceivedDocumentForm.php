@@ -12,10 +12,13 @@ use Foresi\Party\Domain\Party;
 use Foresi\Purchasing\Application\Query\SupplierChoices;
 use Foresi\Purchasing\Application\Query\SupplierOption;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
+use Foresi\Purchasing\Domain\DocumentLines;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\Purchasing\Domain\ReceivedDocumentLine;
+use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Domain\VatRate;
 use Foresi\Purchasing\Domain\VatRecap;
@@ -31,10 +34,13 @@ use Symfony\Component\HttpFoundation\Request;
  * is sent again only while the currency and the day it was for stay; once the
  * tax point (or the issue date) changes, no rate is sent, so the published one
  * of the new day is filled in. A supplier typed without JavaScript is the one
- * contact the text finds.
+ * contact the text finds. The lines are always sent with the recap, so a
+ * save that changes the recap changes its lines with it; a line left empty
+ * is none, and no lines at all is the whole document as one line.
  *
  * @phpstan-type Row array{rate: string, base: string, vat: string, statedVatCzk: string}
- * @phpstan-type Values array{kind: string, treatment: string, supplierId: string, supplierQuery: string, supplierNumber: string, variableSymbol: string, issueDate: string, taxPointDate: string, dueDate: string, receivedDate: string, currency: string, total: string, exchangeRate: string, rateShown: string, rateFor: string, rateDate: string, supplyCode: string, originalDocumentId: string, recap: list<Row>}
+ * @phpstan-type Line array{text: string, base: string, rate: string}
+ * @phpstan-type Values array{kind: string, treatment: string, supplierId: string, supplierQuery: string, supplierNumber: string, variableSymbol: string, issueDate: string, taxPointDate: string, dueDate: string, receivedDate: string, currency: string, total: string, exchangeRate: string, rateShown: string, rateFor: string, rateDate: string, supplyCode: string, originalDocumentId: string, recap: list<Row>, lines: list<Line>}
  */
 final readonly class ReceivedDocumentForm
 {
@@ -71,6 +77,7 @@ final readonly class ReceivedDocumentForm
             'supplyCode' => '',
             'originalDocumentId' => '',
             'recap' => [self::emptyRow()],
+            'lines' => [],
         ];
     }
 
@@ -110,6 +117,7 @@ final readonly class ReceivedDocumentForm
             'supplyCode' => $document->supplyCode() ?? '',
             'originalDocumentId' => $document->originalDocumentId() ?? '',
             'recap' => [] === $rows ? [self::emptyRow()] : $rows,
+            'lines' => array_map(fn (ReceivedDocumentLine $line): array => ['text' => $line->text(), 'base' => $this->text->field($line->base()), 'rate' => $line->vatRate()], $document->lines()),
         ];
     }
 
@@ -126,6 +134,12 @@ final readonly class ReceivedDocumentForm
         foreach (\array_slice($request->request->all('recap'), 0, VatRecap::MAX_ROWS) as $row) {
             if (\is_array($row)) {
                 $rows[] = ['rate' => $text($row['rate'] ?? null, 32), 'base' => $text($row['base'] ?? null, 32), 'vat' => $text($row['vat'] ?? null, 32), 'statedVatCzk' => $text($row['statedVatCzk'] ?? null, 32)];
+            }
+        }
+        $lines = [];
+        foreach (\array_slice($request->request->all('lines'), 0, DocumentLines::MAX_LINES) as $line) {
+            if (\is_array($line)) {
+                $lines[] = ['text' => $text($line['text'] ?? null, DocumentLines::MAX_TEXT_LENGTH), 'base' => $text($line['base'] ?? null, 32), 'rate' => $text($line['rate'] ?? null, 32)];
             }
         }
 
@@ -149,11 +163,12 @@ final readonly class ReceivedDocumentForm
             'supplyCode' => $field('supplyCode'),
             'originalDocumentId' => $field('originalDocumentId'),
             'recap' => [] === $rows ? [self::emptyRow()] : $rows,
+            'lines' => $lines,
         ];
     }
 
     /**
-     * The values after a button that changes the form only: a row added or removed.
+     * The values after a button that changes the form only: a row of the recap or a line added or removed.
      *
      * @param Values $values
      *
@@ -171,8 +186,81 @@ final readonly class ReceivedDocumentForm
                 $values['recap'] = [self::emptyRow()];
             }
         }
+        if ('add_line' === $action && \count($values['lines']) < DocumentLines::MAX_LINES) {
+            // A new line takes the first rate of the recap, as its select shows first.
+            $values['lines'][] = ['text' => '', 'base' => '', 'rate' => (string) array_key_first($this->rates($values))];
+        }
+        if (1 === preg_match('/^remove_line:(\d+)$/D', $action, $match)) {
+            unset($values['lines'][(int) $match[1]]);
+            $values['lines'] = array_values($values['lines']);
+        }
 
         return $values;
+    }
+
+    /**
+     * The rates a line may take, as the options of its select, by the rate as the
+     * domain writes it ("21", "10.5"): the rates of the recap as typed, or the one
+     * rate 0 of a document without a recap. A line keeps a rate it has that the
+     * recap no longer does, so the select never changes it unseen.
+     *
+     * @param Values $values
+     *
+     * @return list<array<int|string, string>> the options of each line
+     */
+    public function lineRates(array $values): array
+    {
+        $rates = $this->rates($values);
+        $options = [];
+        foreach ($values['lines'] as $line) {
+            $own = $this->rateOf($line['rate']);
+            $options[] = null === $own || isset($rates[$own]) ? $rates : $rates + [$own => $this->text->decimal($own).' %'];
+        }
+
+        return $options;
+    }
+
+    /**
+     * What is left to break down into lines at each rate, as typed: the base of the
+     * rate in the recap (the total without a recap) less the lines at that rate.
+     * Nothing while there are no lines, as the whole document is then one line.
+     *
+     * @param Values $values
+     *
+     * @return list<array{amount: string, rate: string}>
+     */
+    public function remaining(array $values): array
+    {
+        $currency = Currency::tryFrom($values['currency']) ?? Currency::CZK;
+        $left = [];
+        foreach ($values['recap'] as $row) {
+            $rate = $this->rateOf($row['rate']);
+            $base = $this->text->typedAmount($row['base'], $currency);
+            if (null !== $rate && $base instanceof Money) {
+                $left[$rate] = ($left[$rate] ?? Money::ofMinor(0, $currency))->plus($base);
+            }
+        }
+        if ([] === $left) {
+            $total = $this->text->typedAmount($values['total'], $currency);
+            $left['0'] = $total instanceof Money ? $total : Money::ofMinor(0, $currency);
+        }
+        $any = false;
+        foreach ($values['lines'] as $line) {
+            $base = $this->text->typedAmount($line['base'], $currency);
+            $rate = $this->rateOf($line['rate']);
+            if ($base instanceof Money && null !== $rate && isset($left[$rate])) {
+                $left[$rate] = $left[$rate]->minus($base);
+                $any = true;
+            }
+        }
+        $remaining = [];
+        foreach ($any ? $left : [] as $rate => $amount) {
+            if (0 !== $amount->minor()) {
+                $remaining[] = ['amount' => $this->text->amount($amount), 'rate' => $this->text->decimal((string) $rate)];
+            }
+        }
+
+        return $remaining;
     }
 
     /**
@@ -215,6 +303,13 @@ final readonly class ReceivedDocumentForm
                 $recap[] = $line;
             }
         }
+        $lines = [];
+        foreach ($values['lines'] as $index => $line) {
+            $read = $this->documentLine($line, $index, $currency, $errors);
+            if ($read instanceof ReceivedDocumentLineInput) {
+                $lines[] = $read;
+            }
+        }
         if ([] !== $errors) {
             return [null, $errors];
         }
@@ -237,6 +332,7 @@ final readonly class ReceivedDocumentForm
             $recap,
             ReceivedDocumentKind::CreditNote === $kind && '' !== $values['originalDocumentId'] ? $values['originalDocumentId'] : null,
             PurchaseTaxTreatment::DomesticReverseCharge === $treatment && '' !== $values['supplyCode'] ? $values['supplyCode'] : null,
+            $lines,
         ), []];
     }
 
@@ -347,5 +443,69 @@ final readonly class ReceivedDocumentForm
         }
 
         return new VatRecapLine($rate, $base, $vat ?? Money::ofMinor(0, $currency), $stated);
+    }
+
+    /**
+     * @param Line                  $line
+     * @param array<string, string> $errors
+     */
+    private function documentLine(array $line, int $index, Currency $currency, array &$errors): ?ReceivedDocumentLineInput
+    {
+        if ('' === $line['text'] && '' === $line['base']) {
+            return null;
+        }
+        $id = 'lines-'.$index.'-';
+        if ('' === $line['text']) {
+            $errors[$id.'text'] = 'purchasing.form.error.required';
+        }
+        $base = $this->text->typedAmount($line['base'], $currency);
+        if (!$base instanceof Money) {
+            $errors[$id.'base'] = null === $base ? 'purchasing.form.error.required' : 'purchasing.form.error.amount';
+        }
+        $rate = $this->rateOf($line['rate']);
+        if (null === $rate) {
+            $errors[$id.'rate'] = 'purchasing.form.error.vat_rate';
+        }
+        if ('' === $line['text'] || !$base instanceof Money || null === $rate) {
+            return null;
+        }
+
+        return new ReceivedDocumentLineInput($line['text'], $base, $rate);
+    }
+
+    /**
+     * The rates of the recap as typed, each once, by the rate as the domain writes it
+     * (a whole rate such as "21" is an integer key, as PHP keeps it).
+     *
+     * @param Values $values
+     *
+     * @return array<int|string, string>
+     */
+    private function rates(array $values): array
+    {
+        $rates = [];
+        foreach ($values['recap'] as $row) {
+            $rate = $this->rateOf($row['rate']);
+            if (null !== $rate) {
+                $rates[$rate] = $this->text->decimal($rate).' %';
+            }
+        }
+
+        return [] === $rates ? ['0' => '0 %'] : $rates;
+    }
+
+    /**
+     * "21", "10.5": a typed rate as the domain writes it, or null for none.
+     */
+    private function rateOf(string $typed): ?string
+    {
+        if ('' === $typed) {
+            return null;
+        }
+        try {
+            return VatRate::of($this->text->typedDecimal($typed))->percent();
+        } catch (ReceivedDocumentRefused) {
+            return null;
+        }
     }
 }

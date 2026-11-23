@@ -67,6 +67,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * page of a document, and the dialog then leads to it.
  *
  * Who may do what is the use cases' and the query services' to decide.
+ *
+ * @phpstan-import-type Values from ReceivedDocumentForm
  */
 final class ReceivedDocumentListController extends AbstractController
 {
@@ -245,7 +247,7 @@ final class ReceivedDocumentListController extends AbstractController
     }
 
     /**
-     * @param array<string, mixed>  $values
+     * @param Values                $values
      * @param array<string, string> $errors
      */
     private function newForm(array $values, array $errors, int $status): Response
@@ -258,6 +260,8 @@ final class ReceivedDocumentListController extends AbstractController
             'treatments' => $this->screen->treatments(),
             'currencies' => $this->screen->currencies(),
             'correctable' => ReceivedDocumentKind::CreditNote->value === $values['kind'] ? $this->screen->correctable($this->details->correctable()) : [],
+            'lineRates' => $this->form->lineRates($values),
+            'remaining' => $this->form->remaining($values),
         ], new Response(status: $status));
     }
 

@@ -49,6 +49,11 @@ final class RefusalFields
         ReceivedDocumentRefused::SUPPLY_CODE_INVALID => 'supplyCode',
         ReceivedDocumentRefused::REASON_MISSING => 'reason',
         ReceivedDocumentRefused::REASON_TOO_LONG => 'reason',
+        ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP => 'lines',
+        ReceivedDocumentRefused::UNKNOWN_VAT_RATE => 'lines',
+        ReceivedDocumentRefused::LINE_TEXT_REQUIRED => 'lines',
+        ReceivedDocumentRefused::LINE_TEXT_TOO_LONG => 'lines',
+        ReceivedDocumentRefused::LINES_TOO_MANY => 'lines',
     ];
 
     public static function of(string $reason): string

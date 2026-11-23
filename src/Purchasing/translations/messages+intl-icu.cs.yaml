@@ -96,6 +96,7 @@ purchasing:
       supplier: "Vyberte dodavatele ze seznamu kontaktů."
       vat_rate: "Zadejte sazbu DPH od 0 do 100 %."
   field:
+    lines: "Řádky"
     kind: "Druh dokladu"
     treatment: "Režim DPH"
     supplier: "Dodavatel"
@@ -130,6 +131,16 @@ purchasing:
     statedVatCzk: "DPH v Kč dle dokladu"
     add: "Přidat sazbu"
     remove: "Odebrat řádek {number}"
+  lines:
+    title: "Řádky"
+    row: "Řádek {number}"
+    text: "Text"
+    base: "Základ"
+    rate: "Sazba"
+    add: "Přidat řádek"
+    remove: "Odebrat řádek {number}"
+    remaining: "Zbývá rozepsat {amount} při {rate} %"
+    whole: "Celý doklad jako jeden řádek"
   figures:
     title: "Přepočet do Kč"
     base_czk: "Základ v Kč"

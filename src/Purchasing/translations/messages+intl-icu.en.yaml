@@ -96,6 +96,7 @@ purchasing:
       supplier: "Pick the supplier from the contacts."
       vat_rate: "Enter a VAT rate from 0 to 100 %."
   field:
+    lines: "Lines"
     kind: "Kind of document"
     treatment: "VAT treatment"
     supplier: "Supplier"
@@ -130,6 +131,16 @@ purchasing:
     statedVatCzk: "VAT in CZK on the document"
     add: "Add a rate"
     remove: "Remove row {number}"
+  lines:
+    title: "Lines"
+    row: "Line {number}"
+    text: "Text"
+    base: "Base"
+    rate: "Rate"
+    add: "Add line"
+    remove: "Remove line {number}"
+    remaining: "{amount} left to break down at {rate} %"
+    whole: "The whole document as one line"
   figures:
     title: "In CZK"
     base_czk: "Base in CZK"
