@@ -38,7 +38,7 @@ final class MarginRefusedTest extends TestCase
 
     public function testEveryReasonIsTranslatedInBothLanguages(): void
     {
-        $reasons = array_values(array_filter((new \ReflectionClass(MarginRefused::class))->getConstants(), is_string(...)));
+        $reasons = array_values(array_filter(new \ReflectionClass(MarginRefused::class)->getConstants(), is_string(...)));
         foreach (['en', 'cs'] as $language) {
             $translations = Yaml::parseFile(\dirname(__DIR__, 3).'/src/Margin/translations/messages+intl-icu.'.$language.'.yaml');
             self::assertIsArray($translations);

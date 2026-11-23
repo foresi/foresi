@@ -71,7 +71,7 @@ final class MarginAccessApiTest extends ApiTestCase
         self::assertSame(0, $this->em()->getRepository(LineAllocation::class)->count([]));
 
         $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
-        if (401 === $this->client->getResponse()->getStatusCode()) {
+        if (\Symfony\Component\HttpFoundation\Response::HTTP_UNAUTHORIZED === $this->client->getResponse()->getStatusCode()) {
             return;
         }
         // Where a guest may connect, no margin tool is listed, and none answers.

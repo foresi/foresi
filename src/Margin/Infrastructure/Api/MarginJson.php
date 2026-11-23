@@ -45,7 +45,7 @@ final class MarginJson
         return [
             'key' => $line->key,
             'text' => $line->text,
-            'base_czk' => null === $line->baseCzk ? null : JsonValues::money($line->baseCzk),
+            'base_czk' => $line->baseCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($line->baseCzk) : null,
             'allocation' => $line->mapping instanceof MappingView ? self::mapping($line->mapping) : null,
             'shares' => array_map(static fn (ShareView $share): array => [
                 'recipient' => $share->recipient,
@@ -67,7 +67,7 @@ final class MarginJson
                 'recipient' => $term->recipient,
                 'recipient_name' => $term->recipientName,
                 'percent' => $term->percent,
-                'amount' => null === $term->amountCzk ? null : JsonValues::money($term->amountCzk),
+                'amount' => $term->amountCzk instanceof \Foresi\Shared\Domain\Money ? JsonValues::money($term->amountCzk) : null,
                 'rest' => $term->rest,
             ], $mapping->terms),
         ];

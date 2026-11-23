@@ -140,7 +140,7 @@ final readonly class ReceivedDocumentForm
         $lines = [];
         foreach (\array_slice($request->request->all('lines'), 0, DocumentLines::MAX_LINES) as $line) {
             if (\is_array($line)) {
-                $lines[] = ['id' => self::lineId($line['id'] ?? null), 'text' => $text($line['text'] ?? null, DocumentLines::MAX_TEXT_LENGTH), 'base' => $text($line['base'] ?? null, 32), 'rate' => $text($line['rate'] ?? null, 32)];
+                $lines[] = ['id' => $this->lineId($line['id'] ?? null), 'text' => $text($line['text'] ?? null, DocumentLines::MAX_TEXT_LENGTH), 'base' => $text($line['base'] ?? null, 32), 'rate' => $text($line['rate'] ?? null, 32)];
             }
         }
 
@@ -449,7 +449,7 @@ final readonly class ReceivedDocumentForm
     /**
      * The id a row posted for the stored line it stands for; none for a new row or an id that is no id.
      */
-    private static function lineId(mixed $value): string
+    private function lineId(mixed $value): string
     {
         return \is_string($value) && Id::isValid($value) ? $value : '';
     }

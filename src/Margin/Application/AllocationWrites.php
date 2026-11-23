@@ -59,7 +59,7 @@ final readonly class AllocationWrites
         $document = $this->sources->document($input->documentId) ?? throw AllocationReads::unknownDocument();
         $stored = $this->entityManager->getRepository(LineAllocation::class)->findOneBy(['documentId' => $document->id, 'lineKey' => $input->lineKey]);
         $allocation = null === $input->kind ? null : $this->allocation($input->kind, $input->shares ?? []);
-        if (!array_any($document->lines, static fn (CostLine $line): bool => $line->key === $input->lineKey) && !($stored instanceof LineAllocation && null === $allocation)) {
+        if (!array_any($document->lines, static fn (CostLine $line): bool => $line->key === $input->lineKey) && (!$stored instanceof LineAllocation || $allocation instanceof Allocation)) {
             throw MarginRefused::notFound(MarginRefused::UNKNOWN_LINE, 'The document has no line with this key. Read the keys of its lines with foresi_get_document_allocation.');
         }
 
@@ -167,7 +167,7 @@ final readonly class AllocationWrites
         $contactId = $recipient->contactId();
         if (null !== $contactId) {
             $contact = $this->contacts->find($contactId);
-            if (null === $contact || $contact->archived) {
+            if (!$contact instanceof \Foresi\Party\Contract\PartySummary || $contact->archived) {
                 throw MarginRefused::invalid(MarginRefused::UNKNOWN_CONTACT, $field, 'The organisation has no active contact with this id. Find the client with foresi_search_contacts, or create it with foresi_create_contact.');
             }
         }
