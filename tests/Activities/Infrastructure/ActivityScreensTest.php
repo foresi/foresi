@@ -103,6 +103,30 @@ final class ActivityScreensTest extends WebTestCase
         self::assertSelectorTextContains('[data-activities-done] [data-activity-outcome]', 'Agreed on an audit');
     }
 
+    public function testTheNewActivityDialogTakesSeveralLinksFromTheAddress(): void
+    {
+        $person = $this->contact('Example Person');
+        // A malformed entry and a repeat of the first link are left out.
+        $url = '/activities/new?mode=log&link_kind=contact&link_id='.$this->contactId.'&links[]=contact:'.$person.'&links[]=contact:not-an-id&links[]=contact:'.$this->contactId;
+        $crawler = $this->client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Example Trader', 'Example Person'], $crawler->filter('#activity-form [data-activity-link] [data-activity-link-label]')->each(static fn ($node): string => $node->text()));
+        self::assertSame(['contact:'.$person], $crawler->filter('#activity-form input[name="links[]"]')->each(static fn ($node): string => (string) $node->attr('value')));
+        $form = $crawler->filter('#activity-form')->form();
+        $form['subject'] = 'Call with both';
+        $form['doneAt'] = '2026-11-20T09:00';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+        $id = substr((string) $this->client->getResponse()->headers->get('Location'), \strlen('/activities/'));
+
+        $links = self::getContainer()->get(ActivitiesStore::class)->links($this->activity($id));
+        $pairs = array_map(static fn ($link): string => $link->kind().':'.$link->targetId(), $links);
+        sort($pairs);
+        $expected = ['contact:'.$this->contactId, 'contact:'.$person];
+        sort($expected);
+        self::assertSame($expected, $pairs);
+    }
+
     public function testARefusedNextStepKeepsTheDialogOpenAndTheActivityPlanned(): void
     {
         $activity = $this->planned();
@@ -266,13 +290,13 @@ final class ActivityScreensTest extends WebTestCase
         return $activity;
     }
 
-    private function contact(): string
+    private function contact(string $name = 'Example Trader'): string
     {
         // The fixture is set up by the application, not by the signed-in person.
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
         $signedIn = $tokens->getToken();
         $tokens->setToken(null);
-        $party = self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
+        $party = self::getContainer()->get(CreateParty::class)->create(PartyKind::SoleTrader, $name, null, null, '', '', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
         $tokens->setToken($signedIn);
 
         return $party->id();

@@ -13,6 +13,11 @@ namespace Foresi\Documents\Contract;
  * shows inside its own screen, such as a tab of a contact. Link to it with
  * the route ROUTE and the parameters "kind" and "id"; the fragment lists the
  * documents and offers "New document" with the link filled in.
+ *
+ * A module may also open "New document" itself, on the route
+ * DocumentController::NEW_ROUTE (/documents/new), with link_kind and link_id
+ * for the record and links[]=kind:id, repeated, for further records, such as
+ * a deal and its client. A malformed or repeated link is left out.
  */
 final class RecordDocuments
 {

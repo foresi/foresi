@@ -5,8 +5,9 @@
     fields show (activity_timing_controller.js): a start time and a duration for a meeting or a call, a
     day for a task, none for a note, as Pipedrive's and HubSpot's activity forms change with the type.
     A logged one has when it happened and what came of it; any of them may take a file, such as the
-    recording of a meeting. The record it was opened from is shown and linked. Variables: mode, activity,
-    values, errors, link, linkView, types, timings, return, action.
+    recording of a meeting. The record it was opened from, and any further ones (links[]=kind:id), are
+    shown and linked. Variables: mode, activity,
+    values, errors, link, more, linkViews, types, timings, return, action.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
@@ -27,6 +28,9 @@
             <input type="hidden" name="link_kind" value="{{ link.kind }}">
             <input type="hidden" name="link_id" value="{{ link.id }}">
         {% endif %}
+        {% for more_link in more %}
+            <input type="hidden" name="links[]" value="{{ more_link.kind }}:{{ more_link.id }}">
+        {% endfor %}
         {% if errors.links is defined %}
             <twig:Ui:Alert tone="error" tabindex="-1" :autofocus="true" data-error-summary>{{ errors.links }}</twig:Ui:Alert>
         {% endif %}
@@ -58,16 +62,16 @@
             <input type="file" id="activity-file" name="file" class="text-small text-text" data-activity-file>
             <p class="m-0 text-caption text-muted">{{ 'activities.field.file_help'|trans }}</p>
         </div>
-        {% if linkView %}
+        {% for linkView in linkViews %}
             <div class="grid gap-1" data-activity-link>
                 <p class="m-0 text-small text-ink">{{ 'activities.field.link'|trans }}</p>
                 {% if linkView.available %}
-                    <p class="m-0 font-medium text-ink">{{ linkView.label }}</p>
+                    <p class="m-0 font-medium text-ink" data-activity-link-label>{{ linkView.label }}</p>
                 {% else %}
                     <p class="m-0 text-muted">{{ 'activities.link.unavailable'|trans }}</p>
                 {% endif %}
             </div>
-        {% endif %}
+        {% endfor %}
     </form>
 {% endblock %}
 
