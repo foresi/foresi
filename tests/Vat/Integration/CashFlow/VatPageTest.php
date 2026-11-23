@@ -75,7 +75,7 @@ final class VatPageTest extends WebTestCase
         self::assertSame('/vat/periods/2026-11', $crawler->filter('[data-vat-period="2026-11"] a[data-sheet]')->attr('href'));
         self::assertStringContainsString('An estimate, not a basis for the VAT return.', $this->text($crawler, '[data-vat-footer]'));
         self::assertStringContainsString('when the tax office pays a refund', $this->text($crawler, '[data-vat-unverified]'));
-        self::assertStringContainsString('planned items', $this->text($crawler, '[data-vat-gaps]'));
+        self::assertStringContainsString('input VAT from before the firm became a payer', $this->text($crawler, '[data-vat-gaps]'));
         self::assertCount(0, $crawler->filter('[data-vat-unassigned]'));
         $html = (string) $this->client->getResponse()->getContent();
         self::assertStringNotContainsStringIgnoringCase('overdue', $html);
@@ -106,7 +106,8 @@ final class VatPageTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-vat-payment-unpair]'));
         self::assertCount(0, $crawler->filter('[data-vat-payment-reset], [data-vat-settle], [data-vat-reopen]'));
         self::assertSame(['documents', 'schedules', 'plans'], $crawler->filter('[data-vat-part]')->each(static fn (Crawler $row): string => (string) $row->attr('data-vat-part')));
-        self::assertSame('Not counted yet', $this->text($crawler, '[data-vat-part="plans"] [data-vat-part-empty]'));
+        self::assertCount(0, $crawler->filter('[data-vat-part-empty]'));
+        self::assertSame('Plans 0 Kč 0 Kč', $this->text($crawler, '[data-vat-part="plans"]'));
         self::assertCount(2, $crawler->filter('[data-vat-document]'));
         self::assertSame(['output', 'input', 'result'], $crawler->filter('[data-vat-step]')->each(static fn (Crawler $row): string => (string) $row->attr('data-vat-step')));
         self::assertStringNotContainsStringIgnoringCase('overdue', (string) $this->client->getResponse()->getContent());

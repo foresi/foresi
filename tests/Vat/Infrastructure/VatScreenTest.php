@@ -186,7 +186,7 @@ final class VatScreenTest extends KernelTestCase
         self::assertSame([
             ['key' => 'documents', 'label' => 'Doklady', 'output' => "2\u{a0}100\u{a0}Kč", 'input' => "210\u{a0}Kč", 'empty' => null],
             ['key' => 'schedules', 'label' => 'Plány opakování', 'output' => "0\u{a0}Kč", 'input' => "0\u{a0}Kč", 'empty' => null],
-            ['key' => 'plans', 'label' => 'Plány', 'output' => null, 'input' => null, 'empty' => 'Zatím se nepočítá'],
+            ['key' => 'plans', 'label' => 'Plány', 'output' => "0\u{a0}Kč", 'input' => "0\u{a0}Kč", 'empty' => null],
         ], $detail['parts']);
         self::assertSame([['label' => 'FV-1', 'href' => '/invoices/i1', 'on' => '20. 11. 2026', 'output' => "2\u{a0}100\u{a0}Kč", 'input' => "0\u{a0}Kč", 'missingCzk' => true]], $detail['documents']);
         self::assertSame([['label' => 'Hosting', 'href' => null, 'on' => '30. 11. 2026', 'output' => "250\u{a0}Kč", 'fxToday' => true, 'missingCzk' => false]], $detail['schedules']);
@@ -204,8 +204,8 @@ final class VatScreenTest extends KernelTestCase
         self::assertTrue($detail['settled']);
         self::assertSame(['FV-7'], $detail['missingCzk']);
 
-        $open = $this->screen->detail(new PeriodDetail($this->list([$this->view()], gaps: ['schedules_not_counted']), $this->view(returnAmount: Money::ofMinor(150_000, Currency::CZK)), [], [], []));
-        self::assertSame([null, 'Zatím se nepočítá', null], array_column($open['parts'], 'empty'));
+        $open = $this->screen->detail(new PeriodDetail($this->list([$this->view()], gaps: ['schedules_not_counted', 'plans_not_counted']), $this->view(returnAmount: Money::ofMinor(150_000, Currency::CZK)), [], [], []));
+        self::assertSame([null, 'Zatím se nepočítá', 'Zatím se nepočítá'], array_column($open['parts'], 'empty'));
         self::assertFalse($open['restricted']);
         self::assertFalse($open['settledMark']);
         self::assertFalse($open['settled']);

@@ -36,7 +36,7 @@ test.describe('VAT', () => {
     const sheet = page.locator('dialog#sheet');
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole('heading', { name: 'listopad 2026' })).toBeVisible();
-    await expect(sheet.locator('[data-vat-part="plans"]')).toContainText('Zatím se nepočítá');
+    await expect(sheet.locator('[data-vat-part="plans"]')).toContainText('Plány');
     await expect(sheet.locator('[data-vat-document]')).toHaveCount(1);
 
     // The amount of the return in a dialog over the sheet.
