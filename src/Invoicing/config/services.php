@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Application\BilledWork;
 use Foresi\Invoicing\Application\BilledWorkRelease;
 use Foresi\Invoicing\Application\CancelPayment;
@@ -162,6 +163,10 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(BilledWork::class, CollectedBilledWork::class);
     // An invoice in the trash frees its time, and restoring it bills the time again.
     $services->alias(BilledWorkRelease::class, CollectedBilledWorkRelease::class);
+
+    // Lazy: the operations route loader builds every handler, and these writes reach
+    // IssueRecurringInvoices and so LinkTokens, which needs the application secret.
+    $services->set(RecurringWrites::class)->lazy();
 
     // Links to sent documents are derived from the application secret, never stored.
     $services->set(LinkTokens::class)

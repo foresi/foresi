@@ -26,11 +26,6 @@ use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Invoicing\Contract\Percent;
-use Foresi\Invoicing\Contract\PriceType;
-use Foresi\Invoicing\Contract\Quantity;
-use Foresi\Invoicing\Contract\TaxTreatment;
-use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
@@ -44,7 +39,6 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
-use Foresi\Shared\Domain\Money;
 
 /**
  * The writes of sales invoices over the API and MCP. It reads the text of the
@@ -58,10 +52,6 @@ use Foresi\Shared\Domain\Money;
 final readonly class InvoiceWrites
 {
     private const string UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/Di';
-    private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
-    private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
-    private const array LINE_KEYS = ['text', 'unit_price', 'quantity', 'unit', 'price_type', 'vat', 'discount', 'supply_code'];
-    private const array VAT = ['base', 'reduced', 'second_reduced', 'reverse_charge', 'exempt', 'none'];
 
     public function __construct(
         private InvoicingAccess $access,
@@ -97,7 +87,7 @@ final readonly class InvoiceWrites
             $draft = $this->defaults->withCustomer($draft, $customer);
         }
         $currency = null === $input->currency ? $draft->currency : $this->currency($input->currency);
-        $lines = $this->lines($input->lines, $currency, VatRegime::of($firm->vatStatus()), $customer?->defaults->reverseCharge ?? false);
+        $lines = ApiLines::read($input->lines, $currency, VatRegime::of($firm->vatStatus()), $customer->defaults->reverseCharge ?? false);
 
         return $this->issue->issue(new InvoiceInput(
             $this->id($input->seriesId, 'seriesId'),
@@ -135,7 +125,7 @@ final readonly class InvoiceWrites
         $reverseCharge = $this->customerOf($customerId)?->defaults->reverseCharge ?? false;
         $lines = null === $input->lines
             ? array_map($this->storedLine(...), $this->store->lines($invoice))
-            : $this->lines($input->lines, $invoice->currency(), $invoice->vatRegime(), $reverseCharge);
+            : ApiLines::read($input->lines, $invoice->currency(), $invoice->vatRegime(), $reverseCharge);
         // A symbol that followed the number keeps following it when the number changes.
         $follows = null === $input->variableSymbol && $invoice->variableSymbol() === VariableSymbol::fromNumber($invoice->number());
 
@@ -265,107 +255,6 @@ final readonly class InvoiceWrites
         $party = null === $id ? null : $this->parties->find($id);
 
         return $party instanceof Party ? $this->customers->find($party->id()) : null;
-    }
-
-    /**
-     * @param list<array<string, mixed>> $rows
-     *
-     * @return list<LineInput>
-     */
-    private function lines(array $rows, Currency $currency, VatRegime $regime, bool $reverseCharge): array
-    {
-        $lines = [];
-        foreach ($rows as $index => $row) {
-            $lines[] = $this->line($row, $index, $currency, $regime, $reverseCharge);
-        }
-
-        return $lines;
-    }
-
-    /**
-     * @param array<array-key, mixed> $row a JSON object, whose keys may be digits
-     */
-    private function line(array $row, int $index, Currency $currency, VatRegime $regime, bool $reverseCharge): LineInput
-    {
-        $field = static fn (string $name): string => \sprintf('lines[%d].%s', $index, $name);
-        foreach (array_keys($row) as $key) {
-            if (!\in_array($key, self::LINE_KEYS, true)) {
-                throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field((string) $key), \sprintf('A line takes only %s.', implode(', ', self::LINE_KEYS)));
-            }
-        }
-        $text = static function (string $name) use ($row, $field): ?string {
-            $value = $row[$name] ?? null;
-            if (null !== $value && !\is_string($value)) {
-                throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field($name), 'Every field of a line is a string, numbers included, such as "1500.00".');
-            }
-
-            return null === $value ? null : trim($value);
-        };
-        $price = $text('unit_price') ?? throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('unit_price'), 'Every line needs a unit_price, such as "1500.00".');
-        if (1 !== preg_match('/^-?\d{1,13}(\.\d{1,'.$currency->minorUnits().'})?$/D', $price)) {
-            throw InvoicingRefused::unreadable(InvoicingRefused::NUMBER, $field('unit_price'), \sprintf('The price must be a decimal with at most %d places, such as "1500.00".', $currency->minorUnits()));
-        }
-        $quantity = $text('quantity') ?? '1';
-        if (1 !== preg_match(self::QUANTITY, $quantity)) {
-            throw InvoicingRefused::unreadable(InvoicingRefused::NUMBER, $field('quantity'), 'The quantity must be a decimal with at most 4 places, such as "2" or "1.5".');
-        }
-        $discount = $text('discount') ?? '0';
-        try {
-            $percent = 1 === preg_match(self::DISCOUNT, $discount) ? Percent::fromString($discount) : null;
-        } catch (\InvalidArgumentException) {
-            $percent = null;
-        }
-        if (!$percent instanceof Percent) {
-            throw InvoicingRefused::unreadable(InvoicingRefused::NUMBER, $field('discount'), 'The discount is a percentage from 0 to 100 with at most 2 places, such as "10".');
-        }
-        $priceType = PriceType::tryFrom($text('price_type') ?? PriceType::WithoutVat->value)
-            ?? throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('price_type'), 'The price type is without_vat, with_vat or base_only.');
-        $vat = $text('vat') ?? $this->defaultVat($regime, $reverseCharge);
-        if (!\in_array($vat, self::VAT, true)) {
-            throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field('vat'), \sprintf('The VAT of a line is one of %s.', implode(', ', self::VAT)));
-        }
-        [$treatment, $rateKind] = $this->vat($vat);
-        $supplyCode = $text('supply_code');
-
-        return new LineInput(
-            $text('text') ?? '',
-            Quantity::fromString($quantity),
-            $text('unit') ?? '',
-            Money::of($price, $currency),
-            $priceType,
-            $treatment,
-            $rateKind,
-            '' === $supplyCode ? null : $supplyCode,
-            $percent,
-        );
-    }
-
-    /**
-     * A new line of the form: the base rate for a VAT payer, reverse charge for
-     * a customer who is taxed instead, and no VAT for a firm that is no payer.
-     */
-    private function defaultVat(VatRegime $regime, bool $reverseCharge): string
-    {
-        if (VatRegime::Payer !== $regime) {
-            return 'none';
-        }
-
-        return $reverseCharge ? 'reverse_charge' : 'base';
-    }
-
-    /**
-     * @return array{TaxTreatment, ?VatRateKind}
-     */
-    private function vat(string $choice): array
-    {
-        return match ($choice) {
-            'reduced' => [TaxTreatment::Standard, VatRateKind::Reduced],
-            'second_reduced' => [TaxTreatment::Standard, VatRateKind::SecondReduced],
-            'reverse_charge' => [TaxTreatment::ReverseCharge, null],
-            'exempt' => [TaxTreatment::Exempt, null],
-            'none' => [TaxTreatment::NotApplicable, null],
-            default => [TaxTreatment::Standard, VatRateKind::Base],
-        };
     }
 
     /**
