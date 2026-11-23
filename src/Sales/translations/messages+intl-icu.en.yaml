@@ -66,6 +66,9 @@ sales:
         trashed: In the trash
         in_trash: This deal is in the trash. Restore it to change it again.
         follow_up: New follow-up deal
+        new_document: New document
+        log_activity: Log activity
+        plan_activity: Plan activity
         stage_unknown: No stage
         owner_unknown: Someone no longer here
         client_unknown: A contact no longer here
@@ -209,6 +212,15 @@ sales:
         flash:
             saved: '{name} was saved.'
             archived: '{name} was archived.'
+    document_variable:
+        deal:
+            title: Title of the deal
+            owner: Owner of the deal
+            stage: Stage of the deal
+            status: Status of the deal (open, won, lost)
+            lines: 'Lines of the deal (name, unit, quantity, unit_price, billing_period)'
+            one_off_totals: 'One-off value, one row per currency (currency, amount)'
+            monthly_totals: 'Monthly value, one row per currency (currency, amount)'
     error:
         forbidden: Only the owners and members work with the deals.
         not_found: The deal does not exist.

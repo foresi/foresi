@@ -66,6 +66,9 @@ sales:
         trashed: V koši
         in_trash: Obchod je v koši. Obnovte ho, chcete-li ho znovu měnit.
         follow_up: Nový navazující obchod
+        new_document: Nový dokument
+        log_activity: Zapsat aktivitu
+        plan_activity: Naplánovat aktivitu
         stage_unknown: Bez fáze
         owner_unknown: Někdo, kdo tu už není
         client_unknown: Kontakt, který tu už není
@@ -209,6 +212,15 @@ sales:
         flash:
             saved: '{name} – uloženo.'
             archived: '{name} – archivováno.'
+    document_variable:
+        deal:
+            title: Název obchodu
+            owner: Vlastník obchodu
+            stage: Fáze obchodu
+            status: Stav obchodu (otevřený, vyhraný, prohraný)
+            lines: 'Řádky obchodu (name, unit, quantity, unit_price, billing_period)'
+            one_off_totals: 'Jednorázová hodnota, řádek za každou měnu (currency, amount)'
+            monthly_totals: 'Měsíční hodnota, řádek za každou měnu (currency, amount)'
     error:
         forbidden: S obchody pracují jen vlastníci a členové.
         not_found: Obchod neexistuje.
