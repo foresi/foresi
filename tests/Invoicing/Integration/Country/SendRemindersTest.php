@@ -1,0 +1,492 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Invoicing\Integration\Country;
+
+use Foresi\Invoicing\Application\AllocationRequest;
+use Foresi\Invoicing\Application\CancelPayment;
+use Foresi\Invoicing\Application\InvoiceRow;
+use Foresi\Invoicing\Application\MailTemplates;
+use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Application\ReminderPreview;
+use Foresi\Invoicing\Application\SendRefused;
+use Foresi\Invoicing\Application\SendReminders;
+use Foresi\Invoicing\Domain\FirmReminders;
+use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Invoicing\Domain\InvoiceSend;
+use Foresi\Invoicing\Domain\MailTemplateKind;
+use Foresi\Invoicing\Domain\PaymentSource;
+use Foresi\Invoicing\Domain\SendPurpose;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineReminderSettings;
+use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Invoicing\Application\SendingTestCase;
+use Foresi\Tests\Invoicing\Infrastructure\Support\InvoiceCopies;
+use Foresi\Tests\Invoicing\Infrastructure\Support\SettledBalances;
+use Foresi\Tests\Invoicing\Infrastructure\Support\UnauthoritativeBalances;
+use Foresi\Tests\Support\PdfTools;
+
+/**
+ * The daily reminder run, at 08:00 in the instance's zone (Prague here, from the
+ * firm's country). An invoice due on 10 January gets its first reminder on the
+ * 17th, each next one seven days after the previous. Every outcome is read back
+ * from invoice_send.
+ */
+final class SendRemindersTest extends SendingTestCase
+{
+    private const string DUE = '2027-01-10';
+
+    private SettledBalances $balances;
+    private int $hashes = 0;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Before anything uses the balances, so the run and delivery see this one.
+        $this->balances = SettledBalances::install(self::getContainer(), $this->connection);
+    }
+
+    public function testFirstReminderSevenDaysAfterDue(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+
+        $this->runOn('2027-01-16 09:00:00');
+        self::assertSame([], $this->reminders($invoice));
+
+        $this->runOn('2027-01-17 09:00:00');
+        $reminders = $this->reminders($invoice);
+        self::assertCount(1, $reminders);
+        self::assertSame(['reminder', 1, 'queued'], [$reminders[0]['purpose'], self::integer($reminders[0], 'reminder_step'), $reminders[0]['status']]);
+        self::assertSame('["billing@example.com"]', $reminders[0]['recipients_to']);
+        self::assertNull($reminders[0]['created_by'], 'the run sends it, not a person');
+        self::assertNull($reminders[0]['copy_to']);
+        self::assertCount(1, $this->mailQueue->getSent(), 'handed to the mail worker');
+    }
+
+    public function testTheDayBeginsAtEightInstanceTime(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+        $job = self::getContainer()->get(SendReminders::class);
+        $prague = new \DateTimeZone('Europe/Prague');
+
+        // 07:59 in Prague on the 17th is still the 16th.
+        self::assertSame('2027-01-16', $job->period(new \DateTimeImmutable('2027-01-17 06:59:00 UTC'), $prague));
+        self::assertSame('2027-01-17', $job->period(new \DateTimeImmutable('2027-01-17 07:00:00 UTC'), $prague));
+        self::assertSame('invoice-reminders', $job->name());
+
+        $this->runOn('2027-01-17 06:59:00');
+        self::assertSame([], $this->reminders($invoice));
+        $this->runOn('2027-01-17 07:00:00');
+        self::assertCount(1, $this->reminders($invoice));
+    }
+
+    public function testNextReminderSevenDaysAfterThePrevious(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+        $this->runOn('2027-01-17 09:00:00');
+
+        $this->runOn('2027-01-23 09:00:00');
+        self::assertSame([1], $this->steps($invoice));
+
+        $this->runOn('2027-01-24 09:00:00');
+        self::assertSame([1, 2], $this->steps($invoice));
+        self::assertSame('2027-01-24 09:00:00', self::moment($this->reminders($invoice)[1], 'created_at'));
+    }
+
+    public function testAtMostTen(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+        for ($step = 1; $step <= FirmReminders::MAX_STEPS; ++$step) {
+            $this->pastReminder($invoice, $step, '2027-01-17 09:00:00');
+        }
+
+        $this->runOn('2027-03-01 09:00:00');
+
+        self::assertSame(range(1, FirmReminders::MAX_STEPS), $this->steps($invoice));
+    }
+
+    public function testBelowTheMinimumIsSkipped(): void
+    {
+        $invoice = $this->overdue();
+        // The invoice owes 1,210.00 CZK.
+        $this->switchOn(minimum: Money::of('1210.01', Currency::CZK));
+
+        $this->runOn('2027-01-17 09:00:00');
+        self::assertSame([], $this->reminders($invoice));
+
+        $this->switchOn(minimum: Money::of('1210.00', Currency::CZK));
+        $this->runOn('2027-01-17 09:00:00');
+        self::assertSame([1], $this->steps($invoice), 'exactly the minimum is reminded');
+    }
+
+    public function testAnotherCurrencyIgnoresTheMinimum(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn(minimum: Money::of('100000', Currency::EUR));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([1], $this->steps($invoice));
+    }
+
+    public function testContactFlagOffIsSkipped(): void
+    {
+        $this->reminding($this->customer, false);
+        $invoice = $this->overdue();
+        $this->switchOn();
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($invoice));
+    }
+
+    public function testDueBeforeSwitchOnIsSkipped(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn(on: '2027-01-11');
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($invoice));
+    }
+
+    public function testNotDeliveredIsSkipped(): void
+    {
+        $invoice = $this->issue->issue($this->input(overrides: ['dueDate' => new \DateTimeImmutable(self::DUE)]));
+        $this->switchOn();
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($invoice));
+    }
+
+    public function testSettledIsSkipped(): void
+    {
+        $paid = $this->overdue();
+        $open = $this->overdue();
+        $this->balances->pay($paid->id());
+        $this->switchOn();
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($paid));
+        self::assertSame([1], $this->steps($open));
+    }
+
+    public function testAnInvoicePaidInFullIsNeitherPreviewedNorReminded(): void
+    {
+        $paid = $this->overdue();
+        $overpaid = $this->overdue();
+        $open = $this->overdue();
+        $this->pay($paid, '1210.00');
+        $this->pay($overpaid, '1300.00');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
+        self::assertSame([$open->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($paid));
+        self::assertSame([], $this->reminders($overpaid));
+        self::assertSame([1], $this->steps($open));
+    }
+
+    public function testAPaymentRemovedAgainMakesTheInvoiceDueOnceMore(): void
+    {
+        $invoice = $this->overdue();
+        $payment = $this->pay($invoice, '1210.00');
+        $this->switchOn();
+        $this->runOn('2027-01-17 09:00:00');
+        self::assertSame([], $this->reminders($invoice));
+
+        self::getContainer()->get(CancelPayment::class)->cancel($payment);
+        $this->runOn('2027-01-18 09:00:00');
+
+        self::assertSame([1], $this->steps($invoice));
+    }
+
+    public function testAPartPaidInvoiceIsRemindedOfWhatIsLeft(): void
+    {
+        $invoice = $this->overdue();
+        $this->pay($invoice, '210.00');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
+        self::assertCount(1, $rows);
+        self::assertSame([121000, 21000], [$rows[0]->payable->minor(), $rows[0]->paid->minor()]);
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        $reminder = $this->reminders($invoice)[0];
+        $body = self::text($reminder, 'body');
+        self::assertStringContainsString("Zbývá uhradit: **1\u{a0}000,00\u{a0}Kč**", $body);
+        self::assertStringNotContainsString("1\u{a0}210,00", $body);
+        self::assertStringContainsString('*AM:1000.00*', self::text($reminder, 'payment_code'), 'the QR code asks for what is left');
+        $pdf = PdfTools::text((string) file_get_contents($this->sentDocumentsDir().'/'.self::text($reminder, 'pdf_key')));
+        self::assertStringContainsString('Zbývá uhradit', $pdf);
+        self::assertStringContainsString('1 000,00 Kč', $pdf);
+        self::assertStringContainsString('Celkem k úhradě: 1 210,00 Kč', $pdf, 'the totals stay those of the invoice');
+    }
+
+    public function testAnInvoiceSendOfAPartPaidInvoiceStillAsksForTheWhole(): void
+    {
+        $invoice = $this->overdue();
+        $this->pay($invoice, '210.00');
+
+        $send = $this->sent($invoice);
+
+        self::assertStringContainsString('*AM:1210.00*', self::text($this->row($send->id()), 'payment_code'));
+    }
+
+    public function testHundredsOfSkippedInvoicesAheadDoNotHoldBackOneThatIsDue(): void
+    {
+        $source = $this->overdue('2027-01-09');
+        $this->balances->pay($source->id());
+        // More than one firm's daily batch, all due before it: paid ones and ones below the minimum.
+        foreach (InvoiceCopies::of($this->connection, $source->id(), 300) as $paid) {
+            $this->balances->pay($paid);
+        }
+        InvoiceCopies::of($this->connection, $source->id(), 300, ['payable_minor' => 100_00]);
+        $due = $this->overdue();
+        $this->switchOn(minimum: Money::of('500', Currency::CZK));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([1], $this->steps($due));
+        self::assertSame(1, $this->sendCount(), 'only the one that owes enough');
+    }
+
+    public function testThePreviewLooksPastInvoicesThatOweNothing(): void
+    {
+        $source = $this->overdue('2027-01-09');
+        $this->balances->pay($source->id());
+        foreach (InvoiceCopies::of($this->connection, $source->id(), 520) as $paid) {
+            $this->balances->pay($paid);
+        }
+        $due = $this->overdue();
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
+
+        self::assertSame([$due->id()], array_map(static fn (InvoiceRow $row): string => $row->id, $rows));
+    }
+
+    public function testTomorrowListsEveryInvoiceDueForAReminderAsOverdue(): void
+    {
+        $later = $this->overdue();
+        $earlier = $this->overdue('2027-01-09');
+        $this->switchOn();
+        self::mockTime('2027-01-16 09:00:00');
+        $this->em->clear();
+
+        $rows = self::getContainer()->get(ReminderPreview::class)->tomorrow();
+
+        self::assertSame([[$earlier->id(), true], [$later->id(), true]], array_map(static fn (InvoiceRow $row): array => [$row->id, $row->overdue], $rows));
+    }
+
+    public function testAnInvoiceDueTodayIsNotOverdueYetInThePlan(): void
+    {
+        $invoice = $this->overdue('2027-01-20');
+        $this->switchOn(enabled: false);
+        self::mockTime('2027-01-20 09:00:00');
+        $this->em->clear();
+
+        $planned = self::getContainer()->get(ReminderPreview::class)->ifSwitchedOnToday();
+
+        self::assertCount(1, $planned);
+        self::assertSame([$invoice->id(), false, '2027-01-27'], [$planned[0]->invoice->id, $planned[0]->invoice->overdue, $planned[0]->on->format('Y-m-d')]);
+    }
+
+    public function testAReminderTakesNoCopyForTheFirm(): void
+    {
+        $this->contactEmail('office@example.com');
+        $invoice = $this->overdue();
+        $this->switchOn();
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        $reminders = $this->reminders($invoice);
+        self::assertCount(1, $reminders);
+        self::assertNull($reminders[0]['copy_to'], 'a reminder goes without a copy');
+    }
+
+    public function testSwitchedOffSendsNothing(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+        $this->switchOn(enabled: false);
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($invoice));
+        self::assertSame(0, $this->sendCount());
+    }
+
+    public function testGateClosedSendsNothing(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+        // Balances that know no payments.
+        $container = self::getContainer();
+        $balances = new UnauthoritativeBalances($this->balances);
+        $container->set(DoctrineReminderSettings::class, new DoctrineReminderSettings($container->get('doctrine.orm.entity_manager'), $balances));
+
+        $this->runOn('2027-01-17 09:00:00');
+
+        self::assertSame([], $this->reminders($invoice));
+    }
+
+    public function testAMissedDaySendsOneReminderNotTwo(): void
+    {
+        $invoice = $this->overdue();
+        $this->switchOn();
+
+        // The worker was down: the first reminder was due on the 17th and the second on the 24th.
+        $this->runOn('2027-01-31 09:00:00');
+        self::assertSame([1], $this->steps($invoice));
+
+        // A second run on the same day sends nothing more.
+        $this->runOn('2027-01-31 15:00:00');
+        self::assertSame([1], $this->steps($invoice));
+
+        $this->runOn('2027-02-07 09:00:00');
+        self::assertSame([1, 2], $this->steps($invoice));
+    }
+
+    public function testReminderUsesTheReminderTemplateInTheDocumentLanguage(): void
+    {
+        $english = $this->overdue(language: DocumentLanguage::English);
+        $czech = $this->overdue();
+        self::getContainer()->get(MailTemplates::class)->save(MailTemplateKind::Reminder, DocumentLanguage::English, 'Reminder {reminder_step}: {number}', "{days_overdue} days overdue, {amount_due} to pay.\n{link}");
+        $this->em->flush();
+        $this->switchOn();
+
+        $this->runOn('2027-01-18 09:00:00');
+
+        $reminder = $this->reminders($english)[0];
+        self::assertSame('Reminder 1: '.$english->number(), $reminder['subject']);
+        self::assertSame("8 days overdue, 1,210.00\u{a0}CZK to pay.\n{link}", $reminder['body']);
+        self::assertSame('en', $reminder['language']);
+        $builtIn = $this->reminders($czech)[0];
+        self::assertSame('Připomínka platby faktury '.$czech->number(), $builtIn['subject'], 'the built-in Czech reminder text');
+        self::assertStringContainsString("1\u{a0}210,00\u{a0}Kč", self::text($builtIn, 'body'));
+    }
+
+    public function testAReminderDoesNotLockTheNumberTwice(): void
+    {
+        $invoice = $this->overdue();
+        $before = $this->invoiceRow($invoice);
+        $this->switchOn();
+        $this->runOn('2027-01-17 09:00:00');
+
+        $this->worker->run();
+        $this->em->clear();
+
+        self::assertSame('sent', $this->reminders($invoice)[0]['status']);
+        self::assertSame($before, $this->invoiceRow($invoice), 'delivered once, when the invoice itself went: version and moment stay');
+        self::assertCount(1, $this->gateway->messages());
+    }
+
+    public function testASecondSendOfAStepIsRefused(): void
+    {
+        $invoice = $this->overdue();
+        $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]);
+
+        $reason = $this->refusalOfSend(fn (): InvoiceSend => $this->sent($invoice, ['purpose' => SendPurpose::Reminder, 'reminderStep' => 1]));
+
+        self::assertSame(SendRefused::REMINDER_TAKEN, $reason);
+        self::assertSame([1], $this->steps($invoice));
+    }
+
+    /**
+     * A payment recorded by hand on the day after issue, as the payments dialog records it.
+     *
+     * @return string the payment's id
+     */
+    private function pay(Invoice $invoice, string $amount): string
+    {
+        $czk = Money::of($amount, Currency::CZK);
+        $payment = self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-02'), $czk, PaymentMethod::BankTransfer, PaymentSource::Manual, null, '', [new AllocationRequest($invoice->id(), $czk)]));
+        $this->em->clear();
+
+        return $payment->id();
+    }
+
+    private function runOn(string $moment): void
+    {
+        self::mockTime($moment);
+        $this->em->clear();
+        self::getContainer()->get(SendReminders::class)->run(null);
+        $this->em->clear();
+    }
+
+    private function overdue(string $due = self::DUE, DocumentLanguage $language = DocumentLanguage::Czech): Invoice
+    {
+        $invoice = $this->issue->issue($this->input(overrides: ['dueDate' => new \DateTimeImmutable($due), 'language' => $language]));
+
+        return $this->delivered->mark($invoice->id());
+    }
+
+    private function switchOn(int $first = 7, int $every = 7, ?Money $minimum = null, string $on = '2027-01-01', bool $enabled = true): void
+    {
+        $settings = $this->em->getRepository(FirmReminders::class)->findOneBy([]) ?? FirmReminders::standard();
+        $settings->change($enabled, $first, $every, $minimum, new \DateTimeImmutable($on));
+        $this->em->persist($settings);
+        $this->em->flush();
+    }
+
+    private function reminding(Party $customer, bool $send): void
+    {
+        $customer->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
+        $this->em->flush();
+    }
+
+    /**
+     * A reminder sent before this test's runs, stored as the run stores it.
+     */
+    private function pastReminder(Invoice $invoice, int $step, string $at): void
+    {
+        $invoice = $this->store->get($invoice->id());
+        $hash = str_pad((string) ++$this->hashes, 64, '0', \STR_PAD_LEFT);
+        $this->em->persist(InvoiceSend::queue(Id::generate(), $invoice, ['billing@example.com'], [], null, 'Reminder', 'Body {link}', null, new \DateTimeImmutable($at), $hash, null, 'sent/'.$hash.'.pdf', $hash, purpose: SendPurpose::Reminder, reminderStep: $step));
+        $this->em->flush();
+    }
+
+    /**
+     * @return list<array<string, mixed>> oldest step first
+     */
+    private function reminders(Invoice $invoice): array
+    {
+        return $this->connection->fetchAllAssociative("SELECT * FROM invoice_send WHERE invoice_id = ? AND purpose = 'reminder' ORDER BY reminder_step", [$invoice->id()]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function steps(Invoice $invoice): array
+    {
+        return array_map(static fn (array $row): int => self::integer($row, 'reminder_step'), $this->reminders($invoice));
+    }
+}
