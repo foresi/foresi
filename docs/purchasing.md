@@ -88,6 +88,19 @@ A save that went through tells its warnings in a notice. A warning never stops t
 - **Deduction deadline near.** The latest deduction date is at most 60 days away.
 - **Simplified receipt over the limit.** A simplified receipt above 10,000 CZK with VAT (at the document's rate for another currency).
 
+## The Plan panel
+
+With Cash flow installed, the page of a recorded received document shows a **Plan** panel between its figures and its history, and recording a document lets Cash flow pair it with the occurrence of a planned item of its supplier (see [Pairing documents with planned occurrences](cash-flow.md#pairing-documents-with-planned-occurrences)). Credit notes pair with planned income. Owners and members see it.
+
+- **Paired automatically**: "Paired with *item* · 11/2026 (automatically)" and **Unpair**.
+- **Confirmed**: the same without "(automatically)", and **Unpair**.
+- **Proposed**: the items and months it may belong to, each with **Confirm**, and in the panel header **Another item…** (a dialog that picks an item and the day of its occurrence among those two months either side of the document) and **Do not pair**.
+- **Not paired**: "Not paired" with **Pair…**, or, when Cash flow found nothing, "No planned item matches yet" with **Pair…**.
+
+**Unpair** and **Do not pair** say the document belongs to no occurrence, and Cash flow never pairs it again on its own; **Pair…** and **Confirm** bring it back. A refusal, such as a day the item does not fall on, is told above the page.
+
+The list of received documents offers the condition **Pairing to confirm** in **+ Filter**: the documents Cash flow proposes occurrences for and waits for a person to decide. Like any condition it can be part of a saved view.
+
 ## Trash and restore
 
 **Move to trash** in the page header of a recorded or draft document asks for a reason in a dialog. The document keeps its number, its values and its file; the trash records who, when and why. Nothing in a trashed document can be changed until it is restored, and the **Trash** tab lists it with its reason. **Restore from the trash** brings it back as it was, with the same evidence number.
