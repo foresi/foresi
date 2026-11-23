@@ -21,8 +21,6 @@ use Foresi\Shared\Domain\Money;
  */
 final readonly class Allocation
 {
-    private const string PERCENT = '/^(?:100|[1-9]?\d)(?:\.\d{1,2})?$/';
-
     /**
      * @param list<AllocationShare> $shares
      *
@@ -103,16 +101,13 @@ final readonly class Allocation
     {
         $sum = 0;
         foreach ($this->shares as $share) {
-            if (null === $share->percent || null !== $share->amountCzk || $share->rest || 1 !== preg_match(self::PERCENT, $share->percent)) {
-                throw $this->notHundred();
-            }
-            $hundredths = (int) round((float) $share->percent * 100);
-            if ($hundredths <= 0) {
+            $hundredths = null === $share->percent ? null : Percent::hundredths($share->percent);
+            if (null === $hundredths || null !== $share->amountCzk || $share->rest || $hundredths <= 0) {
                 throw $this->notHundred();
             }
             $sum += $hundredths;
         }
-        if (\count($this->shares) < 2 || 10000 !== $sum) {
+        if (\count($this->shares) < 2 || Percent::WHOLE !== $sum) {
             throw $this->notHundred();
         }
     }

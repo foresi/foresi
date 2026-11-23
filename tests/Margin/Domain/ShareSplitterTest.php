@@ -42,6 +42,18 @@ final class ShareSplitterTest extends TestCase
         self::assertSame([self::CLIENT_A.'=333300', self::CLIENT_B.'=333300', 'own=333400'], $this->split($allocation, '10000'));
     }
 
+    public function testPercentOfAnOddAmountIsExactAndAddsUpToTheBase(): void
+    {
+        $allocation = new Allocation(AllocationKind::Percent, [
+            new AllocationShare(Recipient::client(self::CLIENT_A), '33.33'),
+            new AllocationShare(Recipient::client(self::CLIENT_B), '33.33'),
+            new AllocationShare(Recipient::own(), '33.34'),
+        ]);
+
+        // 9,999.99 CZK = 999,999 hellers: floor(333,299.67) = 333,299 twice, the last takes 333,401.
+        self::assertSame([self::CLIENT_A.'=333299', self::CLIENT_B.'=333299', 'own=333401'], $this->split($allocation, '9999.99'));
+    }
+
     public function testPercentKeepsTheTypedOrderWhateverTheSizes(): void
     {
         $allocation = new Allocation(AllocationKind::Percent, [

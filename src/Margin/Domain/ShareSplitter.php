@@ -60,8 +60,8 @@ final readonly class ShareSplitter
         $amounts = [];
         $given = 0;
         foreach ($allocation->shares as $share) {
-            $hundredths = (int) round((float) $share->percent * 100);
-            $amount = BigInteger::of($size)->multipliedBy($hundredths)->quotient(10000)->toInt();
+            $hundredths = Percent::hundredths((string) $share->percent) ?? 0;
+            $amount = BigInteger::of($size)->multipliedBy($hundredths)->quotient(Percent::WHOLE)->toInt();
             $amounts[] = $amount;
             $given += $amount;
         }
