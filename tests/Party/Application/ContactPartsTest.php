@@ -31,6 +31,7 @@ use Foresi\Tests\Party\Application\Query\ContactTestCase;
  * change them: what is entered is trimmed, each limit takes exactly its number
  * of characters, every wrong field is named at once, a guest is refused before
  * anything else, and each change tells the listeners that the contact changed.
+ * The tests that need the Czech rules are in Integration/Country.
  */
 final class ContactPartsTest extends ContactTestCase
 {
@@ -106,41 +107,6 @@ final class ContactPartsTest extends ContactTestCase
         // The person's side of the link is not the person's own link to move.
         $this->assertPartyRefused(fn () => $this->persons()->makePrimary($link->person(), $link->id()));
         self::assertFalse($link->isPrimary());
-    }
-
-    // Bank accounts
-
-    public function testTheFirstAccountIsPrimaryAndItsValuesAreTrimmed(): void
-    {
-        $party = $this->contact('Alpha Example');
-
-        $account = $this->accounts()->add($party, ' 19-2000145399/0800 ', ' komb cz pp ', ' '.str_repeat('ů', 100).' ', false);
-
-        self::assertSame(self::IBAN, $account->iban()->toString());
-        self::assertSame('KOMBCZPP', $account->bic());
-        self::assertSame(str_repeat('ů', 100), $account->label());
-        self::assertTrue($account->isPrimary());
-        self::assertSame([$party->id()], $this->events());
-
-        $second = $this->accounts()->add($party, self::OTHER_IBAN, '', '', false);
-        self::assertFalse($second->isPrimary());
-        self::assertNull($second->bic());
-    }
-
-    public function testADomesticNumberIsReadForTheBillingCountry(): void
-    {
-        $german = $this->contact('Beta Example');
-        $this->em->persist($billing = $this->details()->billingAddress($german) ?? self::fail());
-        $billing->relocate(new Address('Example Street 1', 'Example City', '10115', 'DE'));
-        $this->em->flush();
-
-        self::assertSame(['number' => 'account_number'], $this->refused(fn (): PartyBankAccount => $this->accounts()->add($german, '19-2000145399/0800', '', '', false)));
-
-        // With no billing address, any country module reads the number.
-        $nowhere = new Party(PartyKind::Company, 'Gamma Example', new RegistrationNumber('CZ', '12345679'), null, '');
-        $this->em->persist($nowhere);
-        $this->em->flush();
-        self::assertSame(self::IBAN, $this->accounts()->add($nowhere, '19-2000145399/0800', '', '', false)->iban()->toString());
     }
 
     public function testAnAccountRefusesEveryWrongFieldAtOnce(): void

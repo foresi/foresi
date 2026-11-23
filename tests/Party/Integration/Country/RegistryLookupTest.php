@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Party\Integration\Country;
 
 use Foresi\Country\CzechRepublic\Party\CzechRegistrationNumberValidator;
 use Foresi\Party\Application\CompanyRegistry;

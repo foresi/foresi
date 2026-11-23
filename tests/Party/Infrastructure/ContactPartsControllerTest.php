@@ -28,6 +28,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 /**
  * The tabs of a contact add their contact persons, bank accounts and addresses
  * in dialogs, which are pages too, and change them with row actions.
+ * The tests that need the Czech rules are in Integration/Country.
  */
 final class ContactPartsControllerTest extends WebTestCase
 {
@@ -165,29 +166,6 @@ final class ContactPartsControllerTest extends WebTestCase
         self::assertSelectorNotExists('#contact-person-add');
         $this->client->request('GET', '/contacts/'.$person->id().'/persons/new');
         self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testADomesticAccountNumberIsStoredAsAnIbanAndTheFirstIsPrimary(): void
-    {
-        $this->signIn();
-        $company = $this->party('Example Company');
-
-        $crawler = $this->client->request('GET', '/contacts/'.$company->id().'/bank-accounts/new');
-        $this->client->submit($crawler->filter('#contact-account-form')->form(['number' => '19-2000145399/0800', 'bic' => 'gibaczpx', 'label' => 'Main']));
-        self::assertResponseRedirects('/contacts/'.$company->id().'?tab=bank-accounts');
-        $this->client->followRedirect();
-        self::assertSelectorTextContains('main table', 'CZ65 0800 0000 1920 0014 5399');
-        self::assertSelectorTextContains('main table', 'GIBACZPX');
-        self::assertSelectorTextContains('main table', 'Primary');
-
-        // The same account again, or a number that is none, is refused at the field.
-        foreach ([self::IBAN => 'The contact has this account already.', '123' => 'Enter an IBAN or a domestic account number with a bank code.'] as $number => $message) {
-            $crawler = $this->client->request('GET', '/contacts/'.$company->id().'/bank-accounts/new');
-            $this->client->submit($crawler->filter('#contact-account-form')->form(['number' => (string) $number]));
-            self::assertResponseStatusCodeSame(422);
-            self::assertSelectorTextContains('#number-error', $message);
-        }
-        self::assertSame(1, $this->rows(PartyBankAccount::class));
     }
 
     public function testAnAccountIsEditedMadePrimaryAndDeleted(): void
