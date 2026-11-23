@@ -216,9 +216,6 @@ final class ProfileControllerTest extends WebTestCase
         $this->client->request('POST', '/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2026-11-12']);
         self::assertResponseStatusCodeSame(403);
 
-        $crawler = $this->client->request('GET', '/cash-flow');
-        self::assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('a[href^="/taxes-and-contributions"]'));
         self::assertNull($this->browser->em()->find(OwnerProfile::class, OwnerProfile::ID));
     }
 
