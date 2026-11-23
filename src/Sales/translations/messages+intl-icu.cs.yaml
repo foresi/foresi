@@ -82,7 +82,7 @@ sales:
             client: Klient
             client_placeholder: Hledat v adresáři
             client_empty: Žádný kontakt neodpovídá.
-            client_linked_help: Klienta jde změnit, až odeberete propojení s ostatními obchody.
+            client_linked_help: Klienta změníte, až odeberete propojení obchodů.
             contact_persons: Kontaktní osoby
             owner: Vlastník
             stage: Fáze

@@ -82,7 +82,7 @@ sales:
             client: Client
             client_placeholder: Search the address book
             client_empty: No contact matches.
-            client_linked_help: The client changes once the links to other deals are removed.
+            client_linked_help: Remove the links to other deals to change the client.
             contact_persons: Contact persons
             owner: Owner
             stage: Stage
