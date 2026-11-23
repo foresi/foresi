@@ -6,17 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 This file ends at 0.5.0. Since then every merged change that users notice is released on its own, and its notes are on the [GitHub releases](https://github.com/foresi/foresi/releases) and at [foresi.app](https://foresi.app/).
 
-## [Unreleased]
-
-### Added
-
-- Sales: deals with stages (Inquiry, Meeting, Proposal, Negotiation, kept under Settings → Sales), open, won and lost status with lost reasons, lines copied from the catalog or typed in, and a value per currency, one-off and monthly, never converted, shown with an ≈ when a weekly or daily line is counted as months. A deal can follow from another deal of the same client, and the page of a contact has a Deals tab. Documents and Activities appear on a deal when those modules are installed. Staff only, with the REST API (`sales:read`, `sales:write`), the MCP tools and the events `sales.deal.*`. See [docs/sales.md](docs/sales.md).
-- The new document and new activity screens accept several links, `links[]=kind:id`, repeated, beside `link_kind` and `link_id`, which still work.
-
-### Upgrading
-
-- Sales adds the tables `sales_stage`, `sales_lost_reason`, `sales_deal`, `sales_deal_contact`, `sales_deal_line` and `sales_deal_link`; run `bin/console doctrine:migrations:migrate`. It seeds the stages and lost reasons. API tokens need the new scope `sales:read` or `sales:write` to use it.
-
 ## [0.5.0] - 2026-11-18
 
 The first release with invoices.
