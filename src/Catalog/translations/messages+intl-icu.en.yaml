@@ -43,7 +43,7 @@ catalog:
     field:
       name: Name
       unit: Unit
-      unit_help: Such as hour, piece or month. A product billed by the hour has the unit h.
+      unit_help: Such as hour, piece or month; always h for hourly.
       unit_price: Price per unit
       unit_price_help: Without VAT; leave empty when the price is agreed each time.
       currency: Currency

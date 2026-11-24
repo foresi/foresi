@@ -43,7 +43,7 @@ catalog:
     field:
       name: Název
       unit: Jednotka
-      unit_help: Třeba hodina, kus nebo měsíc. Produkt účtovaný po hodinách má jednotku h.
+      unit_help: Třeba hodina, kus nebo měsíc; hodinově vždy h.
       unit_price: Cena za jednotku
       unit_price_help: Bez DPH; nechte prázdné, když se cena dohodne pokaždé.
       currency: Měna
