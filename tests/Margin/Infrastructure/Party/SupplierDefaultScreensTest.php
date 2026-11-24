@@ -20,6 +20,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
@@ -43,6 +44,8 @@ final class SupplierDefaultScreensTest extends WebTestCase
         Clock::set(new MockClock('2026-12-10 09:00:00', 'UTC'));
         $this->client = self::createClient();
         $this->client->disableReboot();
+        // The instance counts months in Prague, also with only the modules Margin requires.
+        InstanceZone::set(self::getContainer());
         $this->browser = new SignedInBrowser($this->client, self::getContainer()->get('doctrine.orm.entity_manager'));
     }
 
@@ -199,7 +202,6 @@ final class SupplierDefaultScreensTest extends WebTestCase
     {
         $this->browser->seed('en', $role);
         $em = $this->browser->em();
-        // The firm is in Czechia, which sets the zone of the instance.
         $em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->supplier = new Party(PartyKind::Company, 'Cloud Host s.r.o.', new RegistrationNumber('CZ', '11223344'), null, '');
         $this->clientA = new Party(PartyKind::Company, 'Client A s.r.o.', new RegistrationNumber('CZ', '27082440'), null, '');
