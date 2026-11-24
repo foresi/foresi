@@ -7,31 +7,60 @@
 declare(strict_types=1);
 
 use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Application\InboundFiles;
 use Foresi\Mail\Application\InboundMailbox;
+use Foresi\Mail\Application\InboundPurposes;
+use Foresi\Mail\Application\IssueAddresses;
+use Foresi\Mail\Application\MailMessages;
+use Foresi\Mail\Application\MailParts;
 use Foresi\Mail\Application\MailReader;
+use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\PollFailures;
+use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\StoredMessages;
 use Foresi\Mail\Application\TrustSettings;
+use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\InboundPurpose;
+use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Infrastructure\CachePollFailures;
+use Foresi\Mail\Infrastructure\Doctrine\DoctrineInboundAddresses;
+use Foresi\Mail\Infrastructure\Doctrine\DoctrineMailMessages;
+use Foresi\Mail\Infrastructure\Doctrine\DoctrineMailTransaction;
 use Foresi\Mail\Infrastructure\Files\DiskInboundFiles;
 use Foresi\Mail\Infrastructure\Imap\ImapInboundMailbox;
 use Foresi\Mail\Infrastructure\Mime\ZbatesonMailReader;
 use Foresi\Tests\Support\Mail\FailingInboundFiles;
 use Foresi\Tests\Support\Mail\FakeInboundMailbox;
+use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\inline_service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /*
  * The services of the Mail module, loaded by Foresi\Mail\MailBundle.
  */
-return static function (ContainerConfigurator $container): void {
+return static function (ContainerConfigurator $container, ContainerBuilder $builder): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Mail\\', '../')
         ->exclude(['../config/', '../Integration/', '../migrations/', '../MailBundle.php']);
+
+    // A module takes the mail of its own addresses by registering a purpose.
+    $builder->registerForAutoconfiguration(InboundPurpose::class)->addTag('app.mail_inbound_purpose');
+    $services->set(InboundPurposes::class)
+        ->arg('$purposes', tagged_iterator('app.mail_inbound_purpose'));
+
+    $services->alias(MailMessages::class, DoctrineMailMessages::class);
+    $services->alias(InboundAddressStore::class, DoctrineInboundAddresses::class);
+    $services->alias(MailTransaction::class, DoctrineMailTransaction::class);
+    $services->alias(MailParts::class, ZbatesonMailReader::class);
+    $services->alias(Messages::class, StoredMessages::class);
+    $services->alias(AddressIssuer::class, IssueAddresses::class);
 
     // Raw mail as it arrived; never below public/. Back it up with the database.
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');
@@ -72,10 +101,20 @@ return static function (ContainerConfigurator $container): void {
         // The poller's failure counts in memory, so no test leaves them for the next.
         $services->set(CachePollFailures::class)
             ->arg('$cache', inline_service(ArrayAdapter::class));
+        // Purposes of the Mail tests, one that never shows its addresses again and one that does.
+        $services->set('test.mail_purpose', RecordingPurpose::class)
+            ->args([RecordingPurpose::KEY, false]);
+        $services->set('test.mail_purpose_reshowable', RecordingPurpose::class)
+            ->args([RecordingPurpose::RESHOWABLE_KEY, true]);
+        // Public for the tests, which drive them directly.
+        $services->alias('test.mail_messages', MailMessages::class)->public();
+        $services->alias('test.mail_address_store', InboundAddressStore::class)->public();
     }
 
     if ('e2e' === $container->env()) {
         // The mail of the seed, gone with the e2e cache that serve.sh starts from.
         $container->parameters()->set('app.inbound_mail_dir', '%kernel.cache_dir%/inbound-mail');
+        // Public handle for tests/e2e/seed.php.
+        $services->alias('e2e.receive_inbound_mail', ReceiveMail::class)->public();
     }
 };

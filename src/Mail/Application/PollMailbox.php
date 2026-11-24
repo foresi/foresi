@@ -6,12 +6,9 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Banking\Application;
+namespace Foresi\Mail\Application;
 
 use Foresi\Instance\Application\Schedule\OperatorTask;
-use Foresi\Mail\Application\InboundMailbox;
-use Foresi\Mail\Application\PollFailures;
-use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
 use Psr\Log\LoggerInterface;
 
@@ -27,15 +24,15 @@ use Psr\Log\LoggerInterface;
  * batch, so a run of bad messages at the head of the inbox never keeps the
  * good ones behind it from being read.
  */
-final readonly class PollBankInbox implements OperatorTask
+final readonly class PollMailbox implements OperatorTask
 {
-    public const string NAME = 'bank-inbox';
+    public const string NAME = 'mail-inbox';
     public const int BATCH = 50;
     public const int MAX_FAILURES = 5;
 
     public function __construct(
         private InboundMailbox $mailbox,
-        private ReceiveInboundMail $receive,
+        private ReceiveMail $receive,
         private LoggerInterface $logger,
         private PollFailures $failures,
     ) {

@@ -1775,7 +1775,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "cf16713cb058581d212fbd4ba614bb48d74847a6"
+                "reference": "8ebad19ef4c6d65940e72d2558a77f6181c13389"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1796,7 +1796,6 @@
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/messenger": "^7.4.23",
-                "symfony/rate-limiter": "7.4.*",
                 "symfony/routing": "^7.4",
                 "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8"
@@ -2064,10 +2063,9 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "897b07e833550f68ac660c05d5c05a7906d97691"
+                "reference": "8eafb8068a126add807815224331315ddaf9bf8d"
             },
             "require": {
-                "foresi/mail": "self.version",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
@@ -2084,6 +2082,7 @@
                         "banking",
                         "exchange-rate",
                         "invoicing",
+                        "mail",
                         "taxes-and-contributions",
                         "vat"
                     ]
@@ -2642,14 +2641,26 @@
             "dist": {
                 "type": "path",
                 "url": "src/Mail",
-                "reference": "c607870d0bd2977ee33e5d1cd7eead42c4e0fe6d"
+                "reference": "42de23a0206dc6ef62c441f832b1f3b9d85e244a"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
+                "foresi/audit": "self.version",
+                "foresi/instance": "self.version",
                 "foresi/shared": "self.version",
                 "psr/cache": "^3.0",
+                "psr/clock": "^1.0",
+                "psr/log": "^3.0",
                 "symfony/cache": "7.4.*",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
                 "zbateson/mail-mime-parser": "^4.0.8"
             },
             "type": "foresi-module",

@@ -14,12 +14,8 @@ use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\ConflictRetry;
-use Foresi\Mail\Application\InboundFiles;
-use Foresi\Mail\Application\MailReader;
-use Foresi\Mail\Application\SenderVerdict;
-use Foresi\Mail\Application\Verdict;
-use Foresi\Mail\Contract\InboundMail;
-use Foresi\Mail\Domain\InboundChannel;
+use Foresi\Mail\Contract\Messages;
+use Foresi\Mail\Contract\SenderCheck;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -63,10 +59,8 @@ final readonly class ProcessMessage
 
     public function __construct(
         private InboundMessages $messages,
-        private InboundFiles $files,
-        private MailReader $reader,
+        private Messages $mail,
         private BankMessageParsers $parsers,
-        private SenderVerdict $authentication,
         private FirmBankAccounts $accounts,
         private RecordMovement $record,
         private PairMovement $pairing,
@@ -133,12 +127,9 @@ final readonly class ProcessMessage
     private function result(ClaimedMessage $message, ?TrustVerdict $accepted): ProcessingResult
     {
         try {
-            $raw = $this->files->read($message->id, $message->rawKey, $message->rawSha256);
+            $mail = $this->mail->mail($message->mailMessageId);
         } catch (\RuntimeException $unreadable) {
             return new ProcessingResult(InboundStatus::Failed, failure: self::RAW_CHANGED, detail: $unreadable->getMessage());
-        }
-        try {
-            $mail = $this->reader->read($raw);
         } catch (\InvalidArgumentException) {
             return new ProcessingResult(InboundStatus::Failed, failure: self::UNREADABLE, detail: 'The stored message is not a mail.');
         }
@@ -151,7 +142,7 @@ final readonly class ProcessMessage
             return new ProcessingResult(InboundStatus::NotBankMail, parserId: $this->parsers->signature());
         }
 
-        $verdict = $accepted ?? $this->trustOf($mail, $parser, $message->channel);
+        $verdict = $accepted ?? $this->trustOf($message->mailMessageId, $parser);
         if (MessageTrust::Failed === $verdict->trust) {
             return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::UNTRUSTED, $verdict->basis);
         }
@@ -183,16 +174,16 @@ final readonly class ProcessMessage
      * parser's bank; the bases are the same. A parser without domains trusts no
      * sender, where Mail would judge a message against its own From domain.
      */
-    private function trustOf(InboundMail $mail, BankMessageParser $parser, InboundChannel $channel): TrustVerdict
+    private function trustOf(string $mailMessageId, BankMessageParser $parser): TrustVerdict
     {
         $domains = $parser->senderDomains();
         if ([] === $domains) {
             return new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER);
         }
-        $verdict = $this->authentication->judge($mail, $channel, $domains);
-        $trust = match ($verdict->result) {
-            Verdict::VERIFIED => MessageTrust::Verified,
-            Verdict::FAILED => MessageTrust::Failed,
+        $verdict = $this->mail->verdict($mailMessageId, $domains);
+        $trust = match ($verdict->verdict) {
+            SenderCheck::VERIFIED => MessageTrust::Verified,
+            SenderCheck::FAILED => MessageTrust::Failed,
             default => MessageTrust::Unverified,
         };
 

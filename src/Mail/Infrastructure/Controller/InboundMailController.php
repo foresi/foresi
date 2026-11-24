@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Banking\Infrastructure\Controller;
+namespace Foresi\Mail\Infrastructure\Controller;
 
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Infrastructure\Security\PublicRoute;
@@ -31,7 +31,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * budget is spent, which keeps guessing slow; it is never what stops the real
  * relay, which often shares its address with strangers, so a request with the
  * secret only counts against a budget of its own, per client address, high enough
- * for any bank. A secret of 256 random bits is not guessed anyway. Stateless: no
+ * for any relay. A secret of 256 random bits is not guessed anyway. Stateless: no
  * session and no user of a request. Never log the secret or the recipient.
  */
 #[AsController]
@@ -41,7 +41,7 @@ final readonly class InboundMailController
     public const string RECIPIENT_HEADER = 'X-Foresi-Recipient';
 
     public function __construct(
-        private ReceiveInboundMail $receive,
+        private ReceiveMail $receive,
         #[Autowire('%env(string:INBOUND_WEBHOOK_SECRET)%')]
         private string $secret,
         #[Autowire(service: 'limiter.inbound_mail')]
@@ -67,15 +67,15 @@ final readonly class InboundMailController
             return new Response('', Response::HTTP_TOO_MANY_REQUESTS);
         }
         $length = $request->headers->get('Content-Length');
-        if (null !== $length && is_numeric($length) && (int) $length > ReceiveInboundMail::MAX_BYTES) {
+        if (null !== $length && is_numeric($length) && (int) $length > ReceiveMail::MAX_BYTES) {
             return new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
         }
         // A chunked body states no length: one byte past the limit is read, never the rest.
-        $raw = stream_get_contents($request->getContent(true), ReceiveInboundMail::MAX_BYTES + 1);
+        $raw = stream_get_contents($request->getContent(true), ReceiveMail::MAX_BYTES + 1);
         if (false === $raw) {
             return new Response('', Response::HTTP_BAD_REQUEST);
         }
-        if (\strlen($raw) > ReceiveInboundMail::MAX_BYTES) {
+        if (\strlen($raw) > ReceiveMail::MAX_BYTES) {
             return new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
         }
         $recipient = $request->headers->get(self::RECIPIENT_HEADER);

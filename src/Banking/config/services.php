@@ -17,7 +17,6 @@ use Foresi\Banking\Application\Matcher;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\PendingChanges;
-use Foresi\Banking\Application\ReceiveInboundMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\UnpairMovement;
 use Foresi\Banking\Contract\BankMessageParser;
@@ -69,6 +68,5 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias('e2e.record_movement', RecordMovement::class)->public();
         $services->alias('e2e.pair_movement', PairMovement::class)->public();
         $services->alias('e2e.generate_address', GenerateAddress::class)->public();
-        $services->alias('e2e.receive_inbound_mail', ReceiveInboundMail::class)->public();
     }
 };

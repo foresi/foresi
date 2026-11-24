@@ -183,7 +183,7 @@ final class ModuleBundleTest extends KernelTestCase
         yield 'attachment' => [AttachmentBundle::class, 'prod', ['Attachment'], []];
         yield 'ui' => [UiBundle::class, 'prod', [], []];
         yield 'banking' => [BankingBundle::class, 'prod', ['Banking'], [ProcessInboundMessage::class => 'async']];
-        yield 'mail' => [MailBundle::class, 'prod', [], []];
+        yield 'mail' => [MailBundle::class, 'prod', ['Mail'], []];
         yield 'cash flow' => [CashFlowBundle::class, 'prod', ['CashFlow'], []];
         yield 'country' => [CountryBundle::class, 'prod', [], []];
         yield 'exchange rate' => [ExchangeRateBundle::class, 'prod', ['ExchangeRate'], []];

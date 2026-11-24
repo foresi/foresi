@@ -9,12 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 /**
- * Finds the feed of an inbound address by the hash of its token alone.
+ * Finds the feed of a Mail inbound address by its id alone.
  */
 interface BankFeedDirectory
 {
     /**
-     * @param string $tokenHash see InboundToken::hash()
+     * @return FeedRoute|null null for an address of no feed, and for the feed of an archived account
      */
-    public function route(string $tokenHash): ?FeedRoute;
+    public function route(string $addressId): ?FeedRoute;
 }

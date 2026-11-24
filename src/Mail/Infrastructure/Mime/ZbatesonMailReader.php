@@ -8,11 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Mail\Infrastructure\Mime;
 
+use Foresi\Mail\Application\MailParts;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Contract\InboundMail;
+use Foresi\Mail\Contract\MailAttachment;
+use Foresi\Mail\Contract\MailAttachmentContent;
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\DateHeader;
 use ZBateson\MailMimeParser\IMessage;
+use ZBateson\MailMimeParser\Message\IMessagePart;
 use ZBateson\MailMimeParser\MailMimeParser;
 
 /**
@@ -28,7 +32,7 @@ use ZBateson\MailMimeParser\MailMimeParser;
  * the library throws, there or later, the mail is unreadable, never an error that
  * stops the worker or the poller.
  */
-final class ZbatesonMailReader implements MailReader
+final class ZbatesonMailReader implements MailReader, MailParts
 {
     private const string FIRST_HEADER = '/\A[\x21-\x39\x3B-\x7E]+[ \t]*:/';
 
@@ -47,6 +51,75 @@ final class ZbatesonMailReader implements MailReader
 
         try {
             return $this->mail(($this->parser ??= new MailMimeParser())->parse($raw, false), $raw);
+        } catch (\InvalidArgumentException $unreadable) {
+            throw $unreadable;
+        } catch (\Throwable $error) {
+            throw new \InvalidArgumentException('The mail could not be read.', 0, $error);
+        }
+    }
+
+    public function attachments(string $raw): array
+    {
+        $attachments = [];
+        foreach ($this->parts($raw) as $index => $part) {
+            $attachments[] = new MailAttachment($index, $this->nameOf($part, $index), $this->typeOf($part), \strlen($this->bytesOf($part)));
+        }
+
+        return $attachments;
+    }
+
+    public function attachment(string $raw, int $index): MailAttachmentContent
+    {
+        $part = $this->parts($raw)[$index] ?? throw new \OutOfRangeException('The mail has no attachment at this index.');
+
+        return new MailAttachmentContent($this->nameOf($part, $index), $this->typeOf($part), $this->bytesOf($part));
+    }
+
+    /**
+     * @return list<IMessagePart>
+     */
+    private function parts(string $raw): array
+    {
+        if (1 !== preg_match(self::FIRST_HEADER, $raw)) {
+            throw new \InvalidArgumentException('The bytes do not start with a mail header.');
+        }
+
+        return $this->guarded(fn (): array => array_values(($this->parser ??= new MailMimeParser())->parse($raw, false)->getAllAttachmentParts()));
+    }
+
+    private function nameOf(IMessagePart $part, int $index): string
+    {
+        $name = $this->guarded(static fn (): ?string => $part->getFilename());
+
+        return null === $name || '' === trim($name) ? 'attachment-'.($index + 1) : trim($name);
+    }
+
+    /**
+     * The bytes with the transfer encoding undone and no charset converted.
+     */
+    private function bytesOf(IMessagePart $part): string
+    {
+        return $this->guarded(static fn (): string => (string) ($part->getBinaryContentStream() ?? ''));
+    }
+
+    private function typeOf(IMessagePart $part): string
+    {
+        return strtolower($this->guarded(static fn (): string => $part->getContentType('application/octet-stream')));
+    }
+
+    /**
+     * Whatever the library throws while decoding lazily makes the mail unreadable.
+     *
+     * @template T
+     *
+     * @param \Closure(): T $read
+     *
+     * @return T
+     */
+    private function guarded(\Closure $read): mixed
+    {
+        try {
+            return $read();
         } catch (\InvalidArgumentException $unreadable) {
             throw $unreadable;
         } catch (\Throwable $error) {

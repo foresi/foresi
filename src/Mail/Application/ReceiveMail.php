@@ -6,38 +6,37 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Banking\Application;
+namespace Foresi\Mail\Application;
 
-use Foresi\Banking\Domain\InboundMessage;
-use Foresi\Mail\Application\InboundAddresses;
-use Foresi\Mail\Application\InboundFiles;
-use Foresi\Mail\Application\InboundToken;
-use Foresi\Mail\Application\MailReader;
-use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\InboundMail;
+use Foresi\Mail\Contract\InboundPurpose;
+use Foresi\Mail\Contract\NotAccepted;
+use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Mail\Domain\InboundChannel;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Mail\Domain\MailMessage;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
 /**
  * Takes one raw mail, from the operator mailbox or the webhook, and keeps it
- * for the feed its recipient names. The secret token in the recipient address
- * is the only route.
+ * for the address its recipient names, handing it to the address's purpose.
+ * The secret token in the recipient address is the only route.
  *
- * The file is written first and the row and the processing message after it,
- * in one transaction, so a crash leaves at most a file without a row, which is
- * removed when the store fails and is harmless otherwise. The same mail twice,
- * by Message-ID with the same bytes or else by its bytes, is one row: a second
- * fetch after a crash, or one fetch and one post of the same bytes. A copy with
- * a Message-ID stored already but other bytes is a row of its own, so junk that
- * took the ID of a bank notice never keeps the notice out.
+ * The file is written first and the row and the hand-over after it, in one
+ * transaction, so a crash leaves at most a file without a row, which is removed
+ * when the store fails and is harmless otherwise. The same mail twice to one
+ * address, by Message-ID with the same bytes or else by its bytes, is one row: a
+ * second fetch after a crash, or one fetch and one post of the same bytes. A
+ * copy with a Message-ID stored already but other bytes is a row of its own, so
+ * junk that took the ID of a notice never keeps the notice out.
  *
- * Nothing is kept of a mail for no known address. Never log the address.
+ * Nothing is kept of a mail for no known address, for an address whose purpose
+ * no installed module registered, or one its purpose refuses. Never log the
+ * address.
  */
-final readonly class ReceiveInboundMail
+final readonly class ReceiveMail
 {
-    /** Bank notifications are a few kilobytes; anything above this is refused unread. */
+    /** Notifications are a few kilobytes; anything above this is refused unread. */
     public const int MAX_BYTES = 10 * 1024 * 1024;
 
     /**
@@ -53,12 +52,12 @@ final readonly class ReceiveInboundMail
     public function __construct(
         private MailReader $reader,
         private InboundAddresses $addresses,
-        private BankFeedDirectory $directory,
-        private InboundMessages $messages,
+        private InboundAddressStore $store,
+        private InboundPurposes $purposes,
+        private MailMessages $messages,
         private InboundFiles $files,
-        private InboundProcessing $processing,
-        private BankFeeds $feeds,
-        private TransactionalWork $transaction,
+        private SenderVerdict $verdict,
+        private MailTransaction $transaction,
         private ClockInterface $clock,
     ) {
     }
@@ -77,34 +76,49 @@ final readonly class ReceiveInboundMail
             return ReceiveOutcome::Unreadable;
         }
         $token = $this->token($mail, $recipient);
-        $route = null === $token ? null : $this->directory->route(InboundToken::hash($token));
-        if (!$route instanceof FeedRoute) {
+        $address = null === $token ? null : $this->store->routable(InboundToken::hash($token));
+        if (!$address instanceof InboundAddress) {
+            return ReceiveOutcome::UnknownRecipient;
+        }
+        $purpose = $this->purposes->get($address->purpose());
+        if (!$purpose instanceof InboundPurpose) {
+            // No installed module takes this address's mail: dropped unread.
             return ReceiveOutcome::UnknownRecipient;
         }
 
-        return $this->store($mail, $raw, $channel, $route);
+        return $this->keep($mail, $raw, $channel, $address, $purpose);
     }
 
-    private function store(InboundMail $mail, string $raw, InboundChannel $channel, FeedRoute $route): ReceiveOutcome
+    private function keep(InboundMail $mail, string $raw, InboundChannel $channel, InboundAddress $address, InboundPurpose $purpose): ReceiveOutcome
     {
-        $dedupKey = $this->dedupKey($mail, $raw);
+        $addressId = $address->id();
+        $dedupKey = $this->dedupKey($addressId, $mail, $raw);
         if (null === $dedupKey) {
             return ReceiveOutcome::Duplicate;
         }
 
         $id = Id::generate();
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $verdict = $this->verdict->judge($mail, $channel);
         $key = $this->files->store($id, $raw);
         try {
-            $stored = $this->transaction->run(function () use ($id, $route, $channel, $dedupKey, $key, $mail, $now): bool {
-                $message = new InboundMessage($id, $route->feedId, $channel, $dedupKey, $key, $mail->sha256(), $mail->size(), $mail->from(), $mail->subject(), $now);
+            $message = new MailMessage(
+                $id, $address, $channel, $dedupKey, $key, $mail->sha256(), $mail->size(),
+                $mail->messageId(), $this->inReplyTo($mail), $this->references($mail), $mail->from(), $mail->subject(), $mail->date(),
+                $now, $verdict->result, $verdict->basis,
+            );
+            $stored = $this->transaction->run(function () use ($message, $purpose, $id, $addressId): bool {
                 if (!$this->messages->add($message)) {
                     return false;
                 }
-                $this->processing->queue($id);
+                $purpose->accept($id, $addressId);
 
                 return true;
             });
+        } catch (NotAccepted) {
+            $this->files->remove($id);
+
+            return ReceiveOutcome::UnknownRecipient;
         } catch (\Throwable $failure) {
             $this->files->remove($id);
 
@@ -116,7 +130,7 @@ final readonly class ReceiveInboundMail
 
             return ReceiveOutcome::Duplicate;
         }
-        $this->feeds->touch($route->feedId, $now);
+        $this->store->touch($addressId, $now);
 
         return ReceiveOutcome::Stored;
     }
@@ -129,13 +143,13 @@ final readonly class ReceiveInboundMail
      * such junk, is kept under the hash of its bytes, and a movement both carry
      * is a possible duplicate the second time.
      */
-    private function dedupKey(InboundMail $mail, string $raw): ?string
+    private function dedupKey(string $addressId, InboundMail $mail, string $raw): ?string
     {
         $byBytes = hash('sha256', $raw);
         $messageId = $mail->messageId();
         if (null !== $messageId) {
             $byId = hash('sha256', $messageId);
-            $stored = $this->messages->rawHashOf($byId);
+            $stored = $this->messages->rawHashOf($addressId, $byId);
             if (null === $stored) {
                 return $byId;
             }
@@ -144,7 +158,33 @@ final readonly class ReceiveInboundMail
             }
         }
 
-        return $this->messages->has($byBytes) ? null : $byBytes;
+        return $this->messages->has($addressId, $byBytes) ? null : $byBytes;
+    }
+
+    /**
+     * The first Message-ID of In-Reply-To, without its angle brackets.
+     */
+    private function inReplyTo(InboundMail $mail): ?string
+    {
+        return $this->ids($mail->headers('In-Reply-To')[0] ?? '')[0] ?? null;
+    }
+
+    /**
+     * @return list<string> the Message-IDs of References, oldest first
+     */
+    private function references(InboundMail $mail): array
+    {
+        return $this->ids($mail->headers('References')[0] ?? '');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function ids(string $value): array
+    {
+        preg_match_all('/<([^<>\s]+)>/', $value, $found);
+
+        return $found[1];
     }
 
     /**
