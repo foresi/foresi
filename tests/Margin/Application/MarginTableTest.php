@@ -142,7 +142,7 @@ final class MarginTableTest extends KernelTestCase
         $view = $this->table->of('2026-10', '2026-12');
 
         $unassigned = $this->row($view, 'unassigned');
-        self::assertSame([10_000, 21_000, 0], array_map(static fn ($cell): int => $cell->costs->minor(), array_values($unassigned->cells)));
+        self::assertSame([10_000, 21_000, 0], array_map(static fn (\Foresi\Margin\Application\MarginFigures $cell): int => $cell->costs->minor(), array_values($unassigned->cells)));
         self::assertSame(2, $view->unassignedDocuments, 'Documents, not shares: d1 has two, and d5 is out of the range.');
         self::assertSame(66_000, $view->total->costs->minor(), 'The costs of the table are every share in the range, unassigned included.');
         $sum = array_sum(array_map(static fn (CostShare $share): int => $share->month()->format('Y-m') >= '2026-10' ? $share->amount()->minor() : 0, $this->em->getRepository(CostShare::class)->findAll()));
@@ -222,7 +222,7 @@ final class MarginTableTest extends KernelTestCase
         self::assertSame(['2026-10', '2026-11', '2026-12'], $view->months);
         self::assertSame(['2026-10', '2026-12'], [$view->from, $view->to]);
         $cells = $this->row($view, 'client:'.$this->clientA)->cells;
-        self::assertSame([0, 100_000, 200_000], array_map(static fn ($cell): int => $cell->revenue->minor(), array_values($cells)));
+        self::assertSame([0, 100_000, 200_000], array_map(static fn (\Foresi\Margin\Application\MarginFigures $cell): int => $cell->revenue->minor(), array_values($cells)));
     }
 
     public function testWithoutARevenueSourceTheTableHasCostsOnly(): void
@@ -263,7 +263,7 @@ final class MarginTableTest extends KernelTestCase
     {
         $this->assertRefused('invalid_month', fn (): MarginTableView => $this->table->of('2026-13', '2026-12'));
         $this->assertRefused('invalid_month', fn (): MarginTableView => $this->table->of('2026-11', '2026-1'));
-        $this->assertRefused('invalid_month', fn (): MarginTableView => $this->table->of('November', null));
+        $this->assertRefused('invalid_month', fn (): MarginTableView => $this->table->of('November'));
         $this->assertRefused('range_reversed', fn (): MarginTableView => $this->table->of('2026-12', '2026-11'));
         $this->assertRefused('range_too_long', fn (): MarginTableView => $this->table->of('2024-11', '2026-11'));
         self::assertCount(24, $this->table->of('2025-01', '2026-12')->months);
@@ -330,13 +330,13 @@ final class MarginTableTest extends KernelTestCase
 
         self::assertSame(['Client A', '2026-11', 3_981_500, 73_096], [$cell->name, $cell->month, $cell->figures->revenue->minor(), $cell->figures->costs->minor()]);
         self::assertSame(3_908_404, $cell->figures->margin->minor());
-        self::assertSame([['EN-i2', 981_500, 'revenue', 'invoice', '/invoices/i2'], ['EN-i1', 3_000_000, 'revenue', 'invoice', '/invoices/i1']], array_map(static fn ($item): array => [$item->label, $item->amountCzk->minor(), $item->source, $item->kind, $item->url], $cell->revenue), 'By tax point.');
+        self::assertSame([['EN-i2', 981_500, 'revenue', 'invoice', '/invoices/i2'], ['EN-i1', 3_000_000, 'revenue', 'invoice', '/invoices/i1']], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->amountCzk->minor(), $item->source, $item->kind, $item->url], $cell->revenue), 'By tax point.');
         self::assertSame([
             ['EN-voice', 'Voice API usage', 50_820, 'document', '/purchasing/voice'],
             ['EN-cloud', 'Hosting', 22_176, 'line', '/purchasing/cloud'],
             ['gone', null, 100, 'supplier', null],
-        ], array_map(static fn ($item): array => [$item->label, $item->text, $item->amountCzk->minor(), $item->source, $item->url], $cell->costs));
-        self::assertSame(['voice', 'cloud', 'gone'], array_map(static fn ($item): string => $item->documentId, $cell->costs));
+        ], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->text, $item->amountCzk->minor(), $item->source, $item->url], $cell->costs));
+        self::assertSame(['voice', 'cloud', 'gone'], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): string => $item->documentId, $cell->costs));
 
         $own = $this->cell->of('own', '2026-11');
         self::assertSame([[], 51_744, -51_744, null], [$own->revenue, $own->figures->costs->minor(), $own->figures->margin->minor(), $own->name]);

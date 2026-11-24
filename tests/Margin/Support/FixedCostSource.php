@@ -41,7 +41,7 @@ final class FixedCostSource implements MarginCostSource
     public function documentIdsWithoutExchangeRate(): iterable
     {
         foreach ($this->documents as $document) {
-            if (!$document->trashed && array_any($document->lines, static fn ($line): bool => null === $line->baseCzk)) {
+            if (!$document->trashed && array_any($document->lines, static fn (\Foresi\Margin\Contract\CostLine $line): bool => !$line->baseCzk instanceof \Foresi\Shared\Domain\Money)) {
                 yield $document->id;
             }
         }

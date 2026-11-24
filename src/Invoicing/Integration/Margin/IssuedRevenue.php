@@ -57,7 +57,7 @@ final readonly class IssuedRevenue implements MarginRevenueSource
             $lines = [];
             // The stored lines carry their ids and are the ones the document was built from.
             foreach ($stored->lines as $line) {
-                $czk = self::converted($line->net(), $document->exchangeRate);
+                $czk = $this->converted($line->net(), $document->exchangeRate);
                 if ($this->deductsAnUntaxedAdvance($line, $document->deposits)) {
                     $net = $net->minus($czk);
                     $czk = $zero;
@@ -87,7 +87,7 @@ final readonly class IssuedRevenue implements MarginRevenueSource
         return null !== $deducted && false === ($deposits[$deducted]['taxed'] ?? true);
     }
 
-    private static function converted(Money $amount, string $rate): Money
+    private function converted(Money $amount, string $rate): Money
     {
         return Money::ofMinor($amount->minor(), Currency::CZK)->multipliedBy($rate);
     }
