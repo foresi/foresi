@@ -205,7 +205,7 @@ final class ImapInboundMailbox implements InboundMailbox
     {
         $reason = '' === $this->password ? $failure->getMessage() : str_replace($this->password, '[redacted]', $failure->getMessage());
 
-        return new \RuntimeException(\sprintf('The bank inbox %s:%d could not be %s (%s): %s', $this->host, $this->port, $doing, new \ReflectionClass($failure)->getShortName(), $reason));
+        return new \RuntimeException(\sprintf('The inbound mailbox %s:%d could not be %s (%s): %s', $this->host, $this->port, $doing, new \ReflectionClass($failure)->getShortName(), $reason));
     }
 
     /**

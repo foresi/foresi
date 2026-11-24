@@ -10,7 +10,7 @@ namespace Foresi\Mail\Application;
 
 /**
  * The inbound addresses of this server, built from one template such as
- * "bank+{token}@example.com" (env MAIL_INBOUND_ADDRESS). The template holds the
+ * "inbox+{token}@example.com" (env MAIL_INBOUND_ADDRESS). The template holds the
  * placeholder once, and the result is an e-mail address. An empty or malformed
  * template means inbound mail is not set up here, and no address is handed out.
  */
@@ -48,9 +48,9 @@ final readonly class InboundAddresses
 
     /**
      * The text with the token of every address made from the template cut out, as
-     * "bank+…@example.com": a mail may quote its own address, such as a forwarding
+     * "inbox+…@example.com": a mail may quote its own address, such as a forwarding
      * confirmation does, and only the owner of a firm sees the address. An address
-     * in a link may be URL-encoded ("bank%2B…%40example.com"), and one in a long
+     * in a link may be URL-encoded ("inbox%2B…%40example.com"), and one in a long
      * line wrapped by a quoted-printable soft break ("=" at the end of a line),
      * which is taken out first, so the token is masked however it is written.
      */

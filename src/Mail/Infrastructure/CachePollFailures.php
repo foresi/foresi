@@ -20,6 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  */
 final readonly class CachePollFailures implements PollFailures
 {
+    // The key keeps its old name so that the failure counts survive the upgrade.
     private const string KEY = 'banking.poll_failures';
     private const int TTL = 7 * 24 * 3600;
     private const int MAX = 1000;
