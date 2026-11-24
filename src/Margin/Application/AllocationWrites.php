@@ -12,14 +12,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Contract\CostLine;
-use Foresi\Margin\Contract\CostSharesRecalculation;
 use Foresi\Margin\Domain\Allocation;
 use Foresi\Margin\Domain\AllocationKind;
 use Foresi\Margin\Domain\AllocationShare;
 use Foresi\Margin\Domain\DocumentAllocation;
 use Foresi\Margin\Domain\LineAllocation;
 use Foresi\Margin\Domain\MarginRefused;
+use Foresi\Margin\Domain\PlannedAllocation;
 use Foresi\Margin\Domain\Recipient;
+use Foresi\Margin\Domain\SupplierDefault;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Shared\Domain\Currency;
@@ -28,26 +29,124 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * What people decide about who bears a cost: the mapping of one line, and the
- * assignment of a whole document. A client must be an existing contact that is
- * not archived. Each write replaces the shares of the document at once, in the
- * same unit of work. Only the owners and members of the organisation decide.
+ * What people decide about who bears a cost: the mapping of one line, the
+ * assignment of a whole document, the mapping of a planned item and the
+ * default of a supplier, the last two from a month on. A client must be an
+ * existing contact that is not archived. Each write replaces the shares it
+ * changes at once, in the same unit of work, and never those of a month
+ * before the one it applies from. Only the owners and members of the
+ * organisation decide.
  */
 final readonly class AllocationWrites
 {
     private const string AMOUNT = '/^[0-9]{1,13}(\.[0-9]{1,2})?\z/';
+    private const string MONTH = '/^[0-9]{4}-(0[1-9]|1[0-2])\z/';
 
     public function __construct(
         private MarginAccess $access,
         private CostSources $sources,
-        private CostSharesRecalculation $calculation,
+        private CostShareCalculation $calculation,
         private AllocationReads $reads,
         private EntityManagerInterface $entityManager,
         private PartyDirectory $contacts,
         private AuditActor $actor,
         private ClockInterface $clock,
         private TransactionalWork $transaction,
+        private CostPairings $pairings,
     ) {
+    }
+
+    /**
+     * Maps the costs paired with a planned item from a month on, or ends the
+     * mapping from that month with null. Setting a month that has a version
+     * replaces it. Recalculates the documents paired with occurrences in that
+     * month or later.
+     *
+     * @param string $fromMonth YYYY-MM
+     *
+     * @throws MarginRefused forbidden, invalid_month, unknown_planned_item, not_an_expense, not_recurring, counterparty_required, unknown_contact
+     */
+    public function setPlanned(string $plannedItemId, ?Allocation $allocation, string $fromMonth): PlannedAllocationsView
+    {
+        $this->access->denyUnlessStaff();
+        $month = $this->month($fromMonth);
+        $item = $this->pairings->item($plannedItemId) ?? throw AllocationReads::unknownPlannedItem();
+        if ($allocation instanceof Allocation) {
+            if (!$item->expense) {
+                throw MarginRefused::invalid(MarginRefused::NOT_AN_EXPENSE, 'plannedItemId', 'Only a planned cost, money going out, is mapped to clients.');
+            }
+            if (!$item->recurring) {
+                throw MarginRefused::invalid(MarginRefused::NOT_RECURRING, 'plannedItemId', 'Only a recurring planned cost is mapped; map the document of a one-off cost itself.');
+            }
+            if (null === $item->counterpartyId) {
+                throw MarginRefused::invalid(MarginRefused::COUNTERPARTY_REQUIRED, 'plannedItemId', 'The planned item has no counterparty, so no document is paired with it. Give it the supplier first.');
+            }
+            foreach ($allocation->shares as $share) {
+                $this->knownContact($share->recipient, 'shares');
+            }
+        }
+        $stored = $this->entityManager->getRepository(PlannedAllocation::class)->findOneBy(['plannedItemId' => $item->id, 'fromMonth' => $month]);
+
+        return $this->transaction->run(function () use ($item, $allocation, $month, $stored): PlannedAllocationsView {
+            $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+            $by = (string) $this->actor->userId();
+            if ($stored instanceof PlannedAllocation) {
+                $stored->replace($allocation, $now, $by);
+            } else {
+                $this->entityManager->persist(new PlannedAllocation(Uuid::v7()->toRfc4122(), $item->id, $month, $allocation, $now, $by));
+            }
+            $this->entityManager->flush();
+            $this->calculation->recalculateAll($this->pairings->documentsOfItemFrom($item->id, $month));
+            $this->entityManager->flush();
+
+            return $this->reads->planned($item->id);
+        });
+    }
+
+    /**
+     * Gives the costs of a supplier to one recipient by default from a month
+     * on, or ends the default from that month with null. Setting a month that
+     * has a version replaces it.
+     *
+     * @param string $fromMonth YYYY-MM
+     *
+     * @throws MarginRefused forbidden, invalid_month, unknown_supplier, unknown_contact
+     */
+    public function setSupplierDefault(string $contactId, ?Recipient $recipient, string $fromMonth): SupplierDefaultsView
+    {
+        $this->access->denyUnlessStaff();
+        $month = $this->month($fromMonth);
+        $supplier = AllocationReads::isUuid($contactId) ? $this->contacts->find($contactId) : null;
+        if (!$supplier instanceof \Foresi\Party\Contract\PartySummary || $supplier->archived) {
+            throw AllocationReads::unknownSupplier();
+        }
+        if ($recipient instanceof Recipient) {
+            $this->knownContact($recipient, 'recipient');
+        }
+        $stored = $this->entityManager->getRepository(SupplierDefault::class)->findOneBy(['supplierId' => $supplier->id, 'fromMonth' => $month]);
+
+        return $this->transaction->run(function () use ($supplier, $recipient, $month, $stored): SupplierDefaultsView {
+            if ($stored instanceof SupplierDefault) {
+                $stored->replace($recipient);
+            } else {
+                $this->entityManager->persist(new SupplierDefault(Uuid::v7()->toRfc4122(), $supplier->id, $month, $recipient));
+            }
+            $this->entityManager->flush();
+            // The cost month of a paired document is that of its occurrence, which may fall a month after
+            // its month basis, so the documents are listed from the month before, and only those whose
+            // cost month is $month or later are counted again; earlier months are not touched.
+            $documents = [];
+            foreach ($this->sources->documentsOf($supplier->id, $month->modify('-1 month')) as $id) {
+                $costMonth = $this->calculation->costMonthOf($id);
+                if ($costMonth instanceof \DateTimeImmutable && $costMonth >= $month) {
+                    $documents[] = $id;
+                }
+            }
+            $this->calculation->recalculateAll($documents);
+            $this->entityManager->flush();
+
+            return $this->reads->supplierDefault($supplier->id);
+        });
     }
 
     /**
@@ -157,6 +256,18 @@ final readonly class AllocationWrites
         );
     }
 
+    /**
+     * The first day of a month written YYYY-MM.
+     */
+    private function month(string $value): \DateTimeImmutable
+    {
+        if (1 !== preg_match(self::MONTH, $value)) {
+            throw MarginRefused::invalid(MarginRefused::INVALID_MONTH, 'fromMonth', 'A month is written YYYY-MM, such as "2026-12".');
+        }
+
+        return new \DateTimeImmutable($value.'-01');
+    }
+
     private function recipient(string $value, string $field): Recipient
     {
         try {
@@ -164,6 +275,12 @@ final readonly class AllocationWrites
         } catch (\InvalidArgumentException) {
             throw MarginRefused::invalid(MarginRefused::RECIPIENT_INVALID, $field, 'A recipient is "own" or the id of a contact.');
         }
+
+        return $this->knownContact($recipient, $field);
+    }
+
+    private function knownContact(Recipient $recipient, string $field): Recipient
+    {
         $contactId = $recipient->contactId();
         if (null !== $contactId) {
             $contact = $this->contacts->find($contactId);

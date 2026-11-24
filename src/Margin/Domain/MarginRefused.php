@@ -16,7 +16,9 @@ use Foresi\Shared\Application\Refused;
  * decides the status and the input field it is about. An allocation refuses
  * itself with whole_needs_one, percent_must_add_up, fixed_needs_a_rest or
  * duplicate_recipient; the use cases add unknown_contact, unknown_document,
- * unknown_line, the unreadable values and forbidden.
+ * unknown_line, the unreadable values and forbidden, and for the mappings of
+ * planned items and suppliers unknown_planned_item, not_an_expense,
+ * not_recurring, counterparty_required, unknown_supplier and invalid_month.
  */
 final class MarginRefused extends \DomainException implements Refused
 {
@@ -32,6 +34,12 @@ final class MarginRefused extends \DomainException implements Refused
     public const string RECIPIENT_INVALID = 'recipient_invalid';
     public const string AMOUNT_INVALID = 'amount_invalid';
     public const string FORBIDDEN = 'forbidden';
+    public const string UNKNOWN_PLANNED_ITEM = 'unknown_planned_item';
+    public const string NOT_AN_EXPENSE = 'not_an_expense';
+    public const string NOT_RECURRING = 'not_recurring';
+    public const string COUNTERPARTY_REQUIRED = 'counterparty_required';
+    public const string UNKNOWN_SUPPLIER = 'unknown_supplier';
+    public const string INVALID_MONTH = 'invalid_month';
 
     public function __construct(
         private readonly string $reason,
