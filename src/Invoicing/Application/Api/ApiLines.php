@@ -23,12 +23,16 @@ use Foresi\Shared\Domain\Money;
  * quantity, unit, price_type, vat, discount and supply_code, every value a
  * string. Invoices and recurring templates read them alike, and a template
  * answers its lines in the same shape, so an agent can send them back changed.
+ * A stored line also answers its id (and an invoice line its source_line_id);
+ * both are read and ignored, as lines are revised by position and the ids are
+ * never set from input.
  */
 final class ApiLines
 {
     private const string QUANTITY = '/^-?\d{1,9}(?:\.\d{1,4})?$/D';
     private const string DISCOUNT = '/^\d{1,3}(?:\.\d{1,2})?$/D';
     private const array LINE_KEYS = ['text', 'unit_price', 'quantity', 'unit', 'price_type', 'vat', 'discount', 'supply_code'];
+    private const array IGNORED_KEYS = ['id', 'source_line_id'];
     private const array VAT = ['base', 'reduced', 'second_reduced', 'reverse_charge', 'exempt', 'none'];
 
     /**
@@ -90,7 +94,7 @@ final class ApiLines
     {
         $field = static fn (string $name): string => \sprintf('lines[%d].%s', $index, $name);
         foreach (array_keys($row) as $key) {
-            if (!\in_array($key, self::LINE_KEYS, true)) {
+            if (!\in_array($key, self::LINE_KEYS, true) && !\in_array($key, self::IGNORED_KEYS, true)) {
                 throw InvoicingRefused::unreadable(InvoicingRefused::LINE, $field((string) $key), \sprintf('A line takes only %s.', implode(', ', self::LINE_KEYS)));
             }
         }

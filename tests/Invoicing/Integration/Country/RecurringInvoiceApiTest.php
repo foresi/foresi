@@ -114,6 +114,27 @@ final class RecurringInvoiceApiTest extends ApiTestCase
         $this->assertProblem(409, 'changed_meanwhile');
     }
 
+    public function testTheLinesAsReadCanBeSentBackWithTheirIds(): void
+    {
+        $id = $this->created();
+        $this->get('/api/v1/recurring-invoices/'.$id, secret: $this->writer);
+        $version = $this->at('data', 'version');
+        $lines = $this->at('data', 'lines');
+        self::assertIsArray($lines);
+        $lineId = $this->at('data', 'lines', 0, 'id');
+        $lines[0] = ['text' => 'Hosting renamed'] + (array) $lines[0];
+
+        $this->send('PATCH', '/api/v1/recurring-invoices/'.$id, ['version' => $version, 'lines' => $lines]);
+
+        self::assertResponseIsSuccessful((string) $this->client->getResponse()->getContent());
+        self::assertSame(['Hosting renamed', $lineId], [$this->at('data', 'lines', 0, 'text'), $this->at('data', 'lines', 0, 'id')], 'the line is revised in place, so its id stays');
+
+        $version = $this->at('data', 'version');
+        $call = $this->tool('foresi_update_recurring_invoice', ['recurring_invoice_id' => $id, 'version' => $version, 'lines' => $lines, 'idempotency_key' => 'lines-1']);
+        self::assertFalse($call['isError'] ?? false);
+        self::assertSame($lineId, $this->rows($this->data($call), 'lines')[0]['id']);
+    }
+
     public function testPauseResumeAndEnd(): void
     {
         $id = $this->created();

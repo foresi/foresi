@@ -77,4 +77,14 @@ final class ApiLinesTest extends TestCase
 
         self::assertSame('base', $fields['vat']);
     }
+
+    public function testTheIdsOfALineAreIgnoredAndNeverSetFromInput(): void
+    {
+        $fields = ApiLines::fields('Hosting', Quantity::fromString('1'), 'month', Money::of('1000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, null, null, Percent::fromString('0'));
+
+        $lines = ApiLines::read([['id' => '0197a1de-0000-7000-8000-000000000001', 'source_line_id' => '0197a1de-0000-7000-8000-000000000002'] + $fields], Currency::CZK, VatRegime::Payer, false);
+
+        self::assertCount(1, $lines);
+        self::assertSame('Hosting', $lines[0]->text);
+    }
 }
