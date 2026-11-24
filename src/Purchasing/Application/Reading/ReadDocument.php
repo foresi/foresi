@@ -96,7 +96,7 @@ final readonly class ReadDocument
 
                 return;
             }
-            $applied = $this->application->apply($document, $merged, $message->baseVersion);
+            $applied = $this->application->apply($document, $merged, $message->baseVersion, $message->keepTyped);
             $reading->finish($merged, $applied->applied, $applied->suggested, $applied->warnings, $this->now());
         });
     }

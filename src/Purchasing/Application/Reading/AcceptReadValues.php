@@ -62,7 +62,7 @@ final readonly class AcceptReadValues
         $merged = $reading instanceof DocumentReading ? $reading->reading() : new Reading([]);
         $taken = array_values(array_filter(
             array_unique($fields, \SORT_REGULAR),
-            static fn (ReadField $field): bool => \in_array($field, ReadValues::FIELDS, true) && ReadValues::shaped($merged, $field)
+            static fn (ReadField $field): bool => \in_array($field, ReadValues::FIELDS, true) && ReadValues::shaped($merged, $field) && !ReadValues::blockedAmount($merged, $field)
                 || (ReadField::SupplierName === $field && $merged->get($field) instanceof \Foresi\Purchasing\Contract\Reading\ReadValue),
         ));
 

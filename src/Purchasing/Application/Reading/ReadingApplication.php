@@ -62,9 +62,10 @@ final readonly class ReadingApplication
     }
 
     /**
-     * @param int $baseVersion the version of the document the reading was asked for
+     * @param int  $baseVersion the version of the document the reading was asked for
+     * @param bool $keepTyped   the draft was touched since its last reading: fill only what it leaves empty
      */
-    public function apply(ReceivedDocument $document, Reading $merged, int $baseVersion): AppliedReading
+    public function apply(ReceivedDocument $document, Reading $merged, int $baseVersion, bool $keepTyped = false): AppliedReading
     {
         $fields = $this->applicable($merged);
         $supplier = $this->supplier($document, $merged);
@@ -75,16 +76,20 @@ final readonly class ReadingApplication
             return new AppliedReading([], $suggested, $warning);
         }
         $write = $this->supplierWrite($supplier, $merged);
-        if ([] === $fields && !$write instanceof SupplierWrite) {
-            return new AppliedReading([], [], $warning);
+        // What cannot be taken stays a suggestion: amounts in a currency Foresi does not support, and
+        // on request the values a person typed.
+        $withheld = array_values(array_filter($fields, fn (ReadField $field): bool => ReadValues::blockedAmount($merged, $field) || ($keepTyped && $this->typed($document, $merged, $field))));
+        $candidates = array_values(array_filter($fields, static fn (ReadField $field): bool => !\in_array($field, $withheld, true)));
+        if ([] === $candidates && !$write instanceof SupplierWrite) {
+            return new AppliedReading([], $fields, [...([] === $fields ? [] : [ReceivedDocumentWarning::READING_PARTLY_APPLIED]), ...$warning]);
         }
         $left = [];
         foreach ([[], self::AMOUNTS, self::DATES, self::KIND] as $group) {
-            if ([] !== $group && [] === array_intersect($this->keys($group), $this->keys($fields))) {
+            if ([] !== $group && [] === array_intersect($this->keys($group), $this->keys($candidates))) {
                 continue;
             }
             $left = [...$left, ...$group];
-            $taken = array_values(array_filter($fields, static fn (ReadField $field): bool => !\in_array($field, $left, true)));
+            $taken = array_values(array_filter($candidates, static fn (ReadField $field): bool => !\in_array($field, $left, true)));
             if ([] === $taken && !$write instanceof SupplierWrite) {
                 break;
             }
@@ -158,6 +163,26 @@ final readonly class ReadingApplication
         }));
 
         return new SupplierWrite(null, new SupplierSnapshot($name ?? '', $number, $vatId, new Address('', '', '', $country)), $fields);
+    }
+
+    /**
+     * Whether the draft holds a value of its own for this field, which a request to read again keeps.
+     * The amounts go together: with a total or a recap typed, all of them are kept.
+     */
+    private function typed(ReceivedDocument $document, Reading $merged, ReadField $field): bool
+    {
+        $filled = static fn (string $text): bool => '' !== trim($text);
+
+        return match ($field) {
+            ReadField::Currency, ReadField::Total, ReadField::VatRecap => (null !== $document->total() && !$document->total()->isZero()) || !$document->vatRecap()->isEmpty(),
+            ReadField::Kind => $document->kind()->value !== $merged->get($field)?->value,
+            ReadField::IssueDate => $document->issueDate() instanceof \DateTimeImmutable,
+            ReadField::TaxPointDate => $document->taxPointDate() instanceof \DateTimeImmutable,
+            ReadField::DueDate => $document->dueDate() instanceof \DateTimeImmutable,
+            ReadField::SupplierNumber => $filled($document->supplierNumber()),
+            ReadField::VariableSymbol => $filled($document->variableSymbol()),
+            default => false,
+        };
     }
 
     private function untouched(ReceivedDocument $document, int $baseVersion): bool

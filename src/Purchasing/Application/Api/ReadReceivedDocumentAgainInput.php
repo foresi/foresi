@@ -21,8 +21,8 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_read_received_document_again',
     scope: 'received_documents:write',
     title: 'Read the file of a received document again',
-    description: 'Queues the reading of the original file of a draft again, after a failure, when nothing was found, or to run the readers that only run on request; it answers at once with the draft and reading.state "reading". What the reading finds fills only the fields of the draft nobody changed since the request; everything else stays a suggestion in reading.values (applied false), and the draft is never recorded by it. '
-        .'Poll foresi_get_received_document until reading.state is read, nothing_found or failed. A recorded document, one in the trash, a draft without a file, or a reading that was asked for less than 10 minutes ago and still runs is refused.',
+    description: 'Queues the reading of the original file of a draft again, after a failure, when nothing was found, or to run the readers that only run on request; it answers at once with the draft and reading.state "reading". What the reading finds never replaces a value a person typed: on a draft nobody changed since its last reading it fills the fields as on arrival, on a changed one it fills only the fields that are empty; every other value stays a suggestion in reading.values (applied false), and the draft is never recorded by it. '
+        .'Poll foresi_get_received_document until reading.state is read, nothing_found or failed; a reading that is still \'reading\' 10 minutes after it was asked for is stuck and may be read again. A recorded document, one in the trash, a draft without a file, or a reading that was asked for less than 10 minutes ago and still runs is refused.',
     status: 202,
     response: 'ReceivedDocumentDetail',
     staffOnly: true,

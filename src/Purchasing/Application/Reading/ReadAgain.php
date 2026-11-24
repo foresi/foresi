@@ -15,6 +15,7 @@ use Foresi\Purchasing\Application\PurchasingUnit;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Domain\DocumentReading;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Psr\Clock\ClockInterface;
 
@@ -22,7 +23,9 @@ use Psr\Clock\ClockInterface;
  * A person asks for the file of a draft to be read again: after a failure,
  * after nothing was found, or to run the readers that only run on request.
  * The reading may fill the draft as it is now (its base version is the
- * draft's version), so what it finds is taken as on arrival.
+ * draft's version). On a draft nobody touched since its last reading, what
+ * it finds is taken as on arrival; on a touched one it never replaces a value
+ * a person typed: it fills what is empty and suggests the rest.
  *
  * A reading that is still running is not asked for twice, unless it was asked
  * for so long ago that it is stuck (a job lost on the way to the queue).
@@ -68,6 +71,7 @@ final readonly class ReadAgain
             if ($reading instanceof DocumentReading && !self::mayStart($reading, $now)) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::READING_IN_PROGRESS);
             }
+            $keepTyped = $reading instanceof DocumentReading && self::touchedSince($reading, $document->version());
             if ($reading instanceof DocumentReading) {
                 $reading->start($document->version(), $now);
             } else {
@@ -75,9 +79,23 @@ final readonly class ReadAgain
                 $this->readings->add(new DocumentReading($document, $document->version(), $now));
             }
 
-            return new ReadReceivedDocument($document->id(), $document->version(), true, $this->correlation->current());
+            return new ReadReceivedDocument($document->id(), $document->version(), true, $this->correlation->current(), $keepTyped);
         });
         $this->queue->queue($message);
+    }
+
+    /**
+     * Whether a person changed the draft since its last reading: it has a
+     * version that neither the reading was asked for nor the reading's own
+     * save made. Such a draft keeps what a person typed.
+     */
+    private static function touchedSince(DocumentReading $reading, int $version): bool
+    {
+        $base = $reading->baseVersion();
+        // A reading that took values saved the draft once.
+        $own = ReadingState::Read === $reading->state() && [] !== $reading->applied();
+
+        return $version !== $base && !($own && $version === $base + 1);
     }
 
     /**

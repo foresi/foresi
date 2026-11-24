@@ -208,6 +208,17 @@ final class IsdocReaderTest extends TestCase
         self::assertSame([['rate' => '21', 'baseMinor' => 40_000, 'vatMinor' => 8_400]], $reading->get(ReadField::VatRecap)?->value);
     }
 
+    public function testAForeignCurrencyEqualToTheLocalOneUsesThePlainAmounts(): void
+    {
+        $xml = str_replace('<LocalCurrencyCode>CZK</LocalCurrencyCode>', '<LocalCurrencyCode>CZK</LocalCurrencyCode><ForeignCurrencyCode>CZK</ForeignCurrencyCode>', IsdocFixtures::invoice());
+
+        $reading = $this->reader->read(new DocumentFile('a.isdoc', 'application/xml', $xml));
+
+        self::assertSame('CZK', $reading?->get(ReadField::Currency)?->value);
+        self::assertSame(1_210_000, $reading->get(ReadField::Total)?->value);
+        self::assertSame([['rate' => '21', 'baseMinor' => 1_000_000, 'vatMinor' => 210_000]], $reading->get(ReadField::VatRecap)?->value);
+    }
+
     private function addAfter(\DOMDocument $dom, \DOMXPath $xpath, string $path, string $name, string $value): void
     {
         $list = $xpath->query($path);

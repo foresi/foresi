@@ -148,7 +148,7 @@ final readonly class ReadingScreen
      */
     private function value(Reading $read, ReadField $field): ?string
     {
-        if (ReadField::SupplierName !== $field && !ReadValues::shaped($read, $field)) {
+        if (ReadField::SupplierName !== $field && (!ReadValues::shaped($read, $field) || ReadValues::blockedAmount($read, $field))) {
             return null;
         }
         $value = $read->get($field)?->value;

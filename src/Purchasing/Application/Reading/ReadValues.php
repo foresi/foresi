@@ -50,6 +50,25 @@ final class ReadValues
     }
 
     /**
+     * Whether the reading names a currency Foresi does not support. Its amounts
+     * must not be taken as amounts of another currency.
+     */
+    public static function foreignCurrency(Reading $reading): bool
+    {
+        $value = $reading->get(ReadField::Currency)?->value;
+
+        return \is_string($value) && null === Currency::tryFrom($value);
+    }
+
+    /**
+     * Whether the field is an amount a draft cannot take for this reading.
+     */
+    public static function blockedAmount(Reading $reading, ReadField $field): bool
+    {
+        return \in_array($field, [ReadField::Total, ReadField::VatRecap], true) && self::foreignCurrency($reading);
+    }
+
+    /**
      * Whether the document holds the value read for this field. The supplier is
      * held while the document names it with the name or a number read.
      */

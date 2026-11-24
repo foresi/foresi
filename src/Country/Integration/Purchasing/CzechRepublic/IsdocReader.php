@@ -204,6 +204,10 @@ final readonly class IsdocReader implements DocumentReader
 
         $foreign = $this->text($xpath, '/i:Invoice/i:ForeignCurrencyCode');
         $foreign = null !== $foreign && 1 === preg_match('/^[A-Z]{3}$/D', $foreign) ? $foreign : null;
+        // Some generators write the local currency as the foreign one; its amounts are the plain ones.
+        if ($foreign === $this->text($xpath, '/i:Invoice/i:LocalCurrencyCode')) {
+            $foreign = null;
+        }
         $suffix = null === $foreign ? '' : 'Curr';
         $currency = $foreign ?? $this->text($xpath, '/i:Invoice/i:LocalCurrencyCode');
         $supplier = '/i:Invoice/i:AccountingSupplierParty/i:Party';

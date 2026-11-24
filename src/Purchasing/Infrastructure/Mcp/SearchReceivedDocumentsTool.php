@@ -58,7 +58,7 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
             .'Returns {items, next_cursor, applied_view}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
             .'Money is {amount_minor, currency}, in hundredths of the currency; a credit note has a negative total, while paid and remaining are positive. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
-            .'reading narrows to drafts by the state of the reading of their file, source to how a document came in. '
+            .'reading narrows to the documents whose file has that state of reading (a recorded document keeps its reading too), source to how a document came in. '
             .'Use foresi_search_contacts for a supplier_id.';
     }
 

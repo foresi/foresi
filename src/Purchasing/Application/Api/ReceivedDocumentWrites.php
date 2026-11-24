@@ -120,6 +120,10 @@ final readonly class ReceivedDocumentWrites
     public function upload(UploadReceivedDocumentInput $input): string
     {
         $this->access->denyUnlessStaff();
+        // The encoded length is checked before decoding, so a huge body is never decoded.
+        if (\strlen($input->contentBase64) > 4 * (int) ceil(self::MAX_UPLOAD / 3) + 4) {
+            throw PurchasingRefused::file(self::FILE_TOO_LARGE, 'The file is larger than 10 MB.');
+        }
         $bytes = base64_decode($input->contentBase64, true);
         if (false === $bytes || '' === $bytes) {
             throw PurchasingRefused::file(self::FILE_INVALID, 'The file is not valid base64, or it is empty.');
