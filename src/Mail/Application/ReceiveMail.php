@@ -33,6 +33,10 @@ use Psr\Clock\ClockInterface;
  * Nothing is kept of a mail for no known address, for an address whose purpose
  * no installed module registered, or one its purpose refuses. Never log the
  * address.
+ *
+ * Call it outside any open transaction, as the poller and the webhook do: inside
+ * one, a refused message's row would stay with the outer transaction while its
+ * file is removed.
  */
 final readonly class ReceiveMail
 {

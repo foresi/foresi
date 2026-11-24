@@ -63,7 +63,7 @@ final readonly class DoctrineBankFeeds implements BankFeeds
     public function revealAddress(BankFeed $feed): string
     {
         try {
-            return $this->issuer->reveal($feed->addressId()) ?? throw new AddressRefused(AddressRefusal::NoKey);
+            return $this->issuer->reveal($feed->addressId()) ?? throw new \LogicException('The address of a bank feed is always shown again; Mail has none to show.');
         } catch (AddressNotIssued $refused) {
             throw new AddressRefused(AddressUnavailable::NoKey === $refused->reason ? AddressRefusal::NoKey : AddressRefusal::NotConfigured);
         }

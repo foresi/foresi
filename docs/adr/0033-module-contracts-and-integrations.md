@@ -49,7 +49,7 @@ An integration directory for a module the manifest does not list as optional sto
 The rules:
 
 * `<id>` may use its own contract and the modules it requires, whole and with their contracts. Nothing of an optional dependency.
-* `<id>_integration_<other>` may use its own module, the modules its module requires, and of `<other>` only `<other>_contract`, when `<other>` is installed.
+* `<id>_integration_<other>` may use its own module, the modules its module requires, and of `<other>` only `<other>_contract`, when `<other>` is installed. It may also use the contract of a module `<other>` requires when `<id>` lists that module as optional too: `<other>`'s contract may hand it such a value (Country's bank parsers read Banking's contract, which gives them Mail's `InboundMail`). Contracts only, one level deep, and only of modules installed whenever `<other>` is.
 * `<id>_contract` may use the contracts of the required modules and the core modules it requires.
 
 ### Why required dependencies keep full access
