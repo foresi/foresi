@@ -71,7 +71,7 @@ final class DealLineRulesTest extends TestCase
 
     public function testATimeBasedLineIsBilledByTheHourAtAnHourlyRate(): void
     {
-        $terms = $this->rules->terms($this->draft(unit: '', quantity: '40', billingKind: 'time_based', unitPrice: '1200.00'));
+        $terms = $this->rules->terms($this->draft(unit: '', quantity: '40', unitPrice: '1200.00', billingKind: 'time_based'));
         self::assertSame(['h', '40.000', 120000], [$terms->unit, $terms->quantity, $terms->unitPrice?->minor()]);
         self::assertSame('h', $this->rules->terms($this->draft(unit: 'h', quantity: '1', billingKind: 'time_based'))->unit);
 

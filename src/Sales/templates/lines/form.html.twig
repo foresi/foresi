@@ -26,7 +26,7 @@
                     <twig:Ui:Select name="productId" id="productId" :label="'sales.line.field.product'|trans" :help="'sales.line.field.product_help'|trans" :options="{'': 'sales.line.typed'|trans}|merge(products)" :value="values.productId" :error="errors.productId|default(null)" data-deal-line-target="product" data-action="change->deal-line#changed" />
                 </div>
             {% endif %}
-            <twig:Ui:TextInput name="quantity" id="quantity" :label="'sales.line.field.quantity'|trans" :value="values.quantity" :error="errors.quantity|default(null)" :help="'sales.line.field.quantity_help'|trans" inputmode="decimal" autocomplete="off" />
+            <twig:Ui:TextInput name="quantity" id="quantity" :label="'sales.line.field.quantity'|trans" :value="values.quantity" :error="errors.quantity|default(null)" :help="'sales.line.field.quantity_help'|trans" inputmode="decimal" autocomplete="off" data-deal-line-target="quantity" />
             <div class="{{ column }} grid gap-4 sm:grid-cols-2" data-deal-line-target="typed">
                 <div class="{{ column }}"><twig:Ui:TextInput name="name" id="name" :label="'sales.line.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" autocomplete="off" /></div>
                 <twig:Ui:TextInput name="unit" id="unit" :label="'sales.line.field.unit'|trans" :help="'sales.line.field.unit_help'|trans" :value="values.unit" :error="errors.unit|default(null)" maxlength="32" autocomplete="off" data-deal-line-target="unit" />

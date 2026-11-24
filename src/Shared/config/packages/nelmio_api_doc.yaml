@@ -658,7 +658,7 @@ nelmio_api_doc:
                         description: { type: string }
                         unit: { type: string, description: 'Such as hour or piece; may be empty.' }
                         unit_price: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Null when the price is agreed each time.' }
-                        billing_kind: { type: string, enum: [one_off, recurring] }
+                        billing_kind: { type: string, enum: [one_off, recurring, time_based], description: 'time_based is billed by the hour: the unit is h and the unit price is the hourly rate.' }
                         recurrence_unit: { type: string, enum: [day, week, month, year], nullable: true }
                         interval: { type: integer, nullable: true, description: 'A recurring product is billed every interval recurrence_units.' }
                         cycles: { type: integer, nullable: true, description: 'How many times a recurring product is billed; null for no end.' }
@@ -706,9 +706,9 @@ nelmio_api_doc:
                                     product_id: { type: string, format: uuid, nullable: true, description: 'The product it was copied from; a later change of the product leaves the line as it is.' }
                                     name: { type: string }
                                     unit: { type: string }
-                                    quantity: { type: string, example: '1.500', description: 'A decimal number with three decimals.' }
+                                    quantity: { type: string, nullable: true, example: '1.500', description: 'A decimal number with three decimals. For a time_based line the hours expected; null means not estimated, which only a time_based line may be.' }
                                     unit_price: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'Null for a line without a price, left out of the value.' }
-                                    billing_kind: { type: string, enum: [one_off, recurring] }
+                                    billing_kind: { type: string, enum: [one_off, recurring, time_based] }
                                     recurrence_unit: { type: string, enum: [day, week, month, year], nullable: true }
                                     interval: { type: integer, nullable: true }
                                     cycles: { type: integer, nullable: true }
@@ -719,6 +719,15 @@ nelmio_api_doc:
                                 one_off: { type: array, items: { $ref: '#/components/schemas/Money' } }
                                 monthly: { type: array, items: { $ref: '#/components/schemas/Money' } }
                                 approximate: { type: boolean, description: 'A weekly or daily line was put on a month''s terms.' }
+                                hourly:
+                                    type: array
+                                    description: The time_based lines with their rate per hour, never added into one_off or monthly.
+                                    items:
+                                        type: object
+                                        properties:
+                                            rate: { $ref: '#/components/schemas/Money' }
+                                            expected_hours: { type: string, nullable: true, example: '40.000', description: 'The hours expected; null when not estimated.' }
+                                            expected_amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true, description: 'The rate times the hours expected; null when not estimated.' }
                         links:
                             type: array
                             items:

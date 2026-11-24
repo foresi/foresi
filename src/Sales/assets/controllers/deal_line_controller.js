@@ -13,7 +13,9 @@ import { Controller } from '@hotwired/stimulus';
  *     <div data-controller="deal-line">
  */
 export default class extends Controller {
-    static targets = ['product', 'typed', 'kind', 'period', 'unit'];
+    static targets = ['product', 'typed', 'kind', 'period', 'unit', 'quantity'];
+
+    previousKind = null;
 
     connect() {
         this.changed();
@@ -29,6 +31,10 @@ export default class extends Controller {
         }
         if (this.hasUnitTarget && this.hasKindTarget) {
             if ('time_based' === this.kindTarget.value) {
+                // Switching to hourly: the untouched default 1 is no estimate of hours.
+                if (null !== this.previousKind && 'time_based' !== this.previousKind && this.hasQuantityTarget && '1' === this.quantityTarget.value) {
+                    this.quantityTarget.value = '';
+                }
                 this.unitTarget.value = 'h';
                 this.unitTarget.readOnly = true;
             } else {
@@ -37,6 +43,9 @@ export default class extends Controller {
                 }
                 this.unitTarget.readOnly = false;
             }
+        }
+        if (this.hasKindTarget) {
+            this.previousKind = this.kindTarget.value;
         }
     }
 }
