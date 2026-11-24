@@ -773,7 +773,7 @@ final class DealController extends AbstractController
     }
 
     /**
-     * The footer rows of the lines table: one-off and monthly apart, each under the
+     * The footer rows of the lines table: one-off, monthly and hourly apart, each under the
      * Amount column with its currencies side by side, a kind with no priced line left
      * out, "≈" when the monthly value is approximate.
      *
@@ -787,6 +787,10 @@ final class DealController extends AbstractController
         }
         if ([] !== $value->monthly) {
             $rows[] = ['name' => $this->screen->trans('sales.value.total_monthly'), 'total' => ($value->approximate ? '≈ ' : '').$this->amounts($value->monthly)];
+        }
+        if ([] !== $value->hourly) {
+            // Never added into the other two: the hours are not worked yet.
+            $rows[] = ['name' => $this->screen->trans('sales.value.total_hourly'), 'total' => $this->screen->hourly($value->hourly)];
         }
 
         return $rows;

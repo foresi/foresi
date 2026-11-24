@@ -332,8 +332,43 @@ final class DealScreensTest extends WebTestCase
         self::assertSelectorTextContains('[data-deal-lines] table', 'Hourly');
         self::assertSelectorTextContains('[data-deal-lines] table', 'Not estimated');
         self::assertSelectorTextContains('[data-deal-lines] table', "1,200.00\u{a0}Kč / h");
+        // The footer says the rate alone, under a row of its own.
+        $footer = $this->client->getCrawler()->filter('[data-deal-lines] tfoot tr');
+        self::assertCount(1, $footer);
+        self::assertStringContainsString('Hourly', $footer->text());
+        self::assertStringContainsString("1,200.00\u{a0}Kč / h", $footer->text());
+        self::assertStringNotContainsString('≈', $footer->text());
         $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/'.$line->id().'/edit');
         self::assertSame('', $this->client->getCrawler()->filter('#quantity')->attr('value'));
+    }
+
+    public function testExpectedHoursShowTheExpectedAmountInTheFooterNotInTheOtherTotals(): void
+    {
+        $deal = $this->newDeal('Roof audit');
+        $form = $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/new')->filter('#deal-line-form')->form();
+        $form['name'] = 'Maintenance';
+        $form['unitPrice'] = '20000';
+        $this->choice($form['billingKind'])->select('recurring');
+        $this->client->submit($form);
+        $form = $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/new')->filter('#deal-line-form')->form();
+        $form['name'] = 'Development';
+        $form['quantity'] = '40';
+        $form['unit'] = '';
+        $form['unitPrice'] = '1200';
+        $this->choice($form['billingKind'])->select('time_based');
+        $this->client->submit($form);
+
+        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
+        $footer = $crawler->filter('[data-deal-lines] tfoot tr');
+        self::assertCount(2, $footer);
+        self::assertStringContainsString("20,000.00\u{a0}Kč", $footer->eq(0)->text());
+        self::assertStringNotContainsString('48,000', $footer->eq(0)->text());
+        self::assertStringContainsString('Hourly', $footer->eq(1)->text());
+        self::assertStringContainsString("1,200.00\u{a0}Kč / h (≈ 40 h = 48,000.00\u{a0}Kč)", $footer->eq(1)->text());
+
+        // The list says the monthly value and marks the hourly part.
+        $crawler = $this->client->request('GET', '/sales/deals');
+        self::assertStringContainsString('hourly', $crawler->text());
     }
 
     public function testALinkToAnotherDealOfTheClientIsAddedAndRemoved(): void

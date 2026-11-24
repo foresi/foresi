@@ -196,6 +196,10 @@ sales:
         total_one_off: Celkem jednorázově
         total_monthly: Celkem měsíčně
         per_month: '{amount} měsíčně'
+        total_hourly: Po hodinách
+        hourly_rate: '{rate} / h'
+        hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
+        hourly_mark: po hodinách
     link:
         title: Propojené obchody
         new: Propojit obchod
@@ -252,6 +256,7 @@ sales:
             lines: 'Řádky obchodu (name, unit, quantity, unit_price, billing_period)'
             one_off_totals: 'Jednorázová hodnota, řádek za každou měnu (currency, amount)'
             monthly_totals: 'Měsíční hodnota, řádek za každou měnu (currency, amount)'
+            hourly_lines: 'Řádky po hodinách, nikdy nepřičtené do součtů (name, rate, expected_hours, expected_amount; poslední dvě jsou prázdné bez očekávaných hodin)'
     error:
         forbidden: S obchody pracují jen vlastníci a členové.
         not_found: Obchod neexistuje.

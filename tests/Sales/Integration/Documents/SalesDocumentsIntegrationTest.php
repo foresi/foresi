@@ -43,6 +43,8 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         $lines->add(new AddDealLineInput($deal->id(), name: 'Maintenance', unit: 'month', quantity: '1', unitPrice: '1500.00', currency: 'CZK', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
         $lines->add(new AddDealLineInput($deal->id(), name: 'Support', unit: 'hour', quantity: '2', unitPrice: '50.00', currency: 'EUR', billingKind: 'recurring', recurrenceUnit: 'week', interval: 1, cycles: 12));
         $lines->add(new AddDealLineInput($deal->id(), name: 'Site visit', unit: '', quantity: '1.5'));
+        $lines->add(new AddDealLineInput($deal->id(), name: 'Changes', unit: 'h', quantity: '40', unitPrice: '1200.00', currency: 'CZK', billingKind: 'time_based'));
+        $lines->add(new AddDealLineInput($deal->id(), name: 'Advice', unit: 'h', unitPrice: '900.00', currency: 'CZK', billingKind: 'time_based'));
 
         $values = self::getContainer()->get(DocumentVariables::class)->values([new RecordLink('contact', $this->company->id()), new RecordLink('deal', $deal->id())]);
 
@@ -57,10 +59,16 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
                 ['name' => 'Maintenance', 'unit' => 'month', 'quantity' => '1', 'unit_price' => '1,500.00'.$nbsp.'Kč', 'billing_period' => 'Every month, no end'],
                 ['name' => 'Support', 'unit' => 'hour', 'quantity' => '2', 'unit_price' => '50.00'.$nbsp.'EUR', 'billing_period' => 'Every week, 12 times'],
                 ['name' => 'Site visit', 'unit' => '', 'quantity' => '1.5', 'unit_price' => '', 'billing_period' => 'One-off'],
+                ['name' => 'Changes', 'unit' => 'h', 'quantity' => '40', 'unit_price' => '1,200.00'.$nbsp.'Kč', 'billing_period' => 'Hourly'],
+                ['name' => 'Advice', 'unit' => 'h', 'quantity' => '', 'unit_price' => '900.00'.$nbsp.'Kč', 'billing_period' => 'Hourly'],
             ],
             'one_off_totals' => [['currency' => 'CZK', 'amount' => '12,000.00'.$nbsp.'Kč']],
             // 2 × 50 EUR every week is 100 × 52 / 12 a month, so the monthly totals are approximate.
             'monthly_totals' => [['currency' => 'CZK', 'amount' => '≈ 1,500.00'.$nbsp.'Kč'], ['currency' => 'EUR', 'amount' => '≈ 433.33'.$nbsp.'EUR']],
+            'hourly_lines' => [
+                ['name' => 'Changes', 'rate' => '1,200.00'.$nbsp.'Kč', 'expected_hours' => '40', 'expected_amount' => '48,000.00'.$nbsp.'Kč'],
+                ['name' => 'Advice', 'rate' => '900.00'.$nbsp.'Kč', 'expected_hours' => '', 'expected_amount' => ''],
+            ],
         ], $values['deal'] ?? null);
         self::assertSame('Alpha Example s.r.o.', $values['client']['name'] ?? null);
 
@@ -75,6 +83,7 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         self::assertSame(str_replace('_', $nbsp, '<h1>Roof audit for Alpha Example s.r.o.</h1>'
             .'<p>Audit: 1 piece × 12,000.00_Kč, One-off</p><p>Maintenance: 1 month × 1,500.00_Kč, Every month, no end</p>'
             .'<p>Support: 2 hour × 50.00_EUR, Every week, 12 times</p><p>Site visit: 1.5  × –, One-off</p>'
+            .'<p>Changes: 40 h × 1,200.00_Kč, Hourly</p><p>Advice:  h × 900.00_Kč, Hourly</p>'
             .'<p>Once 12,000.00_Kč</p><p>Monthly ≈ 1,500.00_Kč</p><p>Monthly ≈ 433.33_EUR</p>'), $html);
     }
 

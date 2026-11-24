@@ -1,6 +1,6 @@
 {
     "name": "foresi/catalog",
-    "description": "Products with a one-off or recurring way of billing, which other modules snapshot onto their lines.",
+    "description": "Products with a one-off, recurring or hourly way of billing, which other modules snapshot onto their lines.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",

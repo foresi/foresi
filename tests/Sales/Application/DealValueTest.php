@@ -117,6 +117,67 @@ final class DealValueTest extends TestCase
         self::assertTrue($monthlyOnly->hasValue());
     }
 
+    public function testHourlyLinesAreNeverAddedToOneOffOrMonthly(): void
+    {
+        $value = DealValues::of([
+            $this->line('Audit', '1000.00'),
+            $this->line('Support', '500.00', unit: RecurrenceUnit::Month),
+            $this->hourly('Consulting', '1200.00', null),
+        ]);
+
+        self::assertTrue($value->hasValue());
+        self::assertSame(['CZK' => 100_000], $this->minor($value->oneOff));
+        self::assertSame(['CZK' => 50_000], $this->minor($value->monthly));
+        self::assertCount(1, $value->hourly['CZK']);
+        self::assertSame(120_000, $value->hourly['CZK'][0]->rate->minor());
+        self::assertTrue(DealValues::of([$this->hourly('Consulting', '1200.00', null)])->hasValue());
+        self::assertSame([], DealValues::of([$this->hourly('Consulting', '1200.00', null)])->oneOff);
+    }
+
+    public function testExpectedHoursGiveAnExpectedAmount(): void
+    {
+        $value = DealValues::of([
+            $this->hourly('Consulting', '1200.00', '40'),
+            $this->hourly('Night work', '0.01', '0.5'),
+            $this->hourly('Open ended', '900.00', null),
+        ]);
+
+        $lines = $value->hourly['CZK'];
+        self::assertSame('40.000', $lines[0]->expectedHours);
+        self::assertSame(4_800_000, $lines[0]->expectedAmount?->minor());
+        // Half a minor unit rounds half-up, as the other lines do.
+        self::assertSame(1, $lines[1]->expectedAmount?->minor());
+        self::assertNull($lines[2]->expectedHours);
+        self::assertNull($lines[2]->expectedAmount);
+    }
+
+    public function testTheSarahCase(): void
+    {
+        $value = DealValues::of([
+            $this->line('Monthly flat fee', '20000.00', unit: RecurrenceUnit::Month),
+            $this->hourly('Changes', '1200.00', null),
+        ]);
+
+        self::assertSame(['CZK' => 2_000_000], $this->minor($value->monthly));
+        self::assertSame([], $value->oneOff);
+        self::assertSame(120_000, $value->hourly['CZK'][0]->rate->minor());
+        self::assertNull($value->hourly['CZK'][0]->expectedAmount);
+    }
+
+    private function hourly(string $name, string $rate, ?string $hours): DealLine
+    {
+        return new DealLine('0192f1a4-0000-7000-8000-000000000001', 0, null, new DealLineTerms(
+            $name,
+            'h',
+            $hours,
+            Money::of($rate, Currency::CZK),
+            BillingKind::TimeBased,
+            null,
+            null,
+            null,
+        ));
+    }
+
     /**
      * @param array<string, Money> $totals
      *

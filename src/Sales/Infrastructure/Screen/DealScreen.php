@@ -14,6 +14,7 @@ use Foresi\Identity\Application\Person;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Sales\Application\DealLineRules;
 use Foresi\Sales\Application\DealValue;
+use Foresi\Sales\Application\HourlyValue;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Application\StageNames;
@@ -157,8 +158,31 @@ final class DealScreen implements ResetInterface
         if ([] !== $value->monthly) {
             $parts[] = $this->trans('sales.value.per_month', ['amount' => ($value->approximate ? '≈ ' : '').$this->amounts($value->monthly)]);
         }
+        if ([] !== $value->hourly) {
+            $parts[] = $this->trans('sales.value.hourly_mark');
+        }
 
         return implode(' + ', $parts);
+    }
+
+    /**
+     * The hourly lines of a value, as the footer of the lines table says them:
+     * "1 200,00 Kč/h (≈ 40 h = 48 000,00 Kč)", or the rate alone without expected hours.
+     *
+     * @param array<string, list<HourlyValue>> $hourly
+     */
+    public function hourly(array $hourly): string
+    {
+        $texts = [];
+        foreach ($hourly as $lines) {
+            foreach ($lines as $line) {
+                $texts[] = $line->expectedAmount instanceof Money && null !== $line->expectedHours
+                    ? $this->trans('sales.value.hourly_expected', ['rate' => $this->money($line->rate), 'hours' => $this->quantity($line->expectedHours), 'amount' => $this->money($line->expectedAmount)])
+                    : $this->trans('sales.value.hourly_rate', ['rate' => $this->money($line->rate)]);
+            }
+        }
+
+        return implode(' · ', $texts);
     }
 
     /**

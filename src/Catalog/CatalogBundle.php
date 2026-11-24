@@ -11,7 +11,7 @@ namespace Foresi\Catalog;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 
 /**
- * Products with a one-off or recurring way of billing.
+ * Products with a one-off, recurring or hourly way of billing.
  */
 final class CatalogBundle extends ModuleBundle
 {

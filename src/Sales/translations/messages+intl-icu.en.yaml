@@ -196,6 +196,10 @@ sales:
         total_one_off: Total one-off
         total_monthly: Total monthly
         per_month: '{amount} a month'
+        total_hourly: Hourly
+        hourly_rate: '{rate} / h'
+        hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
+        hourly_mark: hourly
     link:
         title: Linked deals
         new: Link a deal
@@ -252,6 +256,7 @@ sales:
             lines: 'Lines of the deal (name, unit, quantity, unit_price, billing_period)'
             one_off_totals: 'One-off value, one row per currency (currency, amount)'
             monthly_totals: 'Monthly value, one row per currency (currency, amount)'
+            hourly_lines: 'Hourly lines of the deal, never added into the totals (name, rate, expected_hours, expected_amount; the last two are empty without expected hours)'
     error:
         forbidden: Only the owners and members work with the deals.
         not_found: The deal does not exist.

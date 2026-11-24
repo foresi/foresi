@@ -18,7 +18,7 @@ Changes record the events `catalog.product.created`, `updated`, `archived` and `
 
 ## The products list
 
-**Sales → Products** (`/catalog/products`) lists the products on saved views, as the other lists: All (the products not archived), One-off, Recurring and Archived, the person's own views, the search, the Filter icon (the name, the billing kind, archived) and the Settings sheet (name, unit, price per unit, billing). A row opens the product in the side sheet.
+**Sales → Products** (`/catalog/products`) lists the products on saved views, as the other lists: All (the products not archived), One-off, Recurring, Hourly and Archived, the person's own views, the search, the Filter icon (the name, the billing kind, archived) and the Settings sheet (name, unit, price per unit, billing). A row opens the product in the side sheet.
 
 - **New product** in the page header opens a dialog with the name, unit, price per unit and currency, the billing kind and, for a recurring product, every N, the period and how many times; the period fields show only for a recurring product, and the unit of an hourly product is fixed to `h`. Without JavaScript the dialog is a page, all fields show and a one-off product ignores the period.
 - The product's record shows its unit, price, billing and description. **Edit** opens the same form; **⋯ → Archive** or **Restore** is in the header menu.
