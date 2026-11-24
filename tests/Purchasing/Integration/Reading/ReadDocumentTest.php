@@ -12,7 +12,9 @@ use Foresi\Attachment\Application\AttachmentFiles;
 use Foresi\Attachment\Application\Attachments;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Purchasing\Application\PurchasingUnit;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\Reading\DocumentReadings;
+use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\Reading\ReadDocument;
 use Foresi\Purchasing\Application\Reading\ReadingApplication;
 use Foresi\Purchasing\Application\Reading\ReadingMerge;
@@ -164,6 +166,82 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertContains('supplier_number', $reading->suggested());
         self::assertContains('total', $reading->suggested());
         self::assertSame('FV-2026-77', $reading->reading()->get(ReadField::SupplierNumber)?->value, 'The reading stays to be offered.');
+    }
+
+    public function testAnUnsupportedCurrencyLeavesTheAmountsAsSuggestions(): void
+    {
+        $message = $this->uploaded();
+
+        $this->readDocument($this->stub('isdoc', static fn (): Reading => new Reading([
+            new ReadValue(ReadField::SupplierNumber, 'FV-2026-77', 'isdoc'),
+            new ReadValue(ReadField::Currency, 'GBP', 'isdoc'),
+            new ReadValue(ReadField::Total, 12_100, 'isdoc'),
+            new ReadValue(ReadField::VatRecap, [['rate' => '21', 'baseMinor' => 10_000, 'vatMinor' => 2_100]], 'isdoc'),
+        ])))->read($message);
+
+        $reading = $this->reading($message->documentId);
+        $document = $this->document($message->documentId);
+        self::assertSame(['supplier_number'], $reading->applied());
+        self::assertSame(['total', 'vat_recap'], $reading->suggested());
+        self::assertContains(ReceivedDocumentWarning::READING_PARTLY_APPLIED, $reading->warnings());
+        self::assertSame('FV-2026-77', $document->supplierNumber());
+        self::assertNotSame(12_100, $document->total()?->minor(), 'GBP amounts are never taken as CZK.');
+        self::assertTrue($document->vatRecap()->isEmpty());
+    }
+
+    public function testReadingAgainNeverReplacesWhatAPersonTyped(): void
+    {
+        $message = $this->uploaded();
+        $this->readDocument($this->stub('isdoc', static fn (): ?Reading => null))->read($message);
+        $this->editing()->edit($message->documentId, $this->input(supplierNumber: 'TYPED-BY-PERSON', base: 50_000));
+
+        self::getContainer()->get(ReadAgain::class)->readAgain($message->documentId);
+        $again = $this->queued()[1];
+        self::assertTrue($again->keepTyped, 'The draft was touched since its last reading.');
+        $this->readDocument($this->stub('isdoc', fn (): Reading => $this->isdocReading()))->read($again);
+
+        $document = $this->document($message->documentId);
+        self::assertSame('TYPED-BY-PERSON', $document->supplierNumber());
+        self::assertSame(60_500, $document->total()?->minor(), 'The typed total stays.');
+        $reading = $this->reading($message->documentId);
+        self::assertSame([], $reading->applied());
+        self::assertContains('total', $reading->suggested());
+        self::assertSame(12_100, $reading->reading()->get(ReadField::Total)?->value, 'The read total is offered.');
+    }
+
+    public function testReadingAgainFillsOnlyTheEmptyFieldsOfATouchedDraft(): void
+    {
+        $message = $this->uploaded();
+        $this->readDocument($this->stub('isdoc', static fn (): ?Reading => null))->read($message);
+        $this->editing()->edit($message->documentId, $this->input(supplierNumber: 'TYPED-BY-PERSON', base: 50_000, taxPoint: null));
+
+        self::getContainer()->get(ReadAgain::class)->readAgain($message->documentId);
+        $this->readDocument($this->stub('isdoc', static fn (): Reading => new Reading([
+            new ReadValue(ReadField::SupplierNumber, 'FV-2026-77', 'isdoc'),
+            new ReadValue(ReadField::TaxPointDate, '2026-10-27', 'isdoc'),
+        ])))->read($this->queued()[1]);
+
+        $document = $this->document($message->documentId);
+        self::assertSame('TYPED-BY-PERSON', $document->supplierNumber());
+        self::assertSame('2026-10-27', $document->taxPointDate()?->format('Y-m-d'));
+        $reading = $this->reading($message->documentId);
+        self::assertSame(['tax_point_date'], $reading->applied());
+        self::assertSame(['supplier_number'], $reading->suggested());
+    }
+
+    public function testReadingAgainAppliesAsUsualToADraftNobodyTouched(): void
+    {
+        $message = $this->uploaded();
+        $this->readDocument($this->stub('isdoc', fn (): Reading => $this->isdocReading()))->read($message);
+        $taken = $this->document($message->documentId)->version();
+
+        self::getContainer()->get(ReadAgain::class)->readAgain($message->documentId);
+        $again = $this->queued()[1];
+        self::assertFalse($again->keepTyped, 'Only the reading itself changed the draft.');
+        self::assertSame($taken, $again->baseVersion);
+        $this->readDocument($this->stub('isdoc', static fn (): Reading => new Reading([new ReadValue(ReadField::Total, 24_200, 'isdoc')])))->read($again);
+
+        self::assertSame(24_200, $this->document($message->documentId)->total()?->minor());
     }
 
     public function testTheQueueGivingUpMarksTheReadingFailed(): void

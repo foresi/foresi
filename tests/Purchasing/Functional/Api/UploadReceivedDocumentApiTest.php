@@ -57,6 +57,15 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
         self::assertSame(0, $this->drafts());
     }
 
+    public function testAnEncodedBodyOver10MbIsRefusedBeforeItIsDecoded(): void
+    {
+        // Not base64 at all: decoding first would answer file_invalid.
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'big.pdf', 'content_base64' => str_repeat('*', 13_981_021)]);
+
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'content_base64', 'reason' => 'file_too_large']);
+        self::assertSame(0, $this->drafts());
+    }
+
     public function testRefusedTypeMakesNoDraft(): void
     {
         $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'run.exe', 'content_base64' => base64_encode("MZ\x90\x00 example executable")]);
