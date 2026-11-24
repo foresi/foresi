@@ -62,7 +62,7 @@ final readonly class Unrebilled
         foreach ($links as $link) {
             $line = $this->revenue->templateLine($link->recurringLineId());
             $item = $this->pairings->item($link->plannedItemId());
-            if (!$line instanceof TemplateLine || null === $item) {
+            if (!$line instanceof TemplateLine || !$item instanceof PlannedCostItem) {
                 continue;
             }
             $client = strtolower($line->customerId);

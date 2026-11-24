@@ -158,11 +158,11 @@ final class IssuedRevenueTest extends AdvanceTestCase
 
         self::assertNull($source->document($advance->id()));
         self::assertNull($source->document($trashed->id()));
-        self::assertNull($source->documentOfLine(self::stringOf($advanceLine)));
-        self::assertNull($source->documentOfLine(self::stringOf($trashedLine)));
+        self::assertNull($source->documentOfLine($this->stringOf($advanceLine)));
+        self::assertNull($source->documentOfLine($this->stringOf($trashedLine)));
     }
 
-    private static function stringOf(mixed $value): string
+    private function stringOf(mixed $value): string
     {
         self::assertIsString($value);
 

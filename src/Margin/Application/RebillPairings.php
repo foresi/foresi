@@ -36,7 +36,7 @@ final readonly class RebillPairings
     }
 
     /**
-     * @param string $occurrenceOn YYYY-MM-DD, the day of an occurrence of the item
+     * @param string $occurrenceOn YYYY-MM-DD, any day of the period of an occurrence of the item
      *
      * @throws MarginRefused forbidden, unknown_invoice_line, unknown_planned_item, not_an_expense, invalid_day, not_an_occurrence, already_paired or customer_not_a_recipient
      */
@@ -57,9 +57,11 @@ final readonly class RebillPairings
             throw MarginRefused::invalid(MarginRefused::INVALID_DAY, 'occurrenceOn', 'A day is written YYYY-MM-DD, for example 2026-11-01.');
         }
         $holding = $this->pairings->occurrenceHolding($item->id, $day);
-        if (!$holding instanceof \DateTimeImmutable || $holding->format('Y-m-d') !== $occurrenceOn) {
-            throw MarginRefused::invalid(MarginRefused::NOT_AN_OCCURRENCE, 'occurrenceOn', 'The planned item has no occurrence on this day.');
+        if (!$holding instanceof \DateTimeImmutable) {
+            throw MarginRefused::invalid(MarginRefused::NOT_AN_OCCURRENCE, 'occurrenceOn', 'The planned item has no occurrence whose period holds this day.');
         }
+        // Any day of the period of an occurrence names it, as the tax point does on issue: the occurrence itself is stored.
+        $day = $holding;
         if ($this->entityManager->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => $invoiceLineId]) instanceof RebillPairing) {
             throw MarginRefused::invalid(MarginRefused::ALREADY_PAIRED, 'invoiceLineId', 'The line already rebills an occurrence. Unpair it first.');
         }
@@ -72,7 +74,7 @@ final readonly class RebillPairings
             $this->entityManager->flush();
         });
 
-        return new RebillPairingView($invoiceLineId, $document->id, $item->id, $item->name, $item->url, $occurrenceOn, true);
+        return new RebillPairingView($invoiceLineId, $document->id, $item->id, $item->name, $item->url, $day->format('Y-m-d'), true);
     }
 
     /**

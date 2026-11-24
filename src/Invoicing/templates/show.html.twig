@@ -100,7 +100,7 @@
         {% set hasActions = false %}
         {% for line in lines %}
             {% set badges %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::INVOICE_LINE_BADGES'), {invoiceId: invoice.id, lineId: line.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endset %}
-            {% set actions %}{% if not invoice.trashed %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::INVOICE_LINE_ACTIONS'), {invoiceId: invoice.id, lineId: line.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}{% endset %}
+            {% set actions %}{% if not invoice.trashed %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::INVOICE_LINE_ACTIONS'), {invoiceId: invoice.id, lineId: line.id, kind: invoice.kind.value}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}{% endset %}
             {% set extras = extras|merge({(line.id): {badges: badges, actions: actions}}) %}
             {% if actions|trim %}{% set hasActions = true %}{% endif %}
         {% endfor %}

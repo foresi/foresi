@@ -33,9 +33,9 @@ final class PlannedItemsDirectoryTest extends CashFlowTestCase
 
     public function testListsThePlannedCostsByNameAndNoIncome(): void
     {
-        $this->planned(name: 'Voice API', category: 'software');
-        $this->planned(name: 'Cloud Host', category: 'software', repeat: 'month');
-        $this->planned(name: 'Retainer', direction: 'in', category: 'revenue');
+        $this->planned(category: 'software', name: 'Voice API');
+        $this->planned(category: 'software', repeat: 'month', name: 'Cloud Host');
+        $this->planned(direction: 'in', category: 'revenue', name: 'Retainer');
 
         $costs = self::getContainer()->get(PlannedItemDirectory::class)->costs();
 

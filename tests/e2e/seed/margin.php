@@ -103,7 +103,7 @@ $marginVoice = $marginDocument->create(new ReceivedDocumentInput(
     $margin20, $margin20, $margin20->modify('+14 days'), $margin20, Currency::CZK, Money::of('1210.00', Currency::CZK),
     null, null, [new VatRecapLine(VatRate::of('21'), Money::of('1000.00', Currency::CZK), Money::of('210.00', Currency::CZK))],
 ));
-$container->get(DocumentPairings::class)->pair(new FlowSubject('received_document', (string) $marginVoice->document->id()), $marginCost->id(), $margin20);
+$container->get(DocumentPairings::class)->pair(new FlowSubject('received_document', $marginVoice->document->id()), $marginCost->id(), $margin20);
 $marginSave = $container->get('e2e.save_recurring');
 \assert($marginSave instanceof SaveRecurringInvoice);
 $marginSave->create(new RecurringInput(

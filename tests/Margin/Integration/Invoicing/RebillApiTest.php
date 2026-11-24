@@ -153,7 +153,7 @@ final class RebillApiTest extends ApiTestCase
 
         $this->send('POST', '/api/v1/margin/rebills', ['occurrence_on' => 'December 5'] + $pair);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'occurrence_on', 'reason' => 'invalid_day']);
-        $this->send('POST', '/api/v1/margin/rebills', ['occurrence_on' => '2026-12-06'] + $pair);
+        $this->send('POST', '/api/v1/margin/rebills', ['occurrence_on' => '2026-10-01'] + $pair);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'occurrence_on', 'reason' => 'not_an_occurrence']);
         $this->send('POST', '/api/v1/margin/rebills', ['invoice_line_id' => Uuid::v7()->toRfc4122()] + $pair);
         $this->assertProblem(404, 'unknown_invoice_line');
@@ -169,6 +169,14 @@ final class RebillApiTest extends ApiTestCase
         $this->assertProblem(400, 'invalid_parameter');
 
         self::assertSame(0, $this->em()->getRepository(RebillPairing::class)->count([]));
+    }
+
+    public function testADayInsideThePeriodOfTheOccurrencePairsWithIt(): void
+    {
+        $this->send('POST', '/api/v1/margin/rebills', ['invoice_line_id' => $this->invoiceLine, 'planned_item_id' => $this->item, 'occurrence_on' => '2026-12-09']);
+
+        self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+        self::assertSame('2026-12-05', $this->at('data', 'occurrence_on'));
     }
 
     public function testACostPaidAndNotRebilledIsListedUntilItsLineIsPaired(): void
@@ -243,7 +251,7 @@ final class RebillApiTest extends ApiTestCase
 
     public function testTheToolsRefuseWithTheCodeOfTheRefusal(): void
     {
-        $call = $this->tool('foresi_pair_rebill_line', ['invoice_line_id' => $this->invoiceLine, 'planned_item_id' => $this->item, 'occurrence_on' => '2026-12-06', 'idempotency_key' => 'bad-1']);
+        $call = $this->tool('foresi_pair_rebill_line', ['invoice_line_id' => $this->invoiceLine, 'planned_item_id' => $this->item, 'occurrence_on' => '2026-10-01', 'idempotency_key' => 'bad-1']);
         self::assertTrue($call['isError'] ?? false);
         self::assertSame('invalid_argument', $this->in($call, 'structuredContent', 'error', 'code'));
         self::assertSame(['parameter' => 'occurrence_on', 'reason' => 'not_an_occurrence'], $this->in($call, 'structuredContent', 'error', 'details'));

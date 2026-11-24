@@ -91,10 +91,6 @@ class InvoiceLine implements Audited, AuditRooted, DocumentLine
     #[ORM\Column(name: 'deducts_invoice_id', type: 'guid', nullable: true)]
     private ?string $deductsInvoiceId;
 
-    /** The recurring template line this line was issued from; null for a line written by hand. No foreign key: the template line may go later. */
-    #[ORM\Column(name: 'source_line_id', type: 'guid', nullable: true)]
-    private ?string $sourceLineId;
-
     public function __construct(
         #[ORM\ManyToOne(targetEntity: Invoice::class)]
         #[ORM\JoinColumn(name: 'invoice_id', nullable: false, onDelete: 'RESTRICT')]
@@ -108,10 +104,11 @@ class InvoiceLine implements Audited, AuditRooted, DocumentLine
         LineValues $values,
         LineAmounts $amounts,
         ?string $deducts = null,
-        ?string $sourceLineId = null,
+        /** The recurring template line this line was issued from; null for a line written by hand. No foreign key: the template line may go later. */
+        #[ORM\Column(name: 'source_line_id', type: 'guid', nullable: true)]
+        private ?string $sourceLineId = null,
     ) {
         $this->id = Id::generate();
-        $this->sourceLineId = $sourceLineId;
         $this->revise($text, $unit, $rateKind, $supplyCode, $values, $amounts, $deducts);
     }
 

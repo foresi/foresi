@@ -123,7 +123,7 @@ A client often pays for a cost the firm pays first: the hosting of its site, a v
 
 **On issue.** When an invoice is issued from the template (also when a trashed one is restored), each line with a link is paired with the occurrence of the planned cost **on the tax point of the invoice**, if the cost has one on that day and its customer bears a share of the mapping in that month. A line that finds no occurrence is not paired and nothing is refused. The tax point is a day in the zone of the instance.
 
-**By hand.** A line written by hand, or one that should rebill another occurrence, is paired with `POST /api/v1/margin/rebills` (`invoice_line_id`, `planned_item_id`, `occurrence_on` as `YYYY-MM-DD`; `201`) or `foresi_pair_rebill_line`, and unpaired with `DELETE /api/v1/margin/rebills/{invoiceLineId}` or `foresi_unpair_rebill_line`, whether the pairing was made by hand or on issue. A line pairs with one occurrence only. A pairing made by hand is **removed when its invoice goes to the trash and is not restored with it**: pair the line again after a restore. A pairing made on issue comes back with the invoice.
+**By hand.** A line written by hand, or one that should rebill another occurrence, is paired with `POST /api/v1/margin/rebills` (`invoice_line_id`, `planned_item_id`, `occurrence_on` as `YYYY-MM-DD`, any day of the occurrence's period, so the tax point of the invoice works; `201`) or `foresi_pair_rebill_line`, and unpaired with `DELETE /api/v1/margin/rebills/{invoiceLineId}` or `foresi_unpair_rebill_line`, whether the pairing was made by hand or on issue. A line pairs with one occurrence only. A pairing made by hand is **removed when its invoice goes to the trash and is not restored with it**: pair the line again after a restore. A pairing made on issue comes back with the invoice.
 
 **Paid, not rebilled.** An occurrence O of a planned cost I is flagged for a client R when all of this holds:
 
@@ -138,7 +138,7 @@ The flag is **per recipient**: if two clients bear one cost and both are linked,
 
 Where it shows: every cell and total of the table has `unrebilled`, the number of flagged costs of the client in the month (a client row sums its months, the table every client); a client with only flagged costs still gets a row. The cell detail lists them in `unrebilled` (`label`, `planned_item_id`, `planned_item_url`, `occurrence_on`, `month`, `recipient_id`, `template_id`, `template_url`, `recurring_line_id`). `GET /api/v1/margin/unrebilled?from=2026-10&to=2026-12` and `foresi_list_unrebilled_costs` list them for a range of months, earliest first, with the range rules of the table. The badge is neutral, not an error: the cost may be rebilled in a later month.
 
-**A known limit.** Editing an issued invoice revises its lines by position. Removing or reordering the lines of an invoice that was paired can leave the pairing on another line; unpair and pair again by hand.
+**A known limit.** A recurring template revises its lines by position when it is saved, and a rebill link belongs to the line, so removing or reordering the lines of a template can leave a link on another line's content, or orphan it. Check the badge of each line on the template after such an edit and set the links again where they moved. Likewise, editing an issued invoice revises its lines by position. Removing or reordering the lines of an invoice that was paired can leave the pairing on another line; unpair and pair again by hand.
 
 ## Operations
 

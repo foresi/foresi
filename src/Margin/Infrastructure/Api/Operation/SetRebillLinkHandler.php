@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Margin\Infrastructure\Api\Operation;
 
 use Foresi\Margin\Application\RebillLinks;
+use Foresi\Margin\Application\RebillLinkView;
 use Foresi\Margin\Application\SetRebillLinkInput;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
 use Foresi\Shared\Infrastructure\Operation\OperationHandler;
@@ -33,6 +34,6 @@ final readonly class SetRebillLinkHandler implements OperationHandler
         \assert($input instanceof SetRebillLinkInput);
         $view = $this->links->set($input->recurringLineId, $input->plannedItemId);
 
-        return new OperationOutput(MarginJson::rebillLink($input->recurringLineId, $view), null === $view ? 'The line rebills no planned cost.' : 'The line rebills the planned cost.');
+        return new OperationOutput(MarginJson::rebillLink($input->recurringLineId, $view), $view instanceof RebillLinkView ? 'The line rebills the planned cost.' : 'The line rebills no planned cost.');
     }
 }

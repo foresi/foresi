@@ -10,6 +10,7 @@ namespace Foresi\Margin\Integration\Invoicing;
 
 use Foresi\Margin\Application\CostPairings;
 use Foresi\Margin\Application\RebillLinks;
+use Foresi\Margin\Application\RebillLinkView;
 use Foresi\Margin\Application\RebillPairings;
 use Foresi\Margin\Application\RevenueSources;
 use Foresi\Margin\Contract\RevenueDocument;
@@ -46,8 +47,8 @@ final class RebillController extends AbstractController
     #[Route('/margin/rebills/recurring-lines/{id}', name: 'app_margin_rebill_link', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function link(string $id, Request $request): Response
     {
+        $current = $this->guard(fn (): ?RebillLinkView => $this->links->ofLine($id));
         $line = $this->revenue->templateLine($id) ?? throw new NotFoundHttpException();
-        $current = $this->guard(fn () => $this->links->ofLine($id));
         $values = ['plannedItemId' => $current->plannedItemId ?? ''];
         $error = null;
         $status = Response::HTTP_OK;
@@ -56,7 +57,7 @@ final class RebillController extends AbstractController
             $values = ['plannedItemId' => $request->request->getString('plannedItemId')];
             try {
                 $link = $this->links->set($id, '' === $values['plannedItemId'] ? null : $values['plannedItemId']);
-                $this->addFlash('success', $this->translator->trans(null === $link ? 'margin.rebill.flash.link_removed' : 'margin.rebill.flash.link_set', ['name' => $link->plannedItemName ?? '']));
+                $this->addFlash('success', $this->translator->trans($link instanceof RebillLinkView ? 'margin.rebill.flash.link_set' : 'margin.rebill.flash.link_removed', ['name' => $link->plannedItemName ?? '']));
                 foreach ($link->warnings ?? [] as $warning) {
                     $this->addFlash('warning', $this->translator->trans('margin.rebill.warning.'.$warning));
                 }
@@ -145,7 +146,7 @@ final class RebillController extends AbstractController
     private function document(string $lineId): RevenueDocument
     {
         // Who may not work with the margin is turned away before anything of the invoice is told.
-        $this->guard(fn () => $this->pairings->ofLines([]));
+        $this->guard(fn (): array => $this->pairings->ofLines([]));
 
         return $this->revenue->documentOfLine($lineId) ?? throw new NotFoundHttpException();
     }

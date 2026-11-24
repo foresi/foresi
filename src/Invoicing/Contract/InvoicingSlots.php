@@ -17,7 +17,7 @@ namespace Foresi\Invoicing\Contract;
  * RECURRING_LINE_BADGES: small badges under the text of a line of a recurring invoice. Context: templateId, lineId.
  * RECURRING_LINE_ACTIONS: entries of the row menu of a line of a recurring invoice (Ui:MenuItem). Context: templateId, lineId.
  * INVOICE_LINE_BADGES: small badges under the text of a line of an issued document. Context: invoiceId, lineId.
- * INVOICE_LINE_ACTIONS: entries of the row menu of a line of an issued document (Ui:MenuItem). Context: invoiceId, lineId.
+ * INVOICE_LINE_ACTIONS: entries of the row menu of a line of an issued document (Ui:MenuItem). Context: invoiceId, lineId, kind (the DocumentKind value).
  */
 final class InvoicingSlots
 {

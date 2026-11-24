@@ -10,6 +10,7 @@ namespace Foresi\Margin\Integration\Invoicing;
 
 use Foresi\Invoicing\Contract\InvoicingSlots;
 use Foresi\Margin\Application\RebillLinks;
+use Foresi\Margin\Application\RebillLinkView;
 use Foresi\Margin\Application\RebillPairings;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Screen\MarginScreen;
@@ -43,7 +44,7 @@ final readonly class RebillPanel implements SlotProvider
                 InvoicingSlots::RECURRING_LINE_BADGES => $this->linkBadge($lineId),
                 InvoicingSlots::RECURRING_LINE_ACTIONS => [new SlotItem(self::LINK_ACTION, ['lineId' => $lineId])],
                 InvoicingSlots::INVOICE_LINE_BADGES => $this->pairingBadge($lineId),
-                InvoicingSlots::INVOICE_LINE_ACTIONS => [new SlotItem(self::PAIRING_ACTION, ['lineId' => $lineId, 'paired' => [] !== $this->pairings->ofLines([$lineId])])],
+                InvoicingSlots::INVOICE_LINE_ACTIONS => 'advance' === ($context['kind'] ?? null) ? [] : [new SlotItem(self::PAIRING_ACTION, ['lineId' => $lineId, 'paired' => [] !== $this->pairings->ofLines([$lineId])])],
                 default => [],
             };
         } catch (MarginRefused) {
@@ -58,7 +59,7 @@ final readonly class RebillPanel implements SlotProvider
     {
         $link = $this->links->ofLine($lineId);
 
-        return null === $link ? [] : [new SlotItem(self::LINK_BADGE, ['name' => $link->plannedItemName, 'warnings' => $link->warnings])];
+        return $link instanceof RebillLinkView ? [new SlotItem(self::LINK_BADGE, ['name' => $link->plannedItemName, 'warnings' => $link->warnings])] : [];
     }
 
     /**

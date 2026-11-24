@@ -50,7 +50,7 @@ final class RebillScreensTest extends ApiTestCase
         });
         $this->item = $this->planned('Cloud Host');
         $this->send('PUT', '/api/v1/margin/planned-items/'.$this->item.'/allocation', ['allocation' => ['kind' => 'whole', 'shares' => [['recipient' => $this->customerId]]], 'from_month' => '2026-12']);
-        $this->send('POST', '/api/v1/invoices', ['customer_id' => $this->customerId, 'issue_date' => '2026-12-02', 'lines' => [['text' => 'Hosting', 'unit_price' => '1000.00', 'unit' => 'month']]]);
+        $this->send('POST', '/api/v1/invoices', ['customer_id' => $this->customerId, 'issue_date' => '2026-12-07', 'lines' => [['text' => 'Hosting', 'unit_price' => '1000.00', 'unit' => 'month']]]);
         $this->invoiceId = $this->id();
         $this->send('GET', '/api/v1/invoices/'.$this->invoiceId);
         $this->invoiceLine = $this->lineId();
@@ -118,18 +118,19 @@ final class RebillScreensTest extends ApiTestCase
 
         $dialog = $this->client->request('GET', '/margin/rebills/invoice-lines/'.$this->invoiceLine);
         self::assertResponseIsSuccessful();
-        self::assertSame('2026-12-02', $dialog->filter('#margin-rebill-day')->attr('value'), 'it starts at the tax point');
+        self::assertSame('2026-12-07', $dialog->filter('#margin-rebill-day')->attr('value'), 'it starts at the tax point');
 
-        // A day the cost has no occurrence on is told in the form.
-        $this->post('/margin/rebills/invoice-lines/'.$this->invoiceLine, ['plannedItemId' => $this->item, 'occurrenceOn' => '2026-12-06'], $dialog);
+        // A day before the first occurrence is told in the form.
+        $this->post('/margin/rebills/invoice-lines/'.$this->invoiceLine, ['plannedItemId' => $this->item, 'occurrenceOn' => '2026-10-01'], $dialog);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('no occurrence on this day', $this->client->getCrawler()->filter('[data-margin-error]')->text());
         $this->post('/margin/rebills/invoice-lines/'.$this->invoiceLine, ['plannedItemId' => '', 'occurrenceOn' => '2026-12-05'], $dialog);
         self::assertResponseStatusCodeSame(422);
         self::assertSame(0, $this->em()->getRepository(RebillPairing::class)->count([]));
 
-        $this->post('/margin/rebills/invoice-lines/'.$this->invoiceLine, ['plannedItemId' => $this->item, 'occurrenceOn' => '2026-12-05'], $dialog);
+        $this->post('/margin/rebills/invoice-lines/'.$this->invoiceLine, ['plannedItemId' => $this->item, 'occurrenceOn' => '2026-12-07'], $dialog);
         self::assertResponseRedirects('/invoices/'.$this->invoiceId);
+        self::assertSame('2026-12-05', $this->em()->getRepository(RebillPairing::class)->findOneBy([])?->occurrenceOn()->format('Y-m-d'), 'the occurrence that holds the tax point is stored');
         $page = $this->client->followRedirect();
         self::assertStringContainsString('Rebills Cloud Host · Dec 2026', $page->filter('[data-invoice-line="'.$this->invoiceLine.'"] [data-margin-rebill-pairing]')->text());
         self::assertCount(0, $page->filter('a[data-margin-rebill-pair]'));
