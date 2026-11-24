@@ -1,9 +1,9 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The deals on saved views, as every list has them: All, Open, Won, Lost and Trash, the person's own views,
-    the filter sheet (stage, status, owner, client) and the Settings sheet. The deals are grouped by stage, one table per
+    the filter sheet (stage, status, owner, client) and the Settings sheet. The open deals are grouped by stage, one table per
     stage in the order of the stages with its count and value, as Odoo's list grouped by stage shows only the
-    groups it holds. A row opens the deal's page. A new deal starts in a dialog over the list; without
+    groups it holds; the won and then the lost deals follow in a table each, whatever stage they were closed in. A row opens the deal's page. A new deal starts in a dialog over the list; without
     JavaScript the same link is a page.
     Variables: sections (id, title, rows, count, total), columns, density, tabs, moreViews, chips, builder,
     picker, view, working, sortKept, workingQuery, filtered, resetHref, emptyTitle.
