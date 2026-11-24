@@ -51,6 +51,7 @@ margin:
     none: Nic
     unassigned: Nepřiřazeno
     unassigned_documents: "{count, plural, one {# doklad} few {# doklady} many {# dokladu} other {# dokladů}}"
+    unrebilled: "Nepřefakturováno {count}"
     line:
       revenue: Tržby
       costs: Náklady
@@ -61,6 +62,10 @@ margin:
     text: "V období {range} nejsou žádné tržby ani náklady. Změňte měsíce, nebo vystavte fakturu či zaevidujte přijatý doklad."
   sheet:
     assign: Přiřadit
+    unrebilled:
+      title: Zaplaceno, nepřefakturováno
+      text: Náklad, který klient nese, byl zaplacen a žádná faktura klientovi ho zatím nepřefakturovává.
+      template: Opakovaná faktura
     empty:
       revenue: V tomto měsíci není žádný doklad s tržbou.
       costs: V tomto měsíci nejsou žádné náklady.
@@ -115,3 +120,10 @@ margin:
     range_reversed: "Období končí dříve, než začíná."
     range_too_long: "Najednou se zobrazí nejvýše 24 měsíců."
     invalid_row: "Řádek je client:<id kontaktu>, own nebo unassigned."
+    invalid_day: "Den se píše jako RRRR-MM-DD."
+    unknown_template_line: "Řádek opakované faktury s tímto id neexistuje."
+    unknown_invoice_line: "Vystavený řádek faktury s tímto id neexistuje."
+    not_an_occurrence: "Položka plánu v tento den žádný výskyt nemá."
+    already_paired: "Řádek už přefakturovává jiný výskyt."
+    unknown_pairing: "Řádek není spárovaný s žádným výskytem."
+    customer_not_a_recipient: "Odběratel v tomto měsíci nenese žádný podíl z položky plánu."

@@ -48,9 +48,45 @@ final class FixedPairings implements PairingSource
         return $this->documents(static fn (CostPairing $pairing): bool => $pairing->plannedItemId === $plannedItemId && $pairing->occurrenceOn->format('Y-m-d') >= $fromMonth->format('Y-m-01'));
     }
 
+    public function costItems(): array
+    {
+        return array_values(array_filter($this->items, static fn (PlannedCostItem $item): bool => $item->expense));
+    }
+
     public function item(string $plannedItemId): ?PlannedCostItem
     {
         return $this->items[$plannedItemId] ?? null;
+    }
+
+    /** @var array<string, \DateTimeImmutable> "item day" => the occurrence whose period holds the day, set by a test */
+    public array $holding = [];
+
+    /** @var \DateTimeZone|null when set, a day is read as Cash flow reads it: an instant is the day it is in this zone, and the occurrence comes back at midnight in it */
+    public ?\DateTimeZone $zone = null;
+
+    public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
+    {
+        if ($this->zone instanceof \DateTimeZone) {
+            $day = $day->setTimezone($this->zone)->setTime(0, 0);
+            $held = $this->holding[$plannedItemId.' '.$day->format('Y-m-d')] ?? null;
+
+            return $held instanceof \DateTimeImmutable ? new \DateTimeImmutable($held->format('Y-m-d'), $this->zone) : null;
+        }
+
+        return $this->holding[$plannedItemId.' '.$day->format('Y-m-d')] ?? null;
+    }
+
+    public function occurrencesWithDocumentsFrom(string $plannedItemId, \DateTimeImmutable $fromDay): array
+    {
+        $days = [];
+        foreach ($this->pairings as $pairing) {
+            if ($pairing->plannedItemId === $plannedItemId && $pairing->occurrenceOn->format('Y-m-d') >= $fromDay->format('Y-m-d')) {
+                $days[$pairing->occurrenceOn->format('Y-m-d')] = $pairing->day();
+            }
+        }
+        ksort($days);
+
+        return array_values($days);
     }
 
     /**

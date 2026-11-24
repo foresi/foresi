@@ -15,8 +15,9 @@ namespace Foresi\Margin\Application;
 final readonly class MarginCellView
 {
     /**
-     * @param list<MarginCellItem> $revenue by tax point, then number
-     * @param list<MarginCellItem> $costs   the highest amount first
+     * @param list<MarginCellItem>       $revenue    by tax point, then number
+     * @param list<MarginCellItem>       $costs      the highest amount first
+     * @param list<UnrebilledOccurrence> $unrebilled the paid costs of the client this month that were not rebilled, oldest first
      */
     public function __construct(
         public string $row,
@@ -25,6 +26,7 @@ final readonly class MarginCellView
         public MarginFigures $figures,
         public array $revenue,
         public array $costs,
+        public array $unrebilled = [],
     ) {
     }
 

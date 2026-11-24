@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Integration\Margin;
 
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\DeductibleAdvances;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\InvoiceStore;
@@ -21,6 +22,7 @@ use Foresi\Invoicing\Integration\Margin\IssuedRevenue;
 use Foresi\Margin\Contract\RevenueDocument;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -87,6 +89,7 @@ final class IssuedRevenueTest extends AdvanceTestCase
         self::assertSame([$last->id()], array_map(static fn (RevenueDocument $document): string => $document->id, $november));
         self::assertSame([$first->id()], array_map(static fn (RevenueDocument $document): string => $document->id, $december));
         self::assertSame(['2026-11-30', 'Europe/Prague'], [$november[0]->taxPointOn->format('Y-m-d'), $november[0]->taxPointOn->getTimezone()->getName()]);
+        self::assertSame('2026-12-01', $december[0]->taxPointOn->format('Y-m-d'), 'The day of the document is its tax point, not its issue date.');
         $late = new \DateTimeImmutable('2026-11-30 23:30:00', new \DateTimeZone('UTC'));
         self::assertSame('2026-12-01', $late->setTimezone($zone)->format('Y-m-d'), 'It is already December in Prague.');
     }
@@ -127,6 +130,46 @@ final class IssuedRevenueTest extends AdvanceTestCase
         self::assertSame([], $this->between('2026-11-01', '2026-11-30'));
     }
 
+    public function testADocumentIsFoundByItsIdAndByOneOfItsLines(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('1000.00'), $this->line('500.00', text: 'Travel')]));
+        $this->em->clear();
+        $source = $this->source();
+
+        $document = $source->document($invoice->id());
+
+        self::assertInstanceOf(RevenueDocument::class, $document);
+        self::assertSame([$invoice->id(), 150_000, 'Europe/Prague', '2026-11-01'], [$document->id, $document->netCzk->minor(), $document->taxPointOn->getTimezone()->getName(), $document->taxPointOn->format('Y-m-d')]);
+        self::assertEquals($document, iterator_to_array($source->between(new \DateTimeImmutable('2026-11-01', new \DateTimeZone('Europe/Prague')), new \DateTimeImmutable('2026-11-30', new \DateTimeZone('Europe/Prague'))), false)[0], 'Built as between() builds it.');
+        $second = $document->lines[1]->id;
+        self::assertEquals($document, $source->documentOfLine($second));
+        self::assertNull($source->document(Id::generate()));
+        self::assertNull($source->documentOfLine(Id::generate()));
+    }
+
+    public function testNoDocumentIsFoundForAnAdvanceOrATrashedDocument(): void
+    {
+        $advance = $this->advance([$this->line('1000.00')]);
+        $trashed = $this->issue->issue($this->input([$this->line('300.00')]));
+        $this->trash->trash($trashed->id(), 'Wrong customer');
+        $trashedLine = $this->em->getConnection()->fetchOne('SELECT id FROM invoice_line WHERE invoice_id = :id', ['id' => $trashed->id()]);
+        $advanceLine = $this->em->getConnection()->fetchOne('SELECT id FROM invoice_line WHERE invoice_id = :id', ['id' => $advance->id()]);
+        $this->em->clear();
+        $source = $this->source();
+
+        self::assertNull($source->document($advance->id()));
+        self::assertNull($source->document($trashed->id()));
+        self::assertNull($source->documentOfLine($this->stringOf($advanceLine)));
+        self::assertNull($source->documentOfLine($this->stringOf($trashedLine)));
+    }
+
+    private function stringOf(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
+    }
+
     /**
      * @return list<RevenueDocument>
      */
@@ -142,7 +185,7 @@ final class IssuedRevenueTest extends AdvanceTestCase
     {
         $container = self::getContainer();
 
-        return new IssuedRevenue($container->get(InvoiceStore::class), $container->get(IssuedDocumentFactory::class), $container->get(UrlGeneratorInterface::class));
+        return new IssuedRevenue($container->get(InvoiceStore::class), $container->get(IssuedDocumentFactory::class), $container->get(UrlGeneratorInterface::class), $this->em, $container->get(InstanceClock::class));
     }
 
     /**

@@ -20,7 +20,10 @@ use Foresi\Shared\Application\Refused;
  * planned items and suppliers unknown_planned_item, not_an_expense,
  * not_recurring, counterparty_required, unknown_supplier and invalid_month;
  * the margin table adds range_reversed and range_too_long, and a cell
- * invalid_row for a row that is no client, own or unassigned.
+ * invalid_row for a row that is no client, own or unassigned. Rebilling adds
+ * invalid_day, unknown_template_line, unknown_invoice_line, not_an_occurrence,
+ * already_paired, unknown_pairing and customer_not_a_recipient (also a
+ * warning of a rebill link).
  */
 final class MarginRefused extends \DomainException implements Refused
 {
@@ -45,6 +48,13 @@ final class MarginRefused extends \DomainException implements Refused
     public const string RANGE_REVERSED = 'range_reversed';
     public const string RANGE_TOO_LONG = 'range_too_long';
     public const string INVALID_ROW = 'invalid_row';
+    public const string INVALID_DAY = 'invalid_day';
+    public const string UNKNOWN_TEMPLATE_LINE = 'unknown_template_line';
+    public const string UNKNOWN_INVOICE_LINE = 'unknown_invoice_line';
+    public const string NOT_AN_OCCURRENCE = 'not_an_occurrence';
+    public const string ALREADY_PAIRED = 'already_paired';
+    public const string UNKNOWN_PAIRING = 'unknown_pairing';
+    public const string CUSTOMER_NOT_A_RECIPIENT = 'customer_not_a_recipient';
 
     public function __construct(
         private readonly string $reason,

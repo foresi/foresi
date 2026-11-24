@@ -19,10 +19,13 @@ use Foresi\Margin\Application\MarginRowView;
 use Foresi\Margin\Application\MarginTableView;
 use Foresi\Margin\Application\PlannedAllocationsView;
 use Foresi\Margin\Application\PlannedAllocationVersionView;
+use Foresi\Margin\Application\RebillLinkView;
+use Foresi\Margin\Application\RebillPairingView;
 use Foresi\Margin\Application\ShareView;
 use Foresi\Margin\Application\SupplierDefaultsView;
 use Foresi\Margin\Application\SupplierDefaultVersionView;
 use Foresi\Margin\Application\TermView;
+use Foresi\Margin\Application\UnrebilledOccurrence;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
@@ -86,10 +89,10 @@ final class MarginJson
                 'client_id' => $row->clientId,
                 'label' => $row->label(),
                 'cells' => array_map(static fn (string $month): array => self::cell($month, $row->cells[$month] ?? MarginFigures::none()), $view->months),
-                'total' => self::figures($row->total),
+                'total' => self::totals($row->total),
             ], $view->rows),
             'month_totals' => array_map(static fn (string $month): array => self::cell($month, $view->monthTotals[$month] ?? MarginFigures::none()), $view->months),
-            'total' => self::figures($view->total),
+            'total' => self::totals($view->total),
             'known_gaps' => array_map(static fn (KnownGap $gap): array => ['code' => $gap->code, 'document_ids' => $gap->documentIds], $view->knownGaps),
         ];
     }
@@ -108,6 +111,62 @@ final class MarginJson
         ] + self::figures($view->figures) + [
             'revenue_items' => array_map(self::item(...), $view->revenue),
             'cost_items' => array_map(self::item(...), $view->costs),
+            'unrebilled' => self::unrebilled($view->unrebilled),
+        ];
+    }
+
+    /**
+     * The costs paid and not rebilled.
+     *
+     * @param list<UnrebilledOccurrence> $occurrences
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function unrebilled(array $occurrences): array
+    {
+        return array_map(static fn (UnrebilledOccurrence $occurrence): array => [
+            'label' => $occurrence->itemName,
+            'planned_item_id' => $occurrence->plannedItemId,
+            'planned_item_url' => $occurrence->itemUrl,
+            'occurrence_on' => $occurrence->occurrenceOn->format('Y-m-d'),
+            'month' => $occurrence->month,
+            'recipient_id' => $occurrence->recipientId,
+            'template_id' => $occurrence->templateId,
+            'template_url' => $occurrence->templateUrl,
+            'recurring_line_id' => $occurrence->recurringLineId,
+        ], $occurrences);
+    }
+
+    /**
+     * The planned cost a template line rebills; every field but the line is null where it rebills none.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rebillLink(string $recurringLineId, ?RebillLinkView $view): array
+    {
+        return [
+            'recurring_line_id' => $recurringLineId,
+            'planned_item_id' => $view?->plannedItemId,
+            'planned_item_name' => $view?->plannedItemName,
+            'planned_item_url' => $view?->plannedItemUrl,
+            'created_on' => $view?->createdOn,
+            'warnings' => $view->warnings ?? [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function rebillPairing(RebillPairingView $view): array
+    {
+        return [
+            'invoice_line_id' => $view->invoiceLineId,
+            'invoice_id' => $view->invoiceId,
+            'planned_item_id' => $view->plannedItemId,
+            'planned_item_name' => $view->plannedItemName,
+            'planned_item_url' => $view->plannedItemUrl,
+            'occurrence_on' => $view->occurrenceOn,
+            'manual' => $view->manual,
         ];
     }
 
@@ -116,7 +175,17 @@ final class MarginJson
      */
     private static function cell(string $month, MarginFigures $figures): array
     {
-        return ['month' => $month] + self::figures($figures);
+        return ['month' => $month] + self::figures($figures) + ['unrebilled' => $figures->unrebilled];
+    }
+
+    /**
+     * The figures of a row or of the table with how many paid costs were not rebilled, as the cells have them.
+     *
+     * @return array<string, mixed>
+     */
+    private static function totals(MarginFigures $figures): array
+    {
+        return self::figures($figures) + ['unrebilled' => $figures->unrebilled];
     }
 
     /**

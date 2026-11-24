@@ -89,6 +89,8 @@ nelmio_api_doc:
                 InvoiceLine:
                     type: object
                     properties:
+                        id: { type: string, format: uuid, description: 'The id of the line, as the margin operations that rebill a line take it.' }
+                        source_line_id: { type: string, format: uuid, nullable: true, description: 'The id of the line of the recurring invoice template this line was issued from; null for any other line.' }
                         description: { type: string }
                         quantity: { type: string, example: '1.0000' }
                         unit: { type: string }
@@ -181,8 +183,9 @@ nelmio_api_doc:
                         ends_after: { type: integer, nullable: true }
                 RecurringInvoiceLine:
                     type: object
-                    description: A line in the shape the writes take it.
+                    description: A line in the shape the writes take it. A stored template also gives the id of each line.
                     properties:
+                        id: { type: string, format: uuid, description: 'The id of the line, kept when the template is revised; absent in a preview. The margin operations that rebill a line take it.' }
                         text: { type: string }
                         unit_price: { type: string, example: '1500.00' }
                         quantity: { type: string, example: '1.0000' }
@@ -1179,23 +1182,25 @@ nelmio_api_doc:
                                     document_ids: { type: array, items: { type: string, format: uuid } }
                 MarginFigures:
                     type: object
-                    required: [revenue, costs, margin]
+                    required: [revenue, costs, margin, unrebilled]
                     properties:
                         revenue: { $ref: '#/components/schemas/Money' }
                         costs: { $ref: '#/components/schemas/Money' }
                         margin: { $ref: '#/components/schemas/Money' }
+                        unrebilled: { type: integer, description: 'How many paid costs were not rebilled (paid, not rebilled); a client sums its months, the table every client.' }
                 MarginMonthFigures:
                     type: object
-                    required: [month, revenue, costs, margin]
+                    required: [month, revenue, costs, margin, unrebilled]
                     properties:
                         month: { type: string, example: '2026-11' }
                         revenue: { $ref: '#/components/schemas/Money' }
                         costs: { $ref: '#/components/schemas/Money' }
                         margin: { $ref: '#/components/schemas/Money' }
+                        unrebilled: { type: integer, description: 'How many costs paid that month were not rebilled to the client; the cell detail lists them.' }
                 MarginCell:
                     type: object
                     description: The documents and cost shares behind one cell of the margin table.
-                    required: [row, label, month, revenue, costs, margin, revenue_items, cost_items]
+                    required: [row, label, month, revenue, costs, margin, revenue_items, cost_items, unrebilled]
                     properties:
                         row: { type: string }
                         label: { type: string }
@@ -1205,6 +1210,56 @@ nelmio_api_doc:
                         margin: { $ref: '#/components/schemas/Money' }
                         revenue_items: { type: array, items: { $ref: '#/components/schemas/MarginCellItem' } }
                         cost_items: { type: array, items: { $ref: '#/components/schemas/MarginCellItem' } }
+                        unrebilled:
+                            type: array
+                            description: 'The costs of a client row paid in the month and not rebilled; empty for own and unassigned.'
+                            items: { $ref: '#/components/schemas/MarginUnrebilled' }
+                MarginUnrebilled:
+                    type: object
+                    description: An occurrence of a planned cost that was paid and not rebilled to a client whose recurring invoice rebills it.
+                    required: [label, planned_item_id, planned_item_url, occurrence_on, month, recipient_id, template_id, template_url, recurring_line_id]
+                    properties:
+                        label: { type: string, description: 'The name of the planned cost.' }
+                        planned_item_id: { type: string, format: uuid }
+                        planned_item_url: { type: string, nullable: true, description: 'Where a person reads the planned cost in Foresi.' }
+                        occurrence_on: { type: string, format: date }
+                        month: { type: string, example: '2026-11', description: 'The month of the occurrence.' }
+                        recipient_id: { type: string, format: uuid, description: 'The client, a contact.' }
+                        template_id: { type: string, format: uuid, description: 'The recurring invoice whose line rebills the cost.' }
+                        template_url: { type: string }
+                        recurring_line_id: { type: string, format: uuid }
+                MarginRebillLink:
+                    type: object
+                    description: The planned cost a line of a recurring invoice template rebills; every field but the line is null where it rebills none.
+                    required: [recurring_line_id, planned_item_id, planned_item_name, planned_item_url, created_on, warnings]
+                    properties:
+                        recurring_line_id: { type: string, format: uuid }
+                        planned_item_id: { type: string, format: uuid, nullable: true }
+                        planned_item_name: { type: string, nullable: true }
+                        planned_item_url: { type: string, nullable: true }
+                        created_on: { type: string, format: date, nullable: true, description: 'The day the link was made, in the zone of the instance; costs of earlier months are never flagged.' }
+                        warnings:
+                            type: array
+                            description: 'Does not stop the link. customer_not_a_recipient: the customer of the template bears no share of the mapping of the planned cost this month, so no invoice would be paired.'
+                            items: { type: string, enum: [customer_not_a_recipient] }
+                MarginRebillPairing:
+                    type: object
+                    description: An invoice line paired with an occurrence of a planned cost.
+                    required: [invoice_line_id, invoice_id, planned_item_id, planned_item_name, planned_item_url, occurrence_on, manual]
+                    properties:
+                        invoice_line_id: { type: string, format: uuid }
+                        invoice_id: { type: string, format: uuid }
+                        planned_item_id: { type: string, format: uuid }
+                        planned_item_name: { type: string }
+                        planned_item_url: { type: string, nullable: true }
+                        occurrence_on: { type: string, format: date }
+                        manual: { type: boolean, description: 'True where a person paired the line; a pairing made on issue is false.' }
+                MarginRebillUnpaired:
+                    type: object
+                    required: [invoice_line_id, unpaired]
+                    properties:
+                        invoice_line_id: { type: string, format: uuid }
+                        unpaired: { type: boolean }
                 MarginCellItem:
                     type: object
                     required: [document_id, label, text, amount, source, kind, url, planned_item_id, occurrence_on]

@@ -201,13 +201,14 @@ final class RecurringListController extends AbstractController
             'facts' => $facts,
             'description' => $description,
             'failure' => null === $code || null === $failure ? null : ['text' => $this->translator->trans('recurring.list.failed', ['reason' => $failure])] + $this->fix($template, $code),
-            'lines' => array_map(fn (PricedLine $line): array => [
+            'lines' => array_map(fn (PricedLine $line, int $position): array => [
+                'id' => $lines[$position]->id(),
                 'text' => $line->input->text,
                 'quantity' => trim($this->amountText->quantity($line->values->quantity->toDecimal()).' '.$line->input->unit),
                 'price' => $this->amountText->shown($line->input->price),
                 'rate' => $line->values->rate instanceof Percent ? $this->amountText->trimmed($line->values->rate->decimal()).' %' : '',
                 'total' => $this->amountText->shown($line->amounts->gross),
-            ], $priced['lines'] ?? []),
+            ], $priced['lines'] ?? [], array_keys($priced['lines'] ?? [])),
             'totals' => $totals instanceof DocumentTotals ? [
                 'net' => $this->amountText->shown($totals->net),
                 'vat' => $totals->vat->isZero() ? null : $this->amountText->shown($totals->vat),

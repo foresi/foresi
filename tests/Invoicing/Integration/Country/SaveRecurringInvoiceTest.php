@@ -137,6 +137,19 @@ final class SaveRecurringInvoiceTest extends RecurringTestCase
         self::assertSame('Only one', $lines[0]['text']);
     }
 
+    public function testRevisingTheTemplateKeepsTheLineIds(): void
+    {
+        $template = $this->save->create($this->recurringInput([$this->line(text: 'Hosting'), $this->line('250.00', text: 'Support')]));
+        $ids = array_column($this->lineRows($template->id()), 'id');
+
+        $this->em->clear();
+        $this->save->edit($template->id(), $this->templates->get($template->id())->version(), $this->recurringInput([$this->line(text: 'Hosting renamed'), $this->line('250.00', text: 'Support')]));
+
+        $after = $this->lineRows($template->id());
+        self::assertSame($ids, array_column($after, 'id'), 'A line is revised in place by position, so its id survives.');
+        self::assertSame('Hosting renamed', $after[0]['text']);
+    }
+
     public function testAnEditKeepsAnUnchangedFirstIssueDateInThePastAndAPendingOccurrence(): void
     {
         $template = $this->save->create($this->recurringInput());

@@ -73,4 +73,48 @@ final readonly class CostPairings
 
         return null;
     }
+
+    /**
+     * @return list<PlannedCostItem> by name, each item once
+     */
+    public function costItems(): array
+    {
+        $items = [];
+        foreach ($this->sources as $source) {
+            foreach ($source->costItems() as $item) {
+                $items[$item->id] = $item;
+            }
+        }
+        usort($items, static fn (PlannedCostItem $a, PlannedCostItem $b): int => strcasecmp($a->name, $b->name));
+
+        return $items;
+    }
+
+    public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
+    {
+        foreach ($this->sources as $source) {
+            $occurrence = $source->occurrenceHolding($plannedItemId, $day);
+            if ($occurrence instanceof \DateTimeImmutable) {
+                return $occurrence;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<\DateTimeImmutable> oldest first, each day once
+     */
+    public function occurrencesWithDocumentsFrom(string $plannedItemId, \DateTimeImmutable $fromDay): array
+    {
+        $days = [];
+        foreach ($this->sources as $source) {
+            foreach ($source->occurrencesWithDocumentsFrom($plannedItemId, $fromDay) as $day) {
+                $days[$day->format('Y-m-d')] = $day;
+            }
+        }
+        ksort($days);
+
+        return array_values($days);
+    }
 }

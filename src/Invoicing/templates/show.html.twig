@@ -95,14 +95,24 @@
             {% endif %}
         </twig:Ui:Card>
 
+        {# What other modules add to a line, as a badge under its text and entries of its row menu (InvoicingSlots); the column of the menu is there only when one has an entry. #}
+        {% set extras = {} %}
+        {% set hasActions = false %}
+        {% for line in lines %}
+            {% set badges %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::INVOICE_LINE_BADGES'), {invoiceId: invoice.id, lineId: line.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endset %}
+            {% set actions %}{% if not invoice.trashed %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::INVOICE_LINE_ACTIONS'), {invoiceId: invoice.id, lineId: line.id, kind: invoice.kind.value}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}{% endset %}
+            {% set extras = extras|merge({(line.id): {badges: badges, actions: actions}}) %}
+            {% if actions|trim %}{% set hasActions = true %}{% endif %}
+        {% endfor %}
         <twig:Ui:Card :title="'invoice.card.lines'|trans ~ ' (' ~ lines|length ~ ')'" icon="list">
             {# A phone stacks each line as Shopify's order detail does: the text and the total, under them quantity × price and the rate. #}
             <ul class="m-0 grid list-none divide-y divide-divider p-0 text-small sm:hidden" data-invoice-lines-stacked>
                 {% for line in lines %}
-                    <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 py-2 first:pt-0">
+                    <li class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 py-2 first:pt-0" data-invoice-line-stacked="{{ line.id }}">
                         <span class="text-ink [overflow-wrap:anywhere]">{{ line.text }}</span>
                         <span class="num whitespace-nowrap text-right font-medium text-ink">{{ line.total }}</span>
                         <span class="num col-span-2 text-muted">{{ line.quantity }} × {{ line.price }}{% if line.rate %} · {{ 'invoice.line.rate'|trans }} {{ line.rate }}{% endif %}</span>
+                        {% if extras[line.id].badges|trim %}<div class="col-span-2 flex flex-wrap items-center gap-1.5">{{ extras[line.id].badges }}</div>{% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -115,16 +125,27 @@
                             <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.price'|trans }}</th>
                             <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.rate'|trans }}</th>
                             <th scope="col" class="py-2 text-right font-medium">{{ 'invoice.line.total'|trans }}</th>
+                            {% if hasActions %}<th scope="col" class="w-12 py-2 pl-3 text-right font-medium"><span class="sr-only">{{ 'invoice.line.actions'|trans }}</span></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-divider">
                         {% for line in lines %}
-                            <tr>
-                                <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">{{ line.text }}</td>
+                            <tr data-invoice-line="{{ line.id }}">
+                                <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">
+                                    {{ line.text }}
+                                    {% if extras[line.id].badges|trim %}<div class="mt-1 flex flex-wrap items-center gap-1.5">{{ extras[line.id].badges }}</div>{% endif %}
+                                </td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.quantity }}</td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.price }}</td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.rate }}</td>
                                 <td class="num whitespace-nowrap py-2 text-right font-medium text-ink">{{ line.total }}</td>
+                                {% if hasActions %}
+                                    <td class="py-2 pl-3 text-right">
+                                        {% if extras[line.id].actions|trim %}
+                                            <twig:Ui:Menu id="invoice-line-{{ line.id }}-actions" buttonId="invoice-line-{{ line.id }}-menu" :label="'invoice.line.actions'|trans" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true">{{ extras[line.id].actions }}</twig:Ui:Menu>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>

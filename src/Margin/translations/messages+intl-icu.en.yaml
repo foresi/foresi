@@ -51,6 +51,7 @@ margin:
     none: None
     unassigned: Unassigned
     unassigned_documents: "{count, plural, one {# document} other {# documents}}"
+    unrebilled: "Not rebilled {count}"
     line:
       revenue: Revenue
       costs: Costs
@@ -61,6 +62,10 @@ margin:
     text: "There is no revenue and no cost in {range}. Change the months, or issue an invoice or record a received document."
   sheet:
     assign: Assign
+    unrebilled:
+      title: Paid, not rebilled
+      text: A cost this client bears was paid, and no invoice to the client rebills it yet.
+      template: Recurring invoice
     empty:
       revenue: No revenue document in this month.
       costs: No cost in this month.
@@ -115,3 +120,10 @@ margin:
     range_reversed: "The range ends before it starts."
     range_too_long: "At most 24 months are shown at once."
     invalid_row: "A row is client:<contact id>, own or unassigned."
+    invalid_day: "A day is written as YYYY-MM-DD."
+    unknown_template_line: "There is no recurring invoice line with this id."
+    unknown_invoice_line: "There is no issued invoice line with this id."
+    not_an_occurrence: "The planned item has no occurrence on this day."
+    already_paired: "The line already rebills an occurrence."
+    unknown_pairing: "The line is not paired with an occurrence."
+    customer_not_a_recipient: "The customer bears no share of the planned item in that month."

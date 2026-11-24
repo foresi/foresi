@@ -39,6 +39,7 @@ final class MarginAccessApiTest extends ApiTestCase
         'foresi_get_planned_item_allocation', 'foresi_set_planned_item_allocation',
         'foresi_get_supplier_default_recipient', 'foresi_set_supplier_default_recipient',
         'foresi_client_margin', 'foresi_client_margin_cell',
+        'foresi_set_rebill_link', 'foresi_pair_rebill_line', 'foresi_unpair_rebill_line', 'foresi_list_unrebilled_costs',
     ];
 
     private ?string $session = null;
@@ -71,6 +72,17 @@ final class MarginAccessApiTest extends ApiTestCase
         $this->assertProblem(404, 'unknown_planned_item');
         $this->get($this->defaultPath($id), secret: $reader);
         $this->assertProblem(404, 'unknown_supplier');
+
+        $this->send('PUT', $this->rebillLinkPath($id), ['planned_item_id' => null], $reader);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->send('POST', '/api/v1/margin/rebills', ['invoice_line_id' => $id, 'planned_item_id' => $id, 'occurrence_on' => '2026-12-01'], $reader);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->send('DELETE', '/api/v1/margin/rebills/'.$id, [], $reader);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get('/api/v1/margin/unrebilled', secret: $other);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get('/api/v1/margin/unrebilled', secret: $reader);
+        self::assertResponseIsSuccessful();
     }
 
     public function testAMemberTurnedGuestWithATokenOfTheMarginScopesIsRefusedOnEveryOperation(): void
@@ -166,6 +178,14 @@ final class MarginAccessApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
         $this->get('/api/v1/margin/cell', ['row' => 'own', 'month' => '2026-11'], $secret);
         self::assertResponseStatusCodeSame(401);
+        $this->get('/api/v1/margin/unrebilled', secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('PUT', $this->rebillLinkPath($id), ['planned_item_id' => null], $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('POST', '/api/v1/margin/rebills', ['invoice_line_id' => $id, 'planned_item_id' => $id, 'occurrence_on' => '2026-12-01'], $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('DELETE', '/api/v1/margin/rebills/'.$id, [], $secret);
+        self::assertResponseStatusCodeSame(401);
         $this->get($this->plannedPath($id), secret: $secret);
         self::assertResponseStatusCodeSame(401);
         $this->send('PUT', $this->plannedPath($id), ['allocation' => null, 'from_month' => '2026-12'], $secret);
@@ -188,6 +208,10 @@ final class MarginAccessApiTest extends ApiTestCase
             'foresi_get_supplier_default_recipient' => ['contact_id' => $id],
             'foresi_client_margin' => ['from' => '2026-11'],
             'foresi_client_margin_cell' => ['row' => 'own', 'month' => '2026-11'],
+            'foresi_set_rebill_link' => ['recurring_line_id' => $id, 'planned_item_id' => null],
+            'foresi_pair_rebill_line' => ['invoice_line_id' => $id, 'planned_item_id' => $id, 'occurrence_on' => '2026-12-01'],
+            'foresi_unpair_rebill_line' => ['invoice_line_id' => $id],
+            'foresi_list_unrebilled_costs' => ['from' => '2026-11'],
             'foresi_set_supplier_default_recipient' => ['contact_id' => $id, 'recipient' => 'own', 'from_month' => '2026-12'],
         ];
     }
@@ -195,6 +219,11 @@ final class MarginAccessApiTest extends ApiTestCase
     private function plannedPath(string $id): string
     {
         return '/api/v1/margin/planned-items/'.$id.'/allocation';
+    }
+
+    private function rebillLinkPath(string $id): string
+    {
+        return '/api/v1/margin/recurring-lines/'.$id.'/rebills';
     }
 
     private function defaultPath(string $id): string

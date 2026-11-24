@@ -32,6 +32,7 @@ final readonly class MarginCell
         private CostShareReads $costs,
         private CostSources $sources,
         private PartyDirectory $contacts,
+        private Unrebilled $unrebilled,
     ) {
     }
 
@@ -62,6 +63,14 @@ final readonly class MarginCell
             }
         }
 
+        $notRebilled = [];
+        if (null !== $clientId) {
+            $notRebilled = array_values(array_filter(
+                $this->unrebilled->inRange(new MarginRange($first, $first->modify('last day of this month'), [$month])),
+                static fn (UnrebilledOccurrence $occurrence): bool => $occurrence->recipientId === $clientId,
+            ));
+        }
+
         $costs = [];
         $costTotal = $zero;
         /** @var array<string, ?CostDocument> $loaded one read per document, however many shares it has */
@@ -73,7 +82,7 @@ final readonly class MarginCell
         }
         usort($costs, static fn (MarginCellItem $one, MarginCellItem $two): int => [$two->amountCzk->minor(), $one->label, (string) $one->text] <=> [$one->amountCzk->minor(), $two->label, (string) $two->text]);
 
-        return new MarginCellView($row, null !== $clientId ? $this->contacts->find($clientId)->displayName ?? $clientId : null, $month, new MarginFigures($revenueTotal, $costTotal), $revenue, $costs);
+        return new MarginCellView($row, null !== $clientId ? $this->contacts->find($clientId)->displayName ?? $clientId : null, $month, new MarginFigures($revenueTotal, $costTotal, \count($notRebilled)), $revenue, $costs, $notRebilled);
     }
 
     /**

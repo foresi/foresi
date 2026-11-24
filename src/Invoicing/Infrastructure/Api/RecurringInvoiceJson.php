@@ -66,7 +66,7 @@ final readonly class RecurringInvoiceJson
             'paused_at' => JsonValues::timestamp($template->pausedAt()),
             'ended_at' => JsonValues::timestamp($template->endedAt()),
             'last_failure' => $failure instanceof \DateTimeImmutable ? ['at' => JsonValues::timestamp($failure), 'code' => $template->lastFailureCode()] : null,
-            'lines' => array_map(static fn (RecurringInvoiceLine $line): array => ApiLines::fields($line->text(), $line->quantity(), $line->unit(), $line->price(), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount()), $this->writes->lines($template)),
+            'lines' => array_map(static fn (RecurringInvoiceLine $line): array => ['id' => $line->id()] + ApiLines::fields($line->text(), $line->quantity(), $line->unit(), $line->price(), $line->priceType(), $line->treatment(), $line->rateKind(), $line->supplyCode(), $line->discount()), $this->writes->lines($template)),
             'next_issues' => array_map($this->issue(...), $this->writes->nextIssues($template, self::NEXT)),
             'created_at' => JsonValues::timestamp($template->createdAt()),
         ];

@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# "Pair with a cost…" or "Unpair" in the row menu of a line of an issued invoice (slot invoicing.invoice_line_actions): a dialog over the invoice. Variables: lineId, paired. #}
+{% if paired %}
+    <twig:Ui:MenuItem :href="path('app_margin_rebill_unpair', {id: lineId})" data-dialog aria-haspopup="dialog" data-margin-rebill-unpair>{{ 'margin.rebill.unpair.open'|trans }}</twig:Ui:MenuItem>
+{% else %}
+    <twig:Ui:MenuItem :href="path('app_margin_rebill_pair', {id: lineId})" data-dialog aria-haspopup="dialog" data-margin-rebill-pair>{{ 'margin.rebill.pair.open'|trans }}</twig:Ui:MenuItem>
+{% endif %}

@@ -10,6 +10,7 @@ namespace Foresi\Margin\Application;
 
 use Foresi\Margin\Contract\MarginRevenueSource;
 use Foresi\Margin\Contract\RevenueDocument;
+use Foresi\Margin\Contract\TemplateLine;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -32,5 +33,41 @@ final readonly class RevenueSources
         foreach ($this->sources as $source) {
             yield from $source->between($from, $to);
         }
+    }
+
+    public function document(string $id): ?RevenueDocument
+    {
+        foreach ($this->sources as $source) {
+            $document = $source->document($id);
+            if ($document instanceof RevenueDocument) {
+                return $document;
+            }
+        }
+
+        return null;
+    }
+
+    public function documentOfLine(string $invoiceLineId): ?RevenueDocument
+    {
+        foreach ($this->sources as $source) {
+            $document = $source->documentOfLine($invoiceLineId);
+            if ($document instanceof RevenueDocument) {
+                return $document;
+            }
+        }
+
+        return null;
+    }
+
+    public function templateLine(string $id): ?TemplateLine
+    {
+        foreach ($this->sources as $source) {
+            $line = $source->templateLine($id);
+            if ($line instanceof TemplateLine) {
+                return $line;
+            }
+        }
+
+        return null;
     }
 }

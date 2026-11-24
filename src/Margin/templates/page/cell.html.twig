@@ -56,6 +56,23 @@
                 </p>
             </section>
         {% endfor %}
+        {% if sheet.unrebilled %}
+            <section aria-labelledby="margin-sheet-unrebilled" data-margin-section="unrebilled">
+                <h2 id="margin-sheet-unrebilled" class="m-0 text-body font-semibold text-ink">{{ 'margin.sheet.unrebilled.title'|trans }}</h2>
+                <p class="m-0 mt-1 text-small text-muted">{{ 'margin.sheet.unrebilled.text'|trans }}</p>
+                <ol class="m-0 grid list-none gap-0 p-0">
+                    {% for occurrence in sheet.unrebilled %}
+                        <li class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-divider py-3 last:border-b-0" data-margin-unrebilled-item>
+                            <p class="m-0 min-w-0 flex-1 truncate font-medium text-ink" title="{{ occurrence.item }}">
+                                {%- if occurrence.itemHref %}<a href="{{ occurrence.itemHref }}" class="{{ link }}" data-margin-unrebilled-item-link>{{ occurrence.item }}</a>{% else %}{{ occurrence.item }}{% endif -%}
+                            </p>
+                            <span class="text-caption text-muted">{{ occurrence.day }}</span>
+                            <span data-in-place><a href="{{ occurrence.templateHref }}" class="text-caption font-medium {{ link }}" data-margin-unrebilled-template-link>{{ 'margin.sheet.unrebilled.template'|trans }}</a></span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </section>
+        {% endif %}
         {% if sheet.showRevenue %}
             <p class="m-0 flex items-baseline justify-between gap-3 border-t border-container py-3 text-small">
                 <span class="font-semibold text-ink">{{ 'margin.table.line.margin'|trans }}</span>

@@ -69,6 +69,15 @@
 
         {% if description %}<p class="m-0 text-text [overflow-wrap:anywhere]">{{ description }}</p>{% endif %}
 
+        {# What other modules add to a line, as a badge under its text and entries of its row menu (InvoicingSlots); the column of the menu is there only when one has an entry. #}
+        {% set extras = {} %}
+        {% set hasActions = false %}
+        {% for line in lines %}
+            {% set badges %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::RECURRING_LINE_BADGES'), {templateId: template.id, lineId: line.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endset %}
+            {% set actions %}{% if not template.trashed %}{% for item in slot_items(constant('Foresi\\Invoicing\\Contract\\InvoicingSlots::RECURRING_LINE_ACTIONS'), {templateId: template.id, lineId: line.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}{% endset %}
+            {% set extras = extras|merge({(line.id): {badges: badges, actions: actions}}) %}
+            {% if actions|trim %}{% set hasActions = true %}{% endif %}
+        {% endfor %}
         <twig:Ui:Card :title="'invoice.card.lines'|trans ~ ' (' ~ lines|length ~ ')'">
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse text-small" data-recurring-lines>
@@ -79,16 +88,27 @@
                             <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.price'|trans }}</th>
                             <th scope="col" class="py-2 pr-3 text-right font-medium">{{ 'invoice.line.rate'|trans }}</th>
                             <th scope="col" class="py-2 text-right font-medium">{{ 'invoice.line.total'|trans }}</th>
+                            {% if hasActions %}<th scope="col" class="w-12 py-2 pl-3 text-right font-medium"><span class="sr-only">{{ 'invoice.line.actions'|trans }}</span></th>{% endif %}
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-divider">
                         {% for line in lines %}
-                            <tr>
-                                <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">{{ line.text }}</td>
+                            <tr data-recurring-line="{{ line.id }}">
+                                <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">
+                                    {{ line.text }}
+                                    {% if extras[line.id].badges|trim %}<div class="mt-1 flex flex-wrap items-center gap-1.5">{{ extras[line.id].badges }}</div>{% endif %}
+                                </td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.quantity }}</td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.price }}</td>
                                 <td class="num whitespace-nowrap py-2 pr-3 text-right">{{ line.rate }}</td>
                                 <td class="num whitespace-nowrap py-2 text-right font-medium text-ink">{{ line.total }}</td>
+                                {% if hasActions %}
+                                    <td class="py-2 pl-3 text-right">
+                                        {% if extras[line.id].actions|trim %}
+                                            <twig:Ui:Menu id="recurring-line-{{ line.id }}-actions" buttonId="recurring-line-{{ line.id }}-menu" :label="'invoice.line.actions'|trans" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true">{{ extras[line.id].actions }}</twig:Ui:Menu>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>

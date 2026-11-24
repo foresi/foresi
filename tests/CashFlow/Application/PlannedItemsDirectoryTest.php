@@ -30,4 +30,16 @@ final class PlannedItemsDirectoryTest extends CashFlowTestCase
         self::assertNull($directory->one('01937f4e-0000-7000-8000-000000000001'));
         self::assertSame('2026-06-20', $directory->occurrenceHolding($item->id(), new \DateTimeImmutable('2026-06-02'))?->format('Y-m-d'));
     }
+
+    public function testListsThePlannedCostsByNameAndNoIncome(): void
+    {
+        $this->planned(category: 'software', name: 'Voice API');
+        $this->planned(category: 'software', repeat: 'month', name: 'Cloud Host');
+        $this->planned(direction: 'in', category: 'revenue', name: 'Retainer');
+
+        $costs = self::getContainer()->get(PlannedItemDirectory::class)->costs();
+
+        self::assertSame(['Cloud Host', 'Voice API'], array_map(static fn ($item): string => $item->name, $costs));
+        self::assertSame([true, false], array_map(static fn ($item): bool => $item->recurring, $costs));
+    }
 }

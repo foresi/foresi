@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  rebill:
+    none: No cost
+    item: Planned cost
+    item_help: Pick a planned cost, money going out, from the cash flow.
+    occurrence: Day of the occurrence
+    occurrence_help: The day the planned cost falls on, as the cash flow plans it. It starts as the tax point of the invoice.
+    badge:
+      link: "Rebills {name}"
+      pairing: "Rebills {name} · {month}"
+    link:
+      open: Rebills…
+      title: Rebills a cost
+      description: Pick the planned cost this line rebills to the customer. Every invoice issued from this template pairs the line with the occurrence of that cost on its tax point. Pick no cost to stop. The price of the line stays what it is.
+    pair:
+      open: Pair with a cost…
+      title: Pair with a cost
+      description: Say which occurrence of which planned cost this line rebills to the customer. The price of the line stays what it is.
+      submit: Pair
+    unpair:
+      open: Unpair
+      title: Unpair from the cost
+      text: "The line no longer rebills {name} on {day}."
+      keeps: The line and its price are not changed.
+      submit: Unpair
+    error:
+      item: Pick a planned cost.
+    flash:
+      link_set: "The line rebills {name}."
+      link_removed: The line rebills no cost any more.
+      paired: "The line is paired with {name}."
+      unpaired: The line is not paired with a cost any more.
+    warning:
+      customer_not_a_recipient: The customer bears no share of this cost this month, so no invoice will be paired. Set the mapping of the cost or pick another one.

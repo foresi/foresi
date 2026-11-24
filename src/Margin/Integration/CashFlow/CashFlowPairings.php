@@ -76,8 +76,38 @@ final readonly class CashFlowPairings implements PairingSource
         $item = $this->items->one($plannedItemId);
 
         return $item instanceof PlannedItemSummary
-            ? new PlannedCostItem($item->id, $item->name, FlowDirection::Out === $item->direction, $item->recurring, $item->counterpartyId)
+            ? new PlannedCostItem($item->id, $item->name, FlowDirection::Out === $item->direction, $item->recurring, $item->counterpartyId, $item->url)
             : null;
+    }
+
+    public function costItems(): array
+    {
+        return array_map(static fn (PlannedItemSummary $item): PlannedCostItem => new PlannedCostItem($item->id, $item->name, true, $item->recurring, $item->counterpartyId, $item->url), $this->items->costs());
+    }
+
+    public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
+    {
+        if (1 !== preg_match(self::UUID, $plannedItemId)) {
+            return null;
+        }
+
+        return $this->items->occurrenceHolding($plannedItemId, $day);
+    }
+
+    public function occurrencesWithDocumentsFrom(string $plannedItemId, \DateTimeImmutable $fromDay): array
+    {
+        if (1 !== preg_match(self::UUID, $plannedItemId)) {
+            return [];
+        }
+        $days = [];
+        foreach ($this->pairings->ofItem($plannedItemId, $fromDay) as $paired) {
+            if (self::RECEIVED_DOCUMENT === $paired->subject->type) {
+                $days[$paired->occurrenceOn->format('Y-m-d')] = new \DateTimeImmutable($paired->occurrenceOn->format('Y-m-d'));
+            }
+        }
+        ksort($days);
+
+        return array_values($days);
     }
 
     /**

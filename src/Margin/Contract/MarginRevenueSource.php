@@ -27,4 +27,21 @@ interface MarginRevenueSource
      * @return iterable<RevenueDocument>
      */
     public function between(\DateTimeImmutable $from, \DateTimeImmutable $to): iterable;
+
+    /**
+     * One revenue document by id, built as between() builds it; null when it
+     * is unknown, an advance or in the trash.
+     */
+    public function document(string $id): ?RevenueDocument;
+
+    /**
+     * The revenue document that holds a line of a document, by the id of that
+     * line; null as document() is.
+     */
+    public function documentOfLine(string $invoiceLineId): ?RevenueDocument;
+
+    /**
+     * A recurring template line by id: what it bills and whom; null when unknown.
+     */
+    public function templateLine(string $id): ?TemplateLine;
 }

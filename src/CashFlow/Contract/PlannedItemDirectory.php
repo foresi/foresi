@@ -19,4 +19,11 @@ interface PlannedItemDirectory
      * The day of the occurrence of the item whose period holds $day, or null when it has none there (not recurring, skipped, past its end).
      */
     public function occurrenceHolding(string $id, \DateTimeImmutable $day): ?\DateTimeImmutable;
+
+    /**
+     * The planned items money goes out for (planned costs), by name, for a module that lets a person pick one.
+     *
+     * @return list<PlannedItemSummary>
+     */
+    public function costs(): array;
 }

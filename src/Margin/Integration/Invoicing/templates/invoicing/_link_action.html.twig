@@ -1,0 +1,3 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# "Rebills…" in the row menu of a line of a recurring invoice (slot invoicing.recurring_line_actions): a dialog over the invoice. Variables: lineId. #}
+<twig:Ui:MenuItem :href="path('app_margin_rebill_link', {id: lineId})" data-dialog aria-haspopup="dialog" data-margin-rebill-open>{{ 'margin.rebill.link.open'|trans }}</twig:Ui:MenuItem>

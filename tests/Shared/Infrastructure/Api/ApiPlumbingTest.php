@@ -181,6 +181,10 @@ final class ApiPlumbingTest extends ApiTestCase
             'margin' => [
                 '/api/v1/margin' => ['get' => '200'],
                 '/api/v1/margin/cell' => ['get' => '200'],
+                '/api/v1/margin/unrebilled' => ['get' => '200'],
+                '/api/v1/margin/recurring-lines/{recurringLineId}/rebills' => ['put' => '200'],
+                '/api/v1/margin/rebills' => ['post' => '201'],
+                '/api/v1/margin/rebills/{invoiceLineId}' => ['delete' => '200'],
                 '/api/v1/margin/documents/{documentId}' => ['get' => '200'],
                 '/api/v1/margin/documents/{documentId}/assign' => ['post' => '200'],
                 '/api/v1/margin/documents/{documentId}/lines/{lineKey}/allocation' => ['put' => '200'],

@@ -18,7 +18,8 @@ use Foresi\Shared\Domain\Money;
 /**
  * A line as the user typed it. The rate comes from the kind, on the tax point.
  * A line another module prefilled carries its source: the key that module gave
- * it, which the form keeps with the row whatever is typed over it.
+ * it, which the form keeps with the row whatever is typed over it. A line issued
+ * from a recurring template carries the id of the template line.
  */
 final readonly class LineInput
 {
@@ -34,6 +35,7 @@ final readonly class LineInput
         public Percent $discount,
         public ?string $deducts = null,
         public ?string $source = null,
+        public ?string $sourceLineId = null,
     ) {
     }
 }

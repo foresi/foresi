@@ -37,6 +37,31 @@ final readonly class MappingVersions
     }
 
     /**
+     * The contacts that bear a share of the planned item's mapping in force in
+     * a month, as lowercase contact ids; none without a mapping.
+     *
+     * @param \DateTimeImmutable $month any day of the month
+     *
+     * @return list<string>
+     */
+    public function plannedClients(string $plannedItemId, \DateTimeImmutable $month): array
+    {
+        $allocation = $this->planned($plannedItemId, $month);
+        if (!$allocation instanceof Allocation) {
+            return [];
+        }
+        $clients = [];
+        foreach ($allocation->shares as $share) {
+            $id = $share->recipient->contactId();
+            if (null !== $id) {
+                $clients[] = $id;
+            }
+        }
+
+        return $clients;
+    }
+
+    /**
      * @param \DateTimeImmutable $month any day of the month
      */
     public function supplierDefault(string $supplierId, \DateTimeImmutable $month): ?Recipient

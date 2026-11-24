@@ -30,6 +30,7 @@ use Foresi\Margin\Application\MarginTable;
 use Foresi\Margin\Application\MarginTableView;
 use Foresi\Margin\Application\OccurrenceFill;
 use Foresi\Margin\Application\RevenueSources;
+use Foresi\Margin\Application\Unrebilled;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Contract\CostLine;
 use Foresi\Margin\Contract\RevenueDocument;
@@ -102,8 +103,9 @@ final class MarginTableTest extends KernelTestCase
         $reads = new CostShareReads($this->em);
         $directory = $container->get(PartyDirectory::class);
         $calculation = new CostShareCalculation($this->em, $costSources, new ShareSplitter(), $clock, new CostPairings(), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));
-        $this->table = new MarginTable($access, $ranges, $revenueSources, $reads, $calculation, $costSources, new KnownGaps($costSources), $directory);
-        $this->cell = new MarginCell($access, $ranges, $revenueSources, $reads, $costSources, $directory);
+        $unrebilled = new Unrebilled($access, $ranges, $revenueSources, new CostPairings(), new MappingVersions($this->em), $this->em);
+        $this->table = new MarginTable($access, $ranges, $revenueSources, $reads, $calculation, $costSources, new KnownGaps($costSources), $directory, $unrebilled);
+        $this->cell = new MarginCell($access, $ranges, $revenueSources, $reads, $costSources, $directory, $unrebilled);
     }
 
     protected function tearDown(): void
@@ -228,7 +230,7 @@ final class MarginTableTest extends KernelTestCase
     public function testWithoutARevenueSourceTheTableHasCostsOnly(): void
     {
         $this->share('d1', '2026-11', $this->clientA, 5_000);
-        $table = new MarginTable(self::getContainer()->get(MarginAccess::class), new MarginRanges(self::getContainer()->get(InstanceClock::class)), new RevenueSources([]), new CostShareReads($this->em), $this->calculation(), new CostSources([]), new KnownGaps(new CostSources([])), self::getContainer()->get(PartyDirectory::class));
+        $table = new MarginTable(self::getContainer()->get(MarginAccess::class), new MarginRanges(self::getContainer()->get(InstanceClock::class)), new RevenueSources([]), new CostShareReads($this->em), $this->calculation(), new CostSources([]), new KnownGaps(new CostSources([])), self::getContainer()->get(PartyDirectory::class), new Unrebilled(self::getContainer()->get(MarginAccess::class), new MarginRanges(self::getContainer()->get(InstanceClock::class)), new RevenueSources([]), new CostPairings(), new MappingVersions($this->em), $this->em));
 
         $view = $table->of('2026-11', '2026-11');
 
@@ -285,7 +287,7 @@ final class MarginTableTest extends KernelTestCase
         $cell = MarginJson::cellDetail($this->cell->of('client:'.$this->clientA, '2026-11'));
 
         self::assertSame(['client:'.$this->clientA, 'client', 'Client A'], [$this->in($table, 'rows', 0, 'row'), $this->in($table, 'rows', 0, 'kind'), $this->in($table, 'rows', 0, 'label')]);
-        self::assertSame(['month' => '2026-11', 'revenue' => ['amount_minor' => 3_000_000, 'currency' => 'CZK'], 'costs' => ['amount_minor' => 50_820, 'currency' => 'CZK'], 'margin' => ['amount_minor' => 2_949_180, 'currency' => 'CZK']], $this->in($table, 'rows', 0, 'cells', 0));
+        self::assertSame(['month' => '2026-11', 'revenue' => ['amount_minor' => 3_000_000, 'currency' => 'CZK'], 'costs' => ['amount_minor' => 50_820, 'currency' => 'CZK'], 'margin' => ['amount_minor' => 2_949_180, 'currency' => 'CZK'], 'unrebilled' => 0], $this->in($table, 'rows', 0, 'cells', 0));
         self::assertSame('2026-12', $this->in($table, 'rows', 0, 'cells', 1, 'month'), 'A month with nothing is still there.');
         self::assertSame(['own', 'unassigned'], [$this->in($table, 'rows', 1, 'row'), $this->in($table, 'rows', 2, 'row')]);
         self::assertSame([2_939_180, -10_000], [$this->in($table, 'total', 'margin', 'amount_minor'), $this->in($table, 'month_totals', 1, 'margin', 'amount_minor')]);

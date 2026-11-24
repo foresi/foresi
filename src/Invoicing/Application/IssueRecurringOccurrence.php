@@ -98,6 +98,7 @@ final readonly class IssueRecurringOccurrence
                 $line->rateKind(),
                 $line->supplyCode(),
                 $line->discount(),
+                sourceLineId: $line->id(),
             ),
             $this->templates->lines($template),
         );

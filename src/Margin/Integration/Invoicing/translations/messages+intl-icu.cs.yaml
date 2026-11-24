@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  rebill:
+    none: Žádný náklad
+    item: Plánovaný náklad
+    item_help: Vyberte plánovaný náklad, tedy peníze, které odcházejí, z cash flow.
+    occurrence: Den výskytu
+    occurrence_help: Den, na který náklad připadá podle plánu v cash flow. Předvyplní se datem zdanitelného plnění faktury.
+    badge:
+      link: "Přefakturovává {name}"
+      pairing: "Přefakturovává {name} · {month}"
+    link:
+      open: Přefakturovává…
+      title: Přefakturovává náklad
+      description: Vyberte plánovaný náklad, který tento řádek přefakturovává odběrateli. Každá faktura vystavená z této šablony spáruje řádek s výskytem nákladu v den svého zdanitelného plnění. Bez nákladu se přefakturace ukončí. Cena řádku zůstane, jaká je.
+    pair:
+      open: Spárovat s nákladem…
+      title: Spárovat s nákladem
+      description: Určete, který výskyt kterého plánovaného nákladu tento řádek přefakturovává odběrateli. Cena řádku zůstane, jaká je.
+      submit: Spárovat
+    unpair:
+      open: Zrušit spárování
+      title: Zrušit spárování s nákladem
+      text: "Řádek už nepřefakturovává {name} dne {day}."
+      keeps: Řádek ani jeho cena se nemění.
+      submit: Zrušit spárování
+    error:
+      item: Vyberte plánovaný náklad.
+    flash:
+      link_set: "Řádek přefakturovává {name}."
+      link_removed: Řádek už nepřefakturovává žádný náklad.
+      paired: "Řádek je spárovaný s nákladem {name}."
+      unpaired: Řádek už není spárovaný s nákladem.
+    warning:
+      customer_not_a_recipient: Odběratel tento měsíc nenese žádný podíl z tohoto nákladu, takže se žádná faktura nespáruje. Nastavte přiřazení nákladu nebo vyberte jiný.

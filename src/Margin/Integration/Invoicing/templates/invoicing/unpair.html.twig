@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Takes the pairing of a line of an issued invoice away; the line and its price are not changed. A dialog over the
+    invoice that asks first, as the actions of a recurring invoice do, and a page of its own at the same URL.
+    Variables: lineId, number, back, pairing (plannedItemName, occurrenceOn), error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title_invoice'|trans, href: path('app_invoices')}, {label: number, href: back}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_fields = false %}
+
+{% block title %}{{ 'margin.rebill.unpair.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-rebill-unpair-form" action="{{ path('app_margin_rebill_unpair', {id: lineId}) }}" class="grid gap-3" data-margin-rebill-unpair-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Invoicing\\RebillController::TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error>{{ error }}</twig:Ui:Alert>{% endif %}
+        <p class="m-0 text-text">{{ 'margin.rebill.unpair.text'|trans({name: pairing.plannedItemName, day: pairing.occurrenceOn}) }}</p>
+        <p class="m-0 text-muted">{{ 'margin.rebill.unpair.keeps'|trans }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss" autofocus>{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-rebill-unpair-form" variant="primary">{{ 'margin.rebill.unpair.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.rebill.unpair.title'|trans" class="max-w-2xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="back">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-rebill-unpair-form" variant="primary">{{ 'margin.rebill.unpair.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

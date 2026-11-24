@@ -51,6 +51,8 @@ final readonly class LinePricing
             TaxTreatment::ReverseCharge === $treatment && '' !== $line->supplyCode ? $line->supplyCode : null,
             $line->discount,
             $line->deducts,
+            $line->source,
+            $line->sourceLineId,
         );
     }
 

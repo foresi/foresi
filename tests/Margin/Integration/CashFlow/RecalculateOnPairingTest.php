@@ -96,6 +96,11 @@ final class RecalculateOnPairingTest extends KernelTestCase
             {
                 return null;
             }
+
+            public function costs(): array
+            {
+                return [new PlannedItemSummary('0197a1de-0000-7000-8000-0000000000e1', 'Cloud Host', FlowDirection::Out, '0197a1de-0000-7000-8000-0000000000c1', true, '/cash-flow/0197a1de-0000-7000-8000-0000000000e1')];
+            }
         };
         $this->pairings = new CashFlowPairings($this->stored, $items);
         $calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class), new CostPairings([$this->pairings]), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));
@@ -130,6 +135,39 @@ final class RecalculateOnPairingTest extends KernelTestCase
         self::assertSame([], $this->pairings->documentsOfItemFrom(self::ITEM, new \DateTimeImmutable('2026-06-01')));
         self::assertSame('2026-05-01', $this->pairings->pairingOf(self::EARLIER)?->occurrenceOn->format('Y-m-d'));
         self::assertNull($this->pairings->pairingOf(self::LATER));
+    }
+
+    public function testTheOccurrencesWithAPairedCostAreListedOnceEach(): void
+    {
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+        $this->stored->pair(self::LATER, '2026-05-01');
+        $this->stored->pairs[] = [new FlowSubject('invoice', self::LATER), '2026-04-01'];
+        $this->stored->pair('0197a1de-0000-7000-8000-0000000000d3', '2026-06-01');
+
+        self::assertSame(['2026-05-01', '2026-06-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $this->pairings->occurrencesWithDocumentsFrom(self::ITEM, new \DateTimeImmutable('2026-04-01'))));
+        self::assertSame(['2026-06-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $this->pairings->occurrencesWithDocumentsFrom(self::ITEM, new \DateTimeImmutable('2026-06-01'))));
+        self::assertSame([], $this->pairings->occurrencesWithDocumentsFrom('not-an-id', new \DateTimeImmutable('2026-04-01')));
+        self::assertSame(2, $this->stored->itemReads, 'An id that is no id is not looked up.');
+        self::assertNull($this->pairings->occurrenceHolding(self::ITEM, new \DateTimeImmutable('2026-05-10')));
+    }
+
+    public function testTheOccurrencesWithAPairedCostAreListedOldestFirst(): void
+    {
+        $this->stored->pair(self::LATER, '2026-06-01');
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+
+        $days = $this->pairings->occurrencesWithDocumentsFrom(self::ITEM, new \DateTimeImmutable('2026-04-01'));
+
+        self::assertSame(['2026-05-01', '2026-06-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $days));
+        self::assertSame([0, 1], array_keys($days), 'a list');
+    }
+
+    public function testThePlannedCostsAreReadThroughCashFlowAsExpenses(): void
+    {
+        $items = $this->pairings->costItems();
+
+        self::assertCount(1, $items);
+        self::assertSame([self::ITEM, 'Cloud Host', true, true, '0197a1de-0000-7000-8000-0000000000c1', '/cash-flow/'.self::ITEM], [$items[0]->id, $items[0]->name, $items[0]->expense, $items[0]->recurring, $items[0]->counterpartyId, $items[0]->url]);
     }
 
     public function testEveryReceivedDocumentOfTheItemIsListed(): void

@@ -36,6 +36,7 @@ final readonly class MarginTable
         private CostSources $sources,
         private KnownGaps $gaps,
         private PartyDirectory $contacts,
+        private Unrebilled $unrebilled,
     ) {
     }
 
@@ -61,6 +62,11 @@ final readonly class MarginTable
             $client = strtolower($document->customerId);
             $revenue[$client][$month] = ($revenue[$client][$month] ?? $zero)->plus($document->netCzk);
         }
+        /** @var array<string, array<string, int>> $unrebilled client id => month => paid costs not rebilled */
+        $unrebilled = [];
+        foreach ($this->unrebilled->inRange($range) as $occurrence) {
+            $unrebilled[$occurrence->recipientId][$occurrence->month] = ($unrebilled[$occurrence->recipientId][$occurrence->month] ?? 0) + 1;
+        }
         /** @var array<string, array<string, Money>> $costs row key => month => costs */
         $costs = [MarginRowView::OWN => [], MarginRowView::UNASSIGNED => []];
         foreach ($this->costs->totals($range->firstDay(), $range->lastDay()) as $total) {
@@ -68,8 +74,8 @@ final readonly class MarginTable
             $costs[$key][$total['month']] = ($costs[$key][$total['month']] ?? $zero)->plus($total['amount']);
         }
 
-        $clients = array_unique([...array_keys($revenue), ...array_map(static fn (string $key): string => substr($key, \strlen(MarginRowView::CLIENT_PREFIX)), array_filter(array_keys($costs), static fn (string $key): bool => str_starts_with($key, MarginRowView::CLIENT_PREFIX)))]);
-        $rows = array_map(fn (string $id): MarginRowView => $this->row(MarginRowView::CLIENT_PREFIX.$id, 'client', $id, $this->nameOf($id), $range, $revenue[$id] ?? [], $costs[MarginRowView::CLIENT_PREFIX.$id] ?? []), array_values($clients));
+        $clients = array_unique([...array_keys($revenue), ...array_keys($unrebilled), ...array_map(static fn (string $key): string => substr($key, \strlen(MarginRowView::CLIENT_PREFIX)), array_filter(array_keys($costs), static fn (string $key): bool => str_starts_with($key, MarginRowView::CLIENT_PREFIX)))]);
+        $rows = array_map(fn (string $id): MarginRowView => $this->row(MarginRowView::CLIENT_PREFIX.$id, 'client', $id, $this->nameOf($id), $range, $revenue[$id] ?? [], $costs[MarginRowView::CLIENT_PREFIX.$id] ?? [], $unrebilled[$id] ?? []), $clients);
         usort($rows, static fn (MarginRowView $one, MarginRowView $two): int => [$two->total->revenue->minor(), mb_strtolower($one->name ?? ''), $one->key] <=> [$one->total->revenue->minor(), mb_strtolower($two->name ?? ''), $two->key]);
         $rows[] = $this->row(MarginRowView::OWN, 'own', null, null, $range, [], $costs[MarginRowView::OWN]);
         $rows[] = $this->row(MarginRowView::UNASSIGNED, 'unassigned', null, null, $range, [], $costs[MarginRowView::UNASSIGNED]);
@@ -88,16 +94,17 @@ final readonly class MarginTable
 
     /**
      * @param 'client'|'own'|'unassigned' $kind
-     * @param array<string, Money>        $revenue by month
-     * @param array<string, Money>        $costs   by month
+     * @param array<string, Money>        $revenue    by month
+     * @param array<string, Money>        $costs      by month
+     * @param array<string, int>          $unrebilled by month
      */
-    private function row(string $key, string $kind, ?string $clientId, ?string $name, MarginRange $range, array $revenue, array $costs): MarginRowView
+    private function row(string $key, string $kind, ?string $clientId, ?string $name, MarginRange $range, array $revenue, array $costs, array $unrebilled = []): MarginRowView
     {
         $zero = Money::ofMinor(0, Currency::CZK);
         $cells = [];
         $total = MarginFigures::none();
         foreach ($range->months as $month) {
-            $cells[$month] = new MarginFigures($revenue[$month] ?? $zero, $costs[$month] ?? $zero);
+            $cells[$month] = new MarginFigures($revenue[$month] ?? $zero, $costs[$month] ?? $zero, $unrebilled[$month] ?? 0);
             $total = $total->plus($cells[$month]);
         }
 
