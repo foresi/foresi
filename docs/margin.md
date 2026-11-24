@@ -104,6 +104,17 @@ A cell lists the `revenue_items` (the issued documents, source `revenue`, with t
 
 The table carries `known_gaps`: `missing_exchange_rate` with the ids of the foreign documents that have costs in the range but no exchange rate yet, so their shares are not in the table until the rate is set. What the table shows is never complete without saying so. The net of a revenue line can differ by a heller from the document's net, because the document converts its rate summaries and a line converts itself; the document's net is what is counted.
 
+### The Margin page
+
+*Margin* sits under *Money*, after *VAT*, for the owners and the members; a guest is refused (403) and the menu item is not offered. The page reads the same table as the API (`MarginTable`), so the screen and the API never disagree.
+
+- **The table.** The months are the columns, the last three by default. Each client has three rows (revenue, costs, margin), then *Own use* and *Unassigned* with their costs only. A *Total* column and an *All clients and costs* block add the rows up, so the total costs equal the sum of every share in the range. Figures are CZK with hellers; an empty cell is a dash.
+- **The months.** *From–to* in the page header opens a small dialog with a first and a last month. It refuses what the API refuses (`invalid_month`, `range_reversed`, `range_too_long`) and keeps what was typed. A range written into the address that cannot be used shows the default range and says why.
+- **The sheet.** A cell with money opens the documents behind it in the side sheet, as a Cash flow cell does: the revenue documents of the client in the month (invoice, payment tax document, correction), then the cost lines, each with the source of its share (line, document, plan, supplier or unassigned) and its amount. A document opens in place in the same sheet. The same URL, `/margin/cell?row=&month=`, is a page too.
+- **Unassigned.** The row is always the last one and never hidden. While some document has a share nobody has claimed, a neutral badge counts those documents. In the sheet of an *Unassigned* cell each document has *Assign*, the quick assignment of the document page; it is offered only where Purchasing, which owns that dialog, is installed.
+- **Known gaps.** A neutral note above the table lists the documents whose cost is not counted because their exchange rate is missing, each linking to the document.
+- **Nothing in the range.** When the range holds no revenue and no cost, the page says so instead of a table of dashes.
+
 ## Operations
 
 The same operations are served by the REST API and by MCP, and refuse the same way:

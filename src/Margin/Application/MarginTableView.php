@@ -14,7 +14,8 @@ namespace Foresi\Margin\Application;
  * range (highest first, then name), then the own-use row and the unassigned
  * row, which are always there. The totals add up the rows by month and
  * overall; the total costs are the sum of every cost share in the range,
- * unassigned included. The known gaps name what could not be counted.
+ * unassigned included. The known gaps name what could not be counted, and
+ * the unassigned documents count the documents behind the unassigned row.
  */
 final readonly class MarginTableView
 {
@@ -32,6 +33,7 @@ final readonly class MarginTableView
         public array $monthTotals,
         public MarginFigures $total,
         public array $knownGaps,
+        public int $unassignedDocuments = 0,
     ) {
     }
 }

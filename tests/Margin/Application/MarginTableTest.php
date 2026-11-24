@@ -137,15 +137,17 @@ final class MarginTableTest extends KernelTestCase
         $this->share('d3', '2026-11', $this->clientA, 30_000);
         $this->share('d4', '2026-11', 'own', 5_000);
         $this->share('d5', '2026-09', null, 99_999);
+        $this->share('d1', '2026-11', null, 1_000);
 
         $view = $this->table->of('2026-10', '2026-12');
 
         $unassigned = $this->row($view, 'unassigned');
-        self::assertSame([10_000, 20_000, 0], array_map(static fn ($cell): int => $cell->costs->minor(), array_values($unassigned->cells)));
-        self::assertSame(65_000, $view->total->costs->minor(), 'The costs of the table are every share in the range, unassigned included.');
+        self::assertSame([10_000, 21_000, 0], array_map(static fn ($cell): int => $cell->costs->minor(), array_values($unassigned->cells)));
+        self::assertSame(2, $view->unassignedDocuments, 'Documents, not shares: d1 has two, and d5 is out of the range.');
+        self::assertSame(66_000, $view->total->costs->minor(), 'The costs of the table are every share in the range, unassigned included.');
         $sum = array_sum(array_map(static fn (CostShare $share): int => $share->month()->format('Y-m') >= '2026-10' ? $share->amount()->minor() : 0, $this->em->getRepository(CostShare::class)->findAll()));
         self::assertSame($sum, $view->total->costs->minor());
-        self::assertSame([55_000, 20_000], [$view->monthTotals['2026-11']->costs->minor(), $unassigned->cells['2026-11']->costs->minor()]);
+        self::assertSame([56_000, 21_000], [$view->monthTotals['2026-11']->costs->minor(), $unassigned->cells['2026-11']->costs->minor()]);
     }
 
     public function testTheRowsAreOrderedByRevenueThenNameWithOwnUseAndUnassignedLast(): void

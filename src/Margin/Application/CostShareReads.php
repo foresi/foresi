@@ -48,6 +48,20 @@ final readonly class CostShareReads
     }
 
     /**
+     * How many documents have a share nobody has claimed in the months from
+     * the first day of $fromMonth to $toMonth.
+     */
+    public function unassignedDocuments(\DateTimeImmutable $fromMonth, \DateTimeImmutable $toMonth): int
+    {
+        return (int) $this->entityManager->createQuery(
+            'SELECT COUNT(DISTINCT s.documentId) FROM '.CostShare::class.' s WHERE s.recipient IS NULL AND s.month >= :from AND s.month <= :to',
+        )
+            ->setParameter('from', $fromMonth, 'date_immutable')
+            ->setParameter('to', $toMonth, 'date_immutable')
+            ->getSingleScalarResult();
+    }
+
+    /**
      * The shares of one recipient in one month; the recipient null is the cost
      * nobody has claimed.
      *

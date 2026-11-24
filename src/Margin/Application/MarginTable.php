@@ -83,7 +83,7 @@ final readonly class MarginTable
             $total = $total->plus($row->total);
         }
 
-        return new MarginTableView($range->fromMonth(), $range->toMonth(), $range->months, $rows, $monthTotals, $total, $this->knownGaps($range));
+        return new MarginTableView($range->fromMonth(), $range->toMonth(), $range->months, $rows, $monthTotals, $total, $this->knownGaps($range), $this->costs->unassignedDocuments($range->firstDay(), $range->lastDay()));
     }
 
     /**
