@@ -37,6 +37,10 @@ class MailMessage
     #[ORM\Column(type: 'string', length: self::MAX_SUBJECT)]
     private string $subject;
 
+    /** The Date the sender wrote, in UTC, as the zone it named is not kept. */
+    #[ORM\Column(name: 'sent_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $sentAt;
+
     #[ORM\Column(name: 'from_address', type: 'string', length: self::MAX_FROM, nullable: true)]
     private ?string $fromAddress;
 
@@ -80,8 +84,7 @@ class MailMessage
         array $references,
         ?string $fromAddress,
         string $subject,
-        #[ORM\Column(name: 'sent_at', type: 'datetime_immutable', nullable: true)]
-        private ?\DateTimeImmutable $sentAt,
+        ?\DateTimeImmutable $sentAt,
         #[ORM\Column(name: 'received_at', type: 'datetime_immutable')]
         private \DateTimeImmutable $receivedAt,
         #[ORM\Column(type: 'string', length: 16)]
@@ -106,6 +109,7 @@ class MailMessage
         $from = null === $fromAddress ? '' : trim($fromAddress);
         $this->fromAddress = '' === $from ? null : mb_substr($from, 0, self::MAX_FROM);
         $this->subject = mb_substr($subject, 0, self::MAX_SUBJECT);
+        $this->sentAt = $sentAt?->setTimezone(new \DateTimeZone('UTC'));
         $this->messageIdHeader = $this->header($messageIdHeader);
         $this->inReplyTo = $this->header($inReplyTo);
         $references = array_values(array_filter(array_map(trim(...), $references), static fn (string $id): bool => '' !== $id));

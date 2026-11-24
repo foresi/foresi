@@ -6,13 +6,14 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Infrastructure;
+namespace Foresi\Tests\Mail\Infrastructure;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Application\ReceiveMail;
-use Foresi\Tests\Banking\Support\InboundMailKit;
+use Foresi\Tests\Support\Mail\MailKit;
+use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -29,7 +30,7 @@ final class InboundMailControllerTest extends WebTestCase
     private const string SECRET = 'test-inbound-secret';
 
     private KernelBrowser $client;
-    private InboundMailKit $kit;
+    private MailKit $kit;
     /** @var array<string, string> environment variables a test changed, with their old values */
     private array $changedEnv = [];
 
@@ -50,9 +51,9 @@ final class InboundMailControllerTest extends WebTestCase
     {
         $this->changeEnv('INBOUND_WEBHOOK_SECRET', '');
 
-        $this->post(InboundMailKit::mail($this->kit->address));
+        $this->post(MailKit::mail($this->kit->address));
         self::assertResponseStatusCodeSame(404);
-        $this->post(InboundMailKit::mail($this->kit->address), bearer: '');
+        $this->post(MailKit::mail($this->kit->address), bearer: '');
         self::assertResponseStatusCodeSame(404);
 
         self::assertSame(0, $this->rowCount());
@@ -61,7 +62,7 @@ final class InboundMailControllerTest extends WebTestCase
     public function testWrongBearerIs401(): void
     {
         foreach (['Bearer wrong-secret', 'Bearer '.self::SECRET.'x', 'Basic '.base64_encode('a:'.self::SECRET), self::SECRET, ''] as $authorization) {
-            $this->client->request('POST', self::URL, server: ['CONTENT_TYPE' => 'message/rfc822'] + ('' === $authorization ? [] : ['HTTP_AUTHORIZATION' => $authorization]), content: InboundMailKit::mail($this->kit->address));
+            $this->client->request('POST', self::URL, server: ['CONTENT_TYPE' => 'message/rfc822'] + ('' === $authorization ? [] : ['HTTP_AUTHORIZATION' => $authorization]), content: MailKit::mail($this->kit->address));
             self::assertResponseStatusCodeSame(401, $authorization);
             self::assertResponseHasHeader('WWW-Authenticate');
         }
@@ -73,7 +74,7 @@ final class InboundMailControllerTest extends WebTestCase
     {
         // RFC 9110 §11.1: the authentication scheme is case-insensitive.
         foreach (['bearer', 'BEARER', 'Bearer'] as $n => $scheme) {
-            $this->client->request('POST', self::URL, server: ['CONTENT_TYPE' => 'message/rfc822', 'HTTP_AUTHORIZATION' => $scheme.' '.self::SECRET], content: InboundMailKit::mail($this->kit->address, $n.'@mail.example.com'));
+            $this->client->request('POST', self::URL, server: ['CONTENT_TYPE' => 'message/rfc822', 'HTTP_AUTHORIZATION' => $scheme.' '.self::SECRET], content: MailKit::mail($this->kit->address, $n.'@mail.example.com'));
             self::assertResponseStatusCodeSame(202, $scheme);
         }
 
@@ -83,7 +84,7 @@ final class InboundMailControllerTest extends WebTestCase
     public function testWebhookAnswers202ForStoredDuplicateAndUnknownAlike(): void
     {
         $answers = [];
-        foreach ([InboundMailKit::mail($this->kit->address), InboundMailKit::mail($this->kit->address), InboundMailKit::mail($this->kit->unknownAddress(), 'unknown@mail.example.com')] as $raw) {
+        foreach ([MailKit::mail($this->kit->address), MailKit::mail($this->kit->address), MailKit::mail($this->kit->unknownAddress(), 'unknown@mail.example.com')] as $raw) {
             $this->post($raw);
             self::assertResponseStatusCodeSame(202);
             $response = $this->client->getResponse();
@@ -96,25 +97,25 @@ final class InboundMailControllerTest extends WebTestCase
 
         self::assertCount(1, array_unique($answers), implode("\n", $answers));
         self::assertSame(1, $this->rowCount());
-        self::assertSame('webhook', $this->connection()->fetchOne('SELECT channel FROM inbound_message'));
+        self::assertSame('webhook', $this->connection()->fetchOne('SELECT channel FROM mail_message'));
     }
 
     public function testTheRecipientHeaderRoutesTheMessage(): void
     {
-        $this->post(InboundMailKit::mail('accounts@firm.example.com'), recipient: $this->kit->address);
+        $this->post(MailKit::mail('accounts@firm.example.com'), recipient: $this->kit->address);
 
         self::assertResponseStatusCodeSame(202);
-        self::assertSame($this->kit->feedId, $this->connection()->fetchOne('SELECT bank_feed_id FROM inbound_message'));
+        self::assertSame($this->kit->addressId, $this->connection()->fetchOne('SELECT address_id FROM mail_message'));
     }
 
     public function testFailedAuthenticationIsRateLimited(): void
     {
         for ($attempt = 1; $attempt <= 120; ++$attempt) {
-            $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+            $this->post(MailKit::mail($this->kit->address), bearer: 'wrong-secret');
             self::assertResponseStatusCodeSame(401);
         }
 
-        $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+        $this->post(MailKit::mail($this->kit->address), bearer: 'wrong-secret');
 
         self::assertResponseStatusCodeSame(429);
         self::assertSame(0, $this->rowCount());
@@ -127,10 +128,10 @@ final class InboundMailControllerTest extends WebTestCase
     public function testAFloodOfBadBearersDoesNotBlockTheRealRelay(): void
     {
         self::getContainer()->get('test.inbound_mail_limiter')->create('127.0.0.1')->consume(120);
-        $this->post(InboundMailKit::mail($this->kit->address), bearer: 'wrong-secret');
+        $this->post(MailKit::mail($this->kit->address), bearer: 'wrong-secret');
         self::assertResponseStatusCodeSame(429);
 
-        $this->post(InboundMailKit::mail($this->kit->address));
+        $this->post(MailKit::mail($this->kit->address));
 
         self::assertResponseStatusCodeSame(202);
         self::assertSame(1, $this->rowCount());
@@ -140,7 +141,7 @@ final class InboundMailControllerTest extends WebTestCase
     {
         self::getContainer()->get('test.inbound_mail_relay_limiter')->create('127.0.0.1')->consume(600);
 
-        $this->post(InboundMailKit::mail($this->kit->address));
+        $this->post(MailKit::mail($this->kit->address));
 
         self::assertResponseStatusCodeSame(429);
         self::assertSame(0, $this->rowCount());
@@ -200,7 +201,7 @@ final class InboundMailControllerTest extends WebTestCase
 
     public function testTheWebhookStartsNoSession(): void
     {
-        $this->post(InboundMailKit::mail($this->kit->address));
+        $this->post(MailKit::mail($this->kit->address));
 
         self::assertResponseStatusCodeSame(202);
         self::assertSame([], $this->client->getResponse()->headers->getCookies());
@@ -222,7 +223,7 @@ final class InboundMailControllerTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
-        $this->kit = InboundMailKit::seed(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(GenerateAddress::class));
+        $this->kit = MailKit::seed(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(AddressIssuer::class));
     }
 
     private function changeEnv(string $name, string $value): void
@@ -240,6 +241,6 @@ final class InboundMailControllerTest extends WebTestCase
 
     private function rowCount(): int
     {
-        return Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM inbound_message'));
+        return Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_message'));
     }
 }
