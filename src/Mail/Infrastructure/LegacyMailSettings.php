@@ -23,10 +23,10 @@ use Symfony\Component\DependencyInjection\Exception\EnvNotFoundException;
  */
 final class LegacyMailSettings implements EnvVarProcessorInterface
 {
-    public const PREFIX = 'mail_inbound';
+    public const string PREFIX = 'mail_inbound';
 
     /** What a setting is when neither name is set. */
-    private const DEFAULTS = [
+    private const array DEFAULTS = [
         'PORT' => '993',
         'ENCRYPTION' => 'ssl',
         'FOLDER' => 'INBOX',
@@ -42,13 +42,13 @@ final class LegacyMailSettings implements EnvVarProcessorInterface
     public function getEnv(string $prefix, string $name, \Closure $getEnv): string
     {
         $new = $this->read($getEnv, 'MAIL_INBOUND_'.$name);
-        if ('' !== $new) {
+        if ('' !== trim($new)) {
             return $new;
         }
 
         $oldName = 'BANK_INBOX_'.$name;
         $old = $this->read($getEnv, $oldName);
-        if ('' !== $old) {
+        if ('' !== trim($old)) {
             if (!isset($this->warned[$oldName])) {
                 $this->warned[$oldName] = true;
                 $this->logger->warning('The setting {old} is deprecated and will stop working in the next release; rename it to {new}.', [
@@ -76,6 +76,6 @@ final class LegacyMailSettings implements EnvVarProcessorInterface
             return '';
         }
 
-        return \is_string($value) ? trim($value) : '';
+        return \is_string($value) ? $value : '';
     }
 }

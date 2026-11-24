@@ -76,6 +76,15 @@ final class LegacyMailSettingsTest extends TestCase
         self::assertSame('143', $this->settings()->getEnv('mail_inbound', 'PORT', $this->lookup($env)));
     }
 
+    public function testAValueIsPassedAsItIsWithItsSpaces(): void
+    {
+        $settings = $this->settings();
+
+        self::assertSame(' secret ', $settings->getEnv('mail_inbound', 'PASSWORD', $this->lookup(['MAIL_INBOUND_PASSWORD' => ' secret '])));
+        self::assertSame(' secret ', $settings->getEnv('mail_inbound', 'PASSWORD', $this->lookup(['BANK_INBOX_PASSWORD' => ' secret '])));
+        self::assertSame('993', $settings->getEnv('mail_inbound', 'PORT', $this->lookup(['MAIL_INBOUND_PORT' => '  '])));
+    }
+
     private function settings(): LegacyMailSettings
     {
         $logger = new class($this) extends AbstractLogger {
