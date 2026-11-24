@@ -63,7 +63,7 @@ final readonly class AcceptReadValues
         $taken = array_values(array_filter(
             array_unique($fields, \SORT_REGULAR),
             static fn (ReadField $field): bool => \in_array($field, ReadValues::FIELDS, true) && ReadValues::shaped($merged, $field)
-                || (ReadField::SupplierName === $field && null !== $merged->get($field)),
+                || (ReadField::SupplierName === $field && $merged->get($field) instanceof \Foresi\Purchasing\Contract\Reading\ReadValue),
         ));
 
         return $this->editing->edit($documentId, $this->input($document, $merged, $taken), $version);

@@ -257,7 +257,7 @@ final readonly class IsdocReader implements DocumentReader
             $rate = null === $rate ? null : ReadFormat::rate($rate);
             $base = null === $base ? null : ReadFormat::minor($base);
             $vat = null === $vat ? null : ReadFormat::minor($vat);
-            if (null === $rate || null === $base || null === $vat) {
+            if (in_array(null, [$rate, $base, $vat], true)) {
                 return null;
             }
             $row = $rows[$rate] ?? ['rate' => $rate, 'baseMinor' => 0, 'vatMinor' => 0];

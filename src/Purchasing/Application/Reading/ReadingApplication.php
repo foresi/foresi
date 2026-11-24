@@ -75,7 +75,7 @@ final readonly class ReadingApplication
             return new AppliedReading([], $suggested, $warning);
         }
         $write = $this->supplierWrite($supplier, $merged);
-        if ([] === $fields && null === $write) {
+        if ([] === $fields && !$write instanceof SupplierWrite) {
             return new AppliedReading([], [], $warning);
         }
         $left = [];
@@ -85,7 +85,7 @@ final readonly class ReadingApplication
             }
             $left = [...$left, ...$group];
             $taken = array_values(array_filter($fields, static fn (ReadField $field): bool => !\in_array($field, $left, true)));
-            if ([] === $taken && null === $write) {
+            if ([] === $taken && !$write instanceof SupplierWrite) {
                 break;
             }
             if ($this->save($document, $merged, $taken, $write)) {

@@ -25,8 +25,8 @@ final class DocumentReaderTagTest extends TestCase
     {
         $builder = new ContainerBuilder();
         $builder->setParameter('kernel.environment', 'test');
-        $path = (new PurchasingBundle())->getPath().'/config';
-        (new PhpFileLoader($builder, new FileLocator($path)))->load('services.php');
+        $path = new PurchasingBundle()->getPath().'/config';
+        new PhpFileLoader($builder, new FileLocator($path))->load('services.php');
 
         $tags = $builder->getAutoconfiguredInstanceof()[DocumentReader::class]->getTags();
 

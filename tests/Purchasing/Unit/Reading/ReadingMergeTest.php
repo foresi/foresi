@@ -18,13 +18,13 @@ final class ReadingMergeTest extends TestCase
 {
     public function testFirstReaderWinsPerField(): void
     {
-        $isdoc = self::reading('isdoc', [ReadField::IssueDate->value => '2026-10-01']);
-        $qr = self::reading('payment_qr', [
+        $isdoc = $this->reading('isdoc', [ReadField::IssueDate->value => '2026-10-01']);
+        $qr = $this->reading('payment_qr', [
             ReadField::IssueDate->value => '2026-10-02',
             ReadField::VariableSymbol->value => '2026100',
         ]);
 
-        $merged = (new ReadingMerge())->merge([$isdoc, $qr]);
+        $merged = new ReadingMerge()->merge([$isdoc, $qr]);
 
         $issueDate = $merged->get(ReadField::IssueDate);
         self::assertSame('2026-10-01', $issueDate?->value);
@@ -37,17 +37,17 @@ final class ReadingMergeTest extends TestCase
     public function testAmountsTravelTogether(): void
     {
         $recap = [['rate' => '21', 'baseMinor' => 10000, 'vatMinor' => 2100]];
-        $a = self::reading('payment_qr', [
+        $a = $this->reading('payment_qr', [
             ReadField::Total->value => 12100,
             ReadField::Currency->value => 'CZK',
         ]);
-        $b = self::reading('isdoc', [
+        $b = $this->reading('isdoc', [
             ReadField::Total->value => 10000,
             ReadField::Currency->value => 'EUR',
             ReadField::VatRecap->value => $recap,
         ]);
 
-        $merged = (new ReadingMerge())->merge([$a, $b]);
+        $merged = new ReadingMerge()->merge([$a, $b]);
 
         self::assertSame(12100, $merged->get(ReadField::Total)?->value);
         self::assertSame('CZK', $merged->get(ReadField::Currency)?->value);
@@ -57,14 +57,14 @@ final class ReadingMergeTest extends TestCase
 
     public function testNoCurrencyIsTakenFromAnotherReaderWhenTheAmountsHaveNone(): void
     {
-        $a = self::reading('isdoc', [ReadField::Total->value => 10000]);
-        $b = self::reading('payment_qr', [
+        $a = $this->reading('isdoc', [ReadField::Total->value => 10000]);
+        $b = $this->reading('payment_qr', [
             ReadField::Total->value => 9000,
             ReadField::Currency->value => 'EUR',
         ]);
-        $c = self::reading('ai', [ReadField::Currency->value => 'USD']);
+        $c = $this->reading('ai', [ReadField::Currency->value => 'USD']);
 
-        $merged = (new ReadingMerge())->merge([$a, $b, $c]);
+        $merged = new ReadingMerge()->merge([$a, $b, $c]);
 
         self::assertSame(10000, $merged->get(ReadField::Total)?->value);
         self::assertNull($merged->get(ReadField::Currency));
@@ -80,13 +80,13 @@ final class ReadingMergeTest extends TestCase
 
     public function testAReadingWithoutATotalDoesNotTakePartInTheAmounts(): void
     {
-        $a = self::reading('payment_qr', [ReadField::Currency->value => 'CZK']);
-        $b = self::reading('isdoc', [
+        $a = $this->reading('payment_qr', [ReadField::Currency->value => 'CZK']);
+        $b = $this->reading('isdoc', [
             ReadField::Total->value => 10000,
             ReadField::Currency->value => 'EUR',
         ]);
 
-        $merged = (new ReadingMerge())->merge([$a, $b]);
+        $merged = new ReadingMerge()->merge([$a, $b]);
 
         self::assertSame('EUR', $merged->get(ReadField::Currency)?->value);
         self::assertSame(10000, $merged->get(ReadField::Total)?->value);
@@ -94,14 +94,14 @@ final class ReadingMergeTest extends TestCase
 
     public function testEmptyReadingsGiveAnEmptyReading(): void
     {
-        self::assertTrue((new ReadingMerge())->merge([])->isEmpty());
-        self::assertTrue((new ReadingMerge())->merge([new Reading([]), new Reading([])])->isEmpty());
+        self::assertTrue(new ReadingMerge()->merge([])->isEmpty());
+        self::assertTrue(new ReadingMerge()->merge([new Reading([]), new Reading([])])->isEmpty());
     }
 
     public function testRoundTripToArray(): void
     {
         $recap = [['rate' => '21', 'baseMinor' => 10000, 'vatMinor' => 2100]];
-        $reading = self::reading('isdoc', [
+        $reading = $this->reading('isdoc', [
             ReadField::IssueDate->value => '2026-10-01',
             ReadField::Total->value => 12100,
             ReadField::VatRecap->value => $recap,
@@ -131,7 +131,7 @@ final class ReadingMergeTest extends TestCase
     /**
      * @param array<string, string|int|array<mixed>> $values
      */
-    private static function reading(string $source, array $values): Reading
+    private function reading(string $source, array $values): Reading
     {
         /** @var array<value-of<ReadField>, ReadValue> $read */
         $read = [];

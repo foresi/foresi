@@ -41,7 +41,7 @@ final class ReadValues
 
         return match ($field) {
             ReadField::Kind => \is_string($value) && null !== ReceivedDocumentKind::tryFrom($value),
-            ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => null !== self::date($value),
+            ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => self::date($value) instanceof \DateTimeImmutable,
             ReadField::Currency => \is_string($value) && null !== Currency::tryFrom($value),
             ReadField::Total => \is_int($value),
             ReadField::VatRecap => null !== self::recap($value),
@@ -68,7 +68,7 @@ final class ReadValues
             ReadField::TaxPointDate => $document->taxPointDate()?->format('Y-m-d') === $value,
             ReadField::DueDate => $document->dueDate()?->format('Y-m-d') === $value,
             ReadField::Currency => $document->currency()->value === $value,
-            ReadField::Total => \is_int($value) && null !== $document->total() && abs($document->total()->minor()) === abs($value),
+            ReadField::Total => \is_int($value) && $document->total() instanceof \Foresi\Shared\Domain\Money && abs($document->total()->minor()) === abs($value),
             ReadField::VatRecap => self::sameRecap($document, $value),
             ReadField::SupplierName => self::sameSupplier($document, $reading),
             default => false,

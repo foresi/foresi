@@ -231,8 +231,8 @@ final class SupplierMatchingTest extends PurchasingTestCase
     public function testMatchedSupplierBringsMarginDefaultRecipient(): void
     {
         // Named by string: Margin is optional, so nothing here may need its classes to load.
-        $writesId = 'Foresi\\Margin\\Application\\AllocationWrites';
-        $readsId = 'Foresi\\Margin\\Application\\AllocationReads';
+        $writesId = \Foresi\Margin\Application\AllocationWrites::class;
+        $readsId = \Foresi\Margin\Application\AllocationReads::class;
         try {
             if (!class_exists($writesId)) {
                 throw new ServiceNotFoundException($writesId);

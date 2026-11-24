@@ -45,7 +45,6 @@ final class ReceivedDocumentReadingTest extends WebTestCase
 {
     private KernelBrowser $client;
     private MockClock $clock;
-    private SignedInBrowser $browser;
     private Party $supplier;
     /** @var list<string> */
     private array $paths = [];
@@ -59,15 +58,15 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         $rates = new FakeRateSource();
         $rates->publish('2026-10-28', '24.310', '15.120');
         self::getContainer()->set(RateSource::class, $rates);
-        $this->browser = new SignedInBrowser($this->client, $this->em());
-        $this->browser->seed();
+        $browser = new SignedInBrowser($this->client, $this->em());
+        $browser->seed();
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, '');
         $this->em()->persist($firm);
         $this->supplier = new Party(PartyKind::Company, 'Supplier Example s.r.o.', new RegistrationNumber('CZ', '87654321'), VatId::fromString('CZ87654321'), '');
         $this->em()->persist($this->supplier);
         $this->em()->persist(new PartyAddress($this->supplier, AddressType::Billing, new Address('Supplier Street 2', 'Example City', '110 00', 'CZ')));
         $this->em()->flush();
-        $this->browser->signIn();
+        $browser->signIn();
     }
 
     protected function tearDown(): void

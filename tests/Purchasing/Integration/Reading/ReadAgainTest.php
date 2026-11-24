@@ -114,7 +114,7 @@ final class ReadAgainTest extends PurchasingTestCase
         $id = $this->isdocDraftEditedFirst();
         $version = $this->document($id)->version();
 
-        $this->assertRefused(ReceivedDocumentRefused::STALE, fn () => $this->accepting()->accept($id, [ReadField::Total], $version - 1));
+        $this->assertRefused(ReceivedDocumentRefused::STALE, fn (): \Foresi\Purchasing\Application\SavedReceivedDocument => $this->accepting()->accept($id, [ReadField::Total], $version - 1));
     }
 
     public function testAcceptingAsAGuestIsRefused(): void

@@ -33,6 +33,7 @@ final class SafeXmlTest extends TestCase
         SafeXml::load('<?xml version="1.0"?><!DOCTYPE a [<!ENTITY x "aaaaaaaaaa"><!ENTITY y "&x;&x;&x;&x;&x;&x;&x;&x;">]><a>&y;</a>');
     }
 
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testRefusesMalformedAndEmptyXml(): void
     {
         foreach (['', '<a>', 'not xml'] as $bytes) {
@@ -40,7 +41,6 @@ final class SafeXmlTest extends TestCase
                 SafeXml::load($bytes);
                 self::fail('Expected ReaderFailed for "'.$bytes.'".');
             } catch (ReaderFailed) {
-                $this->addToAssertionCount(1);
             }
         }
     }

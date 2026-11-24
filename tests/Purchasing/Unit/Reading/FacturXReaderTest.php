@@ -36,7 +36,7 @@ final class FacturXReaderTest extends TestCase
 
     public function testReadsEn16931Profile(): void
     {
-        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', self::cii()));
+        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', $this->cii()));
 
         self::assertNotNull($reading);
         self::assertSame(
@@ -62,14 +62,14 @@ final class FacturXReaderTest extends TestCase
 
     public function testACreditNoteHasItsKind(): void
     {
-        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', self::cii(typeCode: '381')));
+        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', $this->cii(typeCode: '381')));
 
         self::assertSame('credit_note', $reading?->get(ReadField::Kind)?->value);
     }
 
     public function testMinimumProfileGivesNoRecap(): void
     {
-        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', self::cii(withTaxRows: false, withPaymentDetails: false)));
+        $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', $this->cii(withTaxRows: false, withPaymentDetails: false)));
 
         self::assertNotNull($reading);
         self::assertNull($reading->get(ReadField::VatRecap));
@@ -82,7 +82,7 @@ final class FacturXReaderTest extends TestCase
     public function testReadsCiiEmbeddedInPdf(): void
     {
         foreach (['factur-x.xml', 'ZUGFeRD-invoice.xml', 'xrechnung.xml'] as $name) {
-            $pdf = ReceivedFileFixtures::pdf(embeddedName: $name, embeddedContent: self::cii());
+            $pdf = ReceivedFileFixtures::pdf(embeddedName: $name, embeddedContent: $this->cii());
 
             $reading = $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', $pdf));
 
@@ -93,7 +93,7 @@ final class FacturXReaderTest extends TestCase
     public function testAPdfWithoutTheXmlFindsNothing(): void
     {
         self::assertNull($this->reader->read(new DocumentFile('a.pdf', 'application/pdf', ReceivedFileFixtures::pdf())));
-        $other = ReceivedFileFixtures::pdf(embeddedName: 'invoice.isdoc', embeddedContent: self::cii());
+        $other = ReceivedFileFixtures::pdf(embeddedName: 'invoice.isdoc', embeddedContent: $this->cii());
         self::assertNull($this->reader->read(new DocumentFile('b.pdf', 'application/pdf', $other)));
     }
 
@@ -104,7 +104,7 @@ final class FacturXReaderTest extends TestCase
 
     public function testRefusesDoctypeAndExternalEntity(): void
     {
-        $xml = str_replace('<rsm:CrossIndustryInvoice', '<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><rsm:CrossIndustryInvoice', self::cii());
+        $xml = str_replace('<rsm:CrossIndustryInvoice', '<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><rsm:CrossIndustryInvoice', $this->cii());
         $xml = str_replace('RE-2026-0042', '&e;', $xml);
 
         $this->expectException(ReaderFailed::class);
@@ -119,7 +119,7 @@ final class FacturXReaderTest extends TestCase
 
     public function testABadDateOrAmountDropsOnlyThatValue(): void
     {
-        $xml = str_replace('<udt:DateTimeString format="102">20261031</udt:DateTimeString>', '<udt:DateTimeString format="102">20261331</udt:DateTimeString>', self::cii());
+        $xml = str_replace('<udt:DateTimeString format="102">20261031</udt:DateTimeString>', '<udt:DateTimeString format="102">20261331</udt:DateTimeString>', $this->cii());
         $xml = str_replace('<ram:GrandTotalAmount>119.00</ram:GrandTotalAmount>', '<ram:GrandTotalAmount>1,19</ram:GrandTotalAmount>', $xml);
 
         $reading = $this->reader->read(new DocumentFile('factur-x.xml', 'application/xml', $xml));
@@ -131,7 +131,7 @@ final class FacturXReaderTest extends TestCase
         self::assertSame('2026-11-30', $reading->get(ReadField::DueDate)?->value);
     }
 
-    private static function cii(string $typeCode = '380', bool $withTaxRows = true, bool $withPaymentDetails = true): string
+    private function cii(string $typeCode = '380', bool $withTaxRows = true, bool $withPaymentDetails = true): string
     {
         $tax = $withTaxRows ? '<ram:ApplicableTradeTax><ram:CalculatedAmount>19.00</ram:CalculatedAmount><ram:TypeCode>VAT</ram:TypeCode><ram:BasisAmount>100.00</ram:BasisAmount><ram:CategoryCode>S</ram:CategoryCode><ram:RateApplicablePercent>19.00</ram:RateApplicablePercent></ram:ApplicableTradeTax>' : '';
         $payment = $withPaymentDetails ? '<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>58</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>DE89 3704 0044 0532 0130 00</ram:IBANID></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>'

@@ -42,7 +42,7 @@ final class ReadingMerge
                     continue;
                 }
                 // With a total chosen, no other reader adds to its amounts.
-                if (null !== $amounts && \in_array($value->field, self::AMOUNTS, true)) {
+                if ($amounts instanceof Reading && \in_array($value->field, self::AMOUNTS, true)) {
                     continue;
                 }
                 $values[$value->field->value] = $value;

@@ -105,8 +105,8 @@ final class IsdocFixtures
 
     private static function line(Money $net, Money $vat, Money $gross): DocumentLine
     {
-        return new class($net, $vat, $gross) implements DocumentLine {
-            public function __construct(private readonly Money $net, private readonly Money $vat, private readonly Money $gross)
+        return new readonly class($net, $vat, $gross) implements DocumentLine {
+            public function __construct(private Money $net, private Money $vat, private Money $gross)
             {
             }
 

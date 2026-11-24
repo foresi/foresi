@@ -35,7 +35,7 @@ class DocumentReading
     public const int MAX_CODE_LENGTH = 32;
 
     #[ORM\Column(type: 'string', length: 16, enumType: ReadingState::class)]
-    private ReadingState $state = ReadingState::Reading;
+    private ReadingState $state;
 
     /** @var array<string, array{value: string|int|array<mixed>, source: string}> */
     #[ORM\Column(name: 'read_values', type: 'json')]
@@ -61,13 +61,13 @@ class DocumentReading
     private int $attempts = 0;
 
     #[ORM\Column(type: 'string', length: self::MAX_CODE_LENGTH, nullable: true)]
-    private ?string $failure = null;
+    private ?string $failure;
 
     #[ORM\Column(name: 'requested_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $requestedAt;
 
     #[ORM\Column(name: 'finished_at', type: 'datetime_immutable', nullable: true)]
-    private ?\DateTimeImmutable $finishedAt = null;
+    private ?\DateTimeImmutable $finishedAt;
 
     /**
      * Asked for when the document is made from a file.
@@ -108,8 +108,8 @@ class DocumentReading
     {
         $this->state = $merged->isEmpty() ? ReadingState::NothingFound : ReadingState::Read;
         $this->values = $merged->toArray();
-        $this->applied = self::keys($applied);
-        $this->suggested = self::keys($suggested);
+        $this->applied = $this->keys($applied);
+        $this->suggested = $this->keys($suggested);
         $this->warnings = $warnings;
         $this->failure = null;
         $this->finishedAt = $at;
@@ -202,7 +202,7 @@ class DocumentReading
      *
      * @return list<string>
      */
-    private static function keys(array $fields): array
+    private function keys(array $fields): array
     {
         return array_map(static fn (ReadField $field): string => $field->value, $fields);
     }

@@ -23,16 +23,16 @@ final class DocumentFileTest extends TestCase
 
     public function testTheExtensionDecidesOnlyWithoutAUsefulMediaType(): void
     {
-        self::assertTrue((new DocumentFile('a.PDF', '', ''))->isPdf());
-        self::assertTrue((new DocumentFile('a.pdf', 'application/octet-stream', ''))->isPdf());
-        self::assertTrue((new DocumentFile('a.isdoc', 'application/octet-stream', ''))->isXml());
-        self::assertTrue((new DocumentFile('a.jpg', '', ''))->isImage());
+        self::assertTrue(new DocumentFile('a.PDF', '', '')->isPdf());
+        self::assertTrue(new DocumentFile('a.pdf', 'application/octet-stream', '')->isPdf());
+        self::assertTrue(new DocumentFile('a.isdoc', 'application/octet-stream', '')->isXml());
+        self::assertTrue(new DocumentFile('a.jpg', '', '')->isImage());
     }
 
     public function testXmlMediaTypes(): void
     {
-        self::assertTrue((new DocumentFile('a', 'application/xml; charset=utf-8', ''))->isXml());
-        self::assertTrue((new DocumentFile('a', 'application/vnd.example+xml', ''))->isXml());
-        self::assertFalse((new DocumentFile('a.xml', 'text/plain', ''))->isXml());
+        self::assertTrue(new DocumentFile('a', 'application/xml; charset=utf-8', '')->isXml());
+        self::assertTrue(new DocumentFile('a', 'application/vnd.example+xml', '')->isXml());
+        self::assertFalse(new DocumentFile('a.xml', 'text/plain', '')->isXml());
     }
 }

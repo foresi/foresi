@@ -157,7 +157,7 @@ final readonly class ReadingScreen
 
         return match ($field) {
             ReadField::Kind => $this->translator->trans('purchasing.kind.'.(\is_string($value) ? $value : '')),
-            ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => null === ($day = ReadValues::date($value)) ? null : $date($day),
+            ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => ($day = ReadValues::date($value)) instanceof \DateTimeImmutable ? $date($day) : null,
             ReadField::Total => \is_int($value) ? $this->text->amount(Money::ofMinor($value, $currency)) : null,
             ReadField::VatRecap => implode('; ', array_map(fn (array $row): string => $this->translator->trans('purchasing.reading.recap_row', [
                 'rate' => $row['rate'],

@@ -127,7 +127,7 @@ final readonly class ReceivedDocumentWrites
         if (\strlen($bytes) > self::MAX_UPLOAD) {
             throw PurchasingRefused::file(self::FILE_TOO_LARGE, 'The file is larger than 10 MB.');
         }
-        if (!self::readable($bytes, $input->fileName)) {
+        if (!$this->readable($bytes, $input->fileName)) {
             throw PurchasingRefused::file(self::FILE_TYPE_UNSUPPORTED, 'The file must be a PDF, an image (PNG, JPEG, GIF, WebP, HEIC), an ISDOC file (.isdoc, .isdocx) or XML.');
         }
         $path = tempnam(sys_get_temp_dir(), 'foresi-upload-');
@@ -219,7 +219,7 @@ final readonly class ReceivedDocumentWrites
      * What the file may be: one of the types a reader can open, by its bytes and not by what the
      * client says; an .isdocx is a ZIP, told by its extension.
      */
-    private static function readable(string $bytes, string $fileName): bool
+    private function readable(string $bytes, string $fileName): bool
     {
         $type = new \finfo(\FILEINFO_MIME_TYPE)->buffer($bytes);
         if ('application/zip' === $type) {

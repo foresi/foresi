@@ -129,7 +129,7 @@ final readonly class ReadDocument
             }
             // Read again by the lock, so a run that waited sees what the one before stored.
             $reading = $this->readings->find($message->documentId);
-            if (null !== $reading && $this->due($reading, $message)) {
+            if ($reading instanceof DocumentReading && $this->due($reading, $message)) {
                 $work($reading, $document);
             }
 
@@ -145,7 +145,7 @@ final readonly class ReadDocument
 
     private function due(?DocumentReading $reading, ReadReceivedDocument $message): bool
     {
-        return null !== $reading && $reading->isRunning() && $reading->baseVersion() === $message->baseVersion;
+        return $reading instanceof DocumentReading && $reading->isRunning() && $reading->baseVersion() === $message->baseVersion;
     }
 
     /**
