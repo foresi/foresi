@@ -34,6 +34,15 @@ interface MarginCostSource
     public function documentIds(): iterable;
 
     /**
+     * The ids of the documents that may have a line without a base in CZK
+     * because they are in a foreign currency with no exchange rate: a cheap
+     * short list, never a miss, that the caller checks one document at a time.
+     *
+     * @return iterable<string>
+     */
+    public function documentIdsWithoutExchangeRate(): iterable;
+
+    /**
      * The ids of the documents of a supplier whose month is $fromMonth or later.
      *
      * @return iterable<string>

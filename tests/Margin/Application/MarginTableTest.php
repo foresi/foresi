@@ -247,6 +247,18 @@ final class MarginTableTest extends KernelTestCase
         self::assertSame(['missing_exchange_rate', ['rate1']], [$view->knownGaps[0]->code, $view->knownGaps[0]->documentIds]);
     }
 
+    public function testAnUnaffectedDocumentIsNotLoadedToLookForGaps(): void
+    {
+        $this->costSource->documents['rate1'] = $this->costDocument('rate1', '2026-11-12', [new CostLine('line-1', 'Voice API', null)]);
+        $this->costSource->documents['fine'] = $this->costDocument('fine', '2026-11-12', [new CostLine('line-1', 'Hosting', Money::ofMinor(100, Currency::CZK))]);
+        $this->costSource->requested = [];
+
+        $this->table->of('2026-11', '2026-11');
+
+        self::assertNotContains('fine', $this->costSource->requested);
+        self::assertContains('rate1', $this->costSource->requested);
+    }
+
     public function testTheRangeIsRefusedWhenItIsInvalidReversedOrTooLong(): void
     {
         $this->assertRefused('invalid_month', fn (): MarginTableView => $this->table->of('2026-13', '2026-12'));

@@ -125,10 +125,7 @@ final readonly class MarginTable
     private function knownGaps(MarginRange $range): array
     {
         $missing = [];
-        foreach ($this->sources->documentIds() as $id) {
-            if (!$this->gaps->missingExchangeRate($id)) {
-                continue;
-            }
+        foreach ($this->gaps->documentsMissingExchangeRate($this->sources->documentIdsWithoutExchangeRate()) as $id) {
             $month = $this->calculation->costMonthOf($id);
             if ($month instanceof \DateTimeImmutable && $range->contains($month->format('Y-m'))) {
                 $missing[] = $id;
