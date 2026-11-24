@@ -143,7 +143,7 @@ final class ReadValuesTest extends TestCase
     public function testTheSupplierIsHeldByAnyOfItsNames(): void
     {
         $document = $this->documentOf(new SupplierSnapshot('Ünïcode Hosting s.r.o.', '12345678', 'CZ12345678', new Address('', '', '', 'CZ')));
-        
+
         self::assertTrue($this->holdsSupplier($document, ['supplier_name' => 'ÜNÏCODE  hosting s.r.o.']));
         self::assertFalse($this->holdsSupplier($document, ['supplier_name' => 'Other Hosting s.r.o.']));
         self::assertTrue($this->holdsSupplier($document, ['supplier_name' => 'Other Hosting s.r.o.', 'supplier_registration_number' => '1234 5678']));
