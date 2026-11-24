@@ -239,8 +239,9 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * The form's values as the use cases take them: a one-off product sends
-     * no period, which the form hides but still sends without JavaScript.
+     * The form's values as the use cases take them: a one-off or time-based
+     * product sends no period, which the form hides but still sends without
+     * JavaScript.
      *
      * @param array<string, string> $values
      *

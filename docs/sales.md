@@ -37,7 +37,9 @@ Stages and lost reasons are kept under **Settings → Sales**, and archived, nev
 
 ## Lines and value
 
-A **line** is what a deal sells. It is copied from a product of the [catalog](catalog.md) with a quantity, or typed in with its own name, unit, price and billing, by the same rules as a product. A line has a name (up to 200 characters), a unit (up to 32), a quantity above zero with up to three decimals, an optional price per unit without VAT in CZK, EUR or USD, and a billing kind: `one_off`, or `recurring` every `interval` (1 to 99) of a `recurrence_unit` (`day`, `week`, `month` or `year`), `cycles` times (1 to 999) or with no end.
+A **line** is what a deal sells. It is copied from a product of the [catalog](catalog.md) with a quantity, or typed in with its own name, unit, price and billing, by the same rules as a product. A line has a name (up to 200 characters), a unit (up to 32), a quantity above zero with up to three decimals, an optional price per unit without VAT in CZK, EUR or USD, and a billing kind: `one_off`, or `recurring` every `interval` (1 to 99) of a `recurrence_unit` (`day`, `week`, `month` or `year`), `cycles` times (1 to 999) or with no end, or `time_based`, billed by the hour.
+
+A **`time_based` line** has the unit `h` (another unit is refused as `time_based_unit`), its price per unit is the hourly rate (needed: `rate_required`) and it has no recurrence (`time_based_recurrence` when a recurrence unit, interval or cycles is given). Its quantity is the hours expected and is optional: without it the line is not estimated. The hours are an estimate for the value, never a limit. A monthly fee plus hours on top are two lines of one deal, a `recurring` and a `time_based` one.
 
 A line copied from a product stays as it was when the product later changes, as the Catalog describes. The lines can be put in any order.
 
@@ -46,6 +48,7 @@ The **value** of a deal is counted from its priced lines, per currency, and neve
 - **One-off** is the sum of the one-off lines, quantity times price.
 - **Monthly** is the sum of the recurring lines put on a month's terms: a monthly line counts its price divided by its interval, a yearly one a twelfth of it (divided by the interval), a weekly one 52/12 of it and a daily one 365/12. Each line is rounded once, half up, to the minor unit of its currency.
 - A weekly or daily line makes the value **approximate**, shown with an **≈**, because a month has no whole number of weeks or days. Monthly and yearly lines are exact.
+- **Hourly** lists each `time_based` line with its rate per hour and, when hours are expected, the amount they make (rate times hours, rounded half up). It is never added into the one-off or the monthly value, because the hours are not worked yet: on the deal's page it is a row of its own under the lines (such as "1,200.00 Kč / h (≈ 40 h = 48,000.00 Kč)"), in a list a deal with hourly lines shows "+ hourly" after its other values, and over the API and MCP it is `value.hourly` with `rate`, `expected_hours` and `expected_amount` (the last two `null` without hours).
 - A line without a price is left out. A deal without a priced line has no value.
 
 ## Follow-up deals
@@ -76,6 +79,7 @@ These appear on a deal only when the modules are installed; without them the dea
   | `deal.title`, `deal.owner`, `deal.stage`, `deal.status` | The deal's title, the name of its owner, its stage and its status (open, won, lost), in the language of the person who generates the document. |
   | `deal.lines` | The lines in their order, as rows with `name`, `unit`, `quantity`, `unit_price` (such as "12 000,00 Kč", empty for a line without a price) and `billing_period` (such as "One-off" or "Every month, no end"). |
   | `deal.one_off_totals`, `deal.monthly_totals` | The value once and every month, one row per currency with `currency` and `amount`, never converted. A monthly amount starts with "≈ " when a weekly or daily line had to be put on a month's terms. |
+  | `deal.hourly_lines` | The hourly lines with a rate, as rows with `name`, `rate` (per hour, such as "1 200,00 Kč"), `expected_hours` and `expected_amount`, the last two empty without expected hours. Never added into the totals. |
 
   The deal variables need a link to a deal that is not in the trash (the first `deal` link): without one a template that uses them is refused when it is generated. Like every variable, they are frozen with the document when it is generated.
 - **Activities:** the deal's header has **Log activity** and **Plan activity**, and the deal's page has its timeline. The activity is linked to the deal, to its client and to the deal's contact persons, so it also shows on the timeline of each of them, and the dialog comes back to the deal. Owners and members see the activities of a deal; who sees an activity follows its records, as [activities.md](activities.md#who-sees-an-activity) says: a trashed deal no longer makes its activities visible.

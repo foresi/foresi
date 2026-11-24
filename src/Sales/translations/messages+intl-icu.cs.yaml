@@ -24,6 +24,7 @@ sales:
     billing_kind:
         one_off: Jednorázově
         recurring: Opakovaně
+        time_based: Po hodinách
     deals:
         title: Obchody
         views: Pohledy na obchody
@@ -150,6 +151,8 @@ sales:
         typed: Zapsat položku ručně
         empty_title: Zatím žádné položky
         empty_text: Přidejte produkt z katalogu nebo zapište položku ručně; hodnota obchodu vychází z položek.
+        not_estimated: Neodhadnuto
+        per_hour: '{rate} / h'
         confirm:
             remove: 'Odebrat položku {name}?'
         column:
@@ -161,6 +164,7 @@ sales:
             product: Z katalogu
             product_help: Produkt se zkopíruje, jak je teď.
             quantity: Množství
+            quantity_help: U položky po hodinách očekávané hodiny; může zůstat prázdné.
             name: Název
             unit: Jednotka
             unit_help: Například hodina, kus nebo měsíc.
@@ -192,6 +196,10 @@ sales:
         total_one_off: Celkem jednorázově
         total_monthly: Celkem měsíčně
         per_month: '{amount} měsíčně'
+        total_hourly: Po hodinách
+        hourly_rate: '{rate} / h'
+        hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
+        hourly_mark: po hodinách
     link:
         title: Propojené obchody
         new: Propojit obchod
@@ -248,6 +256,7 @@ sales:
             lines: 'Řádky obchodu (name, unit, quantity, unit_price, billing_period)'
             one_off_totals: 'Jednorázová hodnota, řádek za každou měnu (currency, amount)'
             monthly_totals: 'Měsíční hodnota, řádek za každou měnu (currency, amount)'
+            hourly_lines: 'Řádky po hodinách, nikdy nepřičtené do součtů (name, rate, expected_hours, expected_amount; poslední dvě jsou prázdné bez očekávaných hodin)'
     error:
         forbidden: S obchody pracují jen vlastníci a členové.
         not_found: Obchod neexistuje.
@@ -286,7 +295,11 @@ sales:
         unit_too_long: Jednotka má nejvýš 32 znaků.
         unit_price_invalid: Zadejte cenu jako číslo s nejvýš dvěma desetinnými místy, například 1500,00.
         currency_unknown: Vyberte měnu.
-        billing_kind_unknown: Vyberte jednorázově nebo opakovaně.
+        billing_kind_unknown: Vyberte jednorázově, opakovaně nebo po hodinách.
+        quantity_required: Zadejte množství; prázdné může být jen u položky po hodinách.
+        time_based_unit: Položka po hodinách má jednotku h.
+        rate_required: "Položka po hodinách potřebuje sazbu: zadejte cenu za jednotku."
+        time_based_recurrence: Položka po hodinách nemá období.
         one_off_recurrence: Jednorázová položka nemá období.
         recurrence_unit_required: Vyberte období.
         recurrence_unit_unknown: Vyberte dny, týdny, měsíce nebo roky.

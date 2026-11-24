@@ -12,6 +12,7 @@ use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Sales\Application\DealDetail;
 use Foresi\Sales\Application\DealLinkView;
+use Foresi\Sales\Application\HourlyValue;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesStore;
 use Foresi\Sales\Application\StageNames;
@@ -63,6 +64,11 @@ final readonly class SalesJson
                 'one_off' => array_values(array_map(JsonValues::money(...), $detail->value->oneOff)),
                 'monthly' => array_values(array_map(JsonValues::money(...), $detail->value->monthly)),
                 'approximate' => $detail->value->approximate,
+                'hourly' => array_map(static fn (HourlyValue $line): array => [
+                    'rate' => JsonValues::money($line->rate),
+                    'expected_hours' => $line->expectedHours,
+                    'expected_amount' => $line->expectedAmount instanceof Money ? JsonValues::money($line->expectedAmount) : null,
+                ], array_merge(...array_values($detail->value->hourly))),
             ],
             'links' => array_map(static fn (DealLinkView $view): array => [
                 'id' => $view->link->id(),

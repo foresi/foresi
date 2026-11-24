@@ -560,16 +560,16 @@ Fields of a product:
 | Field | Value |
 | --- | --- |
 | `name` | Required on create, up to 200 characters. |
-| `billing_kind` | `one_off` (the default) or `recurring`. |
-| `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. |
-| `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. |
+| `billing_kind` | `one_off` (the default), `recurring` or `time_based`, billed by the hour. |
+| `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. `h` for `time_based` (empty means `h`, another unit is refused `time_based_unit`). |
+| `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. Required for `time_based`, where it is the hourly rate (`rate_required`). |
 | `currency` | `CZK` (the default), `EUR` or `USD`. |
-| `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off`. |
-| `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off`. |
-| `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off`. |
+| `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off` and `time_based`. |
+| `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off` and `time_based`. |
+| `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off` and `time_based`. |
 | `description` | Up to 2,000 characters. |
 
-A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence` or `cycles_invalid`.
+A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence`, `time_based_recurrence` or `cycles_invalid`.
 
 ## Sales
 
@@ -580,7 +580,7 @@ Reads:
 | Method and path | Answer |
 | --- | --- |
 | `GET /api/v1/sales/deals` | The deals not in the trash, newest first, each with its `status`, `client`, `owner_user_id`, `stage`, `won_at`, `lost_at` and `lost_reason`. Filters: `status` (`open`, `won`, `lost`), `stage_id`, `owner_user_id`, `client_party_id` (the deals of a client) and `q` (a text in the title). |
-| `GET /api/v1/sales/deals/{dealId}` | One deal, also one in the trash, with its `contacts`, `lines`, `value` and `links`. `value` holds `one_off` and `monthly`, one amount per currency and never converted, and `approximate: true` when a weekly or daily line was put on a month's terms. A `follows_from` link is outgoing when this deal follows from the other. |
+| `GET /api/v1/sales/deals/{dealId}` | One deal, also one in the trash, with its `contacts`, `lines`, `value` and `links`. `value` holds `one_off`, `monthly`, `hourly` and `approximate`: the first two are one amount per currency and never converted, `approximate` is true when a weekly or daily line was put on a month's terms, and `hourly` lists each `time_based` line with its `rate`, `expected_hours` and `expected_amount` (the last two `null` without expected hours), never added into the others. A `follows_from` link is outgoing when this deal follows from the other. |
 | `GET /api/v1/sales/stages` | The stages in their order; archived ones with `include_archived=true`. |
 | `GET /api/v1/sales/lost-reasons` | The lost reasons in their order; archived ones with `include_archived=true`. |
 
@@ -599,8 +599,8 @@ Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dea
 | `POST /api/v1/sales/deals/{dealId}/follow-ups` | `201` with a new deal for the same client and contact persons that follows from this one: `title`, optionally `line_ids` to copy as they are, `stage_id` and `owner_user_id`. |
 | `POST /api/v1/sales/deals/{dealId}/links` | `201` with a link: `to_deal_id`, the deal it follows from, and `type` (`follows_from`). |
 | `DELETE /api/v1/sales/deals/{dealId}/links/{linkId}` | The link removed; both deals stay. |
-| `POST /api/v1/sales/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). |
-| `PATCH /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` clears its period. The product it was copied from does not change. |
+| `POST /api/v1/sales/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). A `time_based` line has the unit `h` (`time_based_unit` for another), its `unit_price` is the hourly rate (`rate_required` without one), `quantity` is the optional hours expected, and it has no recurrence (`time_based_recurrence`). |
+| `PATCH /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` or `time_based` clears its period. The product it was copied from does not change. |
 | `DELETE /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line removed; the lines after it move up. |
 | `POST /api/v1/sales/deals/{dealId}/lines/reorder` | The lines in the order given: `line_ids`, naming every line once. |
 | `POST /api/v1/sales/stages` | `201` with a stage at the end of the order: `name` and an optional `key`, a lowercase identifier that never changes. |

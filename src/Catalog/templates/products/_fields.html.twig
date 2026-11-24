@@ -2,13 +2,14 @@
 {#
     The fields of a product, in the order of the product libraries of HubSpot and Pipedrive: name, unit and
     price, how it is billed, and what it holds. The period (every N units, the cycles) shows only for a
-    recurring product (product-billing); without JavaScript it always shows and a one-off product ignores it.
+    recurring product (product-billing); without JavaScript it always shows and a one-off or time-based
+    product ignores it. The unit of a time-based product is fixed to h (product-billing).
     No VAT: the document that bills the product decides it.
 #}
 {% set column = 'sm:col-span-2' %}
 <div class="grid gap-4 sm:grid-cols-2" data-controller="product-billing">
     <div class="{{ column }}"><twig:Ui:TextInput name="name" id="name" :label="'catalog.product.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" autocomplete="off" required /></div>
-    <twig:Ui:TextInput name="unit" id="unit" :label="'catalog.product.field.unit'|trans" :help="'catalog.product.field.unit_help'|trans" :value="values.unit" :error="errors.unit|default(null)" maxlength="32" autocomplete="off" />
+    <twig:Ui:TextInput name="unit" id="unit" :label="'catalog.product.field.unit'|trans" :help="'catalog.product.field.unit_help'|trans" :value="values.unit" :error="errors.unit|default(null)" maxlength="32" autocomplete="off" data-product-billing-target="unit" />
     <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
         <twig:Ui:TextInput name="unitPrice" id="unitPrice" :label="'catalog.product.field.unit_price'|trans" :help="'catalog.product.field.unit_price_help'|trans" :value="values.unitPrice" :error="errors.unitPrice|default(null)" inputmode="decimal" autocomplete="off" />
         <twig:Ui:Select name="currency" id="currency" :label="'catalog.product.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />

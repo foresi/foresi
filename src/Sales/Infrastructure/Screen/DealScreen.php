@@ -14,6 +14,7 @@ use Foresi\Identity\Application\Person;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Sales\Application\DealLineRules;
 use Foresi\Sales\Application\DealValue;
+use Foresi\Sales\Application\HourlyValue;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Application\StageNames;
@@ -157,15 +158,41 @@ final class DealScreen implements ResetInterface
         if ([] !== $value->monthly) {
             $parts[] = $this->trans('sales.value.per_month', ['amount' => ($value->approximate ? '≈ ' : '').$this->amounts($value->monthly)]);
         }
+        if ([] !== $value->hourly) {
+            $parts[] = $this->trans('sales.value.hourly_mark');
+        }
 
         return implode(' + ', $parts);
     }
 
     /**
-     * "One-off", or "Every 3 months, 12 times" for a recurring line.
+     * The hourly lines of a value, as the footer of the lines table says them:
+     * "1 200,00 Kč/h (≈ 40 h = 48 000,00 Kč)", or the rate alone without expected hours.
+     *
+     * @param array<string, list<HourlyValue>> $hourly
+     */
+    public function hourly(array $hourly): string
+    {
+        $texts = [];
+        foreach ($hourly as $lines) {
+            foreach ($lines as $line) {
+                $texts[] = $line->expectedAmount instanceof Money && null !== $line->expectedHours
+                    ? $this->trans('sales.value.hourly_expected', ['rate' => $this->money($line->rate), 'hours' => $this->quantity($line->expectedHours), 'amount' => $this->money($line->expectedAmount)])
+                    : $this->trans('sales.value.hourly_rate', ['rate' => $this->money($line->rate)]);
+            }
+        }
+
+        return implode(' · ', $texts);
+    }
+
+    /**
+     * "One-off", "Hourly", or "Every 3 months, 12 times" for a recurring line.
      */
     public function billing(DealLine $line): string
     {
+        if (BillingKind::TimeBased === $line->billingKind()) {
+            return $this->trans('sales.billing_kind.time_based');
+        }
         $unit = $line->recurrenceUnit();
         if (BillingKind::OneOff === $line->billingKind() || !$unit instanceof \Foresi\Shared\Domain\Schedule\RecurrenceUnit) {
             return $this->trans('sales.billing_kind.one_off');
@@ -188,14 +215,36 @@ final class DealScreen implements ResetInterface
     }
 
     /**
-     * "2 hours × 1 500,00 Kč", or the quantity alone for a line with no price.
+     * "2 hours × 1 500,00 Kč", or the quantity alone for a line with no price;
+     * "Not estimated" for an hourly line with no expected hours.
      */
     public function lineAmount(DealLine $line): string
     {
-        $quantity = trim($this->quantity($line->quantity()).' '.$line->unit());
         $price = $line->unitPrice();
+        if (null === $line->quantity()) {
+            return $this->trans('sales.line.not_estimated');
+        }
+        $quantity = trim($this->quantity($line->quantity()).' '.$line->unit());
 
         return $price instanceof Money ? $quantity.' × '.$this->money($price) : $quantity;
+    }
+
+    /**
+     * The amount of a line: its price times its quantity, or for an hourly line
+     * its rate per hour (hours are worked, not sold, so no total is made of them);
+     * empty for a line with no price.
+     */
+    public function lineTotal(DealLine $line): string
+    {
+        $price = $line->unitPrice();
+        if (!$price instanceof Money) {
+            return '';
+        }
+        if (BillingKind::TimeBased === $line->billingKind()) {
+            return $this->trans('sales.line.per_hour', ['rate' => $this->money($price)]);
+        }
+
+        return $this->money($price->multipliedBy($line->quantity() ?? '1'));
     }
 
     /**
@@ -211,7 +260,7 @@ final class DealScreen implements ResetInterface
             'productId' => '',
             'name' => $line?->name() ?? '',
             'unit' => $line?->unit() ?? '',
-            'quantity' => $line instanceof DealLine ? $this->plainQuantity($line->quantity()) : '1',
+            'quantity' => $line instanceof DealLine ? $this->plainQuantity($line->quantity() ?? '') : '1',
             'unitPrice' => $price instanceof Money ? $this->decimal($price) : '',
             'currency' => $price?->currency()->value ?? 'CZK',
             'billingKind' => $line?->billingKind()->value ?? BillingKind::OneOff->value,

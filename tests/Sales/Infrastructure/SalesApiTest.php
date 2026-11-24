@@ -93,7 +93,7 @@ final class SalesApiTest extends ApiTestCase
         self::assertSame(['id' => $this->customerId, 'name' => 'Example Customer a.s.'], $this->at('data', 'client'));
         self::assertSame([['id' => $this->petra, 'name' => 'Petra Example']], $this->at('data', 'contacts'));
         self::assertSame($this->user->id(), $this->at('data', 'owner_user_id'));
-        self::assertSame(['one_off' => [], 'monthly' => [], 'approximate' => false], $this->at('data', 'value'));
+        self::assertSame(['one_off' => [], 'monthly' => [], 'approximate' => false, 'hourly' => []], $this->at('data', 'value'));
 
         $this->send('PATCH', '/api/v1/sales/deals/'.$id, ['title' => 'Roof audit 2026', 'description' => 'Two buildings.']);
         self::assertSame(['Roof audit 2026', 'Two buildings.'], [$this->at('data', 'title'), $this->at('data', 'description')]);
@@ -106,7 +106,7 @@ final class SalesApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/sales/deals/'.$id.'/lines', ['name' => 'Maintenance', 'unit' => 'month', 'unit_price' => '5000.00', 'currency' => 'CZK', 'billing_kind' => 'recurring', 'recurrence_unit' => 'month', 'interval' => 1]);
         $maintenance = $this->at('data', 'lines', 1, 'id');
         self::assertIsString($maintenance);
-        self::assertSame(['one_off' => [['amount_minor' => 2400000, 'currency' => 'CZK']], 'monthly' => [['amount_minor' => 500000, 'currency' => 'CZK']], 'approximate' => false], $this->at('data', 'value'));
+        self::assertSame(['one_off' => [['amount_minor' => 2400000, 'currency' => 'CZK']], 'monthly' => [['amount_minor' => 500000, 'currency' => 'CZK']], 'approximate' => false, 'hourly' => []], $this->at('data', 'value'));
 
         $this->send('PATCH', '/api/v1/sales/deals/'.$id.'/lines/'.$maintenance, ['recurrence_unit' => 'week']);
         self::assertTrue($this->at('data', 'value', 'approximate'));
@@ -207,6 +207,15 @@ final class SalesApiTest extends ApiTestCase
         $stages = $this->tool('foresi_list_deal_stages', []);
         self::assertSame(['Inquiry'], array_column($this->arrayIn($stages, 'structuredContent', 'data', 'stages'), 'name'));
         self::assertSame(['Price'], array_column($this->arrayIn($stages, 'structuredContent', 'data', 'lost_reasons'), 'name'));
+
+        // An hourly line without hours, over MCP: the rate is in the value, apart from the totals.
+        $line = $this->tool('foresi_add_deal_line', ['deal_id' => $id, 'name' => 'Changes', 'unit' => 'h', 'unit_price' => '1200.00', 'currency' => 'CZK', 'billing_kind' => 'time_based', 'idempotency_key' => 'line-changes']);
+        self::assertFalse($line['isError'] ?? false);
+        $hourly = $this->tool('foresi_get_deal', ['id' => $id]);
+        self::assertSame([['rate' => ['amount_minor' => 120000, 'currency' => 'CZK'], 'expected_hours' => null, 'expected_amount' => null]], $this->in($hourly, 'structuredContent', 'data', 'value', 'hourly'));
+        self::assertSame([], $this->in($hourly, 'structuredContent', 'data', 'value', 'monthly'));
+        $this->get('/api/v1/sales/deals/'.$id, [], $this->writer);
+        self::assertSame($this->json()['data'], $this->in($hourly, 'structuredContent', 'data'));
 
         $refused = $this->tool('foresi_get_deal', ['id' => '0192f000-0000-7000-8000-000000000000']);
         self::assertTrue($refused['isError'] ?? false);

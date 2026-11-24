@@ -54,6 +54,7 @@ final readonly class DealVariables implements DocumentVariableSource
             ]),
             $this->definition('one_off_totals', [['currency' => 'CZK', 'amount' => '12 000,00 Kč']]),
             $this->definition('monthly_totals', [['currency' => 'CZK', 'amount' => '1 500,00 Kč']]),
+            $this->definition('hourly_lines', [['name' => 'Consulting', 'rate' => '1 200,00 Kč', 'expected_hours' => '40', 'expected_amount' => '48 000,00 Kč']]),
         ];
     }
 
@@ -79,12 +80,13 @@ final readonly class DealVariables implements DocumentVariableSource
             'lines' => array_map(fn (DealLine $line): array => [
                 'name' => $line->name(),
                 'unit' => $line->unit(),
-                'quantity' => $this->screen->quantity($line->quantity()),
+                'quantity' => null === $line->quantity() ? '' : $this->screen->quantity($line->quantity()),
                 'unit_price' => $line->unitPrice() instanceof Money ? $this->screen->money($line->unitPrice()) : '',
                 'billing_period' => $this->screen->billing($line),
             ], $detail->lines),
             'one_off_totals' => $this->totals($detail->value->oneOff, ''),
             'monthly_totals' => $this->totals($detail->value->monthly, $detail->value->approximate ? '≈ ' : ''),
+            'hourly_lines' => $this->hourlyLines($detail),
         ];
     }
 
@@ -110,6 +112,30 @@ final readonly class DealVariables implements DocumentVariableSource
         $rows = [];
         foreach ($amounts as $code => $amount) {
             $rows[] = ['currency' => $code, 'amount' => $before.$this->screen->money($amount)];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The hourly lines with a rate, by currency and then in the order of the
+     * lines: the rate per hour and, with expected hours, those hours and what
+     * they make.
+     *
+     * @return list<array{name: string, rate: string, expected_hours: string, expected_amount: string}>
+     */
+    private function hourlyLines(DealDetail $detail): array
+    {
+        $rows = [];
+        foreach ($detail->value->hourly as $lines) {
+            foreach ($lines as $line) {
+                $rows[] = [
+                    'name' => $line->name,
+                    'rate' => $this->screen->money($line->rate),
+                    'expected_hours' => null === $line->expectedHours ? '' : $this->screen->quantity($line->expectedHours),
+                    'expected_amount' => $line->expectedAmount instanceof Money ? $this->screen->money($line->expectedAmount) : '',
+                ];
+            }
         }
 
         return $rows;

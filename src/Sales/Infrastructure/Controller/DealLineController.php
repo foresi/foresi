@@ -200,7 +200,7 @@ final class DealLineController extends AbstractController
      *
      * @param array<string, string> $values
      *
-     * @return array{name: string, unit: string, quantity: string, unitPrice: ?string, currency: string, billingKind: string, recurrenceUnit: ?string, interval: ?int, cycles: ?int}
+     * @return array{name: string, unit: string, quantity: ?string, unitPrice: ?string, currency: string, billingKind: string, recurrenceUnit: ?string, interval: ?int, cycles: ?int}
      *
      * @throws SalesRefused
      */
@@ -236,11 +236,14 @@ final class DealLineController extends AbstractController
         ];
     }
 
-    private function quantity(string $typed, string $locale): string
+    /**
+     * Empty is no quantity: an hourly line has none, any other line then counts as one unit.
+     */
+    private function quantity(string $typed, string $locale): ?string
     {
         $quantity = TypedNumber::decimal($typed, $locale);
 
-        return '' === $quantity ? '1' : $quantity;
+        return '' === $quantity ? null : $quantity;
     }
 
     /**

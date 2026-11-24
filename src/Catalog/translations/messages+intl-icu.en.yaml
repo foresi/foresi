@@ -7,6 +7,7 @@ catalog:
   billing_kind:
     one_off: One-off
     recurring: Recurring
+    time_based: Hourly
   products:
     title: Products
     views: Views of the products
@@ -14,6 +15,7 @@ catalog:
       all: All
       one_off: One-off
       recurring: Recurring
+      hourly: Hourly
       archived: Archived
     field:
       archived: Archived
@@ -41,7 +43,7 @@ catalog:
     field:
       name: Name
       unit: Unit
-      unit_help: Such as hour, piece or month.
+      unit_help: Such as hour, piece or month; always h for hourly.
       unit_price: Price per unit
       unit_price_help: Without VAT; leave empty when the price is agreed each time.
       currency: Currency
@@ -78,11 +80,14 @@ catalog:
       name_too_long: The name is at most 200 characters.
       unit_too_long: The unit is at most 32 characters.
       description_too_long: The description is at most 2,000 characters.
-      billing_kind_unknown: Choose one-off or recurring.
+      billing_kind_unknown: Choose one-off, recurring or hourly.
       currency_unknown: Choose a currency.
       unit_price_invalid: Enter the price as a number with at most two decimals, such as 1500.00.
       unit_price_negative: The price is zero or more.
       one_off_recurrence: A one-off product has no period.
+      time_based_unit: An hourly product has the unit h.
+      rate_required: Enter the hourly rate as the price per unit.
+      time_based_recurrence: An hourly product has no period.
       recurrence_unit_required: Choose the period.
       recurrence_unit_unknown: Choose days, weeks, months or years.
       interval_required: Enter how often it is billed, 1 for every period.

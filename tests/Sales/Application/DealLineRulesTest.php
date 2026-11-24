@@ -69,10 +69,38 @@ final class DealLineRulesTest extends TestCase
         }
     }
 
+    public function testATimeBasedLineIsBilledByTheHourAtAnHourlyRate(): void
+    {
+        $terms = $this->rules->terms($this->draft(unit: '', quantity: '40', unitPrice: '1200.00', billingKind: 'time_based'));
+        self::assertSame(['h', '40.000', 120000], [$terms->unit, $terms->quantity, $terms->unitPrice?->minor()]);
+        self::assertSame('h', $this->rules->terms($this->draft(unit: 'h', quantity: '1', billingKind: 'time_based'))->unit);
+
+        $this->assertRefused('unit', 'time_based_unit', 'A time-based line is billed by the hour: its unit is h.', $this->draft(unit: 'day', billingKind: 'time_based'));
+        $this->assertRefused('unitPrice', 'rate_required', 'A time-based line needs its hourly rate: give the unit price.', $this->draft(unit: 'h', unitPrice: null, billingKind: 'time_based'));
+        $this->assertRefused('recurrenceUnit', 'time_based_recurrence', null, $this->draft(unit: 'h', billingKind: 'time_based', recurrenceUnit: 'month'));
+        $this->assertRefused('interval', 'time_based_recurrence', null, $this->draft(unit: 'h', billingKind: 'time_based', interval: 1));
+        $this->assertRefused('cycles', 'time_based_recurrence', null, $this->draft(unit: 'h', billingKind: 'time_based', cycles: 2));
+    }
+
+    public function testOnlyATimeBasedLineMayHaveNoQuantity(): void
+    {
+        $terms = $this->rules->terms($this->draft(unit: 'h', quantity: null, billingKind: 'time_based'));
+        self::assertNull($terms->quantity);
+        self::assertNull($this->rules->terms($this->draft(unit: 'h', quantity: ' ', billingKind: 'time_based'))->quantity);
+
+        $this->assertRefused('quantity', 'quantity_required', 'A quantity is needed; only a time-based line may leave it out.', $this->draft(quantity: null));
+        $this->assertRefused('quantity', 'quantity_required', null, $this->draft(quantity: '', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+    }
+
+    public function testTheKindRefusalListsAllThreeKinds(): void
+    {
+        $this->assertRefused('billingKind', 'billing_kind_unknown', 'The billing kind is one of one_off, recurring, time_based.', $this->draft(billingKind: 'weekly'));
+    }
+
     private function draft(
         string $name = 'Roof audit',
         string $unit = 'piece',
-        string $quantity = '1',
+        ?string $quantity = '1',
         ?string $unitPrice = '1000.00',
         string $currency = 'CZK',
         string $billingKind = 'one_off',

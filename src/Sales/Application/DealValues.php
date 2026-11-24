@@ -22,7 +22,9 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  * line, and then summed per currency. A one-off line counts once; a recurring
  * one every interval of a month is divided by the interval, of a year by
  * twelve intervals; a week is 52/12 and a day 365/12 of a month, which makes
- * the value approximate. A line without a price adds nothing.
+ * the value approximate. An hourly line is not counted into either: it is
+ * listed with its rate and what its expected hours would make. A line without
+ * a price adds nothing.
  */
 final class DealValues
 {
@@ -33,13 +35,21 @@ final class DealValues
     {
         $oneOff = [];
         $monthly = [];
+        $hourly = [];
         $approximate = false;
         foreach ($lines as $line) {
             $price = $line->unitPrice();
             if (!$price instanceof Money) {
                 continue;
             }
-            $exact = BigRational::of($price->minor())->multipliedBy($line->quantity());
+            if (BillingKind::TimeBased === $line->billingKind()) {
+                $hours = $line->quantity();
+                $amount = null === $hours ? null : Money::ofMinor(self::rounded(BigRational::of($price->minor())->multipliedBy($hours)), $price->currency());
+                $hourly[$price->currency()->value][] = new HourlyValue($line->name(), $price, $hours, $amount);
+
+                continue;
+            }
+            $exact = BigRational::of($price->minor())->multipliedBy($line->quantity() ?? '1');
             if (BillingKind::OneOff === $line->billingKind()) {
                 $oneOff = self::added($oneOff, Money::ofMinor(self::rounded($exact), $price->currency()));
 
@@ -51,8 +61,9 @@ final class DealValues
         }
         ksort($oneOff);
         ksort($monthly);
+        ksort($hourly);
 
-        return new DealValue($oneOff, $monthly, $approximate);
+        return new DealValue($oneOff, $monthly, $approximate, $hourly);
     }
 
     /**

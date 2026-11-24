@@ -79,6 +79,41 @@ final class DealLineSnapshotTest extends SalesTestCase
         self::assertFalse($this->reads()->deal($deal->id())->value->approximate, 'A line without a price adds nothing.');
     }
 
+    public function testATimeBasedLineKeepsNoQuantityUntilOneIsGiven(): void
+    {
+        $deal = $this->deal();
+
+        $line = $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Development', unitPrice: '1200.00', billingKind: 'time_based'));
+        $kept = $this->reload(DealLine::class, $line->id());
+        self::assertNull($kept->quantity());
+        self::assertSame(['h', BillingKind::TimeBased, 120_000], [$kept->unit(), $kept->billingKind(), $kept->unitPrice()?->minor()]);
+
+        $this->lines()->update(new UpdateDealLineInput($deal->id(), $line->id(), quantity: '40'));
+        self::assertSame('40.000', $this->reload(DealLine::class, $line->id())->quantity());
+
+        $this->lines()->update(new UpdateDealLineInput($deal->id(), $line->id(), quantity: null));
+        self::assertNull($this->reload(DealLine::class, $line->id())->quantity());
+
+        $this->assertRefused('quantity_required', fn (): DealLine => $this->lines()->update(new UpdateDealLineInput($deal->id(), $line->id(), unit: 'piece', billingKind: 'one_off')));
+        $this->assertRefused('time_based_unit', fn (): DealLine => $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Development', unit: 'day', unitPrice: '1.00', billingKind: 'time_based')));
+        $this->assertRefused('rate_required', fn (): DealLine => $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Development', billingKind: 'time_based')));
+        $this->assertRefused('time_based_recurrence', fn (): DealLine => $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Development', unitPrice: '1.00', billingKind: 'time_based', interval: 1)));
+        $this->assertRefused('quantity_required', fn (): DealLine => $this->lines()->update(new UpdateDealLineInput($deal->id(), $this->typedLine($deal)->id(), quantity: null)));
+    }
+
+    public function testATimeBasedProductGivesALineWithoutQuantity(): void
+    {
+        $products = self::getContainer()->get(ProductWrites::class);
+        $product = $products->create(new CreateProductInput('Development', billingKind: 'time_based', unitPrice: '1200.00'));
+        $deal = $this->deal();
+
+        $line = $this->lines()->add(new AddDealLineInput($deal->id(), $product->id()));
+        self::assertNull($this->reload(DealLine::class, $line->id())->quantity());
+        $given = $this->lines()->add(new AddDealLineInput($deal->id(), $product->id(), quantity: '8'));
+        self::assertSame(['h', '8.000'], [$given->unit(), $given->quantity()]);
+        self::assertSame([], $this->reads()->deal($deal->id())->value->monthly);
+    }
+
     public function testTypedLineFollowsTheCatalogRules(): void
     {
         $deal = $this->deal();

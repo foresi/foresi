@@ -7,6 +7,7 @@ catalog:
   billing_kind:
     one_off: Jednorázově
     recurring: Opakovaně
+    time_based: Po hodinách
   products:
     title: Produkty
     views: Pohledy na produkty
@@ -14,6 +15,7 @@ catalog:
       all: Vše
       one_off: Jednorázové
       recurring: Opakované
+      hourly: Po hodinách
       archived: Archiv
     field:
       archived: Archivovaný
@@ -41,7 +43,7 @@ catalog:
     field:
       name: Název
       unit: Jednotka
-      unit_help: Třeba hodina, kus nebo měsíc.
+      unit_help: Třeba hodina, kus nebo měsíc; hodinově vždy h.
       unit_price: Cena za jednotku
       unit_price_help: Bez DPH; nechte prázdné, když se cena dohodne pokaždé.
       currency: Měna
@@ -78,11 +80,14 @@ catalog:
       name_too_long: Název má nejvýš 200 znaků.
       unit_too_long: Jednotka má nejvýš 32 znaků.
       description_too_long: Popis má nejvýš 2 000 znaků.
-      billing_kind_unknown: Vyberte jednorázově, nebo opakovaně.
+      billing_kind_unknown: Vyberte jednorázově, opakovaně, nebo po hodinách.
       currency_unknown: Vyberte měnu.
       unit_price_invalid: Zadejte cenu jako číslo s nejvýš dvěma desetinnými místy, třeba 1500,00.
       unit_price_negative: Cena je nula nebo víc.
       one_off_recurrence: Jednorázový produkt nemá období.
+      time_based_unit: Produkt po hodinách má jednotku h.
+      rate_required: Zadejte hodinovou sazbu jako cenu za jednotku.
+      time_based_recurrence: Produkt po hodinách nemá období.
       recurrence_unit_required: Vyberte období.
       recurrence_unit_unknown: Vyberte dny, týdny, měsíce, nebo roky.
       interval_required: Zadejte, jak často se fakturuje, 1 pro každé období.

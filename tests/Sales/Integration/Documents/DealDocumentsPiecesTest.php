@@ -79,9 +79,9 @@ final class DealDocumentsPiecesTest extends SalesTestCase
 
         self::assertSame('deal', $source->prefix());
         $definitions = $source->definitions();
-        self::assertSame(['title', 'owner', 'stage', 'status', 'lines', 'one_off_totals', 'monthly_totals'], array_map(static fn (VariableDefinition $definition): string => $definition->name, $definitions));
+        self::assertSame(['title', 'owner', 'stage', 'status', 'lines', 'one_off_totals', 'monthly_totals', 'hourly_lines'], array_map(static fn (VariableDefinition $definition): string => $definition->name, $definitions));
         self::assertSame('Title of the deal', $definitions[0]->label);
-        foreach ([4 => ['name', 'unit', 'quantity', 'unit_price', 'billing_period'], 5 => ['currency', 'amount'], 6 => ['currency', 'amount']] as $i => $columns) {
+        foreach ([4 => ['name', 'unit', 'quantity', 'unit_price', 'billing_period'], 5 => ['currency', 'amount'], 6 => ['currency', 'amount'], 7 => ['name', 'rate', 'expected_hours', 'expected_amount']] as $i => $columns) {
             $example = $definitions[$i]->example;
             self::assertIsArray($example);
             self::assertSame($columns, array_keys($example[0]));
@@ -110,7 +110,7 @@ final class DealDocumentsPiecesTest extends SalesTestCase
 
         $values = self::getContainer()->get(DealVariables::class)->values([new RecordLink('contact', $this->client->id()), new RecordLink('deal', $first->id()), new RecordLink('deal', $second->id())]);
 
-        self::assertSame(['title' => 'Roof audit', 'owner' => 'Olga Owner', 'stage' => 'Inquiry', 'status' => 'Won', 'lines' => [], 'one_off_totals' => [], 'monthly_totals' => []], $values);
+        self::assertSame(['title' => 'Roof audit', 'owner' => 'Olga Owner', 'stage' => 'Inquiry', 'status' => 'Won', 'lines' => [], 'one_off_totals' => [], 'monthly_totals' => [], 'hourly_lines' => []], $values);
     }
 
     public function testTheMonthlyTotalsWithoutApproximationHaveNoSign(): void

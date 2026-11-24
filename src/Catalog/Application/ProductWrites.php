@@ -61,7 +61,7 @@ final readonly class ProductWrites
         return $this->work->run(function () use ($input): Product {
             $product = $this->product($input->productId);
             $kind = $this->given($input->billingKind, $product->billingKind()->value);
-            // A product made one-off keeps no recurrence, unless the input sends one, which is refused.
+            // A product made one-off or time-based keeps no recurrence, unless the input sends one, which is refused.
             $recurs = BillingKind::Recurring->value === $kind;
             $price = $product->unitPrice();
             $product->change($this->rules->terms(new ProductDraft(
