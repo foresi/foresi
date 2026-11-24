@@ -12,6 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentLine;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
@@ -51,8 +52,17 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
         // What this process loaded before may be older than the lock, so it is read again.
         $loaded = $this->entityManager->getUnitOfWork()->tryGetById($id, ReceivedDocument::class);
         if ($loaded instanceof ReceivedDocument) {
-            // Its payments and lines loaded before would point at the detached copy, so they go too.
-            $map = $this->entityManager->getUnitOfWork()->getIdentityMap();
+            $unitOfWork = $this->entityManager->getUnitOfWork();
+            $map = $unitOfWork->getIdentityMap();
+            $reading = $unitOfWork->tryGetById($id, DocumentReading::class);
+            if ($reading instanceof DocumentReading && $unitOfWork->isScheduledForInsert($reading)) {
+                // It would point at the detached copy and never be stored (DocumentReadings).
+                throw new \LogicException('Lock a received document before you add its reading.');
+            }
+            // Its payments, lines and reading loaded before would point at the detached copy, so they go too.
+            if ($reading instanceof DocumentReading) {
+                $this->entityManager->detach($reading);
+            }
             foreach ($map[ReceivedDocumentPayment::class] ?? [] as $payment) {
                 if ($payment instanceof ReceivedDocumentPayment && $payment->document() === $loaded) {
                     $this->entityManager->detach($payment);

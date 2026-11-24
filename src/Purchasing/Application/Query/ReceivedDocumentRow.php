@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Query;
 
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Domain\Money;
@@ -16,7 +18,8 @@ use Foresi\Shared\Domain\Money;
 /**
  * One line of the list of received documents, read without loading the
  * document: the numbers, the supplier as the document names it, the day that
- * places it in its month, its total in its currency and its VAT in CZK.
+ * places it in its month, its total in its currency and its VAT in CZK, how
+ * it came in and where the reading of its file stands.
  */
 final readonly class ReceivedDocumentRow
 {
@@ -39,6 +42,9 @@ final readonly class ReceivedDocumentRow
         public ?string $deletedReason,
         /** The contact the supplier was picked from, null for one typed by hand. */
         public ?string $supplierId = null,
+        public DocumentSource $source = DocumentSource::Manual,
+        /** Null for a document whose file was never read. */
+        public ?ReadingState $readingState = null,
     ) {
     }
 

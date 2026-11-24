@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\View;
 
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Shared\Application\View\Condition;
@@ -29,6 +31,8 @@ use Foresi\Shared\Application\View\ViewFilter;
  *
  * The list leaves out the trash unless a condition asks for it: All holds no
  * condition, as every list's All, and still shows no document in the trash.
+ * To review holds the drafts whose file was read, whatever it found, so a
+ * person checks what was filled in before recording them.
  */
 final class ReceivedDocumentLists implements ListDefinitionSource
 {
@@ -40,8 +44,13 @@ final class ReceivedDocumentLists implements ListDefinitionSource
     public const string TREATMENT = 'treatment';
     /** The month a document belongs to: its tax point, its issue date from abroad (ReceivedDocumentFilter::monthDay). */
     public const string PERIOD = 'period';
+    /** Where the reading of the document's file stands (ReadingState); a document without one has none. */
+    public const string READING = 'reading';
+    /** How the document came in (DocumentSource). */
+    public const string SOURCE = 'source';
 
     public const string DRAFTS = 'drafts';
+    public const string TO_REVIEW = 'to_review';
     public const string RECORDED = 'recorded';
     public const string TRASH = 'trash';
 
@@ -87,6 +96,8 @@ final class ReceivedDocumentLists implements ListDefinitionSource
         $states = array_column(ReceivedDocumentState::cases(), 'value');
         $kinds = array_column(ReceivedDocumentKind::cases(), 'value');
         $treatments = array_column(PurchaseTaxTreatment::cases(), 'value');
+        $readings = array_column(ReadingState::cases(), 'value');
+        $sources = array_column(DocumentSource::cases(), 'value');
 
         return [
             new Field(self::TRASHED, FieldType::Boolean, 'purchasing.list.tab.trash'),
@@ -95,6 +106,8 @@ final class ReceivedDocumentLists implements ListDefinitionSource
             new Field(self::KIND, FieldType::Enum, 'purchasing.field.kind', options: $kinds, optionLabels: $this->labels('purchasing.kind.', $kinds)),
             new Field(self::TREATMENT, FieldType::Enum, 'purchasing.field.treatment', options: $treatments, optionLabels: $this->labels('purchasing.treatment.', $treatments)),
             new Field(self::PERIOD, FieldType::Date, 'purchasing.list.month', ['is']),
+            new Field(self::READING, FieldType::Enum, 'purchasing.list.column.reading', options: $readings, optionLabels: $this->labels('purchasing.reading_state.', $readings)),
+            new Field(self::SOURCE, FieldType::Enum, 'purchasing.list.column.source', options: $sources, optionLabels: $this->labels('purchasing.source.', $sources)),
         ];
     }
 
@@ -116,8 +129,12 @@ final class ReceivedDocumentLists implements ListDefinitionSource
         return [
             new DefaultView(ListDefinition::ALL, 'purchasing.list.tab.all', position: 0),
             new DefaultView(self::DRAFTS, 'purchasing.list.tab.drafts', ViewFilter::all(new Condition(self::STATE, 'is', ReceivedDocumentState::Draft->value)), position: 1),
-            new DefaultView(self::RECORDED, 'purchasing.list.tab.recorded', ViewFilter::all(new Condition(self::STATE, 'is', ReceivedDocumentState::Recorded->value)), position: 2),
-            new DefaultView(self::TRASH, 'purchasing.list.tab.trash', ViewFilter::all(new Condition(self::TRASHED, 'is', true)), position: 3),
+            new DefaultView(self::TO_REVIEW, 'purchasing.list.tab.to_review', ViewFilter::all(
+                new Condition(self::STATE, 'is', ReceivedDocumentState::Draft->value),
+                new Condition(self::READING, 'is_any_of', [ReadingState::Read->value, ReadingState::NothingFound->value, ReadingState::Failed->value]),
+            ), position: 2),
+            new DefaultView(self::RECORDED, 'purchasing.list.tab.recorded', ViewFilter::all(new Condition(self::STATE, 'is', ReceivedDocumentState::Recorded->value)), position: 3),
+            new DefaultView(self::TRASH, 'purchasing.list.tab.trash', ViewFilter::all(new Condition(self::TRASHED, 'is', true)), position: 4),
         ];
     }
 }

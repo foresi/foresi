@@ -102,6 +102,15 @@ final readonly class ReceivedDocumentContents
             return $current->supplier();
         }
 
+        return $this->supplierSnapshot($supplier);
+    }
+
+    /**
+     * The supplier as a document names it when a contact is chosen: its name,
+     * numbers and billing address as they are now.
+     */
+    public function supplierSnapshot(Party $supplier): SupplierSnapshot
+    {
         return SupplierSnapshot::of($supplier, $this->details->billingAddress($supplier)?->address() ?? new Address('', '', '', ''));
     }
 

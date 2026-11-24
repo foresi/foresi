@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Application\Query;
 use Foresi\Purchasing\Application\PaymentBalance;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Reading\DocumentReadings;
 use Foresi\Purchasing\Application\ReceivedDocumentPayments;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
@@ -28,6 +29,7 @@ final readonly class ReceivedDocumentBalances
         private ReceivedDocuments $documents,
         private ReceivedDocumentQueries $queries,
         private ReceivedDocumentPayments $payments,
+        private DocumentReadings $readings,
     ) {
     }
 
@@ -60,6 +62,6 @@ final readonly class ReceivedDocumentBalances
         // The payments come by the day paid, so the last is the latest.
         $last = [] === $payments ? null : $payments[array_key_last($payments)]->paidOn();
 
-        return new PaidDocument($document, PaymentBalance::of($document, $paid, $last), $payments);
+        return new PaidDocument($document, PaymentBalance::of($document, $paid, $last), $payments, $this->readings->find($document->id()));
     }
 }

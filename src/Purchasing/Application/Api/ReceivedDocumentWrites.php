@@ -8,18 +8,23 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Api;
 
+use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Purchasing\Application\PayReceivedDocument;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingRefused;
+use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\SetReceivedDocumentLines;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
+use Foresi\Purchasing\Application\UploadedDocument;
+use Foresi\Purchasing\Application\UploadReceivedDocuments;
 use Foresi\Purchasing\Domain\DocumentLines;
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PaymentMethod;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
@@ -40,6 +45,13 @@ use Foresi\Shared\Domain\Money;
  */
 final readonly class ReceivedDocumentWrites
 {
+    /** The largest file of an upload, decoded. */
+    public const int MAX_UPLOAD = 10 * 1024 * 1024;
+    public const string FILE_INVALID = 'file_invalid';
+    public const string FILE_TOO_LARGE = 'file_too_large';
+    public const string FILE_TYPE_UNSUPPORTED = 'file_type_unsupported';
+    public const string FILE_NOT_STORED = 'file_not_stored';
+
     public function __construct(
         private RecordReceivedDocument $recording,
         private TrashReceivedDocument $trash,
@@ -48,6 +60,8 @@ final readonly class ReceivedDocumentWrites
         private PurchasingAccess $access,
         private ReceivedDocuments $documents,
         private SetReceivedDocumentLines $settingLines,
+        private ReadAgain $readingAgain,
+        private UploadReceivedDocuments $uploads,
     ) {
     }
 
@@ -78,7 +92,7 @@ final readonly class ReceivedDocumentWrites
             $input->originalDocumentId,
             $input->supplyCode,
             $this->lines($input->lines, $currency),
-        ))->document->id());
+        ), DocumentSource::Api)->document->id());
     }
 
     /**
@@ -94,6 +108,61 @@ final readonly class ReceivedDocumentWrites
         $lines = $this->lines($input->lines, $currency);
 
         return $this->refusing(fn (): string => $this->settingLines->set($input->documentId, $lines)->id());
+    }
+
+    /**
+     * The file of a draft, decoded and checked, made a draft of the API's own source: the id of the
+     * draft. A file the checks or the attachment store refuse makes none.
+     *
+     * @throws PurchasingRefused
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
+     */
+    public function upload(UploadReceivedDocumentInput $input): string
+    {
+        $this->access->denyUnlessStaff();
+        // The encoded length is checked before decoding, so a huge body is never decoded.
+        if (\strlen($input->contentBase64) > 4 * (int) ceil(self::MAX_UPLOAD / 3) + 4) {
+            throw PurchasingRefused::file(self::FILE_TOO_LARGE, 'The file is larger than 10 MB.');
+        }
+        $bytes = base64_decode($input->contentBase64, true);
+        if (false === $bytes || '' === $bytes) {
+            throw PurchasingRefused::file(self::FILE_INVALID, 'The file is not valid base64, or it is empty.');
+        }
+        if (\strlen($bytes) > self::MAX_UPLOAD) {
+            throw PurchasingRefused::file(self::FILE_TOO_LARGE, 'The file is larger than 10 MB.');
+        }
+        if (!$this->readable($bytes, $input->fileName)) {
+            throw PurchasingRefused::file(self::FILE_TYPE_UNSUPPORTED, 'The file must be a PDF, an image (PNG, JPEG, GIF, WebP, HEIC), an ISDOC file (.isdoc, .isdocx) or XML.');
+        }
+        $path = tempnam(sys_get_temp_dir(), 'foresi-upload-');
+        if (false === $path || false === file_put_contents($path, $bytes)) {
+            throw PurchasingRefused::file(self::FILE_NOT_STORED, 'The file could not be stored. Try again.');
+        }
+        try {
+            $made = $this->refusing(fn (): UploadedDocument => $this->uploads->upload([new AttachmentUpload($path, $input->fileName, \strlen($bytes))], DocumentSource::Api)[0]);
+        } finally {
+            @unlink($path);
+        }
+        if (null === $made->documentId) {
+            // The attachment store's own reason (empty, too_big, failed, not_allowed): no draft was kept.
+            throw PurchasingRefused::file($made->refusal ?? self::FILE_NOT_STORED, \sprintf('The file was refused (%s); no draft was made.', $made->refusal ?? self::FILE_NOT_STORED));
+        }
+
+        return $made->documentId;
+    }
+
+    /**
+     * @throws PurchasingRefused
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
+     * @throws UnknownReceivedDocument
+     */
+    public function readAgain(ReadReceivedDocumentAgainInput $input): string
+    {
+        return $this->refusing(function () use ($input): string {
+            $this->readingAgain->readAgain($input->documentId);
+
+            return $input->documentId;
+        });
     }
 
     /**
@@ -151,9 +220,27 @@ final readonly class ReceivedDocumentWrites
     }
 
     /**
-     * @param callable(): string $write
+     * What the file may be: one of the types a reader can open, by its bytes and not by what the
+     * client says; an .isdocx is a ZIP, told by its extension.
      */
-    private function refusing(callable $write): string
+    private function readable(string $bytes, string $fileName): bool
+    {
+        $type = new \finfo(\FILEINFO_MIME_TYPE)->buffer($bytes);
+        if ('application/zip' === $type) {
+            return 'isdocx' === strtolower(pathinfo($fileName, \PATHINFO_EXTENSION));
+        }
+
+        return \in_array($type, ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence', 'application/xml', 'text/xml'], true);
+    }
+
+    /**
+     * @template T
+     *
+     * @param callable(): T $write
+     *
+     * @return T
+     */
+    private function refusing(callable $write): mixed
     {
         try {
             return $write();

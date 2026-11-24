@@ -16,13 +16,17 @@ use Foresi\Purchasing\Application\Query\ReceivedDocumentDetail;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentDetails;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
+use Foresi\Purchasing\Application\Reading\AcceptReadValues;
+use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\RestoreReceivedDocument;
 use Foresi\Purchasing\Application\SavedReceivedDocument;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Contract\Reading\ReadField;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Infrastructure\Form\ReadingScreen;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentForm;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use Foresi\Purchasing\Infrastructure\Form\RefusalFields;
@@ -46,6 +50,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * as on the invoice form. The trash asks for a reason in a dialog, as it does
  * for an invoice; deleting a draft asks first.
  *
+ * Over the values of a draft, the reading of its file says where it stands,
+ * reloaded in its frame while it runs; a person reads the file again from the
+ * page header and takes the values it left as suggestions.
+ *
  * Who may do what is the use cases' and the query services' to decide.
  *
  * @phpstan-import-type Values from ReceivedDocumentForm
@@ -62,6 +70,9 @@ final class ReceivedDocumentController extends AbstractController
         private readonly TrashReceivedDocument $trashing,
         private readonly RestoreReceivedDocument $restoring,
         private readonly DeleteReceivedDocumentDraft $deleting,
+        private readonly ReadAgain $readingAgain,
+        private readonly AcceptReadValues $accepting,
+        private readonly ReadingScreen $reading,
         private readonly ReceivedDocumentForm $form,
         private readonly ReceivedDocumentScreen $screen,
         private readonly InstanceClock $clock,
@@ -164,6 +175,58 @@ final class ReceivedDocumentController extends AbstractController
         return $this->redirectToRoute(PurchasingNavigation::ROUTE, [], Response::HTTP_SEE_OTHER);
     }
 
+    /**
+     * The reading of the document's file alone, in its frame, which the page reloads while the file is read.
+     */
+    #[Route('/purchasing/{id}/reading', name: 'app_purchasing_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    public function reading(string $id): Response
+    {
+        [$document, $reading] = $this->details->reading($id);
+
+        return $this->render('@Purchasing/_reading.html.twig', [
+            'document' => $document,
+            'reading' => $this->reading->of($document, $reading),
+            'polled' => true,
+        ]);
+    }
+
+    #[Route('/purchasing/{id}/read-again', name: 'app_purchasing_read_again', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function readAgain(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        try {
+            $this->readingAgain->readAgain($id);
+            $this->addFlash('success', $this->translator->trans('purchasing.flash.reading_again'));
+        } catch (ReceivedDocumentRefused $refused) {
+            $this->addFlash('error', $this->screen->refusal($refused));
+        }
+
+        return $this->toDocument($id);
+    }
+
+    /**
+     * Takes the values of the reading a person checked, at the version of the page they saw.
+     */
+    #[Route('/purchasing/{id}/accept-reading', name: 'app_purchasing_accept_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function acceptReading(string $id, Request $request): RedirectResponse
+    {
+        $this->checkToken($request);
+        $fields = [];
+        foreach ($request->request->all('fields') as $key) {
+            $field = \is_string($key) ? ReadField::tryFrom($key) : null;
+            if (null !== $field) {
+                $fields[] = $field;
+            }
+        }
+        try {
+            return $this->saved($this->accepting->accept($id, $fields, $request->request->getInt('version')), 'purchasing.flash.saved');
+        } catch (ReceivedDocumentRefused $refused) {
+            $this->addFlash('error', $this->screen->refusal($refused));
+        }
+
+        return $this->toDocument($id);
+    }
+
     private function saved(SavedReceivedDocument $saved, string $message): RedirectResponse
     {
         $this->addFlash('success', $this->translator->trans($message, ['number' => $this->screen->title($saved->document)]));
@@ -195,6 +258,7 @@ final class ReceivedDocumentController extends AbstractController
             'summary' => $this->screen->summary($errors),
             'stale' => isset($errors[RefusalFields::FORM]) && $this->translator->trans('purchasing.refused.'.ReceivedDocumentRefused::STALE) === $errors[RefusalFields::FORM],
             'editable' => !$document->isTrashed(),
+            'reading' => $this->reading->of($document, $detail->reading),
             'kinds' => $this->screen->kinds(),
             'treatments' => $this->screen->treatments(),
             'currencies' => $this->screen->currencies(),

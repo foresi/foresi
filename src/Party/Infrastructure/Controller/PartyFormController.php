@@ -58,6 +58,8 @@ final class PartyFormController extends AbstractController
     public const string CREATED_FLASH = 'contact_created';
     /** The query value of a new contact started from the contact list. */
     public const string FOR_CONTACTS = 'contacts';
+    /** The values a new contact may be opened with from its URL, with the length each is cut to. */
+    private const array PREFILL = ['displayName' => 255, 'registrationNumber' => 64, 'vatId' => 64];
 
     public function __construct(
         private readonly PartyQuery $parties,
@@ -80,7 +82,7 @@ final class PartyFormController extends AbstractController
     public function new(Request $request): Response
     {
         if (!$request->isMethod('POST')) {
-            return $this->form($request, null, $this->defaults(), [], [], $this->tokens->issue(), Response::HTTP_OK);
+            return $this->form($request, null, $this->prefilled($request) + $this->defaults(), [], [], $this->tokens->issue(), Response::HTTP_OK);
         }
 
         $this->checkToken($request);
@@ -261,6 +263,33 @@ final class PartyFormController extends AbstractController
             'countryCode' => 'CZ',
             'privateNote' => '',
         ];
+    }
+
+    /**
+     * What a page that opens a new contact already knows, such as the name and numbers a received
+     * document was read with: only these texts, each cut to its field; the registry lookup of the
+     * form completes the rest, and the form checks everything as when it is typed.
+     *
+     * @return array<string, string>
+     */
+    private function prefilled(Request $request): array
+    {
+        $prefilled = [];
+        foreach (self::PREFILL as $field => $length) {
+            $value = $request->query->get($field);
+            if (\is_string($value) && '' !== trim($value)) {
+                $prefilled[$field] = mb_substr(trim($value), 0, $length);
+            }
+        }
+        // A country the form offers, or none: the address and the registration keep their default.
+        $country = $request->query->get('countryCode');
+        $country = \is_string($country) ? strtoupper(trim($country)) : '';
+        if (CountryOptions::supports($country) && \in_array($country, CountryOptions::CODES, true)) {
+            $prefilled['countryCode'] = $country;
+            $prefilled['registrationCountry'] = $country;
+        }
+
+        return $prefilled;
     }
 
     /**

@@ -13,6 +13,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\PaymentBalance;
 use Foresi\Purchasing\Application\Query\PaidDocument;
 use Foresi\Purchasing\Application\Query\PayableDocument;
+use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\LineView;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
@@ -59,6 +60,8 @@ final class ReceivedDocumentJson
         $document = $paid->document;
 
         return self::summary($document, $paid->balance, $firm) + [
+            'source' => $document->source()->value,
+            'reading' => $paid->reading instanceof DocumentReading ? self::reading($paid->reading) : null,
             'supplier_snapshot' => [
                 'name' => $document->supplier()->name,
                 'registration_number' => $document->supplier()->registrationNumber,
@@ -74,6 +77,31 @@ final class ReceivedDocumentJson
             'original_document_id' => $document->originalDocumentId(),
             'trashed_reason' => $document->deletedReason(),
             'payments' => array_map(self::payment(...), $paid->payments),
+        ];
+    }
+
+    /**
+     * The reading of the file: what stands, the sources that read it, each value with the source and
+     * whether the draft took it (a value not applied is a suggestion), and the warnings. A failure is
+     * a code, never the text of a reader or a provider.
+     *
+     * @return array<string, mixed>
+     */
+    public static function reading(DocumentReading $reading): array
+    {
+        $values = [];
+        foreach ($reading->reading()->values as $key => $value) {
+            $values[$key] = ['value' => $value->value, 'source' => $value->source, 'applied' => \in_array($key, $reading->applied(), true)];
+        }
+
+        return [
+            'state' => $reading->state()->value,
+            'requested_at' => JsonValues::timestamp($reading->requestedAt()),
+            'finished_at' => JsonValues::timestamp($reading->finishedAt()),
+            'sources' => array_values(array_unique(array_column($values, 'source'))),
+            'values' => [] === $values ? new \stdClass() : $values,
+            'warnings' => $reading->warnings(),
+            'failure' => $reading->failure(),
         ];
     }
 

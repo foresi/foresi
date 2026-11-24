@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Api;
 
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -37,6 +39,11 @@ final readonly class ReceivedDocumentListQuery
         public ?string $view = null,
         // D4 JSON, {"conditions": [...]}, joined with the view's by AND.
         public ?string $filter = null,
+        // Where the reading of the file stands, and how the document came in.
+        #[Assert\Choice(choices: ['reading', 'read', 'nothing_found', 'failed'])]
+        public ?string $reading = null,
+        #[Assert\Choice(choices: ['manual', 'upload', 'api'])]
+        public ?string $source = null,
     ) {
     }
 
@@ -48,7 +55,23 @@ final readonly class ReceivedDocumentListQuery
             null === $this->dueBefore ? null : new \DateTimeImmutable($this->dueBefore),
             $this->trashed,
             null === $this->supplierId ? null : strtolower($this->supplierId),
-            $view,
+            $this->narrowed($view),
         );
+    }
+
+    /**
+     * The view with the reading and the source added as conditions of the list.
+     */
+    private function narrowed(?ViewFilter $view): ?ViewFilter
+    {
+        $conditions = array_filter([
+            null === $this->reading ? null : new Condition(ReceivedDocumentLists::READING, 'is', $this->reading),
+            null === $this->source ? null : new Condition(ReceivedDocumentLists::SOURCE, 'is', $this->source),
+        ]);
+        foreach ($conditions as $condition) {
+            $view = ($view ?? ViewFilter::all())->with($condition);
+        }
+
+        return $view;
     }
 }

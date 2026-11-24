@@ -7,7 +7,9 @@
     reason in a dialog, deleting a draft asks first. A save that went through tells its warnings, which
     never stop it; a refusal is told next to its field and in the summary over the form. A row of the
     list opens it in the side sheet (layout/record.html.twig, docs/design/overlays.md); a document
-    with lines is a form all the time, so the sheet shows it full screen.
+    with lines is a form all the time, so the sheet shows it full screen. Over the values of a draft,
+    the reading of its file says where it stands (_reading), with Read again in the menu of the page
+    header, and the values it found that the draft does not hold are offered to take.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -38,6 +40,12 @@
         <twig:block name="buttons">{% if editable and draft %}<twig:Ui:Button :size="record_action_size" type="submit" form="received-document-form" name="_action" value="save" data-purchasing-save>{{ 'purchasing.save'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
         <twig:block name="phone">{% if editable and draft %}<twig:Ui:MenuItem type="submit" form="received-document-form" name="_action" value="save">{{ 'purchasing.save'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
         <twig:block name="last">
+            {% if editable and draft and reading and reading.retry %}
+                <form method="post" action="{{ path('app_purchasing_read_again', {id: document.id}) }}" role="none" data-purchasing-read-again>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'purchasing.reading.again'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
             {% if editable %}
                 <twig:Ui:MenuItem icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:MenuItem>
                 {% if draft %}
@@ -87,6 +95,24 @@
         {% endif %}
 
         <div class="grid min-w-0 content-start gap-4">
+            {% if draft and reading %}
+                {{ include('@Purchasing/_reading.html.twig') }}
+                {% if editable and reading.suggestions is not empty %}
+                    <twig:Ui:Card :title="'purchasing.reading.suggestions'|trans" icon="file-text" data-purchasing-suggestions>
+                        <form method="post" action="{{ path('app_purchasing_accept_reading', {id: document.id}) }}" class="grid gap-3" data-turbo="false">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <input type="hidden" name="version" value="{{ version }}">
+                            <p class="m-0 text-small text-muted">{{ 'purchasing.reading.suggestions_help'|trans }}</p>
+                            <div class="grid gap-2">
+                                {% for suggestion in reading.suggestions %}
+                                    <twig:Ui:Checkbox name="fields[]" :id="'reading-' ~ suggestion.field" :value="suggestion.field" :label="suggestion.label ~ ': ' ~ suggestion.value" />
+                                {% endfor %}
+                            </div>
+                            <div><twig:Ui:Button type="submit" size="sm" icon="check">{{ 'purchasing.reading.use_selected'|trans }}</twig:Ui:Button></div>
+                        </form>
+                    </twig:Ui:Card>
+                {% endif %}
+            {% endif %}
             <twig:Ui:Card>
                 <form method="post" id="received-document-form" action="{{ path('app_purchasing_document', {id: document.id}) }}" class="grid gap-4" novalidate data-turbo="false" data-purchasing-form>
                     <input type="hidden" name="_token" value="{{ token }}">

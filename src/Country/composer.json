@@ -9,6 +9,7 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "chillerlan/php-qrcode": "^6.0.1",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",
@@ -29,6 +30,7 @@
                 "banking",
                 "exchange-rate",
                 "invoicing",
+                "purchasing",
                 "taxes-and-contributions",
                 "vat"
             ]

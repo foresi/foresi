@@ -34,7 +34,7 @@ final class McpServerTest extends ApiTestCase
         'invoicing' => ['foresi_create_invoice', 'foresi_create_recurring_invoice', 'foresi_end_recurring_invoice', 'foresi_get_invoice', 'foresi_get_payment', 'foresi_get_recurring_invoice', 'foresi_list_recurring_invoices', 'foresi_mark_invoice_sent', 'foresi_pause_recurring_invoice', 'foresi_preview_recurring_invoice', 'foresi_restore_invoice', 'foresi_resume_recurring_invoice', 'foresi_search_invoices', 'foresi_search_payments', 'foresi_trash_invoice', 'foresi_update_invoice', 'foresi_update_recurring_invoice'],
         'margin' => ['foresi_assign_received_document', 'foresi_client_margin', 'foresi_client_margin_cell', 'foresi_get_document_allocation', 'foresi_get_planned_item_allocation', 'foresi_get_supplier_default_recipient', 'foresi_list_unrebilled_costs', 'foresi_pair_rebill_line', 'foresi_set_line_allocation', 'foresi_set_planned_item_allocation', 'foresi_set_rebill_link', 'foresi_set_supplier_default_recipient', 'foresi_unpair_rebill_line'],
         'party' => ['foresi_add_firm_vat_status', 'foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_remove_firm_vat_status', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
-        'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_set_received_document_lines', 'foresi_trash_received_document'],
+        'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_read_received_document_again', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_set_received_document_lines', 'foresi_trash_received_document', 'foresi_upload_received_document'],
         'sales' => ['foresi_add_deal_line', 'foresi_add_deal_link', 'foresi_archive_deal_stage', 'foresi_archive_lost_reason', 'foresi_change_deal_stage', 'foresi_create_deal', 'foresi_create_deal_stage', 'foresi_create_follow_up_deal', 'foresi_create_lost_reason', 'foresi_get_deal', 'foresi_list_deal_stages', 'foresi_lose_deal', 'foresi_remove_deal_line', 'foresi_remove_deal_link', 'foresi_reopen_deal', 'foresi_reorder_deal_lines', 'foresi_reorder_deal_stages', 'foresi_restore_deal', 'foresi_search_deals', 'foresi_trash_deal', 'foresi_update_deal', 'foresi_update_deal_line', 'foresi_update_deal_stage', 'foresi_update_lost_reason', 'foresi_win_deal'],
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year', 'foresi_tax_amounts', 'foresi_tax_estimate'],
@@ -105,6 +105,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_mark_received_document_paid' => false,
         'foresi_pair_rebill_line' => false,
         'foresi_pause_recurring_invoice' => false,
+        'foresi_read_received_document_again' => false,
         'foresi_record_balance_checkpoint' => false,
         'foresi_record_received_document' => false,
         'foresi_redeliver_webhook' => false,
@@ -177,6 +178,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_update_task_comment' => false,
         'foresi_update_view' => false,
         'foresi_update_webhook_endpoint' => false,
+        'foresi_upload_received_document' => false,
         'foresi_win_deal' => false,
     ];
 

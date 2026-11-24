@@ -45,7 +45,7 @@ final readonly class GetReceivedDocumentTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns one received document by its id, a draft or one in the trash too: what foresi_search_received_documents returns for it, with the supplier as the document names it, the VAT recap per rate, the lines (what it was for, split by rate: the stored ones, or one implicit line per rate of the recap), the exchange rate, the deduction period and its payments. Find the id with foresi_search_received_documents.';
+        return 'Returns one received document by its id, a draft or one in the trash too: what foresi_search_received_documents returns for it, with the supplier as the document names it, the VAT recap per rate, the lines (what it was for, split by rate: the stored ones, or one implicit line per rate of the recap), the exchange rate, the deduction period and its payments; and where it came from (source) and, for a draft made from a file, its reading: the state, the sources, each value found with its source and whether the draft took it (applied) or left it as a suggestion, the warnings, and a failure code; a reading still in state reading 10 minutes after it was asked for is stuck and can be read again with foresi_read_received_document_again. A matched supplier is the field supplier_name. Find the id with foresi_search_received_documents.';
     }
 
     public function inputSchema(): array

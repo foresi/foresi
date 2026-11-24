@@ -67,6 +67,9 @@ final class ReceivedDocumentRefused extends \DomainException
     public const string OVERPAID = 'overpaid';
     public const string PAID = 'paid';
     public const string BANK_MOVEMENT_INVALID = 'bank_movement_invalid';
+    // Refused by reading the file of a draft again.
+    public const string READING_IN_PROGRESS = 'reading_in_progress';
+    public const string NO_ORIGINAL_FILE = 'no_original_file';
 
     public const array REASONS = [
         self::TRASHED, self::RECORDED, self::SUPPLIER_MISSING, self::ISSUE_DATE_MISSING, self::RECEIVED_DATE_MISSING,
@@ -80,7 +83,7 @@ final class ReceivedDocumentRefused extends \DomainException
         self::LINES_DO_NOT_ADD_UP, self::UNKNOWN_VAT_RATE, self::LINE_TEXT_REQUIRED, self::LINE_TEXT_TOO_LONG, self::LINES_TOO_MANY, self::DUPLICATE_LINE_ID,
         self::SUPPLIER_UNKNOWN, self::EXCHANGE_RATE_UNAVAILABLE, self::EVIDENCE_NUMBERS_EXHAUSTED,
         self::STALE, self::LOCKED, self::NOT_RECORDED, self::PAYMENT_AMOUNT, self::OVERPAID, self::PAID,
-        self::BANK_MOVEMENT_INVALID,
+        self::BANK_MOVEMENT_INVALID, self::READING_IN_PROGRESS, self::NO_ORIGINAL_FILE,
     ];
 
     public function __construct(public readonly string $reason)

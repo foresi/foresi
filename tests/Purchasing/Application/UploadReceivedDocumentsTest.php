@@ -14,10 +14,15 @@ use Foresi\Attachment\Domain\Attachment;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Purchasing\Application\PurchasingNotAllowed;
+use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
+use Foresi\Purchasing\Domain\DocumentReading;
+use Foresi\Purchasing\Domain\DocumentSource;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class UploadReceivedDocumentsTest extends PurchasingTestCase
 {
@@ -35,6 +40,7 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
             self::assertNull($document->evidenceNumber());
             self::assertSame('2026-11-10', $document->receivedDate()?->format('Y-m-d'), 'Received today in the zone of the organisation.');
             self::assertSame($this->owner->user()->id(), $document->createdBy());
+            self::assertSame(DocumentSource::Upload, $document->source());
             $original = $this->em->find(Attachment::class, (string) $document->originalAttachmentId());
             self::assertInstanceOf(Attachment::class, $original);
             self::assertTrue($original->belongsTo(ReceivedDocument::ATTACHMENT_KIND, $document->id()));
@@ -70,6 +76,10 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
         self::assertSame(AttachmentRefused::EMPTY, $uploaded[0]->refusal);
         self::assertTrue($uploaded[1]->isDrafted());
         self::assertCount(1, $this->em->getRepository(ReceivedDocument::class)->findAll());
+        self::assertSame([$uploaded[1]->documentId], $this->queuedReadings(), 'Only the stored draft is read.');
+        $readings = $this->em->getRepository(DocumentReading::class)->findAll();
+        self::assertCount(1, $readings);
+        self::assertSame(ReadingState::Reading, $readings[0]->state());
     }
 
     public function testAGuestIsRefused(): void
@@ -115,5 +125,25 @@ final class UploadReceivedDocumentsTest extends PurchasingTestCase
         self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Not ours');
         self::assertTrue($permissions->canSee(ReceivedDocument::ATTACHMENT_KIND, $id), 'The trash shows the file of its document.');
         self::assertFalse($permissions->canAttach(ReceivedDocument::ATTACHMENT_KIND, $id));
+    }
+
+    /**
+     * The documents whose reading the uploads queued, in their order.
+     *
+     * @return list<string>
+     */
+    private function queuedReadings(): array
+    {
+        $transport = self::getContainer()->get('messenger.transport.async');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+        $ids = [];
+        foreach ($transport->getSent() as $envelope) {
+            $message = $envelope->getMessage();
+            if ($message instanceof ReadReceivedDocument) {
+                $ids[] = $message->documentId;
+            }
+        }
+
+        return $ids;
     }
 }

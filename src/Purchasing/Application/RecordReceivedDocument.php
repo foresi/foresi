@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application;
 
 use Foresi\Party\Application\NoFirmYet;
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
@@ -75,18 +76,20 @@ final readonly class RecordReceivedDocument
     /**
      * A new document, recorded at once, without a file.
      *
+     * @param DocumentSource $source how it came in: typed in, or through the API
+     *
      * @throws PurchasingNotAllowed    for anyone but the owners and members of the organisation
      * @throws NoFirmYet
      * @throws ReceivedDocumentRefused for anything the document refuses
      */
-    public function create(ReceivedDocumentInput $input): SavedReceivedDocument
+    public function create(ReceivedDocumentInput $input, DocumentSource $source = DocumentSource::Manual): SavedReceivedDocument
     {
         $userId = $this->access->denyUnlessStaff();
-        $document = $this->unit->run(function () use ($input, $userId): ReceivedDocument {
+        $document = $this->unit->run(function () use ($input, $userId, $source): ReceivedDocument {
             // The lock of the firm is the first write, as EvidenceNumbers asks.
             $this->access->firm(true);
             $content = $this->contents->of($input, null, true);
-            $document = new ReceivedDocument(ReceivedDocumentContent::blank(), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()));
+            $document = new ReceivedDocument(ReceivedDocumentContent::blank(), $userId, \DateTimeImmutable::createFromInterface($this->clock->now()), $source);
             // Added before it is recorded, so a listener of the recording event finds it.
             $this->documents->add($document);
             $this->recording->record($document, $content, $userId);

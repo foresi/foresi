@@ -28,7 +28,19 @@ A document is first a **draft** or is **recorded**:
 - **Changing the kind, the treatment or the currency** sends the form back for what the new value needs (the exchange rate, the supply code, the original of a credit note, the CZK VAT a document in another currency states). It saves nothing. A refusal is shown next to its field and in a summary over the form.
 - **Two people editing the same document** cannot overwrite each other: a save from a form opened before another save is refused with a message and a link to load the document again.
 
-The list has the tabs **To complete**, **Recorded** and **Trash**, each with its count, a filter by month, supplier, kind and VAT treatment, and a search over the supplier and the supplier's number.
+The list has the tabs **To complete**, **To review**, **Recorded** and **Trash**, each with its count, a filter by month, supplier, kind, VAT treatment, reading and source, and a search over the supplier and the supplier's number. The **Source** column says how a document came in (Upload, Manual, API), and a draft made from a file shows where its reading stands as a second badge beside its state.
+
+## Reading the file of a draft
+
+Each uploaded file is read in the background, and what it finds fills the draft while nobody has changed it.
+
+- **The panel over the fields** says where the reading stands: *Reading the file…* (the panel is loaded again every 2 seconds until it finishes, then offers to show the values), *Read from ISDOC, QR payment code* with the sources that found values, *Nothing found in the file*, or *Reading failed*. Its warnings (some values did not fit, no contact or more than one has the supplier's numbers) are listed there.
+- **A mark at each field** ("From ISDOC", "From QR") says where its value came from while the field still holds the value read; a value a person changed loses its mark.
+- **Found in the file.** Values the reading left as suggestions (the draft was saved by a person first, or the values did not fit together) and that the draft does not hold are listed with a checkbox each; **Use selected** saves the checked ones into the draft as a save from the form would, with the same version check and refusals.
+- **Create supplier.** When no contact has the supplier's numbers, the button beside the supplier opens the new contact dialog filled with the name, registration number and VAT ID read; its registry lookup completes the rest.
+- **Read again** in the menu of the page header reads the file of a draft once more, with the readers that run only on request. It is refused with `reading_in_progress` while a reading asked for less than 10 minutes ago runs (an older one counts as stuck), with `no_original_file` for a draft without a file, and for a recorded document or one in the trash.
+- **To review** lists the drafts whose file was read, whatever it found, until they are recorded.
+- **Over the API and MCP** the detail of a document has `source` and `reading`: the state, the sources, each value found with its source and whether the draft took it (`applied`) or left it as a suggestion, the warnings, and `failure` as a code, never a reader's or provider's text. A matched supplier is the field `supplier_name`. `POST /api/v1/received-documents/{documentId}/read-again` (`foresi_read_received_document_again`) asks for the reading again and answers `202` at once; it is refused with the same reasons as the screen, each as `409`. The list takes `reading` and `source`, and the view `purchasing.received.to_review`. `POST /api/v1/received-documents/upload` (`foresi_upload_received_document`) makes a draft from one file sent as base64, up to 10 MB: its `source` is `api`, it is read like a file dropped on the screen, and a file Foresi refuses makes no draft. See [REST](api.md#received-documents) and [MCP](mcp.md).
 
 ### Evidence number
 
