@@ -66,6 +66,9 @@ final class InvoiceApiTest extends ApiTestCase
         $this->get('/api/v1/invoices/'.$invoice->id());
 
         self::assertResponseIsSuccessful();
+        $lineId = $this->at('data', 'lines', 0, 'id');
+        self::assertIsString($lineId);
+        self::assertTrue(\Symfony\Component\Uid\Uuid::isValid($lineId));
         self::assertSame(['data' => [
             'id' => $invoice->id(),
             'number' => $invoice->number(),
@@ -97,6 +100,8 @@ final class InvoiceApiTest extends ApiTestCase
             'created_at' => $invoice->createdAt()->format(\DATE_ATOM),
             'corrected_invoice_id' => null,
             'lines' => [[
+                'id' => $lineId,
+                'source_line_id' => null,
                 'description' => 'Work',
                 'quantity' => '2.0000',
                 'unit' => 'h',
