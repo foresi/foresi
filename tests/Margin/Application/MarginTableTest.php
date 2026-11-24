@@ -38,6 +38,7 @@ use Foresi\Margin\Domain\CostShare;
 use Foresi\Margin\Domain\CostShareSource;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Domain\ShareSplitter;
+use Foresi\Margin\Infrastructure\Api\MarginJson;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
@@ -254,6 +255,33 @@ final class MarginTableTest extends KernelTestCase
         self::assertCount(24, $this->table->of('2025-01', '2026-12')->months);
     }
 
+    public function testAnAbsurdRangeIsRefusedWithoutListingItsMonths(): void
+    {
+        $started = hrtime(true);
+        $this->assertRefused('range_too_long', fn (): MarginTableView => $this->table->of('0001-01', '9999-12'));
+        $this->assertRefused('range_too_long', fn (): MarginTableView => $this->table->of('2026-01', '2028-01'));
+
+        self::assertLessThan(250_000_000, hrtime(true) - $started, 'The refusal is counted, not found by building 120,000 months.');
+    }
+
+    public function testTheJsonOfTheTableAndOfACellCarriesRevenueCostsAndMargin(): void
+    {
+        $this->invoice('i1', $this->clientA, '2026-11-10', 3_000_000);
+        $this->share('voice', '2026-11', $this->clientA, 50_820);
+        $this->share('lost', '2026-12', null, 10_000);
+
+        $table = MarginJson::table($this->table->of('2026-11', '2026-12'));
+        $cell = MarginJson::cellDetail($this->cell->of('client:'.$this->clientA, '2026-11'));
+
+        self::assertSame(['client:'.$this->clientA, 'client', 'Client A'], [$this->in($table, 'rows', 0, 'row'), $this->in($table, 'rows', 0, 'kind'), $this->in($table, 'rows', 0, 'label')]);
+        self::assertSame(['month' => '2026-11', 'revenue' => ['amount_minor' => 3_000_000, 'currency' => 'CZK'], 'costs' => ['amount_minor' => 50_820, 'currency' => 'CZK'], 'margin' => ['amount_minor' => 2_949_180, 'currency' => 'CZK']], $this->in($table, 'rows', 0, 'cells', 0));
+        self::assertSame('2026-12', $this->in($table, 'rows', 0, 'cells', 1, 'month'), 'A month with nothing is still there.');
+        self::assertSame(['own', 'unassigned'], [$this->in($table, 'rows', 1, 'row'), $this->in($table, 'rows', 2, 'row')]);
+        self::assertSame([2_939_180, -10_000], [$this->in($table, 'total', 'margin', 'amount_minor'), $this->in($table, 'month_totals', 1, 'margin', 'amount_minor')]);
+        self::assertSame(['revenue', 'invoice', 'EN-i1', 3_000_000], [$this->in($cell, 'revenue_items', 0, 'source'), $this->in($cell, 'revenue_items', 0, 'kind'), $this->in($cell, 'revenue_items', 0, 'label'), $this->in($cell, 'revenue_items', 0, 'amount', 'amount_minor')]);
+        self::assertSame(['document', 50_820], [$this->in($cell, 'cost_items', 0, 'source'), $this->in($cell, 'cost_items', 0, 'amount', 'amount_minor')]);
+    }
+
     public function testAMissingEndOrStartTakesItsDefault(): void
     {
         self::assertSame(['2026-10', '2026-11', '2026-12'], $this->table->of()->months);
@@ -319,6 +347,17 @@ final class MarginTableTest extends KernelTestCase
         $this->assertRefused('invalid_row', fn (): MarginCellView => $this->cell->of('client:not-a-uuid', '2026-11'));
         $this->assertRefused('invalid_row', fn (): MarginCellView => $this->cell->of('everyone', '2026-11'));
         $this->assertRefused('invalid_month', fn (): MarginCellView => $this->cell->of('own', '2026-11-05'));
+    }
+
+    private function in(mixed $value, string|int ...$path): mixed
+    {
+        foreach ($path as $key) {
+            self::assertIsArray($value);
+            self::assertArrayHasKey($key, $value);
+            $value = $value[$key];
+        }
+
+        return $value;
     }
 
     private function row(MarginTableView $view, string $key): MarginRowView

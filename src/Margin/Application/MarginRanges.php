@@ -37,12 +37,14 @@ final readonly class MarginRanges
         if ($first > $last) {
             throw MarginRefused::invalid(MarginRefused::RANGE_REVERSED, 'from', \sprintf('The range starts at %s, after it ends at %s.', $first->format('Y-m'), $last->format('Y-m')));
         }
+        // Counted, not listed, so an absurd range is refused before anything is built from it.
+        $count = ((int) $last->format('Y') - (int) $first->format('Y')) * 12 + (int) $last->format('n') - (int) $first->format('n') + 1;
+        if ($count > MarginRange::MAX_MONTHS) {
+            throw MarginRefused::invalid(MarginRefused::RANGE_TOO_LONG, 'to', \sprintf('The range covers %d months, at most %d are shown at once.', $count, MarginRange::MAX_MONTHS));
+        }
         $months = [$first->format('Y-m')];
         for ($month = $first->modify('+1 month'); $month <= $last; $month = $month->modify('+1 month')) {
             $months[] = $month->format('Y-m');
-        }
-        if (\count($months) > MarginRange::MAX_MONTHS) {
-            throw MarginRefused::invalid(MarginRefused::RANGE_TOO_LONG, 'to', \sprintf('The range covers %d months, at most %d are shown at once.', \count($months), MarginRange::MAX_MONTHS));
         }
 
         return new MarginRange($first, $last->modify('last day of this month'), $months);
