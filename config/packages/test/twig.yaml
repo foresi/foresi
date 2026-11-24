@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Templates of test doubles, such as a panel a test adds to a screen slot.
+twig:
+    paths:
+        '%kernel.project_dir%/tests/CashFlow/Support/templates': CashFlowTestSupport

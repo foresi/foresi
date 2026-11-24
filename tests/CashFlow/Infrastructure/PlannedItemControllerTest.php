@@ -22,6 +22,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Domain\VatStatusPeriod;
+use Foresi\Tests\CashFlow\Support\ExamplePlannedItemSection;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -64,6 +65,7 @@ final class PlannedItemControllerTest extends WebTestCase
 
     protected function tearDown(): void
     {
+        ExamplePlannedItemSection::$enabled = false;
         Clock::set(new NativeClock());
         parent::tearDown();
     }
@@ -85,6 +87,22 @@ final class PlannedItemControllerTest extends WebTestCase
         // Without JavaScript the dialog is a page of its own.
         $this->client->request('GET', '/cash-flow/planned-income/new');
         self::assertResponseIsSuccessful();
+    }
+
+    public function testAnotherModulesSectionIsShownOnThePageOfAPlannedItemAndNothingWithoutIt(): void
+    {
+        $values = $this->dialogForm('/cash-flow/planned-costs/new');
+        $this->dialogPost('/cash-flow/planned-costs/new', ['name' => 'Cloud Host', 'category' => 'software', 'amount' => '100', 'on' => '2026-12-01', 'repeat' => 'month', 'every' => '1', 'end' => 'never'] + $values);
+        $id = $this->item()->id();
+
+        $crawler = $this->client->request('GET', '/cash-flow/planned-costs/'.$id);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-example-planned-item-section]'));
+
+        ExamplePlannedItemSection::$enabled = true;
+        $crawler = $this->client->request('GET', '/cash-flow/planned-costs/'.$id);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Example section', $crawler->filter('[data-example-planned-item-section="'.$id.'"]')->text());
     }
 
     public function testTheNewDialogTakesTheDirectionOfItsPage(): void

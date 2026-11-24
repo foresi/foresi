@@ -108,5 +108,8 @@
                 </ol>
             </section>
         {% endif %}
+
+        {# Panels of other modules' integrations (ADR 0038). #}
+        {% for slotItem in slot_items(constant('Foresi\\CashFlow\\Contract\\CashFlowSlots::PLANNED_ITEM_SECTIONS'), {plannedItemId: item.id}) %}{{ include(slotItem.template, slotItem.data|merge({plannedItemId: item.id})) }}{% endfor %}
     </div>
 {% endblock %}

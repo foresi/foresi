@@ -166,6 +166,25 @@ final class PlannedItemPairingsTest extends CashFlowTestCase
         self::assertSame([PairingState::Auto, $item->id()], [$moved->state(), $moved->plannedItemId()]);
     }
 
+    public function testSettingTheCounterpartyThroughTheContractChangesItAndPairsTheNewSuppliersDocuments(): void
+    {
+        $item = $this->monthly('Cloud Host', '32.00');
+        $this->document('doc-2', '32.00', '2026-05-18', $this->other);
+        $this->considerAll();
+        self::assertNull($this->store()->pairing('received_document', 'doc-2'));
+
+        // PlannedItemWrites implements the contract: it is the write path of the planned item: its own writes, with the fake documents of this test.
+        $counterparties = $this->writes;
+        $counterparties->set($item->id(), $this->other->id());
+
+        $moved = $this->row('doc-2');
+        self::assertSame([PairingState::Auto, $item->id()], [$moved->state(), $moved->plannedItemId()]);
+        $this->em->clear();
+        self::assertSame($this->other->id(), $this->em->find(PlannedItem::class, $item->id())?->counterparty()?->id());
+        $this->expectException(CashFlowRefused::class);
+        $counterparties->set($item->id(), 'not-a-contact');
+    }
+
     public function testChangingTheAmountOrTheToleranceLooksAtTheDocumentsAgain(): void
     {
         $item = $this->monthly('Cloud Host', '32.00');
