@@ -150,7 +150,7 @@ final readonly class IssueInvoice
         $lines = $this->pricing->priced($input->lines, $regime, $country, $rateDate);
         $written = [];
         foreach ($lines as $position => $line) {
-            $written[] = $stored = new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts);
+            $written[] = $stored = new InvoiceLine($invoice, $position, $text($line->input->text), $line->input->unit, $line->input->rateKind, $line->input->supplyCode, $line->values, $line->amounts, $line->input->deducts, $line->input->sourceLineId);
             $this->store->addLine($stored);
         }
         $invoice->assignTotals($this->pricing->totals($lines, $regime, $rounding, $country));

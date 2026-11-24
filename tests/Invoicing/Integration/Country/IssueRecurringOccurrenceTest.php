@@ -18,6 +18,8 @@ use Foresi\Country\Integration\Invoicing\CzechRepublic\QrPlatba;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\InvoiceHistory;
 use Foresi\Invoicing\Application\InvoiceHistoryEntry;
+use Foresi\Invoicing\Application\InvoiceStore;
+use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\IssueRecurringOccurrence;
 use Foresi\Invoicing\Application\OccurrenceTaken;
@@ -34,11 +36,15 @@ use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Invoicing\Domain\TaxPointRule;
+use Foresi\Invoicing\Integration\Margin\IssuedRevenue;
+use Foresi\Margin\Contract\RevenueLine;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyAddress;
+use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Invoicing\Application\RateChangingCountry;
 use Foresi\Tests\Invoicing\Application\RecurringTestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Issuing one occurrence of a template: what the invoice holds, and that an
@@ -58,6 +64,42 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         $czech = new CzechInvoicing(new CzechVatRates(), new CzechSupplyCodes(), $container->get(IsdocWriter::class), $container->get(QrPlatba::class));
         $container->set(CzechInvoicing::class, new RateChangingCountry($czech));
         $this->occurrences = $container->get(IssueRecurringOccurrence::class);
+    }
+
+    public function testTheLinesOfTheInvoiceCarryTheIdsOfTheTemplateLines(): void
+    {
+        $template = $this->save->create($this->recurringInput([$this->line(text: 'Hosting {month/year}'), $this->line('250.00', text: 'Support')]));
+        self::mockTime('2026-12-03 09:00:00');
+        $templateIds = array_column($this->lineRows($template->id()), 'id');
+
+        $invoice = $this->occurrences->issue($template->id(), new \DateTimeImmutable('2026-12-01'));
+
+        self::assertInstanceOf(Invoice::class, $invoice);
+        self::assertSame($templateIds, array_column($this->invoiceLines($invoice->id()), 'source_line_id'));
+        $revenue = $this->revenue()->document($invoice->id());
+        self::assertNotNull($revenue);
+        self::assertSame($templateIds, array_map(static fn (RevenueLine $line): ?string => $line->sourceLineId, $revenue->lines));
+    }
+
+    public function testATemplateLineIsFoundByItsId(): void
+    {
+        $template = $this->save->create($this->recurringInput([$this->line(text: 'Hosting {month/year}')]));
+        $lineId = $this->lineRows($template->id())[0]['id'];
+        self::assertIsString($lineId);
+        $this->em->clear();
+
+        $found = $this->revenue()->templateLine($lineId);
+
+        self::assertNotNull($found);
+        self::assertSame([$lineId, $template->id(), $this->customer->id(), 'Hosting {month/year}'], [$found->id, $found->templateId, $found->customerId, $found->text]);
+        self::assertNull($this->revenue()->templateLine(Id::generate()));
+    }
+
+    private function revenue(): IssuedRevenue
+    {
+        $container = self::getContainer();
+
+        return new IssuedRevenue($container->get(InvoiceStore::class), $container->get(IssuedDocumentFactory::class), $container->get(UrlGeneratorInterface::class), $this->em, $container->get(InstanceClock::class));
     }
 
     public function testIssuesWithResolvedTextAndDates(): void
