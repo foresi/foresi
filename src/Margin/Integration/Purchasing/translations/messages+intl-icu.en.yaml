@@ -5,8 +5,6 @@ margin:
     assign: Assign…
     assign_description: Give the whole cost of this document to the firm itself or to a client. A line with a split of its own keeps it.
     whole: "The whole document goes to:"
-    own: Own consumption
-    unknown_contact: A client that is no longer in the address book
     unassigned_recipient: Unassigned
     gap: A line has no base in CZK yet, because the exchange rate is missing. It has no share until the rate is set.
     line_gap: No base in CZK yet, so no share (exchange rate missing).
@@ -15,38 +13,14 @@ margin:
     split_line: "Split the cost of {text}"
     split_title: Split the cost of the line
     split_lines: Split by lines
-    recipient: Recipient
-    client: Client
-    client_help: Type at least three letters of the name.
-    client_placeholder: Name of the client
-    client_empty: No contact matches.
-    clear: Clear
-    cancel: Cancel
-    submit: Save
     source:
       line: own
       document: document
       planned_item: plan item
       supplier: supplier
       unassigned: unassigned
-    kind:
-      label: How to split
-      help: Whole gives the line to the first recipient. Percent needs percents that add up to 100. Fixed gives amounts in CZK to some recipients and the rest to the one marked so. Blank rows are ignored.
-      whole: Whole to one recipient
-      percent: Percent
-      fixed: Fixed amount
-    row:
-      recipient: "Recipient {n}"
-      client: "Client {n}"
-      percent: "Percent {n}"
-      amount: "Amount {n} (CZK)"
-      rest: "Recipient {n} takes the rest"
     flash:
       assigned: The document is assigned.
       cleared: The assignment of the document is cleared.
       line_set: The split of the line is saved.
       line_cleared: The split of the line is cleared.
-    error:
-      recipient: Choose the firm itself or a client.
-      client: Pick the client of a row from the list.
-      amount: An amount is a number in CZK with at most two decimals.

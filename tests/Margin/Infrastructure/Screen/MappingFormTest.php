@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Margin\Integration\Purchasing;
+namespace Foresi\Tests\Margin\Infrastructure\Screen;
 
 use Foresi\Margin\Application\MappingView;
 use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Application\TermView;
-use Foresi\Margin\Integration\Purchasing\LineForm;
+use Foresi\Margin\Infrastructure\Screen\MappingForm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +22,7 @@ use Symfony\Component\Translation\LocaleSwitcher;
  * What the line dialog shows of a stored mapping, what it reads of a post and what it makes of it, in the
  * locale of the person.
  */
-final class LineFormTest extends TestCase
+final class MappingFormTest extends TestCase
 {
     private const string CLIENT = '0197a1de-0000-7000-8000-00000000000a';
 
@@ -40,7 +40,7 @@ final class LineFormTest extends TestCase
         self::assertSame(['client', self::CLIENT, 'Example Customer a.s.', '', '1234,56', false], $this->row($czech['rows'][0]));
         self::assertSame(['own', '', '', '', '', true], $this->row($czech['rows'][1]));
         self::assertSame('1234.56', $english['rows'][0]['amount']);
-        self::assertCount(LineForm::ROWS, $czech['rows']);
+        self::assertCount(MappingForm::ROWS, $czech['rows']);
     }
 
     public function testAPercentIsWrittenWithTheDecimalSeparatorOfTheLocale(): void
@@ -56,7 +56,7 @@ final class LineFormTest extends TestCase
         $form = $this->form('en')->fromMapping(null);
 
         self::assertSame('whole', $form['kind']);
-        self::assertCount(LineForm::ROWS, $form['rows']);
+        self::assertCount(MappingForm::ROWS, $form['rows']);
         self::assertSame(['', '', '', '', '', false], $this->row($form['rows'][0]));
     }
 
@@ -133,6 +133,22 @@ final class LineFormTest extends TestCase
         self::assertSame('margin.screen.error.amount', $this->form('en')->input('doc', 'rate:21', ['kind' => 'fixed', 'rows' => [['type' => 'own', 'contactId' => '', 'query' => '', 'percent' => '', 'amount' => 'abc', 'rest' => false]]]));
     }
 
+    public function testTheSharesAreTheSameWhatEverTheMappingBelongsTo(): void
+    {
+        $values = $this->values('percent', [
+            ['type' => 'own', 'contactId' => '', 'query' => '', 'percent' => '40', 'amount' => '', 'rest' => false],
+            ['type' => 'client', 'contactId' => self::CLIENT, 'query' => '', 'percent' => '60', 'amount' => '', 'rest' => false],
+        ]);
+
+        $shares = $this->form('en')->shares($values);
+        $input = $this->form('en')->input('doc', 'rate:21', $values);
+
+        self::assertSame([['recipient' => 'own', 'percent' => '40'], ['recipient' => self::CLIENT, 'percent' => '60']], $shares);
+        self::assertInstanceOf(SetLineAllocationInput::class, $input);
+        self::assertSame($shares, $input->shares);
+        self::assertSame('margin.screen.error.client', $this->form('en')->shares($this->values('whole', [['type' => 'client', 'contactId' => '', 'query' => '', 'percent' => '', 'amount' => '', 'rest' => false]])));
+    }
+
     /**
      * @param list<array{type: string, contactId: string, query: string, percent: string, amount: string, rest: bool}> $rows
      *
@@ -143,11 +159,11 @@ final class LineFormTest extends TestCase
         return ['kind' => $kind, 'rows' => $rows];
     }
 
-    private function form(string $locale): LineForm
+    private function form(string $locale): MappingForm
     {
         $switcher = new LocaleSwitcher($locale, []);
 
-        return new LineForm($switcher);
+        return new MappingForm($switcher);
     }
 
     /**

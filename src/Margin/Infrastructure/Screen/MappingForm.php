@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Margin\Integration\Purchasing;
+namespace Foresi\Margin\Infrastructure\Screen;
 
 use Foresi\Margin\Application\MappingView;
 use Foresi\Margin\Application\SetLineAllocationInput;
@@ -18,14 +18,14 @@ use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\Translation\LocaleSwitcher;
 
 /**
- * The form of one line's mapping: the kind and a few rows of recipients, each with a percent or an amount. It reads
+ * The form of a mapping, of a line or of a planned item: the kind and a few rows of recipients, each with a percent or an amount. It reads
  * what a person typed (the amounts in the language of the screen) into the input the use case takes, and what a
  * stored mapping says into the rows to show.
  *
  * @phpstan-type Row array{type: string, contactId: string, query: string, percent: string, amount: string, rest: bool}
  * @phpstan-type Values array{kind: string, rows: list<Row>}
  */
-final readonly class LineForm
+final readonly class MappingForm
 {
     public const int ROWS = 4;
     private const int MAX_ROWS = 10;
@@ -82,6 +82,21 @@ final readonly class LineForm
      */
     public function input(string $documentId, string $lineKey, array $values): SetLineAllocationInput|string
     {
+        $shares = $this->shares($values);
+
+        return \is_string($shares) ? $shares : new SetLineAllocationInput($documentId, $lineKey, $values['kind'], $shares);
+    }
+
+    /**
+     * The shares the rows say, as the use cases take them: recipient and, by the kind, a percent, an amount or the rest.
+     * Blank rows are left out.
+     *
+     * @param Values $values
+     *
+     * @return list<array<string, mixed>>|string the shares, or the key of the translation that says what is missing
+     */
+    public function shares(array $values): array|string
+    {
         $shares = [];
         foreach ($values['rows'] as $row) {
             if ('' === $row['type']) {
@@ -111,7 +126,7 @@ final readonly class LineForm
             $shares[] = $share;
         }
 
-        return new SetLineAllocationInput($documentId, $lineKey, $values['kind'], $shares);
+        return $shares;
     }
 
     private function typedAmount(string $typed): Money|false|null

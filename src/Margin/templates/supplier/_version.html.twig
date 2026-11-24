@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One version of the default recipient of a supplier: the month it applies from and who bears the costs, or that
+    the default ends. Variables: version (month, placed, recipient, name).
+#}
+<div class="flex flex-wrap items-center gap-2" data-margin-version="{{ version.month }}" data-margin-placed="{{ version.placed }}">
+    <span class="text-small text-muted">{{ 'margin.supplier.from_month'|trans }}</span>
+    <span class="num font-medium text-ink" data-margin-month>{{ version.month }}</span>
+    {% if version.placed == 'later' %}<twig:Ui:Badge tone="gray">{{ 'margin.supplier.later'|trans }}</twig:Ui:Badge>{% endif %}
+    {% if version.placed == 'earlier' %}<twig:Ui:Badge tone="gray">{{ 'margin.supplier.earlier'|trans }}</twig:Ui:Badge>{% endif %}
+    <span class="min-w-0 break-words text-text" data-margin-recipient>
+        {%- if version.recipient is null %}{{ 'margin.supplier.ended'|trans }}
+        {%- elseif version.recipient == 'own' %}{{ 'margin.screen.own'|trans }}
+        {%- else %}{{ version.name ?? 'margin.screen.unknown_contact'|trans }}{% endif -%}
+    </span>
+</div>

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  planned:
+    title: Rozdělení na klienty
+    edit: Upravit rozdělení
+    edit_title: Rozdělení plánovaného nákladu na klienty
+    none: Zatím bez rozdělení. Náklady spárované s touto položkou připadnou výchozímu příjemci dodavatele, nebo zůstanou nepřiřazené.
+    none_yet: Zatím se žádné rozdělení neuplatňuje. První začíná v pozdějším měsíci.
+    from_month: Od měsíce
+    later: Pozdější
+    earlier: Dřívější
+    ended: Od tohoto měsíce bez rozdělení.
+    rest: zbytek
+    versions: "{count, plural, one {# další verze} few {# další verze} many {# další verze} other {# dalších verzí}}"
+    kind_none: Bez rozdělení
+    supplier: Dodavatel
+    supplier_help: Položka ho zatím nemá; podle něj se hledají doklady.
+    supplier_placeholder: Jméno dodavatele
+    supplier_saved: Dodavatel je uložený u plánované položky.
+    flash:
+      set: Rozdělení je uložené.
+      ended: Rozdělení od tohoto měsíce končí.
+    error:
+      supplier: Dodavatele položky vyberte ze seznamu.
+      supplier_refused: Dodavatele nelze u plánované položky uložit.

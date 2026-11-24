@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The "Split among clients" panel of a recurring planned cost (slot cash_flow.planned_item_sections, ADR 0038):
+    the mapping in force with the month it applies from, and the other versions, earlier and later, folded below as
+    a details element (the folded list of the recurring preview and the tax profile). "Edit split" in the header opens
+    the dialog. Variables: plannedItemId, current (a version or null), others (versions): a version has month,
+    placed (current, earlier, later), kind (null where it ends the mapping) and terms (own, name, percent, amount,
+    rest).
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+<twig:Ui:Card :title="'margin.planned.title'|trans" icon="percent" data-planned-margin>
+    <twig:block name="actions">
+        <twig:Ui:Button size="sm" :href="path('app_margin_planned', {id: plannedItemId})" data-dialog aria-haspopup="dialog" data-margin-planned-edit>{{ 'margin.planned.edit'|trans }}</twig:Ui:Button>
+    </twig:block>
+
+    {% if current is null and others is empty %}
+        <p class="m-0 text-small text-muted" data-margin-none>{{ 'margin.planned.none'|trans }}</p>
+    {% elseif current is null %}
+        <p class="m-0 mb-2 text-small text-muted" data-margin-none>{{ 'margin.planned.none_yet'|trans }}</p>
+    {% else %}
+        {{ include('@Margin/cash_flow/_version.html.twig', {version: current}) }}
+    {% endif %}
+
+    {% if others is not empty %}
+        <details class="group mt-3" data-margin-versions>
+            <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-small text-text {{ focus }} [&::-webkit-details-marker]:hidden">
+                {{ ux_icon('lucide:chevron-right', {class: 'size-4 transition-transform group-open:rotate-90', 'aria-hidden': 'true'}) }}
+                <span>{{ 'margin.planned.versions'|trans({count: others|length}) }}</span>
+            </summary>
+            <div class="mt-3 grid gap-3">
+                {% for version in others %}
+                    <div class="border-t border-divider pt-3">{{ include('@Margin/cash_flow/_version.html.twig', {version: version}) }}</div>
+                {% endfor %}
+            </div>
+        </details>
+    {% endif %}
+</twig:Ui:Card>

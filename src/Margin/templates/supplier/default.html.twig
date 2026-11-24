@@ -1,0 +1,37 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Margin tab of a contact (Foresi\Party\Contract\ContactTabs): who bears the costs of this contact as a
+    supplier by default, from the month shown. Earlier and later versions are folded below (a details element, as
+    the planned cost's panel folds its versions). "Edit" opens the dialog. The answer is the tab's frame; its links
+    open whole pages (target _top). Variables: frame, contactId, current (a version or null), others (versions):
+    a version has month, placed (current, earlier, later), recipient (own, a contact id or null for none) and name.
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+<turbo-frame id="{{ frame }}" target="_top">
+    <section class="grid gap-4" aria-labelledby="margin-supplier-title" data-supplier-margin>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="margin-supplier-title" class="m-0 text-heading font-semibold text-ink">{{ 'margin.supplier.title'|trans }}</h2>
+            <twig:Ui:Button size="sm" :href="path('app_margin_supplier_default_edit', {id: contactId})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-margin-default-edit>{{ 'margin.supplier.edit'|trans }}</twig:Ui:Button>
+        </div>
+
+        {% if current is null %}
+            <p class="m-0 text-small text-muted" data-margin-none>{{ others is empty ? 'margin.supplier.none'|trans : 'margin.supplier.none_yet'|trans }}</p>
+        {% else %}
+            {{ include('@Margin/supplier/_version.html.twig', {version: current}) }}
+        {% endif %}
+
+        {% if others is not empty %}
+            <details class="group" data-margin-versions>
+                <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-small text-text {{ focus }} [&::-webkit-details-marker]:hidden">
+                    {{ ux_icon('lucide:chevron-right', {class: 'size-4 transition-transform group-open:rotate-90', 'aria-hidden': 'true'}) }}
+                    <span>{{ 'margin.supplier.versions'|trans({count: others|length}) }}</span>
+                </summary>
+                <div class="mt-3 grid gap-3">
+                    {% for version in others %}
+                        <div class="border-t border-divider pt-3">{{ include('@Margin/supplier/_version.html.twig', {version: version}) }}</div>
+                    {% endfor %}
+                </div>
+            </details>
+        {% endif %}
+    </section>
+</turbo-frame>

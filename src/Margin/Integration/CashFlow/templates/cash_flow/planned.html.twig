@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    How a recurring planned cost is split among clients, from a month on: the supplier when the item has none, the
+    month the mapping applies from, and the shared mapping fields (kind, rows of recipients), where the kind "no
+    mapping" ends the mapping from that month. A dialog over the planned item, and a page of its own at the same
+    URL. Variables: itemId, item, name, back, hasMapping, asksSupplier, supplier (id, text), values (kind, rows,
+    fromMonth), error, supplierSaved.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: name, href: back}, {label: 'margin.planned.edit'|trans}] %}
+{% set dialog_size = 'lg' %}
+{% set dialog_description = name %}
+
+{% block title %}{{ 'margin.planned.edit_title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-planned-form" action="{{ path('app_margin_planned', {id: itemId}) }}" class="grid gap-4" novalidate data-margin-planned-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\CashFlow\\PlannedMappingController::TOKEN')) }}">
+        {# The first submit button of a form is what Enter presses: it is Save (the footer buttons come later). #}
+        <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+        {% if supplierSaved %}<twig:Ui:Alert tone="info" data-margin-supplier-saved>{{ 'margin.planned.supplier_saved'|trans }}</twig:Ui:Alert>{% endif %}
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        {% if asksSupplier %}
+            <twig:Ui:Combobox name="supplierId" id="margin-supplier" textName="supplierQuery" :label="'margin.planned.supplier'|trans" :help="'margin.planned.supplier_help'|trans" :placeholder="'margin.planned.supplier_placeholder'|trans" :value="supplier.id" :text="supplier.text" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />
+        {% endif %}
+        <twig:Ui:TextInput type="month" name="fromMonth" id="margin-from-month" :label="'margin.screen.from'|trans" :help="'margin.screen.from_help'|trans" :value="values.fromMonth" width="medium" />
+        {{ include('@Margin/screen/_mapping_fields.html.twig', {values: values, noneLabel: 'margin.planned.kind_none'|trans}) }}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-planned-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.planned.edit_title'|trans" icon="percent" class="max-w-3xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ name }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="back">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-planned-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

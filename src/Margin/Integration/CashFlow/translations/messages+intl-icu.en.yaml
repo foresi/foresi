@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+margin:
+  planned:
+    title: Split among clients
+    edit: Edit split
+    edit_title: Split of the planned cost among clients
+    none: No split yet. The costs paired with this item fall to the default recipient of the supplier, or stay unassigned.
+    none_yet: No split applies yet. The first one starts in a later month.
+    from_month: From month
+    later: Later
+    earlier: Earlier
+    ended: No split from this month on.
+    rest: the rest
+    versions: "{count, plural, one {# other version} other {# other versions}}"
+    kind_none: No split
+    supplier: Supplier
+    supplier_help: The item has none yet; its documents are found by it.
+    supplier_placeholder: Name of the supplier
+    supplier_saved: The supplier is saved on the planned item.
+    flash:
+      set: The split is saved.
+      ended: The split ends from that month on.
+    error:
+      supplier: Pick the supplier of the item from the list.
+      supplier_refused: The supplier cannot be saved on the planned item.

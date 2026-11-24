@@ -1,0 +1,30 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One version of the mapping of a planned cost: the month it applies from, its kind and its recipients, or that it
+    ends the mapping. Variables: version (month, placed, kind, terms of own, name, percent, amount, rest).
+#}
+<div class="grid gap-1" data-margin-version="{{ version.month }}" data-margin-placed="{{ version.placed }}">
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-small text-muted">{{ 'margin.planned.from_month'|trans }}</span>
+        <span class="num font-medium text-ink" data-margin-month>{{ version.month }}</span>
+        {% if version.placed == 'later' %}<twig:Ui:Badge tone="gray">{{ 'margin.planned.later'|trans }}</twig:Ui:Badge>{% endif %}
+        {% if version.placed == 'earlier' %}<twig:Ui:Badge tone="gray">{{ 'margin.planned.earlier'|trans }}</twig:Ui:Badge>{% endif %}
+        {% if version.kind is not null %}<span class="text-small text-muted" data-margin-kind="{{ version.kind }}">{{ ('margin.screen.kind.' ~ version.kind)|trans }}</span>{% endif %}
+    </div>
+    {% if version.kind is null %}
+        <p class="m-0 text-small text-text" data-margin-ended>{{ 'margin.planned.ended'|trans }}</p>
+    {% else %}
+        <ul class="m-0 grid list-none gap-0.5 p-0">
+            {% for term in version.terms %}
+                <li class="flex items-center gap-3 text-small text-text" data-margin-term>
+                    <span class="min-w-0 flex-1 break-words">{{ term.own ? 'margin.screen.own'|trans : (term.name ?? 'margin.screen.unknown_contact'|trans) }}</span>
+                    <span class="num whitespace-nowrap">
+                        {%- if term.rest %}{{ 'margin.planned.rest'|trans }}
+                        {%- elseif term.percent is not null %}{{ term.percent }}&nbsp;%
+                        {%- elseif term.amount is not null %}{{ term.amount }}{% endif -%}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>

@@ -2,8 +2,8 @@
 {#
     The split of one line of a received document: its kind (whole to one recipient, percents, fixed amounts with
     one share that takes the rest) and a few rows of recipients. Rows left blank are ignored. A dialog over the
-    document, and a page of its own at the same URL. Variables: document, title, view, line, values (kind, rows),
-    kinds, error.
+    document, and a page of its own at the same URL. The fields are the shared partial screen/_mapping_fields.
+    Variables: documentId, title, view, line, values (kind, rows), error.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
@@ -19,17 +19,7 @@
         {# The first submit button of a form is what Enter presses: it is Save, never Clear (the footer buttons come later). #}
         <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
         {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
-        <twig:Ui:Select name="kind" id="margin-kind" :label="'margin.screen.kind.label'|trans" :help="'margin.screen.kind.help'|trans" :value="values.kind" :options="kinds" />
-        {% for row in values.rows %}
-            {% set n = loop.index0 %}
-            <div class="grid gap-3 rounded-control border border-container p-3 sm:grid-cols-2" data-margin-row>
-                <twig:Ui:Select :name="'shares[' ~ n ~ '][type]'" :id="'margin-type-' ~ n" :label="'margin.screen.row.recipient'|trans({n: loop.index})" :value="row.type" :options="{'': '', own: 'margin.screen.own'|trans, client: 'margin.screen.client'|trans}" />
-                <twig:Ui:Combobox :name="'shares[' ~ n ~ '][contactId]'" :id="'margin-contact-' ~ n" :textName="'shares[' ~ n ~ '][query]'" :label="'margin.screen.row.client'|trans({n: loop.index})" :placeholder="'margin.screen.client_placeholder'|trans" :value="row.contactId" :text="row.query" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />
-                <twig:Ui:TextInput :name="'shares[' ~ n ~ '][percent]'" :id="'margin-percent-' ~ n" :label="'margin.screen.row.percent'|trans({n: loop.index})" :value="row.percent" inputmode="decimal" autocomplete="off" />
-                <twig:Ui:TextInput :name="'shares[' ~ n ~ '][amount]'" :id="'margin-amount-' ~ n" :label="'margin.screen.row.amount'|trans({n: loop.index})" :value="row.amount" inputmode="decimal" autocomplete="off" />
-                <twig:Ui:Checkbox :name="'shares[' ~ n ~ '][rest]'" :id="'margin-rest-' ~ n" :label="'margin.screen.row.rest'|trans({n: loop.index})" value="1" :checked="row.rest" />
-            </div>
-        {% endfor %}
+        {{ include('@Margin/screen/_mapping_fields.html.twig', {values: values}) }}
     </form>
 {% endblock %}
 
