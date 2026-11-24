@@ -774,6 +774,7 @@ The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-d
 | Method and path | Answer |
 | --- | --- |
 | `POST /api/v1/received-documents` | `201` with the new recorded document and `Location`. |
+| `POST /api/v1/received-documents/upload` | `201` with the new draft and `Location`: its `source` is `api` and `reading.state` is `reading`, as the file is read in the background. Body: `file_name` and `content_base64`, see below. |
 | `POST /api/v1/received-documents/{documentId}/trash` | The document in the trash. Body: `reason`. |
 | `POST /api/v1/received-documents/{documentId}/payments` | `201` with the document and its new payment. |
 | `POST /api/v1/received-documents/{documentId}/mark-paid` | The document paid in full by one payment of all that remains, dated today in the organisation's time zone. |
@@ -803,6 +804,8 @@ Recording takes the next evidence number of the firm, as the screen does, and ne
 | `original_document_id` | The recorded document a credit note corrects. |
 | `supply_code` | The code of the supply of a domestic reverse charge. |
 | `lines` | Optional, at most 100: objects of `text` (at most 255 characters), `base` (a decimal in the document's currency, without VAT) and `vat_rate` (a rate of `vat_recap`, such as `"21"`). Per rate the bases add up to the base of the recap; a document without a recap adds them up to its total at rate `"0"`. |
+
+Uploading takes one file per call: `file_name` (with its extension, at most 255 characters) and `content_base64` (the file, up to 10 MB decoded). A PDF, an image (PNG, JPEG, GIF, WebP, HEIC), an ISDOC file (`.isdoc`, or `.isdocx`, a ZIP told by its extension) or XML is accepted, judged by its bytes. The draft is read as one dropped on the screen is; poll `GET /api/v1/received-documents/{documentId}` until `reading.state` leaves `reading`. If you know the values already, edit or record the document yourself: what a reading finds never overwrites a change made after the upload. A file that is not valid base64, is empty, is larger than 10 MB, is of another type, or that the attachment store refuses is `400 invalid_parameter` with `parameter` `content_base64` and `reason` `file_invalid`, `file_too_large`, `file_type_unsupported`, or the store's `empty`, `too_big`, `failed` or `not_allowed`; no draft is made.
 
 Fields of a payment: `paid_on` (`YYYY-MM-DD`, required), `amount` (a decimal in the document's currency, required, positive also for a credit note), `method` (`bank_transfer`, the default, `card`, `cash` or `other`) and `bank_movement_id` (optional). Mark as paid takes only `method` and `bank_movement_id`. A payment recorded by mistake is removed and recorded again; a document paid in full before stays so in the event feed.
 

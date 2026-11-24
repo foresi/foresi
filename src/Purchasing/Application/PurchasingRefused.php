@@ -124,6 +124,15 @@ final class PurchasingRefused extends \DomainException implements Refused
         return new self($reason, RefusalKind::Invalid, $field, $message);
     }
 
+    /**
+     * A file the API took but Foresi cannot make a draft of: the reason is one of the file_* codes of
+     * the input, or the reason the attachment store gave (empty, too_big, failed, not_allowed).
+     */
+    public static function file(string $reason, string $message, ?\Throwable $previous = null): self
+    {
+        return new self($reason, RefusalKind::Invalid, 'contentBase64', $message, $previous);
+    }
+
     public static function unknownFirm(?\Throwable $previous = null): self
     {
         return new self(self::FIRM_UNKNOWN, RefusalKind::NotFound, null, 'The instance has no firm yet: its first-run setup has not happened.', $previous);

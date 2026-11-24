@@ -51,26 +51,27 @@ final readonly class UploadReceivedDocuments
 
     /**
      * @param list<AttachmentUpload> $files
+     * @param DocumentSource         $source how the drafts came in: dropped on the screen, or sent over the API and MCP
      *
      * @return list<UploadedDocument> one per file, in their order
      *
      * @throws PurchasingNotAllowed for anyone but the owners and members of the organisation
      * @throws NoFirmYet
      */
-    public function upload(array $files): array
+    public function upload(array $files, DocumentSource $source = DocumentSource::Upload): array
     {
         $userId = $this->access->denyUnlessStaff();
         $this->access->firm();
 
-        return array_map(fn (AttachmentUpload $file): UploadedDocument => $this->one($file, $userId), $files);
+        return array_map(fn (AttachmentUpload $file): UploadedDocument => $this->one($file, $userId, $source), $files);
     }
 
-    private function one(AttachmentUpload $file, string $userId): UploadedDocument
+    private function one(AttachmentUpload $file, string $userId, DocumentSource $source): UploadedDocument
     {
         try {
-            [$document, $message] = $this->unit->run(function () use ($file, $userId): array {
+            [$document, $message] = $this->unit->run(function () use ($file, $userId, $source): array {
                 $now = \DateTimeImmutable::createFromInterface($this->clock->now());
-                $document = new ReceivedDocument(ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, $now, DocumentSource::Upload);
+                $document = new ReceivedDocument(ReceivedDocumentContent::blank($this->instanceClock->today()), $userId, $now, $source);
                 $this->documents->add($document);
                 // The store asks the module whether the document may take the file, and saves both.
                 $document->attachOriginal($this->upload->upload(ReceivedDocument::ATTACHMENT_KIND, $document->id(), $file)->id());

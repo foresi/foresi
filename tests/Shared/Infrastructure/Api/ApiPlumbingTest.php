@@ -207,6 +207,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/received-documents/{documentId}/trash' => ['post' => '200'],
                 '/api/v1/received-documents/{documentId}/lines' => ['put' => '200'],
                 '/api/v1/received-documents/{documentId}/read-again' => ['post' => '202'],
+                '/api/v1/received-documents/upload' => ['post' => '201'],
             ],
             'sales' => [
                 '/api/v1/sales/deals' => ['get' => '200', 'post' => '201'],
