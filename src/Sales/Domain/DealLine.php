@@ -45,8 +45,8 @@ class DealLine implements Audited
     #[ORM\Column(type: 'string', length: self::MAX_UNIT)]
     private string $unit;
 
-    #[ORM\Column(type: 'decimal', precision: 15, scale: self::QUANTITY_SCALE)]
-    private string $quantity;
+    #[ORM\Column(type: 'decimal', precision: 15, scale: self::QUANTITY_SCALE, nullable: true)]
+    private ?string $quantity;
 
     #[ORM\Column(name: 'unit_price_minor', type: 'bigint', nullable: true)]
     private ?int $unitPriceMinor;
@@ -144,9 +144,13 @@ class DealLine implements Audited
         return $this->unit;
     }
 
-    /** A decimal with three places, such as "1.500", whatever the database hands back. */
-    public function quantity(): string
+    /** A decimal with three places, such as "1.500", whatever the database hands back; null for a time-based line with no estimate. */
+    public function quantity(): ?string
     {
+        if (null === $this->quantity) {
+            return null;
+        }
+
         return (string) BigDecimal::of($this->quantity)->toScale(self::QUANTITY_SCALE);
     }
 

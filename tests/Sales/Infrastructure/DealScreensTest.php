@@ -313,6 +313,29 @@ final class DealScreensTest extends WebTestCase
         self::assertSelectorTextContains('[data-deal-links]', 'Roof audit');
     }
 
+    public function testAnHourlyLineWithoutHoursShowsItsRate(): void
+    {
+        $deal = $this->newDeal('Roof audit');
+
+        $form = $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/new')->filter('#deal-line-form')->form();
+        $form['name'] = 'Development';
+        $form['quantity'] = '';
+        $form['unit'] = '';
+        $form['unitPrice'] = '1200';
+        $this->choice($form['billingKind'])->select('time_based');
+        $this->client->submit($form);
+        self::assertResponseRedirects('/sales/deals/'.$deal->id());
+
+        $line = $this->lines($deal)[0];
+        self::assertSame(['h', null], [$line->unit(), $line->quantity()]);
+        $this->client->request('GET', '/sales/deals/'.$deal->id());
+        self::assertSelectorTextContains('[data-deal-lines] table', 'Hourly');
+        self::assertSelectorTextContains('[data-deal-lines] table', 'Not estimated');
+        self::assertSelectorTextContains('[data-deal-lines] table', "1,200.00\u{a0}Kč / h");
+        $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/'.$line->id().'/edit');
+        self::assertSame('', $this->client->getCrawler()->filter('#quantity')->attr('value'));
+    }
+
     public function testALinkToAnotherDealOfTheClientIsAddedAndRemoved(): void
     {
         $audit = $this->newDeal('Roof audit');

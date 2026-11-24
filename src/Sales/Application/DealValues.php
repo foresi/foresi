@@ -35,11 +35,14 @@ final class DealValues
         $monthly = [];
         $approximate = false;
         foreach ($lines as $line) {
+            if (BillingKind::TimeBased === $line->billingKind()) {
+                continue;
+            }
             $price = $line->unitPrice();
             if (!$price instanceof Money) {
                 continue;
             }
-            $exact = BigRational::of($price->minor())->multipliedBy($line->quantity());
+            $exact = BigRational::of($price->minor())->multipliedBy($line->quantity() ?? '1');
             if (BillingKind::OneOff === $line->billingKind()) {
                 $oneOff = self::added($oneOff, Money::ofMinor(self::rounded($exact), $price->currency()));
 

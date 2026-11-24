@@ -21,11 +21,14 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  * a recurring line bills every interval (1 to 99) of a unit of time, a number
  * of cycles (1 to 999) or with no end; a one-off line has none of these. The
  * price per unit is optional, zero or more, with at most two decimals. The
- * quantity is more than zero, with at most three decimals.
+ * quantity is more than zero, with at most three decimals. A time-based line
+ * is billed by the hour at the rate of its price (needed), has no recurrence
+ * and may have no quantity: the hours expected, not yet estimated.
  */
 final readonly class DealLineRules
 {
-    public const array BILLING_KINDS = ['one_off', 'recurring'];
+    public const array BILLING_KINDS = ['one_off', 'recurring', 'time_based'];
+    public const string HOUR = 'h';
     public const array UNITS = ['day', 'week', 'month', 'year'];
     public const array CURRENCIES = ['CZK', 'EUR', 'USD'];
 
@@ -45,9 +48,50 @@ final readonly class DealLineRules
         if (mb_strlen($unit) > DealLine::MAX_UNIT) {
             throw SalesRefused::invalid('unit_too_long', 'unit', \sprintf('The unit is at most %d characters, as on an invoice line.', DealLine::MAX_UNIT));
         }
-        $kind = BillingKind::tryFrom($draft->billingKind) ?? throw SalesRefused::invalid('billing_kind_unknown', 'billingKind', 'The billing kind is one_off or recurring.');
+        $kind = BillingKind::tryFrom($draft->billingKind) ?? throw SalesRefused::invalid('billing_kind_unknown', 'billingKind', 'The billing kind is one of '.implode(', ', self::BILLING_KINDS).'.');
 
-        return new DealLineTerms($name, $unit, $this->quantity($draft->quantity), $this->price($draft), $kind, ...$this->recurrence($kind, $draft));
+        $price = $this->price($draft);
+        if (BillingKind::TimeBased === $kind) {
+            $unit = $this->hourly($unit, $price);
+        }
+
+        return new DealLineTerms($name, $unit, $this->quantityOf($kind, $draft->quantity), $price, $kind, ...$this->recurrence($kind, $draft));
+    }
+
+    /**
+     * The quantity of a line of this kind: a time-based line may leave it out
+     * (null, not estimated), every other kind needs one.
+     *
+     * @throws SalesRefused invalid
+     */
+    public function quantityOf(BillingKind $kind, ?string $quantity): ?string
+    {
+        if (null === $quantity || '' === trim($quantity)) {
+            if (BillingKind::TimeBased === $kind) {
+                return null;
+            }
+
+            throw SalesRefused::invalid('quantity_required', 'quantity', 'A quantity is needed; only a time-based line may leave it out.');
+        }
+
+        return $this->quantity($quantity);
+    }
+
+    /**
+     * The unit of a time-based line: the hour, which an empty unit means.
+     *
+     * @throws SalesRefused invalid
+     */
+    private function hourly(string $unit, ?Money $rate): string
+    {
+        if ('' !== $unit && self::HOUR !== $unit) {
+            throw SalesRefused::invalid('time_based_unit', 'unit', 'A time-based line is billed by the hour: its unit is h.');
+        }
+        if (!$rate instanceof Money) {
+            throw SalesRefused::invalid('rate_required', 'unitPrice', 'A time-based line needs its hourly rate: give the unit price.');
+        }
+
+        return self::HOUR;
     }
 
     /**
@@ -97,6 +141,15 @@ final readonly class DealLineRules
             foreach (['recurrenceUnit' => $draft->recurrenceUnit, 'interval' => $draft->interval, 'cycles' => $draft->cycles] as $field => $value) {
                 if (null !== $value) {
                     throw SalesRefused::invalid('one_off_recurrence', $field, 'A one-off line has no recurrence unit, interval or cycles; make it recurring to bill it on a period.');
+                }
+            }
+
+            return [null, null, null];
+        }
+        if (BillingKind::TimeBased === $kind) {
+            foreach (['recurrenceUnit' => $draft->recurrenceUnit, 'interval' => $draft->interval, 'cycles' => $draft->cycles] as $field => $value) {
+                if (null !== $value) {
+                    throw SalesRefused::invalid('time_based_recurrence', $field, 'A time-based line has no recurrence unit, interval or cycles; it is billed by the hours worked.');
                 }
             }
 

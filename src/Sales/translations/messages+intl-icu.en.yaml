@@ -24,6 +24,7 @@ sales:
     billing_kind:
         one_off: One-off
         recurring: Recurring
+        time_based: Hourly
     deals:
         title: Deals
         views: Views of the deals
@@ -150,6 +151,8 @@ sales:
         typed: Type the line in
         empty_title: No lines yet
         empty_text: Add a product of the catalog or type a line in; the deal's value comes from its lines.
+        not_estimated: Not estimated
+        per_hour: '{rate} / h'
         confirm:
             remove: 'Remove the line {name}?'
         column:
@@ -161,6 +164,7 @@ sales:
             product: From the catalog
             product_help: A product is copied as it is now.
             quantity: Quantity
+            quantity_help: For an hourly line, the hours expected; it may stay empty.
             name: Name
             unit: Unit
             unit_help: Such as hour, piece or month.
@@ -286,7 +290,11 @@ sales:
         unit_too_long: The unit is at most 32 characters.
         unit_price_invalid: Enter the price as a number with at most two decimals, such as 1500.00.
         currency_unknown: Choose a currency.
-        billing_kind_unknown: Choose one-off or recurring.
+        billing_kind_unknown: Choose one-off, recurring or hourly.
+        quantity_required: Enter the quantity; only an hourly line may leave it empty.
+        time_based_unit: An hourly line has the unit h.
+        rate_required: "An hourly line needs its rate: enter the price per unit."
+        time_based_recurrence: An hourly line has no period.
         one_off_recurrence: A one-off line has no period.
         recurrence_unit_required: Choose the period.
         recurrence_unit_unknown: Choose days, weeks, months or years.

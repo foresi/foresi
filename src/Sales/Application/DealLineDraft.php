@@ -16,7 +16,7 @@ final readonly class DealLineDraft
     public function __construct(
         public string $name,
         public string $unit,
-        public string $quantity,
+        public ?string $quantity,
         public ?string $unitPrice,
         public string $currency,
         public string $billingKind,

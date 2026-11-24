@@ -24,7 +24,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_add_deal_line',
     scope: 'sales:write',
     title: 'Add a line to a deal',
-    description: 'Adds what a deal sells. With product_id (from foresi_search_products) the line copies the product\'s name, unit, price and billing as they are now, and a later change of the product leaves it as it is; give only the quantity then. Without a product, type the name, unit, price and billing in: a one_off line is billed once, a recurring one every interval of its recurrence_unit. A line without a price is left out of the deal\'s value.',
+    description: 'Adds what a deal sells. With product_id (from foresi_search_products) the line copies the product\'s name, unit, price and billing as they are now, and a later change of the product leaves it as it is; give only the quantity then. Without a product, type the name, unit, price and billing in: a one_off line is billed once, a recurring one every interval of its recurrence_unit, a time_based one by the hours worked (unit h, unit_price is the hourly rate, quantity the hours expected and optional). A line without a price is left out of the deal\'s value.',
     status: 201,
     response: 'SalesDeal',
     staffOnly: true,
@@ -38,17 +38,17 @@ final readonly class AddDealLineInput
         public ?string $productId = null,
         #[Field('What the line sells.', maxLength: DealLine::MAX_NAME)]
         public ?string $name = null,
-        #[Field('The unit it is sold in, such as "hour"; may be empty.', maxLength: DealLine::MAX_UNIT)]
+        #[Field('The unit it is sold in, such as "piece"; may be empty. A time_based line has the unit h.', maxLength: DealLine::MAX_UNIT)]
         public ?string $unit = null,
-        #[Field('How many units, a decimal number with up to three decimals, such as "1.5".')]
-        public string $quantity = '1',
+        #[Field('How many units, a decimal number with up to three decimals, such as "1.5"; 1 when left out. For a time_based line it is the hours expected, optional: left out, the line has no estimate.')]
+        public ?string $quantity = null,
         #[Field('The price of one unit without VAT, a decimal number such as "1500.00"; null for no price.')]
         public ?string $unitPrice = null,
         #[Field('The currency of the price, ISO 4217.', enum: DealLineRules::CURRENCIES)]
         public ?string $currency = null,
-        #[Field('one_off for a line billed once, recurring for one billed on a period.', enum: DealLineRules::BILLING_KINDS)]
+        #[Field('one_off for a line billed once, recurring for one billed on a period, time_based for one billed by the hour at the unit price.', enum: DealLineRules::BILLING_KINDS)]
         public ?string $billingKind = null,
-        #[Field('A recurring line is billed every interval of this unit; null for a one_off line.', enum: DealLineRules::UNITS)]
+        #[Field('A recurring line is billed every interval of this unit; null for a one_off or time_based line.', enum: DealLineRules::UNITS)]
         public ?string $recurrenceUnit = null,
         #[Field('A recurring line is billed every this many units, 1 to 99.')]
         public ?int $interval = null,

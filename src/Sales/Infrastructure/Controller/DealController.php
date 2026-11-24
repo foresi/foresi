@@ -763,7 +763,7 @@ final class DealController extends AbstractController
                     'name' => $line->name(),
                     'quantity' => $this->screen->lineAmount($line),
                     'billing' => $this->screen->billing($line),
-                    'total' => $price instanceof Money ? $this->screen->money($price->multipliedBy($line->quantity())) : '',
+                    'total' => $this->screen->lineTotal($line),
                 ],
                 'actions' => $actions,
             ];

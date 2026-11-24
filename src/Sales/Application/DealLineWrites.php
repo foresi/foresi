@@ -71,7 +71,7 @@ final readonly class DealLineWrites
             $deal = $this->deal($input->dealId);
             $line = $this->line($deal, $input->lineId);
             $kind = $this->given($input->billingKind, $line->billingKind()->value);
-            // A line made one-off keeps no recurrence, unless the input sends one, which is refused.
+            // A line made one-off or time-based keeps no recurrence, unless the input sends one, which is refused.
             $recurs = BillingKind::Recurring->value === $kind;
             $price = $line->unitPrice();
             $line->change($this->rules->terms(new DealLineDraft(
@@ -136,13 +136,16 @@ final readonly class DealLineWrites
      */
     private function typed(AddDealLineInput $input): DealLineTerms
     {
+        $kind = $input->billingKind ?? BillingKind::OneOff->value;
+
         return $this->rules->terms(new DealLineDraft(
             $input->name ?? '',
             $input->unit ?? '',
-            $input->quantity,
+            // A line of any other kind than time_based that gives no quantity is one unit.
+            $input->quantity ?? (BillingKind::TimeBased->value === $kind ? null : '1'),
             $input->unitPrice,
             $input->currency ?? 'CZK',
-            $input->billingKind ?? BillingKind::OneOff->value,
+            $kind,
             $input->recurrenceUnit,
             $input->interval,
             $input->cycles,
@@ -172,7 +175,7 @@ final readonly class DealLineWrites
             throw SalesRefused::invalid('product_archived', 'productId', 'The product is archived and is not offered for new lines.');
         }
 
-        return new DealLineTerms($product->name, $product->unit, $this->rules->quantity($input->quantity), $product->unitPrice, $product->billingKind, $product->recurrenceUnit, $product->interval, $product->cycles);
+        return new DealLineTerms($product->name, $product->unit, $this->rules->quantityOf($product->billingKind, $input->quantity ?? (BillingKind::TimeBased === $product->billingKind ? null : '1')), $product->unitPrice, $product->billingKind, $product->recurrenceUnit, $product->interval, $product->cycles);
     }
 
     /**

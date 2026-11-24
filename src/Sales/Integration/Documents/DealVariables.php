@@ -79,7 +79,7 @@ final readonly class DealVariables implements DocumentVariableSource
             'lines' => array_map(fn (DealLine $line): array => [
                 'name' => $line->name(),
                 'unit' => $line->unit(),
-                'quantity' => $this->screen->quantity($line->quantity()),
+                'quantity' => null === $line->quantity() ? '' : $this->screen->quantity($line->quantity()),
                 'unit_price' => $line->unitPrice() instanceof Money ? $this->screen->money($line->unitPrice()) : '',
                 'billing_period' => $this->screen->billing($line),
             ], $detail->lines),
