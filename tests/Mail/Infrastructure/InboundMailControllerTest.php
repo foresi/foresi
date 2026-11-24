@@ -11,7 +11,7 @@ namespace Foresi\Tests\Banking\Infrastructure;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\GenerateAddress;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -150,11 +150,11 @@ final class InboundMailControllerTest extends WebTestCase
 
     public function testWebhookAbove10MiBIs413(): void
     {
-        $this->post(str_repeat('a', ReceiveInboundMail::MAX_BYTES + 1));
+        $this->post(str_repeat('a', ReceiveMail::MAX_BYTES + 1));
         self::assertResponseStatusCodeSame(413);
 
         // A relay that states the length is refused before the body is read.
-        $this->client->request('POST', self::URL, server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::SECRET, 'CONTENT_LENGTH' => (string) (ReceiveInboundMail::MAX_BYTES + 1)], content: 'Subject: small');
+        $this->client->request('POST', self::URL, server: ['HTTP_AUTHORIZATION' => 'Bearer '.self::SECRET, 'CONTENT_LENGTH' => (string) (ReceiveMail::MAX_BYTES + 1)], content: 'Subject: small');
         self::assertResponseStatusCodeSame(413);
 
         self::assertSame(0, $this->rowCount());
@@ -169,7 +169,7 @@ final class InboundMailControllerTest extends WebTestCase
         $body = fopen('php://temp', 'w+b');
         self::assertIsResource($body);
         $chunk = str_repeat('a', 1024 * 1024);
-        for ($written = 0; $written <= ReceiveInboundMail::MAX_BYTES + 4 * \strlen($chunk); $written += \strlen($chunk)) {
+        for ($written = 0; $written <= ReceiveMail::MAX_BYTES + 4 * \strlen($chunk); $written += \strlen($chunk)) {
             fwrite($body, $chunk);
         }
         rewind($body);
@@ -179,7 +179,7 @@ final class InboundMailControllerTest extends WebTestCase
         $response = $this->client->getKernel()->handle($request);
 
         self::assertSame(413, $response->getStatusCode());
-        self::assertLessThanOrEqual(ReceiveInboundMail::MAX_BYTES + 1, ftell($body));
+        self::assertLessThanOrEqual(ReceiveMail::MAX_BYTES + 1, ftell($body));
         self::assertSame(0, $this->rowCount());
     }
 

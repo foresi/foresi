@@ -19,9 +19,14 @@ use Foresi\Banking\Application\FeedRoute;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
-use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundAddressStore;
+use Foresi\Mail\Application\InboundPurposes;
 use Foresi\Mail\Application\InboundToken;
+use Foresi\Mail\Application\IssueAddresses;
+use Foresi\Mail\Application\MailTransaction;
+use Foresi\Mail\Domain\InboundAddress;
+use Foresi\Shared\Application\Sealer;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -39,6 +44,8 @@ final class GenerateAddressTest extends KernelTestCase
 {
     private const string TEMPLATE = 'bank+{token}@example.com';
     private const string IBAN = 'CZ6508000000192000145399';
+    /** The feed with the token of its Mail address. */
+    private const string FEED_ROW = 'SELECT f.*, a.token_hash, a.token_sealed FROM bank_feed f JOIN mail_inbound_address a ON a.id = f.mail_inbound_address_id';
 
     private EntityManagerInterface $em;
     private MockClock $clock;
@@ -65,10 +72,10 @@ final class GenerateAddressTest extends KernelTestCase
         $token = $this->addresses()->tokenIn($address);
         self::assertIsString($token);
         self::assertMatchesRegularExpression('/^[a-z2-7]{26}$/D', $token);
-        $row = $this->connection()->fetchAssociative('SELECT * FROM bank_feed');
+        $row = $this->connection()->fetchAssociative(self::FEED_ROW);
         self::assertIsArray($row);
         self::assertSame(InboundToken::hash($token), $row['token_hash']);
-        self::assertSame($token, self::getContainer()->get(MailSecrets::class)->open(Scalars::text($row['token_sealed'])));
+        self::assertSame($token, self::getContainer()->get(Sealer::class)->open(Scalars::text($row['token_sealed'])));
         self::assertSame($account->id(), $row['firm_bank_account_id']);
         self::assertSame(1, Scalars::int($row['generation']));
         // The token is in no column of the feed, and in no audit entry.
@@ -101,7 +108,7 @@ final class GenerateAddressTest extends KernelTestCase
         $token = $this->addresses()->tokenIn(strtoupper($address));
         self::assertIsString($token);
         $feedId = $this->connection()->fetchOne('SELECT id FROM bank_feed');
-        self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id()), $this->directory()->route(InboundToken::hash($token)));
+        self::assertEquals(new FeedRoute(Scalars::text($feedId), $account->id()), $this->route(InboundToken::hash($token)));
 
         $feed = $this->feeds()->ofAccount($account->id());
         self::assertInstanceOf(BankFeed::class, $feed);
@@ -118,8 +125,8 @@ final class GenerateAddressTest extends KernelTestCase
         $this->em->clear();
 
         self::assertNotSame($old, $new);
-        self::assertNull($this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($old)))));
-        self::assertInstanceOf(FeedRoute::class, $this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($new)))));
+        self::assertNull($this->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($old)))));
+        self::assertInstanceOf(FeedRoute::class, $this->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($new)))));
         $row = $this->connection()->fetchAssociative('SELECT generation, rotated_at FROM bank_feed');
         self::assertIsArray($row);
         self::assertSame(2, Scalars::int($row['generation']));
@@ -171,12 +178,12 @@ final class GenerateAddressTest extends KernelTestCase
     {
         $account = $this->account();
         $token = InboundToken::hash(Scalars::text($this->addresses()->tokenIn($this->generate()->generate($account->id()))));
-        self::assertInstanceOf(FeedRoute::class, $this->directory()->route($token));
+        self::assertInstanceOf(FeedRoute::class, $this->route($token));
 
         $account->archive(new \DateTimeImmutable('2026-11-02'));
         $this->em->flush();
 
-        self::assertNull($this->directory()->route($token), 'mail to an archived account is not taken in');
+        self::assertNull($this->route($token), 'mail to an archived account is not taken in');
     }
 
     public function testTokensAreFreshBase32(): void
@@ -227,8 +234,7 @@ final class GenerateAddressTest extends KernelTestCase
         return new GenerateAddress(
             $container->get(FirmBankAccounts::class),
             $this->feeds(),
-            new InboundAddresses($template),
-            $container->get(MailSecrets::class),
+            new IssueAddresses(new InboundAddresses($template), $this->store(), $container->get(InboundPurposes::class), $container->get(Sealer::class), $container->get(MailTransaction::class), $this->clock),
             $container->get(TransactionalWork::class),
             $this->clock,
         );
@@ -242,6 +248,24 @@ final class GenerateAddressTest extends KernelTestCase
     private function feeds(): BankFeeds
     {
         return self::getContainer()->get(BankFeeds::class);
+    }
+
+    /**
+     * The feed mail with this token hash goes to, as Mail routes it to the feed's address.
+     */
+    private function route(string $tokenHash): ?FeedRoute
+    {
+        $address = $this->store()->routable($tokenHash);
+
+        return $address instanceof InboundAddress ? $this->directory()->route($address->id()) : null;
+    }
+
+    private function store(): InboundAddressStore
+    {
+        $store = self::getContainer()->get('test.mail_address_store');
+        self::assertInstanceOf(InboundAddressStore::class, $store);
+
+        return $store;
     }
 
     private function directory(): BankFeedDirectory

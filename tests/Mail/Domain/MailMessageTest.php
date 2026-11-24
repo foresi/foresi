@@ -6,26 +6,27 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Domain;
+namespace Foresi\Tests\Mail\Domain;
 
-use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Mail\Domain\InboundChannel;
+use Foresi\Mail\Domain\MailMessage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * What an inbound message accepts when it is logged, and how it trims what the mail said.
+ * What a mail message accepts when it is logged, and how it trims what the mail said.
  */
-final class InboundMessageTest extends TestCase
+final class MailMessageTest extends TestCase
 {
     private const string HASH = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
     public function testKeepsWhatCame(): void
     {
-        $message = $this->message(rawKey: str_repeat('k', InboundMessage::MAX_RAW_KEY), size: 0, from: '  bank@example.com  ', subject: 'Payment received');
+        $message = $this->message(rawKey: str_repeat('k', MailMessage::MAX_RAW_KEY), size: 0, from: '  bank@example.com  ', subject: 'Payment received');
 
         self::assertSame(self::HASH, $message->dedupKey());
-        self::assertSame(str_repeat('k', InboundMessage::MAX_RAW_KEY), $message->rawKey());
+        self::assertSame(str_repeat('k', MailMessage::MAX_RAW_KEY), $message->rawKey());
         self::assertSame(0, $message->size());
         self::assertSame('bank@example.com', $message->fromAddress());
         self::assertSame('Payment received', $message->subject());
@@ -39,10 +40,10 @@ final class InboundMessageTest extends TestCase
 
     public function testASenderAndASubjectAreCutByCharacters(): void
     {
-        $message = $this->message(from: str_repeat('ř', InboundMessage::MAX_FROM + 5), subject: str_repeat('é', InboundMessage::MAX_SUBJECT + 5));
+        $message = $this->message(from: str_repeat('ř', MailMessage::MAX_FROM + 5), subject: str_repeat('é', MailMessage::MAX_SUBJECT + 5));
 
-        self::assertSame(str_repeat('ř', InboundMessage::MAX_FROM), $message->fromAddress());
-        self::assertSame(str_repeat('é', InboundMessage::MAX_SUBJECT), $message->subject());
+        self::assertSame(str_repeat('ř', MailMessage::MAX_FROM), $message->fromAddress());
+        self::assertSame(str_repeat('é', MailMessage::MAX_SUBJECT), $message->subject());
     }
 
     /**
@@ -77,7 +78,7 @@ final class InboundMessageTest extends TestCase
     public static function badRawKeys(): iterable
     {
         yield 'missing' => [''];
-        yield 'too long' => [str_repeat('k', InboundMessage::MAX_RAW_KEY + 1)];
+        yield 'too long' => [str_repeat('k', MailMessage::MAX_RAW_KEY + 1)];
     }
 
     #[DataProvider('badRawKeys')]
@@ -102,7 +103,9 @@ final class InboundMessageTest extends TestCase
         int $size = 10,
         ?string $from = 'bank@example.com',
         string $subject = 'Subject',
-    ): InboundMessage {
-        return new InboundMessage('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', InboundChannel::Imap, $dedupKey, $rawKey, $rawSha256, $size, $from, $subject, new \DateTimeImmutable('2026-11-20 10:00:00'));
+    ): MailMessage {
+        $address = new InboundAddress('test', null, 'Test', self::HASH, null, new \DateTimeImmutable('2026-11-20 09:00:00'));
+
+        return new MailMessage('00000000-0000-4000-8000-000000000001', $address, InboundChannel::Imap, $dedupKey, $rawKey, $rawSha256, $size, null, null, [], $from, $subject, null, new \DateTimeImmutable('2026-11-20 10:00:00'), 'unknown', null);
     }
 }

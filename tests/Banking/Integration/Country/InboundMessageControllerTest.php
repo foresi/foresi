@@ -48,7 +48,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $id = $this->received($this->notice('incoming-booked'), process: false);
-        $path = Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.Scalars::text($this->connection()->fetchOne('SELECT raw_key FROM inbound_message WHERE id = ?', [$id]));
+        $path = Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.Scalars::text($this->connection()->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]));
         $raw = (string) file_get_contents($path);
         file_put_contents($path, $raw.' ');
         $this->retryInScope($id);
@@ -152,7 +152,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
 
         self::assertSame(['location' => '/bank?view=messages'], $this->json());
         self::assertSame('dismissed', $this->messageRow($id)['status']);
-        $key = Scalars::text($this->connection()->fetchOne('SELECT raw_key FROM inbound_message WHERE id = ?', [$id]));
+        $key = Scalars::text($this->connection()->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]));
         self::assertFileExists(Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.$key);
         $audit = $this->connection()->fetchAssociative('SELECT action, changes, user_id FROM audit_entry WHERE entity_class = ? AND entity_id = ?', [InboundMessage::class, $id]);
         self::assertIsArray($audit);
@@ -175,7 +175,7 @@ final class InboundMessageControllerTest extends BankScreenTestCase
         $this->signedIn();
         $fresh = $this->received($this->notice('incoming-booked'), process: false);
         $stuck = $this->received($this->notice('incoming-booked', messageId: 'stuck@kb.example.com'), process: false);
-        $this->connection()->executeStatement("UPDATE inbound_message SET received_at = '2026-11-20 10:30:00' WHERE id = ?", [$stuck]);
+        $this->connection()->executeStatement("UPDATE mail_message SET received_at = '2026-11-20 10:30:00' WHERE id = ?", [$stuck]);
 
         $crawler = $this->page('/bank?tab=messages');
         self::assertSame('1', $crawler->filter('main nav[aria-label="Bank views"] a[aria-current="page"] span')->text(), 'Only the one waiting over an hour.');

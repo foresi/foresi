@@ -14,7 +14,7 @@ use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\ProcessMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
@@ -286,8 +286,8 @@ abstract class BankScreenTestCase extends WebTestCase
     {
         return $this->scoped(function () use ($raw, $process): string {
             $container = self::getContainer();
-            self::assertSame(ReceiveOutcome::Stored, $container->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
-            $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
+            self::assertSame(ReceiveOutcome::Stored, $container->get(ReceiveMail::class)->receive($raw, InboundChannel::Webhook));
+            $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
             if ($process) {
                 $container->get(ProcessMessage::class)->process($id);
             }

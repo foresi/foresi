@@ -12,7 +12,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\ProcessInboundMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\InboundFiles;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
@@ -30,10 +30,10 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
  * row, and queued for processing. The same message twice
  * is one row, and nothing of an unknown recipient is kept.
  */
-final class ReceiveInboundMailTest extends KernelTestCase
+final class ReceiveMailTest extends KernelTestCase
 {
     private InboundMailKit $kit;
-    private ReceiveInboundMail $receive;
+    private ReceiveMail $receive;
     private Connection $connection;
     private InMemoryTransport $queue;
 
@@ -43,7 +43,7 @@ final class ReceiveInboundMailTest extends KernelTestCase
         Clock::set(new MockClock('2026-11-20 12:00:00', 'UTC'));
         $container = self::getContainer();
         $this->kit = InboundMailKit::seed($container->get(EntityManagerInterface::class), $container->get(GenerateAddress::class));
-        $this->receive = $container->get(ReceiveInboundMail::class);
+        $this->receive = $container->get(ReceiveMail::class);
         $this->connection = $container->get(Connection::class);
         $queue = $container->get('messenger.transport.async');
         self::assertInstanceOf(InMemoryTransport::class, $queue);

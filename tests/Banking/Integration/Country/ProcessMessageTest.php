@@ -12,12 +12,16 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Domain\ActorKind;
 use Foresi\Banking\Application\AcceptRefused;
 use Foresi\Banking\Application\AcceptRejectedMessage;
+use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\PendingChanges;
+use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\RetryInboundMessage;
+use Foresi\Banking\Contract\BankMessageParser;
+use Foresi\Banking\Contract\ParseResult;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Infrastructure\Navigation\BankNotices;
@@ -27,8 +31,10 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Contract\InboundMail;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Tests\Banking\Support\FixedParser;
 use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
@@ -111,7 +117,7 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(['failed', 'unknown_layout', 'cz.kb', 2, 1], [$row['status'], $row['failure'], $row['parser_id'], self::int($row['parser_version']), self::int($row['attempts'])]);
         self::assertStringContainsString('Odloženo', Scalars::text($row['failure_detail']));
         self::assertSame([], $this->movementsOf($id));
-        $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
+        $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM mail_message WHERE id = ?', [$id]);
         self::assertIsArray($stored);
         self::assertSame($raw, self::getContainer()->get(\Foresi\Mail\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
     }
@@ -131,7 +137,7 @@ final class ProcessMessageTest extends InboundTestCase
         $id = $this->received($real);
 
         self::assertNotSame($junk, $id);
-        self::assertSame(hash('sha256', $real), Scalars::text($this->em->getConnection()->fetchOne('SELECT dedup_key FROM inbound_message WHERE id = ?', [$id])), 'Kept under its bytes.');
+        self::assertSame(hash('sha256', $real), Scalars::text($this->em->getConnection()->fetchOne('SELECT dedup_key FROM mail_message WHERE id = ?', [$id])), 'Kept under its bytes.');
         self::assertSame(InboundStatus::Processed, $this->process->process($id));
         self::assertSame('verified', $this->messageRow($id)['trust']);
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
@@ -149,13 +155,56 @@ final class ProcessMessageTest extends InboundTestCase
         $posted = $this->received($header.$this->notice('incoming-booked', auth: null, messageId: 'posted@kb.example.com'));
         $polled = $header.$this->notice('incoming-booked', auth: null, messageId: 'polled@kb.example.com');
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($polled, InboundChannel::Imap));
-        $polledId = Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM inbound_message WHERE raw_sha256 = ?', [hash('sha256', $polled)]));
+        $polledId = Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $polled)]));
 
         $this->process->process($posted);
         $this->process->process($polledId);
 
         self::assertSame(['verified', 'dmarc'], [$this->messageRow($posted)['trust'], $this->messageRow($posted)['trust_basis']]);
         self::assertSame(['unverified', 'no-results'], [$this->messageRow($polledId)['trust'], $this->messageRow($polledId)['trust_basis']]);
+    }
+
+    /**
+     * Mail judges a sender against its own From domain when no domains are named;
+     * a bank parser that names none still trusts no sender, however well the mail
+     * is signed for its own domain.
+     */
+    public function testAParserWithoutSenderDomainsTrustsNoSender(): void
+    {
+        $id = $this->received($this->notice('incoming-booked', 'dmarc-pass'));
+        // Takes every mail, as a parser that names no sender domains would have to.
+        $parsers = new BankMessageParsers([new class implements BankMessageParser {
+            public function id(): string
+            {
+                return 'example.bank';
+            }
+
+            public function version(): int
+            {
+                return 1;
+            }
+
+            public function senderDomains(): array
+            {
+                return [];
+            }
+
+            public function supports(InboundMail $mail): bool
+            {
+                return true;
+            }
+
+            public function parse(InboundMail $mail): ParseResult
+            {
+                return FixedParser::kbMovement();
+            }
+        }]);
+
+        self::assertSame(InboundStatus::Rejected, $this->processWith($parsers)->process($id));
+
+        $row = $this->messageRow($id);
+        self::assertSame(['failed', 'sender', ProcessMessage::UNTRUSTED], [$row['trust'], $row['trust_basis'], $row['failure']]);
+        self::assertSame([], $this->movementsOf($id), 'nothing is recorded from an untrusted sender');
     }
 
     public function testRetryIsManualAndIdempotent(): void
@@ -252,7 +301,7 @@ final class ProcessMessageTest extends InboundTestCase
     {
         $this->kbInvoice();
         $id = $this->received($this->notice('incoming-booked'));
-        $key = Scalars::text($this->em->getConnection()->fetchOne('SELECT raw_key FROM inbound_message WHERE id = ?', [$id]));
+        $key = Scalars::text($this->em->getConnection()->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]));
         $path = Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.$key;
         file_put_contents($path, str_replace('150,00 CZK', '950,00 CZK', (string) file_get_contents($path)));
 

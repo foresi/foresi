@@ -12,7 +12,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\PollBankInbox;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\InboundMailbox;
 use Foresi\Mail\Application\PollFailures;
 use Foresi\Mail\Infrastructure\CachePollFailures;
@@ -78,7 +78,7 @@ final class PollBankInboxTest extends KernelTestCase
         $stored = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address));
         $duplicate = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address));
         $unknown = $this->mailbox->deliver(InboundMailKit::mail($this->kit->unknownAddress(), 'unknown@mail.example.com'));
-        $large = $this->mailbox->deliver(str_repeat('a', ReceiveInboundMail::MAX_BYTES + 1));
+        $large = $this->mailbox->deliver(str_repeat('a', ReceiveMail::MAX_BYTES + 1));
         $unreadable = $this->mailbox->deliver("not a mail\r\n");
         $failing = $this->mailbox->deliver(InboundMailKit::mail($this->kit->address, 'failing@mail.example.com', ['X-Test' => 'fail-storage']));
 
@@ -198,7 +198,7 @@ final class PollBankInboxTest extends KernelTestCase
         self::assertSame([], $mailbox->fetch(PollBankInbox::BATCH));
         self::assertInstanceOf(ImapInboundMailbox::class, ImapInboundMailbox::fromSettings(' imap.example.com ', 993, 'ssl', 'bank@example.com', 'password', 'INBOX'));
 
-        new PollBankInbox($mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger(), $this->failures)->run();
+        new PollBankInbox($mailbox, self::getContainer()->get(ReceiveMail::class), $this->logger(), $this->failures)->run();
         self::assertCount(0, $this->logged);
     }
 
@@ -210,7 +210,7 @@ final class PollBankInboxTest extends KernelTestCase
     {
         FailingInboundFiles::failOn($failOn);
 
-        return new PollBankInbox($this->mailbox, self::getContainer()->get(ReceiveInboundMail::class), $this->logger(), $this->failures);
+        return new PollBankInbox($this->mailbox, self::getContainer()->get(ReceiveMail::class), $this->logger(), $this->failures);
     }
 
     private function logger(): AbstractLogger

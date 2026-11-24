@@ -10,7 +10,7 @@ namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
-use Foresi\Mail\Domain\InboundChannel;
+
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 
@@ -25,7 +25,7 @@ final class TrustChecksTest extends InboundTestCase
     {
         $check = $this->checkOf($this->notice('incoming-booked'));
 
-        self::assertSame(InboundChannel::Webhook, $check->channel);
+        self::assertSame('webhook', $check->channel);
         self::assertSame('mx.example.com', $check->authservId);
         self::assertTrue($check->trusted);
     }

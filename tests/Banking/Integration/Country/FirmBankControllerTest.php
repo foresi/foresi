@@ -10,7 +10,7 @@ namespace Foresi\Tests\Banking\Integration\Country;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Banking\Application\ProcessMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\Address;
@@ -105,7 +105,7 @@ final class FirmBankControllerTest extends WebTestCase
         $raw = (string) file_get_contents(__DIR__.'/../../../Fixtures/Banking/kb/incoming-booked.eml');
         $raw = "Authentication-Results: mx.example.com; dkim=pass header.d=kb.cz; dmarc=pass header.from=kb.cz\n".str_replace('bank+token@example.com', $address, $raw);
 
-        self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
+        self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveMail::class)->receive($raw, InboundChannel::Webhook));
         $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message'));
         $before = $this->client->request('GET', $this->url('pairing'))->filter('[data-bank-feed="'.$account.'"] [data-trust-check]')->text();
         self::getContainer()->get(ProcessMessage::class)->process($id);

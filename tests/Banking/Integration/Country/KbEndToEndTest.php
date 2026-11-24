@@ -9,16 +9,20 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Integration\Country;
 
 use Foresi\Banking\Application\BankFeedDirectory;
+use Foresi\Banking\Application\BankFeedPurpose;
 use Foresi\Banking\Application\BankFeeds;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\InboundProcessing;
 use Foresi\Banking\Application\ProcessInboundMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Mail\Application\InboundAddresses;
 use Foresi\Mail\Application\InboundFiles;
+use Foresi\Mail\Application\InboundPurposes;
+use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Tests\Banking\Support\InboundTestCase;
@@ -182,15 +186,22 @@ final class KbEndToEndTest extends InboundTestCase
                 $this->bus->dispatch(new Envelope(new ProcessInboundMessage($messageId), [new ReceivedStamp('sync')]));
             }
         };
-        $receive = new ReceiveInboundMail(
-            $container->get(MailReader::class),
-            $container->get(InboundAddresses::class),
+        $purpose = new BankFeedPurpose(
             $container->get(BankFeedDirectory::class),
             $container->get(InboundMessages::class),
-            $container->get(InboundFiles::class),
             $inline,
             $container->get(BankFeeds::class),
-            $container->get(TransactionalWork::class),
+            $container->get(ClockInterface::class),
+        );
+        $receive = new ReceiveMail(
+            $container->get(MailReader::class),
+            $container->get(InboundAddresses::class),
+            $container->get('test.mail_address_store'),
+            new InboundPurposes([$purpose]),
+            $container->get('test.mail_messages'),
+            $container->get(InboundFiles::class),
+            $container->get(SenderVerdict::class),
+            $container->get(MailTransaction::class),
             $container->get(ClockInterface::class),
         );
 
