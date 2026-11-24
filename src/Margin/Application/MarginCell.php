@@ -64,9 +64,12 @@ final readonly class MarginCell
 
         $costs = [];
         $costTotal = $zero;
+        /** @var array<string, ?CostDocument> $loaded one read per document, however many shares it has */
+        $loaded = [];
         foreach ($this->costs->sharesOf($first, $recipient) as $share) {
             $costTotal = $costTotal->plus($share->amount());
-            $costs[] = $this->costItem($share);
+            $loaded[$share->documentId()] ??= $this->sources->document($share->documentId());
+            $costs[] = $this->costItem($share, $loaded[$share->documentId()]);
         }
         usort($costs, static fn (MarginCellItem $one, MarginCellItem $two): int => [$two->amountCzk->minor(), $one->label, (string) $one->text] <=> [$one->amountCzk->minor(), $two->label, (string) $two->text]);
 
@@ -98,9 +101,8 @@ final readonly class MarginCell
         throw MarginRefused::invalid(MarginRefused::INVALID_ROW, 'row', 'A row is client:<contact id>, own or unassigned.');
     }
 
-    private function costItem(CostShare $share): MarginCellItem
+    private function costItem(CostShare $share, ?CostDocument $document): MarginCellItem
     {
-        $document = $this->sources->document($share->documentId());
         $line = $document instanceof CostDocument ? array_find($document->lines, static fn (CostLine $line): bool => $line->key === $share->lineKey()) : null;
 
         return new MarginCellItem(

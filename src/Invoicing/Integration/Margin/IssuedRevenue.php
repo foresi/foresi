@@ -50,18 +50,19 @@ final readonly class IssuedRevenue implements MarginRevenueSource
         $taxDocuments = array_filter($this->store->forAccountant($from, $to, false), static fn (DocumentKind $kind): bool => DocumentKind::Advance !== $kind);
         foreach (array_keys($taxDocuments) as $id) {
             $document = $this->documents->of($id);
-            $invoice = $this->store->get($id);
+            $stored = $this->store->snapshot($id);
+            $invoice = $stored->invoice;
             $zero = Money::ofMinor(0, Currency::CZK);
             $net = VatRecap::total(VatRecap::of([$document], Currency::CZK), Currency::CZK)->base;
             $lines = [];
-            foreach ($this->store->lines($invoice) as $index => $stored) {
-                $line = $document->lines[$index];
+            // The stored lines carry their ids and are the ones the document was built from.
+            foreach ($stored->lines as $line) {
                 $czk = self::converted($line->net(), $document->exchangeRate);
                 if ($this->deductsAnUntaxedAdvance($line, $document->deposits)) {
                     $net = $net->minus($czk);
                     $czk = $zero;
                 }
-                $lines[] = new RevenueLine($stored->id(), null, $czk);
+                $lines[] = new RevenueLine($line->id(), null, $czk);
             }
             yield new RevenueDocument(
                 $id,

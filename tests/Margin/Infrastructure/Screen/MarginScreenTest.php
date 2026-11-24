@@ -10,11 +10,15 @@ namespace Foresi\Tests\Margin\Infrastructure\Screen;
 
 use Foresi\Margin\Application\CostSources;
 use Foresi\Margin\Application\KnownGap;
+use Foresi\Margin\Application\MarginCellItem;
+use Foresi\Margin\Application\MarginCellView;
 use Foresi\Margin\Application\MarginFigures;
 use Foresi\Margin\Application\MarginRowView;
 use Foresi\Margin\Application\MarginTableView;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Infrastructure\Screen\MarginScreen;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Margin\Support\FixedCostSource;
 use Foresi\Ui\Format\MoneyText;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,6 +42,16 @@ final class MarginScreenTest extends KernelTestCase
         self::assertNotNull($page['gaps']);
         self::assertSame('The cost of 2 documents is not counted, their exchange rate is missing.', $page['gaps']['text']);
         self::assertSame([['label' => 'USD-0042', 'href' => '/purchasing/documents/d1'], ['label' => 'gone', 'href' => null]], $page['gaps']['documents']);
+    }
+
+    public function testADocumentIdThatIsNoUuidGetsNoAssignLinkInsteadOfAnError(): void
+    {
+        $none = MarginFigures::none();
+        $item = new MarginCellItem('not-a-uuid', 'Cloud Host', null, Money::ofMinor(100, Currency::CZK), 'unassigned', null, null);
+
+        $page = $this->screen(new FixedCostSource())->cell(new MarginCellView('unassigned', null, '2026-11', $none, [], [$item]));
+
+        self::assertNull($page['costs']['items'][0]['assign']);
     }
 
     public function testNoGapsNoNote(): void

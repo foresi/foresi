@@ -15,6 +15,7 @@ use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\TaxTreatment;
+use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Integration\Margin\IssuedRevenue;
 use Foresi\Margin\Contract\RevenueDocument;
@@ -102,6 +103,19 @@ final class IssuedRevenueTest extends AdvanceTestCase
         self::assertSame($this->reloaded($invoice)->number(), $document->number);
         self::assertSame([100_000, 50_000], array_map(static fn (\Foresi\Margin\Contract\RevenueLine $line): int => $line->netCzk->minor(), $document->lines));
         self::assertSame([null, null], array_map(static fn (\Foresi\Margin\Contract\RevenueLine $line): ?string => $line->sourceLineId, $document->lines));
+    }
+
+    public function testAForeignCurrencyDocumentCountsInCzkAtItsOwnRate(): void
+    {
+        $invoice = $this->issue->issue($this->input([$this->line('1000.00'), $this->line('500.00', kind: VatRateKind::Reduced)]));
+        // Issuing takes the home currency only; the stored document is turned into one in euros at 25.125.
+        $this->em->getConnection()->executeStatement("UPDATE invoice SET currency = 'EUR', exchange_rate = '25.125' WHERE id = :id", ['id' => $invoice->id()]);
+
+        $documents = $this->between('2026-11-01', '2026-11-30');
+
+        self::assertCount(1, $documents);
+        self::assertSame(3_768_750, $documents[0]->netCzk->minor(), 'Both rate summaries converted: 1,500.00 EUR at 25.125.');
+        self::assertSame([2_512_500, 1_256_250], array_map(static fn (\Foresi\Margin\Contract\RevenueLine $line): int => $line->netCzk->minor(), $documents[0]->lines), 'Each line converted at the document rate; here they add up to the document to the heller.');
     }
 
     public function testAnAdvanceAndTheTrashAddNothing(): void

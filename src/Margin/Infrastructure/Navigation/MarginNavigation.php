@@ -27,7 +27,7 @@ final readonly class MarginNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.margin', 'chart-column', MarginPageController::ROUTE, weight: 70, routePrefixes: [MarginPageController::ROUTE]);
+            yield new NavigationItem(CoreNavigationAreas::MONEY, 'nav.item.margin', 'chart-column', MarginPageController::ROUTE, weight: 70, routePrefixes: [MarginPageController::CELL_ROUTE, MarginPageController::RANGE_ROUTE]);
         }
     }
 }

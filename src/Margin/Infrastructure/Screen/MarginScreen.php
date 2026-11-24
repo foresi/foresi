@@ -19,6 +19,7 @@ use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Infrastructure\Controller\MarginPageController;
 use Foresi\Shared\Domain\Money;
 use Foresi\Ui\Format\MoneyText;
+use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Translation\LocaleSwitcher;
@@ -249,7 +250,7 @@ final readonly class MarginScreen
     {
         try {
             return $this->urls->generate($name, $parameters);
-        } catch (RouteNotFoundException) {
+        } catch (RouteNotFoundException|InvalidParameterException) {
             return null;
         }
     }

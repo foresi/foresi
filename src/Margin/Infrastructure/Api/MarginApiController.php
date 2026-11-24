@@ -44,7 +44,7 @@ final readonly class MarginApiController
     #[OA\Response(response: 200, description: 'Revenue, costs and margin in CZK of every client, of the firm itself and of what nobody claims, by month.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/MarginTable')], type: 'object'))]
     #[OA\Response(response: 400, description: 'A month cannot be used (invalid_month, range_reversed or range_too_long).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function table(Request $request): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
@@ -59,7 +59,7 @@ final readonly class MarginApiController
     #[OA\Response(response: 200, description: 'The revenue documents and the cost shares behind one cell, each with its label, amount, source and url.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/MarginCell')], type: 'object'))]
     #[OA\Response(response: 400, description: 'The row or the month cannot be used (invalid_row or invalid_month).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function cell(Request $request): JsonResponse
     {
         $this->scope->require(self::READ_SCOPE);
