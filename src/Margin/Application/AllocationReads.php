@@ -20,6 +20,7 @@ use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Domain\PlannedAllocation;
 use Foresi\Margin\Domain\SupplierDefault;
 use Foresi\Party\Contract\PartyDirectory;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * What the margin knows of one cost document: each effective line with its
@@ -93,7 +94,7 @@ final readonly class AllocationReads
 
     public static function isUuid(string $id): bool
     {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id);
+        return Uuid::isValid($id);
     }
 
     /**

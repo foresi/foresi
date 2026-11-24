@@ -55,12 +55,12 @@ final readonly class PairingReads implements PlannedPairings
         foreach ($this->store->pairings(null, $plannedItemId) as $pairing) {
             $on = $pairing->occurrenceOn();
             if ($this->pairs($pairing) && $on instanceof \DateTimeImmutable && $on->format('Y-m-d') >= $from) {
-                $rows[] = [$on->format('Y-m-d'), new PairedSubject(new FlowSubject($pairing->subjectType(), $pairing->subjectId()), $on)];
+                $rows[] = new PairedSubject(new FlowSubject($pairing->subjectType(), $pairing->subjectId()), $on);
             }
         }
-        usort($rows, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+        usort($rows, static fn (PairedSubject $a, PairedSubject $b): int => $a->occurrenceOn <=> $b->occurrenceOn);
 
-        return array_map(static fn (array $row): PairedSubject => $row[1], $rows);
+        return $rows;
     }
 
     /**

@@ -305,7 +305,12 @@ final readonly class AllocationWrites
             throw MarginRefused::invalid(MarginRefused::INVALID_MONTH, 'fromMonth', 'A month is written YYYY-MM, such as "2026-12".');
         }
 
-        return new \DateTimeImmutable($value.'-01');
+        $month = \DateTimeImmutable::createFromFormat('!Y-m', $value);
+        if (false === $month) {
+            throw new \LogicException('A checked month does not parse.');
+        }
+
+        return $month;
     }
 
     private function recipient(string $value, string $field): Recipient

@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Margin\Integration\CashFlow;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Foresi\CashFlow\Contract\Event\DocumentPairingChanged;
 use Foresi\Margin\Application\CostShareCalculation;
 use Foresi\Shared\Application\Event\DomainEventListener;
@@ -30,7 +29,7 @@ final readonly class RecalculateOnPairing implements DomainEventListener
 {
     public const string EVENT = 'cash-flow.document_pairing.changed';
 
-    public function __construct(private CostShareCalculation $calculation, private EntityManagerInterface $entityManager)
+    public function __construct(private CostShareCalculation $calculation)
     {
     }
 
@@ -45,7 +44,7 @@ final readonly class RecalculateOnPairing implements DomainEventListener
         if (!$payload instanceof DocumentPairingChanged || CashFlowPairings::RECEIVED_DOCUMENT !== $payload->subjectType) {
             return;
         }
+        // The relay runs each delivery in a transaction of its own and flushes it (DeliveryWork).
         $this->calculation->recalculate($payload->subjectId);
-        $this->entityManager->flush();
     }
 }

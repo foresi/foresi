@@ -63,7 +63,7 @@ final readonly class MappingVersions
      */
     private function latest(string $class, string $field, string $id, \DateTimeImmutable $month): ?object
     {
-        /** @var list<T> $found */
+        /** @var T|null $found */
         $found = $this->entityManager->createQueryBuilder()
             ->select('v')
             ->from($class, 'v')
@@ -74,8 +74,8 @@ final readonly class MappingVersions
             ->setParameter('id', $id)
             ->setParameter('month', self::monthOf($month), Types::DATE_IMMUTABLE)
             ->getQuery()
-            ->getResult();
+            ->getOneOrNullResult();
 
-        return $found[0] ?? null;
+        return $found;
     }
 }

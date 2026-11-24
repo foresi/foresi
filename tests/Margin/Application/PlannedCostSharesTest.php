@@ -25,7 +25,12 @@ use Foresi\Margin\Application\KnownGaps;
 use Foresi\Margin\Application\MappingVersions;
 use Foresi\Margin\Application\MarginAccess;
 use Foresi\Margin\Application\OccurrenceFill;
+use Foresi\Margin\Application\PlannedAllocationsView;
 use Foresi\Margin\Application\PlannedCostItem;
+use Foresi\Margin\Application\SetPlannedAllocationInput;
+use Foresi\Margin\Application\SetSupplierDefaultInput;
+use Foresi\Margin\Application\SupplierDefaultsView;
+use Foresi\Margin\Application\SupplierDefaultVersionView;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Contract\CostLine;
 use Foresi\Margin\Domain\Allocation;
@@ -34,6 +39,7 @@ use Foresi\Margin\Domain\AllocationShare;
 use Foresi\Margin\Domain\CostShare;
 use Foresi\Margin\Domain\LineAllocation;
 use Foresi\Margin\Domain\MarginRefused;
+use Foresi\Margin\Domain\PlannedAllocation;
 use Foresi\Margin\Domain\Recipient;
 use Foresi\Margin\Domain\ShareSplitter;
 use Foresi\Party\Application\TransactionalWork;
@@ -235,7 +241,7 @@ final class PlannedCostSharesTest extends KernelTestCase
             'd2 line-1 '.$this->clientB.' 20000 line 2026-12-01 - -',
         ], $this->shares());
         self::assertSame('Cloud Host', $view->supplierName);
-        self::assertSame([['2026-12', $this->clientA, 'Client A', true]], array_map(static fn (\Foresi\Margin\Application\SupplierDefaultVersionView $version): array => [$version->fromMonth, $version->recipient, $version->recipientName, $version->current], $view->versions));
+        self::assertSame([['2026-12', $this->clientA, 'Client A', true]], array_map(static fn (SupplierDefaultVersionView $version): array => [$version->fromMonth, $version->recipient, $version->recipientName, $version->current], $view->versions));
         self::assertEquals($view->versions, $this->reads->supplierDefault($this->cloudHost)->versions);
         self::assertSame(['supplier'], array_map(static fn (\Foresi\Margin\Application\ShareView $share): string => $share->source, $this->reads->document($unmapped)->lines[0]->shares));
     }
@@ -323,7 +329,7 @@ final class PlannedCostSharesTest extends KernelTestCase
         $item = '0197a1de-0000-7000-8000-0000000000e3';
         $this->pairings->items[$item] = new PlannedCostItem($item, 'Office rent', true, true, null);
 
-        $this->assertRefused('counterparty_required', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($item, $this->whole($this->clientA), '2026-12'));
+        $this->assertRefused('counterparty_required', fn (): PlannedAllocationsView => $this->writes->setPlanned($item, $this->whole($this->clientA), '2026-12'));
     }
 
     public function testWhatAPlannedOrSupplierMappingRefuses(): void
@@ -334,14 +340,14 @@ final class PlannedCostSharesTest extends KernelTestCase
         $this->pairings->items[$once] = new PlannedCostItem($once, 'Laptop', true, false, $this->cloudHost);
         $whole = $this->whole($this->clientA);
 
-        $this->assertRefused('not_an_expense', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($income, $whole, '2026-12'));
-        $this->assertRefused('not_recurring', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($once, $whole, '2026-12'));
-        $this->assertRefused('unknown_planned_item', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned('0197a1de-0000-7000-8000-0000000000ff', $whole, '2026-12'));
-        $this->assertRefused('invalid_month', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $whole, '2026-13'));
-        $this->assertRefused('invalid_month', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::own(), '2026-1'));
-        $this->assertRefused('unknown_contact', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $this->whole('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
-        $this->assertRefused('unknown_supplier', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault('0197a1de-0000-7000-8000-0000000000fd', Recipient::own(), '2026-12'));
-        $this->assertRefused('unknown_contact', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::client('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
+        $this->assertRefused('not_an_expense', fn (): PlannedAllocationsView => $this->writes->setPlanned($income, $whole, '2026-12'));
+        $this->assertRefused('not_recurring', fn (): PlannedAllocationsView => $this->writes->setPlanned($once, $whole, '2026-12'));
+        $this->assertRefused('unknown_planned_item', fn (): PlannedAllocationsView => $this->writes->setPlanned('0197a1de-0000-7000-8000-0000000000ff', $whole, '2026-12'));
+        $this->assertRefused('invalid_month', fn (): PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $whole, '2026-13'));
+        $this->assertRefused('invalid_month', fn (): SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::own(), '2026-1'));
+        $this->assertRefused('unknown_contact', fn (): PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $this->whole('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
+        $this->assertRefused('unknown_supplier', fn (): SupplierDefaultsView => $this->writes->setSupplierDefault('0197a1de-0000-7000-8000-0000000000fd', Recipient::own(), '2026-12'));
+        $this->assertRefused('unknown_contact', fn (): SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::client('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
     }
 
     public function testSettingAMonthAgainReplacesItsVersion(): void
@@ -387,6 +393,110 @@ final class PlannedCostSharesTest extends KernelTestCase
         self::assertNull($pairings->item(self::VOICE_API_ITEM));
         self::assertSame([], $pairings->documentsOfOccurrence(self::VOICE_API_ITEM, new \DateTimeImmutable('2026-11-01')));
         self::assertSame([], $pairings->documentsOfItemFrom(self::VOICE_API_ITEM, new \DateTimeImmutable('2026-11-01')));
+    }
+
+    public function testAGuestIsRefusedBeforeAnythingIsReadOrChecked(): void
+    {
+        $guest = new User('guest@example.com', 'hash', 'Gil Guest');
+        $this->em->persist($guest);
+        $this->em->persist(new Membership($guest, Role::Guest, $this->em->find(Party::class, $this->clientA)));
+        $this->em->flush();
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($guest->id(), $guest->email(), 'hash'), 'main', ['ROLE_USER']));
+
+        // Each call would be refused for something else too: forbidden comes first.
+        $this->assertRefused('forbidden', fn (): PlannedAllocationsView => $this->reads->planned('0197a1de-0000-7000-8000-0000000000ff'));
+        $this->assertRefused('forbidden', fn (): SupplierDefaultsView => $this->reads->supplierDefault('not-an-id'));
+        $this->assertRefused('forbidden', fn (): PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, null, '2026-13'));
+        $this->assertRefused('forbidden', fn (): PlannedAllocationsView => $this->writes->setPlannedAllocation(new SetPlannedAllocationInput(self::VOICE_API_ITEM, ['kind' => 5], '2026-12')));
+        $this->assertRefused('forbidden', fn (): SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, null, '2026-13'));
+        $this->assertRefused('forbidden', fn (): SupplierDefaultsView => $this->writes->setSupplierDefaultRecipient(new SetSupplierDefaultInput($this->cloudHost, 'not-a-recipient', '2026-12')));
+        self::assertSame([], $this->em->getRepository(PlannedAllocation::class)->findAll());
+    }
+
+    public function testTheVersionsOfAMonthBelongToTheirItemOrSupplier(): void
+    {
+        $this->writes->setPlanned(self::VOICE_API_ITEM, $this->whole($this->clientA), '2026-12');
+        $this->writes->setPlanned(self::CLOUD_HOST_ITEM, $this->whole($this->clientB), '2026-12');
+        $this->writes->setSupplierDefault($this->voiceApi, Recipient::own(), '2026-12');
+        $this->writes->setSupplierDefault($this->cloudHost, Recipient::client($this->clientA), '2026-12');
+
+        $voice = $this->reads->planned(self::VOICE_API_ITEM)->versions;
+        self::assertCount(1, $voice);
+        self::assertSame($this->clientA, $voice[0]->mapping?->terms[0]->recipient);
+        $cloud = $this->reads->planned(self::CLOUD_HOST_ITEM)->versions;
+        self::assertCount(1, $cloud);
+        self::assertSame($this->clientB, $cloud[0]->mapping?->terms[0]->recipient);
+        self::assertSame(['own'], array_map(static fn (SupplierDefaultVersionView $version): ?string => $version->recipient, $this->reads->supplierDefault($this->voiceApi)->versions));
+        self::assertSame([$this->clientA], array_map(static fn (SupplierDefaultVersionView $version): ?string => $version->recipient, $this->reads->supplierDefault($this->cloudHost)->versions));
+    }
+
+    public function testADocumentMovedToAnotherOccurrenceCountsBothOccurrencesAgain(): void
+    {
+        $this->writes->setPlanned(self::CLOUD_HOST_ITEM, $this->fixed600(), '2026-05');
+        $moved = $this->document('d1', $this->cloudHost, '2026-05-03', [$this->line('line-1', 67_200)]);
+        $stays = $this->document('d2', $this->cloudHost, '2026-05-20', [$this->line('line-1', 15_750)]);
+        $june = $this->document('d3', $this->cloudHost, '2026-06-10', [$this->line('line-1', 15_750)]);
+        $this->pairings->pair($moved, self::CLOUD_HOST_ITEM, '2026-05-01');
+        $this->pairings->pair($stays, self::CLOUD_HOST_ITEM, '2026-05-01');
+        $this->pairings->pair($june, self::CLOUD_HOST_ITEM, '2026-06-01');
+        $this->recalculate($moved);
+        $this->recalculate($june);
+
+        $this->pairings->pair($moved, self::CLOUD_HOST_ITEM, '2026-06-01');
+        $this->recalculate($moved);
+
+        self::assertSame([
+            'd1 line-1 '.$this->clientA.' 60000 planned_item 2026-06-01 '.self::CLOUD_HOST_ITEM.' 2026-06-01',
+            'd1 line-1 own 7200 planned_item 2026-06-01 '.self::CLOUD_HOST_ITEM.' 2026-06-01',
+            'd2 line-1 '.$this->clientA.' 15750 planned_item 2026-05-01 '.self::CLOUD_HOST_ITEM.' 2026-05-01',
+            'd3 line-1 own 15750 planned_item 2026-06-01 '.self::CLOUD_HOST_ITEM.' 2026-06-01',
+        ], $this->shares(), 'The occurrence it left and the one it joined were both counted again.');
+    }
+
+    public function testATrashedDocumentOrAMappedLineFillsNoFixedAmount(): void
+    {
+        $this->writes->setPlanned(self::CLOUD_HOST_ITEM, $this->fixed600(), '2026-05');
+        $this->source->documents['d1'] = new CostDocument('d1', $this->cloudHost, new \DateTimeImmutable('2026-05-01', new \DateTimeZone('Europe/Prague')), [$this->line('line-1', 67_200)], true, 'EN-d1', '/purchasing/d1');
+        $mapped = $this->document('d2', $this->cloudHost, '2026-05-02', [$this->line('line-1', 67_200), $this->line('line-2', 0)]);
+        $last = $this->document('d3', $this->cloudHost, '2026-05-20', [$this->line('line-1', 15_750)]);
+        foreach (['d1', $mapped, $last] as $id) {
+            $this->pairings->pair($id, self::CLOUD_HOST_ITEM, '2026-05-01');
+        }
+        $this->em->persist(new LineAllocation(Uuid::v7()->toRfc4122(), $mapped, 'line-1', $this->whole($this->clientB), new \DateTimeImmutable(), 'user'));
+        $this->em->flush();
+
+        $this->recalculate($last);
+
+        self::assertSame([
+            'd2 line-1 '.$this->clientB.' 67200 line 2026-05-01 - -',
+            'd3 line-1 '.$this->clientA.' 15750 planned_item 2026-05-01 '.self::CLOUD_HOST_ITEM.' 2026-05-01',
+        ], $this->shares());
+    }
+
+    public function testThePairingsOfEverySourceAreListedOnce(): void
+    {
+        $other = new FixedPairings();
+        $this->pairings->pair('d1', self::CLOUD_HOST_ITEM, '2026-05-01');
+        $this->pairings->pair('d2', self::CLOUD_HOST_ITEM, '2026-05-01');
+        $other->pair('d2', self::CLOUD_HOST_ITEM, '2026-05-01');
+        $other->pair('d3', self::CLOUD_HOST_ITEM, '2026-05-01');
+        $pairings = new CostPairings([$this->pairings, $other]);
+
+        self::assertSame(['d1', 'd2', 'd3'], $pairings->documentsOfOccurrence(self::CLOUD_HOST_ITEM, new \DateTimeImmutable('2026-05-01')));
+        self::assertSame(['d1', 'd2', 'd3'], $pairings->documentsOfItemFrom(self::CLOUD_HOST_ITEM, new \DateTimeImmutable('2026-05-01')));
+    }
+
+    public function testTheShareThatTakesTheRestMayComeFirst(): void
+    {
+        $allocation = new Allocation(AllocationKind::Fixed, [
+            new AllocationShare(Recipient::own(), rest: true),
+            new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
+        ]);
+        $document = new CostDocument('d1', $this->cloudHost, new \DateTimeImmutable('2026-05-03'), [$this->line('line-1', 67_200)], false, 'EN-d1', '/purchasing/d1');
+
+        $parts = new OccurrenceFill(new ShareSplitter())->split($allocation, [[$document, $document->lines]]);
+
+        self::assertSame([['own', 7_200], [$this->clientA, 60_000]], array_map(static fn (array $part): array => [$part[0]->toString(), $part[1]->minor()], $parts['d1']['line-1']));
     }
 
     private function contact(string $name): string

@@ -99,7 +99,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
         };
         $this->pairings = new CashFlowPairings($this->stored, $items);
         $calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class), new CostPairings([$this->pairings]), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));
-        $this->listener = new RecalculateOnPairing($calculation, $this->em);
+        $this->listener = new RecalculateOnPairing($calculation);
 
         $this->em->persist(new PlannedAllocation(Uuid::v7()->toRfc4122(), self::ITEM, new \DateTimeImmutable('2026-05-01'), new Allocation(AllocationKind::Fixed, [
             new AllocationShare(Recipient::client(self::CLIENT_A), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
@@ -130,6 +130,14 @@ final class RecalculateOnPairingTest extends KernelTestCase
         self::assertSame([], $this->pairings->documentsOfItemFrom(self::ITEM, new \DateTimeImmutable('2026-06-01')));
         self::assertSame('2026-05-01', $this->pairings->pairingOf(self::EARLIER)?->occurrenceOn->format('Y-m-d'));
         self::assertNull($this->pairings->pairingOf(self::LATER));
+    }
+
+    public function testEveryReceivedDocumentOfTheItemIsListed(): void
+    {
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+        $this->stored->pair(self::LATER, '2026-06-01');
+
+        self::assertSame([self::EARLIER, self::LATER], $this->pairings->documentsOfItemFrom(self::ITEM, new \DateTimeImmutable('2026-05-01')));
     }
 
     public function testAPairingRecalculatesTheWholeOccurrence(): void

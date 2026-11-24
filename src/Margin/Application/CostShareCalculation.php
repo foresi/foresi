@@ -132,7 +132,7 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
     }
 
     /**
-     * @param array<string, array<string, array<string, list<array{Recipient, Money}>>>> $fills the fixed fills of the occurrences met so far, by occurrence
+     * @param array<string, array<string, array<string, array<string, list<array{Recipient, Money}>>>>> $fills the fixed fills of the occurrences met so far, by planned item and day
      */
     private function calculate(string $documentId, array &$fills): void
     {
@@ -176,15 +176,15 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
     /**
      * The fill of a fixed mapping over every document of the occurrence of the paired document, by document id and line key.
      *
-     * @param array<string, array<string, array<string, list<array{Recipient, Money}>>>> $fills
+     * @param array<string, array<string, array<string, array<string, list<array{Recipient, Money}>>>>> $fills
      *
      * @return array<string, array<string, list<array{Recipient, Money}>>>
      */
     private function fixedParts(CostDocument $paired, CostPairing $pairing, Allocation $planned, array &$fills): array
     {
-        $key = $pairing->plannedItemId.' '.$pairing->day()->format('Y-m-d');
-        if (isset($fills[$key][$paired->id])) {
-            return $fills[$key];
+        $day = $pairing->day()->format('Y-m-d');
+        if (isset($fills[$pairing->plannedItemId][$day][$paired->id])) {
+            return $fills[$pairing->plannedItemId][$day];
         }
         $documents = [];
         // The document itself is of its occurrence even if the source has not listed it yet.
@@ -195,7 +195,7 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
             }
         }
 
-        return $fills[$key] = $this->fill->split($planned, $documents);
+        return $fills[$pairing->plannedItemId][$day] = $this->fill->split($planned, $documents);
     }
 
     /**
