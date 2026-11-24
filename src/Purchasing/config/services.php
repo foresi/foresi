@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Purchasing\Application\Reading\DocumentReader;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -14,6 +15,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
  */
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()->defaults()->autowire()->autoconfigure();
+    // Readers of received documents, in reader order by tag priority (set per reader).
+    $services->instanceof(DocumentReader::class)->tag('foresi.purchasing.document_reader');
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Purchasing\\', '../')
         ->exclude(['../config/', '../Integration/', '../migrations/', '../PurchasingBundle.php']);
