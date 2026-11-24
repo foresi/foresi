@@ -96,6 +96,29 @@ final class MailMessageTest extends TestCase
         $this->message(size: -1);
     }
 
+    public function testHeadersAreTrimmedBlankOnesAreNoneAndLongOnesAreCutByCharacters(): void
+    {
+        $message = $this->message(messageId: '  <id@mail.example.com>  ', inReplyTo: '   ');
+
+        self::assertSame('<id@mail.example.com>', $message->messageIdHeader());
+        self::assertNull($message->inReplyTo());
+
+        $long = $this->message(messageId: str_repeat('ř', MailMessage::MAX_HEADER + 5));
+
+        self::assertSame(str_repeat('ř', MailMessage::MAX_HEADER), $long->messageIdHeader());
+    }
+
+    public function testReferencesAreTrimmedAndBlankOnesDropped(): void
+    {
+        $message = $this->message(references: ['  <a@mail.example.com> ', '', '   ', '<b@mail.example.com>']);
+
+        self::assertSame(['<a@mail.example.com>', '<b@mail.example.com>'], $message->references());
+        self::assertSame([], $this->message(references: ['', '  '])->references());
+    }
+
+    /**
+     * @param list<string> $references
+     */
     private function message(
         string $dedupKey = self::HASH,
         string $rawKey = 'raw/message.eml',
@@ -103,9 +126,12 @@ final class MailMessageTest extends TestCase
         int $size = 10,
         ?string $from = 'bank@example.com',
         string $subject = 'Subject',
+        ?string $messageId = null,
+        ?string $inReplyTo = null,
+        array $references = [],
     ): MailMessage {
         $address = new InboundAddress('test', null, 'Test', self::HASH, null, new \DateTimeImmutable('2026-11-20 09:00:00'));
 
-        return new MailMessage('00000000-0000-4000-8000-000000000001', $address, InboundChannel::Imap, $dedupKey, $rawKey, $rawSha256, $size, null, null, [], $from, $subject, null, new \DateTimeImmutable('2026-11-20 10:00:00'), 'unknown', null);
+        return new MailMessage('00000000-0000-4000-8000-000000000001', $address, InboundChannel::Imap, $dedupKey, $rawKey, $rawSha256, $size, $messageId, $inReplyTo, $references, $from, $subject, null, new \DateTimeImmutable('2026-11-20 10:00:00'), 'unknown', null);
     }
 }

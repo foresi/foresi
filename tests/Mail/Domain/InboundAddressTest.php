@@ -46,8 +46,63 @@ final class InboundAddressTest extends TestCase
         yield 'upper case' => [strtoupper($hash)];
     }
 
-    private function open(string $hash): InboundAddress
+    public function testAPurposeIsTrimmedAndFortyCharactersAreEnough(): void
     {
-        return new InboundAddress('bank_feed', null, 'Bank feed', $hash, 'sealed', new \DateTimeImmutable('2026-11-02T09:00:00+01:00'));
+        $edge = str_repeat('p', InboundAddress::MAX_PURPOSE);
+
+        self::assertSame($edge, $this->open(hash('sha256', 'token'), purpose: '  '.$edge.'  ')->purpose());
+    }
+
+    #[DataProvider('badPurposes')]
+    public function testAPurposeIsOneToFortyCharacters(string $purpose): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('A purpose key is 1 to 40 characters.');
+
+        $this->open(hash('sha256', 'token'), purpose: $purpose);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function badPurposes(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'blank' => ['   '];
+        yield 'one too long' => [str_repeat('p', InboundAddress::MAX_PURPOSE + 1)];
+    }
+
+    public function testABlankOwnerIsRefused(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('An owner is named by an id.');
+
+        $this->open(hash('sha256', 'token'), owner: '   ');
+    }
+
+    public function testALabelIsTrimmedAndCutByCharacters(): void
+    {
+        $address = $this->open(hash('sha256', 'token'), label: '  Bank feed  ');
+        $long = $this->open(hash('sha256', 'token'), label: str_repeat('ř', InboundAddress::MAX_LABEL + 5));
+
+        self::assertSame('Bank feed', $address->label());
+        self::assertSame(str_repeat('ř', InboundAddress::MAX_LABEL), $long->label());
+    }
+
+    public function testRevokingTwiceKeepsTheFirstMoment(): void
+    {
+        $address = $this->open(hash('sha256', 'token'));
+        $first = new \DateTimeImmutable('2026-11-03T09:00:00+00:00');
+
+        $address->revoke($first);
+        $address->revoke(new \DateTimeImmutable('2026-11-09T09:00:00+00:00'));
+
+        self::assertTrue($address->isRevoked());
+        self::assertSame($first, $address->revokedAt());
+    }
+
+    private function open(string $hash, string $purpose = 'bank_feed', ?string $owner = null, string $label = 'Bank feed'): InboundAddress
+    {
+        return new InboundAddress($purpose, $owner, $label, $hash, 'sealed', new \DateTimeImmutable('2026-11-02T09:00:00+01:00'));
     }
 }

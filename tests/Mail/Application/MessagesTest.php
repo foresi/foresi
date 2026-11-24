@@ -112,6 +112,71 @@ final class MessagesTest extends KernelTestCase
         self::assertSame("Amount: 150.00 CZK\r\n", $this->messages->text($id));
     }
 
+    public function testAFileThatIsNoMailIsReadAsNothing(): void
+    {
+        $id = $this->stored(MailKit::mail($this->kit->address));
+        $this->replaceFile($id, "this is not a mail\r\n");
+
+        try {
+            $this->messages->mail($id);
+            self::fail('Bytes that start with no header are no mail.');
+        } catch (\InvalidArgumentException) {
+            self::addToAssertionCount(1);
+        }
+        self::assertNull($this->messages->text($id));
+        self::assertSame([], $this->messages->attachments($id));
+        self::assertSame([], $this->messages->authenticationResults($id));
+        try {
+            $this->messages->attachment($id, 0);
+            self::fail('A file that is no mail has no attachment.');
+        } catch (UnknownMailMessage $unreadable) {
+            self::assertSame('The stored mail message cannot be read.', $unreadable->getMessage());
+        }
+    }
+
+    public function testAChangedFileHasNoAttachmentToGive(): void
+    {
+        $id = $this->stored($this->fixture('attachment.eml'));
+        $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
+        $key = self::getContainer()->get(Connection::class)->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]);
+        self::assertIsString($key);
+        file_put_contents($directory.'/'.$key, "From: someone@example.com\r\n\r\nChanged.\r\n");
+
+        try {
+            $this->messages->attachment($id, 0);
+            self::fail('A changed file gave an attachment.');
+        } catch (UnknownMailMessage $unreadable) {
+            self::assertSame('The stored mail message cannot be read.', $unreadable->getMessage());
+        }
+    }
+
+    public function testAnAttachmentOfAnUnknownMessageOrIndexIsRefusedWithItsOwnReason(): void
+    {
+        $id = $this->stored($this->fixture('attachment.eml'));
+
+        try {
+            $this->messages->attachment(Id::generate(), 0);
+            self::fail('A message that is not stored gave an attachment.');
+        } catch (UnknownMailMessage $unknown) {
+            self::assertSame('No stored mail message has this id.', $unknown->getMessage());
+        }
+        try {
+            $this->messages->attachment($id, 5);
+            self::fail('An attachment that is not there was given.');
+        } catch (UnknownMailMessage $unknown) {
+            self::assertSame('The stored mail message has no such attachment.', $unknown->getMessage());
+        }
+    }
+
+    public function testTheHtmlBodyStandsInWhenThePlainOneIsBlank(): void
+    {
+        $raw = preg_replace('/(Content-Type: text\/plain[^\n]*\n[^\n]*\n\r?\n).*?(\r?\n--alt-boundary\r?\nContent-Type: text\/html)/s', '$1   $2', $this->fixture('multipart-alternative.eml'));
+        self::assertIsString($raw);
+        $id = $this->stored($raw);
+
+        self::assertSame('Amount: 1 234,50 CZK', $this->messages->text($id));
+    }
+
     public function testTextIsTheHtmlBodyAsTextWhenThereIsNoPlainOne(): void
     {
         $id = $this->stored($this->fixture('html-only-qp-utf8.eml'));
@@ -161,6 +226,18 @@ final class MessagesTest extends KernelTestCase
         self::assertEquals(new SenderCheck(SenderCheck::FAILED, 'sender'), $this->messages->verdict($id, ['bank.example.com']));
         // The generic verdict was stored on arrival.
         self::assertSame('verified', $this->messages->find($id)?->verdict);
+    }
+
+    /**
+     * Puts other bytes in the file of a stored message and its row, so the file still matches its hash.
+     */
+    private function replaceFile(string $id, string $bytes): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $key = $connection->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]);
+        self::assertIsString($key);
+        file_put_contents(self::getContainer()->getParameter('app.inbound_mail_dir').'/'.$key, $bytes);
+        $connection->executeStatement('UPDATE mail_message SET raw_sha256 = ? WHERE id = ?', [hash('sha256', $bytes), $id]);
     }
 
     /**

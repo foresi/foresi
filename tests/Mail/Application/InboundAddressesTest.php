@@ -94,6 +94,7 @@ final class InboundAddressesTest extends TestCase
         self::assertFalse($addresses->isConfigured());
         self::assertTrue(new InboundAddresses(str_repeat('b', 38).'{token}@example.com')->isConfigured());
         $this->expectException(AddressNotConfigured::class);
+        $this->expectExceptionMessageIsOrContains('The inbound address template is not set up.');
 
         $addresses->addressFor(self::TOKEN);
     }

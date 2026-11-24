@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Application;
 
+use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
+use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Contract\Messages;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 
@@ -52,6 +55,24 @@ final class TrustChecksTest extends InboundTestCase
 
         self::assertSame(str_repeat('č', 253), $check->authservId);
         self::assertFalse($check->trusted);
+    }
+
+    public function testAFeedThatReceivedNothingHasNoCheck(): void
+    {
+        $messages = self::createStub(InboundMessages::class);
+        $messages->method('lastOfFeed')->willReturn(null);
+
+        self::assertNull(new TrustChecks($messages, self::createStub(Messages::class))->lastOf('feed'));
+    }
+
+    public function testAMessageWhoseMailIsGoneHasNoCheck(): void
+    {
+        $messages = self::createStub(InboundMessages::class);
+        $messages->method('lastOfFeed')->willReturn(new InboundMessage('01937f4e-0000-7000-8000-000000000001', 'feed', '01937f4e-0000-7000-8000-000000000002'));
+        $mail = self::createStub(Messages::class);
+        $mail->method('find')->willReturn(null);
+
+        self::assertNull(new TrustChecks($messages, $mail)->lastOf('feed'));
     }
 
     private function checkOf(string $raw): TrustCheck

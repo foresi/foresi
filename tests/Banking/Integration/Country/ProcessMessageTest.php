@@ -313,6 +313,24 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame(0, $this->paymentCount());
     }
 
+    public function testAStoredFileThatIsNoMailFailsAsUnreadable(): void
+    {
+        $this->kbInvoice();
+        $id = $this->received($this->notice('incoming-booked'));
+        $connection = $this->em->getConnection();
+        $key = Scalars::text($connection->fetchOne('SELECT raw_key FROM mail_message WHERE id = ?', [$id]));
+        $bytes = "this is not a mail\r\n";
+        file_put_contents(Scalars::text(self::getContainer()->getParameter('app.inbound_mail_dir')).'/'.$key, $bytes);
+        $connection->executeStatement('UPDATE mail_message SET raw_sha256 = ? WHERE id = ?', [hash('sha256', $bytes), $id]);
+
+        self::assertSame(InboundStatus::Failed, $this->process->process($id));
+
+        $row = $this->messageRow($id);
+        self::assertSame(['failed', 'unreadable', null], [$row['status'], $row['failure'], $row['parser_id']]);
+        self::assertSame('The stored message is not a mail.', $row['failure_detail']);
+        self::assertSame([], $this->movementsOf($id));
+    }
+
     public function testAnUnexpectedErrorUndoesTheRunAndCountsTheAttempt(): void
     {
         $this->kbInvoice();

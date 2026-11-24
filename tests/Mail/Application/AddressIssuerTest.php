@@ -121,6 +121,7 @@ final class AddressIssuerTest extends KernelTestCase
             self::fail('A server without an address template handed out an address.');
         } catch (AddressNotIssued $refused) {
             self::assertSame(AddressUnavailable::NotConfigured, $refused->reason);
+            self::assertSame('The inbound address template is not set up.', $refused->getMessage());
         }
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_inbound_address')));
     }
@@ -132,7 +133,57 @@ final class AddressIssuerTest extends KernelTestCase
         self::assertNull($issuer->unavailable(RecordingPurpose::KEY));
         self::assertSame(AddressUnavailable::NoKey, $issuer->unavailable(RecordingPurpose::RESHOWABLE_KEY));
         $this->expectExceptionObject(new AddressNotIssued(AddressUnavailable::NoKey));
+        $this->expectExceptionMessageIsOrContains('No key seals the token of an inbound address.');
         $issuer->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
+    }
+
+    public function testRotatingAnUnknownAddressIsRefused(): void
+    {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessageIsOrContains('No inbound address has this id.');
+
+        $this->issuer()->rotate('01937f4e-0000-7000-8000-0000000000ff');
+    }
+
+    public function testRotatingWithoutATemplateKeepsTheOldToken(): void
+    {
+        $old = $this->issuer()->issue(RecordingPurpose::KEY, null, 'Test');
+        $hash = $this->connection()->fetchOne('SELECT token_hash FROM mail_inbound_address');
+        $this->em->clear();
+
+        try {
+            $this->issuer('')->rotate($old->id);
+            self::fail('A server without an address template rotated an address.');
+        } catch (AddressNotIssued $refused) {
+            self::assertSame(AddressUnavailable::NotConfigured, $refused->reason);
+        }
+        self::assertSame($hash, $this->connection()->fetchOne('SELECT token_hash FROM mail_inbound_address'));
+    }
+
+    public function testNothingIsRevealedWithoutASealedCopyOrAPurposeToShowIt(): void
+    {
+        $issued = $this->issuer()->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
+        self::assertSame($issued->address, $this->issuer()->reveal($issued->id));
+
+        $this->connection()->executeStatement('UPDATE mail_inbound_address SET token_sealed = NULL');
+        $this->em->clear();
+        self::assertNull($this->issuer()->reveal($issued->id), 'no sealed copy, nothing to show');
+
+        $other = $this->issuer()->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Other feed');
+        $this->connection()->executeStatement("UPDATE mail_inbound_address SET purpose = 'removed_module' WHERE id = ?", [$other->id]);
+        $this->em->clear();
+        self::assertNull($this->issuer()->reveal($other->id), 'no module takes mail for the purpose any more');
+        self::assertNull($this->issuer()->reveal('01937f4e-0000-7000-8000-0000000000ff'));
+    }
+
+    public function testRevealingWithoutAKeyIsRefused(): void
+    {
+        $issued = $this->issuer()->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
+        $this->em->clear();
+
+        $this->expectExceptionObject(new AddressNotIssued(AddressUnavailable::NoKey));
+        $this->expectExceptionMessageIsOrContains('No key seals the token of an inbound address.');
+        $this->issuer(sealer: new SodiumSealer(''))->reveal($issued->id);
     }
 
     public function testAnUnregisteredPurposeGetsNoAddress(): void

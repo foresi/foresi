@@ -30,6 +30,7 @@ use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Shared\Application\Sealer;
+use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -164,6 +165,35 @@ final class GenerateAddressTest extends KernelTestCase
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_feed')));
     }
 
+    public function testRefusalComesBeforeLookingAtTheAccount(): void
+    {
+        $archived = $this->account();
+        $archived->archive(new \DateTimeImmutable('2026-11-01'));
+        $this->em->flush();
+
+        foreach ([$archived->id(), '01937f4e-0000-7000-8000-0000000000ff'] as $accountId) {
+            try {
+                $this->generate('')->generate($accountId);
+                self::fail('A server without an address template handed out an address.');
+            } catch (AddressRefused $refused) {
+                self::assertSame(AddressRefusal::NotConfigured, $refused->reason);
+            }
+        }
+    }
+
+    public function testWithoutAKeyGeneratingIsRefused(): void
+    {
+        $account = $this->account();
+
+        try {
+            $this->generate(sealer: new SodiumSealer(''))->generate($account->id());
+            self::fail('A server without a key sealed the token of an address.');
+        } catch (AddressRefused $refused) {
+            self::assertSame(AddressRefusal::NoKey, $refused->reason);
+        }
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM bank_feed')));
+    }
+
     public function testAnArchivedAccountGetsNoAddress(): void
     {
         $account = $this->account();
@@ -227,14 +257,14 @@ final class GenerateAddressTest extends KernelTestCase
         return $account;
     }
 
-    private function generate(string $template = self::TEMPLATE): GenerateAddress
+    private function generate(string $template = self::TEMPLATE, ?Sealer $sealer = null): GenerateAddress
     {
         $container = self::getContainer();
 
         return new GenerateAddress(
             $container->get(FirmBankAccounts::class),
             $this->feeds(),
-            new IssueAddresses(new InboundAddresses($template), $this->store(), $container->get(InboundPurposes::class), $container->get(Sealer::class), $container->get(MailTransaction::class), $this->clock),
+            new IssueAddresses(new InboundAddresses($template), $this->store(), $container->get(InboundPurposes::class), $sealer ?? $container->get(Sealer::class), $container->get(MailTransaction::class), $this->clock),
             $container->get(TransactionalWork::class),
             $this->clock,
         );
