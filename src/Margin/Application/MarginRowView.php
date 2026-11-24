@@ -35,4 +35,23 @@ final readonly class MarginRowView
         public MarginFigures $total,
     ) {
     }
+
+    /**
+     * The label of a row for people who read English (REST, MCP): the name of a
+     * client, which is its contact id when the contact no longer resolves, or
+     * "Own use" or "Unassigned". A screen translates by the key instead.
+     */
+    public static function labelOf(string $key, ?string $name): string
+    {
+        return match (true) {
+            self::OWN === $key => 'Own use',
+            self::UNASSIGNED === $key => 'Unassigned',
+            default => $name ?? $key,
+        };
+    }
+
+    public function label(): string
+    {
+        return self::labelOf($this->key, $this->name);
+    }
 }

@@ -84,7 +84,7 @@ final class MarginJson
                 'row' => $row->key,
                 'kind' => $row->kind,
                 'client_id' => $row->clientId,
-                'label' => $row->name ?? (MarginRowView::OWN === $row->kind ? 'Own use' : 'Unassigned'),
+                'label' => $row->label(),
                 'cells' => array_map(static fn (string $month): array => self::cell($month, $row->cells[$month] ?? MarginFigures::none()), $view->months),
                 'total' => self::figures($row->total),
             ], $view->rows),
@@ -103,7 +103,7 @@ final class MarginJson
     {
         return [
             'row' => $view->row,
-            'label' => $view->name ?? (MarginRowView::OWN === $view->row ? 'Own use' : 'Unassigned'),
+            'label' => $view->label(),
             'month' => $view->month,
         ] + self::figures($view->figures) + [
             'revenue_items' => array_map(self::item(...), $view->revenue),

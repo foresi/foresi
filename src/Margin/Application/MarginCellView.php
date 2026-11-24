@@ -27,4 +27,9 @@ final readonly class MarginCellView
         public array $costs,
     ) {
     }
+
+    public function label(): string
+    {
+        return MarginRowView::labelOf($this->row, $this->name);
+    }
 }
