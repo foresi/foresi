@@ -19,8 +19,11 @@ use Foresi\Invoicing\Application\IssuedDocumentFactory;
 use Foresi\Invoicing\Application\IssueRecurringOccurrence;
 use Foresi\Invoicing\Contract\Event\DocumentKindValue;
 use Foresi\Invoicing\Contract\Event\InvoiceIssued;
+use Foresi\Invoicing\Contract\Event\InvoiceRestored;
+use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
 use Foresi\Invoicing\Integration\Margin\IssuedRevenue;
 use Foresi\Margin\Application\CostPairings;
+use Foresi\Margin\Application\DropRebillOnTrash;
 use Foresi\Margin\Application\MappingVersions;
 use Foresi\Margin\Application\MarginAccess;
 use Foresi\Margin\Application\PairRebillOnIssue;
@@ -33,7 +36,9 @@ use Foresi\Margin\Domain\AllocationShare;
 use Foresi\Margin\Domain\PlannedAllocation;
 use Foresi\Margin\Domain\RebillPairing;
 use Foresi\Margin\Domain\Recipient;
+use Foresi\Margin\Integration\Invoicing\DropRebillOnInvoiceTrashed;
 use Foresi\Margin\Integration\Invoicing\PairRebillOnInvoiceIssued;
+use Foresi\Margin\Integration\Invoicing\PairRebillOnInvoiceRestored;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Application\Event\RecordedEvent;
 use Foresi\Shared\Domain\Id;
@@ -113,6 +118,16 @@ final class RebillOverInvoicingTest extends RecurringTestCase
         self::assertSame(1, $this->em->getRepository(RebillPairing::class)->count([]), 'the event paired the line of the issued invoice');
         $listener(new RecordedEvent(Id::generate(), PairRebillOnInvoiceIssued::EVENT, 1, new \DateTimeImmutable(), null, new InvoiceIssued($invoice->id(), DocumentKindValue::Invoice, $document->number, Id::generate(), Id::generate(), $this->customer->id(), 'CZK', '1', '2026-12-01', null, null)));
         self::assertSame(0, $this->pairOnIssue->pair($invoice->id()), 'a second delivery pairs nothing more');
+
+        $trashed = new DropRebillOnInvoiceTrashed(new DropRebillOnTrash($this->em));
+        $trashed(new RecordedEvent(Id::generate(), DropRebillOnInvoiceTrashed::EVENT, 1, new \DateTimeImmutable(), null, new InvoiceTrashed($invoice->id(), DocumentKindValue::Invoice)));
+        $this->em->flush();
+        self::assertSame(0, $this->em->getRepository(RebillPairing::class)->count([]), 'the trashed invoice rebills nothing');
+
+        $restored = new PairRebillOnInvoiceRestored($this->pairOnIssue);
+        $restored(new RecordedEvent(Id::generate(), PairRebillOnInvoiceRestored::EVENT, 1, new \DateTimeImmutable(), null, new InvoiceRestored($invoice->id(), DocumentKindValue::Invoice)));
+        $this->em->flush();
+        self::assertSame(1, $this->em->getRepository(RebillPairing::class)->count([]), 'restored, it rebills again');
         $this->em->flush();
 
         $pairings = $this->em->getRepository(RebillPairing::class)->findAll();
@@ -122,6 +137,9 @@ final class RebillOverInvoicingTest extends RecurringTestCase
 
     public function testTheListenerIsRegisteredForTheEventOfAnIssuedInvoice(): void
     {
-        self::assertContains(PairRebillOnInvoiceIssued::class, self::getContainer()->get(EventListeners::class)->idsFor(PairRebillOnInvoiceIssued::EVENT));
+        $listeners = self::getContainer()->get(EventListeners::class);
+        self::assertContains(PairRebillOnInvoiceIssued::class, $listeners->idsFor(PairRebillOnInvoiceIssued::EVENT));
+        self::assertContains(DropRebillOnInvoiceTrashed::class, $listeners->idsFor(DropRebillOnInvoiceTrashed::EVENT));
+        self::assertContains(PairRebillOnInvoiceRestored::class, $listeners->idsFor(PairRebillOnInvoiceRestored::EVENT));
     }
 }

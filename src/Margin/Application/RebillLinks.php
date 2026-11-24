@@ -47,8 +47,7 @@ final readonly class RebillLinks
     public function set(string $recurringLineId, ?string $plannedItemId): ?RebillLinkView
     {
         $this->access->denyUnlessStaff();
-        $line = $this->revenue->templateLine($recurringLineId) ?? throw MarginRefused::notFound(MarginRefused::UNKNOWN_TEMPLATE_LINE, 'There is no recurring invoice line with this id, or Invoicing is not installed.');
-        $stored = $this->entityManager->getRepository(RebillLink::class)->findOneBy(['recurringLineId' => $line->id]);
+        $stored = $this->entityManager->getRepository(RebillLink::class)->findOneBy(['recurringLineId' => $recurringLineId]);
 
         if (null === $plannedItemId) {
             if ($stored instanceof RebillLink) {
@@ -61,6 +60,8 @@ final readonly class RebillLinks
             return null;
         }
 
+        // A link is removed even when its line is gone; one is only made for a line that exists.
+        $line = $this->revenue->templateLine($recurringLineId) ?? throw MarginRefused::notFound(MarginRefused::UNKNOWN_TEMPLATE_LINE, 'There is no recurring invoice line with this id, or Invoicing is not installed.');
         $item = $this->pairings->item($plannedItemId) ?? throw AllocationReads::unknownPlannedItem();
         if (!$item->expense) {
             throw MarginRefused::invalid(MarginRefused::NOT_AN_EXPENSE, 'plannedItemId', 'Only a planned cost, money going out, is rebilled.');

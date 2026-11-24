@@ -56,8 +56,18 @@ final class FixedPairings implements PairingSource
     /** @var array<string, \DateTimeImmutable> "item day" => the occurrence whose period holds the day, set by a test */
     public array $holding = [];
 
+    /** @var \DateTimeZone|null when set, a day is read as Cash flow reads it: an instant is the day it is in this zone, and the occurrence comes back at midnight in it */
+    public ?\DateTimeZone $zone = null;
+
     public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
     {
+        if ($this->zone instanceof \DateTimeZone) {
+            $day = $day->setTimezone($this->zone)->setTime(0, 0);
+            $held = $this->holding[$plannedItemId.' '.$day->format('Y-m-d')] ?? null;
+
+            return $held instanceof \DateTimeImmutable ? new \DateTimeImmutable($held->format('Y-m-d'), $this->zone) : null;
+        }
+
         return $this->holding[$plannedItemId.' '.$day->format('Y-m-d')] ?? null;
     }
 

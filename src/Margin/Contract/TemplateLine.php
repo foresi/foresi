@@ -10,7 +10,7 @@ namespace Foresi\Margin\Contract;
 
 /**
  * A line of a recurring invoice template, as Margin reads it: its own id, the
- * template it belongs to, the contact the template bills and what it says.
+ * template it belongs to, the contact the template bills, what it says and where a person opens the template.
  */
 final readonly class TemplateLine
 {
@@ -19,6 +19,7 @@ final readonly class TemplateLine
         public string $templateId,
         public string $customerId,
         public string $text,
+        public string $url,
     ) {
     }
 }

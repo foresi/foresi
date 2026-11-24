@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Margin\Application;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Margin\Contract\RevenueDocument;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Domain\RebillPairing;
@@ -30,13 +31,14 @@ final readonly class RebillPairings
         private MappingVersions $mappings,
         private EntityManagerInterface $entityManager,
         private TransactionalWork $transaction,
+        private InstanceClock $clock,
     ) {
     }
 
     /**
      * @param string $occurrenceOn YYYY-MM-DD, the day of an occurrence of the item
      *
-     * @throws MarginRefused forbidden, unknown_invoice_line, unknown_planned_item, invalid_day, not_an_occurrence, already_paired or customer_not_a_recipient
+     * @throws MarginRefused forbidden, unknown_invoice_line, unknown_planned_item, not_an_expense, invalid_day, not_an_occurrence, already_paired or customer_not_a_recipient
      */
     public function pair(string $invoiceLineId, string $plannedItemId, string $occurrenceOn): void
     {
@@ -47,7 +49,10 @@ final readonly class RebillPairings
             throw MarginRefused::notFound(MarginRefused::UNKNOWN_INVOICE_LINE, 'There is no issued invoice line with this id.');
         }
         $item = $this->pairings->item($plannedItemId) ?? throw AllocationReads::unknownPlannedItem();
-        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $occurrenceOn);
+        if (!$item->expense) {
+            throw MarginRefused::invalid(MarginRefused::NOT_AN_EXPENSE, 'plannedItemId', 'Only a planned cost, money going out, is rebilled.');
+        }
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $occurrenceOn, $this->clock->timezone());
         if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $occurrenceOn) {
             throw MarginRefused::invalid(MarginRefused::INVALID_DAY, 'occurrenceOn', 'A day is written YYYY-MM-DD, for example 2026-11-01.');
         }

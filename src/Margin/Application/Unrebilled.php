@@ -66,7 +66,7 @@ final readonly class Unrebilled
                 continue;
             }
             $client = strtolower($line->customerId);
-            foreach ($this->pairings->occurrencesWithDocumentsFrom($item->id, new \DateTimeImmutable($range->firstDay()->format('Y-m-d'))) as $day) {
+            foreach ($this->pairings->occurrencesWithDocumentsFrom($item->id, $range->firstDay()) as $day) {
                 $month = $day->format('Y-m');
                 $key = $item->id.' '.$day->format('Y-m-d').' '.$client;
                 if (!$range->contains($month) || isset($flagged[$key]) || $month < $link->createdOn()->format('Y-m')) {
@@ -75,7 +75,7 @@ final readonly class Unrebilled
                 if (!\in_array($client, $this->mappings->plannedClients($item->id, $day), true) || $this->rebilled($item->id, $day, $client)) {
                     continue;
                 }
-                $flagged[$key] = new UnrebilledOccurrence($item->id, $item->name, $item->url, $day, $month, $client, $line->templateId, $line->id);
+                $flagged[$key] = new UnrebilledOccurrence($item->id, $item->name, $item->url, $day, $month, $client, $line->templateId, $line->url, $line->id);
             }
         }
         $found = array_values($flagged);

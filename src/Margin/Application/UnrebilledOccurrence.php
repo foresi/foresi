@@ -23,6 +23,7 @@ final readonly class UnrebilledOccurrence
         public string $month,
         public string $recipientId,
         public string $templateId,
+        public string $templateUrl,
         public string $recurringLineId,
     ) {
     }

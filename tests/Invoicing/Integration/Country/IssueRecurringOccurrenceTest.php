@@ -91,7 +91,7 @@ final class IssueRecurringOccurrenceTest extends RecurringTestCase
         $found = $this->revenue()->templateLine($lineId);
 
         self::assertNotNull($found);
-        self::assertSame([$lineId, $template->id(), $this->customer->id(), 'Hosting {month/year}'], [$found->id, $found->templateId, $found->customerId, $found->text]);
+        self::assertSame([$lineId, $template->id(), $this->customer->id(), 'Hosting {month/year}', '/invoices/recurring/'.$template->id()], [$found->id, $found->templateId, $found->customerId, $found->text, $found->url]);
         self::assertNull($this->revenue()->templateLine(Id::generate()));
     }
 

@@ -14,8 +14,11 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Instance\Application\ConfiguredZone;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\ZoneFallback;
 use Foresi\Margin\Application\CostPairings;
+use Foresi\Margin\Application\DropRebillOnTrash;
 use Foresi\Margin\Application\MappingVersions;
 use Foresi\Margin\Application\MarginAccess;
 use Foresi\Margin\Application\MarginCell;
@@ -107,8 +110,8 @@ final class RebillTest extends KernelTestCase
         $container->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), $user->email(), 'hash'), 'main', ['ROLE_USER']));
 
         $this->revenue = new FixedRevenueSource();
-        $this->revenue->templateLines[self::LINE_A] = new TemplateLine(self::LINE_A, self::TEMPLATE_A, $this->clientA, 'Cloud Host');
-        $this->revenue->templateLines[self::LINE_B] = new TemplateLine(self::LINE_B, '0197a1de-0000-7000-8000-0000000000f4', $this->clientB, 'Cloud Host');
+        $this->revenue->templateLines[self::LINE_A] = new TemplateLine(self::LINE_A, self::TEMPLATE_A, $this->clientA, 'Cloud Host', '/invoices/recurring/'.self::TEMPLATE_A);
+        $this->revenue->templateLines[self::LINE_B] = new TemplateLine(self::LINE_B, '0197a1de-0000-7000-8000-0000000000f4', $this->clientB, 'Cloud Host', '/invoices/recurring/0197a1de-0000-7000-8000-0000000000f4');
         $this->pairings = new FixedPairings();
         $this->pairings->items[self::CLOUD_HOST] = new PlannedCostItem(self::CLOUD_HOST, 'Cloud Host', true, true, $this->cloudHost, '/cash-flow/items/'.self::CLOUD_HOST);
         $this->pairings->items[self::RETAINER] = new PlannedCostItem(self::RETAINER, 'Retainer', false, true, $this->clientA);
@@ -126,7 +129,7 @@ final class RebillTest extends KernelTestCase
         $transaction = $container->get(TransactionalWork::class);
         $this->links = new RebillLinks($access, $revenue, $costPairings, $mappings, $this->em, $container->get(InstanceClock::class), $transaction);
         $this->pairOnIssue = new PairRebillOnIssue($revenue, $costPairings, $mappings, $this->em);
-        $this->manual = new RebillPairings($access, $revenue, $costPairings, $mappings, $this->em, $transaction);
+        $this->manual = new RebillPairings($access, $revenue, $costPairings, $mappings, $this->em, $transaction, $container->get(InstanceClock::class));
         $this->unrebilled = new Unrebilled($access, $ranges, $revenue, $costPairings, $mappings, $this->em);
         $costs = new \Foresi\Margin\Application\CostShareReads($this->em);
         $sources = new \Foresi\Margin\Application\CostSources([]);
@@ -303,10 +306,11 @@ final class RebillTest extends KernelTestCase
         self::assertSame([0, 1], array_map(static fn (mixed $cell): mixed => \is_array($cell) ? $cell['unrebilled'] : null, \is_array($table['month_totals']) ? $table['month_totals'] : []));
 
         $flagged = $this->cell->of($a, '2026-11')->unrebilled;
-        self::assertSame([['Cloud Host', '2026-11-01', self::TEMPLATE_A, self::LINE_A]], array_map(static fn ($occurrence): array => [$occurrence->itemName, $occurrence->occurrenceOn->format('Y-m-d'), $occurrence->templateId, $occurrence->recurringLineId], $flagged));
+        self::assertSame([['Cloud Host', '2026-11-01', self::TEMPLATE_A, '/invoices/recurring/'.self::TEMPLATE_A, self::LINE_A]], array_map(static fn ($occurrence): array => [$occurrence->itemName, $occurrence->occurrenceOn->format('Y-m-d'), $occurrence->templateId, $occurrence->templateUrl, $occurrence->recurringLineId], $flagged));
         self::assertSame(1, $this->cell->of($a, '2026-11')->figures->unrebilled);
         $detail = MarginJson::cellDetail($this->cell->of($a, '2026-11'));
-        self::assertSame(['Cloud Host', '2026-11-01', self::TEMPLATE_A], [$this->in($detail, 'unrebilled', 0, 'label'), $this->in($detail, 'unrebilled', 0, 'occurrence_on'), $this->in($detail, 'unrebilled', 0, 'template_id')]);
+        self::assertSame(['Cloud Host', '2026-11-01', self::TEMPLATE_A, '/invoices/recurring/'.self::TEMPLATE_A], [$this->in($detail, 'unrebilled', 0, 'label'), $this->in($detail, 'unrebilled', 0, 'occurrence_on'), $this->in($detail, 'unrebilled', 0, 'template_id'), $this->in($detail, 'unrebilled', 0, 'template_url')]);
+        self::assertSame([1, 1, 0], [$this->in($table, 'total', 'unrebilled'), $this->in($table, 'rows', 0, 'total', 'unrebilled'), $this->in($table, 'rows', 1, 'total', 'unrebilled')]);
         self::assertSame([], MarginJson::cellDetail($this->cell->of($a, '2026-10'))['unrebilled']);
         self::assertSame([], MarginJson::cellDetail($this->cell->of('own', '2026-11'))['unrebilled']);
     }
@@ -374,13 +378,77 @@ final class RebillTest extends KernelTestCase
     public function testACustomerWhoBearsNothingOfTheItemIsWarnedButTheLinkIsStored(): void
     {
         $other = '0197a1de-0000-7000-8000-0000000000f5';
-        $this->revenue->templateLines[$other] = new TemplateLine($other, self::TEMPLATE_A, $this->contact('Client C'), 'Cloud Host');
+        $this->revenue->templateLines[$other] = new TemplateLine($other, self::TEMPLATE_A, $this->contact('Client C'), 'Cloud Host', '/invoices/recurring/'.self::TEMPLATE_A);
 
         $view = $this->links->set($other, self::CLOUD_HOST);
 
         self::assertSame(['customer_not_a_recipient'], $view?->warnings);
         self::assertSame(['customer_not_a_recipient'], $this->links->ofLine($other)?->warnings);
         self::assertSame([], $this->links->set(self::LINE_A, self::CLOUD_HOST)?->warnings);
+    }
+
+    public function testAZoneWestOfUtcPairsTheDayOfTheTaxPointAndTheDayPickedByHand(): void
+    {
+        $container = self::getContainer();
+        $zone = new \DateTimeZone('America/New_York');
+        $this->pairings->zone = $zone;
+        $this->links->set(self::LINE_A, self::CLOUD_HOST);
+        $this->holdMonth('2026-11');
+        $this->holdMonth('2026-12');
+        // 1 December in New York: the same date read as midnight UTC would be 19:00 on 30 November there.
+        $this->invoice('i1', $this->clientA, '2026-12-01', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('hand', null, Money::ofMinor(5_000, Currency::CZK))], $zone);
+
+        self::assertSame(1, $this->pairOnIssue->pair('i1'));
+        $this->em->flush();
+        $pairing = $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => 'l1']);
+        self::assertSame('2026-12-01', $pairing?->occurrenceOn()->format('Y-m-d'), 'The tax point of 1 December pairs with the December occurrence.');
+
+        $manual = new RebillPairings($container->get(MarginAccess::class), new RevenueSources([$this->revenue]), new CostPairings([$this->pairings]), new MappingVersions($this->em), $this->em, $container->get(TransactionalWork::class), new InstanceClock(new ConfiguredZone('America/New_York'), new class implements ZoneFallback {
+            public function zone(): ?\DateTimeZone
+            {
+                return null;
+            }
+        }, new Clock()));
+        $manual->pair('hand', self::CLOUD_HOST, '2026-12-01');
+        self::assertSame('2026-12-01', $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => 'hand'])?->occurrenceOn()->format('Y-m-d'));
+    }
+
+    public function testAnOrphanLinkCanBeRemoved(): void
+    {
+        $this->links->set(self::LINE_A, self::CLOUD_HOST);
+        unset($this->revenue->templateLines[self::LINE_A]);
+
+        self::assertNull($this->links->set(self::LINE_A, null));
+        self::assertSame([], $this->em->getRepository(RebillLink::class)->findAll());
+        $this->assertRefusal(MarginRefused::UNKNOWN_TEMPLATE_LINE, fn () => $this->links->set(self::LINE_A, self::CLOUD_HOST));
+    }
+
+    public function testAHandPairingToAnIncomeItemIsRefused(): void
+    {
+        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+
+        $this->assertRefusal(MarginRefused::NOT_AN_EXPENSE, fn () => $this->manual->pair('hand', self::RETAINER, '2026-11-01'));
+    }
+
+    public function testTheTrashedInvoiceRebillsNothingUntilItIsRestored(): void
+    {
+        $this->links->set(self::LINE_A, self::CLOUD_HOST);
+        $this->holdMonth('2026-11');
+        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
+        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairOnIssue->pair('i1');
+        $this->em->flush();
+        self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
+
+        $drop = new DropRebillOnTrash($this->em);
+        self::assertSame(1, $drop->drop('i1'));
+        $this->em->flush();
+        self::assertCount(1, $this->unrebilled->between('2026-11', '2026-11'), 'The invoice in the trash does not count as rebilled.');
+        self::assertSame(0, $drop->drop('i1'), 'A second delivery removes nothing.');
+
+        self::assertSame(1, $this->pairOnIssue->pair('i1'), 'Restored, its line is paired again.');
+        $this->em->flush();
+        self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
     }
 
     public function testAGuestIsRefused(): void
@@ -432,9 +500,9 @@ final class RebillTest extends KernelTestCase
     /**
      * @param list<RevenueLine> $lines
      */
-    private function invoice(string $id, string $customerId, string $taxPoint, array $lines): RevenueDocument
+    private function invoice(string $id, string $customerId, string $taxPoint, array $lines, ?\DateTimeZone $zone = null): RevenueDocument
     {
-        $document = new RevenueDocument($id, 'FV-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, new \DateTimeZone('Europe/Prague')), Money::ofMinor(100_000, Currency::CZK), '/invoicing/'.$id, $lines);
+        $document = new RevenueDocument($id, 'FV-'.$id, 'invoice', $customerId, new \DateTimeImmutable($taxPoint, $zone ?? new \DateTimeZone('Europe/Prague')), Money::ofMinor(100_000, Currency::CZK), '/invoicing/'.$id, $lines);
         $this->revenue->documents[] = $document;
 
         return $document;

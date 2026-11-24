@@ -87,10 +87,10 @@ final class MarginJson
                 'client_id' => $row->clientId,
                 'label' => $row->label(),
                 'cells' => array_map(static fn (string $month): array => self::cell($month, $row->cells[$month] ?? MarginFigures::none()), $view->months),
-                'total' => self::figures($row->total),
+                'total' => self::totals($row->total),
             ], $view->rows),
             'month_totals' => array_map(static fn (string $month): array => self::cell($month, $view->monthTotals[$month] ?? MarginFigures::none()), $view->months),
-            'total' => self::figures($view->total),
+            'total' => self::totals($view->total),
             'known_gaps' => array_map(static fn (KnownGap $gap): array => ['code' => $gap->code, 'document_ids' => $gap->documentIds], $view->knownGaps),
         ];
     }
@@ -116,6 +116,7 @@ final class MarginJson
                 'occurrence_on' => $occurrence->occurrenceOn->format('Y-m-d'),
                 'recipient_id' => $occurrence->recipientId,
                 'template_id' => $occurrence->templateId,
+                'template_url' => $occurrence->templateUrl,
                 'recurring_line_id' => $occurrence->recurringLineId,
             ], $view->unrebilled),
         ];
@@ -127,6 +128,16 @@ final class MarginJson
     private static function cell(string $month, MarginFigures $figures): array
     {
         return ['month' => $month] + self::figures($figures) + ['unrebilled' => $figures->unrebilled];
+    }
+
+    /**
+     * The figures of a row or of the table with how many paid costs were not rebilled, as the cells have them.
+     *
+     * @return array<string, mixed>
+     */
+    private static function totals(MarginFigures $figures): array
+    {
+        return self::figures($figures) + ['unrebilled' => $figures->unrebilled];
     }
 
     /**

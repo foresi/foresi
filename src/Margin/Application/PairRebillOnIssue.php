@@ -46,7 +46,8 @@ final readonly class PairRebillOnIssue
         if (!$document instanceof RevenueDocument) {
             return 0;
         }
-        $day = new \DateTimeImmutable($document->taxPointOn->format('Y-m-d'));
+        // The tax point is a day in the instance's zone, as Cash flow reads it; it is passed on as it is.
+        $day = $document->taxPointOn;
         $paired = 0;
         foreach ($document->lines as $line) {
             if (null === $line->sourceLineId) {

@@ -92,7 +92,7 @@ final readonly class IssuedRevenue implements MarginRevenueSource
         }
         $template = $line->template();
 
-        return new TemplateLine($line->id(), $template->id(), $template->customer()->id(), $line->text());
+        return new TemplateLine($line->id(), $template->id(), $template->customer()->id(), $line->text(), $this->urls->generate('app_recurring_show', ['id' => $template->id()], UrlGeneratorInterface::ABSOLUTE_PATH));
     }
 
     private function build(string $id, \DateTimeZone $zone): RevenueDocument
