@@ -125,7 +125,10 @@ final class ModuleDependenciesTest extends TestCase
         $packages = [];
         /** @var array<string, list<string>> $psr4 */
         $psr4 = require $vendor.'/composer/autoload_psr4.php';
-        foreach ($psr4 as $prefix => $paths) {
+        // A package may still autoload by PSR-0 (smalot/pdfparser does).
+        /** @var array<string, list<string>> $psr0 */
+        $psr0 = require $vendor.'/composer/autoload_namespaces.php';
+        foreach ([...$psr4, ...$psr0] as $prefix => $paths) {
             foreach ($paths as $path) {
                 $real = realpath($path);
                 foreach ($directories as $directory => $name) {
