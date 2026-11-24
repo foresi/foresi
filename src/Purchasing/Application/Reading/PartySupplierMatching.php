@@ -40,7 +40,10 @@ final readonly class PartySupplierMatching implements SupplierMatching
         $vatId = $this->vatId($reading);
         $number = $this->registrationNumber($reading, $vatId);
         if (!$number instanceof RegistrationNumber && !$vatId instanceof VatId) {
-            return SupplierMatch::none();
+            // Named without a usable identifier: nobody to look for, but the detail offers to create the supplier.
+            $named = array_any([ReadField::SupplierName, ReadField::SupplierRegistrationNumber, ReadField::SupplierVatId], static fn (ReadField $field): bool => \is_string($reading->get($field)?->value) && '' !== trim($reading->get($field)->value));
+
+            return $named ? new SupplierMatch(null, ReceivedDocumentWarning::SUPPLIER_NOT_FOUND) : SupplierMatch::none();
         }
         // The registration number decides when it finds anybody; the VAT id only when it does not.
         $found = $number instanceof RegistrationNumber ? $this->finder->find($number, null, false) : [];
@@ -81,7 +84,7 @@ final readonly class PartySupplierMatching implements SupplierMatching
     {
         $value = $reading->get(ReadField::SupplierRegistrationNumber)?->value;
         $country = $reading->get(ReadField::SupplierCountry)?->value;
-        $country = \is_string($country) ? strtoupper(trim($country)) : $vatId?->country();
+        $country = \is_string($country) && 1 === preg_match('/^[A-Z]{2}$/D', strtoupper(trim($country))) ? strtoupper(trim($country)) : $vatId?->country();
         if (!\is_string($value) || !\is_string($country)) {
             return null;
         }

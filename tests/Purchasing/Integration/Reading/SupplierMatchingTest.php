@@ -122,6 +122,38 @@ final class SupplierMatchingTest extends PurchasingTestCase
         self::assertNull($match->warning);
     }
 
+    public function testANameWithoutAnIdentifierIsNotFoundAndKeepsTheName(): void
+    {
+        $match = $this->matching()->match($this->named(name: 'Unknown Example Ltd'));
+        self::assertNull($match->party);
+        self::assertSame(ReceivedDocumentWarning::SUPPLIER_NOT_FOUND, $match->warning);
+
+        $message = $this->uploaded();
+        $this->readDocument($this->stub(fn (): Reading => $this->named(name: 'Unknown Example Ltd')))->read($message);
+
+        self::assertSame('Unknown Example Ltd', $this->document($message->documentId)->supplier()->name);
+        self::assertContains(ReceivedDocumentWarning::SUPPLIER_NOT_FOUND, $this->reading($message->documentId)->warnings());
+    }
+
+    public function testAMalformedVatIdWithANameKeepsOnlyTheName(): void
+    {
+        $message = $this->uploaded();
+
+        $this->readDocument($this->stub(fn (): Reading => $this->named(name: 'Unknown Example Ltd', vatId: 'CZ12')))->read($message);
+
+        $supplier = $this->document($message->documentId)->supplier();
+        self::assertSame('Unknown Example Ltd', $supplier->name);
+        self::assertNull($supplier->vatId, 'Only a valid id is kept.');
+        self::assertContains(ReceivedDocumentWarning::SUPPLIER_NOT_FOUND, $this->reading($message->documentId)->warnings());
+    }
+
+    public function testACountryThatIsNoCodeFallsBackToTheVatIdCountry(): void
+    {
+        $match = $this->matching()->match($this->named(registrationNumber: '87654321', country: 'Czechia', vatId: 'CZ87654321'));
+
+        self::assertSame($this->supplier->id(), $match->party?->id());
+    }
+
     public function testAHostileValueIsOnlyCompared(): void
     {
         $match = $this->matching()->match($this->named(registrationNumber: "87654321'; DROP TABLE party;--", country: 'CZ', vatId: 'not a vat id'));

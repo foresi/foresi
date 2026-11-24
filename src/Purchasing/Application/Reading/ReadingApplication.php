@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Reading;
 
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvalidVatId;
 use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\VatId;
 use Foresi\Purchasing\Application\DocumentLock;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Contract\Reading\ReadField;
@@ -107,7 +109,7 @@ final readonly class ReadingApplication
     private function supplier(ReceivedDocument $document, Reading $merged): ?SupplierMatch
     {
         // A snapshot without a party can only come from an earlier reading, so a new one may replace it.
-        if ($document->supplierParty() instanceof Party) {
+        if ($document->supplierParty() instanceof Party || $document->isRecorded() || $document->isTrashed()) {
             return null;
         }
 
@@ -132,7 +134,12 @@ final readonly class ReadingApplication
         $text = static fn (ReadField $field, int $max): ?string => \is_string($value = $merged->get($field)?->value) && '' !== trim($value) ? mb_substr(trim($value), 0, $max) : null;
         $name = $text(ReadField::SupplierName, SupplierSnapshot::MAX_NAME);
         $number = $text(ReadField::SupplierRegistrationNumber, SupplierSnapshot::MAX_REGISTRATION_NUMBER);
-        $vatId = $text(ReadField::SupplierVatId, SupplierSnapshot::MAX_VAT_ID);
+        $vatId = $text(ReadField::SupplierVatId, 64);
+        try {
+            $vatId = null === $vatId ? null : VatId::fromString($vatId)->toString();
+        } catch (InvalidVatId) {
+            $vatId = null;
+        }
         $country = $text(ReadField::SupplierCountry, 2);
         $country = null !== $country && 1 === preg_match('/^[A-Za-z]{2}$/D', $country) ? strtoupper($country) : '';
         if (null === $name && null === $number && null === $vatId) {
