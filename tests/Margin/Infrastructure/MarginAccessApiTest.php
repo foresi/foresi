@@ -19,6 +19,8 @@ use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
 use Foresi\Margin\Domain\LineAllocation;
+use Foresi\Margin\Domain\PlannedAllocation;
+use Foresi\Margin\Domain\SupplierDefault;
 use Foresi\Party\Domain\Party;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Psr\Clock\ClockInterface;
@@ -32,7 +34,11 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MarginAccessApiTest extends ApiTestCase
 {
-    private const array TOOLS = ['foresi_get_document_allocation', 'foresi_set_line_allocation', 'foresi_assign_received_document'];
+    private const array TOOLS = [
+        'foresi_get_document_allocation', 'foresi_set_line_allocation', 'foresi_assign_received_document',
+        'foresi_get_planned_item_allocation', 'foresi_set_planned_item_allocation',
+        'foresi_get_supplier_default_recipient', 'foresi_set_supplier_default_recipient',
+    ];
 
     private ?string $session = null;
 
@@ -50,6 +56,20 @@ final class MarginAccessApiTest extends ApiTestCase
         $this->assertProblem(403, 'insufficient_scope');
         $this->get('/api/v1/margin/documents/'.$id, secret: $reader);
         $this->assertProblem(404, 'unknown_document');
+
+        $writer = $this->issued([ApiScope::from('margin:write')]);
+        $this->send('PUT', $this->plannedPath($id), ['allocation' => null, 'from_month' => '2026-12'], $reader);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->send('PUT', $this->defaultPath($id), ['recipient' => null, 'from_month' => '2026-12'], $reader);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get($this->plannedPath($id), secret: $other);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get($this->defaultPath($id), secret: $other);
+        $this->assertProblem(403, 'insufficient_scope');
+        $this->get($this->plannedPath($id), secret: $reader);
+        $this->assertProblem(404, 'unknown_planned_item');
+        $this->get($this->defaultPath($id), secret: $reader);
+        $this->assertProblem(404, 'unknown_supplier');
     }
 
     public function testAMemberTurnedGuestWithATokenOfTheMarginScopesIsRefusedOnEveryOperation(): void
@@ -68,6 +88,7 @@ final class MarginAccessApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
         $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => 'own'], $secret);
         self::assertResponseStatusCodeSame(401);
+        $this->refusedToAGuest($id, $secret);
         self::assertSame(0, $this->em()->getRepository(LineAllocation::class)->count([]));
 
         $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
@@ -84,7 +105,7 @@ final class MarginAccessApiTest extends ApiTestCase
             'foresi_get_document_allocation' => ['document_id' => $id],
             'foresi_set_line_allocation' => ['document_id' => $id, 'line_key' => 'rate:21', 'kind' => null],
             'foresi_assign_received_document' => ['document_id' => $id, 'recipient' => 'own'],
-        ];
+        ] + $this->plannedAndSupplierArguments($id);
         foreach ($arguments as $tool => $arguments) {
             $call = $this->in($this->mcp($secret, 'tools/call', ['name' => $tool, 'arguments' => $arguments]), 'result');
             self::assertIsArray($call);
@@ -114,6 +135,7 @@ final class MarginAccessApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(401);
         $this->send('POST', '/api/v1/margin/documents/'.$id.'/assign', ['recipient' => 'own'], $secret);
         self::assertResponseStatusCodeSame(401);
+        $this->refusedToAGuest($id, $secret);
 
         if ([] === self::getContainer()->get(GuestScopes::class)->offered()) {
             $this->client->request('POST', '/mcp', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
@@ -130,11 +152,47 @@ final class MarginAccessApiTest extends ApiTestCase
             'foresi_get_document_allocation' => ['document_id' => $id],
             'foresi_set_line_allocation' => ['document_id' => $id, 'line_key' => 'rate:21', 'kind' => null],
             'foresi_assign_received_document' => ['document_id' => $id, 'recipient' => 'own'],
-        ] as $tool => $arguments) {
+        ] + $this->plannedAndSupplierArguments($id) as $tool => $arguments) {
             $call = $this->in($this->mcp($secret, 'tools/call', ['name' => $tool, 'arguments' => $arguments]), 'result');
             self::assertIsArray($call);
             self::assertTrue($call['isError'] ?? false, $tool);
         }
+    }
+
+    private function refusedToAGuest(string $id, string $secret): void
+    {
+        $this->get($this->plannedPath($id), secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('PUT', $this->plannedPath($id), ['allocation' => null, 'from_month' => '2026-12'], $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->get($this->defaultPath($id), secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->send('PUT', $this->defaultPath($id), ['recipient' => 'own', 'from_month' => '2026-12'], $secret);
+        self::assertResponseStatusCodeSame(401);
+        self::assertSame(0, $this->em()->getRepository(PlannedAllocation::class)->count([]) + $this->em()->getRepository(SupplierDefault::class)->count([]));
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function plannedAndSupplierArguments(string $id): array
+    {
+        return [
+            'foresi_get_planned_item_allocation' => ['planned_item_id' => $id],
+            'foresi_set_planned_item_allocation' => ['planned_item_id' => $id, 'allocation' => null, 'from_month' => '2026-12'],
+            'foresi_get_supplier_default_recipient' => ['contact_id' => $id],
+            'foresi_set_supplier_default_recipient' => ['contact_id' => $id, 'recipient' => 'own', 'from_month' => '2026-12'],
+        ];
+    }
+
+    private function plannedPath(string $id): string
+    {
+        return '/api/v1/margin/planned-items/'.$id.'/allocation';
+    }
+
+    private function defaultPath(string $id): string
+    {
+        return '/api/v1/margin/suppliers/'.$id.'/default-recipient';
     }
 
     private function line(string $documentId, string $key): string

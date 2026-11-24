@@ -106,6 +106,43 @@ final readonly class AllocationWrites
     }
 
     /**
+     * setPlanned for what a client sent: the allocation as an object of kind and shares.
+     *
+     * @throws MarginRefused what setPlanned refuses, kind_invalid, share_invalid, recipient_invalid, amount_invalid or what an allocation refuses
+     */
+    public function setPlannedAllocation(SetPlannedAllocationInput $input): PlannedAllocationsView
+    {
+        $this->access->denyUnlessStaff();
+        $allocation = null;
+        if (null !== $input->allocation) {
+            $kind = $input->allocation['kind'] ?? null;
+            $shares = $input->allocation['shares'] ?? [];
+            if (!\is_string($kind)) {
+                throw MarginRefused::invalid(MarginRefused::KIND_INVALID, 'allocation', 'The allocation has a kind: whole, percent or fixed.');
+            }
+            if (!\is_array($shares) || !array_is_list($shares)) {
+                throw MarginRefused::invalid(MarginRefused::SHARE_INVALID, 'allocation', 'The shares are a list of objects that name their recipient.');
+            }
+            $allocation = $this->allocation($kind, $shares);
+        }
+
+        return $this->setPlanned($input->plannedItemId, $allocation, $input->fromMonth);
+    }
+
+    /**
+     * setSupplierDefault for what a client sent: the recipient as text.
+     *
+     * @throws MarginRefused what setSupplierDefault refuses, or recipient_invalid
+     */
+    public function setSupplierDefaultRecipient(SetSupplierDefaultInput $input): SupplierDefaultsView
+    {
+        $this->access->denyUnlessStaff();
+        $recipient = null === $input->recipient ? null : $this->recipient($input->recipient, 'recipient');
+
+        return $this->setSupplierDefault($input->contactId, $recipient, $input->fromMonth);
+    }
+
+    /**
      * Gives the costs of a supplier to one recipient by default from a month
      * on, or ends the default from that month with null. Setting a month that
      * has a version replaces it.

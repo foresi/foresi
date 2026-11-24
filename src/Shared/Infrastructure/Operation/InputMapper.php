@@ -55,12 +55,12 @@ final class InputMapper
             'string' => \is_string($value),
             'int' => \is_int($value),
             'bool' => \is_bool($value),
-            default => \is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => self::isItem($item, $field->describe?->items)),
+            default => Field::ONE_OBJECT === $field->describe?->items ? self::isItem($value, Field::OBJECTS) : \is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => self::isItem($item, $field->describe?->items)),
         };
         if (!$valid) {
             throw new InvalidInput($field->wire, match ($field->type) {
                 'string' => 'must be a string.', 'int' => 'must be a whole number.', 'bool' => 'must be true or false.', default => match ($field->describe?->items) {
-                    Field::OBJECTS => 'must be a list of objects.', Field::OBJECTS_OR_STRINGS => 'must be a list of objects or strings.', default => 'must be a list of strings.',
+                    Field::ONE_OBJECT => 'must be an object.', Field::OBJECTS => 'must be a list of objects.', Field::OBJECTS_OR_STRINGS => 'must be a list of objects or strings.', default => 'must be a list of strings.',
                 },
             });
         }

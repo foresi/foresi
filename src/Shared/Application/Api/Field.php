@@ -20,10 +20,12 @@ final readonly class Field
     public const string OBJECTS = 'object';
     /** The items of a list are JSON objects or strings, such as the columns of a view. */
     public const string OBJECTS_OR_STRINGS = 'object|string';
+    /** The value is one JSON object, such as a mapping with its kind and shares (an array parameter, not a list). */
+    public const string ONE_OBJECT = 'one-object';
 
     /**
      * @param list<string>|null $enum  the only values the field takes; for a list, of its items
-     * @param string|null       $items the type of the items of a list: "string" when null, OBJECTS or OBJECTS_OR_STRINGS
+     * @param string|null       $items the type of the items of a list: "string" when null, OBJECTS or OBJECTS_OR_STRINGS; ONE_OBJECT for a value that is one object, not a list
      */
     public function __construct(
         public string $description,

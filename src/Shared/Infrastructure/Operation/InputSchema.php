@@ -49,7 +49,9 @@ final class InputSchema
         };
         $describe = $field->describe;
         $property = ['type' => $field->nullable ? [$type, 'null'] : $type];
-        if ('array' === $field->type) {
+        if ('array' === $field->type && Field::ONE_OBJECT === $describe?->items) {
+            $property['type'] = $field->nullable ? ['object', 'null'] : 'object';
+        } elseif ('array' === $field->type) {
             $property['items'] = match ($describe?->items) {
                 Field::OBJECTS => ['type' => 'object'],
                 Field::OBJECTS_OR_STRINGS => ['anyOf' => [['type' => 'object'], ['type' => 'string']]],
