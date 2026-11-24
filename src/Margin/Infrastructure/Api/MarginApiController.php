@@ -9,14 +9,17 @@ declare(strict_types=1);
 namespace Foresi\Margin\Infrastructure\Api;
 
 use Foresi\Margin\Application\AllocationReads;
+use Foresi\Margin\Application\MarginCell;
+use Foresi\Margin\Application\MarginTable;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The margin of a document read by a personal API token with the margin:read
+ * The margin of the clients and of a document read by a personal API token with the margin:read
  * scope, by the owners and the members alike. What the use cases refuse is
  * answered by the shared refusal contract (ADR 0032).
  */
@@ -24,12 +27,44 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class MarginApiController
 {
     public const string READ_SCOPE = 'margin:read';
+    public const string TABLE = 'api_v1_margin_table';
+    public const string CELL = 'api_v1_margin_cell';
     public const string DOCUMENT = 'api_v1_margin_document';
     public const string PLANNED_ITEM = 'api_v1_margin_planned_item_allocation';
     public const string SUPPLIER = 'api_v1_margin_supplier_default';
 
-    public function __construct(private ScopeGuard $scope, private AllocationReads $reads)
+    public function __construct(private ScopeGuard $scope, private AllocationReads $reads, private MarginTable $table, private MarginCell $cell)
     {
+    }
+
+    #[Route('/api/v1/margin', name: self::TABLE, methods: ['GET'])]
+    #[OA\Tag(name: 'Margin')]
+    #[OA\Parameter(name: 'from', description: 'The first month, YYYY-MM; two months before the last one when left out.', in: 'query', schema: new OA\Schema(type: 'string', example: '2026-10'))]
+    #[OA\Parameter(name: 'to', description: 'The last month, YYYY-MM; the current month when left out. A range covers at most 24 months.', in: 'query', schema: new OA\Schema(type: 'string', example: '2026-12'))]
+    #[OA\Response(response: 200, description: 'Revenue, costs and margin in CZK of every client, of the firm itself and of what nobody claims, by month.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/MarginTable')], type: 'object'))]
+    #[OA\Response(response: 400, description: 'A month cannot be used (invalid_month, range_reversed or range_too_long).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    public function table(Request $request): JsonResponse
+    {
+        $this->scope->require(self::READ_SCOPE);
+
+        return new JsonResponse(['data' => MarginJson::table($this->table->of($this->optional($request, 'from'), $this->optional($request, 'to')))]);
+    }
+
+    #[Route('/api/v1/margin/cell', name: self::CELL, methods: ['GET'])]
+    #[OA\Tag(name: 'Margin')]
+    #[OA\Parameter(name: 'row', description: 'client:<contact id>, own or unassigned.', in: 'query', required: true, schema: new OA\Schema(type: 'string', example: 'own'))]
+    #[OA\Parameter(name: 'month', description: 'The month, YYYY-MM.', in: 'query', required: true, schema: new OA\Schema(type: 'string', example: '2026-11'))]
+    #[OA\Response(response: 200, description: 'The revenue documents and the cost shares behind one cell, each with its label, amount, source and url.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/MarginCell')], type: 'object'))]
+    #[OA\Response(response: 400, description: 'The row or the month cannot be used (invalid_row or invalid_month).', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the margin:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    public function cell(Request $request): JsonResponse
+    {
+        $this->scope->require(self::READ_SCOPE);
+
+        return new JsonResponse(['data' => MarginJson::cellDetail($this->cell->of($request->query->getString('row'), $request->query->getString('month')))]);
     }
 
     #[Route('/api/v1/margin/documents/{documentId}', name: self::DOCUMENT, methods: ['GET'])]
@@ -72,5 +107,12 @@ final readonly class MarginApiController
         $this->scope->require(self::READ_SCOPE);
 
         return new JsonResponse(['data' => MarginJson::supplierDefault($this->reads->supplierDefault($contactId))]);
+    }
+
+    private function optional(Request $request, string $name): ?string
+    {
+        $value = $request->query->getString($name);
+
+        return '' === $value ? null : $value;
     }
 }

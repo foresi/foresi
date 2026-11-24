@@ -1,0 +1,90 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Margin page under Money: what each client earned and cost, month by month. The months are columns
+    and the clients rows, as Agicap lays out the periods of its table and as the Cash flow page does; a
+    client has three lines (revenue, costs, margin), the firm's own use and what nobody has claimed have
+    their costs only. Unassigned is always the last row, never hidden, with the number of documents behind
+    it in a neutral badge. A cell with money opens the documents and lines behind it in the side sheet,
+    as Fathom opens what makes up a forecast cell in a panel at the right and as the Cash flow page does
+    (docs/design/overlays.md). The from-to months are a small dialog from the page header, like the other
+    small settings of a page. What could not be counted (a document without an exchange rate) is told above
+    the table in a neutral note that links the documents. Variables: page, from, to.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'margin.title'|trans}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link = 'text-current underline decoration-control-line underline-offset-2 hover:decoration-ink ' ~ focus %}
+
+{% block title %}{{ 'margin.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="calendar" :href="path('app_margin_range', {from: from, to: to})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-margin-range-open>{{ 'margin.range.open'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set messages %}
+        {% for message in app.flashes('error') %}<twig:Ui:Alert tone="error" role="alert">{{ message }}</twig:Ui:Alert>{% endfor %}
+    {% endset %}
+    {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
+
+    <div class="grid grid-cols-1 gap-4">
+        {% if page.gaps %}
+            <twig:Ui:Alert tone="info" data-margin-gaps>
+                <p class="m-0">{{ page.gaps.text }}</p>
+                <ul class="m-0 mt-1 flex list-none flex-wrap gap-x-4 gap-y-0.5 p-0">
+                    {% for document in page.gaps.documents %}
+                        <li data-margin-gap-document>{% if document.href %}<a href="{{ document.href }}" class="{{ link }}">{{ document.label }}</a>{% else %}{{ document.label }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </twig:Ui:Alert>
+        {% endif %}
+
+        {% if page.empty %}
+            <twig:Ui:EmptyState icon="chart-column" :title="'margin.empty.title'|trans" :text="'margin.empty.text'|trans({range: page.range})" data-margin-empty />
+        {% else %}
+            <section aria-labelledby="margin-table-title" class="grid grid-cols-1 gap-2">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <h2 id="margin-table-title" class="m-0 text-body font-semibold text-ink">{{ 'margin.table.title'|trans }}</h2>
+                    <p class="m-0 text-small text-muted" data-margin-period>{{ page.range }} · {{ 'margin.table.currency'|trans }}</p>
+                </div>
+                <div class="overflow-hidden rounded-panel border border-container bg-white">
+                    <div class="relative overflow-x-auto">
+                        <table class="w-full border-collapse text-small" data-margin-table>
+                            <caption class="sr-only">{{ 'margin.table.caption'|trans({range: page.range}) }}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left text-caption font-medium text-muted"><span class="sr-only">{{ 'margin.table.row'|trans }}</span></th>
+                                    {% for month in page.months %}
+                                        <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted" data-month="{{ month.key }}">{{ month.label }}</th>
+                                    {% endfor %}
+                                    <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted">{{ 'margin.table.total'|trans }}</th>
+                                </tr>
+                            </thead>
+                            {% for group in page.groups %}
+                                <tbody data-row="{{ group.key }}" data-row-kind="{{ group.kind }}">
+                                    <tr>
+                                        <th scope="rowgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-white px-4 text-left font-semibold text-ink">
+                                            <span class="inline-flex items-center gap-2">{{ group.label }}{% if group.badge %}<twig:Ui:Badge data-margin-unassigned-badge>{{ group.badge }}</twig:Ui:Badge>{% endif %}</span>
+                                        </th>
+                                    </tr>
+                                    {% for line in group.lines %}
+                                        {{ include('@Margin/page/_line.html.twig', {line: line, strong: line.kind == 'margin', link: link}) }}
+                                    {% endfor %}
+                                </tbody>
+                            {% endfor %}
+                            <tbody data-row="total">
+                                <tr>
+                                    <th scope="rowgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left font-semibold text-ink">{{ 'margin.table.all'|trans }}</th>
+                                </tr>
+                                {% for line in page.totals %}
+                                    {{ include('@Margin/page/_line.html.twig', {line: line, strong: line.kind == 'margin', link: link}) }}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

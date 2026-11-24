@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The first and the last month of the margin table, a small dialog from the page header. The months are
+    written YYYY-MM, as the API takes them; at most 24 are shown at once, and a refusal is told in the form.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'margin.title'|trans, href: path('app_margin')}, {label: 'margin.range.title'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'margin.range.description'|trans %}
+
+{% block title %}{{ 'margin.range.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-range-form" action="{{ path('app_margin_range') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Infrastructure\\Controller\\MarginPageController::RANGE_TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-range-error>{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:TextInput type="month" name="from" id="margin-range-from" :label="'margin.range.from'|trans" :value="values.from" width="medium" />
+        <twig:Ui:TextInput type="month" name="to" id="margin-range-to" :label="'margin.range.to'|trans" :value="values.to" width="medium" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-range-form" variant="primary">{{ 'margin.range.apply'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.range.title'|trans" icon="calendar" class="max-w-2xl">
+        <p class="mt-0 mb-4 text-small text-muted">{{ 'margin.range.description'|trans }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_margin')">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-range-form" variant="primary">{{ 'margin.range.apply'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

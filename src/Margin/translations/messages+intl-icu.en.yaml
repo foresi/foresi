@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    margin: Margin
 margin:
   title: Margin
   screen:
-    own: Own consumption
+    own: Own use
     unknown_contact: A client that is no longer in the address book
     recipient: Recipient
     client: Client
@@ -30,6 +33,50 @@ margin:
       recipient: Choose the firm itself or a client.
       client: Pick the client of a row from the list.
       amount: An amount is a number in CZK with at most two decimals.
+  range:
+    open: From–to
+    title: Months shown
+    description: The first and the last month of the table. At most 24 months are shown at once.
+    from: From month
+    to: To month
+    apply: Show
+  table:
+    title: Margin by client
+    caption: "Revenue, costs and margin per client and month, {range}"
+    row: Client and line
+    currency: amounts in CZK
+    cell: "{row}, {month}, {line}: {amount}"
+    total: Total
+    all: All clients and costs
+    none: None
+    unassigned: Unassigned
+    unassigned_documents: "{count, plural, one {# document} other {# documents}}"
+    line:
+      revenue: Revenue
+      costs: Costs
+      margin: Margin
+    gaps: "{count, plural, one {The cost of # document is not counted, its exchange rate is missing.} other {The cost of # documents is not counted, their exchange rate is missing.}}"
+  empty:
+    title: Nothing to show yet
+    text: "There is no revenue and no cost in {range}. Change the months, or issue an invoice or record a received document."
+  sheet:
+    assign: Assign
+    empty:
+      revenue: No revenue document in this month.
+      costs: No cost in this month.
+    total:
+      revenue: Revenue
+      costs: Costs
+    kind:
+      invoice: Invoice
+      payment_tax_document: Payment tax document
+      correction_document: Correction document
+    source:
+      line: Line
+      document: Document
+      planned_item: Plan
+      supplier: Supplier
+      unassigned: Unassigned
   supplier:
     tab: Margin
     title: Default recipient of the costs of this supplier
@@ -65,3 +112,6 @@ margin:
     counterparty_required: "The planned item needs a counterparty before its costs are mapped."
     unknown_supplier: "The supplier is not an active contact of the address book."
     invalid_month: "A month is written as YYYY-MM."
+    range_reversed: "The range ends before it starts."
+    range_too_long: "At most 24 months are shown at once."
+    invalid_row: "A row is client:<contact id>, own or unassigned."

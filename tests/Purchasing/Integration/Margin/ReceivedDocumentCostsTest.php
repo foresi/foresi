@@ -130,7 +130,9 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
         self::getContainer()->get(CostShareCalculation::class)->recalculate($id);
 
         self::assertSame([], $this->shares());
+        $this->recording()->create($this->input(supplierNumber: 'CZK'));
         self::assertSame([$id], new KnownGaps(new CostSources([$this->costs()]))->documentsMissingExchangeRate([$id]));
+        self::assertSame([$id], [...new CostSources([$this->costs()])->documentIdsWithoutExchangeRate()], 'Only the document without a rate is on the short list, not the one in CZK.');
     }
 
     public function testTheDocumentsOfASupplierFromAMonthOn(): void

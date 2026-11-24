@@ -69,6 +69,52 @@ A line without a base in CZK, because a foreign document has no exchange rate ye
 
 A recorded received document shows a **Margin** panel with its lines, the shares of each and their sources. **Assign…** in the panel gives the whole document to a recipient or clears it. **Split…** on a line opens a dialog to choose the kind and the recipients, with a client picker that searches the contacts. A draft or trashed document has no panel to change. Over REST and MCP a trashed document still accepts a mapping, which waits for its restore.
 
+## The client margin view
+
+The margin view answers what each client earned the firm: **revenue minus costs, per client and month**, in CZK, whole hellers. It is the table at *Margin* on the screen, `GET /api/v1/margin` over REST and `foresi_client_margin` over MCP; a cell opens into the documents behind it (`GET /api/v1/margin/cell`, `foresi_client_margin_cell`). The range is at most 24 months of `YYYY-MM`; when it is left out it is the last three months ending with the current one.
+
+### Costs
+
+The costs are the stored cost shares (see [Shares](#shares)), by the month of the cost and the recipient they were given to.
+
+### Revenue
+
+Revenue comes from [Invoicing](invoicing.md) through a contract Margin owns (`MarginRevenueSource`, ADR 0033), so the margin works without Invoicing, and then shows costs only. A document counts when it is one the VAT return reads:
+
+- invoices, payment tax documents and correction documents, **in the month of their tax point** (the issue date where there is none), at their **net in CZK**: the sum of the bases of their VAT rate summaries, each at the rate of the document. A correction that lowers a supply carries a negative net and lowers the revenue of its own month;
+- **advances are left out**, and so are documents in the trash and cancelled ones.
+
+A final invoice that deducts an advance already paid carries the deduction as negative lines, so the supply counts once: the advance itself is left out, its payment tax document counts the amount received, and the final invoice counts what is left. **One exception:** an advance that was never taxed, such as the advance of a firm that is not a VAT payer, issues no payment tax document and never counted, so the final invoice that deducts it counts the deducted amount back. An advance of 5,000 paid 3,000 and a final invoice of 5,000 deducting the 3,000 give revenue of 5,000.
+
+The client of a revenue document is its customer contact. The name of a client comes from the contact, or is the contact's id when the contact no longer resolves; the revenue of an archived contact still counts.
+
+### Rows
+
+- **One row per client** with revenue or costs in the range, the highest revenue of the range first, then by name.
+- **Own use**: the costs the firm bears itself (recipient `own`). It carries no revenue, so its margin is negative.
+- **Unassigned**: the costs nobody has claimed yet (see [Precedence](#precedence)). This row is **always there, even when it is empty**, and its costs count in every total: the costs of the table equal the sum of all shares in the range, so no cost is lost by leaving it unmapped.
+
+Every row has a cell for every month of the range (`month`, `revenue`, `costs`, `margin`), its total, and the table has the totals of each month and of the range.
+
+### A cell
+
+A cell lists the `revenue_items` (the issued documents, source `revenue`, with the document `kind`) and the `cost_items` (the cost shares, with the source of the share: `line`, `document`, `planned_item`, `supplier` or `unassigned`), each with its `label`, `amount`, `source` and `url`. A cost item names the received document and the text of its line.
+
+### Known gaps
+
+The table carries `known_gaps`: `missing_exchange_rate` with the ids of the foreign documents that have costs in the range but no exchange rate yet, so their shares are not in the table until the rate is set. What the table shows is never complete without saying so. The net of a revenue line can differ by a heller from the document's net, because the document converts its rate summaries and a line converts itself; the document's net is what is counted.
+
+### The Margin page
+
+*Margin* sits under *Money*, after *VAT*, for the owners and the members; a guest is refused (403) and the menu item is not offered. The page reads the same table as the API (`MarginTable`), so the screen and the API never disagree.
+
+- **The table.** The months are the columns, the last three by default. Each client has three rows (revenue, costs, margin), then *Own use* and *Unassigned* with their costs only. A *Total* column and an *All clients and costs* block add the rows up, so the total costs equal the sum of every share in the range. Figures are CZK with hellers; an empty cell is a dash.
+- **The months.** *From–to* in the page header opens a small dialog with a first and a last month. It refuses what the API refuses (`invalid_month`, `range_reversed`, `range_too_long`) and keeps what was typed. A range written into the address that cannot be used shows the default range and says why.
+- **The sheet.** A cell with money opens the documents behind it in the side sheet, as a Cash flow cell does: the revenue documents of the client in the month (invoice, payment tax document, correction), then the cost lines, each with the source of its share (line, document, plan, supplier or unassigned) and its amount. A document opens in place in the same sheet. The same URL, `/margin/cell?row=&month=`, is a page too.
+- **Unassigned.** The row is always the last one and never hidden. While some document has a share nobody has claimed, a neutral badge counts those documents. In the sheet of an *Unassigned* cell each document has *Assign*, the quick assignment of the document page; it is offered only where Purchasing, which owns that dialog, is installed.
+- **Known gaps.** A neutral note above the table lists the documents whose cost is not counted because their exchange rate is missing, each linking to the document.
+- **Nothing in the range.** When the range holds no revenue and no cost, the page says so instead of a table of dashes.
+
 ## Operations
 
 The same operations are served by the REST API and by MCP, and refuse the same way:
@@ -82,9 +128,13 @@ The same operations are served by the REST API and by MCP, and refuse the same w
 | `margin.planned_allocations.get` | `GET /api/v1/margin/planned-items/{plannedItemId}/allocation` | `foresi_get_planned_item_allocation` |
 | `margin.supplier_defaults.set` | `PUT /api/v1/margin/suppliers/{contactId}/default-recipient` | `foresi_set_supplier_default_recipient` |
 | `margin.supplier_defaults.get` | `GET /api/v1/margin/suppliers/{contactId}/default-recipient` | `foresi_get_supplier_default_recipient` |
+| `margin.table` | `GET /api/v1/margin?from=YYYY-MM&to=YYYY-MM` | `foresi_client_margin` |
+| `margin.cell` | `GET /api/v1/margin/cell?row=&month=` | `foresi_client_margin_cell` |
 
 See [Margin in the REST API](api.md#margin) and [the margin tools in MCP](mcp.md). A change is recorded in the audit log with the recipients it gave the cost to.
 
 ## Refusals
 
 A mapping that cannot be followed is refused with a reason. For planned items and suppliers: `invalid_month` (a month not written `YYYY-MM`), `unknown_planned_item` (also where Cash flow is not installed), `not_an_expense`, `not_recurring`, `counterparty_required` and `unknown_supplier`. For every mapping: `whole_needs_one`, `percent_must_add_up`, `fixed_needs_a_rest`, `duplicate_recipient`, `unknown_contact` (a client that is no active contact), `unknown_document`, `unknown_line`, and `kind_invalid`, `share_invalid`, `recipient_invalid` or `amount_invalid` for a value that could not be read. A guest is refused as `forbidden`.
+
+The view refuses a range that cannot be used: `invalid_month` (a month not written `YYYY-MM`, `from`, `to` or `month`), `range_reversed` (`from` after `to`) and `range_too_long` (more than 24 months), and a cell a row that is no `client:<contact id>`, `own` or `unassigned` as `invalid_row`. These are `400 invalid_parameter` over REST, with the reason and the `parameter`.

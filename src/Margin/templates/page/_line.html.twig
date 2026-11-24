@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# One line of the margin table: its label, a cell for every month and the total of the range. A cell with money that has something behind it links to the sheet over it. #}
+<tr data-line="{{ line.kind }}">
+    <th scope="row" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-white pr-4 pl-8 text-left {{ strong ? 'font-semibold text-ink' : 'font-normal text-muted' }}">{{ line.label }}</th>
+    {% for cell in line.cells %}
+        <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold text-ink' : 'text-ink' }}">
+            {%- if cell.href -%}
+                <a href="{{ cell.href }}" data-sheet aria-label="{{ cell.label }}" class="{{ link }}">{{ cell.text }}</a>
+            {%- elseif cell.text -%}
+                {{ cell.text }}
+            {%- else -%}
+                <span class="text-control-line" aria-hidden="true">–</span><span class="sr-only">{{ 'margin.table.none'|trans }}</span>
+            {%- endif -%}
+        </td>
+    {% endfor %}
+    <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold text-ink' : 'text-ink' }}" data-line-total>
+        {%- if line.total -%}{{ line.total }}{%- else -%}<span class="text-control-line" aria-hidden="true">–</span><span class="sr-only">{{ 'margin.table.none'|trans }}</span>{%- endif -%}
+    </td>
+</tr>

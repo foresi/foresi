@@ -38,6 +38,7 @@ final class MarginAccessApiTest extends ApiTestCase
         'foresi_get_document_allocation', 'foresi_set_line_allocation', 'foresi_assign_received_document',
         'foresi_get_planned_item_allocation', 'foresi_set_planned_item_allocation',
         'foresi_get_supplier_default_recipient', 'foresi_set_supplier_default_recipient',
+        'foresi_client_margin', 'foresi_client_margin_cell',
     ];
 
     private ?string $session = null;
@@ -161,6 +162,10 @@ final class MarginAccessApiTest extends ApiTestCase
 
     private function refusedToAGuest(string $id, string $secret): void
     {
+        $this->get('/api/v1/margin', secret: $secret);
+        self::assertResponseStatusCodeSame(401);
+        $this->get('/api/v1/margin/cell', ['row' => 'own', 'month' => '2026-11'], $secret);
+        self::assertResponseStatusCodeSame(401);
         $this->get($this->plannedPath($id), secret: $secret);
         self::assertResponseStatusCodeSame(401);
         $this->send('PUT', $this->plannedPath($id), ['allocation' => null, 'from_month' => '2026-12'], $secret);
@@ -181,6 +186,8 @@ final class MarginAccessApiTest extends ApiTestCase
             'foresi_get_planned_item_allocation' => ['planned_item_id' => $id],
             'foresi_set_planned_item_allocation' => ['planned_item_id' => $id, 'allocation' => null, 'from_month' => '2026-12'],
             'foresi_get_supplier_default_recipient' => ['contact_id' => $id],
+            'foresi_client_margin' => ['from' => '2026-11'],
+            'foresi_client_margin_cell' => ['row' => 'own', 'month' => '2026-11'],
             'foresi_set_supplier_default_recipient' => ['contact_id' => $id, 'recipient' => 'own', 'from_month' => '2026-12'],
         ];
     }

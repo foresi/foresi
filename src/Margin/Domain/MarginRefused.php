@@ -18,7 +18,9 @@ use Foresi\Shared\Application\Refused;
  * duplicate_recipient; the use cases add unknown_contact, unknown_document,
  * unknown_line, the unreadable values and forbidden, and for the mappings of
  * planned items and suppliers unknown_planned_item, not_an_expense,
- * not_recurring, counterparty_required, unknown_supplier and invalid_month.
+ * not_recurring, counterparty_required, unknown_supplier and invalid_month;
+ * the margin table adds range_reversed and range_too_long, and a cell
+ * invalid_row for a row that is no client, own or unassigned.
  */
 final class MarginRefused extends \DomainException implements Refused
 {
@@ -40,6 +42,9 @@ final class MarginRefused extends \DomainException implements Refused
     public const string COUNTERPARTY_REQUIRED = 'counterparty_required';
     public const string UNKNOWN_SUPPLIER = 'unknown_supplier';
     public const string INVALID_MONTH = 'invalid_month';
+    public const string RANGE_REVERSED = 'range_reversed';
+    public const string RANGE_TOO_LONG = 'range_too_long';
+    public const string INVALID_ROW = 'invalid_row';
 
     public function __construct(
         private readonly string $reason,

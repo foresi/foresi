@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    margin: Marže
 margin:
   title: Marže
   screen:
@@ -30,6 +33,50 @@ margin:
       recipient: Vyberte firmu samotnou nebo klienta.
       client: Klienta v řádku vyberte ze seznamu.
       amount: Částka je číslo v Kč s nejvýše dvěma desetinnými místy.
+  range:
+    open: Od–Do
+    title: Zobrazené měsíce
+    description: První a poslední měsíc tabulky. Najednou se zobrazí nejvýše 24 měsíců.
+    from: Od měsíce
+    to: Do měsíce
+    apply: Zobrazit
+  table:
+    title: Marže podle klientů
+    caption: "Tržby, náklady a marže podle klientů a měsíců, {range}"
+    row: Klient a řádek
+    currency: částky v Kč
+    cell: "{row}, {month}, {line}: {amount}"
+    total: Celkem
+    all: Všichni klienti a náklady
+    none: Nic
+    unassigned: Nepřiřazeno
+    unassigned_documents: "{count, plural, one {# doklad} few {# doklady} many {# dokladu} other {# dokladů}}"
+    line:
+      revenue: Tržby
+      costs: Náklady
+      margin: Marže
+    gaps: "{count, plural, one {Náklad # dokladu se nepočítá, chybí jeho kurz.} few {Náklad # dokladů se nepočítá, chybí jejich kurz.} many {Náklad # dokladu se nepočítá, chybí jejich kurz.} other {Náklad # dokladů se nepočítá, chybí jejich kurz.}}"
+  empty:
+    title: Zatím není co zobrazit
+    text: "V období {range} nejsou žádné tržby ani náklady. Změňte měsíce, nebo vystavte fakturu či zaevidujte přijatý doklad."
+  sheet:
+    assign: Přiřadit
+    empty:
+      revenue: V tomto měsíci není žádný doklad s tržbou.
+      costs: V tomto měsíci nejsou žádné náklady.
+    total:
+      revenue: Tržby
+      costs: Náklady
+    kind:
+      invoice: Faktura
+      payment_tax_document: Daňový doklad k přijaté platbě
+      correction_document: Opravný doklad
+    source:
+      line: Řádek
+      document: Doklad
+      planned_item: Plán
+      supplier: Dodavatel
+      unassigned: Nepřiřazeno
   supplier:
     tab: Marže
     title: Výchozí příjemce nákladů od tohoto dodavatele
@@ -65,3 +112,6 @@ margin:
     counterparty_required: "Položka plánu potřebuje protistranu, než se její náklady přiřadí."
     unknown_supplier: "Dodavatel není aktivní kontakt v adresáři."
     invalid_month: "Měsíc se píše jako RRRR-MM."
+    range_reversed: "Období končí dříve, než začíná."
+    range_too_long: "Najednou se zobrazí nejvýše 24 měsíců."
+    invalid_row: "Řádek je client:<id kontaktu>, own nebo unassigned."

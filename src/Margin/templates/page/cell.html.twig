@@ -1,0 +1,66 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The documents and lines behind one cell of the margin table, in the side sheet over the Margin page, as the
+    Cash flow page lists the items of its cells and as Fathom opens what makes up a forecast cell in a panel at
+    the right: the revenue documents of the client in the month, then the costs, each with what it is, where its
+    cost came from (the line's own mapping, the document's, the plan, the supplier's default or nobody) and its
+    amount in CZK. A document links to its record, which opens in place in the same sheet
+    (docs/design/overlays.md); in the Unassigned row each document offers the quick assignment of the document
+    page, a dialog over the sheet. A record of its own, so the same URL is a page too.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'margin.title'|trans, href: path('app_margin')}, {label: sheet.title}] %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link = 'text-current underline decoration-control-line underline-offset-2 hover:decoration-ink ' ~ focus %}
+
+{% block title %}{{ sheet.title }}{% endblock %}
+
+{% block content %}
+    <div class="grid gap-6 {{ overlay() is null ? 'max-w-2xl rounded-panel border border-container bg-white px-4 py-2' : '' }}" data-margin-cell>
+        {% for section in sheet.showRevenue ? ['revenue', 'costs'] : ['costs'] %}
+            {% set part = sheet[section] %}
+            <section aria-labelledby="margin-sheet-{{ section }}" data-margin-section="{{ section }}">
+                <h2 id="margin-sheet-{{ section }}" class="m-0 text-body font-semibold text-ink">{{ ('margin.table.line.' ~ section)|trans }}</h2>
+                {% if part.items is empty %}
+                    <p class="m-0 py-3 text-small text-muted" data-margin-section-empty>{{ ('margin.sheet.empty.' ~ section)|trans }}</p>
+                {% else %}
+                    <ol class="m-0 grid list-none gap-0 p-0">
+                        {% for item in part.items %}
+                            <li class="flex min-w-0 items-start gap-3 border-b border-divider py-3 last:border-b-0" data-margin-item data-document="{{ item.documentId }}">
+                                <div class="min-w-0 flex-1">
+                                    <p class="m-0 truncate font-medium text-ink" title="{{ item.label }}"{% if item.href %} data-in-place{% endif %}>
+                                        {%- if item.href -%}
+                                            <a href="{{ item.href }}" class="{{ link }}" data-margin-item-link>{{ item.label }}</a>
+                                        {%- else -%}
+                                            {{ item.label }}
+                                        {%- endif -%}
+                                    </p>
+                                    {% if item.text %}<p class="m-0 mt-0.5 truncate text-small text-muted" title="{{ item.text }}">{{ item.text }}</p>{% endif %}
+                                    <div class="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-muted">
+                                        <twig:Ui:Badge data-margin-source>{{ item.badge }}</twig:Ui:Badge>
+                                        {% if item.occurrenceOn %}<span>{{ item.occurrenceOn }}</span>{% endif %}
+                                    </div>
+                                    {% if item.assign %}
+                                        <a href="{{ item.assign }}" data-dialog aria-haspopup="dialog" class="mt-1.5 inline-flex items-center gap-1 text-caption font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}" data-margin-assign>{{ ux_icon('lucide:user-plus', {class: 'size-3.5 shrink-0 text-muted', 'aria-hidden': 'true'}) }}{{ 'margin.sheet.assign'|trans }}</a>
+                                    {% endif %}
+                                </div>
+                                <p class="num m-0 shrink-0 text-right font-semibold text-ink">{{ item.amount }}</p>
+                            </li>
+                        {% endfor %}
+                    </ol>
+                {% endif %}
+                <p class="m-0 flex items-baseline justify-between gap-3 border-t border-divider py-3 text-small">
+                    <span class="font-semibold text-ink">{{ ('margin.sheet.total.' ~ section)|trans }}</span>
+                    <span class="num font-semibold text-ink" data-margin-total="{{ section }}">{{ part.total }}</span>
+                </p>
+            </section>
+        {% endfor %}
+        {% if sheet.showRevenue %}
+            <p class="m-0 flex items-baseline justify-between gap-3 border-t border-container py-3 text-small">
+                <span class="font-semibold text-ink">{{ 'margin.table.line.margin'|trans }}</span>
+                <span class="num font-semibold text-ink" data-margin-total="margin">{{ sheet.margin }}</span>
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}

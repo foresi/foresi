@@ -1146,6 +1146,78 @@ nelmio_api_doc:
                                 account_hint: { type: string, example: '705-<number of your tax office>/0710' }
                                 variable_symbol: { type: string, example: '12345678' }
                                 source_url: { type: string, format: uri }
+                MarginTable:
+                    type: object
+                    description: Revenue, costs and margin in CZK of the clients by month, with the firm's own use and what nobody claims.
+                    required: [from, to, months, rows, month_totals, total, known_gaps]
+                    properties:
+                        from: { type: string, example: '2026-10' }
+                        to: { type: string, example: '2026-12' }
+                        months: { type: array, items: { type: string, example: '2026-10' } }
+                        rows:
+                            type: array
+                            description: 'The clients with revenue or costs in the range, the highest revenue first; then own; then unassigned, which is always there.'
+                            items:
+                                type: object
+                                required: [row, kind, client_id, label, cells, total]
+                                properties:
+                                    row: { type: string, example: 'client:0198a1c0-0000-7000-8000-000000000001', description: 'client:<contact id>, own or unassigned.' }
+                                    kind: { type: string, enum: [client, own, unassigned] }
+                                    client_id: { type: string, format: uuid, nullable: true }
+                                    label: { type: string, description: 'The name of the client; the contact id when the contact no longer resolves.' }
+                                    cells: { type: array, items: { $ref: '#/components/schemas/MarginMonthFigures' } }
+                                    total: { $ref: '#/components/schemas/MarginFigures' }
+                        month_totals: { type: array, items: { $ref: '#/components/schemas/MarginMonthFigures' } }
+                        total: { $ref: '#/components/schemas/MarginFigures' }
+                        known_gaps:
+                            type: array
+                            items:
+                                type: object
+                                required: [code, document_ids]
+                                properties:
+                                    code: { type: string, enum: [missing_exchange_rate] }
+                                    document_ids: { type: array, items: { type: string, format: uuid } }
+                MarginFigures:
+                    type: object
+                    required: [revenue, costs, margin]
+                    properties:
+                        revenue: { $ref: '#/components/schemas/Money' }
+                        costs: { $ref: '#/components/schemas/Money' }
+                        margin: { $ref: '#/components/schemas/Money' }
+                MarginMonthFigures:
+                    type: object
+                    required: [month, revenue, costs, margin]
+                    properties:
+                        month: { type: string, example: '2026-11' }
+                        revenue: { $ref: '#/components/schemas/Money' }
+                        costs: { $ref: '#/components/schemas/Money' }
+                        margin: { $ref: '#/components/schemas/Money' }
+                MarginCell:
+                    type: object
+                    description: The documents and cost shares behind one cell of the margin table.
+                    required: [row, label, month, revenue, costs, margin, revenue_items, cost_items]
+                    properties:
+                        row: { type: string }
+                        label: { type: string }
+                        month: { type: string, example: '2026-11' }
+                        revenue: { $ref: '#/components/schemas/Money' }
+                        costs: { $ref: '#/components/schemas/Money' }
+                        margin: { $ref: '#/components/schemas/Money' }
+                        revenue_items: { type: array, items: { $ref: '#/components/schemas/MarginCellItem' } }
+                        cost_items: { type: array, items: { $ref: '#/components/schemas/MarginCellItem' } }
+                MarginCellItem:
+                    type: object
+                    required: [document_id, label, text, amount, source, kind, url, planned_item_id, occurrence_on]
+                    properties:
+                        document_id: { type: string }
+                        label: { type: string, description: 'The number of an issued document, or the number and the supplier of a cost document.' }
+                        text: { type: string, nullable: true, description: 'The text of the cost line; null for revenue.' }
+                        amount: { $ref: '#/components/schemas/Money' }
+                        source: { type: string, enum: [revenue, line, document, planned_item, supplier, unassigned] }
+                        kind: { type: string, nullable: true, description: 'The kind of a revenue document (invoice, payment tax document, correction); null for a cost.' }
+                        url: { type: string, nullable: true, description: 'Where a person reads the document in Foresi.' }
+                        planned_item_id: { type: string, format: uuid, nullable: true }
+                        occurrence_on: { type: string, format: date, nullable: true }
                 MarginDocumentAllocation:
                     type: object
                     description: Who bears the cost of a recorded received document, line by line.

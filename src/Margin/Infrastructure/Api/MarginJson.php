@@ -9,8 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Margin\Infrastructure\Api;
 
 use Foresi\Margin\Application\DocumentAllocationView;
+use Foresi\Margin\Application\KnownGap;
 use Foresi\Margin\Application\LineAllocationView;
 use Foresi\Margin\Application\MappingView;
+use Foresi\Margin\Application\MarginCellItem;
+use Foresi\Margin\Application\MarginCellView;
+use Foresi\Margin\Application\MarginFigures;
+use Foresi\Margin\Application\MarginRowView;
+use Foresi\Margin\Application\MarginTableView;
 use Foresi\Margin\Application\PlannedAllocationsView;
 use Foresi\Margin\Application\PlannedAllocationVersionView;
 use Foresi\Margin\Application\ShareView;
@@ -59,6 +65,83 @@ final class MarginJson
                 'planned_item_id' => $share->plannedItemId,
                 'occurrence_on' => $share->occurrenceOn,
             ], $line->shares),
+        ];
+    }
+
+    /**
+     * The margin table: a cell for every month of the range in every row, so a
+     * reader never has to fill a gap.
+     *
+     * @return array<string, mixed>
+     */
+    public static function table(MarginTableView $view): array
+    {
+        return [
+            'from' => $view->from,
+            'to' => $view->to,
+            'months' => $view->months,
+            'rows' => array_map(static fn (MarginRowView $row): array => [
+                'row' => $row->key,
+                'kind' => $row->kind,
+                'client_id' => $row->clientId,
+                'label' => $row->label(),
+                'cells' => array_map(static fn (string $month): array => self::cell($month, $row->cells[$month] ?? MarginFigures::none()), $view->months),
+                'total' => self::figures($row->total),
+            ], $view->rows),
+            'month_totals' => array_map(static fn (string $month): array => self::cell($month, $view->monthTotals[$month] ?? MarginFigures::none()), $view->months),
+            'total' => self::figures($view->total),
+            'known_gaps' => array_map(static fn (KnownGap $gap): array => ['code' => $gap->code, 'document_ids' => $gap->documentIds], $view->knownGaps),
+        ];
+    }
+
+    /**
+     * The documents and the cost shares behind one cell of the table.
+     *
+     * @return array<string, mixed>
+     */
+    public static function cellDetail(MarginCellView $view): array
+    {
+        return [
+            'row' => $view->row,
+            'label' => $view->label(),
+            'month' => $view->month,
+        ] + self::figures($view->figures) + [
+            'revenue_items' => array_map(self::item(...), $view->revenue),
+            'cost_items' => array_map(self::item(...), $view->costs),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function cell(string $month, MarginFigures $figures): array
+    {
+        return ['month' => $month] + self::figures($figures);
+    }
+
+    /**
+     * @return array{revenue: array{amount_minor: int, currency: string}, costs: array{amount_minor: int, currency: string}, margin: array{amount_minor: int, currency: string}}
+     */
+    private static function figures(MarginFigures $figures): array
+    {
+        return ['revenue' => JsonValues::money($figures->revenue), 'costs' => JsonValues::money($figures->costs), 'margin' => JsonValues::money($figures->margin)];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function item(MarginCellItem $item): array
+    {
+        return [
+            'document_id' => $item->documentId,
+            'label' => $item->label,
+            'text' => $item->text,
+            'amount' => JsonValues::money($item->amountCzk),
+            'source' => $item->source,
+            'kind' => $item->kind,
+            'url' => $item->url,
+            'planned_item_id' => $item->plannedItemId,
+            'occurrence_on' => $item->occurrenceOn,
         ];
     }
 

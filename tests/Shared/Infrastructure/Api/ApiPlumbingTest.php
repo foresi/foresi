@@ -179,6 +179,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/recurring-invoices/{recurringInvoiceId}/end' => ['post' => '200'],
             ],
             'margin' => [
+                '/api/v1/margin' => ['get' => '200'],
+                '/api/v1/margin/cell' => ['get' => '200'],
                 '/api/v1/margin/documents/{documentId}' => ['get' => '200'],
                 '/api/v1/margin/documents/{documentId}/assign' => ['post' => '200'],
                 '/api/v1/margin/documents/{documentId}/lines/{lineKey}/allocation' => ['put' => '200'],
