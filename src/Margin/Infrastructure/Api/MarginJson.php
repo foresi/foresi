@@ -19,6 +19,8 @@ use Foresi\Margin\Application\MarginRowView;
 use Foresi\Margin\Application\MarginTableView;
 use Foresi\Margin\Application\PlannedAllocationsView;
 use Foresi\Margin\Application\PlannedAllocationVersionView;
+use Foresi\Margin\Application\RebillLinkView;
+use Foresi\Margin\Application\RebillPairingView;
 use Foresi\Margin\Application\ShareView;
 use Foresi\Margin\Application\SupplierDefaultsView;
 use Foresi\Margin\Application\SupplierDefaultVersionView;
@@ -109,16 +111,62 @@ final class MarginJson
         ] + self::figures($view->figures) + [
             'revenue_items' => array_map(self::item(...), $view->revenue),
             'cost_items' => array_map(self::item(...), $view->costs),
-            'unrebilled' => array_map(static fn (UnrebilledOccurrence $occurrence): array => [
-                'label' => $occurrence->itemName,
-                'planned_item_id' => $occurrence->plannedItemId,
-                'planned_item_url' => $occurrence->itemUrl,
-                'occurrence_on' => $occurrence->occurrenceOn->format('Y-m-d'),
-                'recipient_id' => $occurrence->recipientId,
-                'template_id' => $occurrence->templateId,
-                'template_url' => $occurrence->templateUrl,
-                'recurring_line_id' => $occurrence->recurringLineId,
-            ], $view->unrebilled),
+            'unrebilled' => self::unrebilled($view->unrebilled),
+        ];
+    }
+
+    /**
+     * The costs paid and not rebilled.
+     *
+     * @param list<UnrebilledOccurrence> $occurrences
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function unrebilled(array $occurrences): array
+    {
+        return array_map(static fn (UnrebilledOccurrence $occurrence): array => [
+            'label' => $occurrence->itemName,
+            'planned_item_id' => $occurrence->plannedItemId,
+            'planned_item_url' => $occurrence->itemUrl,
+            'occurrence_on' => $occurrence->occurrenceOn->format('Y-m-d'),
+            'month' => $occurrence->month,
+            'recipient_id' => $occurrence->recipientId,
+            'template_id' => $occurrence->templateId,
+            'template_url' => $occurrence->templateUrl,
+            'recurring_line_id' => $occurrence->recurringLineId,
+        ], $occurrences);
+    }
+
+    /**
+     * The planned cost a template line rebills; every field but the line is null where it rebills none.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rebillLink(string $recurringLineId, ?RebillLinkView $view): array
+    {
+        return [
+            'recurring_line_id' => $recurringLineId,
+            'planned_item_id' => $view?->plannedItemId,
+            'planned_item_name' => $view?->plannedItemName,
+            'planned_item_url' => $view?->plannedItemUrl,
+            'created_on' => $view?->createdOn,
+            'warnings' => $view->warnings ?? [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function rebillPairing(RebillPairingView $view): array
+    {
+        return [
+            'invoice_line_id' => $view->invoiceLineId,
+            'invoice_id' => $view->invoiceId,
+            'planned_item_id' => $view->plannedItemId,
+            'planned_item_name' => $view->plannedItemName,
+            'planned_item_url' => $view->plannedItemUrl,
+            'occurrence_on' => $view->occurrenceOn,
+            'manual' => $view->manual,
         ];
     }
 

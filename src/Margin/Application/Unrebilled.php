@@ -36,14 +36,14 @@ final readonly class Unrebilled
     }
 
     /**
-     * @param string $fromMonth YYYY-MM
-     * @param string $toMonth   YYYY-MM
+     * @param string|null $fromMonth YYYY-MM; two months before the last one when left out
+     * @param string|null $toMonth   YYYY-MM; the current month when left out
      *
      * @return list<UnrebilledOccurrence> by occurrence day, then item, then client
      *
      * @throws MarginRefused forbidden, invalid_month, range_reversed or range_too_long
      */
-    public function between(string $fromMonth, string $toMonth): array
+    public function between(?string $fromMonth = null, ?string $toMonth = null): array
     {
         $this->access->denyUnlessStaff();
 

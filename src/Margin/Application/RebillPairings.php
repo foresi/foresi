@@ -40,7 +40,7 @@ final readonly class RebillPairings
      *
      * @throws MarginRefused forbidden, unknown_invoice_line, unknown_planned_item, not_an_expense, invalid_day, not_an_occurrence, already_paired or customer_not_a_recipient
      */
-    public function pair(string $invoiceLineId, string $plannedItemId, string $occurrenceOn): void
+    public function pair(string $invoiceLineId, string $plannedItemId, string $occurrenceOn): RebillPairingView
     {
         $this->access->denyUnlessStaff();
         // The invoice is read before anything is changed.
@@ -71,6 +71,8 @@ final readonly class RebillPairings
             $this->entityManager->persist(new RebillPairing(Uuid::v7()->toRfc4122(), $invoiceLineId, $document->id, strtolower($document->customerId), $item->id, $day, true));
             $this->entityManager->flush();
         });
+
+        return new RebillPairingView($invoiceLineId, $document->id, $item->id, $item->name, $item->url, $occurrenceOn, true);
     }
 
     /**

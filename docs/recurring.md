@@ -23,6 +23,10 @@ The schedule:
 
 The form shows the next five issues with their dates and the description as it will read, and updates as the schedule changes.
 
+### Rebilling a cost
+
+Where [Margin](margin.md#rebilling) is installed, a line of a template can rebill a planned cost of [Cash flow](cash-flow.md): the link is set with `PUT /api/v1/margin/recurring-lines/{recurringLineId}/rebills` or `foresi_set_rebill_link`. The price of the line stays what the template says; Foresi never copies the cost into it. Each invoice issued from the template then pairs that line with the occurrence of the cost on the invoice's tax point, so that a cost paid for the customer and never invoiced to it shows as "paid, not rebilled". The lines of a template are revised in place by position when it is saved, so a link stays with its line. The link of a line that was removed from the template flags nothing; clear it with `planned_item_id` null.
+
 ### Dates of the occurrences
 
 Occurrence *n* is the first issue plus *n* times the interval, always counted from the first issue and never from the previous date, with the day clamped to the length of the month. A template starting on 31 January 2027, monthly, issues on 28 February, 31 March, 30 April and so on: it never drifts to the 28th. A yearly template starting on 29 February 2028 issues on 28 February 2029 and on 29 February 2032.

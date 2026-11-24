@@ -94,7 +94,7 @@ The client of a revenue document is its customer contact. The name of a client c
 - **Own use**: the costs the firm bears itself (recipient `own`). It carries no revenue, so its margin is negative.
 - **Unassigned**: the costs nobody has claimed yet (see [Precedence](#precedence)). This row is **always there, even when it is empty**, and its costs count in every total: the costs of the table equal the sum of all shares in the range, so no cost is lost by leaving it unmapped.
 
-Every row has a cell for every month of the range (`month`, `revenue`, `costs`, `margin`), its total, and the table has the totals of each month and of the range.
+Every row has a cell for every month of the range (`month`, `revenue`, `costs`, `margin`, `unrebilled`), its total, and the table has the totals of each month and of the range.
 
 ### A cell
 
@@ -115,6 +115,31 @@ The table carries `known_gaps`: `missing_exchange_rate` with the ids of the fore
 - **Known gaps.** A neutral note above the table lists the documents whose cost is not counted because their exchange rate is missing, each linking to the document.
 - **Nothing in the range.** When the range holds no revenue and no cost, the page says so instead of a table of dashes.
 
+## Rebilling
+
+A client often pays for a cost the firm pays first: the hosting of its site, a voice API. Margin counts the cost against the client (the [mapping](#planned-item-mappings) of the planned cost) and the invoice that bills it back as revenue. **Rebilling** only watches that the two meet: a cost that was paid for a client and never appeared on that client's invoice is flagged **paid, not rebilled**. Foresi never copies the cost into the invoice line; the price of the line stays what a person wrote.
+
+**A link.** A line of a [recurring invoice](recurring.md) template is linked to a recurring planned cost of [Cash flow](cash-flow.md) (money going out): `PUT /api/v1/margin/recurring-lines/{recurringLineId}/rebills` with `{"planned_item_id": "<id>"}`, or `foresi_set_rebill_link`; `null` removes the link. A line has at most one link. A template line keeps its id when the template is revised, so the link survives a revision. The answer carries `warnings`: `customer_not_a_recipient` when the customer of the template bears no share of the planned cost's mapping this month, so no invoice would be paired. The warning does not stop the link, the mapping may be set next. Setting the item a line already rebills changes nothing; another item starts the link over from today.
+
+**On issue.** When an invoice is issued from the template (also when a trashed one is restored), each line with a link is paired with the occurrence of the planned cost **on the tax point of the invoice**, if the cost has one on that day and its customer bears a share of the mapping in that month. A line that finds no occurrence is not paired and nothing is refused. The tax point is a day in the zone of the instance.
+
+**By hand.** A line written by hand, or one that should rebill another occurrence, is paired with `POST /api/v1/margin/rebills` (`invoice_line_id`, `planned_item_id`, `occurrence_on` as `YYYY-MM-DD`; `201`) or `foresi_pair_rebill_line`, and unpaired with `DELETE /api/v1/margin/rebills/{invoiceLineId}` or `foresi_unpair_rebill_line`, whether the pairing was made by hand or on issue. A line pairs with one occurrence only. A pairing made by hand is **removed when its invoice goes to the trash and is not restored with it**: pair the line again after a restore. A pairing made on issue comes back with the invoice.
+
+**Paid, not rebilled.** An occurrence O of a planned cost I is flagged for a client R when all of this holds:
+
+- a line of a recurring invoice of R is linked to I;
+- R bears a share of I's mapping in the month of O, so a client that was dropped from the mapping is not flagged;
+- a cost document is paired with O in Cash flow (an automatic or confirmed pairing; a proposal does not count);
+- no invoice line of R is paired with O. A line of another client does not count.
+
+The flag is **per recipient**: if two clients bear one cost and both are linked, each is flagged until its own invoice rebills it. The month of the flag is the month of the occurrence's day.
+
+**The history rule.** A link flags only the occurrences of the month it was made and of later months; earlier months are never flagged, so linking a line does not raise a flag for every past cost. A link made on 30 November counts November; the day is read in the zone of the instance.
+
+Where it shows: every cell and total of the table has `unrebilled`, the number of flagged costs of the client in the month (a client row sums its months, the table every client); a client with only flagged costs still gets a row. The cell detail lists them in `unrebilled` (`label`, `planned_item_id`, `planned_item_url`, `occurrence_on`, `month`, `recipient_id`, `template_id`, `template_url`, `recurring_line_id`). `GET /api/v1/margin/unrebilled?from=2026-10&to=2026-12` and `foresi_list_unrebilled_costs` list them for a range of months, earliest first, with the range rules of the table. The badge is neutral, not an error: the cost may be rebilled in a later month.
+
+**A known limit.** Editing an issued invoice revises its lines by position. Removing or reordering the lines of an invoice that was paired can leave the pairing on another line; unpair and pair again by hand.
+
 ## Operations
 
 The same operations are served by the REST API and by MCP, and refuse the same way:
@@ -130,11 +155,15 @@ The same operations are served by the REST API and by MCP, and refuse the same w
 | `margin.supplier_defaults.get` | `GET /api/v1/margin/suppliers/{contactId}/default-recipient` | `foresi_get_supplier_default_recipient` |
 | `margin.table` | `GET /api/v1/margin?from=YYYY-MM&to=YYYY-MM` | `foresi_client_margin` |
 | `margin.cell` | `GET /api/v1/margin/cell?row=&month=` | `foresi_client_margin_cell` |
+| `margin.rebill_links.set` | `PUT /api/v1/margin/recurring-lines/{recurringLineId}/rebills` | `foresi_set_rebill_link` |
+| `margin.rebill_pairings.pair` | `POST /api/v1/margin/rebills` | `foresi_pair_rebill_line` |
+| `margin.rebill_pairings.unpair` | `DELETE /api/v1/margin/rebills/{invoiceLineId}` | `foresi_unpair_rebill_line` |
+| `margin.unrebilled` | `GET /api/v1/margin/unrebilled?from=YYYY-MM&to=YYYY-MM` | `foresi_list_unrebilled_costs` |
 
 See [Margin in the REST API](api.md#margin) and [the margin tools in MCP](mcp.md). A change is recorded in the audit log with the recipients it gave the cost to.
 
 ## Refusals
 
-A mapping that cannot be followed is refused with a reason. For planned items and suppliers: `invalid_month` (a month not written `YYYY-MM`), `unknown_planned_item` (also where Cash flow is not installed), `not_an_expense`, `not_recurring`, `counterparty_required` and `unknown_supplier`. For every mapping: `whole_needs_one`, `percent_must_add_up`, `fixed_needs_a_rest`, `duplicate_recipient`, `unknown_contact` (a client that is no active contact), `unknown_document`, `unknown_line`, and `kind_invalid`, `share_invalid`, `recipient_invalid` or `amount_invalid` for a value that could not be read. A guest is refused as `forbidden`.
+A mapping that cannot be followed is refused with a reason. For planned items and suppliers: `invalid_month` (a month not written `YYYY-MM`), `unknown_planned_item` (also where Cash flow is not installed), `not_an_expense`, `not_recurring`, `counterparty_required` and `unknown_supplier`. For every mapping: `whole_needs_one`, `percent_must_add_up`, `fixed_needs_a_rest`, `duplicate_recipient`, `unknown_contact` (a client that is no active contact), `unknown_document`, `unknown_line`, and `kind_invalid`, `share_invalid`, `recipient_invalid` or `amount_invalid` for a value that could not be read. Rebilling adds `unknown_template_line`, `unknown_invoice_line` and `unknown_pairing` (not found), `invalid_day` (a day not written `YYYY-MM-DD`), `not_an_occurrence` (the planned cost has no occurrence on that day), `not_an_expense` (the planned cost is money coming in), `already_paired` and `customer_not_a_recipient` (the customer of the invoice bears no share of the cost in that month). A guest is refused as `forbidden`.
 
 The view refuses a range that cannot be used: `invalid_month` (a month not written `YYYY-MM`, `from`, `to` or `month`), `range_reversed` (`from` after `to`) and `range_too_long` (more than 24 months), and a cell a row that is no `client:<contact id>`, `own` or `unassigned` as `invalid_row`. These are `400 invalid_parameter` over REST, with the reason and the `parameter`.
