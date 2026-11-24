@@ -55,6 +55,29 @@ final class ReadingMergeTest extends TestCase
         self::assertNull($merged->get(ReadField::VatRecap));
     }
 
+    public function testNoCurrencyIsTakenFromAnotherReaderWhenTheAmountsHaveNone(): void
+    {
+        $a = self::reading('isdoc', [ReadField::Total->value => 10000]);
+        $b = self::reading('payment_qr', [
+            ReadField::Total->value => 9000,
+            ReadField::Currency->value => 'EUR',
+        ]);
+        $c = self::reading('ai', [ReadField::Currency->value => 'USD']);
+
+        $merged = (new ReadingMerge())->merge([$a, $b, $c]);
+
+        self::assertSame(10000, $merged->get(ReadField::Total)?->value);
+        self::assertNull($merged->get(ReadField::Currency));
+    }
+
+    public function testReadingKeysFollowTheValuesOwnField(): void
+    {
+        $reading = new Reading(['wrong' => new ReadValue(ReadField::DueDate, '2026-10-20', 'isdoc')]);
+
+        self::assertSame(['due_date'], array_keys($reading->values));
+        self::assertSame('2026-10-20', $reading->get(ReadField::DueDate)?->value);
+    }
+
     public function testAReadingWithoutATotalDoesNotTakePartInTheAmounts(): void
     {
         $a = self::reading('payment_qr', [ReadField::Currency->value => 'CZK']);

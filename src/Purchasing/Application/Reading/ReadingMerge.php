@@ -27,22 +27,22 @@ final class ReadingMerge
         $amounts = $this->firstWithTotal($readings);
 
         $values = [];
-        foreach (($amounts->values ?? []) as $key => $value) {
+        foreach (($amounts->values ?? []) as $value) {
             if (\in_array($value->field, self::AMOUNTS, true)) {
-                $values[$key] = $value;
+                $values[$value->field->value] = $value;
             }
         }
 
         foreach ($readings as $reading) {
-            foreach ($reading->values as $key => $value) {
-                if (isset($values[$key])) {
+            foreach ($reading->values as $value) {
+                if (isset($values[$value->field->value])) {
                     continue;
                 }
                 // With a total chosen, no other reader adds to its amounts.
                 if (null !== $amounts && \in_array($value->field, self::AMOUNTS, true)) {
                     continue;
                 }
-                $values[$key] = $value;
+                $values[$value->field->value] = $value;
             }
         }
 

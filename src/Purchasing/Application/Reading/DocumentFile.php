@@ -22,27 +22,37 @@ final readonly class DocumentFile
 
     public function isPdf(): bool
     {
-        return $this->is(['application/pdf'], ['pdf']);
+        return $this->is(static fn (string $type): bool => 'application/pdf' === $type, ['pdf']);
     }
 
     public function isImage(): bool
     {
-        return str_starts_with($this->type(), 'image/') || $this->is([], ['png', 'jpg', 'jpeg', 'gif', 'webp', 'tif', 'tiff', 'bmp']);
+        return $this->is(
+            static fn (string $type): bool => str_starts_with($type, 'image/'),
+            ['png', 'jpg', 'jpeg', 'gif', 'webp', 'tif', 'tiff', 'bmp'],
+        );
     }
 
     public function isXml(): bool
     {
-        return $this->is(['application/xml', 'text/xml'], ['xml', 'isdoc']);
+        return $this->is(
+            static fn (string $type): bool => \in_array($type, ['application/xml', 'text/xml'], true) || str_ends_with($type, '+xml'),
+            ['xml', 'isdoc'],
+        );
     }
 
     /**
-     * @param list<string> $mediaTypes
-     * @param list<string> $extensions
+     * The media type is trusted; the extension decides only when the media
+     * type says nothing (empty or a generic binary).
+     *
+     * @param callable(string): bool $matches
+     * @param list<string>           $extensions
      */
-    private function is(array $mediaTypes, array $extensions): bool
+    private function is(callable $matches, array $extensions): bool
     {
-        if (\in_array($this->type(), $mediaTypes, true)) {
-            return true;
+        $type = $this->type();
+        if ('' !== $type && 'application/octet-stream' !== $type) {
+            return $matches($type);
         }
 
         return \in_array(strtolower(pathinfo($this->fileName, \PATHINFO_EXTENSION)), $extensions, true);

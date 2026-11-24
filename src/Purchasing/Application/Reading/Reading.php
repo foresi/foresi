@@ -14,11 +14,19 @@ namespace Foresi\Purchasing\Application\Reading;
  */
 final readonly class Reading
 {
+    /** @var array<value-of<ReadField>, ReadValue> */
+    public array $values;
+
     /**
-     * @param array<value-of<ReadField>, ReadValue> $values
+     * @param array<array-key, ReadValue> $values re-keyed by each value's own field
      */
-    public function __construct(public array $values)
+    public function __construct(array $values)
     {
+        $keyed = [];
+        foreach ($values as $value) {
+            $keyed[$value->field->value] = $value;
+        }
+        $this->values = $keyed;
     }
 
     public function get(ReadField $field): ?ReadValue
