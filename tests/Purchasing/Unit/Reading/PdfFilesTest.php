@@ -114,7 +114,7 @@ final class PdfFilesTest extends TestCase
     public function testAFileOverTheSizeLimitFails(): void
     {
         $this->expectException(ReaderFailed::class);
-        $this->pdfFiles->pageImages($this->pdf('%PDF-1.7'.str_repeat(' ', 26 * 1024 * 1024)), 2);
+        $this->pdfFiles->pageImages($this->pdf('%PDF-1.7'.str_repeat(' ', 11 * 1024 * 1024)), 2);
     }
 
     private function pdf(string $bytes): DocumentFile

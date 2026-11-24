@@ -38,16 +38,20 @@ final class SpaydParser
             $keys[$key] ??= rawurldecode(substr($part, $separator + 1));
         }
 
+        // An amount without a currency we trust is not safe to propose.
+        $currency = $this->currency($keys['CC'] ?? null);
         $values = array_filter([
             $this->account($keys['ACC'] ?? null),
-            $this->total($keys['AM'] ?? null),
+            null === $currency ? null : $this->total($keys['AM'] ?? null),
             $this->variableSymbol($keys['X-VS'] ?? null),
             $this->dueDate($keys['DT'] ?? null),
         ]);
         if ([] === $values) {
             return null;
         }
-        $values[] = new ReadValue(ReadField::Currency, $this->currency($keys['CC'] ?? null), self::SOURCE);
+        if (null !== $currency) {
+            $values[] = new ReadValue(ReadField::Currency, $currency, self::SOURCE);
+        }
 
         return new Reading($values);
     }
@@ -68,14 +72,22 @@ final class SpaydParser
             return null;
         }
 
-        return new ReadValue(ReadField::Total, (int) $found[1] * 100 + (int) str_pad($found[2] ?? '', 2, '0'), self::SOURCE);
+        $minor = (int) $found[1] * 100 + (int) str_pad($found[2] ?? '', 2, '0');
+
+        return $minor > 0 ? new ReadValue(ReadField::Total, $minor, self::SOURCE) : null;
     }
 
-    private function currency(?string $value): string
+    /**
+     * CZK when the key is absent; null when it is present and not a currency code.
+     */
+    private function currency(?string $value): ?string
     {
-        $code = strtoupper((string) $value);
+        if (null === $value) {
+            return 'CZK';
+        }
+        $code = strtoupper($value);
 
-        return 1 === preg_match('/^[A-Z]{3}$/', $code) ? $code : 'CZK';
+        return 1 === preg_match('/^[A-Z]{3}$/', $code) ? $code : null;
     }
 
     private function variableSymbol(?string $value): ?ReadValue

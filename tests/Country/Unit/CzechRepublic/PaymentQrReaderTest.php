@@ -137,6 +137,45 @@ final class PaymentQrReaderTest extends TestCase
         $this->reader->read(new DocumentFile('broken.png', 'image/png', 'not an image'));
     }
 
+    public function testALargeImageIsReadWithinALowMemoryBudget(): void
+    {
+        // A QR code scaled up onto a 6000 x 4000 canvas.
+        $qr = imagecreatefromstring(ReceivedFileFixtures::qrPng(self::SPAYD, 4));
+        self::assertNotFalse($qr);
+        $canvas = imagecreatetruecolor(6000, 4000);
+        self::assertNotFalse($canvas);
+        imagefill($canvas, 0, 0, (int) imagecolorallocate($canvas, 255, 255, 255));
+        imagecopyresampled($canvas, $qr, 200, 200, 0, 0, 3000, 3000, imagesx($qr), imagesy($qr));
+        ob_start();
+        imagepng($canvas);
+        $png = (string) ob_get_clean();
+        unset($qr, $canvas);
+
+        memory_reset_peak_usage();
+        $before = memory_get_peak_usage();
+        $reading = $this->reader->read(new DocumentFile('large.png', 'image/png', $png));
+        $used = memory_get_peak_usage() - $before;
+
+        self::assertSame(121050, $reading?->get(ReadField::Total)?->value);
+        self::assertLessThan(200 * 1024 * 1024, $used);
+    }
+
+    public function testABlankLargeImageStaysWithinTheMemoryBudget(): void
+    {
+        $canvas = imagecreatetruecolor(5000, 4000);
+        self::assertNotFalse($canvas);
+        ob_start();
+        imagepng($canvas);
+        $png = (string) ob_get_clean();
+        unset($canvas);
+
+        memory_reset_peak_usage();
+        $before = memory_get_peak_usage();
+        self::assertNull($this->reader->read(new DocumentFile('blank.png', 'image/png', $png)));
+
+        self::assertLessThan(200 * 1024 * 1024, memory_get_peak_usage() - $before);
+    }
+
     /**
      * Only the header of a PNG that claims the size; nothing could decode it.
      */

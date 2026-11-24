@@ -24,14 +24,15 @@ use Smalot\PdfParser\XObject\Image;
  * Reads attached files and page images in pure PHP with smalot/pdfparser, so
  * the server needs no system tool and no imaging extension beyond GD.
  *
- * Limits: a PDF over 25 MB is refused; the parser decodes at most 64 MB of
+ * Limits: a PDF over 10 MB is refused; the parser decodes at most 64 MB of
  * one stream; at most 20 attached files of up to 10 MB each and 20 images of up
  * to 25 million pixels are returned. An encrypted PDF is refused, never opened.
  * Pages are not rendered, so a code drawn with vectors yields no image.
  */
 final readonly class SmalotPdfFiles implements PdfFiles
 {
-    private const int MAX_PDF_BYTES = 25 * 1024 * 1024;
+    /** The upload limit of the API; smalot parses every object of the file eagerly, so memory grows with the size. */
+    private const int MAX_PDF_BYTES = 10 * 1024 * 1024;
     private const int MAX_DECODED_BYTES = 64 * 1024 * 1024;
     private const int MAX_EMBEDDED_FILES = 20;
     private const int MAX_EMBEDDED_BYTES = 10 * 1024 * 1024;
@@ -132,6 +133,7 @@ final readonly class SmalotPdfFiles implements PdfFiles
         try {
             return new Parser([], $config)->parseContent($pdf->bytes);
         } catch (\Throwable $error) {
+            // Depends on smalot's wording ("Secured pdf file ..."); covered by the encrypted-PDF tests.
             // The parser refuses an encrypted PDF with a message about "secured" files.
             throw new ReaderFailed(str_contains(strtolower($error->getMessage()), 'secured') ? 'The PDF is encrypted.' : 'The PDF is corrupt.', 0, $error);
         }

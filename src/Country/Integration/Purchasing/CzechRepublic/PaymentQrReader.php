@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Country\Integration\Purchasing\CzechRepublic;
 
+use chillerlan\QRCode\Common\GDLuminanceSource;
 use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QRCodeException;
 use chillerlan\QRCode\QROptions;
 use Foresi\Purchasing\Contract\Reading\DocumentFile;
 use Foresi\Purchasing\Contract\Reading\DocumentReader;
@@ -34,6 +36,8 @@ final readonly class PaymentQrReader implements DocumentReader
     private const int PAGES = 2;
     private const int MAX_IMAGE_BYTES = 20 * 1024 * 1024;
     private const int MAX_PIXELS = 25_000_000;
+    /** The longest side the decoder gets, in pixels. */
+    private const int MAX_SIDE = 2000;
 
     public function __construct(
         private PdfFiles $pdfFiles,
@@ -90,12 +94,30 @@ final readonly class PaymentQrReader implements DocumentReader
 
     private function readImage(string $image): ?Reading
     {
+        $size = @getimagesizefromstring($image);
+        if (false === $size || $size[0] * $size[1] > self::MAX_PIXELS) {
+            return null;
+        }
+        $gd = @imagecreatefromstring($image);
+        if (false === $gd) {
+            return null;
+        }
+        // The decoder holds several copies of every pixel, so it never sees more than about 4 Mpx.
+        if (max($size[0], $size[1]) > self::MAX_SIDE) {
+            $scaled = imagescale($gd, $size[0] >= $size[1] ? self::MAX_SIDE : (int) max(1, round($size[0] * self::MAX_SIDE / $size[1])), $size[1] > $size[0] ? self::MAX_SIDE : -1, \IMG_BILINEAR_FIXED);
+            unset($gd);
+            if (false === $scaled) {
+                return null;
+            }
+            $gd = $scaled;
+        }
+
         $options = new QROptions();
         $options->readerUseImagickIfAvailable = false;
         $options->readerIncreaseContrast = true;
         try {
-            $text = (string) new QRCode($options)->readFromBlob($image);
-        } catch (\Throwable) {
+            $text = (string) new QRCode($options)->readFromSource(new GDLuminanceSource($gd, $options));
+        } catch (QRCodeException) {
             // No code in the image, or one that cannot be decoded: nothing to read here.
             return null;
         }

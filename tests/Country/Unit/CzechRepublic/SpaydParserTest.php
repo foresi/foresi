@@ -79,4 +79,22 @@ final class SpaydParserTest extends TestCase
     {
         self::assertNull(new SpaydParser()->parse('SPD*1.0*MSG:Example'));
     }
+
+    public function testAnInvalidCurrencyGivesNeitherCurrencyNorTotal(): void
+    {
+        $reading = new SpaydParser()->parse('SPD*1.0*ACC:CZ6508000000192000145399*AM:10.00*CC:CZ');
+
+        self::assertNotNull($reading);
+        self::assertNull($reading->get(ReadField::Currency));
+        self::assertNull($reading->get(ReadField::Total));
+        self::assertNotNull($reading->get(ReadField::BankAccount));
+    }
+
+    public function testAZeroAmountGivesNoTotal(): void
+    {
+        $reading = new SpaydParser()->parse('SPD*1.0*ACC:CZ6508000000192000145399*AM:0.00');
+
+        self::assertNotNull($reading);
+        self::assertNull($reading->get(ReadField::Total));
+    }
 }
