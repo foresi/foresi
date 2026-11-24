@@ -43,6 +43,14 @@ final class IsdocFixtures
     }
 
     /**
+     * The same invoice from another supplier, such as one the address book of a test holds.
+     */
+    public static function invoiceFrom(string $name, string $registrationNumber, string $vatId): string
+    {
+        return new IsdocWriter()->write(self::document(1_000_000, 210_000, supplier: self::party($name, $registrationNumber, $vatId)));
+    }
+
+    /**
      * The same invoice as a credit note: a negative payable, written in positive amounts.
      */
     public static function creditNote(): string
@@ -50,7 +58,7 @@ final class IsdocFixtures
         return new IsdocWriter()->write(self::document(-1_000_000, -210_000, creditNote: true));
     }
 
-    private static function document(int $netMinor, int $vatMinor, bool $creditNote = false): IssuedDocument
+    private static function document(int $netMinor, int $vatMinor, bool $creditNote = false, ?DocumentParty $supplier = null): IssuedDocument
     {
         $money = static fn (int $minor): Money => Money::ofMinor($minor, Currency::CZK);
         $gross = $netMinor + $vatMinor;
@@ -66,7 +74,7 @@ final class IsdocFixtures
             Currency::CZK,
             '1',
             self::party('Example Customer a.s.', '87654321', 'CZ87654321'),
-            self::party('Cloud Host s.r.o.', '12345678', 'CZ12345678'),
+            $supplier ?? self::party('Cloud Host s.r.o.', '12345678', 'CZ12345678'),
             new \DateTimeImmutable('2026-10-31'),
             new \DateTimeImmutable('2026-10-30'),
             new \DateTimeImmutable('2026-11-14'),

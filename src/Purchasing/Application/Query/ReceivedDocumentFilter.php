@@ -26,10 +26,11 @@ final readonly class ReceivedDocumentFilter
 {
     public const string ALL = 'all';
     public const string DRAFTS = ReceivedDocumentLists::DRAFTS;
+    public const string TO_REVIEW = ReceivedDocumentLists::TO_REVIEW;
     public const string RECORDED = ReceivedDocumentLists::RECORDED;
     public const string TRASH = ReceivedDocumentLists::TRASH;
     /** The drafts come first: they wait for someone, as the inbox of Xero bills does. */
-    public const array TABS = [self::ALL, self::DRAFTS, self::RECORDED, self::TRASH];
+    public const array TABS = [self::ALL, self::DRAFTS, self::TO_REVIEW, self::RECORDED, self::TRASH];
     /** The periods the month chip offers before the months with a document (spec D5). */
     public const array RELATIVE_MONTHS = ['this_month', 'last_month', 'this_quarter', 'this_year'];
     public const int PER_PAGE = 25;

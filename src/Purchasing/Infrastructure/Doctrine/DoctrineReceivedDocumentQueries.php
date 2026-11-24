@@ -19,7 +19,10 @@ use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
+use Foresi\Purchasing\Domain\DocumentReading;
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
@@ -43,13 +46,17 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocumentQueries
 {
     private const string COLUMNS = 'd.id, d.state, d.kind, d.treatment, d.evidenceNumber, d.supplier.name AS supplierName, d.supplierNumber, '
-        .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason, IDENTITY(d.supplierParty) AS supplierId';
+        .'d.issueDate, d.taxPointDate, d.receivedDate, d.currency, d.totalMinor, d.vatCzkMinor, d.createdAt, d.deletedAt, d.deletedBy, d.deletedReason, IDENTITY(d.supplierParty) AS supplierId, d.source, r.state AS readingState';
+    /** The reading of each document's file, at most one. */
+    private const string READING = ' LEFT JOIN '.DocumentReading::class.' r WITH r.document = d';
     /** The fields of a view stored in a column of their own. */
     private const array VIEW_COLUMNS = [
         ReceivedDocumentLists::STATE => 'd.state',
         ReceivedDocumentLists::SUPPLIER => 'IDENTITY(d.supplierParty)',
         ReceivedDocumentLists::KIND => 'd.kind',
         ReceivedDocumentLists::TREATMENT => 'd.treatment',
+        ReceivedDocumentLists::READING => 'r.state',
+        ReceivedDocumentLists::SOURCE => 'd.source',
     ];
 
     /**
@@ -74,7 +81,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
             $parameters += $bound;
         }
-        $query = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.ReceivedDocument::class.' d WHERE '.$where);
+        $query = $this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.ReceivedDocument::class.' d'.self::READING.' WHERE '.$where);
         $this->bind($query, $parameters);
         /** @var list<numeric-string|int|null> $results */
         $results = array_values((array) $query->getSingleResult(Query::HYDRATE_ARRAY));
@@ -91,11 +98,11 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
         $where .= ' AND '.$condition;
         $parameters += $bound;
         $order = match ($filter->tab) {
-            ReceivedDocumentFilter::DRAFTS => 'd.createdAt DESC, d.id DESC',
+            ReceivedDocumentFilter::DRAFTS, ReceivedDocumentFilter::TO_REVIEW => 'd.createdAt DESC, d.id DESC',
             ReceivedDocumentFilter::TRASH => 'd.deletedAt DESC, d.id DESC',
             default => 'd.receivedDate DESC, d.evidenceNumber DESC, d.id DESC',
         };
-        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d WHERE '.$where.' ORDER BY '.$order);
+        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d'.self::READING.' WHERE '.$where.' ORDER BY '.$order);
         $this->bind($query, $parameters);
 
         return $this->rowsOf($query->setFirstResult(max(0, $offset))->setMaxResults(max(1, $limit))->getArrayResult());
@@ -127,7 +134,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
 
     public function correctable(?string $exceptId, int $limit): array
     {
-        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d WHERE d.state = :recorded AND d.deletedAt IS NULL AND d.kind <> :creditNote'
+        $query = $this->em->createQuery('SELECT '.self::COLUMNS.' FROM '.ReceivedDocument::class.' d'.self::READING.' WHERE d.state = :recorded AND d.deletedAt IS NULL AND d.kind <> :creditNote'
             .(null === $exceptId ? '' : ' AND d.id <> :except').' ORDER BY d.receivedDate DESC, d.evidenceNumber DESC, d.id DESC')
             ->setParameter('recorded', ReceivedDocumentState::Recorded->value)
             ->setParameter('creditNote', ReceivedDocumentKind::CreditNote->value);
@@ -265,7 +272,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
             $conditions[] = 'd.id < :after';
             $parameters['after'] = [$afterId, null];
         }
-        $query = $this->em->createQuery('SELECT d FROM '.ReceivedDocument::class.' d WHERE '.implode(' AND ', $conditions).' ORDER BY d.id DESC');
+        $query = $this->em->createQuery('SELECT d FROM '.ReceivedDocument::class.' d'.self::READING.' WHERE '.implode(' AND ', $conditions).' ORDER BY d.id DESC');
         $this->bind($query, $parameters);
         // One more than asked tells whether another slice follows.
         /** @var list<ReceivedDocument> $documents */
@@ -293,7 +300,7 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
     private function rowsOf(array $result): array
     {
         $rows = [];
-        /** @var array{id: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string, supplierId: ?string} $row */
+        /** @var array{id: string, state: ReceivedDocumentState|string, kind: ReceivedDocumentKind|string, treatment: PurchaseTaxTreatment|string, evidenceNumber: ?string, supplierName: string, supplierNumber: string, issueDate: ?\DateTimeImmutable, taxPointDate: ?\DateTimeImmutable, receivedDate: ?\DateTimeImmutable, currency: Currency|string, totalMinor: int|string|null, vatCzkMinor: int|string|null, createdAt: \DateTimeImmutable, deletedAt: ?\DateTimeImmutable, deletedBy: ?string, deletedReason: ?string, supplierId: ?string, source: DocumentSource|string, readingState: ReadingState|string|null} $row */
         foreach ($result as $row) {
             $currency = $row['currency'] instanceof Currency ? $row['currency'] : Currency::from($row['currency']);
             $rows[] = new ReceivedDocumentRow(
@@ -314,6 +321,8 @@ final readonly class DoctrineReceivedDocumentQueries implements ReceivedDocument
                 $row['deletedBy'],
                 $row['deletedReason'],
                 $row['supplierId'],
+                $row['source'] instanceof DocumentSource ? $row['source'] : DocumentSource::from($row['source']),
+                null === $row['readingState'] || $row['readingState'] instanceof ReadingState ? $row['readingState'] : ReadingState::from($row['readingState']),
             );
         }
 

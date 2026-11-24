@@ -2,6 +2,8 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { PROJECTS_GUEST_STATE, PURCHASING_OWNER_STATE } from '../support/session';
 import { openMoreActions } from '../support/header';
 
@@ -18,6 +20,10 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 // A one-page PDF written for the occasion, handed over like an upload.
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n');
+
+// A made-up ISDOC invoice of the seeded "Example Office Supplies s.r.o." (12345679): 10 000 CZK and 21 % VAT,
+// 12 100 CZK to pay, written by the repository's own ISDOC writer (tests/Support/IsdocFixtures::invoiceFrom).
+const ISDOC = readFileSync(path.resolve(__dirname, '../fixtures/received-invoice.isdoc'));
 
 async function expectNoSeriousViolations(page: Page): Promise<void> {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
@@ -193,6 +199,38 @@ test.describe('received documents', () => {
 
     await page.goto('/purchasing?tab=trash');
     await expect(page.locator('tbody tr')).toHaveCount(0);
+  });
+
+  test('an uploaded ISDOC file is read into the draft, each value with its source, and recorded', async ({ page }) => {
+    await page.goto('/purchasing');
+    await page.locator('main header').getByRole('link', { name: 'Nahrát doklady' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Nahrát přijaté doklady' });
+    await dialog.locator('#upload-files').setInputFiles({ name: 'faktura-20260001.isdoc', mimeType: 'application/xml', buffer: ISDOC });
+    await expect(dialog.locator('[data-attachment-upload-item][data-uploaded]')).toHaveCount(1);
+    await dialog.getByRole('button', { name: 'Hotovo' }).click();
+    await expect(dialog).toBeHidden();
+
+    // The end-to-end environment has no worker: the upload read the file before it answered.
+    await page.getByRole('link', { name: /^Ke kontrole/ }).click();
+    await expect(page.getByRole('link', { name: /^Ke kontrole/ })).toHaveAttribute('aria-current', 'page');
+    const row = page.locator('tbody tr').filter({ hasText: 'Koncept z' });
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('Nahráno');
+    await expect(row).toContainText('Načteno');
+    await row.getByRole('link', { name: /Koncept z/ }).click();
+    const sheet = page.locator('dialog#sheet');
+    await expect(sheet.locator('[data-purchasing-reading="read"]')).toContainText('Načteno: ISDOC');
+    // The supplier was found by its registration number; the values say where they came from.
+    await expect(sheet.locator('#supplier')).toHaveValue('Example Office Supplies s.r.o.');
+    await expect(sheet.locator('#supplier-help')).toHaveText('Z ISDOC');
+    await expect(sheet.locator('#total-help')).toHaveText('Z ISDOC');
+    await expect(sheet.locator('#supplierNumber')).toHaveValue('20260001');
+    await expect(sheet.locator('[data-purchasing-suggestions]')).toHaveCount(0);
+
+    await sheet.locator('#receivedDate').fill('2026-11-02');
+    await sheet.getByRole('button', { name: 'Zaevidovat' }).click();
+    await expect(sheet.locator('[role=status]').filter({ hasText: /Doklad R\d+ je zaevidovaný/ })).toBeVisible();
+    await expect(page.locator('[data-purchasing-figures]')).toContainText('12 100,00 Kč');
   });
 });
 

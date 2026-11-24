@@ -176,26 +176,12 @@ final readonly class ReadingApplication
         $groups = [...self::AMOUNTS, ...self::DATES, ...self::KIND, ...self::TEXTS];
         $fields = [];
         foreach (ReadField::cases() as $field) {
-            if (\in_array($field, $groups, true) && $this->shaped($merged, $field)) {
+            if (\in_array($field, $groups, true) && ReadValues::shaped($merged, $field)) {
                 $fields[] = $field;
             }
         }
 
         return $fields;
-    }
-
-    private function shaped(Reading $merged, ReadField $field): bool
-    {
-        $value = $merged->get($field)?->value;
-
-        return match ($field) {
-            ReadField::Kind => \is_string($value) && null !== ReceivedDocumentKind::tryFrom($value),
-            ReadField::IssueDate, ReadField::TaxPointDate, ReadField::DueDate => null !== self::date($value),
-            ReadField::Currency => \is_string($value) && null !== Currency::tryFrom($value),
-            ReadField::Total => \is_int($value),
-            ReadField::VatRecap => null !== self::recap($value),
-            default => \is_string($value),
-        };
     }
 
     /**
@@ -229,7 +215,7 @@ final readonly class ReadingApplication
     private function content(ReceivedDocument $document, Reading $merged, array $taken, ?SupplierWrite $write): ?ReceivedDocumentContent
     {
         $value = static fn (ReadField $field): mixed => \in_array($field, $taken, true) ? $merged->get($field)?->value : null;
-        $date = static fn (ReadField $field, ?\DateTimeImmutable $current): ?\DateTimeImmutable => \in_array($field, $taken, true) ? self::date($value($field)) : $current;
+        $date = static fn (ReadField $field, ?\DateTimeImmutable $current): ?\DateTimeImmutable => \in_array($field, $taken, true) ? ReadValues::date($value($field)) : $current;
 
         $kindValue = $value(ReadField::Kind);
         $kind = \is_string($kindValue) ? (ReceivedDocumentKind::tryFrom($kindValue) ?? $document->kind()) : $document->kind();
@@ -240,7 +226,7 @@ final readonly class ReadingApplication
 
         $totalValue = $value(ReadField::Total);
         $total = \is_int($totalValue) ? Money::ofMinor($sign($totalValue), $currency) : $document->total();
-        $rows = self::recap($value(ReadField::VatRecap));
+        $rows = ReadValues::recap($value(ReadField::VatRecap));
         if (null !== $rows && \is_int($totalValue) && array_sum(array_map(static fn (array $row): int => $row['baseMinor'] + $row['vatMinor'], $rows)) !== $totalValue) {
             return null;
         }
@@ -271,37 +257,6 @@ final readonly class ReadingApplication
             $document->originalDocumentId(),
             $document->supplyCode(),
         );
-    }
-
-    private static function date(mixed $value): ?\DateTimeImmutable
-    {
-        if (!\is_string($value)) {
-            return null;
-        }
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-
-        return $date instanceof \DateTimeImmutable && $date->format('Y-m-d') === $value ? $date : null;
-    }
-
-    /**
-     * The rows of a read VAT recap, or null for anything else.
-     *
-     * @return list<array{rate: string, baseMinor: int, vatMinor: int}>|null
-     */
-    private static function recap(mixed $value): ?array
-    {
-        if (!\is_array($value) || [] === $value || !array_is_list($value)) {
-            return null;
-        }
-        $rows = [];
-        foreach ($value as $row) {
-            if (!\is_array($row) || !\is_string($row['rate'] ?? null) || !\is_int($row['baseMinor'] ?? null) || !\is_int($row['vatMinor'] ?? null)) {
-                return null;
-            }
-            $rows[] = ['rate' => $row['rate'], 'baseMinor' => $row['baseMinor'], 'vatMinor' => $row['vatMinor']];
-        }
-
-        return $rows;
     }
 
     /**

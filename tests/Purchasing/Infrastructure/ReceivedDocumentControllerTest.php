@@ -81,7 +81,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $crawler = $this->page('/purchasing');
 
         self::assertSame('page', $crawler->filter('main nav a[href="/purchasing"]')->attr('aria-current'));
-        self::assertSame(['All2', 'To complete2', 'Recorded0', 'Trash0'], $this->tabs($crawler));
+        self::assertSame(['All2', 'To complete2', 'To review0', 'Recorded0', 'Trash0'], $this->tabs($crawler));
         self::assertCount(2, $crawler->filter('main table tbody tr'));
         self::assertStringContainsString('Draft of', $crawler->filter('main table tbody')->text());
         $sidebar = $crawler->filter('#sidebar [data-nav-section] a[href="/purchasing"]');
@@ -102,8 +102,8 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $this->client->request('POST', '/purchasing/'.$trashed.'/trash', ['_token' => $this->token('/purchasing/'.$trashed), 'reason' => 'Twice'], server: self::DIALOG);
 
         $crawler = $this->page('/purchasing');
-        self::assertSame(['All2', 'To complete1', 'Recorded1', 'Trash1'], $this->tabs($crawler));
-        self::assertSame('/purchasing?view=recorded', $crawler->filter('nav[aria-label="Received document views"] a')->eq(2)->attr('href'));
+        self::assertSame(['All2', 'To complete1', 'To review0', 'Recorded1', 'Trash1'], $this->tabs($crawler));
+        self::assertSame('/purchasing?view=recorded', $crawler->filter('nav[aria-label="Received document views"] a')->eq(3)->attr('href'));
         self::assertCount(1, $crawler->filter('[data-filter-sheet-form]'));
 
         foreach (['/purchasing?view=drafts', '/purchasing?tab=drafts'] as $drafts) {
@@ -114,11 +114,11 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         self::assertStringContainsString('Twice', $this->page('/purchasing?tab=trash')->filter('main table tbody')->text());
 
         $crawler = $this->page('/purchasing?view=recorded&q=fv-2026');
-        self::assertSame(['All1', 'To complete0', 'Recorded1', 'Trash0'], $this->tabs($crawler));
+        self::assertSame(['All1', 'To complete0', 'To review0', 'Recorded1', 'Trash0'], $this->tabs($crawler));
         self::assertStringContainsString('R20260001', $crawler->filter('main table tbody')->text());
         // An old ?month= link is the period quick filter now: a change to All nobody saved, the tabs counting their own views.
         $crawler = $this->page('/purchasing?month=2026-10');
-        self::assertSame(['All, unsaved changes2', 'To complete1', 'Recorded1', 'Trash1'], $this->tabs($crawler));
+        self::assertSame(['All, unsaved changes2', 'To complete1', 'To review0', 'Recorded1', 'Trash1'], $this->tabs($crawler));
         self::assertCount(1, $crawler->filter('main table tbody tr'), 'A draft names no month yet.');
         self::assertCount(1, $crawler->filter('main table tbody tr a[href="/purchasing/'.$recorded.'"]'));
     }
@@ -152,7 +152,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
 
         $crawler = $this->page('/purchasing?view=recorded&supplier='.$this->supplier->id().'&kind=tax_invoice&treatment=domestic');
         self::assertCount(1, $crawler->filter('main table tbody tr'));
-        self::assertSame('Recorded, unsaved changes1', $this->tabs($crawler)[2]);
+        self::assertSame('Recorded, unsaved changes1', $this->tabs($crawler)[3]);
         // No fixed select sits in the filter sheet above its conditions (spec D11).
         self::assertCount(0, $crawler->filter('select[name="supplier"], select[name="kind"], select[name="treatment"]'));
         self::assertStringContainsString('Supplier Example s.r.o.', $crawler->filter('main')->text());
