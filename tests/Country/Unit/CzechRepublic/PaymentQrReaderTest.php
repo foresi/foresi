@@ -1,0 +1,149 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\Country\Unit\CzechRepublic;
+
+use Foresi\Country\Integration\Purchasing\CzechRepublic\PaymentQrReader;
+use Foresi\Country\Integration\Purchasing\CzechRepublic\SpaydParser;
+use Foresi\Purchasing\Contract\Reading\DocumentFile;
+use Foresi\Purchasing\Contract\Reading\ReaderFailed;
+use Foresi\Purchasing\Contract\Reading\ReadField;
+use Foresi\Purchasing\Infrastructure\Reading\SmalotPdfFiles;
+use Foresi\Tests\Support\ReceivedFileFixtures;
+use PHPUnit\Framework\TestCase;
+
+final class PaymentQrReaderTest extends TestCase
+{
+    private const string SPAYD = 'SPD*1.0*ACC:CZ6508000000192000145399*AM:1210.50*CC:CZK*X-VS:2026100*DT:20261115';
+
+    private PaymentQrReader $reader;
+
+    protected function setUp(): void
+    {
+        $this->reader = new PaymentQrReader(new SmalotPdfFiles(), new SpaydParser());
+    }
+
+    public function testDescribesItself(): void
+    {
+        self::assertSame('payment_qr', $this->reader->source());
+        self::assertTrue($this->reader->automatic());
+        self::assertTrue($this->reader->supports(new DocumentFile('a.png', 'image/png', '')));
+        self::assertTrue($this->reader->supports(new DocumentFile('a.pdf', 'application/pdf', '')));
+        self::assertFalse($this->reader->supports(new DocumentFile('a.xml', 'application/xml', '')));
+    }
+
+    public function testReadsQrFromPng(): void
+    {
+        $reading = $this->reader->read(new DocumentFile('invoice.png', 'image/png', ReceivedFileFixtures::qrPng(self::SPAYD)));
+
+        self::assertNotNull($reading);
+        $total = $reading->get(ReadField::Total);
+        self::assertSame(121050, $total?->value);
+        self::assertSame('CZ6508000000192000145399', $reading->get(ReadField::BankAccount)?->value);
+        self::assertSame('payment_qr', $total->source);
+    }
+
+    public function testReadsQrFromPdfPage(): void
+    {
+        $pdf = ReceivedFileFixtures::pdf(1, [1 => ReceivedFileFixtures::qrPng(self::SPAYD)]);
+
+        $reading = $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', $pdf));
+
+        self::assertSame('2026-11-15', $reading?->get(ReadField::DueDate)?->value);
+    }
+
+    public function testTheFirstCodeTheParserAcceptsWins(): void
+    {
+        $web = ReceivedFileFixtures::qrPng('https://example.com/invoice');
+        $first = ReceivedFileFixtures::qrPng('SPD*1.0*ACC:CZ6508000000192000145399*AM:1.00');
+        $second = ReceivedFileFixtures::qrPng('SPD*1.0*ACC:CZ6508000000192000145399*AM:2.00');
+        $pdf = ReceivedFileFixtures::pdf(2, [1 => $web, 2 => $first]);
+
+        $reading = $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', $pdf));
+        self::assertSame(100, $reading?->get(ReadField::Total)?->value);
+
+        $pdf = ReceivedFileFixtures::pdf(2, [1 => $second, 2 => $first]);
+        $reading = $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', $pdf));
+        self::assertSame(200, $reading?->get(ReadField::Total)?->value);
+    }
+
+    public function testAnImageWithoutAQrCodeFindsNothing(): void
+    {
+        $blank = imagecreatetruecolor(200, 200);
+        self::assertNotFalse($blank);
+        ob_start();
+        imagepng($blank);
+        $png = (string) ob_get_clean();
+
+        self::assertNull($this->reader->read(new DocumentFile('blank.png', 'image/png', $png)));
+    }
+
+    public function testACodeThatIsNotAPaymentFindsNothing(): void
+    {
+        $png = ReceivedFileFixtures::qrPng('https://example.com/invoice');
+
+        self::assertNull($this->reader->read(new DocumentFile('invoice.png', 'image/png', $png)));
+    }
+
+    public function testPdfWith500PagesReadsOnlyTwo(): void
+    {
+        $qr = ReceivedFileFixtures::qrPng(self::SPAYD);
+
+        $third = ReceivedFileFixtures::pdf(500, [3 => $qr]);
+        $last = ReceivedFileFixtures::pdf(500, [500 => $qr]);
+        $second = ReceivedFileFixtures::pdf(500, [2 => $qr]);
+
+        $start = microtime(true);
+        self::assertNull($this->reader->read(new DocumentFile('a.pdf', 'application/pdf', $third)));
+        self::assertNull($this->reader->read(new DocumentFile('b.pdf', 'application/pdf', $last)));
+        self::assertNotNull($this->reader->read(new DocumentFile('c.pdf', 'application/pdf', $second)));
+        self::assertLessThan(10.0, microtime(true) - $start);
+    }
+
+    public function testEncryptedPdfFailsWithReaderFailed(): void
+    {
+        $pdf = ReceivedFileFixtures::pdf(1, [], ReceivedFileFixtures::encryption());
+
+        $this->expectException(ReaderFailed::class);
+        $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', $pdf));
+    }
+
+    public function testACorruptPdfFailsWithReaderFailed(): void
+    {
+        $this->expectException(ReaderFailed::class);
+        $this->reader->read(new DocumentFile('invoice.pdf', 'application/pdf', '%PDF-1.7 broken'));
+    }
+
+    public function testAnImageOver25MbFailsWithoutBeingDecoded(): void
+    {
+        $this->expectException(ReaderFailed::class);
+        $this->reader->read(new DocumentFile('big.png', 'image/png', str_repeat("\0", 25 * 1024 * 1024)));
+    }
+
+    public function testAnImageWithTooManyPixelsFailsWithoutBeingDecoded(): void
+    {
+        $this->expectException(ReaderFailed::class);
+        $this->reader->read(new DocumentFile('huge.png', 'image/png', $this->pngHeaderOfSize(30000, 30000)));
+    }
+
+    public function testAnImageThatIsNotAnImageFailsWithReaderFailed(): void
+    {
+        $this->expectException(ReaderFailed::class);
+        $this->reader->read(new DocumentFile('broken.png', 'image/png', 'not an image'));
+    }
+
+    /**
+     * Only the header of a PNG that claims the size; nothing could decode it.
+     */
+    private function pngHeaderOfSize(int $width, int $height): string
+    {
+        $header = pack('NNCCCCC', $width, $height, 8, 2, 0, 0, 0);
+
+        return "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.$header.pack('N', crc32('IHDR'.$header));
+    }
+}

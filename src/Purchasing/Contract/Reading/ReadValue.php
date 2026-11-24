@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Purchasing\Application\Reading;
+namespace Foresi\Purchasing\Contract\Reading;
 
 /**
  * One proposed value and the source that read it. Dates are `Y-m-d`, money is

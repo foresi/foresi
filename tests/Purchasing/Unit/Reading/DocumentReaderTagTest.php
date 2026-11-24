@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Purchasing\Unit\Reading;
 
-use Foresi\Purchasing\Application\Reading\DocumentReader;
+use Foresi\Purchasing\Contract\Reading\DocumentReader;
 use Foresi\Purchasing\PurchasingBundle;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;

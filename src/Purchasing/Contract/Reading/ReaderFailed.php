@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Purchasing\Application\Reading;
+namespace Foresi\Purchasing\Contract\Reading;
 
 /**
  * A reader could not read a file at all: it is corrupt, over a limit, or the

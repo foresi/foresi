@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Purchasing\Application\Reading;
+namespace Foresi\Purchasing\Contract\Reading;
 
 /**
  * What a reader can propose about a received document. The value is the key

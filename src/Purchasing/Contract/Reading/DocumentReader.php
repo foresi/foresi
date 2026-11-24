@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Purchasing\Application\Reading;
+namespace Foresi\Purchasing\Contract\Reading;
 
 /**
  * Reads the header of a received document from its file: one adapter per

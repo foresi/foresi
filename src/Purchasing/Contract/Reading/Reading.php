@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Purchasing\Application\Reading;
+namespace Foresi\Purchasing\Contract\Reading;
 
 /**
  * What the readers found in one file: at most one value per field, each with

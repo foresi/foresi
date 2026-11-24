@@ -23,6 +23,7 @@
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "psr/clock": "^1.0",
+        "smalot/pdfparser": "^2.13",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/event-dispatcher": "^7.4",
         "symfony/framework-bundle": "7.4.*",

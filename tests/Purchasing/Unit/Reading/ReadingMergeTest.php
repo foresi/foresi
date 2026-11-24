@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Purchasing\Unit\Reading;
 
-use Foresi\Purchasing\Application\Reading\ReadField;
-use Foresi\Purchasing\Application\Reading\Reading;
 use Foresi\Purchasing\Application\Reading\ReadingMerge;
-use Foresi\Purchasing\Application\Reading\ReadValue;
+use Foresi\Purchasing\Contract\Reading\ReadField;
+use Foresi\Purchasing\Contract\Reading\Reading;
+use Foresi\Purchasing\Contract\Reading\ReadValue;
 use PHPUnit\Framework\TestCase;
 
 final class ReadingMergeTest extends TestCase

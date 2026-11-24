@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Reading;
 
+use Foresi\Purchasing\Contract\Reading\ReadField;
+use Foresi\Purchasing\Contract\Reading\Reading;
+
 /**
  * Merges the readings of several readers into one: the first reading with a
  * value for a field wins. The amounts (total, currency, VAT recap) are not

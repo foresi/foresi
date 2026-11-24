@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Purchasing\Unit\Reading;
 
-use Foresi\Purchasing\Application\Reading\DocumentFile;
+use Foresi\Purchasing\Contract\Reading\DocumentFile;
 use PHPUnit\Framework\TestCase;
 
 final class DocumentFileTest extends TestCase
