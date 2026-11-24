@@ -12,8 +12,8 @@ use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Banking\Support\BankScreenTestCase;
-use Foresi\Tests\Banking\Support\FailingInboundFiles;
 use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Mail\FailingInboundFiles;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**

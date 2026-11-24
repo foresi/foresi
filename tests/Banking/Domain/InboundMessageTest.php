@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Domain;
 
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Domain\InboundChannel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

@@ -14,10 +14,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\AddressRefusal;
 use Foresi\Banking\Application\AddressRefused;
 use Foresi\Banking\Application\BankFeeds;
-use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\MailSecretsUnavailable;
+use Foresi\Mail\Application\AddressNotConfigured;
+use Foresi\Mail\Application\InboundAddresses;
 
 /**
  * Through the ORM, except touch(), which is plain SQL by the feed's id.
@@ -69,7 +70,11 @@ final readonly class DoctrineBankFeeds implements BankFeeds
             throw new AddressRefused(AddressRefusal::NoKey);
         }
 
-        return $this->addresses->addressFor($token);
+        try {
+            return $this->addresses->addressFor($token);
+        } catch (AddressNotConfigured) {
+            throw new AddressRefused(AddressRefusal::NotConfigured);
+        }
     }
 
     public function touch(string $feedId, \DateTimeImmutable $at): void

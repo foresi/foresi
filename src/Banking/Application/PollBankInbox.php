@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Instance\Application\Schedule\OperatorTask;
+use Foresi\Mail\Application\InboundMailbox;
+use Foresi\Mail\Application\PollFailures;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Domain\InboundChannel;
 use Psr\Log\LoggerInterface;
 
 /**

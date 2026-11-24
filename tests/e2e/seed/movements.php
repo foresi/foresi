@@ -13,7 +13,6 @@ use Foresi\Banking\Application\ReceiveInboundMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\LineInput;
@@ -25,6 +24,7 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
@@ -81,7 +81,7 @@ $notice = static function (string $name, string $to, ?string $auth, string $mess
     $raw = str_replace("To: bank+token@example.com\n", 'To: '.$to."\n", $fixture('kb/'.$name.'.eml'));
     $raw = (string) preg_replace('/^Message-ID: <[^>]+>$/m', 'Message-ID: <'.$messageId.'>', $raw, 1);
 
-    return null === $auth ? $raw : strtok($fixture('auth/'.$auth.'.eml'), "\n")."\n".$raw;
+    return null === $auth ? $raw : strtok($fixture('../Mail/auth/'.$auth.'.eml'), "\n")."\n".$raw;
 };
 $firstAddress = $generateAddress->generate($movementsAccount->id());
 $mails = [

@@ -14,6 +14,12 @@ use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Mail\Application\InboundFiles;
+use Foresi\Mail\Application\MailReader;
+use Foresi\Mail\Application\SenderVerdict;
+use Foresi\Mail\Application\Verdict;
+use Foresi\Mail\Contract\InboundMail;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -60,7 +66,7 @@ final readonly class ProcessMessage
         private InboundFiles $files,
         private MailReader $reader,
         private BankMessageParsers $parsers,
-        private MailAuthentication $authentication,
+        private SenderVerdict $authentication,
         private FirmBankAccounts $accounts,
         private RecordMovement $record,
         private PairMovement $pairing,
@@ -145,7 +151,7 @@ final readonly class ProcessMessage
             return new ProcessingResult(InboundStatus::NotBankMail, parserId: $this->parsers->signature());
         }
 
-        $verdict = $accepted ?? $this->authentication->verdict($mail, $parser->senderDomains(), $message->channel);
+        $verdict = $accepted ?? $this->trustOf($mail, $parser, $message->channel);
         if (MessageTrust::Failed === $verdict->trust) {
             return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::UNTRUSTED, $verdict->basis);
         }
@@ -170,6 +176,27 @@ final readonly class ProcessMessage
         $this->recordAndPair($message->id, $parsed->movements(), $accountIds, $verdict);
 
         return ProcessingResult::parsedBy(InboundStatus::Processed, $parser, $verdict);
+    }
+
+    /**
+     * The bank's word on the generic verdict of Mail, asked with the domains of the
+     * parser's bank; the bases are the same. A parser without domains trusts no
+     * sender, where Mail would judge a message against its own From domain.
+     */
+    private function trustOf(InboundMail $mail, BankMessageParser $parser, InboundChannel $channel): TrustVerdict
+    {
+        $domains = $parser->senderDomains();
+        if ([] === $domains) {
+            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER);
+        }
+        $verdict = $this->authentication->judge($mail, $channel, $domains);
+        $trust = match ($verdict->result) {
+            Verdict::VERIFIED => MessageTrust::Verified,
+            Verdict::FAILED => MessageTrust::Failed,
+            default => MessageTrust::Unverified,
+        };
+
+        return new TrustVerdict($trust, $verdict->basis);
     }
 
     /**

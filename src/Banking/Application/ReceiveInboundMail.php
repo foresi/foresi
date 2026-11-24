@@ -8,9 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Contract\InboundMail;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundFiles;
+use Foresi\Mail\Application\InboundToken;
+use Foresi\Mail\Application\MailReader;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Contract\InboundMail;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;

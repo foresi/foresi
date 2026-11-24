@@ -9,6 +9,7 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "foresi/mail": "self.version",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",

@@ -9,6 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Application\AuthenticationResultsParser;
+use Foresi\Mail\Application\InboundFiles;
+use Foresi\Mail\Application\MailReader;
+use Foresi\Mail\Application\TrustSettings;
 
 /**
  * The trust check of the last message of a feed, for the owner's Pairing tab:

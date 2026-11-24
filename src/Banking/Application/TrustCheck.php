@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Mail\Domain\InboundChannel;
 
 /**
  * What the owner needs to set up trust, of the last message an account got:

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Mail\Domain\InboundChannel;
 
 /**
  * One mail that arrived for an inbound address, as a machine log: what came,

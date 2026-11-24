@@ -10,11 +10,11 @@ namespace Foresi\Tests\Banking\Infrastructure;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Banking\Application\GenerateAddress;
-use Foresi\Banking\Application\InboundAddresses;
-use Foresi\Banking\Application\InboundToken;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundToken;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;

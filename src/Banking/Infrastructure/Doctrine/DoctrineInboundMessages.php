@@ -26,10 +26,10 @@ use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\ProcessingResult;
 use Foresi\Banking\Application\TrustVerdict;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Application\View\ViewFilter;
 use Psr\Clock\ClockInterface;
 

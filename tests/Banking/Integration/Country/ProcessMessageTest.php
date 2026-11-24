@@ -17,9 +17,7 @@ use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\PendingChanges;
-use Foresi\Banking\Application\ReceiveOutcome;
 use Foresi\Banking\Application\RetryInboundMessage;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Infrastructure\Navigation\BankNotices;
@@ -28,6 +26,8 @@ use Foresi\Identity\Application\Organisation;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\InboundTestCase;
@@ -113,7 +113,7 @@ final class ProcessMessageTest extends InboundTestCase
         self::assertSame([], $this->movementsOf($id));
         $stored = $this->em->getConnection()->fetchAssociative('SELECT raw_key, raw_sha256 FROM inbound_message WHERE id = ?', [$id]);
         self::assertIsArray($stored);
-        self::assertSame($raw, self::getContainer()->get(\Foresi\Banking\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
+        self::assertSame($raw, self::getContainer()->get(\Foresi\Mail\Application\InboundFiles::class)->read($id, Scalars::text($stored['raw_key']), Scalars::text($stored['raw_sha256'])));
     }
 
     /**

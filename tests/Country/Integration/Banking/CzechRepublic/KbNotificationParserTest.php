@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Country\Integration\Banking\CzechRepublic;
 
-use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Contract\ParseFailure;
 use Foresi\Banking\Contract\ParseResult;
-use Foresi\Banking\Infrastructure\Mime\ZbatesonMailReader;
 use Foresi\Country\Integration\Banking\CzechRepublic\KbNotificationParser;
+use Foresi\Mail\Contract\InboundMail;
+use Foresi\Mail\Infrastructure\Mime\ZbatesonMailReader;
 use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;

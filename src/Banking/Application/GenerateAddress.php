@@ -10,6 +10,9 @@ namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Mail\Application\AddressNotConfigured;
+use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundToken;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownFirmBankAccount;
@@ -65,6 +68,10 @@ final readonly class GenerateAddress
             $this->feeds->add(BankFeed::open($account, $hash, $sealed, $now));
         });
 
-        return $this->addresses->addressFor($token);
+        try {
+            return $this->addresses->addressFor($token);
+        } catch (AddressNotConfigured) {
+            throw new AddressRefused(AddressRefusal::NotConfigured);
+        }
     }
 }

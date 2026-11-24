@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Banking\Infrastructure\Controller;
 
 use Foresi\Banking\Application\ReceiveInboundMail;
-use Foresi\Banking\Application\ReceiveOutcome;
-use Foresi\Banking\Domain\InboundChannel;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;

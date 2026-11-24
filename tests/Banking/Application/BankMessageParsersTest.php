@@ -10,10 +10,10 @@ namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Contract\BankMessageParser;
-use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Contract\ParseFailure;
 use Foresi\Banking\Contract\ParseResult;
+use Foresi\Mail\Contract\InboundMail;
 use PHPUnit\Framework\TestCase;
 
 final class BankMessageParsersTest extends TestCase
