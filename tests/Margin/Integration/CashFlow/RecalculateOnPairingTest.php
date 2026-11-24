@@ -132,6 +132,19 @@ final class RecalculateOnPairingTest extends KernelTestCase
         self::assertNull($this->pairings->pairingOf(self::LATER));
     }
 
+    public function testTheOccurrencesWithAPairedCostAreListedOnceEach(): void
+    {
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+        $this->stored->pair(self::LATER, '2026-05-01');
+        $this->stored->pairs[] = [new FlowSubject('invoice', self::LATER), '2026-04-01'];
+        $this->stored->pair('0197a1de-0000-7000-8000-0000000000d3', '2026-06-01');
+
+        self::assertSame(['2026-05-01', '2026-06-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $this->pairings->occurrencesWithDocumentsFrom(self::ITEM, new \DateTimeImmutable('2026-04-01'))));
+        self::assertSame(['2026-06-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $this->pairings->occurrencesWithDocumentsFrom(self::ITEM, new \DateTimeImmutable('2026-06-01'))));
+        self::assertSame([], $this->pairings->occurrencesWithDocumentsFrom('not-an-id', new \DateTimeImmutable('2026-04-01')));
+        self::assertNull($this->pairings->occurrenceHolding(self::ITEM, new \DateTimeImmutable('2026-05-10')));
+    }
+
     public function testEveryReceivedDocumentOfTheItemIsListed(): void
     {
         $this->stored->pair(self::EARLIER, '2026-05-01');

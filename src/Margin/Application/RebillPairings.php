@@ -1,0 +1,84 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Margin\Application;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Margin\Contract\RevenueDocument;
+use Foresi\Margin\Domain\MarginRefused;
+use Foresi\Margin\Domain\RebillPairing;
+use Foresi\Party\Application\TransactionalWork;
+use Symfony\Component\Uid\Uuid;
+
+/**
+ * What a person says about what an invoice line rebills: a line, typically a
+ * hand-written one, is paired with an occurrence of a planned item, or its
+ * pairing, made by hand or on issue, is taken away. A pick the customer has no
+ * share in is told, not stored. Staff only.
+ */
+final readonly class RebillPairings
+{
+    public function __construct(
+        private MarginAccess $access,
+        private RevenueSources $revenue,
+        private CostPairings $pairings,
+        private MappingVersions $mappings,
+        private EntityManagerInterface $entityManager,
+        private TransactionalWork $transaction,
+    ) {
+    }
+
+    /**
+     * @param string $occurrenceOn YYYY-MM-DD, the day of an occurrence of the item
+     *
+     * @throws MarginRefused forbidden, unknown_invoice_line, unknown_planned_item, invalid_day, not_an_occurrence, already_paired or customer_not_a_recipient
+     */
+    public function pair(string $invoiceLineId, string $plannedItemId, string $occurrenceOn): void
+    {
+        $this->access->denyUnlessStaff();
+        // The invoice is read before anything is changed.
+        $document = $this->revenue->documentOfLine($invoiceLineId);
+        if (!$document instanceof RevenueDocument) {
+            throw MarginRefused::notFound(MarginRefused::UNKNOWN_INVOICE_LINE, 'There is no issued invoice line with this id.');
+        }
+        $item = $this->pairings->item($plannedItemId) ?? throw AllocationReads::unknownPlannedItem();
+        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $occurrenceOn);
+        if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $occurrenceOn) {
+            throw MarginRefused::invalid(MarginRefused::INVALID_DAY, 'occurrenceOn', 'A day is written YYYY-MM-DD, for example 2026-11-01.');
+        }
+        $holding = $this->pairings->occurrenceHolding($item->id, $day);
+        if (!$holding instanceof \DateTimeImmutable || $holding->format('Y-m-d') !== $occurrenceOn) {
+            throw MarginRefused::invalid(MarginRefused::NOT_AN_OCCURRENCE, 'occurrenceOn', 'The planned item has no occurrence on this day.');
+        }
+        if ($this->entityManager->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => $invoiceLineId]) instanceof RebillPairing) {
+            throw MarginRefused::invalid(MarginRefused::ALREADY_PAIRED, 'invoiceLineId', 'The line already rebills an occurrence. Unpair it first.');
+        }
+        if (!\in_array(strtolower($document->customerId), $this->mappings->plannedClients($item->id, $day), true)) {
+            throw MarginRefused::invalid(MarginRefused::CUSTOMER_NOT_A_RECIPIENT, 'invoiceLineId', 'The customer of the invoice bears no share of the planned item in the month of this occurrence.');
+        }
+
+        $this->transaction->run(function () use ($invoiceLineId, $document, $item, $day): void {
+            $this->entityManager->persist(new RebillPairing(Uuid::v7()->toRfc4122(), $invoiceLineId, $document->id, strtolower($document->customerId), $item->id, $day, true));
+            $this->entityManager->flush();
+        });
+    }
+
+    /**
+     * @throws MarginRefused forbidden or unknown_pairing
+     */
+    public function unpair(string $invoiceLineId): void
+    {
+        $this->access->denyUnlessStaff();
+        $stored = $this->entityManager->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => $invoiceLineId])
+            ?? throw MarginRefused::notFound(MarginRefused::UNKNOWN_PAIRING, 'This invoice line is not paired with an occurrence.');
+        $this->transaction->run(function () use ($stored): void {
+            $this->entityManager->remove($stored);
+            $this->entityManager->flush();
+        });
+    }
+}

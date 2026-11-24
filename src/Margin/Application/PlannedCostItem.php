@@ -10,7 +10,7 @@ namespace Foresi\Margin\Application;
 
 /**
  * A planned item as its mapping needs it: whether money goes out for it,
- * whether it recurs and who it is with.
+ * whether it recurs, who it is with and where a person opens it.
  */
 final readonly class PlannedCostItem
 {
@@ -20,6 +20,7 @@ final readonly class PlannedCostItem
         public bool $expense,
         public bool $recurring,
         public ?string $counterpartyId,
+        public ?string $url = null,
     ) {
     }
 }

@@ -53,6 +53,27 @@ final class FixedPairings implements PairingSource
         return $this->items[$plannedItemId] ?? null;
     }
 
+    /** @var array<string, \DateTimeImmutable> "item day" => the occurrence whose period holds the day, set by a test */
+    public array $holding = [];
+
+    public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
+    {
+        return $this->holding[$plannedItemId.' '.$day->format('Y-m-d')] ?? null;
+    }
+
+    public function occurrencesWithDocumentsFrom(string $plannedItemId, \DateTimeImmutable $fromDay): array
+    {
+        $days = [];
+        foreach ($this->pairings as $pairing) {
+            if ($pairing->plannedItemId === $plannedItemId && $pairing->occurrenceOn->format('Y-m-d') >= $fromDay->format('Y-m-d')) {
+                $days[$pairing->occurrenceOn->format('Y-m-d')] = $pairing->day();
+            }
+        }
+        ksort($days);
+
+        return array_values($days);
+    }
+
     /**
      * @param callable(CostPairing): bool $matches
      *

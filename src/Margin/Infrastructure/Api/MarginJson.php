@@ -23,6 +23,7 @@ use Foresi\Margin\Application\ShareView;
 use Foresi\Margin\Application\SupplierDefaultsView;
 use Foresi\Margin\Application\SupplierDefaultVersionView;
 use Foresi\Margin\Application\TermView;
+use Foresi\Margin\Application\UnrebilledOccurrence;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
@@ -108,6 +109,15 @@ final class MarginJson
         ] + self::figures($view->figures) + [
             'revenue_items' => array_map(self::item(...), $view->revenue),
             'cost_items' => array_map(self::item(...), $view->costs),
+            'unrebilled' => array_map(static fn (UnrebilledOccurrence $occurrence): array => [
+                'label' => $occurrence->itemName,
+                'planned_item_id' => $occurrence->plannedItemId,
+                'planned_item_url' => $occurrence->itemUrl,
+                'occurrence_on' => $occurrence->occurrenceOn->format('Y-m-d'),
+                'recipient_id' => $occurrence->recipientId,
+                'template_id' => $occurrence->templateId,
+                'recurring_line_id' => $occurrence->recurringLineId,
+            ], $view->unrebilled),
         ];
     }
 
@@ -116,7 +126,7 @@ final class MarginJson
      */
     private static function cell(string $month, MarginFigures $figures): array
     {
-        return ['month' => $month] + self::figures($figures);
+        return ['month' => $month] + self::figures($figures) + ['unrebilled' => $figures->unrebilled];
     }
 
     /**

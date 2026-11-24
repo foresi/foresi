@@ -44,4 +44,16 @@ interface PairingSource
      * The planned item as a mapping needs it, or null when this source has none with this id.
      */
     public function item(string $plannedItemId): ?PlannedCostItem;
+
+    /**
+     * The day of the occurrence of the item whose period holds the day, or null when it has none there.
+     */
+    public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable;
+
+    /**
+     * The days of the occurrences on or after the day that have at least one cost document paired with them, once each, oldest first.
+     *
+     * @return list<\DateTimeImmutable>
+     */
+    public function occurrencesWithDocumentsFrom(string $plannedItemId, \DateTimeImmutable $fromDay): array;
 }
