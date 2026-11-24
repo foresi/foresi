@@ -1771,6 +1771,27 @@ nelmio_api_doc:
                               original_document_id: { type: string, format: uuid, nullable: true }
                               trashed_reason: { type: string, nullable: true }
                               payments: { type: array, items: { $ref: '#/components/schemas/ReceivedDocumentPayment' } }
+                              source: { type: string, enum: [manual, upload, api], description: 'How the document came in: typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP. It never changes.' }
+                              reading:
+                                  nullable: true
+                                  type: object
+                                  description: 'The reading of the original file, null for a document never read. A value with applied false is a suggestion the draft did not take; a matched supplier is the field supplier_name. The text of an error of a reader or provider never appears: failure is a code.'
+                                  properties:
+                                      state: { type: string, enum: [reading, read, nothing_found, failed] }
+                                      requested_at: { type: string, format: date-time }
+                                      finished_at: { type: string, format: date-time, nullable: true }
+                                      sources: { type: array, items: { type: string, example: isdoc }, description: 'The readers whose values the reading holds, such as isdoc, payment_qr, factur_x or ai.' }
+                                      values:
+                                          type: object
+                                          description: 'By field (kind, treatment, supplier_name, supplier_registration_number, supplier_vat_id, supplier_country, supplier_number, variable_symbol, issue_date, tax_point_date, due_date, currency, total, vat_recap, bank_account). Dates are YYYY-MM-DD, total is in minor units of the currency read.'
+                                          additionalProperties:
+                                              type: object
+                                              properties:
+                                                  value: { description: 'A string, an integer (total) or a list (vat_recap).' }
+                                                  source: { type: string, example: isdoc }
+                                                  applied: { type: boolean }
+                                      warnings: { type: array, items: { type: string }, example: [reading_partly_applied] }
+                                      failure: { type: string, nullable: true, example: reader_failed, description: 'A code (reader_failed, original_unreadable or unexpected) when state is failed, never a text from a reader or provider.' }
                 ReceivedDocumentPage:
                     type: object
                     required: [data, next_cursor]

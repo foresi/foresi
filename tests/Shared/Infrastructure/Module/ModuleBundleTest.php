@@ -195,7 +195,7 @@ final class ModuleBundleTest extends KernelTestCase
             ArchiveMissing::class => 'async',
             UndoImportChunk::class => 'async',
         ]];
-        yield 'purchasing' => [PurchasingBundle::class, 'prod', ['Purchasing'], []];
+        yield 'purchasing' => [PurchasingBundle::class, 'prod', ['Purchasing'], [\Foresi\Purchasing\Application\Reading\ReadReceivedDocument::class => 'async']];
         yield 'timesheet' => [TimesheetBundle::class, 'prod', ['Timesheet'], []];
         yield 'work' => [WorkBundle::class, 'prod', ['Work'], [SendNotificationMail::class => 'async']];
     }

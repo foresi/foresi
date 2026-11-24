@@ -38,7 +38,7 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::LOCKED, ReceivedDocumentRefused::PAID,
         ReceivedDocumentRefused::OVERPAID, ReceivedDocumentRefused::NOT_RECORDED,
         ReceivedDocumentRefused::EVIDENCE_NUMBERS_EXHAUSTED, ReceivedDocumentRefused::EVIDENCE_NUMBER_FIXED,
-        ReceivedDocumentRefused::ORIGINAL_FILE_FIXED,
+        ReceivedDocumentRefused::ORIGINAL_FILE_FIXED, ReceivedDocumentRefused::READING_IN_PROGRESS, ReceivedDocumentRefused::NO_ORIGINAL_FILE,
     ];
 
     private const array FIELDS = [
@@ -86,6 +86,9 @@ final class PurchasingRefused extends \DomainException implements Refused
         ReceivedDocumentRefused::OVERPAID => 'The payment is more than what remains to be paid; read the document and pay at most its remaining amount.',
         ReceivedDocumentRefused::PAYMENT_AMOUNT => 'A payment needs an amount above zero, in the currency of the document.',
         ReceivedDocumentRefused::SUPPLIER_UNKNOWN => 'The organisation has no contact with this id. Find the supplier with foresi_search_contacts, or create it with foresi_create_contact.',
+        ReceivedDocumentRefused::RECORDED => 'The received document is recorded; only a draft is read again.',
+        ReceivedDocumentRefused::NO_ORIGINAL_FILE => 'The draft has no original file to read.',
+        ReceivedDocumentRefused::READING_IN_PROGRESS => 'The file is being read; wait for reading.state to leave "reading" (a reading asked for more than 10 minutes ago counts as stuck and may be asked for again).',
         ReceivedDocumentRefused::LOCKED => 'The document belongs to a closed month and cannot change.',
         ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP => 'Per VAT rate, the bases of the lines must add up to the base of that rate in the VAT recap; a document without a recap has the one rate "0", and its lines add up to its total. Read the document for its recap.',
         ReceivedDocumentRefused::UNKNOWN_VAT_RATE => 'A line names a VAT rate the VAT recap of the document does not have; use a rate of its recap, or "0" for a document without one.',
@@ -119,6 +122,15 @@ final class PurchasingRefused extends \DomainException implements Refused
     public static function unreadable(string $reason, string $field, string $message): self
     {
         return new self($reason, RefusalKind::Invalid, $field, $message);
+    }
+
+    /**
+     * A file the API took but Foresi cannot make a draft of: the reason is one of the file_* codes of
+     * the input, or the reason the attachment store gave (empty, too_big, failed, not_allowed).
+     */
+    public static function file(string $reason, string $message, ?\Throwable $previous = null): self
+    {
+        return new self($reason, RefusalKind::Invalid, 'contentBase64', $message, $previous);
     }
 
     public static function unknownFirm(?\Throwable $previous = null): self

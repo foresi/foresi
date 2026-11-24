@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Infrastructure\Column;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentRow;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
+use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Infrastructure\Form\PurchasingText;
 use Foresi\Purchasing\Infrastructure\Form\ReceivedDocumentScreen;
 use Foresi\Shared\Domain\Money;
@@ -23,8 +24,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The columns of the received documents; each cell renders one ReceivedDocumentRow: the
  * numbers, the supplier and its number, the day that places the document in its month,
- * the total in its currency and the VAT in CZK, the treatment and the state. A draft
- * has no number yet: it reads as a draft of the day it came.
+ * the total in its currency and the VAT in CZK, the treatment, how it came in and the
+ * state. A draft has no number yet: it reads as a draft of the day it came; a draft
+ * made from a file shows where its reading stands as a second badge.
  */
 final readonly class ReceivedDocumentColumns implements DataSource
 {
@@ -54,6 +56,7 @@ final readonly class ReceivedDocumentColumns implements DataSource
             new Attribute('total', $label('total'), AttributeType::Money, static fn (ReceivedDocumentRow $row): ?Money => $row->total, defaultVisible: true, defaultPosition: 60, cell: $this->total(...), filterable: true, filter: 'd.totalMinor'),
             new Attribute('vat_czk', $label('vatCzk'), AttributeType::Money, static fn (ReceivedDocumentRow $row): ?Money => $row->vatCzk, defaultVisible: true, defaultPosition: 70, cell: fn (ReceivedDocumentRow $row): string => $row->total instanceof Money && $row->vatCzk instanceof Money ? $this->text->amount($row->vatCzk) : '', aliases: ['vatCzk'], phone: false, filterable: true, filter: 'd.vatCzkMinor'),
             new Attribute('treatment', $label('treatment'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->treatment->value, defaultVisible: true, defaultPosition: 80, cell: fn (ReceivedDocumentRow $row): string => $this->translator->trans('purchasing.treatment.'.$row->treatment->value), phone: false, wide: true),
+            new Attribute('source', $label('source'), AttributeType::Text, static fn (ReceivedDocumentRow $row): string => $row->source->value, defaultVisible: true, defaultPosition: 85, cell: fn (ReceivedDocumentRow $row): string => $this->translator->trans('purchasing.source.'.$row->source->value), phone: false),
             new Attribute('state', $label('state'), AttributeType::Text, fn (ReceivedDocumentRow $row): string => $this->badge($row)['label'], defaultVisible: true, defaultPosition: 90, cell: $this->state(...), phone: false),
         ];
     }
@@ -92,11 +95,23 @@ final readonly class ReceivedDocumentColumns implements DataSource
     }
 
     /**
-     * @return array{text: string, tone: string, hint?: string}
+     * The state, and for a draft out of the trash where the reading of its file stands.
+     *
+     * @return array{text: string, tone: string, hint?: string}|array{badges: list<array{label: string, tone: string}>}
      */
     private function state(ReceivedDocumentRow $row): array
     {
         $badge = $this->badge($row);
+        if ($row->readingState instanceof ReadingState && null === $row->evidenceNumber && !$row->isTrashed()) {
+            return ['badges' => [$badge, [
+                'label' => $this->translator->trans('purchasing.reading_state.'.$row->readingState->value),
+                'tone' => match ($row->readingState) {
+                    ReadingState::Read => 'green',
+                    ReadingState::Failed => 'red',
+                    default => 'gray',
+                },
+            ]]];
+        }
 
         return ['text' => $badge['label'], 'tone' => $badge['tone']] + ($row->isTrashed() && null !== $row->deletedReason ? ['hint' => $row->deletedReason] : []);
     }

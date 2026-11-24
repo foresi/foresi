@@ -95,6 +95,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\Mail\\.*
+    - name: country_integration_purchasing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\Purchasing\\.*
     - name: country_integration_taxes_and_contributions
       collectors:
         - type: classLike
@@ -610,6 +614,12 @@ deptrac:
       - mail_contract
       - party
       - party_contract
+    country_integration_purchasing:
+      - country
+      - country_contract
+      - party
+      - party_contract
+      - purchasing_contract
       - shared
       - shared_contract
     country_integration_taxes_and_contributions:

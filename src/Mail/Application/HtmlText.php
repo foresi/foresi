@@ -31,8 +31,14 @@ final class HtmlText
             return '';
         }
         // Every character beyond ASCII goes in as a numeric reference, so a charset the
-        // document declares cannot make libxml decode the UTF-8 body a second time.
-        $ascii = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
+        // document declares cannot make libxml decode the UTF-8 body a second time. libxml
+        // 2.14 reads a reference to U+0080..U+009F as the Windows-1252 character the HTML
+        // standard maps it to, so those controls travel as private-use characters and come back.
+        $ascii = mb_encode_numericentity(
+            (string) preg_replace_callback('/[\x{80}-\x{9F}]/u', static fn (array $m): string => mb_chr(0xF700 + mb_ord($m[0], 'UTF-8'), 'UTF-8'), $html),
+            [0x80, 0x10FFFF, 0, 0x1FFFFF],
+            'UTF-8',
+        );
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
         try {
@@ -54,7 +60,7 @@ final class HtmlText
             }
         }
 
-        return implode("\n", $lines);
+        return (string) preg_replace_callback('/[\x{F780}-\x{F79F}]/u', static fn (array $m): string => mb_chr(mb_ord($m[0], 'UTF-8') - 0xF700, 'UTF-8'), implode("\n", $lines));
     }
 
     private static function collect(\DOMNode $node): string

@@ -58,6 +58,7 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
             .'Returns {items, next_cursor, applied_view}: each document has its id, firm, state, kind, treatment, evidence number, supplier, supplier number, variable symbol, dates, total, base, VAT, what is paid and what remains. '
             .'Money is {amount_minor, currency}, in hundredths of the currency; a credit note has a negative total, while paid and remaining are positive. '
             .'When next_cursor is not null, more documents match: call again with the same arguments and next_cursor as cursor. '
+            .'reading narrows to the documents whose file has that state of reading (a recorded document keeps its reading too), source to how a document came in. '
             .'Use foresi_search_contacts for a supplier_id.';
     }
 
@@ -71,7 +72,9 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
                 'unpaid' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only recorded documents with something left to pay.'],
                 'due_before' => ToolArguments::dateSchema('Only documents due before this day, not on it.'),
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash.'],
-                'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list purchasing.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "purchasing.received.drafts".'],
+                'reading' => ToolArguments::choiceSchema(['reading', 'read', 'nothing_found', 'failed'], 'Only documents whose file is being read, was read with values found, was read with nothing found, or could not be read.'),
+                'source' => ToolArguments::choiceSchema(['manual', 'upload', 'api'], 'Only documents typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP.'),
+                'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list purchasing.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "purchasing.received.drafts" or "purchasing.received.to_review" (drafts whose file was read, found nothing or failed).'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list purchasing.received; its fields and operators are in foresi_list_lists.'],
             ] + ToolArguments::pagingSchema(),
             'additionalProperties' => false,
@@ -88,6 +91,8 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
             ToolArguments::flag($arguments, 'trashed'),
             ToolArguments::limit($arguments),
             ToolArguments::text($arguments, 'cursor'),
+            reading: ToolArguments::text($arguments, 'reading'),
+            source: ToolArguments::text($arguments, 'source'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);

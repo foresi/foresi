@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The received documents, as Fakturoid lists its costs and Xero its bills, on saved views: All, the
-    drafts to complete, the recorded ones and the trash, each a tab with its count, and the person's own
+    drafts to complete, the drafts read from their files to review, the recorded ones and the trash, each a tab with its count, and the person's own
     views; the quick filters, the filter sheet, the search and the Settings sheet as the invoice list has
     them. Uploading and a new document open a dialog from the header.
 #}
@@ -49,6 +49,8 @@
                         </twig:Ui:EmptyState>
                     {% elseif filter.tab == 'trash' %}
                         <twig:Ui:EmptyState icon="trash-2" :title="'purchasing.list.empty.trash_title'|trans" />
+                    {% elseif filter.tab == 'to_review' %}
+                        <twig:Ui:EmptyState icon="circle-check" :title="'purchasing.list.empty.to_review_title'|trans" :text="'purchasing.list.empty.to_review_text'|trans" />
                     {% elseif filter.tab == 'recorded' %}
                         <twig:Ui:EmptyState icon="file-text" :title="'purchasing.list.empty.recorded_title'|trans" :text="'purchasing.list.empty.recorded_text'|trans" />
                     {% elseif filter.tab == 'all' %}

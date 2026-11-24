@@ -16,6 +16,7 @@
         "ext-zip": "*",
         "brick/math": "^1.0",
         "brick/money": "^0.15.2",
+        "chillerlan/php-qrcode": "^6.0.1",
         "directorytree/imapengine": "~1.25.7",
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
@@ -57,6 +58,7 @@
         "scheb/2fa-bundle": "^8.7",
         "scheb/2fa-totp": "^8.7",
         "scheb/2fa-trusted-device": "^8.7",
+        "smalot/pdfparser": "^2.13",
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
         "symfony/console": "7.4.*",
@@ -192,7 +194,6 @@
     },
     "require-dev": {
         "brianium/paratest": "^7.29",
-        "chillerlan/php-qrcode": "^6.0.1",
         "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "infection/infection": "^0.35.8",

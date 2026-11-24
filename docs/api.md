@@ -750,7 +750,9 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen
 
 ## Received documents
 
-The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, `lines`, the exchange rate, the deduction period and `payments`. Each line has `key` (the id of a stored line, or `rate:21` for an implicit one; the key of a stored line stays the same when the line is edited, moved or another line is removed, and it is the `id` to send back with the line when you set the lines: a line with its `id` is kept, a line without one is new, and a line left out is removed; the same `id` twice is refused with `duplicate_line_id`), `text`, `base`, `base_czk` (null while the document has no exchange rate), `vat_rate` and `implicit`. A document without stored lines answers one implicit line per rate of its recap, its text the kind of the document, such as `Tax invoice`; one without a recap answers one line at rate `0` for its total, and none without a total. See [lines](purchasing.md#lines).
+The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, `lines`, the exchange rate, the deduction period, `payments`, `source` (`manual`, `upload` or `api`: how the document came in, which never changes) and `reading`. Each line has `key` (the id of a stored line, or `rate:21` for an implicit one; the key of a stored line stays the same when the line is edited, moved or another line is removed, and it is the `id` to send back with the line when you set the lines: a line with its `id` is kept, a line without one is new, and a line left out is removed; the same `id` twice is refused with `duplicate_line_id`), `text`, `base`, `base_czk` (null while the document has no exchange rate), `vat_rate` and `implicit`. A document without stored lines answers one implicit line per rate of its recap, its text the kind of the document, such as `Tax invoice`; one without a recap answers one line at rate `0` for its total, and none without a total. See [lines](purchasing.md#lines).
+
+`reading` is `null` for a document never read, else `{state, requested_at, finished_at, sources, values, warnings, failure}`: `state` is `reading`, `read`, `nothing_found` or `failed`; `sources` the readers whose values it holds (`isdoc`, `payment_qr`, `factur_x`, `ai`); `values` has an entry per field found (`kind`, `treatment`, `supplier_name`, `supplier_number`, `variable_symbol`, `issue_date`, `tax_point_date`, `due_date`, `currency`, `total`, `vat_recap` and others) of `{value, source, applied}`, where `applied` false is a suggestion the draft did not take, and a supplier matched in the address book is `supplier_name`; `total` is in minor units of the currency read, dates are `YYYY-MM-DD`; `warnings` are codes such as `reading_partly_applied`; `failure` is a code (`reader_failed`, `original_unreadable` or `unexpected`) and never the text of a reader or a provider.
 
 Query parameters of `GET /api/v1/received-documents`:
 
@@ -763,9 +765,11 @@ Query parameters of `GET /api/v1/received-documents`:
 | `trashed` | `true` lists only the documents in the trash. Default `false`. |
 | `view` | The id of a saved view of the list `purchasing.received`, or the system key of one it ships, such as `purchasing.received.drafts`: only the documents it holds. Needs `views:read` too. |
 | `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}`. A condition on `trashed` decides it instead of the `trashed` parameter. |
+| `reading` | `reading`, `read`, `nothing_found` or `failed`: only documents whose file is in that state of reading. |
+| `source` | `manual`, `upload` or `api`: only documents that came in that way. |
 | `limit`, `cursor` | Paging, as above. |
 
-The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
+The view `purchasing.received.to_review` lists the drafts whose file was read, found nothing or failed. The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
 
 The payables of a month are `?unpaid=true&due_before=` the first day of the next month.
 
@@ -774,11 +778,13 @@ The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-d
 | Method and path | Answer |
 | --- | --- |
 | `POST /api/v1/received-documents` | `201` with the new recorded document and `Location`. |
+| `POST /api/v1/received-documents/upload` | `201` with the new draft and `Location`: its `source` is `api` and `reading.state` is `reading`, as the file is read in the background. Body: `file_name` and `content_base64`, see below. |
 | `POST /api/v1/received-documents/{documentId}/trash` | The document in the trash. Body: `reason`. |
 | `POST /api/v1/received-documents/{documentId}/payments` | `201` with the document and its new payment. |
 | `POST /api/v1/received-documents/{documentId}/mark-paid` | The document paid in full by one payment of all that remains, dated today in the organisation's time zone. |
 | `DELETE /api/v1/received-documents/{documentId}/payments/{paymentId}` | The document without the payment, for one recorded by mistake. |
 | `PUT /api/v1/received-documents/{documentId}/lines` | The document with its new lines. Body: `lines`, all of them in their order; an empty list removes them. |
+| `POST /api/v1/received-documents/{documentId}/read-again` | `202` with the draft and `reading.state` `reading`: its file is queued to be read again, by every reader, as on arrival. It never replaces a value a person typed: on a draft nobody changed since its last reading it fills the fields as on arrival, on a changed one only the fields that are empty; the rest stays a suggestion. A reading still `reading` after 10 minutes is stuck and may be read again. No body. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
@@ -803,6 +809,8 @@ Recording takes the next evidence number of the firm, as the screen does, and ne
 | `supply_code` | The code of the supply of a domestic reverse charge. |
 | `lines` | Optional, at most 100: objects of `text` (at most 255 characters), `base` (a decimal in the document's currency, without VAT) and `vat_rate` (a rate of `vat_recap`, such as `"21"`). Per rate the bases add up to the base of the recap; a document without a recap adds them up to its total at rate `"0"`. |
 
+Uploading takes one file per call: `file_name` (with its extension, at most 255 characters) and `content_base64` (the file, up to 10 MB decoded). A PDF, an image (PNG, JPEG, GIF, WebP, HEIC), an ISDOC file (`.isdoc`, or `.isdocx`, a ZIP told by its extension) or XML is accepted, judged by its bytes. The draft is read as one dropped on the screen is; poll `GET /api/v1/received-documents/{documentId}` until `reading.state` leaves `reading`; a reading still `reading` after 10 minutes is stuck, so call read again. The draft is completed and recorded in Foresi by a person: there is no operation to edit or record an existing draft, and `POST /api/v1/received-documents` makes a new document, so do not use it for an uploaded file (it would be a duplicate). What a reading finds never overwrites a change made after the upload. A file that is not valid base64, is empty, is larger than 10 MB, is of another type, or that the attachment store refuses is `400 invalid_parameter` with `parameter` `content_base64` and `reason` `file_invalid`, `file_too_large`, `file_type_unsupported`, or the store's `empty`, `too_big`, `failed` or `not_allowed`; no draft is made.
+
 Fields of a payment: `paid_on` (`YYYY-MM-DD`, required), `amount` (a decimal in the document's currency, required, positive also for a credit note), `method` (`bank_transfer`, the default, `card`, `cash` or `other`) and `bank_movement_id` (optional). Mark as paid takes only `method` and `bank_movement_id`. A payment recorded by mistake is removed and recorded again; a document paid in full before stays so in the event feed.
 
 What a received document write refuses:
@@ -816,6 +824,7 @@ What a received document write refuses:
 | 409 | `paid` | The document is paid in full already. |
 | 409 | `not_recorded` | The document is a draft; only a recorded one takes payments. |
 | 409 | `trashed`, `locked` | The document is in the trash or in a closed month. |
+| 409 | `recorded`, `no_original_file`, `reading_in_progress` | Read again: the document is recorded, the draft has no original file, or its reading was asked for less than 10 minutes ago and still runs. |
 | 503 | `exchange_rate_unavailable` | No rate is published for the tax point yet; send `exchange_rate`. |
 
 ## Idempotency

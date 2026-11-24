@@ -81,6 +81,7 @@ use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentQueries;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\Purchasing\Application\Reading\DocumentReadings;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\ReceivedDocumentPayments;
 use Foresi\Purchasing\Application\ReceivedDocuments;
@@ -458,7 +459,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
             $after,
             1,
         ));
-        $balances = new ReceivedDocumentBalances($container->get(PurchasingAccess::class), $container->get(ReceivedDocuments::class), $queries, $container->get(ReceivedDocumentPayments::class));
+        $balances = new ReceivedDocumentBalances($container->get(PurchasingAccess::class), $container->get(ReceivedDocuments::class), $queries, $container->get(ReceivedDocumentPayments::class), $container->get(DocumentReadings::class));
 
         return new ReceivedDocumentFlows($balances, $tokens ?? $container->get(ApiTokenContext::class), $container->get(UrlGeneratorInterface::class));
     }

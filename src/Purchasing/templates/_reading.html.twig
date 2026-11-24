@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Where the reading of a draft's file stands, over its values: being read, read with its sources,
+    nothing found, or failed (Read again is in the menu of the page header). While the file is read the
+    frame is loaded again every 2 s, as the progress of an import is (import-progress); once it is
+    read, a link loads the page with the values filled, so nothing a person typed meanwhile is lost.
+    A reading that no longer shows (the draft went to the trash, or has no reading) is an empty frame,
+    which stops the polling. Variables: document, reading (ReadingScreen or null), polled (true when the
+    frame itself was asked for).
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% if not reading %}
+<turbo-frame id="received-document-reading"></turbo-frame>
+{% else %}
+<turbo-frame id="received-document-reading"{% if reading.live %} data-controller="import-progress" data-import-progress-url-value="{{ path('app_purchasing_reading', {id: document.id}) }}"{% endif %}>
+    <div data-progress-active="{{ reading.live ? 'true' : 'false' }}" data-purchasing-reading="{{ reading.state }}">
+        {% set details %}
+            {% for warning in reading.warnings %}<p class="m-0">{{ warning }}</p>{% endfor %}
+            {% if polled|default(false) and not reading.live %}
+                <p class="m-0"><a href="{{ path('app_purchasing_document', {id: document.id}) }}" data-turbo-frame="_top" class="font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'purchasing.reading.show_values'|trans }}</a></p>
+            {% endif %}
+        {% endset %}
+        {% if reading.live %}
+            <twig:Ui:Alert tone="info">
+                <span class="inline-flex items-center gap-2">{{ ux_icon('lucide:refresh-cw', {class: 'size-4 shrink-0 motion-safe:animate-spin', 'aria-hidden': 'true'}) }}<span>{{ 'purchasing.reading.reading'|trans }}</span></span>
+            </twig:Ui:Alert>
+        {% elseif reading.state == 'read' %}
+            <twig:Ui:Alert tone="info" icon="circle-check" :title="'purchasing.reading.read'|trans({sources: reading.sources})">{{ details }}</twig:Ui:Alert>
+        {% elseif reading.state == 'nothing_found' %}
+            <twig:Ui:Alert tone="info" icon="file-text" :title="'purchasing.reading.nothing_found'|trans">{{ details }}</twig:Ui:Alert>
+        {% else %}
+            <twig:Ui:Alert tone="warning" icon="triangle-alert" :title="'purchasing.reading.failed'|trans">
+                <p class="m-0">{{ (reading.retry ? 'purchasing.reading.failed_retry' : 'purchasing.reading.failed_text')|trans }}</p>
+                {{ details }}
+            </twig:Ui:Alert>
+        {% endif %}
+    </div>
+</turbo-frame>
+{% endif %}
