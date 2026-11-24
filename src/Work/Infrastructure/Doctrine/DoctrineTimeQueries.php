@@ -102,7 +102,7 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         return new TaskTime($task->id(), $rows, $this->total($rows), $task->estimateMinutes());
     }
 
-    public function week(\DateTimeImmutable $day, ?string $membershipId = null): ?TimeWeek
+    public function week(\DateTimeImmutable $day, ?string $membershipId = null, string $text = ''): ?TimeWeek
     {
         $me = $this->me();
         $person = null === $membershipId || $membershipId === $me?->id() ? $me : $this->people->membership($membershipId);
@@ -111,13 +111,18 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         }
         $monday = $day->setISODate((int) $day->format('o'), (int) $day->format('W'))->setTime(0, 0);
         $seen = ScopedDql::time($this->visibility->scope(), 'p', 't');
-        /** @var list<TimeEntry> $entries */
-        $entries = $seen->apply($this->entityManager
-            ->createQuery(self::ENTRIES.$seen->joins.' WHERE e.membership = :membership AND e.workedOn >= :from AND e.workedOn < :until'.self::NOT_TRASHED.$seen->where.' ORDER BY e.workedOn ASC, e.createdAt ASC, e.id ASC'))
+        $text = trim(mb_substr($text, 0, 100));
+        $found = '' === $text ? '' : " AND (LOWER(e.note) LIKE :text ESCAPE '!' OR LOWER(t.title) LIKE :text ESCAPE '!' OR LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!')";
+        $query = $seen->apply($this->entityManager
+            ->createQuery(self::ENTRIES.$seen->joins.' WHERE e.membership = :membership AND e.workedOn >= :from AND e.workedOn < :until'.self::NOT_TRASHED.$found.$seen->where.' ORDER BY e.workedOn ASC, e.createdAt ASC, e.id ASC'))
             ->setParameter('membership', $person->id())
             ->setParameter('from', $monday, Types::DATE_IMMUTABLE)
-            ->setParameter('until', $monday->modify('+7 days'), Types::DATE_IMMUTABLE)
-            ->getResult();
+            ->setParameter('until', $monday->modify('+7 days'), Types::DATE_IMMUTABLE);
+        if ('' !== $text) {
+            $query->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%');
+        }
+        /** @var list<TimeEntry> $entries */
+        $entries = $query->getResult();
         $owner = $this->owner->isOwner();
         $numbers = $this->invoiceNumbers($entries);
         $byDay = [];
@@ -290,6 +295,11 @@ final readonly class DoctrineTimeQueries implements TimeQueries
         }
         if (null !== $filter->invoiced) {
             $where .= ' AND e.invoiceLineId IS '.($filter->invoiced ? 'NOT ' : '').'NULL';
+        }
+        $text = trim(mb_substr($filter->text, 0, 100));
+        if ('' !== $text) {
+            $where .= " AND (LOWER(e.note) LIKE :text ESCAPE '!' OR LOWER(t.title) LIKE :text ESCAPE '!' OR LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!')";
+            $parameters['text'] = ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%', null];
         }
         if ([] !== $filter->conditions->conditions) {
             $derived = static fn (Condition $condition): array => [match ($condition->field) {

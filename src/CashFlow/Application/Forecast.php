@@ -25,6 +25,7 @@ final readonly class Forecast
      * @param list<string>             $unavailableRates   the currencies without a rate today
      * @param list<string>             $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
      * @param list<FlowCertainty>|null $certainties        the certainties counted; null when every flow counts
+     * @param string                   $text               the text the flows counted hold in their labels; empty when every flow counts
      */
     public function __construct(
         public \DateTimeImmutable $today,
@@ -42,15 +43,16 @@ final readonly class Forecast
         public array $unavailableRates,
         public array $restrictedSources = [],
         public ?array $certainties = null,
+        public string $text = '',
     ) {
     }
 
     /**
-     * Whether a certainty filter leaves flows out.
+     * Whether a certainty filter or a text leaves flows out.
      */
     public function isFiltered(): bool
     {
-        return null !== $this->certainties && \count($this->certainties) < \count(FlowCertainty::cases());
+        return '' !== $this->text || (null !== $this->certainties && \count($this->certainties) < \count(FlowCertainty::cases()));
     }
 
     public function isIncomplete(): bool

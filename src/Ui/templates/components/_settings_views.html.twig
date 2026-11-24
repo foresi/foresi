@@ -1,0 +1,147 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Views section of a list's Settings sheet (Ui:ColumnPicker; saved views D6, D7), as the view
+    lists of Linear, Notion and Attio: All first and fixed, then every view in its order, the tabs
+    checked. An owner moves a view by its handle or Move up / Move down and checks which are tabs
+    (at most six with All); Apply saves that with the rest of the sheet. Each view's "⋯" menu: Open
+    for one that is no tab, Rename, Show count in tab, Duplicate, share or keep to yourself for your
+    own, a tab or not for a member's own view, Hide (shipped) or Delete (yours). "+ New view" saves
+    what the list shows as a new view. The shipped views an owner hid wait under the list, to show
+    again. Takes `manage` (ViewBar's manageViews), `viewBar` and the sheet's row classes.
+#}
+{% set token = csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) %}
+{% set reorder = manage.canReorder %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+<section class="grid min-w-0 gap-2" aria-labelledby="settings-views" data-settings-views>
+    <h3 id="settings-views" class="{{ legend }} m-0">{{ 'saved_view.section.views'|trans }}</h3>
+    {% if reorder %}
+        <form method="post" action="{{ path('app_view_order') }}" hidden data-column-picker-target="viewOrder">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="return" value="{{ manage.return }}">
+        </form>
+    {% endif %}
+    <ol class="m-0 grid list-none gap-0.5 p-0" data-column-picker-list data-settings-view-list>
+        {% set allName = manage.all.translated ? manage.all.name|trans : manage.all.name %}
+        <li class="{{ row }}" data-settings-view="all" data-label="{{ allName }}">
+            <span class="grid size-8 shrink-0 place-items-center text-muted" title="{{ 'saved_view.all_fixed'|trans }}">{{ ux_icon('lucide:lock', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+            <input type="checkbox" id="settings-view-all" checked disabled aria-describedby="settings-view-all-fixed" class="size-4 shrink-0 accent-green">
+            <label for="settings-view-all" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ allName }} <span id="settings-view-all-fixed" class="text-small text-muted">{{ 'saved_view.all_fixed'|trans }}</span></label>
+        </li>
+        {% for view in manage.tabs|merge(manage.more) %}
+            {% set viewLabel = view.translated ? view.name|trans : view.name %}
+            {% set boxId = 'settings-view-' ~ view.key %}
+            <li class="{{ row }}" data-settings-view="{{ view.key }}" data-ref="{{ view.ref }}" data-label="{{ viewLabel }}"{% if reorder %} data-movable data-column-picker-target="viewRow"{% endif %}>
+                {% if reorder %}
+                    {# The handle is for a pointer; the buttons do the same with one tap or a key (WCAG 2.5.7). #}
+                    <span class="{{ grip }}" data-action="pointerdown->column-picker#grab" data-column-picker-handle aria-hidden="true">{{ ux_icon('lucide:grip-vertical', {class: 'size-4'}) }}</span>
+                {% else %}
+                    <span class="size-8 shrink-0" aria-hidden="true"></span>
+                {% endif %}
+                <input type="checkbox" id="{{ boxId }}"{% if view.primary %} checked{% endif %}{% if not reorder %} disabled{% endif %} aria-label="{{ 'saved_view.in_tabs'|trans({name: viewLabel}) }}" class="{{ box }}" data-column-picker-target="viewBox" data-action="change->column-picker#limitTabs">
+                <label for="{{ boxId }}" class="flex min-w-0 flex-1 items-center gap-1.5 py-2 pl-1.5">
+                    {%- if view.private %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-label': 'saved_view.visibility.private'|trans, role: 'img'}) }}{% endif -%}
+                    <span class="truncate">{{ viewLabel }}</span>
+                    {%- if not view.editable %} <span class="shrink-0 text-small text-muted" data-view-read-only>{{ 'saved_view.read_only'|trans }}</span>{% endif -%}
+                </label>
+                {% if reorder %}
+                    <twig:Ui:IconButton icon="arrow-up" variant="ghost" size="sm" :label="'saved_view.move_up'|trans({name: viewLabel})" data-action="column-picker#up" data-column-picker-up="" />
+                    <twig:Ui:IconButton icon="arrow-down" variant="ghost" size="sm" :label="'saved_view.move_down'|trans({name: viewLabel})" data-action="column-picker#down" data-column-picker-down="" />
+                {% endif %}
+                <twig:Ui:Menu id="view-row-{{ view.key }}" :label="'saved_view.row_actions'|trans({name: viewLabel})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" data-dropdown-below-value="true" data-view-row-menu>
+                    {% if not view.primary %}
+                        <twig:Ui:MenuItem :href="view.href" icon="external-link" data-view-open>{{ 'saved_view.open'|trans }}</twig:Ui:MenuItem>
+                    {% endif %}
+                    {% if view.editable %}
+                        <twig:Ui:MenuItem type="button" icon="pencil" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-rename-{{ view.key }}" aria-haspopup="dialog" data-view-rename>{{ 'saved_view.rename'|trans }}</twig:Ui:MenuItem>
+                        <form method="post" action="{{ path('app_view_edit') }}" role="none">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <input type="hidden" name="ref" value="{{ view.ref }}">
+                            <input type="hidden" name="showCount" value="{{ view.showCount ? '0' : '1' }}">
+                            <input type="hidden" name="return" value="{{ manage.return }}">
+                            <twig:Ui:MenuItem type="submit" :icon="view.showCount ? 'square-check-big' : 'square'" aria-pressed="{{ view.showCount ? 'true' : 'false' }}" data-view-show-count>{{ 'saved_view.field.show_count'|trans }}</twig:Ui:MenuItem>
+                        </form>
+                    {% endif %}
+                    <form method="post" action="{{ path('app_view_duplicate') }}" role="none">
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <input type="hidden" name="ref" value="{{ view.ref }}">
+                        <input type="hidden" name="name" value="{{ viewLabel }}">
+                        <input type="hidden" name="return" value="{{ manage.return }}">
+                        <twig:Ui:MenuItem type="submit" icon="copy" data-view-duplicate>{{ 'saved_view.duplicate'|trans }}</twig:Ui:MenuItem>
+                    </form>
+                    {% if view.editable %}
+                        {% if not view.shipped %}
+                            <form method="post" action="{{ path('app_view_edit') }}" role="none">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="ref" value="{{ view.ref }}">
+                                <input type="hidden" name="visibility" value="{{ view.private ? 'shared' : 'private' }}">
+                                <input type="hidden" name="return" value="{{ manage.return }}">
+                                <twig:Ui:MenuItem type="submit" :icon="view.private ? 'users' : 'lock'" data-view-visibility>{{ (view.private ? 'saved_view.share' : 'saved_view.make_private')|trans }}</twig:Ui:MenuItem>
+                            </form>
+                        {% endif %}
+                        {% if not reorder and (view.primary or not manage.primaryFull) %}
+                            <form method="post" action="{{ path('app_view_edit') }}" role="none">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="ref" value="{{ view.ref }}">
+                                <input type="hidden" name="placement" value="{{ view.primary ? 'overflow' : 'primary' }}">
+                                <input type="hidden" name="return" value="{{ manage.return }}">
+                                <twig:Ui:MenuItem type="submit" :icon="view.primary ? 'eye-off' : 'panel-top'" data-view-placement>{{ (view.primary ? 'saved_view.to_more' : 'saved_view.to_tabs')|trans }}</twig:Ui:MenuItem>
+                            </form>
+                        {% endif %}
+                        {% if view.shipped %}
+                            <form method="post" action="{{ path('app_view_edit') }}" role="none">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="ref" value="{{ view.ref }}">
+                                <input type="hidden" name="hidden" value="1">
+                                <input type="hidden" name="return" value="{{ manage.return }}">
+                                <twig:Ui:MenuItem type="submit" icon="eye-off" data-view-hide>{{ 'saved_view.hide'|trans }}</twig:Ui:MenuItem>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{{ path('app_view_delete') }}" role="none" data-turbo-confirm="{{ 'saved_view.delete_confirm'|trans({name: viewLabel}) }}" data-confirm-text="{{ 'saved_view.delete_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.delete'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}" data-confirm-tone="danger">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <input type="hidden" name="ref" value="{{ view.ref }}">
+                                <input type="hidden" name="return" value="{{ manage.return }}">
+                                <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger" data-view-delete>{{ 'saved_view.delete'|trans }}</twig:Ui:MenuItem>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </twig:Ui:Menu>
+            </li>
+        {% endfor %}
+    </ol>
+    {% if reorder %}
+        <p class="m-0 text-small text-muted" hidden data-column-picker-target="tabsFull" data-view-order-full>{{ 'saved_view.error.primary_full'|trans }}</p>
+    {% endif %}
+    {% if manage.hidden is not empty %}
+        <div class="grid gap-0.5" data-view-manage-hidden>
+            <p class="m-0 px-1.5 pt-2 pb-1 text-small font-medium text-muted">{{ 'saved_view.section.hidden'|trans }}</p>
+            <ul class="m-0 grid list-none gap-0.5 p-0">
+                {% for view in manage.hidden %}
+                    {% set label = view.translated ? view.name|trans : view.name %}
+                    <li class="flex min-h-touch items-center gap-2 rounded-control pr-1 pl-1.5" data-settings-view="{{ view.key }}">
+                        <span class="min-w-0 flex-1 truncate py-2 text-muted">{{ label }}</span>
+                        <form method="post" action="{{ path('app_view_edit') }}">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <input type="hidden" name="ref" value="{{ view.ref }}">
+                            <input type="hidden" name="hidden" value="0">
+                            <input type="hidden" name="return" value="{{ manage.return }}">
+                            <twig:Ui:Button type="submit" variant="ghost" size="sm" icon="eye" aria-label="{{ 'saved_view.show_named'|trans({name: label}) }}" data-view-show>{{ 'saved_view.show'|trans }}</twig:Ui:Button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    <div class="flex flex-wrap items-center gap-2">
+        {% if viewBar %}
+            <button type="button" class="inline-flex h-control-sm cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-transparent bg-transparent px-2.5 text-small font-semibold text-green no-underline transition-colors hover:bg-head {{ focus }}" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-new>{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{{ 'saved_view.new'|trans }}</button>
+        {% endif %}
+        {% if manage.canRestore %}
+            <form method="post" action="{{ path('app_view_restore') }}" class="ml-auto" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+                <input type="hidden" name="list" value="{{ manage.list }}">
+                <input type="hidden" name="return" value="{{ manage.return }}">
+                <twig:Ui:Button type="submit" variant="ghost" size="sm" icon="history" data-view-manage-restore>{{ 'saved_view.restore'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    </div>
+</section>

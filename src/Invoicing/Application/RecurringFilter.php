@@ -13,7 +13,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * Which recurring templates a list shows: in one state or any,
- * only those whose last run failed, those of a view, and which page. The views in
+ * only those whose last run failed, those of a view, those whose name, description or customer holds a text, and which page. The views in
  * $counted are counted beside it, in the one query that counts the list (spec D9).
  */
 final readonly class RecurringFilter
@@ -33,6 +33,7 @@ final readonly class RecurringFilter
         public ?ViewFilter $view = null,
         public array $counted = [],
         public string $sort = self::NEXT,
+        public string $text = '',
     ) {
     }
 }

@@ -207,6 +207,8 @@ work:
         decimal: '.'
         'yes': 'yes'
         'no': 'no'
+      search_label: Search the report
+    search_label: Search time entries
   cancel: Cancel
   save: Save
   history:
@@ -436,6 +438,7 @@ work:
       filtered_title: Nothing matches
       filtered: No task matches these conditions.
       reset: Reset the view
+    search_label: Search my tasks
   notifications:
     settings: Settings
     title: Notifications
@@ -472,6 +475,7 @@ work:
       filtered: Nothing matches the filters.
       reset: Clear the filters
       view: Nothing matches this view
+    search_label: Search notifications
   notification_settings:
     title: Notification settings
     email_card: E-mails
@@ -552,6 +556,7 @@ work:
       view_title: Nothing matches this view
       filtered_title: Nothing matches these filters
       reset: Clear the filters
+    search_label: Search projects
   project:
     create: Create project
     archived: Archived
@@ -628,3 +633,5 @@ work:
     move_down: Move down
     moved: 'Moved to {status}, position {position} of {count}'
     subtasks: '{done} of {total} subtasks done'
+  tasks:
+    search_label: Search tasks

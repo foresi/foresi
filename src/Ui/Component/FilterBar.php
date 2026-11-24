@@ -12,26 +12,22 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * The filter row of a list, under its tabs (Calm UI spec, filters option A; Polaris IndexFilters,
- * Stripe filter chips, level.io's filter chips and filters panel):
+ * The row of quick filters under a list's tabs (Shopify Polaris IndexFilters, Linear, Notion,
+ * Attio), and the filter sheet the filter icon of the tabs opens:
  *
- * - a search field that applies on Enter, at the start of the row; it waits for the search icon
- *   of the tabs (Polaris IndexFilters) until it holds a text;
- * - the view's quick filters (FilterSheet), or a list's pinned filters, at most four: an empty
- *   chip is quiet with a dashed edge and "+ Field", a set one shows "Field: value" on the green
- *   tint with a ✕ that clears it; a filter set from the sheet shows as a set chip too;
- * - "+ Filter" or "More filters" opens the other filters in the 400 px side sheet;
- * - "Clear all" only while something is set, and while the view shows changes nobody saved,
- *   "Save as new view" and "Save to view", which keep its filters, columns and quick filters
- *   together (saved views D10; Polaris IndexFilters' Save as and Save).
+ * - the view's quick filters (FilterSheet), or a list's pinned filters, at most four: a chip is a
+ *   secondary button "Field ▾" opening its values (checkboxes that apply at once, a search of the
+ *   records a reference points to, the periods and months of a date, a small field for a text); a
+ *   set one shows "Field: value" on the green tint with a ✕ that clears it;
+ * - the conditions set in the sheet on fields the view does not pin, each with its ✕;
+ * - "Clear all" while something narrows the list, which clears the filters and the search; and,
+ *   while the view shows changes nobody saved, "Save as new view" and "Save to view" at the end
+ *   (saved views D10; Polaris IndexFilters' Save as and Save).
  *
- * A chip is a menu of links, each one the list with that value, so choosing
- * applies it at once and there is no Filter button. The sheet sends its fields
- * with one Apply (NN/g batch filtering). On a phone the row is the search and
- * one "Filters (n)" button that opens the same sheet over the whole screen,
- * the set filters as chips under it. Without JavaScript a <noscript> form
- * holds every filter with its button. A list that is empty while nothing
- * narrows it shows no bar.
+ * The row is there while it has something to show. The search field stands on the row of the tabs
+ * (_list_tools) and sends the hidden form this bar renders, with what the list keeps. The sheet
+ * sends its fields with one Apply (NN/g batch filtering). Without JavaScript the chips and the sheet
+ * step aside for a <noscript> form.
  *
  * @phpstan-type Option array{label: string, href: string, checked: bool}
  * @phpstan-type Group array{label: ?string, options: list<Option>}
@@ -57,7 +53,7 @@ final class FilterBar
      *                                 and text (the value as a set chip says it, for a date)
      */
     public array $filters = [];
-    /** @var list<string> the names of the filters pinned as chips in the row, in order; at most four, as the list's Display sheet sets them */
+    /** @var list<string> the names of the filters pinned as chips in the row, in order; at most four, as the list's Settings sheet sets them */
     public array $pinned = [];
     /**
      * @var list<array{label: string, href: string, removeLabel: string, field?: string, pinned?: bool}> the conditions of the list's working filter, each a chip with its ✕;
@@ -85,14 +81,6 @@ final class FilterBar
 
     /** The list shows nothing: without a filter set there is no bar. */
     public bool $empty = false;
-
-    /**
-     * The bar stands under the list's tabs, whose search and filter icons (Shopify Polaris
-     * IndexFilters) open its search and its sheet: it shows while it has chips to show (the
-     * view's quick filters, a filter set) or the view unsaved changes, and is folded otherwise
-     * until the search icon opens it.
-     */
-    public bool $collapsible = false;
 
     /** @var list<FilterView> */
     private array $views = [];
@@ -122,7 +110,7 @@ final class FilterBar
                 throw new \InvalidArgumentException('A filter needs a name, a label and, as a select, its options.');
             }
             if (\array_key_exists('pinned', $filter)) {
-                throw new \InvalidArgumentException('A filter is pinned by the bar\'s pinned, as the list\'s Display sheet sets them, not by itself.');
+                throw new \InvalidArgumentException('A filter is pinned by the bar\'s pinned, as the list\'s Settings sheet sets them, not by itself.');
             }
             if ('date' === $type && \in_array($filter['name'], $this->pinned, true)) {
                 throw new \InvalidArgumentException('A date filter is picked in the sheet; it cannot be pinned.');
@@ -241,29 +229,12 @@ final class FilterBar
     }
 
     /**
-     * Whether the bar starts folded: it waits for its filter icon while nothing narrows the list.
-     */
-    public function collapsed(): bool
-    {
-        return $this->collapsible && !$this->hasRow();
-    }
-
-    /**
      * Whether the row has something to show: a quick filter, a pinned filter, what narrows the list
      * or the view's unsaved changes.
      */
     public function hasRow(): bool
     {
         return [] !== $this->quick || [] !== $this->pinnedViews() || $this->narrowed() || $this->modified();
-    }
-
-    /**
-     * Whether the search waits for the search icon: folded with the bar, or while it holds no text
-     * in a bar that opens with its icons. Without JavaScript it is always there.
-     */
-    public function searchFolded(): bool
-    {
-        return $this->collapsible && '' === $this->searchValue();
     }
 
     public function shown(): bool

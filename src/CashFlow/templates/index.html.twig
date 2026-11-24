@@ -4,7 +4,7 @@
     and where it comes from, the lowest point, the minimum balance as a date on screen, the end of the
     horizon), what the forecast is missing, and the periods as a table, as Agicap lays out categories as
     rows and periods as columns. A cell with money opens its items in the sheet, each linking to its record, as Fathom opens what makes up a forecast cell in a panel at the right; a document's expected day is set there. Enter balance and the
-    minimum balance are small dialogs from the header. "+ Filter" narrows the chart, the table and the
+    minimum balance are small dialogs from the header. The filter sheet narrows the chart, the table and the
     figures by how sure a flow is, as the filter builder of the list pages does; the balance today stays.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -64,15 +64,10 @@
             {% else %}
                 <twig:Ui:KpiStrip :items="kpis" data-cash-flow-kpis />
 
-                {# The filter icon at the end of the tabs opens "+ Filter" under them, as on every list (Shopify Polaris IndexFilters). #}
-                <div class="flex items-end gap-3">
-                    {# One granularity per view, as Float's weekly or monthly toggle: 13 weeks or 12 months, for the chart and the table alike. #}
-                    <twig:Ui:Tabs :items="views" :label="'cash_flow.view.label'|trans" class="min-w-0 flex-1" data-cash-flow-views />
-
-                    {# The source of a flow is a condition of "+ Filter" (saved views D11); the page keeps it in its address and stores no view. #}
-                    {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'cash-flow-filters', toolsColumns: {id: 'cash-flow-display', action: path('app_cash_flow')}}) }}
-                </div>
-                <twig:Ui:FilterBar id="cash-flow-filters" :collapsible="true" :action="path('app_cash_flow')" :keep="filterKeep" :conditions="chips" :quick="quick" :builder="builder" data-cash-flow-filter />
+                {# One granularity per view, as Float's weekly or monthly toggle: 13 weeks or 12 months, for the chart and the table alike. The source of a flow is a condition of the filter sheet (saved views D11); the page keeps it in its address and stores no view. #}
+                {% set search = {name: 'q', value: text ?? '', label: 'cash_flow.search_label'|trans} %}
+                {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: views, toolbarLabel: 'cash_flow.view.label'|trans, toolbarTabsAttributes: {'data-cash-flow-views': ''}, toolsFilter: 'cash-flow-filters', toolsSearch: search, toolsColumns: {id: 'cash-flow-display', action: path('app_cash_flow')}}) }}
+                <twig:Ui:FilterBar id="cash-flow-filters" :search="search" :action="path('app_cash_flow')" :keep="filterKeep" :conditions="chips" :quick="quick" :builder="builder" data-cash-flow-filter />
 
                 <section aria-labelledby="cash-flow-chart-title" class="grid grid-cols-1 gap-2">
                     <h2 id="cash-flow-chart-title" class="m-0 text-body font-semibold text-ink">{{ 'cash_flow.chart.title'|trans }}</h2>

@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The projects of the organisation on saved views, as every list has them: All (the projects not
-    archived) and Archived, the person's own views, "+ Filter" and the Display sheet; with what is left
+    archived) and Archived, the person's own views, the filter sheet and the Settings sheet; with what is left
     of each project. A new project starts in a dialog over the list; without JavaScript the same link is
     a page.
 #}
@@ -22,15 +22,11 @@
         {% endfor %}
     {% endfor %}
     <div class="grid grid-cols-1 gap-4">
-        {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.projects.views'|trans" class="min-w-0 flex-1">
-                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-            </twig:Ui:Tabs>
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'project-filters', toolsSearch: false, toolsColumns: {id: 'project-columns', action: path('app_projects')}}) }}
-        </div>
-        {# The client, the visibility and the billing are conditions of "+ Filter" (saved views D11). #}
-        <twig:Ui:FilterBar id="project-filters" :collapsible="true" :action="path('app_projects')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+        {# The tabs, then the search field and the Filter and Settings icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
+        {% set search = {name: 'q', value: text ?? '', label: 'work.projects.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'work.projects.views'|trans, toolsFilter: 'project-filters', toolsSearch: search, toolsColumns: {id: 'project-columns', action: path('app_projects')}}) }}
+        {# The client, the visibility and the billing are conditions of the filter sheet (saved views D11). #}
+        <twig:Ui:FilterBar id="project-filters" :search="search" :action="path('app_projects')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
         </twig:Ui:FilterBar>
 

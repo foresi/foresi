@@ -48,7 +48,7 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $wantedGroup = \is_string($wantedGroup) && \in_array($wantedGroup, $groups, true) ? $wantedGroup : null;
 
         if (null !== $keys) {
-            // The column that names the row leads and never moves (the Display sheet shows it so);
+            // The column that names the row leads and never moves (the Settings sheet shows it so);
             // the registry drops a locked column the context does not offer.
             $locked = array_map(static fn (Column $column): string => $column->key, array_filter($this->registry->columns($list), static fn (Column $column): bool => $column->locked));
             $keys = [...$locked, ...array_diff($keys, $locked)];

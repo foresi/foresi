@@ -150,8 +150,8 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame(['All 2', 'Paid 0', 'Unpaid 2', 'Overdue 2', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
         self::assertCount(0, $crawler->filter('[data-filter-chip="firm"], select[name="firm"], input[name="firm"]'));
         self::assertStringNotContainsString('firm=', (string) $crawler->filter('nav[aria-label="Invoice lists"] a')->eq(1)->attr('href'));
-        // The menu of the views past the tabs says what every list's says.
-        self::assertSame('More views', $this->client->request('GET', '/advances')->filter('[data-more-views] button')->first()->attr('aria-label'));
+        // The views past the tabs are in the Settings sheet, which every list names the same.
+        self::assertCount(1, $this->client->request('GET', '/advances')->filter('[data-settings-views]'));
     }
 
     public function testOverdueUsesTheCountryToday(): void
@@ -1402,8 +1402,9 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertResponseRedirects('/invoices?view='.$view->id(), 303);
         $crawler = $this->client->followRedirect();
         self::assertSame([$late->number()], $this->numbers($crawler));
-        // The list shows six tabs already (D7): the new view opens from More views.
-        self::assertSame(['Unpaid and due'], $crawler->filter('[data-more-views] [aria-checked="true"]')->each(static fn (Crawler $item): string => $item->text()));
+        // The list shows six tabs already (D7): the new view waits in the Settings sheet and shows as a tab while open.
+        self::assertSame('Unpaid and due', $crawler->filter('nav[aria-label="Invoice lists"] a[aria-current="page"]')->text());
+        self::assertCount(0, $crawler->filter('[data-settings-view="'.$view->id().'"] input[type="checkbox"]:checked'));
         self::assertCount(0, $crawler->filter('[data-tab-modified], [data-view-actions]'));
         self::assertContains('The new view is saved.', $this->statuses($crawler));
     }
@@ -1436,10 +1437,10 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertSame([['field' => 'number', 'dir' => 'asc']], $fork->sort());
         $crawler = $this->client->followRedirect();
         // A private view carries a lock (D7) and opens in its own order.
-        self::assertCount(1, $crawler->filter('[data-more-views] [aria-checked="true"] svg[class*="size-3.5"]'));
+        self::assertCount(1, $crawler->filter('[data-settings-view="'.$fork->id().'"] label svg[class*="size-3.5"]'));
         self::assertCount(0, $crawler->filter('[data-tab-modified]'));
         // Their own view is theirs to change.
-        self::assertCount(1, $crawler->filter('[data-view-manage-row="'.$fork->id().'"] form[action="/views/edit"]'));
+        self::assertCount(1, $crawler->filter('[data-settings-view="'.$fork->id().'"] form[action="/views/edit"] [data-view-visibility]'));
         $overdue = $this->em()->getRepository(SavedView::class)->findOneBy(['systemKey' => 'invoicing.invoices.overdue']);
         self::assertInstanceOf(SavedView::class, $overdue);
         self::assertSame([], $overdue->sort());
@@ -1461,7 +1462,7 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertCount(1, $this->client->request('GET', '/invoices?view=overdue&sort=-issueDate')->filter('[data-tab-modified]'));
     }
 
-    public function testManageViewsRenamesSharesAndDeletesYourOwnView(): void
+    public function testTheSettingsSheetRenamesSharesAndDeletesYourOwnView(): void
     {
         $this->signedIn();
         $this->issue('2026-10-01', '2026-11-10');
@@ -1471,36 +1472,35 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertInstanceOf(SavedView::class, $late);
         $crawler = $this->client->followRedirect();
         // One line per view, its actions in its menu: Open and edit goes to the view on the list.
-        $row = $crawler->filter('[data-view-manage-row="'.$late->id().'"]');
+        $row = $crawler->filter('[data-settings-view="'.$late->id().'"]');
         self::assertSame('/invoices?view='.$late->id(), $row->filter('[data-view-open]')->attr('href'));
-        self::assertCount(0, $row->filter('input[name="name"]'));
+        self::assertCount(0, $row->filter('input[name="name"]:not([type="hidden"])'));
 
         $this->client->submit($crawler->filter('[data-view-rename-form="'.$late->id().'"]')->form(['name' => 'Late ones']));
 
         $crawler = $this->client->followRedirect();
         self::assertContains('The view is changed.', $this->statuses($crawler));
-        self::assertSame('Late ones', $crawler->filter('[data-view-manage-row="'.$late->id().'"]')->attr('data-label'));
-        $this->client->submit($crawler->filter('[data-view-manage-row="'.$late->id().'"] [data-view-visibility]')->form());
+        self::assertSame('Late ones', $crawler->filter('[data-settings-view="'.$late->id().'"]')->attr('data-label'));
+        $this->client->submit($crawler->filter('[data-settings-view="'.$late->id().'"] [data-view-visibility]')->form());
         self::assertSame(Visibility::Shared, $this->em()->getRepository(SavedView::class)->find($late->id())?->visibility());
         $crawler = $this->client->followRedirect();
-        $this->client->submit($crawler->filter('[data-view-manage-row="'.$late->id().'"] form[action="/views/delete"]')->form());
+        $this->client->submit($crawler->filter('[data-settings-view="'.$late->id().'"] form[action="/views/delete"]')->form());
         self::assertNull($this->em()->getRepository(SavedView::class)->findOneBy(['name' => 'Late ones']));
         // A shipped view is hidden, never deleted (D6).
         $crawler = $this->client->followRedirect();
-        self::assertCount(0, $crawler->filter('[data-view-manage-row="overdue"] [data-view-delete]'));
-        self::assertCount(1, $crawler->filter('[data-view-manage-row="overdue"] [data-view-hide]'));
-        self::assertCount(1, $crawler->filter('[data-view-manage-row="overdue"] [data-view-rename]'));
+        self::assertCount(0, $crawler->filter('[data-settings-view="overdue"] [data-view-delete]'));
+        self::assertCount(1, $crawler->filter('[data-settings-view="overdue"] [data-view-hide]'));
+        self::assertCount(1, $crawler->filter('[data-settings-view="overdue"] [data-view-rename]'));
     }
 
-    public function testAnOwnerReordersTheViewsAndMovesThemBetweenTabsAndMoreViews(): void
+    public function testAnOwnerReordersTheViewsAndMovesThemOnAndOffTheTabs(): void
     {
         // D7: one order for everyone, set by owners; the views before the line are tabs.
         $this->signedIn();
         $this->issue('2026-10-01', '2026-11-10');
         $crawler = $this->client->request('GET', '/invoices');
         self::assertSame(['paid', 'unpaid', 'overdue', 'to_refund', 'trash', ''], $this->order($crawler));
-        self::assertSame('6 of 6', $crawler->filter('[data-view-order-target="count"]')->text());
-        $token = (string) $crawler->filter('[data-view-order-form] input[name="_token"]')->attr('value');
+        $token = (string) $crawler->filter('[data-settings-views] form[action="/views/order"] input[name="_token"]')->attr('value');
         $refs = ['overdue' => 'invoicing.invoices.overdue', 'unpaid' => 'invoicing.invoices.unpaid', 'paid' => 'invoicing.invoices.paid', 'refund' => 'invoicing.invoices.to_refund', 'trash' => 'invoicing.invoices.trash'];
 
         $this->client->request('POST', '/views/order', ['_token' => $token, 'views' => [$refs['overdue'], $refs['unpaid'], $refs['paid'], '', $refs['trash'], $refs['refund']], 'return' => '/invoices']);
@@ -1510,14 +1510,14 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertContains('The order of the views is saved.', $this->statuses($crawler));
         // A moved shipped view keeps its translated name.
         self::assertSame(['All 1', 'Overdue 1', 'Unpaid 1', 'Paid 0'], $this->tabs($crawler));
-        self::assertSame(['Trash', 'To refund'], $crawler->filter('[data-more-views] [role="menu"] a')->each(static fn (Crawler $item): string => $item->text()));
+        self::assertSame(['Trash', 'To refund'], $crawler->filter('[data-settings-view-list] [data-settings-view] [data-view-open]')->each(static fn (Crawler $item): string => (string) $item->closest('[data-settings-view]')?->attr('data-label')));
         self::assertSame(['overdue', 'unpaid', 'paid', '', 'trash', 'to_refund'], $this->order($crawler));
         // Six tabs are the most, All among them.
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Late']));
         $late = $this->em()->getRepository(SavedView::class)->findOneBy(['name' => 'Late']);
         self::assertInstanceOf(SavedView::class, $late);
         $this->client->request('POST', '/views/order', ['_token' => $token, 'views' => [...array_values($refs), $late->id()], 'return' => '/invoices']);
-        self::assertSame('The list already shows six tabs; move another view to More views first.', $this->client->followRedirect()->filter('[role="alert"]')->text());
+        self::assertSame('A list shows at most six tabs; take another view off the tabs first.', $this->client->followRedirect()->filter('[role="alert"]')->text());
     }
 
     public function testAMemberMovesOnlyTheirOwnViewAndSetsNoOrder(): void
@@ -1530,10 +1530,10 @@ final class InvoiceListControllerTest extends WebTestCase
         self::assertInstanceOf(SavedView::class, $late);
         $crawler = $this->client->followRedirect();
 
-        self::assertCount(0, $crawler->filter('[data-view-order-form], [data-view-order-up]'));
-        self::assertCount(1, $crawler->filter('[data-view-manage-row="overdue"] [data-view-read-only]'));
-        // The tabs are full: their own view stays in More views.
-        self::assertCount(0, $crawler->filter('[data-view-manage-row="'.$late->id().'"] [data-view-placement]'));
+        self::assertCount(0, $crawler->filter('[data-settings-views] form[action="/views/order"], [data-settings-views] [data-column-picker-up]'));
+        self::assertCount(1, $crawler->filter('[data-settings-view="overdue"] [data-view-read-only]'));
+        // The tabs are full: their own view stays off them.
+        self::assertCount(0, $crawler->filter('[data-settings-view="'.$late->id().'"] [data-view-placement]'));
         $token = (string) $crawler->filter('[data-view-save-as-form] input[name="_token"]')->attr('value');
         $this->client->request('POST', '/views/order', ['_token' => $token, 'views' => ['invoicing.invoices.paid'], 'return' => '/invoices']);
         self::assertSame('Only its creator or an owner changes this view. Save your changes as a new view instead.', $this->client->followRedirect()->filter('[role="alert"]')->text());
@@ -1545,12 +1545,12 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->issue('2026-10-01', '2026-11-10');
         $crawler = $this->client->request('GET', '/invoices');
 
-        $this->client->submit($crawler->filter('[data-view-manage-row="overdue"] [data-view-hide]')->form());
+        $this->client->submit($crawler->filter('[data-settings-view="overdue"] [data-view-hide]')->form());
 
         $crawler = $this->client->followRedirect();
-        self::assertContains('The view is hidden. Show it again in Manage views.', $this->statuses($crawler));
+        self::assertContains('The view is hidden. Show it again in List settings.', $this->statuses($crawler));
         self::assertSame(['All 1', 'Paid 0', 'Unpaid 1', 'To refund 0', 'Trash 0'], $this->tabs($crawler));
-        self::assertSame('Overdue', $crawler->filter('[data-view-manage-hidden] [data-view-manage-row="overdue"] span')->text(''));
+        self::assertSame('Overdue', $crawler->filter('[data-view-manage-hidden] [data-settings-view="overdue"] span')->text(''));
         $this->client->submit($crawler->filter('[data-view-manage-hidden] [data-view-show]')->form());
         $crawler = $this->client->followRedirect();
         self::assertContains('The view shows again.', $this->statuses($crawler));
@@ -1565,7 +1565,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
         $this->client->submit($crawler->filter('[data-view-rename-form="overdue"]')->form(['name' => 'Late']));
         $crawler = $this->client->followRedirect();
-        $this->client->submit($crawler->filter('[data-view-manage-row="trash"] [data-view-hide]')->form());
+        self::assertCount(0, $crawler->filter('[data-view-manage-restore]'), 'Nothing is hidden yet, so there is nothing to restore.');
+        $this->client->submit($crawler->filter('[data-settings-view="trash"] [data-view-hide]')->form());
         $crawler = $this->client->followRedirect();
         self::assertContains('Late 1', $this->tabs($crawler));
 
@@ -1583,8 +1584,8 @@ final class InvoiceListControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/invoices');
 
         self::assertCount(0, $crawler->filter('[data-view-restore], [data-view-manage-restore], [data-view-hide]'));
-        self::assertSame(['Paid', 'Unpaid', 'Overdue', 'To refund', 'Trash'], $crawler->filter('[data-view-manage-list] li[data-label]')->each(static fn (Crawler $li): string => (string) $li->attr('data-label')));
-        self::assertSame('/invoices?view=paid', $crawler->filter('[data-view-manage-list] [data-view-open]')->first()->attr('href'));
+        self::assertSame(['Paid', 'Unpaid', 'Overdue', 'To refund', 'Trash'], $crawler->filter('[data-settings-view-list] li[data-settings-view]:not([data-settings-view="all"])')->each(static fn (Crawler $li): string => (string) $li->attr('data-label')));
+        self::assertCount(0, $crawler->filter('[data-settings-views] form[action="/views/order"]'));
     }
 
     public function testTheDisplayAPersonLastUsedOnAViewComesBack(): void
@@ -1636,7 +1637,12 @@ final class InvoiceListControllerTest extends WebTestCase
      */
     private function order(Crawler $crawler): array
     {
-        return $crawler->filter('[data-view-manage-list] [data-view-manage-row]:not([data-view-manage-row="all"]), [data-view-manage-list] [data-view-manage-section="more"]')->each(static fn (Crawler $li): string => 'more' === $li->attr('data-view-manage-section') ? '' : (string) $li->attr('data-view-manage-row'));
+        // The tabs, checked, then the empty marker, then the rest, as the Settings sheet posts them.
+        $rows = $crawler->filter('[data-settings-view-list] [data-settings-view]:not([data-settings-view="all"])');
+        $tabs = $rows->reduce(static fn (Crawler $li): bool => $li->filter('input[type="checkbox"]:checked')->count() > 0)->each(static fn (Crawler $li): string => (string) $li->attr('data-settings-view'));
+        $rest = $rows->reduce(static fn (Crawler $li): bool => 0 === $li->filter('input[type="checkbox"]:checked')->count())->each(static fn (Crawler $li): string => (string) $li->attr('data-settings-view'));
+
+        return [...$tabs, '', ...$rest];
     }
 
     /**
@@ -1778,7 +1784,7 @@ final class InvoiceListControllerTest extends WebTestCase
      */
     private function monthChip(Crawler $crawler, string $field = 'tax_point_date'): string
     {
-        return trim($crawler->filter('[data-filter-chips] [data-quick-filter="'.$field.'"] button')->first()->text());
+        return trim($crawler->filter('[data-filter-chips] [data-quick-filter="'.$field.'"] summary')->first()->text());
     }
 
     /**

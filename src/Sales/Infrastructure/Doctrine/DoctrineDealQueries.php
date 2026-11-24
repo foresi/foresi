@@ -23,13 +23,14 @@ final readonly class DoctrineDealQueries implements DealQueries
         DealLists::STATUS => 'd.status',
         DealLists::OWNER => 'd.ownerUserId',
         DealLists::CLIENT => 'd.clientPartyId',
+        DealLists::STAGE => 'd.stageId',
     ];
 
     public function __construct(private EntityManagerInterface $entityManager, private DealLists $lists, private InstanceClock $clock)
     {
     }
 
-    public function index(ViewFilter $filter, bool $descending = false): array
+    public function index(ViewFilter $filter, bool $descending = false, string $text = '', array $clientIds = []): array
     {
         $derived = static fn (Condition $condition): array => [match ($condition->field) {
             DealLists::TRASHED => DqlConditions::derivedBoolean($condition, 'd.trashedAt IS NOT NULL'),
@@ -39,7 +40,17 @@ final readonly class DoctrineDealQueries implements DealQueries
         // The deals in the trash only when the view asks for them.
         $trashed = [] === $filter->on(DealLists::TRASHED) ? 'd.trashedAt IS NULL AND ' : '';
         $direction = $descending ? 'DESC' : 'ASC';
-        $query = $this->entityManager->createQuery('SELECT d FROM '.Deal::class.' d WHERE '.$trashed.$condition.' ORDER BY d.title '.$direction.', d.id '.$direction);
+        $found = '';
+        if ('' !== $text) {
+            $found = " AND (LOWER(d.title) LIKE :text ESCAPE '!'".([] === $clientIds ? '' : ' OR d.clientPartyId IN (:clients)').')';
+        }
+        $query = $this->entityManager->createQuery('SELECT d FROM '.Deal::class.' d WHERE '.$trashed.$condition.$found.' ORDER BY d.title '.$direction.', d.id '.$direction);
+        if ('' !== $text) {
+            $query->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%');
+            if ([] !== $clientIds) {
+                $query->setParameter('clients', $clientIds);
+            }
+        }
         foreach ($parameters as $name => [$value, $type]) {
             $query->setParameter($name, $value, $type);
         }

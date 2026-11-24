@@ -47,8 +47,9 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Waiting incoming']));
         $crawler = $this->client->followRedirect();
         self::assertCount(2, $crawler->filter('main tbody tr'));
-        // Six tabs hold All and the views it shipped: a new one is under More views.
-        self::assertStringContainsString('Waiting incoming', $crawler->filter('main [data-more-views]')->text());
+        // Six tabs hold All and the views it shipped: a new one stays off them, listed in the Settings sheet and a tab while open.
+        self::assertCount(1, $crawler->filter('main [data-settings-view-list] [data-settings-view][data-label="Waiting incoming"] input[type="checkbox"]:not([checked])'));
+        self::assertSame('Waiting incoming', $crawler->filter('main [data-list-toolbar] a[aria-current="page"]')->text());
     }
 
     public function testAViewOfTheBankMailNarrowsByAccountAndFindsNoDirection(): void

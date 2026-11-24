@@ -125,7 +125,7 @@ final class PartyController extends AbstractController
         $counts = $this->contacts->counts();
         $import = $importedBy instanceof ImportedBy ? ['import' => $importedBy->importId, 'outcome' => $importedBy->outcome] : [];
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $import;
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ContactSource::LIST, [], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, 'app_contacts', '' === $text ? [] : ['q' => $text]);
@@ -357,7 +357,7 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * The tabs of the list and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, with the count of those that show one; the other views in the menu.
      *
      * @param list<ListView>        $views
@@ -382,7 +382,7 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the list, and the list without the changed columns.
+     * The Settings sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string|null> $query
      *

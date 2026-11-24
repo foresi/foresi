@@ -52,7 +52,7 @@ final readonly class UpdateViewInput
         public string|Omitted|null $density = new Omitted(),
         #[Field('Whether its tab shows how many rows it holds.')]
         public bool|Omitted $showCount = new Omitted(),
-        #[Field('primary: a tab of the list; overflow: in its "More views" menu.', enum: ['primary', 'overflow'])]
+        #[Field('primary: a tab of the list; overflow: not a tab, listed in the Settings sheet of the list.', enum: ['primary', 'overflow'])]
         public string|Omitted $placement = new Omitted(),
         #[Field('Its place among the views of the list; lower comes first.')]
         public int|Omitted $position = new Omitted(),

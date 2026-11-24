@@ -193,6 +193,7 @@ invoice:
       stuck: '{count, plural, one {An e-mail has} other {# e-mails have}} been waiting to be sent for more than {minutes} minutes. Check that the queue worker runs on the server.'
       retrying: '{count, plural, one {An e-mail is being tried again: the mail server has not taken it yet.} other {# e-mails are being tried again: the mail server has not taken them yet.}}'
       link: Show
+    search_label: Search sent e-mails
   send:
     title: 'Send invoice {number}'
     card: E-mail
@@ -1138,6 +1139,7 @@ recurring:
       ended: Nothing has ended
       failing: Everything issues without trouble
       trash: The trash is empty
+    search_label: Search recurring invoices
   pause:
     title: Pause the recurring invoice
     text: 'Neither the invoice due on {date} nor any later one is issued until you resume it.'

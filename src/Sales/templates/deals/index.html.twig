@@ -1,7 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The deals on saved views, as every list has them: All, Open, Won, Lost and Trash, the person's own views,
-    "+ Filter" (status, owner, client) and the Display sheet. The deals are grouped by stage, one table per
+    the filter sheet (stage, status, owner, client) and the Settings sheet. The deals are grouped by stage, one table per
     stage in the order of the stages with its count and value, as Odoo's list grouped by stage shows only the
     groups it holds. A row opens the deal's page. A new deal starts in a dialog over the list; without
     JavaScript the same link is a page.
@@ -21,14 +21,10 @@
 {% block content %}
     {{ include('@Sales/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'sales.deals.views'|trans" class="min-w-0 flex-1">
-                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-            </twig:Ui:Tabs>
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'deal-filters', toolsSearch: false, toolsColumns: {id: 'deal-columns', action: path('app_sales_deals')}}) }}
-        </div>
-        {# The status, the owner and the client are conditions of "+ Filter" (saved views D11). #}
-        <twig:Ui:FilterBar id="deal-filters" :collapsible="true" :action="path('app_sales_deals')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+        {% set search = {name: 'q', value: text ?? '', label: 'sales.deals.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'sales.deals.views'|trans, toolsFilter: 'deal-filters', toolsSearch: search, toolsColumns: {id: 'deal-columns', action: path('app_sales_deals')}}) }}
+        {# The status, the owner and the client are conditions of the filter sheet (saved views D11). #}
+        <twig:Ui:FilterBar id="deal-filters" :search="search" :action="path('app_sales_deals')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="sections is empty">
         </twig:Ui:FilterBar>
 

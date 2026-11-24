@@ -304,3 +304,4 @@ cash_flow:
       vat_rate_invalid: Zadejte sazbu od 0 do 100 s nejvýše dvěma desetinnými místy, například 21 nebo 12,5.
       vat_rate_without_mode: Sazba DPH potřebuje DPH v ceně, navíc nebo samovyměření.
       vat_mode_reverse_charge_in: Samovyměření DPH je jen u nákladů, daň přiznává příjemce plnění.
+  search_label: Hledat v cash flow

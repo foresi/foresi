@@ -2,7 +2,7 @@
 {#
     Documents under Sales: every document, newest first, with its type, status and the records it
     belongs to. The type and the status are its quick filters (Ui:FilterBar), under the search, filter
-    and Display icons every list has, pinned again in the Display sheet. A row opens the
+    and Settings icons every list has, pinned again in the Settings sheet. A row opens the
     document in the side sheet; the status "In the trash" lists the cancelled documents in the trash
     instead. "+ New document" in the header opens the dialog and follows to the new document. Variables:
     columns, rows, more, filters, narrowed, trash, hasTypes.
@@ -20,11 +20,10 @@
 {% block content %}
     {{ include('@Documents/_flashes.html.twig') }}
     <section class="grid gap-3" data-documents>
-        {# A list with no tabs keeps the icons where the tabs end on every other list. #}
-        <div class="flex items-end justify-end gap-3">
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'documents-filters', toolsColumns: {id: 'documents-display', action: path('app_documents')}}) }}
-        </div>
-        <twig:Ui:FilterBar id="documents-filters" :collapsible="true" :action="path('app_documents')" :keep="pinsQuery" :pinned="pinned" :filters="filters" :empty="rows is empty" data-documents-filter />
+        {# A list with no tabs keeps its tools where the tabs end on every other list. #}
+        {% set search = {name: 'q', value: text ?? '', label: 'documents.list.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolsFilter: 'documents-filters', toolsSearch: search, toolsColumns: {id: 'documents-display', action: path('app_documents')}}) }}
+        <twig:Ui:FilterBar id="documents-filters" :search="search" :action="path('app_documents')" :keep="pinsQuery" :pinned="pinned" :filters="filters" :empty="rows is empty" data-documents-filter />
         <twig:Ui:DataTable :caption="'documents.list.title'|trans" :columns="columns" :rows="rows">
             <twig:block name="empty">
                 {% if trash %}

@@ -27,9 +27,10 @@ interface NotificationQueries
 
     /**
      * The rows a view of NotificationLists holds, newest first: those not done, unless
-     * the view says which of done it wants.
+     * the view says which of done it wants. A text narrows them to those whose task title,
+     * project name or actor name contains it, whatever its case.
      *
      * @param int $page from 1
      */
-    public function inbox(Membership $recipient, ViewFilter $view = new ViewFilter(), int $page = 1): NotificationPage;
+    public function inbox(Membership $recipient, ViewFilter $view = new ViewFilter(), int $page = 1, string $text = ''): NotificationPage;
 }

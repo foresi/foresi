@@ -411,7 +411,7 @@ final class SendLogControllerTest extends WebTestCase
         self::assertContains('Type', $crawler->filter('thead th')->each(static fn (Crawler $th): string => trim($th->text())));
         self::assertSame(['Reminder 1', 'Invoice'], $crawler->filter('tbody tr [data-icon-cell]')->each(static fn (Crawler $cell): string => trim($cell->text())));
 
-        // The old select is a condition of "+ Filter" now: its address still narrows (saved views D11, D12).
+        // The old select is a condition of the filter sheet now: its address still narrows (saved views D11, D12).
         $crawler = $this->client->request('GET', '/invoices/sent?purpose=reminder');
         self::assertCount(1, $crawler->filter('tbody tr'));
         self::assertSame('All, unsaved changes', $this->viewTabs($crawler)[0]);

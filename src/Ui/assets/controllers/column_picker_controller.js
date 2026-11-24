@@ -4,23 +4,50 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Ui:ColumnPicker, the Display sheet: its button opens the sheet; a row of the quick filters or of
- * the columns moves within its own list by its handle (a pointer:
+ * Ui:ColumnPicker, the list's Settings sheet: its button opens the sheet; a row of the views, the
+ * quick filters or the columns moves within its own list by its handle (a pointer:
  * mouse, pen or touch) or by its Move up / Move down buttons (one tap or a key, WCAG 2.2 SC
  * 2.5.7), and each move is said in the live region, as Atlassian's drag and drop guidance
  * asks. The locked rows lead and never move. A column checked under "Add column" comes after
  * the shown ones. Apply sends the checked columns in their order as one cols=a,b,c and the
  * pinned quick filters as one pins=a,b (empty for none), and without this controller the boxes
  * send cols[] and pins[] in the same order. At most maxPins quick filters are checked at once.
+ * An owner's views: the checked ones are tabs, at most maxTabs with All; when their order or tabs
+ * changed, Apply first posts them, tabs before the empty marker, to the order of the views.
  */
 export default class extends Controller {
     static outlets = ['dialog'];
-    static targets = ['form', 'list', 'row', 'option', 'add', 'box', 'lockedKey', 'keys', 'status', 'search', 'none', 'pinRow', 'pinOption', 'pinBox', 'pins', 'pinMarker', 'pinNone'];
-    static values = { moved: String, maxPins: { type: Number, default: 4 } };
+    static targets = ['form', 'list', 'row', 'option', 'add', 'box', 'lockedKey', 'keys', 'status', 'search', 'none', 'pinRow', 'pinBox', 'pins', 'pinMarker', 'viewRow', 'viewBox', 'viewOrder', 'tabsFull'];
+    static values = { moved: String, maxPins: { type: Number, default: 4 }, maxTabs: { type: Number, default: 0 } };
 
     connect() {
         this.refresh();
         this.limitPins();
+        this.limitTabs();
+        this.views = this.viewOrder();
+    }
+
+    // All is a tab too: at most maxTabs - 1 others are checked.
+    limitTabs() {
+        if (this.maxTabsValue < 1) {
+            return;
+        }
+        const checked = this.viewBoxTargets.filter((box) => box.checked).length;
+        const full = checked >= this.maxTabsValue - 1;
+        this.viewBoxTargets.forEach((box) => {
+            box.disabled = !box.checked && full;
+        });
+        if (this.hasTabsFullTarget) {
+            this.tabsFullTarget.hidden = !full;
+        }
+    }
+
+    // The views top to bottom, the tabs before the empty marker, as the order of the views takes them.
+    viewOrder() {
+        const rows = this.viewRowTargets;
+        const tabs = rows.filter((row) => row.querySelector('[data-column-picker-target="viewBox"]')?.checked).map((row) => row.dataset.ref);
+        const rest = rows.filter((row) => !row.querySelector('[data-column-picker-target="viewBox"]')?.checked).map((row) => row.dataset.ref);
+        return [...tabs, '', ...rest];
     }
 
     // The quick filters checked reach maxPins: the others wait, so a fifth is never lost silently.
@@ -29,19 +56,6 @@ export default class extends Controller {
         this.pinBoxTargets.forEach((box) => {
             box.disabled = !box.checked && checked >= this.maxPinsValue;
         });
-    }
-
-    searchPins(event) {
-        const text = event.currentTarget.value.trim().toLocaleLowerCase();
-        let shown = 0;
-        [...this.pinRowTargets, ...this.pinOptionTargets].forEach((row) => {
-            const match = text === '' || row.dataset.label.toLocaleLowerCase().includes(text);
-            row.hidden = !match;
-            shown += match ? 1 : 0;
-        });
-        if (this.hasPinNoneTarget) {
-            this.pinNoneTarget.hidden = shown > 0;
-        }
     }
 
     open(event) {
@@ -151,7 +165,14 @@ export default class extends Controller {
         }
     }
 
-    submit() {
+    submit(event) {
+        const order = this.viewOrder();
+        if (this.hasViewOrderTarget && order.join('\n') !== this.views.join('\n') && !this.saved) {
+            // The views first, then the rest of the sheet to the list.
+            event.preventDefault();
+            this.saveViews(order);
+            return;
+        }
         // One readable cols=a,b,c instead of a cols[] per column.
         // The shown columns in their order, then the ones checked under "Add column".
         const keys = [...this.formTarget.querySelectorAll('[data-column-picker-target="lockedKey"], [data-column-picker-target="box"]:checked')].map((input) => input.value);
@@ -161,11 +182,22 @@ export default class extends Controller {
         }
         [...this.lockedKeyTargets, ...this.boxTargets].forEach((input) => input.removeAttribute('name'));
         if (this.hasPinsTarget) {
-            // The pinned ones in their order, then those checked under "Add quick filter".
+            // The checked ones in their order.
             const pins = [...this.formTarget.querySelectorAll('[data-column-picker-target="pinBox"]:checked')].map((input) => input.value);
             this.pinsTarget.value = pins.join(',');
             this.pinsTarget.disabled = false;
             [...this.pinBoxTargets, ...this.pinMarkerTargets].forEach((input) => input.removeAttribute('name'));
+        }
+    }
+
+    async saveViews(order) {
+        const body = new FormData(this.viewOrderTarget);
+        order.forEach((ref) => body.append('views[]', ref));
+        try {
+            await fetch(this.viewOrderTarget.action, { method: 'POST', body, headers: { Accept: 'text/html' }, redirect: 'manual' });
+        } finally {
+            this.saved = true;
+            this.formTarget.requestSubmit();
         }
     }
 
@@ -177,7 +209,7 @@ export default class extends Controller {
 
     rows(row) {
         const list = row?.parentElement;
-        return list ? [...list.children].filter((other) => other.matches('[data-column-picker-target="row"], [data-column-picker-target="pinRow"]')) : [];
+        return list ? [...list.children].filter((other) => other.matches('[data-column-picker-target="row"], [data-column-picker-target="pinRow"], [data-column-picker-target="viewRow"]')) : [];
     }
 
     position(row) {

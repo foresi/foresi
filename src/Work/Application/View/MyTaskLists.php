@@ -20,7 +20,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  * My unfinished tasks and the views they ship (spec D12): All, which every list starts
  * with, holds the tasks I am responsible for and those I watch; Assigned to me and
  * Watching are the tabs the list had, each the same tasks as before. The client of the
- * project, the select the list's sheet had, is a field of "+ Filter" (D11). The list
+ * project, the select the list's sheet had, is a field of the filter sheet (D11). The list
  * counts nothing (D9).
  */
 final readonly class MyTaskLists implements ListDefinitionSource

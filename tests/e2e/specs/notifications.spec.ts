@@ -69,7 +69,7 @@ test.describe('the inbox', () => {
   });
 
   test('narrows to mentions or to assignments', async ({ page }) => {
-    // The kind is a field of "+ Filter" (saved views D11); the old address of the select still narrows.
+    // The kind is a field of the filter sheet (saved views D11); the old address of the select still narrows.
     await page.goto('/notifications?filter=mentions');
     await expect(inbox(page).locator('tbody tr td:first-child [data-row-link]')).toHaveText(['Set up the domain']);
     await expect(page.locator('[data-notifications-filter]')).toContainText('Důvod: Zmínky');

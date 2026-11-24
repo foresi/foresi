@@ -684,7 +684,7 @@ final class PartyControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/contacts?q='.str_repeat('a', 300));
 
         self::assertResponseIsSuccessful();
-        self::assertSame(100, \strlen((string) $crawler->filter('[data-filter-search] input[type="search"]')->attr('value')));
+        self::assertSame(100, \strlen((string) $crawler->filter('[data-list-search] input[type="search"]')->attr('value')));
     }
 
     public function testManualRefreshStoresThePublishedAccountsSoViewingNeedsNoRegister(): void

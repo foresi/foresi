@@ -104,16 +104,12 @@ ui:
     discard: Discard
     failed: Something went wrong. Please try again.
   column_picker:
-    button: Display
+    button: List settings
     modified: changed
-    title: Display
-    description: Choose the quick filters under the tabs, the list's columns, their order and the row density.
+    title: List settings
+    description: The views on the tabs, the quick filters under them, the columns and the row density.
     quick: Quick filters
-    quick_hint: 'Shown as chips under the tabs, at most {max}.'
-    quick_add: Add quick filter
-    quick_search: Search fields
-    presets: Presets
-    presets_hint: Fixed one-click filters are the views on the tabs; order and show them in Manage views.
+    quick_hint: 'The checked ones show as buttons under the tabs. Drag to change their order.'
     columns: Columns
     search: Search columns
     no_match: No column matches.
@@ -134,17 +130,16 @@ ui:
     no: 'No'
   tabs:
     modified: unsaved changes
+  list_tools:
+    search: Search
   filter_bar:
     title: Filters
     description: Choose what narrows the list.
     search: Search
-    more: More filters
-    filters: Filters
     apply: Apply
     clear_all: Clear all
     clear_one: 'Clear the filter {label}'
     toggle: Filters
-    toggle_search: Search
   view_filter:
     add: Filter
     add_row: Add filter
@@ -152,6 +147,7 @@ ui:
       custom: Custom…
       by_month: By month
       search: 'Search {field}'
+      contains: '{field} contains…'
       none_found: Nothing found.
     condition: Condition
     value: Value
@@ -341,6 +337,7 @@ catalogue:
   mobile_preview: 390 px preview
   interaction_note: Hover and focus are shown by interacting with the live component; the focus ring is always visible on the keyboard.
   state:
+    list_toolbar: List toolbar
     quick: Quick filters
     quick_only: Quick filters only
     modified: Changed, not saved
@@ -607,39 +604,37 @@ system_mail:
 saved_view:
   save: Save
   save_to_view: Save to view
-  more_views: More views
   save_as: Save as new view
   save_as_submit: Save view
   save_as_description: The list's filters, quick filters, sort and columns become a view of their own.
   reset: Reset
   cancel: Cancel
-  manage: Manage views
-  manage_description: Drag the views into the order you want, then save it. To change a view's filters or columns, open it from its ⋯ menu, change it on the list and press Save.
-  manage_description_member: Owners set the order and the tabs. To change a view's filters or columns, open it from its ⋯ menu, change it on the list and press Save.
-  save_order: Save order
   ordered: The order of the views is saved.
-  hidden: The view is hidden. Show it again in Manage views.
+  hidden: The view is hidden. Show it again in List settings.
   shown: The view shows again.
   all_fixed: always the first tab
   read_only: only its creator or an owner changes it
   row_actions: 'Actions for {name}'
-  open_edit: Open and edit
   open: Open
-  rename: Rename…
+  new: New view
+  duplicate: Duplicate
+  duplicated: The copy of the view is saved.
+  copy_name: '{name} (copy)'
+  in_tabs: 'Show in the tabs: {name}'
+  rename: Rename
   rename_title: Rename view
   rename_submit: Rename
   share: Share with everyone
   make_private: Keep to myself
-  to_more: Move to More views
-  to_tabs: Move to the tabs
+  to_more: Remove from the tabs
+  to_tabs: Show in the tabs
   hide: Hide
   show: Show
   show_named: 'Show {name}'
   move_up: 'Move {name} up'
   move_down: 'Move {name} down'
-  moved: 'The view {label} is now in {place}.'
-  tab_count: '{count} of {max}'
   section:
+    views: Views
     tabs: Tabs
     more: More views
     hidden: Hidden
@@ -658,12 +653,12 @@ saved_view:
     name: Name
     visibility: Who sees it
     visibility_help: A shared view is seen by every owner and member.
-    show_count: Show the count on its tab
+    show_count: Show count in tab
   visibility:
     private: Only me
     shared: Everyone
   error:
     forbidden: Only its creator or an owner changes this view. Save your changes as a new view instead.
     name: A view's name has 1 to 60 characters.
-    primary_full: The list already shows six tabs; move another view to More views first.
+    primary_full: A list shows at most six tabs; take another view off the tabs first.
     invalid: The view could not be saved. Check its filters and try again.

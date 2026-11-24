@@ -30,17 +30,18 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The pinned fields of the view are its quick filters (Shopify Polaris IndexFilters pins filters to
  * the bar, Linear and Notion keep them with the view): each is a chip under the tabs named by its
- * field, "+ Field" while nothing is set on it and "Field: value ✕" once it is. Its dropdown is what
+ * field, "Field ▾" while nothing is set on it and "Field: value ✕" once it is. Its dropdown is what
  * the field declares (QuickPick): its values, one or several at once where it takes "any of"; the
  * periods and the months with records for a date; a search of the records a reference points to;
- * each pick a link to the list with that condition instead of any it had on the field. A field with
- * nothing to list opens the sheet with a row for it (Linear's filter menu).
+ * each pick a link to the list with that condition instead of any it had on the field; a text takes
+ * its words in a small field ("contains"). A number, with nothing to list, opens the sheet with a row
+ * for it (Linear's filter menu).
  *
  * @phpstan-type Reference array{url: string, name: \Closure(string): ?string}
  * @phpstan-type FieldView array{key: string, label: string, type: string, ops: array<string, string>, options: array<int|string, string>, url: ?string, blank: array<string, mixed>}
  * @phpstan-type Chip array{label: string, href: string, removeLabel: string, field: string, pinned: bool}
  * @phpstan-type QuickOption array{label: string, href: string, checked: bool}
- * @phpstan-type QuickLookup array{url: ?string, base: string, param: string, conditions: string, field: string, op: string, single: bool, selected: list<array{id: string, label: string, href: string}>}
+ * @phpstan-type QuickLookup array{url: ?string, base: string, param: string, conditions: string, field: string, op: string, single: bool, value: string, selected: list<array{id: string, label: string, href: string}>}
  * @phpstan-type Quick array{key: string, label: string, pick: string, menu: bool, multi: bool, set: bool, text: string, clearHref: string, groups: list<array{label: ?string, options: list<QuickOption>}>, lookup: QuickLookup|null}
  */
 final readonly class FilterSheet
@@ -125,10 +126,10 @@ final readonly class FilterSheet
             $picked = $this->picked($set);
             $pick = $field->quickPick;
             $url = null === $field->source ? null : ($references[$field->source]['url'] ?? null);
-            if (QuickPick::Lookup === $pick && null === $url) {
+            if ($pick->looksUp() && null === $url) {
                 $pick = QuickPick::Sheet;
             }
-            $multi = QuickPick::Values === $pick && FieldType::Boolean !== $field->type && $field->multiPick() || QuickPick::Lookup === $pick && $field->multiPick();
+            $multi = QuickPick::Values === $pick && FieldType::Boolean !== $field->type && $field->multiPick() || $pick->looksUp() && $field->multiPick();
             // A link to the list with this field picked as given, instead of what it had.
             $with = fn (array $values): string => $href([] === $values ? $others : $others->with($this->pickCondition($field, array_values($values))));
             $option = function (string $label, mixed $value) use ($with, $picked, $multi): array {
@@ -144,26 +145,29 @@ final readonly class FilterSheet
                 QuickPick::Months => $this->dateGroups($option, $months[$key] ?? []),
                 default => [],
             };
+            // A text with nothing to list takes its words in a small field under its chip (Linear, Notion).
+            $typed = QuickPick::Sheet === $pick && FieldType::Text === $field->type;
             $quick[] = [
                 'key' => $key,
                 'label' => $this->label($field),
-                'pick' => $pick->value,
+                'pick' => $typed ? 'text' : $pick->value,
                 // A field with nothing to list opens the sheet with a row for it.
-                'menu' => QuickPick::Sheet !== $pick,
+                'menu' => QuickPick::Sheet !== $pick || $typed,
                 'multi' => $multi,
                 'set' => [] !== $set,
                 'text' => implode(', ', array_map(fn (Condition $condition): string => $this->conditionText($condition, $field, $references), $set)),
                 'clearHref' => $href($others),
                 'groups' => $groups,
-                'lookup' => QuickPick::Lookup === $pick ? [
-                    'url' => $url,
+                'lookup' => $pick->looksUp() || $typed ? [
+                    'url' => $typed ? null : $url,
                     'base' => $href($others),
                     'param' => WorkingFilter::PARAM,
                     'conditions' => json_encode($others->toArray()['conditions'], \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION),
                     'field' => $key,
-                    'op' => $field->pickOperator(),
-                    'single' => !$multi,
-                    'selected' => array_values(array_map(fn (string $id): array => ['id' => $id, 'label' => $this->name($field, $id, $references), 'href' => $with(array_values(array_filter($picked, static fn (mixed $one): bool => $one !== $id)))], array_filter($picked, \is_string(...)))),
+                    'op' => $typed ? 'contains' : $field->pickOperator(),
+                    'single' => $typed || !$multi,
+                    'value' => $typed && 1 === \count($set) && 'contains' === $set[0]->op && \is_string($set[0]->value) ? $set[0]->value : '',
+                    'selected' => $typed ? [] : array_values(array_map(fn (string $id): array => ['id' => $id, 'label' => $this->name($field, $id, $references), 'href' => $with(array_values(array_filter($picked, static fn (mixed $one): bool => $one !== $id)))], array_filter($picked, \is_string(...)))),
                 ] : null,
             ];
         }
@@ -224,7 +228,7 @@ final readonly class FilterSheet
     }
 
     /**
-     * Every field one can pin, those pinned first in their order, for the Display sheet.
+     * Every field one can pin, those pinned first in their order, for the Settings sheet.
      *
      * @param list<string> $pinned
      *

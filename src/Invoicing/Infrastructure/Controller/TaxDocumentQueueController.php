@@ -39,7 +39,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The two lists a tax document waits in, with the controls of every list
- * (docs/design/list-pages.md): their views as tabs, the search, "+ Filter", the
+ * (docs/design/list-pages.md): their views as tabs, the search, the filter sheet, the
  * Columns sheet, Save, Save as new and Reset. The VAT rules work out their rows,
  * so the views filter them in memory (RowConditions); they are few, a list of
  * work with a deadline, soonest first.
@@ -111,7 +111,7 @@ final class TaxDocumentQueueController extends AbstractController
         $searched = TaxDocumentQueues::searched($this->queues->rows($list->key, $today), $text);
         $rows = $this->sorted(TaxDocumentQueues::matching($searched, $list->key, $shown, $today), $sort);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read($list->key, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
@@ -192,8 +192,8 @@ final class TaxDocumentQueueController extends AbstractController
     /**
      * The tabs of the list the queue belongs to, with the queue's tab active while it
      * shows its All (A1): the queue reads as a tab of the advances or of the tax
-     * documents. The views saved on the queue follow the list's other views under
-     * "More views", where the view bar's Save as new puts them.
+     * documents. The views saved on the queue follow it: those its Settings sheet
+     * puts on the tabs as tabs, the others listed there and a tab while open.
      *
      * @param list<ListView>        $views
      * @param array<string, string> $query
@@ -203,11 +203,14 @@ final class TaxDocumentQueueController extends AbstractController
     private function tabs(array $views, ListView $active, array $query, string $route, DocumentKind $kind, bool $modified): array
     {
         $parent = $this->queueTabs->parentOf($kind, $this->actor->userId(), $active->isAll(), $modified && $active->isAll());
+        [$primary] = ListViews::placed($views);
+        $tabs = array_map(static fn (ListView $view): string => $view->key, $primary);
         foreach ($views as $view) {
             if ($view->isAll()) {
                 continue;
             }
-            $parent['moreViews'][] = [
+            // The Settings sheet checks the queue's own tabs as tabs, so they are tabs here too.
+            $parent[\in_array($view->key, $tabs, true) ? 'tabs' : 'moreViews'][] = [
                 'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
                 // A view opens with its own filter and columns: the changed ones belong to the view they were changed on (spec D10).
                 'href' => $this->generateUrl($route, ['view' => $view->key] + array_diff_key($query, ['view' => true, 'sort' => true, WorkingFilter::PARAM => true] + array_flip(WorkingDisplay::KEYS))),
@@ -251,7 +254,7 @@ final class TaxDocumentQueueController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the list, and the list without the changed columns.
+     * The Settings sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

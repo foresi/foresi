@@ -1,27 +1,35 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The tools at the end of a list's tabs, the same three icons in the same order on every list, as
-    Shopify Polaris IndexFilters puts its search, filter and sort icons on the row of view tabs and
-    Linear its display options at the end of its view bar:
-    - Search (`search`), which opens the filter row with its search at the start; only on a list
-      that searches;
-    - Filter (`list-filter`), which opens the list's filter sheet at once, its green dot saying a
-      search or a filter narrows the list (the quick filters stand in the row under the tabs);
-    - Display (`sliders-horizontal`), the sheet of the view's quick filters, columns and density.
+    The tools at the end of a list's tabs (_list_toolbar), the same three in the same order on every
+    list (Shopify Polaris IndexFilters, Linear, Notion, Attio):
+    - the search field, always there, which sends on Enter the hidden form of the list's Ui:FilterBar
+      with what the list keeps; on a phone it is an icon that opens the field over the row;
+    - Filter (`list-filter`), which opens the list's filter sheet in one click, its green dot saying
+      a filter is set;
+    - Settings (`settings`), the sheet of the list's views, quick filters, columns and row density
+      (Ui:ColumnPicker).
     Takes:
-    - toolsFilter: the id of the list's Ui:FilterBar (collapsible), or null for a list without one;
-    - toolsSearch: whether that bar has a search;
-    - toolsColumns: {id, action} of the list's Display sheet (Ui:ColumnPicker), its state from
-      `picker` and its quick filters from `pinnable` (FilterSheet), or null.
+    - toolsFilter: the id of the list's Ui:FilterBar, or null for a list without one;
+    - toolsSearch: the search {name, value, label, placeholder?} that bar sends, or null;
+    - toolsColumns: {id, action} of the list's Settings sheet (Ui:ColumnPicker), its state from
+      `picker`, its quick filters from `pinnable` (FilterSheet) and its views from `manageViews`
+      and `viewBar` (ViewBar), or null.
     The names are the partial's own, so a page's `columns` or `filters` never reach it.
 #}
 {% set filters = toolsFilter ?? null %}
+{% set search = toolsSearch ?? null %}
 {% set columns = toolsColumns ?? null %}
 {% set noJs = '[@media(scripting:none)]:hidden' %}
-<div class="flex shrink-0 items-center gap-1 self-center" data-list-tools>
-    {% if filters and (toolsSearch ?? false) %}
-        <twig:Ui:IconButton icon="search" variant="ghost" size="sm" :label="'ui.filter_bar.toggle_search'|trans"
-            aria-controls="{{ filters }}" aria-expanded="false" class="{{ noJs }}" data-controller="filter-toggle" data-action="filter-toggle#search" data-filter-toggle-mode-value="search" data-search-toggle="" />
+<div class="flex shrink-0 items-center gap-1" data-list-tools>
+    {% if filters and search %}
+        {% set open = (search.value ?? '') != '' %}
+        <div class="contents" data-controller="list-search">
+            <div class="relative w-64 max-sm:hidden max-sm:data-[open]:absolute max-sm:data-[open]:inset-0 max-sm:data-[open]:z-10 max-sm:data-[open]:flex max-sm:data-[open]:w-auto max-sm:data-[open]:items-center max-sm:data-[open]:bg-white" data-list-search data-list-search-target="field"{% if open %} data-open{% endif %}>
+                <span class="pointer-events-none absolute inset-y-0 left-0 grid w-control-sm place-items-center text-muted">{{ ux_icon('lucide:search', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
+                <input type="search" name="{{ search.name }}" value="{{ search.value ?? '' }}" form="{{ filters }}-search" aria-label="{{ search.label }}" placeholder="{{ search.placeholder ?? 'ui.list_tools.search'|trans }}" maxlength="{{ search.maxlength ?? 100 }}" autocomplete="off" class="h-control-sm w-full rounded-control border border-control-line bg-white pl-9 pr-3 text-small text-ink placeholder:text-muted transition-colors {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-list-search-target="input" data-action="keydown->list-search#keydown blur->list-search#blur">
+            </div>
+            <twig:Ui:IconButton icon="search" variant="ghost" size="sm" :label="'ui.list_tools.search'|trans" aria-expanded="{{ open ? 'true' : 'false' }}" class="sm:hidden {{ noJs }}" data-list-search-target="button" data-action="list-search#open" data-list-search-open="" />
+        </div>
     {% endif %}
     {% if filters %}
         <span class="relative inline-flex {{ noJs }}">
@@ -31,6 +39,6 @@
         </span>
     {% endif %}
     {% if columns %}
-        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], density: picker.density ?? null, resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], presets: manageViews is defined ? (tabs ?? [])|slice(1)|map(t => t.label) : []}) }}
+        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], density: picker.density ?? null, resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], manage: manageViews ?? null, viewBar: viewBar ?? null}) }}
     {% endif %}
 </div>

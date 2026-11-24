@@ -56,7 +56,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * bills, on saved views (spec D3, D7): All, the drafts to complete, the recorded
  * ones and the trash ship as views, with the person's own beside them. The month
  * is a chip on the bar; the supplier, the kind and the treatment are
- * conditions of "+ Filter" (D11). Found by the supplier's name or either number.
+ * conditions of the filter sheet (D11). Found by the supplier's name or either number.
  * Every row opens the document.
  *
  * Uploading and a new document start in the page header and open a dialog,
@@ -119,7 +119,7 @@ final class ReceivedDocumentListController extends AbstractController
             WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
         $hasFirm = $this->list->hasFirm();
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, PurchasingNavigation::ROUTE, '' === $filter->text ? [] : ['q' => $filter->text]);
@@ -127,6 +127,7 @@ final class ReceivedDocumentListController extends AbstractController
         return $this->render('@Purchasing/index.html.twig', [
             'page' => $page,
             'filter' => $filter,
+            'text' => $filter->text,
             'noFirm' => !$hasFirm,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
@@ -361,7 +362,7 @@ final class ReceivedDocumentListController extends AbstractController
     }
 
     /**
-     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * The tabs of the list and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, with the count of those that show one; the other views in the menu.
      *
      * @param list<ListView>        $views

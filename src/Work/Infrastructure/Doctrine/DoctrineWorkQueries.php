@@ -135,7 +135,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $this->projectRows($projects, $scope);
     }
 
-    public function projectIndex(ViewFilter $view, bool $descending = false): array
+    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = ''): array
     {
         $scope = $this->visibility->scope();
         $seen = ScopedDql::projects($scope, 'p');
@@ -147,8 +147,13 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         // The archived projects only when the view asks for them, as the Active tab showed.
         $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
         $direction = $descending ? 'DESC' : 'ASC';
+        $text = trim(mb_substr($text, 0, self::MAX_TEXT));
+        $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!')";
         $query = $seen->apply($this->entityManager
-            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
+        if ('' !== $text) {
+            $query->setParameter('text', '%'.$this->like(mb_strtolower($text)).'%');
+        }
         foreach ($parameters as $name => [$value, $type]) {
             $query->setParameter($name, $value, $type);
         }
@@ -316,7 +321,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $this->sorted($this->flat($this->openTasks(self::watched('w'), $membership)));
     }
 
-    public function myTaskList(ViewFilter $filter): array
+    public function myTaskList(ViewFilter $filter, string $text = ''): array
     {
         $membership = $this->me();
         if (!$membership instanceof Membership) {
@@ -325,6 +330,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         // Each condition's subquery has an alias of its own.
         $derived = static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, [MyTaskLists::RESPONSIBLE => self::RESPONSIBLE, MyTaskLists::WATCHER => self::watched('w'.$name)]), []];
         [$where, $parameters] = new DqlConditions(MyTaskLists::list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter, $this->clock->today(...), 'view');
+
+        $text = trim(mb_substr($text, 0, self::MAX_TEXT));
+        if ('' !== $text) {
+            $where .= " AND (LOWER(t.title) LIKE :text ESCAPE '!' OR LOWER(p.name) LIKE :text ESCAPE '!')";
+            $parameters['text'] = ['%'.$this->like(mb_strtolower($text)).'%', null];
+        }
 
         return $this->sorted($this->flat($this->openTasks('('.self::RESPONSIBLE.' OR '.self::watched('w').') AND '.$where, $membership, $parameters)));
     }
@@ -992,8 +1003,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $today = $this->clock->today()->format('Y-m-d');
             $week = $this->clock->today()->modify('+7 days')->format('Y-m-d');
         }
+        $text = mb_strtolower(trim(mb_substr($filter->text, 0, self::MAX_TEXT)));
 
-        return array_values(array_filter($rows, static function (TaskRow $row) use ($filter, $today, $week): bool {
+        return array_values(array_filter($rows, static function (TaskRow $row) use ($filter, $today, $week, $text): bool {
             if (null !== $filter->responsibleId && $row->responsibleId !== $filter->responsibleId) {
                 return false;
             }
@@ -1006,6 +1018,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             if ($filter->conditions instanceof TaskConditions && !$filter->conditions->matches($row)) {
                 return false;
             }
+            if ('' !== $text && !self::titled($row, $text)) {
+                return false;
+            }
             $due = $row->dueOn?->format('Y-m-d');
 
             return match ($filter->due) {
@@ -1016,6 +1031,18 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 DueBucket::None => null === $due,
             };
         }));
+    }
+
+    /**
+     * Whether the title of the task, or of one of its subtasks, holds the text (lower case).
+     */
+    private static function titled(TaskRow $row, string $text): bool
+    {
+        if (str_contains(mb_strtolower($row->title), $text)) {
+            return true;
+        }
+
+        return array_any($row->subtasks, fn (TaskRow $subtask): bool => self::titled($subtask, $text));
     }
 
     /**

@@ -22,9 +22,10 @@ interface TimeQueries
 
     /**
      * The week of the day for the person, the signed-in one by default. Only an
-     * owner reads the week of someone else; null otherwise, and for no one.
+     * owner reads the week of someone else; null otherwise, and for no one. A text narrows
+     * its entries to those whose note, task, project or client holds it, whatever its case.
      */
-    public function week(\DateTimeImmutable $day, ?string $membershipId = null): ?TimeWeek;
+    public function week(\DateTimeImmutable $day, ?string $membershipId = null, string $text = ''): ?TimeWeek;
 
     /**
      * The timer the signed-in person runs, if any, whatever they see now.

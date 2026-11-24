@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The row on top of every list, the same on each: its view tabs on the left and, on the right of the
+    same row with one rail under both, its tools (_list_tools): the search field, the Filter icon and
+    the Settings icon (Shopify Polaris IndexFilters puts search and filter on the row of view tabs,
+    Linear its display options at the end of its view bar). The views past the tabs are in the
+    Settings sheet, so the row has no menu of them; one of those opened shows as a tab while it is.
+    Takes:
+    - toolbarTabs: the tabs, as Ui:Tabs takes them, or none on a list without views;
+    - toolbarMore: the views past the tabs, of which only the one shown is a tab;
+    - toolbarLabel: the accessible name of the tabs;
+    - toolbarTabsAttributes: more attributes of the tabs, such as a data- hook;
+    and what _list_tools takes.
+#}
+{% set toolbarItems = (toolbarTabs ?? [])|merge((toolbarMore ?? [])|filter(item => item.active ?? false)) %}
+<div class="relative flex min-w-0 items-center gap-x-4 inset-shadow-rail" data-list-toolbar>
+    {% if toolbarItems is not empty %}
+        {{ component('Ui:Tabs', {items: toolbarItems, label: toolbarLabel ?? null, rail: false, class: 'min-w-0 flex-1'}|merge(toolbarTabsAttributes ?? {})) }}
+    {% else %}
+        <div class="min-h-control flex-1 max-shell:min-h-touch" aria-hidden="true"></div>
+    {% endif %}
+    {{ include('@Ui/components/_list_tools.html.twig') }}
+</div>

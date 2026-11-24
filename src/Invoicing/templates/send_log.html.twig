@@ -12,15 +12,11 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
-            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'invoice.list.more_views'|trans" :label="'invoice.sends.views'|trans" class="min-w-0 flex-1">
-                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-                </twig:Ui:Tabs>
-                {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'send-filters', toolsSearch: false, toolsColumns: {id: 'send-columns', action: path('app_invoice_sends')}}) }}
-            </div>
-            {# The state and the type of a send are conditions of "+ Filter" (saved views D11). #}
-            <twig:Ui:FilterBar id="send-filters" :collapsible="true" :action="path('app_invoice_sends')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+            {# The tabs, then the search field and the Filter and Settings icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
+            {% set search = {name: 'q', value: text ?? '', label: 'invoice.sends.search_label'|trans} %}
+            {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'invoice.sends.views'|trans, toolsFilter: 'send-filters', toolsSearch: search, toolsColumns: {id: 'send-columns', action: path('app_invoice_sends')}}) }}
+            {# The state and the type of a send are conditions of the filter sheet (saved views D11). #}
+            <twig:Ui:FilterBar id="send-filters" :search="search" :action="path('app_invoice_sends')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
                 :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
             </twig:Ui:FilterBar>
 

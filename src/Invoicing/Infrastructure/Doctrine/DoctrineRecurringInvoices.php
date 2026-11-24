@@ -23,6 +23,7 @@ use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
+use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
@@ -168,17 +169,26 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
             $conditions[] = RecurringFailing::dql('r');
             $parameters += self::failingParameters();
         }
+        // The text narrows the list and its total, not the counts of the tabs, which tell what each view holds.
+        $found = '1 = 1';
+        $textParameters = [];
+        if ('' !== $filter->text) {
+            $found = "(LOWER(r.name) LIKE :text ESCAPE '!' OR LOWER(r.description) LIKE :text ESCAPE '!' OR EXISTS (SELECT 1 FROM ".Party::class." c WHERE c = r.customer AND LOWER(c.displayName) LIKE :text ESCAPE '!'))";
+            $textParameters['text'] = ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($filter->text)).'%', null];
+        }
         $where = implode(' AND ', $conditions);
         $today = $this->today();
 
         // One query counts the views the list shows a count for, and the one it lists (spec D9).
         $sums = [];
         $counting = $parameters;
-        foreach ([...array_values($filter->counted), $filter->view ?? new ViewFilter()] as $index => $view) {
+        $views = [...array_values($filter->counted), $filter->view ?? new ViewFilter()];
+        foreach ($views as $index => $view) {
             [$condition, $bound] = $this->inView($view, 'c'.$index, $today);
-            $sums[] = 'SUM(CASE WHEN '.$condition.' THEN 1 ELSE 0 END)';
+            $sums[] = 'SUM(CASE WHEN '.$condition.($index === \count($views) - 1 ? ' AND '.$found : '').' THEN 1 ELSE 0 END)';
             $counting += $bound;
         }
+        $counting += $textParameters;
         /** @var list<numeric-string|int|null> $results */
         $results = array_values((array) $this->bind($this->em->createQuery('SELECT '.implode(', ', $sums).' FROM '.RecurringInvoice::class.' r WHERE '.$where), $counting)->getSingleResult(Query::HYDRATE_ARRAY));
         $values = array_map(static fn (int|string|null $value): int => (int) $value, $results);
@@ -192,9 +202,9 @@ final readonly class DoctrineRecurringInvoices implements RecurringInvoices
         $order = RecurringFilter::NAME === ltrim($filter->sort, '-') ? 'LOWER(r.name)'.($descending ? ' DESC' : '').', r.nextOccurrence' : 'without_next'.($descending ? ' DESC' : '').', r.nextOccurrence'.($descending ? ' DESC' : '');
         $list = $this->em->createQuery(
             'SELECT r, CASE WHEN r.nextOccurrence IS NULL THEN 1 ELSE 0 END AS HIDDEN without_next, CASE WHEN '.RecurringFailing::dql('r', 'now').' THEN 1 ELSE 0 END AS failing_now'
-            .' FROM '.RecurringInvoice::class.' r WHERE '.$where.' AND '.$condition.' ORDER BY '.$order.', r.id',
+            .' FROM '.RecurringInvoice::class.' r WHERE '.$where.' AND '.$found.' AND '.$condition.' ORDER BY '.$order.', r.id',
         );
-        $this->bind($list, $parameters + $bound + self::failingParameters());
+        $this->bind($list, $parameters + $textParameters + $bound + self::failingParameters());
         /** @var list<array{0: RecurringInvoice, failing_now: int|string}> $found */
         $found = $list->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE)->getResult();
         $templates = [];

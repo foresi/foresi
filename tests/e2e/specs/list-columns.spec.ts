@@ -10,12 +10,12 @@ test.use({ storageState: OWNER_STATE });
 test.describe('list columns', () => {
   test('hides, moves and compacts the columns with the keyboard, and resets them', async ({ page }) => {
     await page.goto('/contacts');
-    const open = page.getByRole('button', { name: 'Zobrazení' });
+    const open = page.getByRole('button', { name: /^Nastavení seznamu/ });
     await open.focus();
     await page.keyboard.press('Enter');
-    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
+    const sheet = page.getByRole('dialog', { name: 'Nastavení seznamu' });
     await expect(sheet).toBeVisible();
-    // The Display sheet also lists the quick filters; the columns are their own group.
+    // The Settings sheet also lists the quick filters; the columns are their own group.
     const columns = sheet.getByRole('group', { name: 'Sloupce' });
 
     // The column that names the row is always shown and cannot be unchecked.
@@ -42,16 +42,16 @@ test.describe('list columns', () => {
     await expect(page).toHaveURL(/sort=kind.*cols=/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
 
-    await page.getByRole('button', { name: /Zobrazení/ }).click();
-    await page.getByRole('dialog', { name: 'Zobrazení' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await page.getByRole('button', { name: /^Nastavení seznamu/ }).click();
+    await page.getByRole('dialog', { name: 'Nastavení seznamu' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/cols=/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
   });
 
   test('adds a column from the attributes the list does not show', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('button', { name: 'Zobrazení' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
+    await page.getByRole('button', { name: /^Nastavení seznamu/ }).click();
+    const sheet = page.getByRole('dialog', { name: 'Nastavení seznamu' });
     const add = sheet.getByRole('group', { name: 'Přidat sloupec' });
 
     // The search goes over what is shown and what can be added.
@@ -67,8 +67,8 @@ test.describe('list columns', () => {
     // any in the address, it still shows the added one, until Reset forgets them.
     await page.goto('/contacts');
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav', 'Telefon']);
-    await page.getByRole('button', { name: /Zobrazení/ }).click();
-    await page.getByRole('dialog', { name: 'Zobrazení' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await page.getByRole('button', { name: /^Nastavení seznamu/ }).click();
+    await page.getByRole('dialog', { name: 'Nastavení seznamu' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/cols=/);
     await page.goto('/contacts');
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'Role', 'IČO', 'DIČ', 'E-mail', 'Stav']);
@@ -76,12 +76,14 @@ test.describe('list columns', () => {
 
   test('moves a column by dragging its handle', async ({ page }) => {
     await page.goto('/contacts');
-    await page.getByRole('button', { name: 'Zobrazení' }).click();
-    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
-    // The Display sheet also lists the quick filters (Druh is one); the columns are their own group.
+    await page.getByRole('button', { name: /^Nastavení seznamu/ }).click();
+    const sheet = page.getByRole('dialog', { name: 'Nastavení seznamu' });
+    // The Settings sheet also lists the quick filters (Druh is one); the columns are their own group.
     const columns = sheet.getByRole('group', { name: 'Sloupce' });
     const handle = columns.locator('[data-key="email"] [data-column-picker-handle]');
     const target = columns.locator('[data-key="kind"]');
+    // The columns stand under the views and the quick filters in the sheet: bring them into view.
+    await target.scrollIntoViewIfNeeded();
     const from = await handle.boundingBox();
     const to = await target.boundingBox();
     if (from === null || to === null) {

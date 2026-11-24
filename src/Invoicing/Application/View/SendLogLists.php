@@ -23,7 +23,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  * The send log and the views it ships: the tabs it had, each the same sends as
  * before (spec D12), All first. The log counted none, so no view shows a count (D9).
  * The type of a send, an invoice or a reminder, was a select on the bar and is a
- * field of "+ Filter" now (D11). The document's number, its customer and when a send was
+ * field of the filter sheet now (D11). The document's number, its customer and when a send was
  * made are filterable attributes of the log's data source (DS1).
  */
 final class SendLogLists implements ListDefinitionSource

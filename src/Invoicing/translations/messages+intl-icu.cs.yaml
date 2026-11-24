@@ -193,6 +193,7 @@ invoice:
       stuck: '{count, plural, one {E-mail čeká} few {# e-maily čekají} other {# e-mailů čeká}} na odeslání déle než {minutes} minut. Zkontrolujte, že na serveru běží zpracování fronty.'
       retrying: '{count, plural, one {E-mail se zkouší odeslat znovu: poštovní server ho zatím nepřevzal.} few {# e-maily se zkoušejí odeslat znovu: poštovní server je zatím nepřevzal.} other {# e-mailů se zkouší odeslat znovu: poštovní server je zatím nepřevzal.}}'
       link: Zobrazit
+    search_label: Hledat v odeslaných e-mailech
   send:
     title: 'Odeslat fakturu {number}'
     card: E-mail
@@ -1138,6 +1139,7 @@ recurring:
       ended: Nic není ukončené
       failing: Všechno se vystavuje bez potíží
       trash: Koš je prázdný
+    search_label: Hledat v pravidelných fakturách
   pause:
     title: Pozastavit pravidelnou fakturu
     text: 'Faktura plánovaná na {date} ani další se nevystaví, dokud pravidelnou fakturu neobnovíte.'

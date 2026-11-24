@@ -4,8 +4,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Ui:FilterBar: "+ Filter", "More filters" and, on a phone, "Filters (n)" open
- * the bar's side sheet, which sends its fields with one Apply. The chips are
+ * Ui:FilterBar: the Filter icon opens the bar's side sheet, which sends its fields with one Apply. The chips are
  * menus of links and need nothing more; a quick filter with no values to pick
  * from opens the sheet with a row for its field.
  *

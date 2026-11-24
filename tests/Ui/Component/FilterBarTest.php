@@ -81,27 +81,37 @@ final class FilterBarTest extends KernelTestCase
         return $component;
     }
 
-    public function testTheSearchAppliesOnEnterKeepingTheTabWithItsButtonOnlyWithoutScript(): void
+    public function testTheSearchFieldOnTheTabsSendsAHiddenFormThatKeepsTheList(): void
     {
         $form = $this->render()->filter('form[data-filter-search]');
 
+        self::assertSame('list-filters-search', $form->attr('id'), 'The search field of _list_tools names it by its form attribute.');
         self::assertSame('get', $form->attr('method'));
         self::assertSame('/invoices', $form->attr('action'));
+        self::assertNotNull($form->attr('hidden'));
         self::assertSame('unpaid', $form->filter('input[type=hidden][name=tab]')->attr('value'));
         self::assertCount(0, $form->filter('input[name=sort]'));
-        self::assertCount(1, $form->filter('input[type=search][name=q]'));
-        self::assertCount(1, $form->filter('button[type=submit]'));
-        self::assertCount(1, $form->filter('noscript button[type=submit]'), 'The search applies on Enter; its button is inside <noscript>.');
+        self::assertCount(0, $form->filter('input[type=search]'), 'The field itself stands on the row of the tabs.');
     }
 
-    public function testAnEmptyPinnedChipIsADashedPlusMenuOfLinks(): void
+    public function testTheSearchFormIsThereWithoutTheRow(): void
+    {
+        $crawler = $this->render(['empty' => true]);
+
+        self::assertCount(0, $crawler->filter('[data-filter-bar]'));
+        self::assertCount(1, $crawler->filter('form[data-filter-search]'));
+    }
+
+    public function testAnEmptyPinnedChipIsASecondaryButtonWithAMenuOfLinks(): void
     {
         $chip = $this->render()->filter('[data-filter-chip=firm]');
 
         self::assertCount(1, $chip);
-        $trigger = $chip->filter('button[aria-haspopup=menu]');
-        self::assertStringContainsString('border-dashed', (string) $trigger->attr('class'));
-        self::assertStringContainsString('Firm', $trigger->text());
+        $trigger = $chip->filter('summary');
+        self::assertStringContainsString('border-control-line', (string) $trigger->attr('class'));
+        self::assertStringNotContainsString('border-dashed', (string) $trigger->attr('class'));
+        self::assertSame('Firm', trim($trigger->text()));
+        self::assertCount(1, $trigger->filter('svg'), 'A chevron, no plus.');
         $links = $chip->filter('[role=menu] a[role=menuitemradio]');
         self::assertCount(3, $links);
         self::assertSame('/invoices?tab=unpaid&firm=f1', $links->eq(1)->attr('href'));
@@ -118,10 +128,10 @@ final class FilterBarTest extends KernelTestCase
 
         $chip = $crawler->filter('[data-filter-chips] [data-filter-chip=firm][data-set]');
         self::assertStringContainsString('bg-green-tint', (string) $chip->attr('class'));
-        self::assertStringContainsString('Firm: Example s.r.o.', $chip->filter('button')->text());
+        self::assertStringContainsString('Firm: Example s.r.o.', $chip->filter('summary')->text());
         self::assertSame('/invoices?tab=unpaid&q=acme&kind=receipt', $chip->filter('a[data-filter-clear]')->attr('href'));
         self::assertCount(1, $crawler->filter('[data-filter-chips] [data-filter-chip=kind][data-set]'), 'A filter set from the sheet shows as a chip too.');
-        self::assertSame('/invoices?tab=unpaid', $crawler->filter('[data-filter-row-actions] a[data-filter-clear-all]')->attr('href'));
+        self::assertSame('/invoices?tab=unpaid', $crawler->filter('[data-filter-chips] a[data-filter-clear-all]')->attr('href'), 'Clear all clears the search too.');
         self::assertSame('f1', $crawler->filter('form[data-filter-search] input[type=hidden][name=firm]')->attr('value'), 'The search keeps the filters.');
     }
 
@@ -133,7 +143,7 @@ final class FilterBarTest extends KernelTestCase
             'builder' => ['fields' => [], 'rows' => [], 'kept' => [], 'rules' => [], 'param' => 'f'],
         ]);
 
-        self::assertSame('/invoices?tab=unpaid', $crawler->filter('[data-filter-row-actions] a[data-filter-clear-all]')->attr('href'));
+        self::assertSame('/invoices?tab=unpaid', $crawler->filter('[data-filter-chips] a[data-filter-clear-all]')->attr('href'));
         self::assertSame('/invoices?tab=unpaid', $crawler->filter('a[data-filter-sheet-clear]')->attr('href'));
     }
 
@@ -142,38 +152,33 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(0, $this->render()->filter('a[data-filter-clear-all]'));
     }
 
-    public function testMoreFiltersOpensTheRestInTheNarrowSheetWithOneApply(): void
+    public function testTheSheetHoldsEveryFilterWithOneApplyAndTheRowNoFilterButton(): void
     {
         $crawler = $this->render();
 
-        $more = $crawler->filter('[data-filter-more]');
-        self::assertSame('filter-bar#open', $more->attr('data-action'));
-        self::assertSame('list-filters-sheet', $more->attr('aria-controls'));
+        self::assertCount(0, $crawler->filter('[data-filter-more]'), 'The filter icon of the tabs opens the sheet; the row has no "+ Filter".');
         $sheet = $crawler->filter('dialog#list-filters-sheet');
         self::assertStringContainsString('w-[400px]', (string) $sheet->attr('class'));
         self::assertSame('#list-filters-sheet', $crawler->filter('[data-filter-bar]')->attr('data-filter-bar-dialog-outlet'));
         $form = $sheet->filter('form[data-filter-sheet-form]');
         self::assertCount(1, $form->filter('select[name=kind]'));
-        self::assertCount(1, $form->filter('select[name=firm]'), 'A pinned filter has its field in the sheet too: the filter icon opens it at once.');
-        self::assertStringNotContainsString('sm:hidden', (string) $form->filter('select[name=firm]')->closest('div.min-w-0')?->attr('class'));
+        self::assertCount(1, $form->filter('select[name=firm]'), 'A pinned filter has its field in the sheet too.');
         self::assertSame('list-filters-sheet-form', $sheet->filter('[data-filter-apply]')->attr('form'));
         self::assertSame('list-filters-kind-field', $form->filter('select[name=kind]')->attr('id'));
     }
 
-    public function testAPhoneHasOneFiltersButtonWithTheCount(): void
+    public function testAPhoneShowsTheSameChips(): void
     {
         $crawler = $this->render(['filters' => [
             ['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => 'f2'],
         ]]);
 
-        $open = $crawler->filter('[data-filter-open]');
-        self::assertStringContainsString('sm:hidden', (string) $open->attr('class'));
-        self::assertStringContainsString('(1)', $open->text());
-        self::assertStringContainsString('max-sm:hidden', (string) $crawler->filter('[data-filter-chips]')->attr('class'));
-        self::assertStringContainsString('Firm: Sample a.s.', $crawler->filter('[data-filter-chips-phone]')->text());
+        self::assertCount(0, $crawler->filter('[data-filter-open]'));
+        self::assertStringNotContainsString('max-sm:hidden', (string) $crawler->filter('[data-filter-chips]')->attr('class'));
+        self::assertStringContainsString('Firm: Sample a.s.', $crawler->filter('[data-filter-chips] [data-filter-chip=firm]')->text());
     }
 
-    public function testTheConditionsOfTheBuilderAreChipsAndCountOnThePhone(): void
+    public function testTheConditionsOfTheBuilderAreChipsWithTheirClearLinks(): void
     {
         $crawler = $this->render([
             'filters' => [['name' => 'firm', 'label' => 'Firm', 'options' => self::FIRMS, 'value' => 'f2']],
@@ -183,7 +188,7 @@ final class FilterBarTest extends KernelTestCase
             ],
         ]);
 
-        self::assertStringContainsString('(3)', $crawler->filter('[data-filter-open]')->text());
+        self::assertNotNull($crawler->filter('[data-filter-bar]')->attr('data-filters-set'), 'The filter icon shows its dot.');
         self::assertSame(['/invoices?f=a', '/invoices?f=b'], $crawler->filter('[data-filter-chips] [data-filter-condition-remove]')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
     }
 
@@ -194,7 +199,7 @@ final class FilterBarTest extends KernelTestCase
         foreach (['name="firm"', 'name="month"', 'name="kind"', 'type="submit"'] as $expected) {
             self::assertStringContainsString($expected, $noscript);
         }
-        self::assertStringContainsString('[@media(scripting:none)]:hidden', (string) $this->render()->filter('[data-filter-chips]')->attr('class'));
+        self::assertStringContainsString('[@media(scripting:none)]:hidden', (string) $this->render()->filter('[data-filter-chips] > span')->attr('class'));
     }
 
     public function testNoBarOnAnEmptyListThatNothingNarrows(): void
@@ -203,30 +208,30 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(1, $this->render(['empty' => true, 'search' => ['name' => 'q', 'value' => 'x', 'label' => 'Search']])->filter('[data-filter-bar]'));
     }
 
-    public function testACollapsibleBarIsFoldedUntilSomethingNarrowsTheList(): void
+    public function testTheRowIsFoldedUntilItHasSomethingToShow(): void
     {
         // Folded only with script: without it the bar stays open (Shopify Polaris IndexFilters).
-        $folded = $this->render(['collapsible' => true, 'pinned' => []])->filter('[data-filter-bar]');
+        $folded = $this->render(['pinned' => []])->filter('[data-filter-bar]');
         self::assertNotNull($folded->attr('data-collapsed'));
         self::assertNull($folded->attr('data-filtered'));
         self::assertStringContainsString('[@media(scripting:enabled)]:data-[collapsed]:hidden', (string) $folded->attr('class'));
 
         self::assertNull($folded->attr('data-row'));
 
-        $searched = $this->render(['collapsible' => true, 'pinned' => [], 'search' => ['name' => 'q', 'value' => 'x', 'label' => 'Search']])->filter('[data-filter-bar]');
-        self::assertNull($searched->attr('data-collapsed'));
+        $searched = $this->render(['pinned' => [], 'search' => ['name' => 'q', 'value' => 'x', 'label' => 'Search']])->filter('[data-filter-bar]');
+        self::assertNull($searched->attr('data-collapsed'), 'A search shows the row for its "Clear all".');
         self::assertNotNull($searched->attr('data-filtered'));
+        self::assertNull($searched->attr('data-filters-set'), 'A search alone sets no filter.');
 
-        $filtered = $this->render(['collapsible' => true, 'pinned' => [], 'conditions' => [['label' => 'Due: before today', 'href' => '/invoices', 'removeLabel' => 'Remove']]])->filter('[data-filter-bar]');
+        $filtered = $this->render(['pinned' => [], 'conditions' => [['label' => 'Due: before today', 'href' => '/invoices', 'removeLabel' => 'Remove']]])->filter('[data-filter-bar]');
         self::assertNull($filtered->attr('data-collapsed'));
 
-        self::assertNull($this->render()->filter('[data-filter-bar]')->attr('data-collapsed'));
-        self::assertNull($this->render(['collapsible' => true])->filter('[data-filter-bar]')->attr('data-collapsed'), 'Pinned chips keep the row open.');
+        self::assertNull($this->render()->filter('[data-filter-bar]')->attr('data-collapsed'), 'Pinned chips keep the row open.');
     }
 
     public function testTheViewsQuickFiltersOpenTheRowUnderTheTabs(): void
     {
-        $bar = $this->render(['collapsible' => true, 'pinned' => [], 'quick' => [$this->quick()]])->filter('[data-filter-bar]');
+        $bar = $this->render(['pinned' => [], 'quick' => [$this->quick()]])->filter('[data-filter-bar]');
 
         self::assertNotNull($bar->attr('data-row'));
         self::assertNull($bar->attr('data-collapsed'));
@@ -234,17 +239,32 @@ final class FilterBarTest extends KernelTestCase
         self::assertCount(0, $bar->filter('[data-filter-row-actions]'));
     }
 
-    public function testAQuickFilterOfValuesIsAMenuOfLinks(): void
+    public function testAQuickFilterOfValuesIsAPanelOfCheckboxesThatApplyAtOnce(): void
     {
         $crawler = $this->render(['pinned' => [], 'quick' => [$this->quick()]]);
 
         $chip = $crawler->filter('[data-filter-chips] [data-quick-filter=payment]');
         self::assertCount(1, $chip);
         self::assertNull($chip->attr('data-set'));
-        self::assertStringContainsString('Payment', $chip->text());
-        $links = $crawler->filter('[data-filter-chips] [role=menu] a');
-        self::assertSame(['/invoices?f=paid', '/invoices?f=unpaid'], $links->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        self::assertSame('Payment', trim($chip->filter('summary')->text()));
+        $boxes = $chip->filter('[role=group] input[type=checkbox]');
+        self::assertSame(['/invoices?f=paid', '/invoices?f=unpaid'], $boxes->each(static fn (Crawler $box): string => (string) $box->attr('data-href')));
+        self::assertSame('change->quick-filter#go', $boxes->attr('data-action'));
         self::assertCount(0, $crawler->filter('[data-filter-chips] [data-action="filter-bar#pick"]'), 'Only a date offers a custom range.');
+    }
+
+    public function testAQuickTextTakesItsWordsInASmallField(): void
+    {
+        $crawler = $this->render(['pinned' => [], 'quick' => [$this->quick([
+            'key' => 'title', 'label' => 'Title', 'pick' => 'text', 'groups' => [], 'multi' => false,
+            'lookup' => ['url' => null, 'base' => '/invoices', 'param' => 'f', 'conditions' => '[]', 'field' => 'title', 'op' => 'contains', 'single' => true, 'value' => 'web', 'selected' => []],
+        ])]]);
+
+        $details = $crawler->filter('[data-quick-filter=title] details[data-controller=quick-filter]');
+        self::assertSame('contains', $details->attr('data-quick-filter-op-value'));
+        $input = $details->filter('input[type=text][data-quick-filter-target=input]');
+        self::assertSame('web', $input->attr('value'));
+        self::assertSame('keydown->quick-filter#type', $input->attr('data-action'));
     }
 
     public function testASetQuickFilterShowsItsValueWithAClearLink(): void
@@ -283,16 +303,19 @@ final class FilterBarTest extends KernelTestCase
                 'selected' => [['id' => 'c1', 'label' => 'Example s.r.o.', 'href' => '/invoices?f=none']]],
         ])]]);
 
-        $lookup = $crawler->filter('[data-filter-chips] details[data-controller=quick-lookup]');
-        self::assertSame('client', $lookup->attr('data-quick-filter'));
-        self::assertNotNull($lookup->attr('data-set'));
-        self::assertSame('/contacts/pick', $lookup->attr('data-quick-lookup-url-value'));
-        self::assertSame('is_any_of', $lookup->attr('data-quick-lookup-op-value'));
-        self::assertSame('false', $lookup->attr('data-quick-lookup-single-value'));
-        self::assertSame('["c1"]', $lookup->attr('data-quick-lookup-selected-value'));
+        $chip = $crawler->filter('[data-filter-chips] [data-quick-filter=client]');
+        self::assertNotNull($chip->attr('data-set'));
+        $lookup = $chip->filter('details[data-controller=quick-filter]');
+        self::assertSame('/contacts/pick', $lookup->attr('data-quick-filter-url-value'));
+        self::assertSame('is_any_of', $lookup->attr('data-quick-filter-op-value'));
+        self::assertSame('false', $lookup->attr('data-quick-filter-single-value'));
+        self::assertSame('["c1"]', $lookup->attr('data-quick-filter-selected-value'));
         self::assertStringContainsString('Client: Example s.r.o.', $lookup->filter('summary')->text());
-        self::assertSame('/invoices?f=none', $lookup->filter('[data-quick-lookup-selected] a')->attr('href'), 'A picked record is unpicked by its link.');
-        self::assertCount(1, $lookup->filter('[data-quick-lookup-target=input]'));
+        $picked = $lookup->filter('[data-quick-filter-selected] input[type=checkbox]');
+        self::assertSame('/invoices?f=none', $picked->attr('data-href'), 'A picked record is unpicked by its checkbox.');
+        self::assertNotNull($picked->attr('checked'));
+        self::assertCount(1, $lookup->filter('input[type=search][data-quick-filter-target=input]'));
+        self::assertCount(1, $lookup->filter('[data-quick-filter-target=results]'));
         self::assertSame('/invoices?f=none', $crawler->filter('[data-filter-chips] a[data-filter-clear]')->attr('href'));
     }
 
@@ -303,18 +326,10 @@ final class FilterBarTest extends KernelTestCase
         $this->render(['quick' => [$this->quick(['key' => 'a']), $this->quick(['key' => 'b']), $this->quick(['key' => 'c'])]]);
     }
 
-    public function testTheSearchWaitsForItsIconUntilItHoldsAText(): void
-    {
-        self::assertNotNull($this->render(['collapsible' => true])->filter('form[data-filter-search]')->attr('data-folded'));
-        self::assertNull($this->render(['collapsible' => true, 'search' => ['name' => 'q', 'value' => 'acme', 'label' => 'Search']])->filter('form[data-filter-search]')->attr('data-folded'));
-        self::assertNull($this->render()->filter('form[data-filter-search]')->attr('data-folded'), 'A bar without the tabs\' icons shows its search.');
-        self::assertStringContainsString('[@media(scripting:enabled)]:data-[folded]:hidden', (string) $this->render(['collapsible' => true])->filter('form[data-filter-search]')->attr('class'));
-    }
-
     public function testTheRowEndsWithTheViewsSaveActionsWhileItHasUnsavedChanges(): void
     {
         $viewBar = ['modified' => true, 'canSave' => false, 'resetHref' => '/invoices?view=v1'];
-        $bar = $this->render(['collapsible' => true, 'pinned' => [], 'viewBar' => $viewBar])->filter('[data-filter-bar]');
+        $bar = $this->render(['pinned' => [], 'viewBar' => $viewBar])->filter('[data-filter-bar]');
 
         self::assertNull($bar->attr('data-collapsed'), 'Unsaved changes keep the row open.');
         $actions = $bar->filter('[data-filter-row-actions] [data-view-actions]');
@@ -322,7 +337,7 @@ final class FilterBarTest extends KernelTestCase
         self::assertSame('/invoices?view=v1', $actions->filter('[data-view-reset]')->attr('href'));
         self::assertCount(1, $actions->filter('[data-view-save-as-button]'));
         self::assertCount(0, $actions->filter('[data-view-save]'), 'Save to view only for who may change the view.');
-        self::assertCount(0, $bar->filter('[data-filter-row-actions] a[data-filter-clear-all]'), 'Nothing narrows the list, so nothing to clear.');
+        self::assertCount(0, $bar->filter('a[data-filter-clear-all]'), 'Nothing narrows the list, so nothing to clear.');
 
         self::assertCount(0, $this->render(['viewBar' => ['modified' => false] + $viewBar])->filter('[data-view-actions]'));
     }
@@ -370,9 +385,10 @@ final class FilterBarTest extends KernelTestCase
         ]]);
 
         self::assertSame('date', $crawler->filter('[data-filter-sheet-form] input[name=from]')->attr('type'));
-        $chip = $crawler->filter('[data-filter-chips] [data-filter-chip=from]');
+        $chip = $crawler->filter('[data-filter-chips] [data-filter-condition]');
         self::assertStringContainsString('From: 1. 11. 2026', $chip->text());
         self::assertCount(0, $chip->filter('[role=menu]'));
+        self::assertNotNull($crawler->filter('[data-filter-bar]')->attr('data-filters-set'));
     }
 
     /**
@@ -428,7 +444,8 @@ final class FilterBarTest extends KernelTestCase
         ]]);
 
         self::assertCount(0, $crawler->filter('[data-filter-chips] [data-filter-chip=from]'));
-        self::assertCount(1, $crawler->filter('[data-filter-more]'));
+        self::assertCount(0, $crawler->filter('[data-filter-chips] [data-filter-condition]'));
+        self::assertCount(1, $crawler->filter('[data-filter-sheet-form] input[type=date][name=from]'), 'It is picked in the sheet.');
     }
 
     public function testNoMoreFiltersWhenEveryFilterIsPinned(): void
@@ -452,7 +469,7 @@ final class FilterBarTest extends KernelTestCase
         ]);
 
         $chip = $crawler->filter('[data-filter-chips] [data-filter-chip=year][data-set]');
-        self::assertStringContainsString('Year: 2026', $chip->filter('button')->text());
+        self::assertStringContainsString('Year: 2026', $chip->filter('summary')->text());
         $links = $chip->filter('[role=menu] a');
         self::assertSame('true', $links->eq(2)->attr('aria-checked'));
         self::assertSame('/invoices?tab=unpaid&sort=number&toSend=1&page=2', $links->eq(0)->attr('href'));

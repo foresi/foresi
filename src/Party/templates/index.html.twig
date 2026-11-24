@@ -25,15 +25,11 @@
         </twig:Ui:EmptyState>
     {% else %}
         <div class="grid grid-cols-1 gap-4">
-            {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
-            <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'party.views'|trans" class="min-w-0 flex-1">
-                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-                </twig:Ui:Tabs>
-                {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'contact-filters', toolsSearch: true, toolsColumns: {id: 'contact-columns', action: path('app_contacts')}}) }}
-            </div>
-            <twig:Ui:FilterBar id="contact-filters" :collapsible="true" :action="path('app_contacts')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
-                :search="{name: 'q', value: text, label: 'party.search.label'|trans, placeholder: 'party.search.placeholder'|trans}" :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
+            {# The tabs, then the search field and the Filter and Settings icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
+            {% set search = {name: 'q', value: text, label: 'party.search.label'|trans} %}
+            {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'party.views'|trans, toolsFilter: 'contact-filters', toolsSearch: search, toolsColumns: {id: 'contact-columns', action: path('app_contacts')}}) }}
+            <twig:Ui:FilterBar id="contact-filters" :action="path('app_contacts')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+                :search="search" :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
             </twig:Ui:FilterBar>
 
             {% if importedBy %}

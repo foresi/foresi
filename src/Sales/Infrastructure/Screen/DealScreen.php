@@ -112,7 +112,7 @@ final class DealScreen implements ResetInterface
     }
 
     /**
-     * The owners and members whose name holds the text, for the owner picker of "+ Filter".
+     * The owners and members whose name holds the text, for the owner picker of the filter sheet.
      *
      * @return list<array{id: string, label: string, hint: string}>
      */

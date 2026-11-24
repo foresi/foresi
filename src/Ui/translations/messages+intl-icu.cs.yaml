@@ -104,16 +104,12 @@ ui:
     discard: Zahodit
     failed: Něco se nepovedlo. Zkuste to prosím znovu.
   column_picker:
-    button: Zobrazení
+    button: Nastavení seznamu
     modified: změněno
-    title: Zobrazení
-    description: Vyberte rychlé filtry pod záložkami, sloupce seznamu, jejich pořadí a hustotu řádků.
+    title: Nastavení seznamu
+    description: Pohledy v záložkách, rychlé filtry pod nimi, sloupce a hustota řádků.
     quick: Rychlé filtry
-    quick_hint: 'Stojí pod záložkami jako čipy, nejvýš {max}.'
-    quick_add: Přidat rychlý filtr
-    quick_search: Hledat pole
-    presets: Předvolby
-    presets_hint: Pevné filtry jedním kliknutím jsou pohledy v záložkách; jejich pořadí a viditelnost nastavíte ve správě pohledů.
+    quick_hint: 'Zaškrtnuté se ukážou pod záložkami jako tlačítka. Pořadí změníte přetažením.'
     columns: Sloupce
     search: Hledat sloupce
     no_match: Žádný sloupec neodpovídá.
@@ -134,17 +130,16 @@ ui:
     no: Ne
   tabs:
     modified: neuložené změny
+  list_tools:
+    search: Hledat
   filter_bar:
     title: Filtry
     description: Vyberte, čím se má seznam zúžit.
     search: Hledat
-    more: Další filtry
-    filters: Filtry
     apply: Použít
     clear_all: Zrušit vše
     clear_one: 'Zrušit filtr {label}'
     toggle: Filtry
-    toggle_search: Hledat
   view_filter:
     add: Filtr
     add_row: Přidat filtr
@@ -153,6 +148,7 @@ ui:
       by_month: Podle měsíce
       search: 'Hledat: {field}'
       none_found: Nic nenalezeno.
+      contains: '{field} obsahuje…'
     condition: Podmínka
     value: Hodnota
     to: Do
@@ -341,6 +337,7 @@ catalogue:
   mobile_preview: Náhled 390 px
   interaction_note: Najetí myší a zaměření se ukazují na živé komponentě. Zaměření z klávesnice je vždy viditelné.
   state:
+    list_toolbar: Řádek seznamu
     quick: Rychlé filtry
     quick_only: Jen rychlé filtry
     modified: Změněno, neuloženo
@@ -607,39 +604,37 @@ system_mail:
 saved_view:
   save: Uložit
   save_to_view: Uložit do pohledu
-  more_views: Další pohledy
   save_as: Uložit jako nový pohled
   save_as_submit: Uložit pohled
   save_as_description: Filtry, rychlé filtry, řazení a sloupce seznamu se stanou samostatným pohledem.
   reset: Obnovit
   cancel: Zrušit
-  manage: Spravovat pohledy
-  manage_description: Přetáhněte pohledy do pořadí, jaké chcete, a uložte ho. Filtry nebo sloupce pohledu změníte tak, že ho otevřete z menu ⋯, upravíte na seznamu a dáte Uložit.
-  manage_description_member: Pořadí a záložky nastavuje vlastník. Filtry nebo sloupce pohledu změníte tak, že ho otevřete z menu ⋯, upravíte na seznamu a dáte Uložit.
-  save_order: Uložit pořadí
   ordered: Pořadí pohledů je uložené.
-  hidden: Pohled je skrytý. Znovu ho zobrazíte ve Správě pohledů.
+  hidden: Pohled je skrytý. Znovu ho zobrazíte v Nastavení seznamu.
   shown: Pohled se zase ukazuje.
   all_fixed: vždy první záložka
   read_only: mění ho jen autor nebo vlastník
   row_actions: 'Akce pro {name}'
-  open_edit: Otevřít a upravit
   open: Otevřít
-  rename: Přejmenovat…
+  new: Nový pohled
+  duplicate: Duplikovat
+  duplicated: Kopie pohledu je uložená.
+  copy_name: '{name} (kopie)'
+  in_tabs: 'Zobrazit v záložkách: {name}'
+  rename: Přejmenovat
   rename_title: Přejmenovat pohled
   rename_submit: Přejmenovat
   share: Sdílet se všemi
   make_private: Jen pro mě
-  to_more: Přesunout do Dalších pohledů
-  to_tabs: Přesunout do záložek
+  to_more: Skrýt ze záložek
+  to_tabs: Zobrazit v záložkách
   hide: Skrýt
   show: Zobrazit
   show_named: 'Zobrazit {name}'
   move_up: 'Posunout {name} nahoru'
   move_down: 'Posunout {name} dolů'
-  moved: 'Pohled {label} je teď v části {place}.'
-  tab_count: '{count} z {max}'
   section:
+    views: Pohledy
     tabs: Záložky
     more: Další pohledy
     hidden: Skryté
@@ -658,12 +653,12 @@ saved_view:
     name: Název
     visibility: Kdo ho vidí
     visibility_help: Sdílený pohled vidí každý vlastník a člen.
-    show_count: Ukazovat počet na záložce
+    show_count: Zobrazit počet v záložce
   visibility:
     private: Jen já
     shared: Všichni
   error:
     forbidden: Tento pohled mění jen jeho autor nebo vlastník. Své změny uložte jako nový pohled.
     name: Název pohledu má 1 až 60 znaků.
-    primary_full: Seznam už má šest záložek; nejdřív přesuňte jiný pohled do Dalších pohledů.
+    primary_full: Seznam má nejvýš šest záložek; nejdřív jiný pohled ze záložek odeberte.
     invalid: Pohled se nepodařilo uložit. Zkontrolujte jeho filtry a zkuste to znovu.

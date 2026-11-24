@@ -18,9 +18,13 @@ interface DealQueries
 {
     /**
      * The deals the filter holds, in title order, backwards when asked; those
-     * in the trash only when a condition of the filter asks for them.
+     * in the trash only when a condition of the filter asks for them. A text narrows
+     * them to those whose title contains it, whatever its case, or whose client is one
+     * of $clientIds (the clients whose name the same text matches).
+     *
+     * @param list<string> $clientIds
      *
      * @return list<Deal>
      */
-    public function index(ViewFilter $filter, bool $descending = false): array;
+    public function index(ViewFilter $filter, bool $descending = false, string $text = '', array $clientIds = []): array;
 }

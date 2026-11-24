@@ -54,7 +54,7 @@ A deal can **follow from** another deal of the same client, such as a monthly se
 
 ## The deals list
 
-**Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, **+ Filter** (status, owner, client, the trash) and the Display sheet (title, client, owner, value, status and more). A row opens the deal.
+**Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, the search (title, client), the Filter icon (stage, status, owner, client, the trash; Fáze and Vlastník are the quick filters under the tabs) and the Settings sheet (title, client, owner, value, status and more). A row opens the deal.
 
 - **New deal** in the page header opens a dialog with the title, the client, the owner, the stage and the contact persons. Without JavaScript the dialog is a page.
 - **Edit** on a deal opens the same dialog with its client in the same search field; a linked deal shows its client read-only, with a note that it changes once the links are removed.

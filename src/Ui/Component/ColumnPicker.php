@@ -12,27 +12,28 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * The Display button at the end of a list's tabs and its 400 px side sheet (spec D-display-4 and
- * D-display-6; Linear's display options, Notion's view settings, Airtable, HubSpot and Attio
- * column pickers), one sheet for how the view shows:
+ * The Settings button at the end of a list's tabs and its 400 px side sheet, "List settings" (spec
+ * D-display-4 and D-display-6; Linear's display options, Notion's view settings, Attio's view
+ * settings, Airtable, HubSpot column pickers), one sheet for how the list shows:
  *
- * - the quick filters, the fields pinned as chips under the tabs, each with a checkbox and movable
- *   as the columns are, at most four (Polaris IndexFilters pins filters, Notion keeps them with the
- *   view); the others under "Add quick filter"; and the list's fixed presets, which are its saved
- *   views on the tabs, with "Manage views" to order them;
+ * - its views, each with a handle, a checkbox for shown in the tabs, Move up / Move down and a "⋯"
+ *   menu (Rename, Show count in tab, Duplicate, Hide or Delete), "+ New view" under them; All leads;
+ * - the quick filters: every filter field of the list in one list, a checked one a chip under the
+ *   tabs, in their order, at most four (Polaris IndexFilters pins filters, Notion keeps them with
+ *   the view);
  * - the shown columns first, in their order, each with a checkbox; the column that names the row
  *   is locked, always shown and first;
- * - each other shown row has a drag handle and Move up / Move down buttons, so every reorder
- *   works with a single pointer and a keyboard too (WCAG 2.2 SC 2.5.7, Atlassian's drag and drop
+ * - each movable row has a drag handle and Move up / Move down buttons, so every reorder works
+ *   with a single pointer and a keyboard too (WCAG 2.2 SC 2.5.7, Atlassian's drag and drop
  *   guidance); each move is said in a live region;
  * - under "Add column", every other attribute of the list with a checkbox; one checked is added
  *   after the shown ones (spec DS5; Attio "Add column", Airtable, Level);
- * - a search over all of them once there are more than SEARCH_FROM;
+ * - a search over the columns once there are more than SEARCH_FROM;
  * - the row density, Comfortable (56 px) or Compact (44 px);
  * - "Reset to default", back to the view's own display, and one Apply.
  *
- * The sheet is a GET form to the list: Apply re-renders it with cols (the checked columns in
- * order) and density, the working state of WorkingDisplay. Without JavaScript the checkboxes
+ * Apply first saves the views' order and tabs (an owner's, SavedViewController order), then sends
+ * the GET form to the list, which re-renders it with pins, cols (the checked columns in order) and density, the working state of WorkingDisplay. Without JavaScript the checkboxes
  * send cols[] in their order, which the list reads the same way.
  */
 #[AsTwigComponent]
@@ -53,10 +54,18 @@ final class ColumnPicker
     /** @var list<array<string, mixed>> the fields one can pin, each with key, label and pinned, those pinned first in order (FilterSheet's pinnable) */
     public array $quick = [];
     /**
-     * @var list<string> the names of the list's tabs: its fixed quick filters ("Overdue", "To send", "Mine") are its saved views,
-     *                   one click each, and Manage views orders them, so the sheet names them without a second mechanism
+     * The list's views for the sheet's Views section (ViewBar's manageViews), or null for a list
+     * without saved views.
+     *
+     * @var array<string, mixed>|null
      */
-    public array $presets = [];
+    public ?array $manage = null;
+    /**
+     * The working state a new view is saved from (ViewBar's viewBar).
+     *
+     * @var array<string, mixed>|null
+     */
+    public ?array $viewBar = null;
     /** The list as its view shows it, without the working state. */
     public string $resetHref = '';
     /** Whether the list shows other columns or density than its view. */
@@ -103,23 +112,14 @@ final class ColumnPicker
     }
 
     /**
-     * The quick filters pinned, in their order.
+     * Every filter field of the list, the pinned ones first in their order, each with whether it is
+     * a chip under the tabs.
      *
      * @return list<array{key: string, label: string, pinned: bool, id: string}>
      */
-    public function pins(): array
+    public function quickViews(): array
     {
-        return array_values(array_filter($this->quickViews, static fn (array $view): bool => $view['pinned']));
-    }
-
-    /**
-     * The fields that can be pinned besides.
-     *
-     * @return list<array{key: string, label: string, pinned: bool, id: string}>
-     */
-    public function pinnable(): array
-    {
-        return array_values(array_filter($this->quickViews, static fn (array $view): bool => !$view['pinned']));
+        return $this->quickViews;
     }
 
     public function maxPins(): int

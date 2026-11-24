@@ -5,36 +5,37 @@ import { OWNER_STATE, signIn } from '../support/session';
 
 test.use({ storageState: OWNER_STATE });
 
-// Every list has the same toolbar at the end of its tabs, as Shopify Polaris IndexFilters puts its
-// search, filter and sort icons on the row of view tabs and Linear its display options: Search (on a
-// list that searches), Filter, which opens the filter sheet at once, and Display, the sheet of the
-// view's quick filters, columns and density. Under the tabs stand the view's quick filters as chips.
-const LISTS: { path: string; search: boolean }[] = [
-  { path: '/invoices', search: true },
-  { path: '/invoices/recurring', search: false },
-  { path: '/invoices/sent', search: false },
-  { path: '/contacts', search: true },
-  { path: '/bank', search: true },
-  { path: '/purchasing', search: true },
-  { path: '/catalog/products', search: false },
-  { path: '/sales/deals', search: false },
-  { path: '/projects', search: false },
-  { path: '/my-tasks', search: false },
-  { path: '/time/report', search: false },
-  { path: '/notifications', search: false },
-  { path: '/cash-flow', search: false },
-  { path: '/documents', search: false },
+// Every list has one toolbar row, as Shopify Polaris IndexFilters puts search and filter on the row
+// of view tabs and Linear, Notion and Attio keep a view's display options in one settings menu: the
+// view tabs on the left, then the search field, the Filter icon, which opens the filter sheet at
+// once, and the Settings icon, the sheet of the list's views, quick filters, columns and density.
+// Under the tabs stand the view's quick filters as solid chips; there is no "+ Filtr" button.
+const LISTS: string[] = [
+  '/invoices',
+  '/invoices/recurring',
+  '/invoices/sent',
+  '/contacts',
+  '/bank',
+  '/purchasing',
+  '/catalog/products',
+  '/sales/deals',
+  '/projects',
+  '/my-tasks',
+  '/time/report',
+  '/notifications',
+  '/cash-flow',
+  '/documents',
 ];
 
 const phone = (page: Page): boolean => (page.viewportSize()?.width ?? 1440) < 640;
 
 test.describe('list toolbar @layout', () => {
-  for (const list of LISTS) {
-    test(`${list.path} has the search, filter and Display icons in this order at the end of its tabs`, async ({ page }) => {
-      await page.goto(list.path);
+  for (const path of LISTS) {
+    test(`${path} has the search field, the Filter and the Settings icons in this order on the row of its tabs`, async ({ page }) => {
+      await page.goto(path);
       await expect(page.locator('main')).toBeVisible();
       const tools = page.locator('[data-list-tools]');
-      // An empty list has no tools; then it has no filter row or Display button elsewhere either.
+      // An empty list has no tools; then it has no filter row or Settings button elsewhere either.
       if ((await tools.count()) === 0) {
         await expect(page.locator('[data-filter-bar]:visible')).toHaveCount(0);
         await expect(page.locator('[data-column-picker-open]')).toHaveCount(0);
@@ -42,19 +43,32 @@ test.describe('list toolbar @layout', () => {
       }
       await expect(tools).toHaveCount(1);
 
-      const display = tools.locator('[data-column-picker-open]');
-      await expect(display).toBeVisible();
-      await expect(display).toHaveAttribute('title', /Zobrazení/);
-      const icons = tools.locator('[data-search-toggle]:visible, [data-filter-toggle]:visible, [data-column-picker-open]');
-      const order = await icons.evaluateAll((nodes) => nodes.map((node) => (node.hasAttribute('data-search-toggle') ? 'search' : node.hasAttribute('data-filter-toggle') ? 'filter' : 'display')));
-      expect(order.at(-1)).toBe('display');
-      if (order.includes('search')) {
-        expect(order.indexOf('search')).toBeLessThan(order.indexOf('filter'));
-      }
-      expect(order.includes('search')).toBe(list.search && order.includes('filter'));
+      const settings = tools.locator('[data-column-picker-open]');
+      await expect(settings).toBeVisible();
+      await expect(settings).toHaveAccessibleName(/Nastavení seznamu/);
 
-      // The tabs, when the list has any, on the same row as the icons.
-      const tabs = tools.locator('xpath=..').locator('nav').first();
+      // The search is a field on a desktop and an icon that opens it on a phone.
+      const field = tools.locator('[data-list-search] input[type=search]');
+      const searchIcon = tools.locator('[data-list-search-open]');
+      if (phone(page)) {
+        await expect(field).toBeHidden();
+        await expect(searchIcon).toBeVisible();
+      } else {
+        await expect(field).toBeVisible();
+        await expect(searchIcon).toBeHidden();
+        expect((await field.boundingBox())?.width).toBe(256);
+      }
+
+      const order = await tools
+        .locator('[data-list-search]:visible, [data-list-search-open]:visible, [data-filter-toggle]:visible, [data-column-picker-open]')
+        .evaluateAll((nodes) => nodes.map((node) => (node.hasAttribute('data-filter-toggle') ? 'filter' : node.hasAttribute('data-column-picker-open') ? 'settings' : 'search')));
+      // A list with nothing to filter yet (no records) hides its Filter icon, never moves it.
+      const filter = tools.locator('[data-filter-toggle]');
+      const filters = await filter.isVisible();
+      expect(order).toEqual(filters ? ['search', 'filter', 'settings'] : ['search', 'settings']);
+
+      // The tabs, when the list has any, on the same row as the tools.
+      const tabs = page.locator('[data-list-toolbar] nav').first();
       if ((await tabs.count()) === 1) {
         const toolsBox = await tools.boundingBox();
         const tabsBox = await tabs.boundingBox();
@@ -64,71 +78,77 @@ test.describe('list toolbar @layout', () => {
         }
       }
 
-      // The filter icon opens the filter sheet in one click.
-      const filter = tools.locator('[data-filter-toggle]');
-      if ((await filter.count()) === 1 && (await filter.isVisible())) {
+      // No menu of more views on the row and no "+ Filtr" in the filter row.
+      await expect(page.locator('[data-list-toolbar]').getByRole('button', { name: /Další pohledy/ })).toHaveCount(0);
+      await expect(page.locator('[data-filter-bar]').getByRole('button', { name: /^\+ ?Filtr$/ })).toHaveCount(0);
+
+      // The Filter icon opens the filter sheet in one click.
+      if (filters) {
         await filter.click();
         await expect(page.getByRole('dialog', { name: 'Filtry' })).toBeVisible();
       }
     });
   }
 
-  test('the invoices pin their tax point and customer as quick filters under the tabs', async ({ page }) => {
+  test('the invoices pin their tax point and customer as quick filters and search on the server', async ({ page }) => {
     // The owner of OWNER_STATE has no invoices; the cash flow world has one (tests/e2e/seed/cash-flow.php).
     await page.context().clearCookies();
     await signIn(page, 'cash-flow@example.com');
     await page.goto('/invoices');
     const bar = page.locator('#invoice-filters');
-    if (phone(page)) {
-      // On a phone the row is the search and "Filtry (n)", which opens the same sheet.
-      await expect(bar.locator('[data-filter-open]')).toBeVisible();
-      return;
-    }
     // A tax document counts its month by the tax point (InvoiceLists::monthField).
     const date = bar.locator('[data-quick-filter="tax_point_date"]');
     await expect(date).toBeVisible();
     await expect(bar.locator('[data-quick-filter="customer"]')).toBeVisible();
-    // The search waits for its icon.
-    const search = bar.locator('[data-filter-search]').getByRole('searchbox');
-    await expect(search).toBeHidden();
-    await page.locator('[data-search-toggle]').click();
-    await expect(search).toBeFocused();
 
     // The date chip is a menu of the periods and the months with documents; a pick sets its condition.
-    await date.getByRole('button', { name: 'DUZP' }).click();
+    await date.locator('summary').click();
     await date.getByRole('menuitemradio', { name: 'letos', exact: true }).click();
     await expect(page).toHaveURL(/[?&]f=/);
-    await expect(page.locator('#invoice-filters [data-quick-filter="tax_point_date"][data-set]')).toContainText('letos');
-    // The view now differs from its saved one: the row offers to save it.
+    const set = page.locator('#invoice-filters [data-quick-filter="tax_point_date"][data-set]');
+    await expect(set).toContainText('DUZP: letos');
+    // The view now differs from its saved one: the row offers to save it, and to clear it all.
     await expect(page.locator('#invoice-filters [data-view-save-as-button]')).toBeVisible();
+    await expect(page.locator('#invoice-filters [data-filter-clear-all]')).toBeVisible();
+
+    // The search sends on Enter and keeps the filter; "Zrušit vše" clears both.
+    if (phone(page)) {
+      await page.locator('[data-list-search-open]').click();
+    }
+    const search = page.locator('[data-list-search] input[type=search]');
+    await search.fill('example');
+    await search.press('Enter');
+    await expect(page).toHaveURL(/[?&]q=example/);
+    await expect(page).toHaveURL(/[?&]f=/);
+    await page.locator('#invoice-filters [data-filter-clear-all]').click();
+    await expect(page).not.toHaveURL(/[?&](q|f)=/);
   });
 
-  test('the Display sheet pins quick filters, which the row then shows and the view keeps', async ({ page }) => {
+  test('the Settings sheet pins quick filters, which the row then shows and the view keeps', async ({ page }) => {
     await page.goto('/contacts');
     await page.locator('[data-column-picker-open]').click();
-    const sheet = page.getByRole('dialog', { name: 'Zobrazení' });
+    const sheet = page.getByRole('dialog', { name: 'Nastavení seznamu' });
+    await expect(sheet.locator('[data-settings-views]')).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Rychlé filtry' })).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Sloupce' })).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Hustota řádků' })).toBeVisible();
     await expect(sheet.getByRole('link', { name: 'Obnovit výchozí' })).toBeVisible();
 
-    // Unpin the second default and pin "Archivováno" in its place.
+    // Every filter field of the list is in one list, the pinned first: unpin the second default
+    // and pin "Archivováno" in its place.
     const quick = sheet.locator('[data-column-picker-quick]');
     await quick.locator('[data-column-picker-target="pinRow"] input[type=checkbox]').nth(1).uncheck();
-    await quick.locator('[data-column-picker-quick-add] summary').click();
-    await quick.locator('[data-column-picker-target="pinOption"][data-key="archived"] input').check();
+    await quick.locator('[data-column-picker-target="pinRow"][data-key="archived"] input[type=checkbox]').check();
     await sheet.getByRole('button', { name: 'Použít' }).click();
 
-    await expect(page).toHaveURL(/[?&]pins=roles%2Carchived|[?&]pins=roles,archived/);
-    if (!phone(page)) {
-      await expect(page.locator('#contact-filters [data-quick-filter="archived"]')).toBeVisible();
-      await expect(page.locator('#contact-filters [data-quick-filter="kind"]')).toHaveCount(0);
-    }
+    await expect(page).toHaveURL(/[?&]pins=roles(%2C|,)archived/);
+    await expect(page.locator('#contact-filters [data-quick-filter="archived"]')).toBeVisible();
+    await expect(page.locator('#contact-filters [data-quick-filter="kind"]')).toHaveCount(0);
     await expect(page.locator('[data-column-picker-modified]')).toBeVisible();
 
     // The person's display is remembered (D-display-3); Reset forgets it, for the next run too.
     await page.locator('[data-column-picker-open]').click();
-    await page.getByRole('dialog', { name: 'Zobrazení' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
+    await page.getByRole('dialog', { name: 'Nastavení seznamu' }).getByRole('link', { name: 'Obnovit výchozí' }).click();
     await expect(page).not.toHaveURL(/[?&]pins=/);
     await expect(page.locator('[data-column-picker-modified]')).toHaveCount(0);
   });

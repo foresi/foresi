@@ -76,6 +76,7 @@ final class DocumentController extends AbstractController
 
     /** The most documents a list shows; the filters narrow it. */
     private const int SHOWN = 200;
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly DocumentsAccess $access,
@@ -96,14 +97,16 @@ final class DocumentController extends AbstractController
         $type = $request->query->getString('type');
         $trashed = self::TRASHED === $request->query->getString('status');
         $status = DocumentStatus::tryFrom($request->query->getString('status'));
-        // The list keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        // The list keeps no view: its quick filters, pinned in the Settings sheet, stay in its address.
         $pins = QuickPins::read($request->query->all(), ['type' => $this->translator->trans('documents.filter.type'), 'status' => $this->translator->trans('documents.filter.status')], ['type', 'status']);
-        $set = array_filter(['type' => Id::isValid($type) ? $type : null, 'status' => $trashed ? self::TRASHED : $status?->value], static fn (?string $value): bool => null !== $value);
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
+        $set = array_filter(['type' => Id::isValid($type) ? $type : null, 'status' => $trashed ? self::TRASHED : $status?->value, 'q' => '' === $text ? null : $text], static fn (?string $value): bool => null !== $value);
         $documents = $this->store->documents(new DocumentFilter(
             typeId: Id::isValid($type) ? $type : null,
             status: $status,
             limit: self::SHOWN + 1,
             trashed: $trashed,
+            text: $text,
         ));
 
         return $this->render('@Documents/index.html.twig', [
@@ -122,7 +125,8 @@ final class DocumentController extends AbstractController
                 'resetHref' => $this->generateUrl(self::LIST_ROUTE, $set),
                 'modified' => $pins->modified,
             ],
-            'narrowed' => Id::isValid($type) || null !== $status || $trashed,
+            'text' => $text,
+            'narrowed' => '' !== $text || Id::isValid($type) || null !== $status || $trashed,
             'trash' => $trashed,
             'hasTypes' => [] !== $this->screen->typeOptions(),
         ]);

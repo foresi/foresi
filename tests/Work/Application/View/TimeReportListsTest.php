@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * The time report ships All and the two periods its filter offered, This month and
  * Last month, as relative dates (saved views D5, D12); none counts (D9). The fields of
- * "+ Filter" are the filters the report had (D11).
+ * the filter sheet are the filters the report had (D11).
  */
 final class TimeReportListsTest extends TestCase
 {

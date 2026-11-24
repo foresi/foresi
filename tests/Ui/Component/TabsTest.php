@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
-use Foresi\Ui\Component\Tabs;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 
@@ -72,42 +71,10 @@ final class TabsTest extends KernelTestCase
         $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => 'javascript:alert(1)']]]);
     }
 
-    public function testTheMoreViewsMenuNeedsItsLabel(): void
-    {
-        foreach ([null, ''] as $label) {
-            try {
-                $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => '/a']], 'more' => [['label' => 'B', 'href' => '/b']], 'moreLabel' => $label]);
-                self::fail('The menu is refused.');
-            } catch (\InvalidArgumentException) {
-            }
-        }
-        $tabs = $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => '/a']], 'more' => [['label' => 'B', 'href' => '/b']], 'moreLabel' => 'More views']);
-        self::assertInstanceOf(Tabs::class, $tabs);
-    }
-
     public function testEveryItemIsChecked(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => '/a'], ['label' => 'B']]]);
-    }
-
-    public function testAnInvalidItemOfTheMenuThrows(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->mountTwigComponent('Ui:Tabs', ['items' => [['label' => 'A', 'href' => '/a']], 'more' => [['label' => 'B']], 'moreLabel' => 'More views']);
-    }
-
-    public function testTheMenuIsActiveWhenItHoldsTheViewShown(): void
-    {
-        $tabs = new Tabs();
-        $tabs->items = [['label' => 'A', 'href' => '/a', 'active' => true]];
-        self::assertFalse($tabs->moreActive());
-
-        $tabs->more = [['label' => 'B', 'href' => '/b'], ['label' => 'C', 'href' => '/c', 'active' => 1]];
-        self::assertFalse($tabs->moreActive());
-
-        $tabs->more[] = ['label' => 'D', 'href' => '/d', 'active' => true];
-        self::assertTrue($tabs->moreActive());
     }
 
     public function testAModifiedViewHasADotThatIsSaid(): void
@@ -119,5 +86,13 @@ final class TabsTest extends KernelTestCase
 
         self::assertSame(1, substr_count($html, 'data-tab-modified'));
         self::assertStringContainsString('<span class="sr-only">, neuložené změny</span>', $html);
+    }
+
+    public function testTheTabsDrawTheirRailUnlessTheToolbarRowDrawsIt(): void
+    {
+        $items = ['items' => [['label' => 'All', 'href' => '/a', 'active' => true]]];
+
+        self::assertStringContainsString('inset-shadow-rail', (string) $this->renderTwigComponent('Ui:Tabs', $items));
+        self::assertStringNotContainsString('inset-shadow-rail', (string) $this->renderTwigComponent('Ui:Tabs', $items + ['rail' => false]));
     }
 }

@@ -13,6 +13,7 @@ use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\QuickPick;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
@@ -33,8 +34,8 @@ final class FilterSheetQuickTest extends TestCase
         $sheet = $this->sheet(new ViewFilter());
 
         self::assertSame(['payment', 'issue_date'], array_column($sheet['quick'], 'key'));
-        self::assertSame(['payment', 'issue_date', 'customer', 'paid', 'state', 'client'], array_column($sheet['pinnable'], 'key'), 'The pinned come first in the Display sheet.');
-        self::assertSame([true, true, false, false, false, false], array_column($sheet['pinnable'], 'pinned'));
+        self::assertSame(['payment', 'issue_date', 'customer', 'paid', 'state', 'client', 'total', 'stage'], array_column($sheet['pinnable'], 'key'), 'The pinned come first in the Settings sheet.');
+        self::assertSame([true, true, false, false, false, false, false, false], array_column($sheet['pinnable'], 'pinned'));
     }
 
     public function testAnEnumThatTakesAnyOfPicksSeveralValuesEachLinkTogglingOne(): void
@@ -79,7 +80,7 @@ final class FilterSheetQuickTest extends TestCase
 
     public function testAFieldWithNoValuesToPickOpensTheSheet(): void
     {
-        $quick = $this->sheet(new ViewFilter(), ['customer'])['quick'][0];
+        $quick = $this->sheet(new ViewFilter(), ['total'])['quick'][0];
 
         self::assertSame('sheet', $quick['pick']);
         self::assertFalse($quick['menu']);
@@ -103,6 +104,37 @@ final class FilterSheetQuickTest extends TestCase
         self::assertSame([['field' => 'paid', 'op' => 'is', 'value' => true]], json_decode($lookup['conditions'], true));
         self::assertSame([['id' => 'c1', 'label' => 'Example s.r.o.']], array_map(static fn (array $one): array => ['id' => $one['id'], 'label' => $one['label']], $lookup['selected']));
         self::assertSame([['field' => 'paid', 'op' => 'is', 'value' => true]], $this->conditions($lookup['selected'][0]['href']), 'A picked record is unpicked by its link.');
+    }
+
+    public function testAShortListOfRecordsListsThemFromItsPickerAsAnEnumDoes(): void
+    {
+        $quick = $this->sheet(ViewFilter::all(new Condition('stage', 'is', 's2')), ['stage'], references: ['stage' => ['url' => '/stages', 'name' => static fn (string $id): string => 'Offer']])['quick'][0];
+
+        self::assertSame('choices', $quick['pick']);
+        self::assertTrue($quick['multi']);
+        self::assertSame('Offer', $quick['text']);
+        $lookup = $quick['lookup'];
+        self::assertIsArray($lookup);
+        self::assertSame('/stages', $lookup['url']);
+        self::assertSame(['s2'], array_column($lookup['selected'], 'id'));
+    }
+
+    public function testATextTakesItsWordsInASmallFieldThatContainsThem(): void
+    {
+        $filter = ViewFilter::all(new Condition('customer', 'contains', 'web'), new Condition('paid', 'is', true));
+        $quick = $this->sheet($filter, ['customer'])['quick'][0];
+
+        self::assertSame('text', $quick['pick']);
+        self::assertTrue($quick['menu']);
+        self::assertTrue($quick['set']);
+        $lookup = $quick['lookup'];
+        self::assertIsArray($lookup);
+        self::assertNull($lookup['url']);
+        self::assertSame('contains', $lookup['op']);
+        self::assertTrue($lookup['single']);
+        self::assertSame('web', $lookup['value']);
+        self::assertSame([], $lookup['selected']);
+        self::assertSame([['field' => 'paid', 'op' => 'is', 'value' => true]], json_decode($lookup['conditions'], true), 'The words replace what the field had.');
     }
 
     public function testAReferenceWithoutAPickerOpensTheSheet(): void
@@ -134,6 +166,8 @@ final class FilterSheetQuickTest extends TestCase
             new Field('paid', FieldType::Boolean, 'Paid'),
             new Field('state', FieldType::Enum, 'State', ['is', 'is_not'], ['open', 'closed']),
             new Field('client', FieldType::Reference, 'Client', source: 'contact'),
+            new Field('total', FieldType::Number, 'Total'),
+            new Field('stage', FieldType::Reference, 'Stage', ['is', 'is_not', 'is_any_of'], source: 'stage', quick: QuickPick::Choices),
         ], [new DefaultView('all', 'All')], ['payment', 'issue_date']);
 
         return new FilterSheet(new IdentityTranslator())->of($list, $filter, static fn (ViewFilter $next): string => '/invoices?'.http_build_query([WorkingFilter::PARAM => WorkingFilter::encode($next)]), $references, $pinned, $months); // @phpstan-ignore argument.type

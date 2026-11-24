@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * The condition "To confirm pairing" of the list of received documents: the documents that Cash flow proposes
  * planned occurrences for and waits for a person to decide. It is offered with the other conditions of
- * "+ Filter" and can be saved in a view.
+ * the filter sheet and can be saved in a view.
  */
 #[AutoconfigureTag(ReceivedDocumentIdFilter::ID_FILTER_TAG)]
 final readonly class PairingToConfirmFilter implements ListFieldCatalog, ReceivedDocumentIdFilter

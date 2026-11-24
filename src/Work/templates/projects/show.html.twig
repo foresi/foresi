@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A project as a list: List and Board, the views of the list with "+ Filter" and Columns as every list
+    A project as a list: List and Board, the views of the list with the filter sheet and Columns as every list
     has them (one list of views for every project), then the tasks in no section as the list's own, with no heading
     (loose to-dos sit above the groups in Basecamp, and Asana's list shows its default section without
     one), then one block per section in order, each with its top-level tasks and their subtasks.
@@ -33,19 +33,11 @@
 
         {# List and Board switch the layout; the views of the list sit under it, as on every list (saved views D7). #}
         <twig:Ui:Tabs :items="[{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id}), active: true}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id})}]" :label="'work.project.views'|trans" class="shrink-0" />
-        {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-            {% if viewsEditable %}
-                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 flex-1">
-                    <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-                </twig:Ui:Tabs>
-            {% else %}
-                <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.list.views'|trans" class="min-w-0 flex-1" />
-            {% endif %}
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'task-filters', toolsSearch: false, toolsColumns: {id: 'task-columns', action: path('app_project', {id: project.id})}}) }}
-        </div>
-        {# Who is responsible, the status and the due date are conditions of "+ Filter" (saved views D11); only the staff keep views, so a guest's row has no save actions. #}
-        <twig:Ui:FilterBar id="task-filters" :collapsible="true" :action="path('app_project', {id: project.id})" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+        {# The views' tabs, then the search field, the filter and the Settings icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
+        {% set search = {name: 'q', value: text ?? '', label: 'work.tasks.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {manageViews: viewsEditable ? manageViews : null, viewBar: viewsEditable ? viewBar : null, toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'work.list.views'|trans, toolsFilter: 'task-filters', toolsSearch: search, toolsColumns: {id: 'task-columns', action: path('app_project', {id: project.id})}}) }}
+        {# Who is responsible, the status and the due date are conditions of the filter sheet (saved views D11); only the staff keep views, so a guest's row has no save actions. #}
+        <twig:Ui:FilterBar id="task-filters" :search="search" :action="path('app_project', {id: project.id})" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
             :conditions="chips" :quick="quick" :viewBar="viewsEditable ? viewBar : null" :builder="builder" :empty="sections is empty" data-task-filters>
         </twig:Ui:FilterBar>
 

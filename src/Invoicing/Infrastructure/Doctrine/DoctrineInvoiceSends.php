@@ -122,6 +122,10 @@ final readonly class DoctrineInvoiceSends implements InvoiceSends
         // The view's fields are columns of the send (SendLogLists): no field is derived.
         [$where, $parameters] = new DqlConditions($this->sendLogLists->list(), self::VIEW_COLUMNS, static fn (Condition $condition): never => throw new \LogicException(\sprintf('The field "%s" of the send log has no SQL.', $condition->field)))
             ->compile($filter->view, static fn (): \DateTimeImmutable => new \DateTimeImmutable(), 'v');
+        if ('' !== $filter->text) {
+            $where .= " AND (LOWER(s.documentNumber) LIKE :text ESCAPE '!' OR LOWER(s.customerName) LIKE :text ESCAPE '!' OR LOWER(s.subject) LIKE :text ESCAPE '!' OR LOWER(CAST_TEXT(s.recipientsTo)) LIKE :text ESCAPE '!' OR LOWER(CAST_TEXT(s.recipientsCc)) LIKE :text ESCAPE '!')";
+            $parameters['text'] = ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($filter->text)).'%', null];
+        }
         $count = $this->em->createQuery('SELECT COUNT(s.id) FROM '.InvoiceSend::class.' s WHERE '.$where);
         foreach ($parameters as $name => [$value, $type]) {
             $count->setParameter($name, $value, $type);

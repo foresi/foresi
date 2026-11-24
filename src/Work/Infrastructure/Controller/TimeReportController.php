@@ -55,8 +55,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The time report "Výkaz" on saved views, as every list has them: All, This month (the
  * view it opens on, as the report showed this month unless asked otherwise) and Last
- * month, the person's own views, "+ Filter" (the day, the project, the client, the
- * person, billable, invoiced) and the Display sheet of its entries. What the totals add
+ * month, the person's own views, the filter sheet (the day, the project, the client, the
+ * person, billable, invoiced) and the Settings sheet of its entries. What the totals add
  * up by (project, person or task) is the view's display, kept with it as its columns
  * are (D-display-2). Its sums, its totals and its entries, newest first (Freelo reports,
  * Productive "invoiced = no"); the header downloads the entries as CSV with the same
@@ -75,6 +75,7 @@ final class TimeReportController extends AbstractController
     /** The fields of the report's address before saved views. */
     private const array LEGACY = ['period', 'from', 'until', 'project', 'client', 'person', 'billable', 'invoiced'];
     private const int MAX_QUERY = 100;
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly TimeQueries $time,
@@ -109,16 +110,18 @@ final class TimeReportController extends AbstractController
         [$views, $view, $shown] = $this->reportViews($input);
         $list = TimeReportLists::list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
         // The columns, the density and the grouping, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(TimeReportColumns::LIST, [], $list->key, $view, $input->all(), ListDisplay::DENSE, self::GROUPS, filters: $list);
         $grouping = TimeGrouping::tryFrom($working->display->groupBy ?? '') ?? TimeGrouping::Project;
-        $query = array_filter(['view' => $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
-        $report = $this->time->report(TimeReportFilter::ofView($shown), $grouping, max(1, $input->getInt('page', 1)));
+        $query = array_filter(['view' => $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $working->query;
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
+        $report = $this->time->report(TimeReportFilter::ofView($shown, $text), $grouping, max(1, $input->getInt('page', 1)));
         $options = $this->options();
 
         return $this->render('@Work/time/report.html.twig', [
             'query' => $query,
+            'text' => $text,
             'view' => $view->key,
             'working' => $filterParam ?? '',
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references($options), pinned: $working->pinned),
@@ -165,12 +168,13 @@ final class TimeReportController extends AbstractController
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
         [, , $shown] = $this->reportViews($request->request);
+        $text = trim(mb_substr($request->request->getString('q'), 0, self::MAX_SEARCH));
         $period = $this->period($shown);
         $name = $this->translator->trans('work.time.report.file').(null === $period ? '' : \sprintf('_%s_%s', $period[0]->format('Y-m-d'), $period[1]->format('Y-m-d'))).'.csv';
         // The request has ended by the time the response streams, and its locale with it.
         $locale = $request->getLocale();
-        $response = new StreamedResponse(function () use ($shown, $locale): void {
-            $this->csv->write($this->time->reportEntries(TimeReportFilter::ofView($shown)), 'php://output', $locale);
+        $response = new StreamedResponse(function () use ($shown, $text, $locale): void {
+            $this->csv->write($this->time->reportEntries(TimeReportFilter::ofView($shown, $text)), 'php://output', $locale);
         });
         $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
         $response->headers->set('Content-Disposition', HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $name, 'time.csv'));
@@ -368,7 +372,7 @@ final class TimeReportController extends AbstractController
     }
 
     /**
-     * The tabs of the report and its "More views" menu (spec D7): All and the primary
+     * The tabs of the report and the other views of its Settings sheet (spec D7): All and the primary
      * views as tabs, the other views in the menu. The report counts none (D9). Every link
      * names its view, as the report's address without one opens This month.
      *
@@ -393,7 +397,7 @@ final class TimeReportController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the report, and the report without the changed columns.
+     * The Settings sheet: what it keeps of the report, and the report without the changed columns.
      *
      * @param array<string, string> $query
      *

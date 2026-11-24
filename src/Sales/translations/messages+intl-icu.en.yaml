@@ -39,6 +39,7 @@ sales:
             owner: Owner
             client: Client
             trashed: In the trash
+            stage: Stage
         column:
             title: Title
             client: Client
@@ -52,6 +53,7 @@ sales:
             reset: Clear the filter
             trash_title: The trash is empty
             view_title: No deal in this view
+        search_label: Search deals
     deal:
         new: New deal
         create: Create deal

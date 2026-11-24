@@ -5,7 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 
 /**
  * Opens a Ui:Dialog or Ui:Sheet of the page named by its id, from a button or a menu
- * item that is not next to it, such as "Save as new view" in a list's More views menu:
+ * item that is not next to it, such as "Save as new view" in a list.s filter row:
  * data-action="dialog-open#open" data-dialog-open-id-param="<id>".
  */
 export default class extends Controller {

@@ -42,7 +42,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * how it went and why it failed. The log runs on saved views as every list does
  * (spec D7): All, Sent, Waiting and Failed ship as views, with the person's own
  * beside them; the state and the type, an invoice or a reminder, are conditions
- * of "+ Filter" (D11). The number leads to the invoice's history, the icon to
+ * of the filter sheet (D11). The number leads to the invoice's history, the icon to
  * sending again: the invoice for an invoice, the next reminder for a reminder.
  *
  * The old ?status= opens the view of that name, as the tabs it replaced did, and
@@ -54,6 +54,7 @@ final class SendLogController extends AbstractController
     public const string ROUTE = 'app_invoice_sends';
     /** The parameter of the old tabs, which named the view. */
     private const string OLD_TAB = 'status';
+    private const int MAX_SEARCH = 100;
     /** The parameter of the old select, by the field it now names. */
     private const array OLD_PARAMS = ['purpose' => SendLogLists::PURPOSE];
 
@@ -84,15 +85,17 @@ final class SendLogController extends AbstractController
         [$views, $view, $shown] = $this->sendViews($input);
         $list = $this->sendLogLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
-        $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1))));
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
+        $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1)), $text));
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(SendLogColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
 
         return $this->render('@Invoicing/send_log.html.twig', [
             'page' => $page,
+            'text' => $text,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
@@ -106,6 +109,7 @@ final class SendLogController extends AbstractController
             'baseUrl' => $this->generateUrl(self::ROUTE, $query),
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
             'nothingSent' => !$page->anySent,
+            'filtered' => '' !== $text || null !== $filterParam,
         ]);
     }
 
@@ -161,7 +165,7 @@ final class SendLogController extends AbstractController
     }
 
     /**
-     * The tabs of the log and its "More views" menu (spec D7): All and the primary views
+     * The tabs of the log and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, the other views in the menu. The log counts none (D9).
      *
      * @param list<ListView>        $views
@@ -185,7 +189,7 @@ final class SendLogController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the log, and the log without the changed columns.
+     * The Settings sheet: what it keeps of the log, and the log without the changed columns.
      *
      * @param array<string, string> $query
      *

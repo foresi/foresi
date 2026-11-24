@@ -23,7 +23,7 @@ use Foresi\Work\Application\DueBucket;
  * a view keeps who is responsible, the status and the due date, which mean the same
  * in each, so a view saved on one project shows on all of them.
  *
- * The filters the list had (responsible, status, due) are fields of "+ Filter"
+ * The filters the list had (responsible, status, due) are fields of the filter sheet
  * (spec D11). Finished tasks are left out unless a condition asks about the status,
  * as the list left them out by default and as ClickUp hides closed tasks and Asana
  * shows incomplete ones: All holds no condition, as every list's All, and shows the

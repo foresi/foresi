@@ -101,6 +101,10 @@ final readonly class DoctrineDocumentsStore implements DocumentsStore
         if ($filter->status instanceof \Foresi\Documents\Domain\DocumentStatus) {
             $query->andWhere('d.status = :status')->setParameter('status', $filter->status->value);
         }
+        if ('' !== trim($filter->text)) {
+            $query->andWhere("LOWER(d.title) LIKE :text ESCAPE '!'")
+                ->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower(trim($filter->text))).'%');
+        }
         if (null !== $filter->linkKind && null !== $filter->linkId) {
             $query->andWhere('d.id IN (SELECT IDENTITY(l.document) FROM '.DocumentLink::class.' l WHERE l.kind = :kind AND l.targetId = :target)')
                 ->setParameter('kind', $filter->linkKind)->setParameter('target', $filter->linkId);
