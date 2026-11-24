@@ -131,6 +131,37 @@ final class DeptracModulesConfigTest extends TestCase
         self::assertStringNotContainsString("      - invoicing\n", $config);
     }
 
+    public function testIntegrationCodeMayUseTheContractsTheOptionalContractHandsOn(): void
+    {
+        // Country reads Banking's parser contract, which hands it Mail's InboundMail.
+        $graph = new ModuleGraph([
+            $this->module('shared', ModuleKind::Core, 'Shared'),
+            $this->module('mail', ModuleKind::Module, 'Mail', requires: ['shared']),
+            $this->module('banking', ModuleKind::Module, 'Banking', requires: ['shared', 'mail']),
+            $this->module('country', ModuleKind::Module, 'Country', requires: ['shared'], optional: ['banking', 'mail']),
+        ]);
+
+        $config = new DeptracModulesConfig()->render($graph);
+
+        self::assertStringContainsString("    country_integration_banking:\n      - banking_contract\n      - country\n      - country_contract\n      - mail_contract\n      - shared\n", $config);
+        // Only through the integration: Country itself sees nothing of Mail.
+        self::assertStringContainsString("    country:\n      - country_contract\n      - shared\n      - shared_contract\n", $config);
+    }
+
+    public function testAContractTheOwnerDoesNotListStaysOutOfTheIntegration(): void
+    {
+        $graph = new ModuleGraph([
+            $this->module('shared', ModuleKind::Core, 'Shared'),
+            $this->module('mail', ModuleKind::Module, 'Mail', requires: ['shared']),
+            $this->module('banking', ModuleKind::Module, 'Banking', requires: ['shared', 'mail']),
+            $this->module('country', ModuleKind::Module, 'Country', requires: ['shared'], optional: ['banking']),
+        ]);
+
+        $config = new DeptracModulesConfig()->render($graph);
+
+        self::assertStringContainsString("    country_integration_banking:\n      - banking_contract\n      - country\n      - country_contract\n      - shared\n", $config);
+    }
+
     public function testHyphenatedIdsBecomeUnderscoredLayers(): void
     {
         // Deptrac reads the ruleset through Symfony Config, which turns "-" in keys into "_".

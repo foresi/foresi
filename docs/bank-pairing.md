@@ -72,7 +72,7 @@ BANK_INBOX_FOLDER=INBOX
 | `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD` | The login. Set the password outside committed files, for example in `.env.local` or the service environment |
 | `BANK_INBOX_FOLDER` | The folder read, `INBOX` by default |
 
-The task `bank-inbox` runs every five minutes on the existing schedule, under a lock, so two workers never poll at once. Each run opens a new session, takes the 50 oldest messages that are not marked deleted, reads them without marking them read, and then **moves** each one:
+The task `mail-inbox` (Mail module) runs every five minutes on the existing schedule, under a lock, so two workers never poll at once. Each run opens a new session, takes the 50 oldest messages that are not marked deleted, reads them without marking them read, and then **moves** each one:
 
 | Folder | What lands there |
 |---|---|

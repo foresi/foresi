@@ -13,29 +13,30 @@ use Foresi\Mail\Domain\InboundChannel;
 
 /**
  * Judges whether a message comes from the sender it claims, or from a sender
- * of an allowlist such as its bank, from what the inbox's own
+ * of an allowlist such as a bank's domains, from what the inbox's own
  * receiving server wrote about it. No signature is checked here.
  *
  * Anyone can write an Authentication-Results header into the mail they send, so
  * a pass is believed only from the topmost one: the receiving server adds its
  * own above every header the message arrived with, and it counts only when its
- * authserv-id is one trusted for the channel the message came by: the bank
- * inbox's servers for mail polled over IMAP, the relay's for the webhook. A fail is another matter: a claim of an aligned
+ * authserv-id is one trusted for the channel the message came by: the operator
+ * mailbox's servers for mail polled over IMAP, the relay's for the webhook. A fail is another matter: a claim of an aligned
  * DMARC or DKIM fail can only make the verdict stricter, so it counts from any
  * Authentication-Results header, trusted or not, and the message is Failed.
  *
- * The bank publishes a DMARC policy, so the receiving server always gives its
- * mail a DMARC result, and only that verifies: the header must hold exactly one
+ * A sender worth verifying, such as a bank, publishes a DMARC policy, so the
+ * receiving server always gives its mail a DMARC result, and only that verifies: the header must hold exactly one
  * DMARC result, a pass whose From domain is the sender's or a parent of it and
- * is itself one of the bank's. A DKIM pass alone never verifies. The receiving
+ * is itself one of the allowed domains. A DKIM pass alone never verifies. The receiving
  * server copies text the sender chose, such as the HELO name or the envelope
  * sender, into the header without always quoting it, so a sender can make a
  * header seem to hold results the server never reached; a second DMARC result,
  * or a pass and a fail for one signing domain, shows that, and the message is
  * Failed. The receiving server removes or renames headers that carry its own id
  * (RFC 8601 §5), so a trusted id on any header below the topmost was planted or
- * misplaced, and the message is Failed too. A Failed message is rejected; only a
- * person who checked the payment in the bank records it anyway.
+ * misplaced, and the message is Failed too. What a Failed message means is the
+ * consumer's call: the bank feed rejects it, and only a person who checked the
+ * payment in the bank records it anyway.
  *
  * An ARC pass rescues a signature broken by a forwarder only when the newest
  * ARC set was sealed by a trusted forwarder whose own results show an aligned
@@ -60,21 +61,21 @@ final readonly class SenderVerdict
     {
         $from = $this->soleSenderDomain($mail);
         // The From domain is its own allowlist when none is given; a sender without a domain is no one's.
-        $banks = [] === $senderDomains ? (null === $from || '' === $from ? [] : [$from]) : array_map(TrustSettings::name(...), $senderDomains);
-        if (null === $from || !$this->isBanks($from, $banks)) {
+        $allowed = [] === $senderDomains ? (null === $from || '' === $from ? [] : [$from]) : array_map(TrustSettings::name(...), $senderDomains);
+        if (null === $from || !$this->isAllowed($from, $allowed)) {
             return new Verdict(Verdict::FAILED, Verdict::SENDER);
         }
 
         $all = array_map($this->parser->parse(...), $mail->headers('Authentication-Results'));
         $trusted = [] !== $all && $this->settings->trustsAuthserv($all[0]['authserv'], $channel);
-        $rescued = $trusted && $this->claims($all[0]['results'], 'arc', 'pass') && $this->arcVouches($mail, $from, $banks);
+        $rescued = $trusted && $this->claims($all[0]['results'], 'arc', 'pass') && $this->arcVouches($mail, $from, $allowed);
         // A fail counts from every header, whoever wrote it: claiming one can only make the verdict stricter.
-        if (array_any($all, fn (array $header): bool => $this->aligned($header['results'], 'dmarc', 'fail', 'header.from', $from, $banks))) {
+        if (array_any($all, fn (array $header): bool => $this->aligned($header['results'], 'dmarc', 'fail', 'header.from', $from, $allowed))) {
             return new Verdict(Verdict::FAILED, Verdict::DMARC_FAIL);
         }
         foreach ($all as $index => $header) {
             // The ARC rescue overrides a broken signature in the trusted header alone.
-            if ((0 !== $index || !$rescued) && $this->aligned($header['results'], 'dkim', 'fail', 'header.d', $from, $banks)) {
+            if ((0 !== $index || !$rescued) && $this->aligned($header['results'], 'dkim', 'fail', 'header.d', $from, $allowed)) {
                 return new Verdict(Verdict::FAILED, Verdict::DKIM_FAIL);
             }
         }
@@ -84,7 +85,7 @@ final readonly class SenderVerdict
 
         $results = $all[0]['results'];
         $contested = $this->contestedSigners($results);
-        if (array_any($contested, fn (string $signer): bool => $this->isWithin($from, $signer) && $this->isBanks($signer, $banks))) {
+        if (array_any($contested, fn (string $signer): bool => $this->isWithin($from, $signer) && $this->isAllowed($signer, $allowed))) {
             return new Verdict(Verdict::FAILED, Verdict::DKIM_FAIL);
         }
         $dmarc = array_values(array_filter($results, static fn (array $result): bool => 'dmarc' === $result['method']));
@@ -94,7 +95,7 @@ final readonly class SenderVerdict
         if (array_any(\array_slice($all, 1), fn (array $lower): bool => $this->settings->trustsAuthserv($lower['authserv'], $channel))) {
             return new Verdict(Verdict::FAILED, Verdict::PLANTED);
         }
-        if (!$rescued && !$this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $banks)) {
+        if (!$rescued && !$this->aligned($dmarc, 'dmarc', 'pass', 'header.from', $from, $allowed)) {
             return new Verdict(Verdict::UNKNOWN, Verdict::UNSIGNED);
         }
 
@@ -125,7 +126,7 @@ final readonly class SenderVerdict
      * The sender's domain when the message names exactly one sender: a second
      * From header, or a second address in it, could show the reader one sender
      * while the signature covers another. An address without a domain gives an
-     * empty one, which is no bank's.
+     * empty one, which is no allowed domain.
      */
     private function soleSenderDomain(InboundMail $mail): ?string
     {
@@ -138,11 +139,11 @@ final readonly class SenderVerdict
     }
 
     /**
-     * @param list<string> $banks
+     * @param list<string> $allowed
      */
-    private function isBanks(string $domain, array $banks): bool
+    private function isAllowed(string $domain, array $allowed): bool
     {
-        return array_any($banks, fn (string $bank): bool => $this->isWithin($domain, $bank));
+        return array_any($allowed, fn (string $allowedDomain): bool => $this->isWithin($domain, $allowedDomain));
     }
 
     /**
@@ -157,19 +158,19 @@ final readonly class SenderVerdict
 
     /**
      * Whether a result of the method has the outcome for a domain the sender's
-     * domain aligns with and which is itself one of the bank's.
+     * domain aligns with and which is itself one of the allowed domains.
      *
      * @param list<array{method: string, result: string, props: array<string, string>}> $results
-     * @param list<string>                                                              $banks
+     * @param list<string>                                                              $allowed
      */
-    private function aligned(array $results, string $method, string $outcome, string $property, string $from, array $banks): bool
+    private function aligned(array $results, string $method, string $outcome, string $property, string $from, array $allowed): bool
     {
         foreach ($results as $result) {
             if ($method !== $result['method'] || $outcome !== $result['result']) {
                 continue;
             }
             $domain = TrustSettings::name($result['props'][$property] ?? '');
-            if ($this->isWithin($from, $domain) && $this->isBanks($domain, $banks)) {
+            if ($this->isWithin($from, $domain) && $this->isAllowed($domain, $allowed)) {
                 return true;
             }
         }
@@ -192,9 +193,9 @@ final readonly class SenderVerdict
      * that domain is trusted and wrote them. Anything unclear, such as two sets
      * of one instance or a set without its seal, vouches for nothing.
      *
-     * @param list<string> $banks
+     * @param list<string> $allowed
      */
-    private function arcVouches(InboundMail $mail, string $from, array $banks): bool
+    private function arcVouches(InboundMail $mail, string $from, array $allowed): bool
     {
         $results = [];
         foreach ($mail->headers('ARC-Authentication-Results') as $header) {
@@ -225,6 +226,6 @@ final readonly class SenderVerdict
 
         return $this->settings->trustsArcSealer($sealer)
             && $this->isWithin(TrustSettings::name($sealed['authserv']), $sealer)
-            && $this->aligned($sealed['results'], 'dkim', 'pass', 'header.d', $from, $banks);
+            && $this->aligned($sealed['results'], 'dkim', 'pass', 'header.d', $from, $allowed);
     }
 }

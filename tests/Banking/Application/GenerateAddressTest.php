@@ -26,10 +26,10 @@ use Foresi\Mail\Application\InboundToken;
 use Foresi\Mail\Application\IssueAddresses;
 use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Domain\InboundAddress;
-use Foresi\Shared\Application\Sealer;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -262,10 +262,7 @@ final class GenerateAddressTest extends KernelTestCase
 
     private function store(): InboundAddressStore
     {
-        $store = self::getContainer()->get('test.mail_address_store');
-        self::assertInstanceOf(InboundAddressStore::class, $store);
-
-        return $store;
+        return self::getContainer()->get(InboundAddressStore::class);
     }
 
     private function directory(): BankFeedDirectory

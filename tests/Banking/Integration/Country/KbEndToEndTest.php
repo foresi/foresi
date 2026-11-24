@@ -14,17 +14,18 @@ use Foresi\Banking\Application\BankFeeds;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\InboundProcessing;
 use Foresi\Banking\Application\ProcessInboundMessage;
-use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Application\InboundFiles;
 use Foresi\Mail\Application\InboundPurposes;
-use Foresi\Mail\Application\MailTransaction;
+use Foresi\Mail\Application\MailMessages;
 use Foresi\Mail\Application\MailReader;
+use Foresi\Mail\Application\MailTransaction;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Domain\InboundChannel;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 use Psr\Clock\ClockInterface;
@@ -196,9 +197,9 @@ final class KbEndToEndTest extends InboundTestCase
         $receive = new ReceiveMail(
             $container->get(MailReader::class),
             $container->get(InboundAddresses::class),
-            $container->get('test.mail_address_store'),
+            $container->get(InboundAddressStore::class),
             new InboundPurposes([$purpose]),
-            $container->get('test.mail_messages'),
+            $container->get(MailMessages::class),
             $container->get(InboundFiles::class),
             $container->get(SenderVerdict::class),
             $container->get(MailTransaction::class),

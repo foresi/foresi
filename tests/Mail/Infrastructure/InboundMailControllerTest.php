@@ -10,11 +10,10 @@ namespace Foresi\Tests\Mail\Infrastructure;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Application\ReceiveMail;
-use Foresi\Tests\Support\Mail\MailKit;
-use Foresi\Tests\Support\Mail\RecordingPurpose;
+use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Mail\MailKit;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;

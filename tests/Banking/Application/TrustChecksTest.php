@@ -10,7 +10,6 @@ namespace Foresi\Tests\Banking\Application;
 
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
-
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 

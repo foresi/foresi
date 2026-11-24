@@ -16,8 +16,8 @@ use Foresi\Mail\Contract\MailAttachmentContent;
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\DateHeader;
 use ZBateson\MailMimeParser\IMessage;
-use ZBateson\MailMimeParser\Message\IMessagePart;
 use ZBateson\MailMimeParser\MailMimeParser;
+use ZBateson\MailMimeParser\Message\IMessagePart;
 
 /**
  * Reads mail with zbateson/mail-mime-parser, the only code that touches the

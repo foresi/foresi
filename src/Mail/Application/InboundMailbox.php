@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Mail\Application;
 
 /**
- * Port: the one operator mailbox that bank mail arrives in. Handled messages
+ * Port: the one operator mailbox that inbound mail arrives in. Handled messages
  * are moved out of the inbox into Foresi/Done, Foresi/Unknown or
  * Foresi/Rejected, never deleted and never only marked seen, so an operator
  * who opens the mailbox loses nothing. A message is moved only after it was

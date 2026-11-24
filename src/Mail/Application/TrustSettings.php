@@ -15,7 +15,7 @@ use Foresi\Mail\Domain\InboundChannel;
  * message took, named by the authserv-id they write into Authentication-Results,
  * and the forwarders whose ARC seal may vouch for a signature broken on the way.
  *
- * The receiving servers are set per channel, as the bank inbox polled over IMAP
+ * The receiving servers are set per channel, as the operator mailbox polled over IMAP
  * and a relay that posts to the webhook are different paths with servers of their
  * own: the inbox's are never trusted for the webhook, nor the relay's for the
  * inbox. All are set by the operator; with none for a channel, no message that
@@ -31,7 +31,7 @@ final readonly class TrustSettings
     private array $arcSealers;
 
     /**
-     * @param list<string> $authservIds        the authserv-ids of the bank inbox's own receiving servers (IMAP)
+     * @param list<string> $authservIds        the authserv-ids of the operator mailbox's own receiving servers (IMAP)
      * @param list<string> $arcSealers         the signing domains (d=) of trusted ARC sealers
      * @param list<string> $webhookAuthservIds the authserv-ids of the receiving servers of the relay that posts to the webhook
      */

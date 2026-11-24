@@ -9,19 +9,19 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Infrastructure;
 
 use Doctrine\DBAL\Connection;
-use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\FeedRoute;
+use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Identity\Domain\Role;
 use Foresi\Mail\Application\InboundAddresses;
 use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Application\InboundToken;
 use Foresi\Mail\Domain\InboundAddress;
-use Foresi\Shared\Application\Sealer;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -451,9 +451,7 @@ final class FirmBankControllerTest extends WebTestCase
      */
     private function route(string $tokenHash): ?FeedRoute
     {
-        $store = self::getContainer()->get('test.mail_address_store');
-        self::assertInstanceOf(InboundAddressStore::class, $store);
-        $address = $store->routable($tokenHash);
+        $address = self::getContainer()->get(InboundAddressStore::class)->routable($tokenHash);
 
         return $address instanceof InboundAddress ? new DoctrineBankFeedDirectory($this->connection())->route($address->id()) : null;
     }

@@ -106,9 +106,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
             ->args([RecordingPurpose::KEY, false]);
         $services->set('test.mail_purpose_reshowable', RecordingPurpose::class)
             ->args([RecordingPurpose::RESHOWABLE_KEY, true]);
-        // Public for the tests, which drive them directly.
-        $services->alias('test.mail_messages', MailMessages::class)->public();
-        $services->alias('test.mail_address_store', InboundAddressStore::class)->public();
     }
 
     if ('e2e' === $container->env()) {

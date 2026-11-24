@@ -19,7 +19,7 @@ enum ReceiveOutcome
     case Duplicate;
     /** No recipient names an inbound address of this server; nothing was kept. */
     case UnknownRecipient;
-    /** Larger than any bank notification; nothing was kept. */
+    /** Larger than any notification; nothing was kept. */
     case TooLarge;
     /** Not a mail message; nothing was kept. */
     case Unreadable;

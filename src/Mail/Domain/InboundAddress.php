@@ -146,7 +146,7 @@ class InboundAddress implements Audited
 
     public function isRevoked(): bool
     {
-        return null !== $this->revokedAt;
+        return $this->revokedAt instanceof \DateTimeImmutable;
     }
 
     public function lastReceivedAt(): ?\DateTimeImmutable

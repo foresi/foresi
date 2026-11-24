@@ -312,7 +312,6 @@ final class ReceiveMailTest extends KernelTestCase
     private function filesWith(string $marker): array
     {
         $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
-        self::assertIsString($directory);
 
         return array_values(array_filter($this->storedFiles(), static fn (string $name): bool => str_contains((string) @file_get_contents($directory.'/'.$name), $marker)));
     }

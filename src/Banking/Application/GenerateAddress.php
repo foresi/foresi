@@ -43,7 +43,7 @@ final readonly class GenerateAddress
     {
         $unavailable = $this->issuer->unavailable(BankFeedPurpose::KEY);
         if ($unavailable instanceof AddressUnavailable) {
-            throw new AddressRefused(self::refusal($unavailable));
+            throw new AddressRefused($this->refusal($unavailable));
         }
 
         try {
@@ -66,11 +66,11 @@ final readonly class GenerateAddress
                 return $issued->address;
             });
         } catch (AddressNotIssued $refused) {
-            throw new AddressRefused(self::refusal($refused->reason));
+            throw new AddressRefused($this->refusal($refused->reason));
         }
     }
 
-    private static function refusal(AddressUnavailable $reason): AddressRefusal
+    private function refusal(AddressUnavailable $reason): AddressRefusal
     {
         return match ($reason) {
             AddressUnavailable::NotConfigured => AddressRefusal::NotConfigured,

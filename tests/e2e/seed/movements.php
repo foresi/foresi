@@ -9,7 +9,6 @@ declare(strict_types=1);
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairMovement;
-use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
@@ -24,6 +23,7 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -98,9 +98,14 @@ foreach ($mails as $kind => $raw) {
     $receiveMail->receive($raw, InboundChannel::Webhook);
     if ('stuck' === $kind) {
         // As if the queue had given up on it two hours ago, before reading it.
+        $stuckId = $entityManager->getConnection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]);
         $entityManager->getConnection()->executeStatement(
-            "UPDATE inbound_message SET status = 'received', trust = NULL, trust_basis = NULL, parser_id = NULL, parser_version = NULL, failure = NULL, failure_detail = NULL, attempts = 3, processed_at = NULL, received_at = ? WHERE raw_sha256 = ?",
-            [new DateTimeImmutable('-2 hours'), hash('sha256', $raw)],
+            "UPDATE inbound_message SET status = 'received', trust = NULL, trust_basis = NULL, parser_id = NULL, parser_version = NULL, failure = NULL, failure_detail = NULL, attempts = 3, processed_at = NULL WHERE id = ?",
+            [$stuckId],
+        );
+        $entityManager->getConnection()->executeStatement(
+            'UPDATE mail_message SET received_at = ? WHERE id = ?',
+            [new DateTimeImmutable('-2 hours'), $stuckId],
             [Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE],
         );
     }

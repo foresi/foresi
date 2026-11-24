@@ -15,8 +15,8 @@ namespace Foresi\Mail\Contract;
 final readonly class AuthenticationResult
 {
     /**
-     * @param string                                                                  $authservId lowercase, without a trailing dot
-     * @param bool                                                                    $trusted    whether the authserv-id is a receiving server trusted for the channel the message came by
+     * @param string                                                                    $authservId lowercase, without a trailing dot
+     * @param bool                                                                      $trusted    whether the authserv-id is a receiving server trusted for the channel the message came by
      * @param list<array{method: string, result: string, props: array<string, string>}> $results
      */
     public function __construct(
