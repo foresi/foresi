@@ -12,7 +12,6 @@ use Foresi\Attachment\Application\AttachmentFiles;
 use Foresi\Attachment\Application\Attachments;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Purchasing\Application\PurchasingUnit;
-use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\Reading\DocumentReadings;
 use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\Reading\ReadDocument;
@@ -20,6 +19,7 @@ use Foresi\Purchasing\Application\Reading\ReadingApplication;
 use Foresi\Purchasing\Application\Reading\ReadingMerge;
 use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
 use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Contract\Reading\DocumentFile;
 use Foresi\Purchasing\Contract\Reading\DocumentReader;
 use Foresi\Purchasing\Contract\Reading\ReaderFailed;
@@ -213,7 +213,7 @@ final class ReadDocumentTest extends PurchasingTestCase
     {
         $message = $this->uploaded();
         $this->readDocument($this->stub('isdoc', static fn (): ?Reading => null))->read($message);
-        $this->editing()->edit($message->documentId, $this->input(supplierNumber: 'TYPED-BY-PERSON', base: 50_000, taxPoint: null));
+        $this->editing()->edit($message->documentId, $this->input(supplierNumber: 'TYPED-BY-PERSON', taxPoint: null, base: 50_000));
 
         self::getContainer()->get(ReadAgain::class)->readAgain($message->documentId);
         $this->readDocument($this->stub('isdoc', static fn (): Reading => new Reading([

@@ -174,7 +174,7 @@ final readonly class ReadingApplication
         $filled = static fn (string $text): bool => '' !== trim($text);
 
         return match ($field) {
-            ReadField::Currency, ReadField::Total, ReadField::VatRecap => (null !== $document->total() && !$document->total()->isZero()) || !$document->vatRecap()->isEmpty(),
+            ReadField::Currency, ReadField::Total, ReadField::VatRecap => ($document->total() instanceof Money && !$document->total()->isZero()) || !$document->vatRecap()->isEmpty(),
             ReadField::Kind => $document->kind()->value !== $merged->get($field)?->value,
             ReadField::IssueDate => $document->issueDate() instanceof \DateTimeImmutable,
             ReadField::TaxPointDate => $document->taxPointDate() instanceof \DateTimeImmutable,

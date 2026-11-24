@@ -71,7 +71,7 @@ final readonly class ReadAgain
             if ($reading instanceof DocumentReading && !self::mayStart($reading, $now)) {
                 throw new ReceivedDocumentRefused(ReceivedDocumentRefused::READING_IN_PROGRESS);
             }
-            $keepTyped = $reading instanceof DocumentReading && self::touchedSince($reading, $document->version());
+            $keepTyped = $reading instanceof DocumentReading && $this->touchedSince($reading, $document->version());
             if ($reading instanceof DocumentReading) {
                 $reading->start($document->version(), $now);
             } else {
@@ -89,13 +89,13 @@ final readonly class ReadAgain
      * version that neither the reading was asked for nor the reading's own
      * save made. Such a draft keeps what a person typed.
      */
-    private static function touchedSince(DocumentReading $reading, int $version): bool
+    private function touchedSince(DocumentReading $reading, int $version): bool
     {
         $base = $reading->baseVersion();
         // A reading that took values saved the draft once.
         $own = ReadingState::Read === $reading->state() && [] !== $reading->applied();
 
-        return $version !== $base && !($own && $version === $base + 1);
+        return $version !== $base && (!$own || $version !== $base + 1);
     }
 
     /**
