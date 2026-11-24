@@ -10,7 +10,7 @@ namespace Foresi\Mail\Application;
 
 /**
  * The inbound addresses of this server, built from one template such as
- * "bank+{token}@example.com" (env BANK_INBOX_ADDRESS). The template holds the
+ * "bank+{token}@example.com" (env MAIL_INBOUND_ADDRESS). The template holds the
  * placeholder once, and the result is an e-mail address. An empty or malformed
  * template means inbound mail is not set up here, and no address is handed out.
  */

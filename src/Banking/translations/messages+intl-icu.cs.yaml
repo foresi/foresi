@@ -120,7 +120,7 @@ bank:
       flash:
         generated: 'Adresa pro {name} je připravená. Zadejte ji v bance.'
       refused:
-        not_configured: E-maily z banky nejsou na tomto serveru nastavené. Správce je zapne proměnnou BANK_INBOX_ADDRESS.
+        not_configured: E-maily z banky nejsou na tomto serveru nastavené. Správce je zapne proměnnou MAIL_INBOUND_ADDRESS.
         no_key: 'Adresu nejde uložit: na serveru chybí klíč MAIL_SECRET_KEYS.'
         archived: Archivovaný účet adresu nedostane. Nejdřív ho obnovte.
         conflict: Adresa se mezitím vygenerovala jinde. Zkontrolujte ji a případně vygenerujte novou.

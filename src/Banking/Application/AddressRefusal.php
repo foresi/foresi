@@ -13,7 +13,7 @@ namespace Foresi\Banking\Application;
  */
 enum AddressRefusal: string
 {
-    /** The server has no address template (BANK_INBOX_ADDRESS). */
+    /** The server has no address template (MAIL_INBOUND_ADDRESS). */
     case NotConfigured = 'not_configured';
     /** No key seals the token (MAIL_SECRET_KEYS). */
     case NoKey = 'no_key';

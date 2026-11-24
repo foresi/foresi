@@ -11,7 +11,7 @@ namespace Foresi\Mail\Infrastructure\Imap;
 use Foresi\Mail\Application\InboundMailbox;
 
 /**
- * No operator mailbox is set (BANK_INBOX_HOST is empty): polling finds nothing,
+ * No operator mailbox is set (MAIL_INBOUND_HOST is empty): polling finds nothing,
  * and mail can still arrive by the webhook.
  */
 final readonly class DisabledInboundMailbox implements InboundMailbox

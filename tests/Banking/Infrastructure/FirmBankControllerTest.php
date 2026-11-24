@@ -270,7 +270,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testWithoutAnAddressTemplateGeneratingIsRefused(): void
     {
-        $this->changeEnv('BANK_INBOX_ADDRESS', '');
+        $this->changeEnv('MAIL_INBOUND_ADDRESS', '');
         $this->signedInFirm();
         $account = $this->withAccount();
 

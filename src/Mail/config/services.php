@@ -66,24 +66,26 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');
 
     $services->alias(MailReader::class, ZbatesonMailReader::class);
+    // MAIL_INBOUND_* settings; an installation that still sets the old BANK_INBOX_* names keeps
+    // working for one more release, with a deprecation warning (LegacyMailSettings).
     // Whose authentication results are believed, per channel; empty lists verify no message.
     // The webhook has its own list and never falls back to the mailbox's.
     $services->set(TrustSettings::class)
-        ->arg('$authservIds', '%env(csv:BANK_INBOX_TRUSTED_AUTHSERV)%')
-        ->arg('$arcSealers', '%env(csv:BANK_INBOX_TRUSTED_ARC)%')
+        ->arg('$authservIds', '%env(csv:mail_inbound:TRUSTED_AUTHSERV)%')
+        ->arg('$arcSealers', '%env(csv:mail_inbound:TRUSTED_ARC)%')
         ->arg('$webhookAuthservIds', '%env(csv:INBOUND_WEBHOOK_TRUSTED_AUTHSERV)%');
     // The inbound address template; empty means inbound mail is not set up here.
     $services->set(InboundAddresses::class)
-        ->arg('$template', '%env(string:BANK_INBOX_ADDRESS)%');
-    // The operator mailbox mail is polled from; none when BANK_INBOX_HOST is empty.
+        ->arg('$template', '%env(string:mail_inbound:ADDRESS)%');
+    // The operator mailbox mail is polled from; none when MAIL_INBOUND_HOST is empty.
     $services->set(InboundMailbox::class)
         ->factory([ImapInboundMailbox::class, 'fromSettings'])
-        ->arg('$host', '%env(string:BANK_INBOX_HOST)%')
-        ->arg('$port', '%env(int:BANK_INBOX_PORT)%')
-        ->arg('$encryption', '%env(string:BANK_INBOX_ENCRYPTION)%')
-        ->arg('$user', '%env(string:BANK_INBOX_USER)%')
-        ->arg('$password', '%env(string:BANK_INBOX_PASSWORD)%')
-        ->arg('$folder', '%env(string:BANK_INBOX_FOLDER)%');
+        ->arg('$host', '%env(string:mail_inbound:HOST)%')
+        ->arg('$port', '%env(int:mail_inbound:PORT)%')
+        ->arg('$encryption', '%env(string:mail_inbound:ENCRYPTION)%')
+        ->arg('$user', '%env(string:mail_inbound:USER)%')
+        ->arg('$password', '%env(string:mail_inbound:PASSWORD)%')
+        ->arg('$folder', '%env(string:mail_inbound:FOLDER)%');
     // How often a message of the operator mailbox failed, across polls.
     $services->alias(PollFailures::class, CachePollFailures::class);
     $services->alias(InboundFiles::class, DiskInboundFiles::class);

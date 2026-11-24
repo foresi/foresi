@@ -63,7 +63,7 @@ final class ImapInboundMailbox implements InboundMailbox
     ) {
         $encryption = strtolower(trim($encryption));
         if (!\in_array($encryption, self::ENCRYPTIONS, true)) {
-            throw new \InvalidArgumentException('BANK_INBOX_ENCRYPTION is ssl or starttls.');
+            throw new \InvalidArgumentException('MAIL_INBOUND_ENCRYPTION is ssl or starttls.');
         }
         $this->encryption = $encryption;
     }
