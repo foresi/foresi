@@ -27,7 +27,7 @@ final class HtmlText
 
     public static function of(string $html): string
     {
-        if ('' === trim($html)) {
+        if ('' === $html) {
             return '';
         }
         // Every character beyond ASCII goes in as a numeric reference, so a charset the
@@ -36,7 +36,7 @@ final class HtmlText
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
         try {
-            $loaded = $document->loadHTML($ascii, \LIBXML_NONET | \LIBXML_NOERROR | \LIBXML_NOWARNING);
+            $loaded = $document->loadHTML($ascii, \LIBXML_NONET);
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
@@ -62,7 +62,7 @@ final class HtmlText
         if ($node instanceof \DOMText) {
             return str_replace(["\r", "\n"], ' ', $node->data);
         }
-        $name = $node instanceof \DOMElement ? strtolower($node->tagName) : '';
+        $name = $node instanceof \DOMElement ? $node->tagName : '';
         if (\in_array($name, self::INVISIBLE, true) || $node instanceof \DOMComment) {
             return '';
         }

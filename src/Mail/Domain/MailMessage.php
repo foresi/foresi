@@ -112,7 +112,7 @@ class MailMessage
         $this->sentAt = $sentAt?->setTimezone(new \DateTimeZone('UTC'));
         $this->messageIdHeader = $this->header($messageIdHeader);
         $this->inReplyTo = $this->header($inReplyTo);
-        $references = array_values(array_filter(array_map(trim(...), $references), static fn (string $id): bool => '' !== $id));
+        $references = array_filter(array_map(trim(...), $references), static fn (string $id): bool => '' !== $id);
         $this->references = [] === $references ? null : implode(' ', $references);
     }
 
