@@ -13,6 +13,7 @@ use Foresi\Party\Application\NoFirmYet;
 use Foresi\Purchasing\Application\PayReceivedDocument;
 use Foresi\Purchasing\Application\PurchasingAccess;
 use Foresi\Purchasing\Application\PurchasingRefused;
+use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
@@ -49,6 +50,7 @@ final readonly class ReceivedDocumentWrites
         private PurchasingAccess $access,
         private ReceivedDocuments $documents,
         private SetReceivedDocumentLines $settingLines,
+        private ReadAgain $readingAgain,
     ) {
     }
 
@@ -95,6 +97,20 @@ final readonly class ReceivedDocumentWrites
         $lines = $this->lines($input->lines, $currency);
 
         return $this->refusing(fn (): string => $this->settingLines->set($input->documentId, $lines)->id());
+    }
+
+    /**
+     * @throws PurchasingRefused
+     * @throws \Foresi\Purchasing\Application\PurchasingNotAllowed
+     * @throws UnknownReceivedDocument
+     */
+    public function readAgain(ReadReceivedDocumentAgainInput $input): string
+    {
+        return $this->refusing(function () use ($input): string {
+            $this->readingAgain->readAgain($input->documentId);
+
+            return $input->documentId;
+        });
     }
 
     /**

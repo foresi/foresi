@@ -40,6 +40,7 @@ Each uploaded file is read in the background, and what it finds fills the draft 
 - **Create supplier.** When no contact has the supplier's numbers, the button beside the supplier opens the new contact dialog filled with the name, registration number and VAT ID read; its registry lookup completes the rest.
 - **Read again** in the menu of the page header reads the file of a draft once more, with the readers that run only on request. It is refused with `reading_in_progress` while a reading asked for less than 10 minutes ago runs (an older one counts as stuck), with `no_original_file` for a draft without a file, and for a recorded document or one in the trash.
 - **To review** lists the drafts whose file was read, whatever it found, until they are recorded.
+- **Over the API and MCP** the detail of a document has `source` and `reading`: the state, the sources, each value found with its source and whether the draft took it (`applied`) or left it as a suggestion, the warnings, and `failure` as a code, never a reader's or provider's text. A matched supplier is the field `supplier_name`. `POST /api/v1/received-documents/{documentId}/read-again` (`foresi_read_received_document_again`) asks for the reading again and answers `202` at once; it is refused with the same reasons as the screen, each as `409`. The list takes `reading` and `source`, and the view `purchasing.received.to_review`. See [REST](api.md#received-documents) and [MCP](mcp.md).
 
 ### Evidence number
 

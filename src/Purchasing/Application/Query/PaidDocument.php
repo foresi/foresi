@@ -9,11 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Query;
 
 use Foresi\Purchasing\Application\PaymentBalance;
+use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 
 /**
- * A received document with its payments and what remains, for the API and MCP.
+ * A received document with its payments and what remains, and the reading of its file, for the API and MCP.
  */
 final readonly class PaidDocument
 {
@@ -24,6 +25,7 @@ final readonly class PaidDocument
         public ReceivedDocument $document,
         public PaymentBalance $balance,
         public array $payments,
+        public ?DocumentReading $reading = null,
     ) {
     }
 }
