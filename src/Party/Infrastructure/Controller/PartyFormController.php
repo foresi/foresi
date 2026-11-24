@@ -59,7 +59,7 @@ final class PartyFormController extends AbstractController
     /** The query value of a new contact started from the contact list. */
     public const string FOR_CONTACTS = 'contacts';
     /** The values a new contact may be opened with from its URL, with the length each is cut to. */
-    private const array PREFILL = ['displayName' => 255, 'registrationNumber' => 64, 'vatId' => 64, 'countryCode' => 2];
+    private const array PREFILL = ['displayName' => 255, 'registrationNumber' => 64, 'vatId' => 64];
 
     public function __construct(
         private readonly PartyQuery $parties,
@@ -281,9 +281,10 @@ final class PartyFormController extends AbstractController
                 $prefilled[$field] = mb_substr(trim($value), 0, $length);
             }
         }
-        $country = strtoupper($prefilled['countryCode'] ?? '');
-        unset($prefilled['countryCode']);
-        if (1 === preg_match('/^[A-Z]{2}$/D', $country)) {
+        // A country the form offers, or none: the address and the registration keep their default.
+        $country = $request->query->get('countryCode');
+        $country = \is_string($country) ? strtoupper(trim($country)) : '';
+        if (CountryOptions::supports($country) && \in_array($country, CountryOptions::CODES, true)) {
             $prefilled['countryCode'] = $country;
             $prefilled['registrationCountry'] = $country;
         }

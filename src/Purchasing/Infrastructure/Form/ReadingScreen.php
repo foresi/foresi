@@ -71,9 +71,12 @@ final readonly class ReadingScreen
         $draft = !$document->isRecorded();
         $now = \DateTimeImmutable::createFromInterface($this->clock->now());
 
+        // A reading asked for long ago that never finished is stuck: it shows as failed, to read again.
+        $stuck = $reading->isRunning() && ReadAgain::mayStart($reading, $now);
+
         return [
-            'state' => $reading->state()->value,
-            'live' => ReadingState::Reading === $reading->state(),
+            'state' => $stuck ? ReadingState::Failed->value : $reading->state()->value,
+            'live' => $reading->isRunning() && !$stuck,
             'sources' => implode(', ', array_map(fn (string $source): string => $this->translator->trans('purchasing.reading.source.'.$source), $this->sources($read))),
             'warnings' => array_map(fn (string $code): string => $this->translator->trans('purchasing.warning.'.$code), $reading->warnings()),
             'retry' => $draft && null !== $document->originalAttachmentId() && ReadAgain::mayStart($reading, $now),

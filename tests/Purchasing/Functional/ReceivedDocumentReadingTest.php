@@ -10,6 +10,8 @@ namespace Foresi\Tests\Purchasing\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\ExchangeRate\Contract\RateSource;
+use Foresi\Identity\Domain\Membership;
+use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\LegalEntity;
@@ -42,6 +44,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 final class ReceivedDocumentReadingTest extends WebTestCase
 {
     private KernelBrowser $client;
+    private MockClock $clock;
     private SignedInBrowser $browser;
     private Party $supplier;
     /** @var list<string> */
@@ -49,7 +52,8 @@ final class ReceivedDocumentReadingTest extends WebTestCase
 
     protected function setUp(): void
     {
-        Clock::set(new MockClock('2026-11-10 09:00:00', 'UTC'));
+        $this->clock = new MockClock('2026-11-10 09:00:00', 'UTC');
+        Clock::set($this->clock);
         $this->client = self::createClient();
         $this->client->disableReboot();
         $rates = new FakeRateSource();
@@ -156,6 +160,95 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         self::assertCount(1, $rows);
         self::assertCount(1, $rows->filter('a[href="/purchasing/'.$read.'"]'));
         self::assertStringContainsString('Read', $rows->text());
+    }
+
+    public function testThePolledFrameOfADraftThatLeftIsEmpty(): void
+    {
+        $id = $this->draft("%PDF-1.4\nStill being read\n%%EOF", 'waiting.pdf');
+
+        $frame = $this->page('/purchasing/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
+        self::assertCount(1, $frame);
+        self::assertSame('true', $frame->filter('[data-progress-active]')->attr('data-progress-active'));
+
+        $this->client->request('POST', '/purchasing/'.$id.'/trash', ['_token' => $this->token('/purchasing/'.$id), 'reason' => 'Twice'], server: ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertTrue($this->document($id)->isTrashed());
+
+        // No reading to show: an empty frame, which stops the polling, never an error.
+        $frame = $this->page('/purchasing/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
+        self::assertCount(1, $frame);
+        self::assertCount(0, $frame->filter('[data-progress-active], [data-purchasing-reading]'));
+    }
+
+    public function testAReadingStuckForTenMinutesShowsAsFailedWithReadAgain(): void
+    {
+        $id = $this->draft("%PDF-1.4\nNever read\n%%EOF", 'stuck.pdf');
+        $crawler = $this->page('/purchasing/'.$id);
+        self::assertCount(1, $crawler->filter('turbo-frame[data-controller="import-progress"] [data-purchasing-reading="reading"]'));
+        self::assertCount(0, $crawler->filter('[data-page-actions] form[action="/purchasing/'.$id.'/read-again"]'));
+
+        $this->clock->modify('+11 minutes');
+
+        $crawler = $this->page('/purchasing/'.$id);
+        self::assertCount(1, $crawler->filter('[data-purchasing-reading="failed"]'));
+        self::assertCount(0, $crawler->filter('turbo-frame[data-controller]'), 'No endless polling.');
+        self::assertCount(1, $crawler->filter('[data-page-actions] form[action="/purchasing/'.$id.'/read-again"]'));
+        self::assertCount(0, $this->page('/purchasing/'.$id.'/reading')->filter('[data-progress-active="true"]'));
+    }
+
+    public function testReadAgainAndAcceptRefuseABadTokenAndAGuest(): void
+    {
+        $id = $this->draft(IsdocFixtures::invoice(), 'invoice.isdoc');
+        $this->readQueued();
+        $version = (string) $this->document($id)->version();
+        $posts = [
+            '/purchasing/'.$id.'/read-again' => [],
+            '/purchasing/'.$id.'/accept-reading' => ['version' => $version, 'fields' => ['total']],
+        ];
+        foreach ($posts as $url => $values) {
+            $this->client->request('POST', $url, ['_token' => 'not-the-token'] + $values);
+            self::assertResponseStatusCodeSame(403, $url);
+        }
+        $token = $this->token('/purchasing/'.$id);
+
+        $this->scopedGuest();
+        foreach ($posts as $url => $values) {
+            $this->client->request('POST', $url, ['_token' => $token] + $values);
+            self::assertResponseStatusCodeSame(403, $url);
+        }
+        self::assertSame((int) $version, $this->document($id)->version(), 'Nothing changed.');
+    }
+
+    public function testTheNewContactTakesItsPrefillAsPlainCutValues(): void
+    {
+        $query = http_build_query(['displayName' => '<script>alert(1)</script>', 'registrationNumber' => str_repeat('1', 100), 'vatId' => 'CZ12345678', 'countryCode' => 'XX']);
+        $dialog = $this->dialog('/contacts/new?'.$query);
+        self::assertStringNotContainsString('<script>alert(1)</script>', (string) $this->client->getResponse()->getContent());
+        self::assertSame('<script>alert(1)</script>', $dialog->filter('#displayName')->attr('value'));
+        self::assertSame(str_repeat('1', 64), $dialog->filter('#registrationNumber')->attr('value'));
+        self::assertSame('CZ12345678', $dialog->filter('input[name="vatId"]')->attr('value'));
+        // A country the form does not offer is left out: both keep the default.
+        self::assertSame('CZ', $dialog->filter('input[name="registrationCountry"]')->attr('value'));
+        self::assertSame('CZ', $dialog->filter('#countryCode option[selected]')->attr('value'));
+
+        $dialog = $this->dialog('/contacts/new?countryCode=sk');
+        self::assertSame('SK', $dialog->filter('input[name="registrationCountry"]')->attr('value'));
+        self::assertSame('SK', $dialog->filter('#countryCode option[selected]')->attr('value'));
+        // The page form names the same fields.
+        $page = $this->page('/contacts/new?countryCode=SK');
+        self::assertSame('SK', $page->filter('#registrationCountry option[selected]')->attr('value'));
+        self::assertSame('SK', $page->filter('#countryCode option[selected]')->attr('value'));
+    }
+
+    /**
+     * The person signed in becomes a guest of the organisation, the session kept.
+     */
+    private function scopedGuest(): void
+    {
+        $this->em()->clear();
+        $membership = $this->em()->getRepository(Membership::class)->findOneBy([]) ?? throw new \LogicException('No membership.');
+        $party = $this->em()->find(Party::class, $this->supplier->id()) ?? throw new \LogicException('No party.');
+        $membership->changeRole(Role::Guest, $party);
+        $this->em()->flush();
     }
 
     /**
