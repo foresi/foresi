@@ -53,8 +53,8 @@ final readonly class MarginTableTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'from' => ['type' => 'string', 'pattern' => '^[0-9]{4}-(0[1-9]|1[0-2])$', 'description' => 'The first month, YYYY-MM; two months before the last one when left out.'],
-                'to' => ['type' => 'string', 'pattern' => '^[0-9]{4}-(0[1-9]|1[0-2])$', 'description' => 'The last month, YYYY-MM; the current month when left out.'],
+                'from' => ['type' => 'string', 'description' => 'The first month, YYYY-MM; two months before the last one when left out.'],
+                'to' => ['type' => 'string', 'description' => 'The last month, YYYY-MM; the current month when left out.'],
             ],
             'additionalProperties' => false,
         ];

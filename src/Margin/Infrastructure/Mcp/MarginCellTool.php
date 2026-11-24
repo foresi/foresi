@@ -52,7 +52,7 @@ final readonly class MarginCellTool implements ReadTool
             'type' => 'object',
             'properties' => [
                 'row' => ['type' => 'string', 'description' => 'client:<contact id>, own or unassigned, as foresi_client_margin gives it.'],
-                'month' => ['type' => 'string', 'pattern' => '^[0-9]{4}-(0[1-9]|1[0-2])$', 'description' => 'The month, YYYY-MM.'],
+                'month' => ['type' => 'string', 'description' => 'The month, YYYY-MM.'],
             ],
             'required' => ['row', 'month'],
             'additionalProperties' => false,
