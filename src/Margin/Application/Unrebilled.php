@@ -68,6 +68,7 @@ final readonly class Unrebilled
             $client = strtolower($line->customerId);
             foreach ($this->pairings->occurrencesWithDocumentsFrom($item->id, $range->firstDay()) as $day) {
                 $month = $day->format('Y-m');
+                // @infection-ignore-all A day and an id are fixed in width, so every way of writing the key tells the three apart.
                 $key = $item->id.' '.$day->format('Y-m-d').' '.$client;
                 if (!$range->contains($month) || isset($flagged[$key]) || $month < $link->createdOn()->format('Y-m')) {
                     continue;
@@ -78,7 +79,8 @@ final readonly class Unrebilled
                 $flagged[$key] = new UnrebilledOccurrence($item->id, $item->name, $item->url, $day, $month, $client, $line->templateId, $line->url, $line->id);
             }
         }
-        $found = array_values($flagged);
+        // usort numbers the list again.
+        $found = $flagged;
         usort($found, static fn (UnrebilledOccurrence $one, UnrebilledOccurrence $two): int => [$one->occurrenceOn, $one->itemName, $one->plannedItemId, $one->recipientId] <=> [$two->occurrenceOn, $two->itemName, $two->plannedItemId, $two->recipientId]);
 
         return $found;

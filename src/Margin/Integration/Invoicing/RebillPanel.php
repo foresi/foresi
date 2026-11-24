@@ -69,6 +69,7 @@ final readonly class RebillPanel implements SlotProvider
     {
         $pairing = $this->pairings->ofLines([$lineId])[$lineId] ?? null;
 
+        // @infection-ignore-all monthLabel() reads a day as its month, so the cut only makes the call plain.
         return null === $pairing ? [] : [new SlotItem(self::PAIRING_BADGE, ['name' => $pairing->plannedItemName, 'month' => $this->screen->monthLabel(substr($pairing->occurrenceOn, 0, 7))])];
     }
 }

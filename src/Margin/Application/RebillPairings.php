@@ -89,9 +89,6 @@ final readonly class RebillPairings
     public function ofLines(array $invoiceLineIds): array
     {
         $this->access->denyUnlessStaff();
-        if ([] === $invoiceLineIds) {
-            return [];
-        }
         /** @var list<RebillPairing> $stored */
         $stored = $this->entityManager->getRepository(RebillPairing::class)->findBy(['invoiceLineId' => $invoiceLineIds]);
         $views = [];

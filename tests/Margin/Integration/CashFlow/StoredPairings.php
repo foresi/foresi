@@ -25,6 +25,9 @@ final class StoredPairings implements PlannedPairings
     /** @var list<array{FlowSubject, string}> */
     public array $pairs = [];
 
+    /** How many times the pairings of an item were read. */
+    public int $itemReads = 0;
+
     public function pair(string $documentId, string $on): void
     {
         $this->pairs[] = [new FlowSubject(CashFlowPairings::RECEIVED_DOCUMENT, $documentId), $on];
@@ -53,6 +56,8 @@ final class StoredPairings implements PlannedPairings
 
     public function ofItem(string $plannedItemId, \DateTimeImmutable $fromDay): array
     {
+        ++$this->itemReads;
+
         return array_values(array_map(static fn (array $pair): PairedSubject => new PairedSubject($pair[0], new \DateTimeImmutable($pair[1])), array_filter($this->pairs, static fn (array $pair): bool => self::ITEM === $plannedItemId && $pair[1] >= $fromDay->format('Y-m-d'))));
     }
 }

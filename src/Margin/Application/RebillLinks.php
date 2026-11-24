@@ -102,9 +102,6 @@ final readonly class RebillLinks
     public function ofLines(array $recurringLineIds): array
     {
         $this->access->denyUnlessStaff();
-        if ([] === $recurringLineIds) {
-            return [];
-        }
         /** @var list<RebillLink> $links */
         $links = $this->entityManager->getRepository(RebillLink::class)->findBy(['recurringLineId' => $recurringLineIds]);
         $views = [];

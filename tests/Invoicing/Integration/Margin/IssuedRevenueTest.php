@@ -89,6 +89,7 @@ final class IssuedRevenueTest extends AdvanceTestCase
         self::assertSame([$last->id()], array_map(static fn (RevenueDocument $document): string => $document->id, $november));
         self::assertSame([$first->id()], array_map(static fn (RevenueDocument $document): string => $document->id, $december));
         self::assertSame(['2026-11-30', 'Europe/Prague'], [$november[0]->taxPointOn->format('Y-m-d'), $november[0]->taxPointOn->getTimezone()->getName()]);
+        self::assertSame('2026-12-01', $december[0]->taxPointOn->format('Y-m-d'), 'The day of the document is its tax point, not its issue date.');
         $late = new \DateTimeImmutable('2026-11-30 23:30:00', new \DateTimeZone('UTC'));
         self::assertSame('2026-12-01', $late->setTimezone($zone)->format('Y-m-d'), 'It is already December in Prague.');
     }

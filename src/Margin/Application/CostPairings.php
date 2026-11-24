@@ -85,7 +85,6 @@ final readonly class CostPairings
                 $items[$item->id] = $item;
             }
         }
-        $items = array_values($items);
         usort($items, static fn (PlannedCostItem $a, PlannedCostItem $b): int => strcasecmp($a->name, $b->name));
 
         return $items;

@@ -75,7 +75,7 @@ final readonly class MarginTable
         }
 
         $clients = array_unique([...array_keys($revenue), ...array_keys($unrebilled), ...array_map(static fn (string $key): string => substr($key, \strlen(MarginRowView::CLIENT_PREFIX)), array_filter(array_keys($costs), static fn (string $key): bool => str_starts_with($key, MarginRowView::CLIENT_PREFIX)))]);
-        $rows = array_map(fn (string $id): MarginRowView => $this->row(MarginRowView::CLIENT_PREFIX.$id, 'client', $id, $this->nameOf($id), $range, $revenue[$id] ?? [], $costs[MarginRowView::CLIENT_PREFIX.$id] ?? [], $unrebilled[$id] ?? []), array_values($clients));
+        $rows = array_map(fn (string $id): MarginRowView => $this->row(MarginRowView::CLIENT_PREFIX.$id, 'client', $id, $this->nameOf($id), $range, $revenue[$id] ?? [], $costs[MarginRowView::CLIENT_PREFIX.$id] ?? [], $unrebilled[$id] ?? []), $clients);
         usort($rows, static fn (MarginRowView $one, MarginRowView $two): int => [$two->total->revenue->minor(), mb_strtolower($one->name ?? ''), $one->key] <=> [$one->total->revenue->minor(), mb_strtolower($two->name ?? ''), $two->key]);
         $rows[] = $this->row(MarginRowView::OWN, 'own', null, null, $range, [], $costs[MarginRowView::OWN]);
         $rows[] = $this->row(MarginRowView::UNASSIGNED, 'unassigned', null, null, $range, [], $costs[MarginRowView::UNASSIGNED]);
