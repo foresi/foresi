@@ -14,6 +14,8 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Purchasing\Application\NoDocumentLock;
 use Foresi\Purchasing\Application\Reading\ReadingApplication;
+use Foresi\Purchasing\Application\Reading\SupplierMatch;
+use Foresi\Purchasing\Application\Reading\SupplierMatching;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Contract\Reading\ReadField;
 use Foresi\Purchasing\Contract\Reading\Reading;
@@ -166,7 +168,12 @@ final class ReadingApplicationTest extends TestCase
 
     private function application(): ReadingApplication
     {
-        return new ReadingApplication(new NoDocumentLock());
+        return new ReadingApplication(new NoDocumentLock(), new class implements SupplierMatching {
+            public function match(Reading $reading): SupplierMatch
+            {
+                return SupplierMatch::none();
+            }
+        });
     }
 
     /**

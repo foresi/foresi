@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Reading;
 
+use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\Party;
 use Foresi\Purchasing\Application\DocumentLock;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Contract\Reading\ReadField;
@@ -16,6 +18,7 @@ use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
+use Foresi\Purchasing\Domain\SupplierSnapshot;
 use Foresi\Purchasing\Domain\VatRate;
 use Foresi\Purchasing\Domain\VatRecapLine;
 use Foresi\Purchasing\Domain\VatRecapRow;
@@ -35,9 +38,14 @@ use Foresi\Shared\Domain\Money;
  * draft typed by a person may differ by its rounding: a structured reading
  * states both exactly.
  *
- * The supplier, its identity and the bank account are never written into the
- * draft from here; they go through supplier matching or stay in the reading.
- * The treatment is the draft's: a reading does not say it.
+ * The supplier is matched to one active party (SupplierMatching) and written
+ * with the other values, under the same rule and in the same save, only when
+ * the draft has none: a supplier the draft has is never replaced. A draft that
+ * was touched only gets the match as a suggestion. When nobody matches, the
+ * draft's supplier snapshot takes the name and numbers the reading names, so
+ * the detail can offer to create the supplier; two matches set nothing. The
+ * bank account is never written. The treatment is the draft's: a reading does
+ * not say it.
  */
 final readonly class ReadingApplication
 {
@@ -47,7 +55,7 @@ final readonly class ReadingApplication
     private const array KIND = [ReadField::Kind];
     private const array TEXTS = [ReadField::SupplierNumber, ReadField::VariableSymbol];
 
-    public function __construct(private DocumentLock $lock)
+    public function __construct(private DocumentLock $lock, private SupplierMatching $matching)
     {
     }
 
@@ -57,11 +65,16 @@ final readonly class ReadingApplication
     public function apply(ReceivedDocument $document, Reading $merged, int $baseVersion): AppliedReading
     {
         $fields = $this->applicable($merged);
-        if ([] === $fields) {
-            return new AppliedReading([], [], []);
-        }
+        $supplier = $this->supplier($document, $merged);
+        $warning = null === $supplier?->warning ? [] : [$supplier->warning];
         if (!$this->untouched($document, $baseVersion)) {
-            return new AppliedReading([], $fields, []);
+            $suggested = $supplier?->party instanceof Party ? [...$fields, ReadField::SupplierName] : $fields;
+
+            return new AppliedReading([], $suggested, $warning);
+        }
+        $write = $this->supplierWrite($supplier, $merged);
+        if ([] === $fields && null === $write) {
+            return new AppliedReading([], [], $warning);
         }
         $left = [];
         foreach ([[], self::AMOUNTS, self::DATES, self::KIND] as $group) {
@@ -70,17 +83,74 @@ final readonly class ReadingApplication
             }
             $left = [...$left, ...$group];
             $taken = array_values(array_filter($fields, static fn (ReadField $field): bool => !\in_array($field, $left, true)));
-            if ([] === $taken) {
+            if ([] === $taken && null === $write) {
                 break;
             }
-            if ($this->save($document, $merged, $taken)) {
+            if ($this->save($document, $merged, $taken, $write)) {
                 $suggested = array_values(array_filter($fields, static fn (ReadField $field): bool => !\in_array($field, $taken, true)));
 
-                return new AppliedReading($taken, $suggested, [] === $suggested ? [] : [ReceivedDocumentWarning::READING_PARTLY_APPLIED]);
+                return new AppliedReading(
+                    [...$taken, ...($write->fields ?? [])],
+                    $suggested,
+                    [...([] === $suggested ? [] : [ReceivedDocumentWarning::READING_PARTLY_APPLIED]), ...$warning],
+                );
             }
         }
+        $suggested = $supplier?->party instanceof Party ? [...$fields, ReadField::SupplierName] : $fields;
 
-        return new AppliedReading([], $fields, [ReceivedDocumentWarning::READING_PARTLY_APPLIED]);
+        return new AppliedReading([], $suggested, [ReceivedDocumentWarning::READING_PARTLY_APPLIED, ...$warning]);
+    }
+
+    /**
+     * What the reading names as the supplier, looked up only while the draft has none.
+     */
+    private function supplier(ReceivedDocument $document, Reading $merged): ?SupplierMatch
+    {
+        // A snapshot without a party can only come from an earlier reading, so a new one may replace it.
+        if ($document->supplierParty() instanceof Party) {
+            return null;
+        }
+
+        return $this->matching->match($merged);
+    }
+
+    /**
+     * The supplier a save writes into the draft: the matched party with its
+     * snapshot, or, with nobody found, the snapshot of what the reading says.
+     */
+    private function supplierWrite(?SupplierMatch $supplier, Reading $merged): ?SupplierWrite
+    {
+        if (!$supplier instanceof SupplierMatch) {
+            return null;
+        }
+        if ($supplier->party instanceof Party && $supplier->snapshot instanceof SupplierSnapshot) {
+            return new SupplierWrite($supplier->party, $supplier->snapshot, [ReadField::SupplierName]);
+        }
+        if (ReceivedDocumentWarning::SUPPLIER_NOT_FOUND !== $supplier->warning) {
+            return null;
+        }
+        $text = static fn (ReadField $field, int $max): ?string => \is_string($value = $merged->get($field)?->value) && '' !== trim($value) ? mb_substr(trim($value), 0, $max) : null;
+        $name = $text(ReadField::SupplierName, SupplierSnapshot::MAX_NAME);
+        $number = $text(ReadField::SupplierRegistrationNumber, SupplierSnapshot::MAX_REGISTRATION_NUMBER);
+        $vatId = $text(ReadField::SupplierVatId, SupplierSnapshot::MAX_VAT_ID);
+        $country = $text(ReadField::SupplierCountry, 2);
+        $country = null !== $country && 1 === preg_match('/^[A-Za-z]{2}$/D', $country) ? strtoupper($country) : '';
+        if (null === $name && null === $number && null === $vatId) {
+            return null;
+        }
+        $fields = array_values(array_filter([
+            ReadField::SupplierName,
+            ReadField::SupplierRegistrationNumber,
+            ReadField::SupplierVatId,
+            ReadField::SupplierCountry,
+        ], static fn (ReadField $field): bool => match ($field) {
+            ReadField::SupplierName => null !== $name,
+            ReadField::SupplierRegistrationNumber => null !== $number,
+            ReadField::SupplierVatId => null !== $vatId,
+            default => '' !== $country,
+        }));
+
+        return new SupplierWrite(null, new SupplierSnapshot($name ?? '', $number, $vatId, new Address('', '', '', $country)), $fields);
     }
 
     private function untouched(ReceivedDocument $document, int $baseVersion): bool
@@ -126,10 +196,10 @@ final readonly class ReadingApplication
      *
      * @param list<ReadField> $taken
      */
-    private function save(ReceivedDocument $document, Reading $merged, array $taken): bool
+    private function save(ReceivedDocument $document, Reading $merged, array $taken, ?SupplierWrite $write): bool
     {
         try {
-            $content = $this->content($document, $merged, $taken);
+            $content = $this->content($document, $merged, $taken, $write);
             if (!$content instanceof ReceivedDocumentContent) {
                 return false;
             }
@@ -149,7 +219,7 @@ final readonly class ReadingApplication
      *
      * @throws ReceivedDocumentRefused for a VAT rate that is none
      */
-    private function content(ReceivedDocument $document, Reading $merged, array $taken): ?ReceivedDocumentContent
+    private function content(ReceivedDocument $document, Reading $merged, array $taken, ?SupplierWrite $write): ?ReceivedDocumentContent
     {
         $value = static fn (ReadField $field): mixed => \in_array($field, $taken, true) ? $merged->get($field)?->value : null;
         $date = static fn (ReadField $field, ?\DateTimeImmutable $current): ?\DateTimeImmutable => \in_array($field, $taken, true) ? self::date($value($field)) : $current;
@@ -178,8 +248,8 @@ final readonly class ReadingApplication
         return new ReceivedDocumentContent(
             $kind,
             $document->treatment(),
-            $document->supplierParty(),
-            $document->supplier(),
+            $write instanceof SupplierWrite ? $write->party : $document->supplierParty(),
+            $write instanceof SupplierWrite ? $write->snapshot : $document->supplier(),
             \is_string($supplierNumber) ? $supplierNumber : $document->supplierNumber(),
             \is_string($variableSymbol) ? $variableSymbol : $document->variableSymbol(),
             $date(ReadField::IssueDate, $document->issueDate()),
