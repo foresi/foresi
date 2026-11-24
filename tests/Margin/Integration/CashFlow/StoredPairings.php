@@ -16,7 +16,7 @@ use Foresi\CashFlow\Contract\PlannedPairings;
 use Foresi\Margin\Integration\CashFlow\CashFlowPairings;
 
 /**
- * The pairings as Cash flow has stored them, which may lag behind its events.
+ * The pairings as Cash flow has stored them.
  */
 final class StoredPairings implements PlannedPairings
 {
@@ -28,6 +28,11 @@ final class StoredPairings implements PlannedPairings
     public function pair(string $documentId, string $on): void
     {
         $this->pairs[] = [new FlowSubject(CashFlowPairings::RECEIVED_DOCUMENT, $documentId), $on];
+    }
+
+    public function unpair(string $documentId): void
+    {
+        $this->pairs = array_values(array_filter($this->pairs, static fn (array $pair): bool => $pair[0]->id !== $documentId));
     }
 
     public function of(FlowSubject $subject): ?PairedOccurrence

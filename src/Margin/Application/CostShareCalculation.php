@@ -115,6 +115,8 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
         $ids = [$documentId];
         $pairing = $this->pairings->of($documentId);
         $occurrences = $pairing instanceof CostPairing ? [$pairing] : [];
+        // Shares already scheduled for removal still name the occurrence the document came from: a
+        // superset of occurrences is only extra work, a missed one would leave a fill stale.
         foreach ($this->sharesOf($documentId) as $share) {
             $itemId = $share->plannedItemId();
             $on = $share->occurrenceOn();

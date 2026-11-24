@@ -8,13 +8,23 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Margin\Integration\CashFlow;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\Persistence\ManagerRegistry;
 use Foresi\CashFlow\Contract\Event\DocumentPairingChanged;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\FlowSubject;
 use Foresi\CashFlow\Contract\PlannedItemDirectory;
 use Foresi\CashFlow\Contract\PlannedItemSummary;
+use Foresi\Events\Application\DeliverEvent;
+use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Events\Infrastructure\Payload\EventPayloads;
+use Foresi\Events\Infrastructure\Relay\DeliverEventHandler;
+use Foresi\Events\Infrastructure\Relay\DeliveryWork;
+use Foresi\Events\Infrastructure\Relay\EventConsumptions;
+use Foresi\Events\Infrastructure\Relay\EventListeners;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Margin\Application\CostPairings;
 use Foresi\Margin\Application\CostShareCalculation;
@@ -32,17 +42,24 @@ use Foresi\Margin\Domain\Recipient;
 use Foresi\Margin\Domain\ShareSplitter;
 use Foresi\Margin\Integration\CashFlow\CashFlowPairings;
 use Foresi\Margin\Integration\CashFlow\RecalculateOnPairing;
+use Foresi\Purchasing\Integration\CashFlow\ReceivedDocumentPairables;
+use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Margin\Support\FixedCostSource;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * Margin over Cash flow's contracts: the pairings of received documents,
  * the planned items, and the shares counted again when a pairing changes,
- * also while Cash flow has not stored the change yet.
+ * delivered as the relay delivers an event: after the pairing is stored, in
+ * a unit of work of its own, once per event.
  */
 final class RecalculateOnPairingTest extends KernelTestCase
 {
@@ -82,7 +99,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
         };
         $this->pairings = new CashFlowPairings($this->stored, $items);
         $calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class), new CostPairings([$this->pairings]), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));
-        $this->listener = new RecalculateOnPairing($this->pairings, $calculation);
+        $this->listener = new RecalculateOnPairing($calculation, $this->em);
 
         $this->em->persist(new PlannedAllocation(Uuid::v7()->toRfc4122(), self::ITEM, new \DateTimeImmutable('2026-05-01'), new Allocation(AllocationKind::Fixed, [
             new AllocationShare(Recipient::client(self::CLIENT_A), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
@@ -115,19 +132,20 @@ final class RecalculateOnPairingTest extends KernelTestCase
         self::assertNull($this->pairings->pairingOf(self::LATER));
     }
 
-    public function testAPairingFillsTheOccurrenceBeforeCashFlowHasStoredIt(): void
+    public function testAPairingRecalculatesTheWholeOccurrence(): void
     {
         $this->stored->pair(self::LATER, '2026-05-01');
         $this->changed(self::LATER, 'auto', '2026-05-01');
+        self::assertSame([self::LATER.' '.self::CLIENT_A.' 15750 planned_item'], $this->shares());
 
-        // Cash flow has not flushed the pairing of the earlier document yet.
+        $this->stored->pair(self::EARLIER, '2026-05-01');
         $this->changed(self::EARLIER, 'auto', '2026-05-01');
 
         self::assertSame([
             self::EARLIER.' '.self::CLIENT_A.' 60000 planned_item',
             self::EARLIER.' own 7200 planned_item',
             self::LATER.' own 15750 planned_item',
-        ], $this->shares());
+        ], $this->shares(), 'The earlier document now fills the fixed amount, and the later one was counted again.');
     }
 
     public function testUnpairingRecalculatesTheWholeOccurrence(): void
@@ -136,34 +154,108 @@ final class RecalculateOnPairingTest extends KernelTestCase
         $this->stored->pair(self::LATER, '2026-05-01');
         $this->changed(self::EARLIER, 'auto', '2026-05-01');
 
-        // The pairing is gone, though Cash flow still has its row until it flushes.
+        $this->stored->unpair(self::EARLIER);
         $this->changed(self::EARLIER, null, null);
 
         self::assertSame([
             self::EARLIER.' - 67200 unassigned',
             self::LATER.' '.self::CLIENT_A.' 15750 planned_item',
-        ], $this->shares());
+        ], $this->shares(), 'The occurrence the document left was found from its shares.');
     }
 
-    public function testAProposedPairingCarriesNoMapping(): void
+    public function testAnEventDeliveredTwiceOrLateLeavesTheStoredState(): void
     {
-        $this->changed(self::EARLIER, 'proposed', '2026-05-01');
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+        $first = $this->changed(self::EARLIER, 'auto', '2026-05-01');
+        $this->stored->unpair(self::EARLIER);
+        $this->changed(self::EARLIER, null, null);
+
+        // The pairing event comes again after the unpairing: the shares follow the stored state.
+        $this->handler()(new DeliverEvent($first, RecalculateOnPairing::class));
+        $this->listener->__invoke(new \Foresi\Shared\Application\Event\RecordedEvent(Id::generate(), RecalculateOnPairing::EVENT, 1, new \DateTimeImmutable(), null, $this->event(self::EARLIER, 'auto', '2026-05-01')));
 
         self::assertSame([self::EARLIER.' - 67200 unassigned'], $this->shares());
     }
 
     public function testThePairingOfAnotherSubjectIsIgnored(): void
     {
-        $this->listener->onPairingChanged(new DocumentPairingChanged('invoice', self::EARLIER, 'auto', self::ITEM, '2026-05-01', null));
-        $this->em->flush();
+        $this->stored->pair(self::EARLIER, '2026-05-01');
+        $this->deliver(new DocumentPairingChanged('invoice', self::EARLIER, 'auto', self::ITEM, '2026-05-01', null));
 
         self::assertSame([], $this->shares());
     }
 
-    private function changed(string $documentId, ?string $state, ?string $on): void
+    public function testTheListenerIsRegisteredForCashFlowsEvent(): void
     {
-        $this->listener->onPairingChanged(new DocumentPairingChanged(CashFlowPairings::RECEIVED_DOCUMENT, $documentId, $state, null === $state ? null : self::ITEM, $on, null));
-        $this->em->flush();
+        self::assertContains(RecalculateOnPairing::class, self::getContainer()->get(EventListeners::class)->idsFor(RecalculateOnPairing::EVENT));
+    }
+
+    public function testTheSubjectTypeIsPurchasingsReceivedDocument(): void
+    {
+        // Read at run time: Margin keeps its own copy, as it may not use Purchasing's integration.
+        self::assertSame(new \ReflectionClassConstant(ReceivedDocumentPairables::class, 'TYPE')->getValue(), CashFlowPairings::RECEIVED_DOCUMENT);
+    }
+
+    /**
+     * Records the event as Cash flow did and delivers it to the listener.
+     *
+     * @return string the id of the event
+     */
+    private function changed(string $documentId, ?string $state, ?string $on): string
+    {
+        return $this->deliver($this->event($documentId, $state, $on));
+    }
+
+    private function event(string $documentId, ?string $state, ?string $on): DocumentPairingChanged
+    {
+        return new DocumentPairingChanged(CashFlowPairings::RECEIVED_DOCUMENT, $documentId, $state, null === $state ? null : self::ITEM, $on, null);
+    }
+
+    private function deliver(DocumentPairingChanged $event): string
+    {
+        $id = Id::generate();
+        $this->em->getConnection()->insert(EventLogTable::LOG, [
+            EventLogTable::ID => $id,
+            EventLogTable::NAME => RecalculateOnPairing::EVENT,
+            EventLogTable::VERSION => 1,
+            EventLogTable::OCCURRED_AT => new \DateTimeImmutable('2026-05-21 10:00:00', new \DateTimeZone('UTC')),
+            EventLogTable::SUBJECT_TYPE => $event->subjectType,
+            EventLogTable::SUBJECT_ID => $event->subjectId,
+            EventLogTable::DATA => new EventPayloads()->normalise($event),
+            EventLogTable::CORRELATION_ID => null,
+            EventLogTable::ACTOR_KIND => 'system',
+            EventLogTable::POSITION => null,
+        ], [EventLogTable::OCCURRED_AT => Types::DATETIME_IMMUTABLE, EventLogTable::DATA => Types::JSON]);
+        $this->em->clear();
+
+        $this->handler()(new DeliverEvent($id, RecalculateOnPairing::class));
+
+        return $id;
+    }
+
+    private function handler(): DeliverEventHandler
+    {
+        $container = self::getContainer();
+        $listener = $this->listener;
+        $outbox = new class implements EventOutbox {
+            public function committed(): void
+            {
+            }
+
+            public function rolledBack(): void
+            {
+            }
+        };
+
+        return new DeliverEventHandler(
+            $this->em->getConnection(),
+            new EventListeners(new ServiceLocator([RecalculateOnPairing::class => static fn (): RecalculateOnPairing => $listener])),
+            $container->get(EventCatalogue::class),
+            new EventPayloads(),
+            new DeliveryWork($this->em, $container->get(ManagerRegistry::class), $outbox),
+            new EventConsumptions($this->em->getConnection(), new MockClock('2026-05-21 11:00:00', 'UTC')),
+            new NullLogger(),
+        );
     }
 
     private function document(string $id, string $basis, int $minor): void

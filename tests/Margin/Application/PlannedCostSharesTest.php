@@ -268,6 +268,25 @@ final class PlannedCostSharesTest extends KernelTestCase
         self::assertSame(['d1 line-1 own 10000 supplier 2026-12-01 - -'], $this->shares());
     }
 
+    public function testASupplierDefaultReachesADocumentPairedWithAQuarterlyOccurrenceMonthsLater(): void
+    {
+        // The quarterly occurrence of 31 December holds the invoice of 5 October: its cost is December's.
+        $document = $this->document('d1', $this->cloudHost, '2026-10-05', [$this->line('line-1', 30_000)]);
+        $this->pairings->pair($document, self::CLOUD_HOST_ITEM, '2026-12-31');
+        $october = $this->document('d2', $this->cloudHost, '2026-10-06', [$this->line('line-1', 1_000)]);
+        $this->recalculate($document);
+        $this->recalculate($october);
+        $octoberShares = $this->shareIds($october);
+
+        $this->writes->setSupplierDefault($this->cloudHost, Recipient::own(), '2026-12');
+
+        self::assertSame([
+            'd1 line-1 own 30000 supplier 2026-12-01 - -',
+            'd2 line-1 - 1000 unassigned 2026-10-01 - -',
+        ], $this->shares());
+        self::assertSame($octoberShares, $this->shareIds($october), 'An October cost was not counted again.');
+    }
+
     public function testAPairedMappingBeatsTheSupplierDefault(): void
     {
         $this->writes->setSupplierDefault($this->voiceApi, Recipient::own(), '2026-11');

@@ -41,6 +41,8 @@ final readonly class AllocationWrites
 {
     private const string AMOUNT = '/^[0-9]{1,13}(\.[0-9]{1,2})?\z/';
     private const string MONTH = '/^[0-9]{4}-(0[1-9]|1[0-2])\z/';
+    /** A month before any document, so documentsOf lists them all. */
+    private const string EVERY_MONTH = '1900-01-01';
 
     public function __construct(
         private MarginAccess $access,
@@ -132,11 +134,12 @@ final readonly class AllocationWrites
                 $this->entityManager->persist(new SupplierDefault(Uuid::v7()->toRfc4122(), $supplier->id, $month, $recipient));
             }
             $this->entityManager->flush();
-            // The cost month of a paired document is that of its occurrence, which may fall a month after
-            // its month basis, so the documents are listed from the month before, and only those whose
-            // cost month is $month or later are counted again; earlier months are not touched.
+            // The cost month of a paired document is that of its occurrence, which may be months after its
+            // month basis (a quarterly or yearly item), so no lower bound is right: every document of the
+            // supplier is listed, and only those whose cost month is $month or later are counted again.
+            // Earlier months are not touched. One pairing lookup per document of the supplier.
             $documents = [];
-            foreach ($this->sources->documentsOf($supplier->id, $month->modify('-1 month')) as $id) {
+            foreach ($this->sources->documentsOf($supplier->id, new \DateTimeImmutable(self::EVERY_MONTH)) as $id) {
                 $costMonth = $this->calculation->costMonthOf($id);
                 if ($costMonth instanceof \DateTimeImmutable && $costMonth >= $month) {
                     $documents[] = $id;
