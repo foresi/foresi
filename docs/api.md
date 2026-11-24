@@ -115,7 +115,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | --- | --- | --- |
 | `/api/v1/me` | none | The person and the token. |
 | `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
-| `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. |
+| `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. Each line has its `id` (what the [margin rebill pairing](#margin) takes as `invoice_line_id`) and `source_line_id`, the id of the template line it was issued from, or `null`. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
 | `/api/v1/firm` | `contacts:read` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today (`vat_status`), its VAT statuses over time (`vat_statuses`, see [Firm VAT statuses](#firm-vat-statuses)), register entry and address. `404` before the first-run setup. |
@@ -221,7 +221,7 @@ A recurring invoice is a template Foresi issues a sales invoice from on every da
 | Method and path | What it does |
 | --- | --- |
 | `GET /api/v1/recurring-invoices` | The templates out of the trash, the soonest next issue first, 25 a page; `state` (`active`, `paused`, `ended`) and `page`. |
-| `GET /api/v1/recurring-invoices/{recurringInvoiceId}` | One template with its lines and next issues. |
+| `GET /api/v1/recurring-invoices/{recurringInvoiceId}` | One template with its lines and next issues. Each stored line has its `id`, which stays when the template is revised and is what the [margin rebill link](#margin) takes as `recurringLineId`; a preview has no ids. |
 | `POST /api/v1/recurring-invoices/preview` | The fields of a create, and `count`: the template it would save and its next issues, without saving; `saves` is false with the `problems` the rules would refuse. Needs `invoices:read` only. |
 | `POST /api/v1/recurring-invoices` | Creates one. `201` with `Location`. |
 | `PATCH /api/v1/recurring-invoices/{recurringInvoiceId}` | Changes the fields given with the `version` it was read in; a save someone made since is refused with 409 `changed_meanwhile`. |

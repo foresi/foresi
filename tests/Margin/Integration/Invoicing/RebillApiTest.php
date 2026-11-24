@@ -41,6 +41,7 @@ final class RebillApiTest extends ApiTestCase
     private string $invoiceLine;
     private string $invoiceId;
     private string $templateLine;
+    private string $templateId;
     private ?string $session = null;
 
     protected function setUp(): void
@@ -59,10 +60,12 @@ final class RebillApiTest extends ApiTestCase
         $this->send('PUT', '/api/v1/margin/planned-items/'.$this->item.'/allocation', ['allocation' => ['kind' => 'whole', 'shares' => [['recipient' => $this->customerId]]], 'from_month' => '2026-12']);
         self::assertResponseIsSuccessful();
         $this->invoiceId = $this->invoice();
-        $this->invoiceLine = $this->only('SELECT id FROM invoice_line WHERE invoice_id = :id', ['id' => $this->invoiceId]);
+        $this->get('/api/v1/invoices/'.$this->invoiceId, secret: $this->writer);
+        $this->invoiceLine = $this->idAt('data', 'lines', 0, 'id');
         $this->send('POST', '/api/v1/recurring-invoices', ['from_invoice_id' => $this->invoiceId, 'delivery' => 'review', 'first_issue_on' => '2027-01-01']);
         self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
-        $this->templateLine = $this->only('SELECT id FROM recurring_invoice_line');
+        $this->templateId = $this->idAt('data', 'id');
+        $this->templateLine = $this->idAt('data', 'lines', 0, 'id');
     }
 
     protected function tearDown(): void
@@ -92,6 +95,20 @@ final class RebillApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         self::assertSame([$this->templateLine, null, null, null, []], [$this->at('data', 'recurring_line_id'), $this->at('data', 'planned_item_id'), $this->at('data', 'planned_item_name'), $this->at('data', 'created_on'), $this->at('data', 'warnings')]);
         self::assertSame(0, $this->em()->getRepository(RebillLink::class)->count([]));
+    }
+
+    public function testTheLineIdsComeFromTheApiAndAnIssuedLineNamesItsTemplateLine(): void
+    {
+        $this->get('/api/v1/invoices/'.$this->invoiceId, secret: $this->writer);
+        self::assertNull($this->at('data', 'lines', 0, 'source_line_id'), 'an invoice written by hand has no template line');
+        $this->get('/api/v1/recurring-invoices/'.$this->templateId, secret: $this->writer);
+        self::assertSame($this->templateLine, $this->at('data', 'lines', 0, 'id'));
+
+        $issued = self::getContainer()->get(\Foresi\Invoicing\Application\IssueRecurringOccurrence::class)->issue($this->templateId, new \DateTimeImmutable('2027-01-01'));
+        self::assertNotNull($issued);
+        $this->em()->clear();
+        $this->get('/api/v1/invoices/'.$issued->id(), secret: $this->writer);
+        self::assertSame($this->templateLine, $this->at('data', 'lines', 0, 'source_line_id'));
     }
 
     public function testALinkIsRefusedWithItsCode(): void
@@ -286,12 +303,9 @@ final class RebillApiTest extends ApiTestCase
         return $id;
     }
 
-    /**
-     * @param array<string, mixed> $parameters
-     */
-    private function only(string $sql, array $parameters = []): string
+    private function idAt(string|int ...$path): string
     {
-        $id = $this->em()->getConnection()->fetchOne($sql, $parameters);
+        $id = $this->at(...$path);
         self::assertIsString($id);
 
         return $id;

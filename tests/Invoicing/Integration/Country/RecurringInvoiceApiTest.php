@@ -33,6 +33,7 @@ use Foresi\Tests\Support\Messenger\RunMessages;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Recurring invoices over REST and MCP: previewed without saving, made from an
@@ -82,7 +83,10 @@ final class RecurringInvoiceApiTest extends ApiTestCase
         self::assertSame('active', $this->at('data', 'state'));
         self::assertSame('2026-12-01', $this->at('data', 'next_issue_on'));
         self::assertSame(['month', 1, 'never'], [$this->at('data', 'schedule', 'repeat'), $this->at('data', 'schedule', 'every'), $this->at('data', 'schedule', 'end')]);
-        self::assertSame([['text' => 'Hosting', 'unit_price' => '1000.00', 'quantity' => '1.0000', 'unit' => 'month', 'price_type' => 'without_vat', 'vat' => 'base', 'discount' => '0.00', 'supply_code' => null]], $this->at('data', 'lines'));
+        $lineId = $this->at('data', 'lines', 0, 'id');
+        self::assertIsString($lineId);
+        self::assertTrue(Uuid::isValid($lineId));
+        self::assertSame([['id' => $lineId, 'text' => 'Hosting', 'unit_price' => '1000.00', 'quantity' => '1.0000', 'unit' => 'month', 'price_type' => 'without_vat', 'vat' => 'base', 'discount' => '0.00', 'supply_code' => null]], $this->at('data', 'lines'));
         self::assertSame(['2026-12-01', '2026-12-01', '2026-12-15'], [$this->at('data', 'next_issues', 0, 'issue_date'), $this->at('data', 'next_issues', 0, 'tax_point_date'), $this->at('data', 'next_issues', 0, 'due_date')]);
         self::assertSame('PO-1', $this->at('data', 'order_number'));
 

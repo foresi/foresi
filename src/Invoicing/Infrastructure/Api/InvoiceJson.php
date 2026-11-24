@@ -114,6 +114,8 @@ final class InvoiceJson
     private static function line(InvoiceLine $line): array
     {
         return [
+            'id' => $line->id(),
+            'source_line_id' => $line->sourceLineId(),
             'description' => $line->text(),
             'quantity' => $line->quantity()->toDecimal(),
             'unit' => $line->unit(),

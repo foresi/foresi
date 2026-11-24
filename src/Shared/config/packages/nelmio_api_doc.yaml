@@ -89,6 +89,8 @@ nelmio_api_doc:
                 InvoiceLine:
                     type: object
                     properties:
+                        id: { type: string, format: uuid, description: 'The id of the line, as the margin operations that rebill a line take it.' }
+                        source_line_id: { type: string, format: uuid, nullable: true, description: 'The id of the line of the recurring invoice template this line was issued from; null for any other line.' }
                         description: { type: string }
                         quantity: { type: string, example: '1.0000' }
                         unit: { type: string }
@@ -181,8 +183,9 @@ nelmio_api_doc:
                         ends_after: { type: integer, nullable: true }
                 RecurringInvoiceLine:
                     type: object
-                    description: A line in the shape the writes take it.
+                    description: A line in the shape the writes take it. A stored template also gives the id of each line.
                     properties:
+                        id: { type: string, format: uuid, description: 'The id of the line, kept when the template is revised; absent in a preview. The margin operations that rebill a line take it.' }
                         text: { type: string }
                         unit_price: { type: string, example: '1500.00' }
                         quantity: { type: string, example: '1.0000' }
