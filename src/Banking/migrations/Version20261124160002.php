@@ -34,18 +34,23 @@ final class Version20261124160002 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql(<<<'SQL'
+        // The data moves in postUp(), once the Mail tables exist: nothing is read while migrations are planned.
+    }
+
+    public function postUp(Schema $schema): void
+    {
+        $this->connection->executeStatement(<<<'SQL'
             INSERT INTO mail_inbound_address (id, purpose, owner_user_id, label, token_hash, token_sealed, created_at, revoked_at, last_received_at)
             SELECT id, 'bank_feed', NULL, 'Bank feed', token_hash, token_sealed, created_at, NULL, last_received_at FROM bank_feed
             SQL);
-        $this->addSql('UPDATE bank_feed SET mail_inbound_address_id = id');
-        $this->addSql(<<<'SQL'
+        $this->connection->executeStatement('UPDATE bank_feed SET mail_inbound_address_id = id');
+        $this->connection->executeStatement(<<<'SQL'
             INSERT INTO mail_message (id, address_id, channel, dedup_key, raw_key, raw_sha256, size, message_id_header, in_reply_to, references_header,
                 from_address, subject, sent_at, received_at, verdict, verdict_basis)
             SELECT id, bank_feed_id, channel, dedup_key, raw_key, raw_sha256, size, NULL, NULL, NULL,
                 from_address, subject, NULL, received_at, 'unknown', NULL FROM inbound_message
             SQL);
-        $this->addSql('UPDATE inbound_message SET mail_message_id = id');
+        $this->connection->executeStatement('UPDATE inbound_message SET mail_message_id = id');
     }
 
     public function down(Schema $schema): void
