@@ -15,14 +15,14 @@ use Foresi\Purchasing\Domain\DocumentReading;
  */
 interface DocumentReadings
 {
-    public function find(string $documentId): ?DocumentReading;
-
     /**
-     * The reading as stored now, a copy loaded before detached. Call it after
-     * the document is locked, so whoever finishes the reading waits for the one
-     * before and sees what it stored.
+     * Lock the document first (ReceivedDocuments::lock()) and only then read
+     * and change its reading: the lock reads the reading again, so whoever
+     * settles a reading waits for the one before and sees what it stored. A
+     * reading changed before the lock and not yet saved would be lost; a lock
+     * after a reading was added in the same unit is refused with a LogicException.
      */
-    public function fresh(string $documentId): ?DocumentReading;
+    public function find(string $documentId): ?DocumentReading;
 
     public function add(DocumentReading $reading): void;
 }

@@ -52,12 +52,16 @@ final readonly class DoctrineReceivedDocuments implements ReceivedDocuments
         // What this process loaded before may be older than the lock, so it is read again.
         $loaded = $this->entityManager->getUnitOfWork()->tryGetById($id, ReceivedDocument::class);
         if ($loaded instanceof ReceivedDocument) {
+            $unitOfWork = $this->entityManager->getUnitOfWork();
+            $map = $unitOfWork->getIdentityMap();
+            $reading = $unitOfWork->tryGetById($id, DocumentReading::class);
+            if ($reading instanceof DocumentReading && $unitOfWork->isScheduledForInsert($reading)) {
+                // It would point at the detached copy and never be stored (DocumentReadings).
+                throw new \LogicException('Lock a received document before you add its reading.');
+            }
             // Its payments, lines and reading loaded before would point at the detached copy, so they go too.
-            $map = $this->entityManager->getUnitOfWork()->getIdentityMap();
-            foreach ($map[DocumentReading::class] ?? [] as $reading) {
-                if ($reading instanceof DocumentReading && $reading->documentId() === $id) {
-                    $this->entityManager->detach($reading);
-                }
+            if ($reading instanceof DocumentReading) {
+                $this->entityManager->detach($reading);
             }
             foreach ($map[ReceivedDocumentPayment::class] ?? [] as $payment) {
                 if ($payment instanceof ReceivedDocumentPayment && $payment->document() === $loaded) {

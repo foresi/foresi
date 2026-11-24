@@ -24,19 +24,6 @@ final readonly class DoctrineDocumentReadings implements DocumentReadings
         return Id::isValid($documentId) ? $this->entityManager->find(DocumentReading::class, $documentId) : null;
     }
 
-    public function fresh(string $documentId): ?DocumentReading
-    {
-        if (!Id::isValid($documentId)) {
-            return null;
-        }
-        $loaded = $this->entityManager->getUnitOfWork()->tryGetById($documentId, DocumentReading::class);
-        if ($loaded instanceof DocumentReading) {
-            $this->entityManager->detach($loaded);
-        }
-
-        return $this->find($documentId);
-    }
-
     public function add(DocumentReading $reading): void
     {
         $this->entityManager->persist($reading);

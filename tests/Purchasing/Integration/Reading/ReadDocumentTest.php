@@ -179,6 +179,65 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertSame(DocumentReading::UNEXPECTED, $reading->failure());
     }
 
+    public function testGivingUpWorksAfterTheFailureClosedTheEntityManager(): void
+    {
+        $message = $this->uploaded();
+        $this->em->close();
+
+        $this->giveUp($message);
+
+        $reading = $this->reading($message->documentId);
+        self::assertSame(ReadingState::Failed, $reading->state());
+        self::assertSame(DocumentReading::UNEXPECTED, $reading->failure());
+    }
+
+    public function testGivingUpNeverThrowsIntoTheWorker(): void
+    {
+        $message = $this->uploaded();
+        // A correlation id the audit refuses makes marking the reading throw.
+        $broken = new ReadReceivedDocument($message->documentId, $message->baseVersion, false, str_repeat('x', 65));
+
+        $this->giveUp($broken);
+
+        self::assertSame(ReadingState::Reading, $this->reading($message->documentId)->state());
+    }
+
+    public function testAReadingChangedAfterTheLockOfItsDocumentIsStored(): void
+    {
+        $message = $this->uploaded();
+        $this->readDocument($this->stub('isdoc', static fn (): ?Reading => null))->read($message);
+        $this->em->clear();
+        $documents = self::getContainer()->get(ReceivedDocuments::class);
+        $readings = self::getContainer()->get(DocumentReadings::class);
+
+        // Read again, as a person asks: the document locked, then its reading changed.
+        self::getContainer()->get(PurchasingUnit::class)->run(static function () use ($documents, $readings, $message): void {
+            $readings->find($message->documentId);
+            $document = $documents->lock($message->documentId);
+            $readings->find($message->documentId)?->start($document->version(), new \DateTimeImmutable('2026-11-10 10:00:00'));
+        });
+
+        $reading = $this->reading($message->documentId);
+        self::assertSame(ReadingState::Reading, $reading->state());
+        self::assertSame(2, $reading->attempts());
+    }
+
+    public function testALockAfterAReadingWasAddedIsRefused(): void
+    {
+        $id = $this->recording()->create($this->input())->document->id();
+        $this->em->clear();
+        $documents = self::getContainer()->get(ReceivedDocuments::class);
+        $readings = self::getContainer()->get(DocumentReadings::class);
+
+        $this->expectException(\LogicException::class);
+        self::getContainer()->get(PurchasingUnit::class)->run(static function () use ($documents, $readings, $id): void {
+            $document = $documents->lock($id);
+            $readings->add(new DocumentReading($document, $document->version(), new \DateTimeImmutable('2026-11-10 10:00:00')));
+            // Detached by a second lock, the new reading would never be stored.
+            $documents->lock($id);
+        });
+    }
+
     public function testTheWorkerReadsAnIsdocFileIntoTheDraft(): void
     {
         $uploaded = $this->uploads()->upload([$this->file(IsdocFixtures::invoice(), 'invoice.isdoc')])[0];
@@ -205,6 +264,15 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertSame(ReadingState::Failed, $reading->state());
         self::assertSame(DocumentReading::READER_FAILED, $reading->failure());
         self::assertSame($message->baseVersion, $this->document($message->documentId)->version());
+    }
+
+    /**
+     * What the worker announces after the last retry of the message.
+     */
+    private function giveUp(ReadReceivedDocument $message): void
+    {
+        $last = new Envelope($message, [new RedeliveryStamp(3)]);
+        self::getContainer()->get(EventDispatcherInterface::class)->dispatch(new WorkerMessageFailedEvent($last, 'async', new \RuntimeException('Something broke.')));
     }
 
     private function isdocReading(): Reading

@@ -127,7 +127,8 @@ final readonly class ReadDocument
             } catch (UnknownReceivedDocument) {
                 return null;
             }
-            $reading = $this->readings->fresh($message->documentId);
+            // Read again by the lock, so a run that waited sees what the one before stored.
+            $reading = $this->readings->find($message->documentId);
             if (null !== $reading && $this->due($reading, $message)) {
                 $work($reading, $document);
             }
