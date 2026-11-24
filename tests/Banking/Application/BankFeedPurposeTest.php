@@ -71,6 +71,17 @@ final class BankFeedPurposeTest extends InboundTestCase
         self::assertSame([], array_values(array_filter($files, static fn (string $name): bool => str_contains((string) @file_get_contents($directory.'/'.$name), $marker))));
     }
 
+    public function testTheAddressOfAFeedThatIsGoneTakesNothingIn(): void
+    {
+        $this->connection()->executeStatement('DELETE FROM bank_feed');
+
+        self::assertSame(ReceiveOutcome::UnknownRecipient, $this->receive->receive(InboundMailKit::mail($this->address), InboundChannel::Webhook));
+
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_message')));
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM inbound_message')));
+        self::assertSame([], $this->queue()->getSent());
+    }
+
     private function feedId(): string
     {
         return Scalars::text($this->connection()->fetchOne('SELECT id FROM bank_feed'));
