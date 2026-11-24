@@ -144,6 +144,57 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertSame($message->baseVersion + 1, $this->document($message->documentId)->version(), 'Applied once.');
     }
 
+    public function testAMessageForAReadingThatIsNotDueReadsNothing(): void
+    {
+        $message = $this->uploaded();
+        $asked = 0;
+        $reader = $this->stub('isdoc', static function () use (&$asked): ?Reading {
+            ++$asked;
+
+            return null;
+        });
+
+        $this->readDocument($reader)->read($message);
+        $this->readDocument($reader)->read($message);
+
+        self::assertSame(1, $asked, 'The reading finished, so the same message reads nothing again.');
+    }
+
+    public function testAReadingThatFinishesWhileTheFileIsReadIsLeftAsItIs(): void
+    {
+        $message = $this->uploaded();
+
+        $this->readDocument($this->stub('isdoc', function () use ($message): Reading {
+            // Something else settles the reading while the file is being read.
+            $this->reading($message->documentId)->fail(DocumentReading::UNEXPECTED, new \DateTimeImmutable('2026-11-10 09:00:00'));
+            $this->em->flush();
+
+            return $this->isdocReading();
+        }))->read($message);
+
+        $reading = $this->reading($message->documentId);
+        self::assertSame(ReadingState::Failed, $reading->state());
+        self::assertSame(DocumentReading::UNEXPECTED, $reading->failure());
+        self::assertSame($message->baseVersion, $this->document($message->documentId)->version(), 'Nothing was applied.');
+    }
+
+    public function testAMessageWithoutACorrelationIsReadToo(): void
+    {
+        $uploaded = $this->uploaded();
+        $message = new ReadReceivedDocument($uploaded->documentId, $uploaded->baseVersion, false, null);
+
+        $this->readDocument($this->stub('isdoc', fn (): Reading => $this->isdocReading()))->read($message);
+
+        self::assertSame(ReadingState::Read, $this->reading($message->documentId)->state());
+        self::assertSame(12_100, $this->document($message->documentId)->total()?->minor());
+    }
+
+    public function testAMessageDoesNotKeepWhatWasTypedUnlessItSays(): void
+    {
+        self::assertFalse(new ReadReceivedDocument('a', 1, false, null)->keepTyped);
+        self::assertTrue(new ReadReceivedDocument('a', 1, false, null, true)->keepTyped);
+    }
+
     public function testRaceWithAPerson(): void
     {
         $message = $this->uploaded();

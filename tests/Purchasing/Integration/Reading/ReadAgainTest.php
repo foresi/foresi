@@ -19,6 +19,7 @@ use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
 use Foresi\Purchasing\Infrastructure\Messenger\ReadReceivedDocumentHandler;
+use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Tests\Support\IsdocFixtures;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -107,6 +108,39 @@ final class ReadAgainTest extends PurchasingTestCase
         self::assertSame(1_000_000, $document->base()->minor());
         self::assertSame('TYPED-BY-PERSON', $document->supplierNumber(), 'Not chosen, so kept.');
         self::assertSame($this->supplier->id(), $document->supplierParty()?->id());
+    }
+
+    public function testAskingAgainKeepsWhatAPersonTypedBeforeAReadingThatTookNothing(): void
+    {
+        $id = $this->isdocDraftEditedFirst();
+
+        $this->readAgain()->readAgain($id);
+
+        $messages = $this->queued();
+        self::assertTrue($messages[\count($messages) - 1]->keepTyped);
+    }
+
+    public function testAskingAgainOfADraftNobodyTouchedKeepsNothing(): void
+    {
+        $uploaded = $this->uploads()->upload([$this->file(IsdocFixtures::invoice(), 'invoice.isdoc')])[0];
+        $id = (string) $uploaded->documentId;
+        $this->handle($this->queued()[0]);
+        $this->em->clear();
+
+        $this->readAgain()->readAgain($id);
+
+        $messages = $this->queued();
+        self::assertFalse($messages[\count($messages) - 1]->keepTyped);
+    }
+
+    public function testAnUnansweredReadingMayBeAskedAgainWhenItIsStuck(): void
+    {
+        $document = new ReceivedDocument(ReceivedDocumentContent::blank(new \DateTimeImmutable('2026-11-02')), Id::generate(), new \DateTimeImmutable('2026-11-10 09:00:00'));
+        $reading = new DocumentReading($document, 1, new \DateTimeImmutable('2026-11-10 09:00:00'));
+
+        self::assertFalse(ReadAgain::mayStart($reading, new \DateTimeImmutable('2026-11-10 09:09:59')));
+        self::assertTrue(ReadAgain::mayStart($reading, new \DateTimeImmutable('2026-11-10 09:10:00')));
+        self::assertTrue(ReadAgain::mayStart($reading, new \DateTimeImmutable('2026-11-10 09:10:01')));
     }
 
     public function testAcceptingAfterAnotherSaveIsRefusedAsStale(): void

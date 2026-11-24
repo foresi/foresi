@@ -15,6 +15,7 @@ use Foresi\Purchasing\Contract\Reading\ReaderFailed;
 use Foresi\Purchasing\Contract\Reading\ReadField;
 use Foresi\Purchasing\Infrastructure\Reading\SmalotPdfFiles;
 use Foresi\Tests\Support\ReceivedFileFixtures;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class PaymentQrReaderTest extends TestCase
@@ -125,6 +126,54 @@ final class PaymentQrReaderTest extends TestCase
         $this->reader->read(new DocumentFile('big.png', 'image/png', str_repeat("\0", 25 * 1024 * 1024)));
     }
 
+    public function testTheSizeLimitOfAnImageIsInclusive(): void
+    {
+        $limit = 20 * 1024 * 1024;
+
+        $this->assertRefused('The file is not an image.', str_repeat("\0", $limit));
+        $this->assertRefused('The image is over the size limit.', str_repeat("\0", $limit + 1));
+    }
+
+    public function testTheLimitOfPixelsIsInclusiveAndIsTheProductOfTheSides(): void
+    {
+        // The header alone claims the size; at the limit the image goes on to be decoded, which cannot be done.
+        self::assertNull($this->reader->read(new DocumentFile('a.png', 'image/png', $this->pngHeaderOfSize(5000, 5000))));
+
+        $this->assertRefused('The image has too many pixels.', $this->pngHeaderOfSize(5001, 5000));
+        $this->assertRefused('The image has too many pixels.', $this->pngHeaderOfSize(25_000_001, 1));
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function largeCanvases(): iterable
+    {
+        yield 'wide' => [4200, 2100];
+        yield 'tall' => [2100, 4200];
+        yield 'square' => [2600, 2600];
+        yield 'a little over the side the decoder gets' => [2001, 1500];
+    }
+
+    #[DataProvider('largeCanvases')]
+    public function testACodeOnACanvasLargerThanTheDecoderGetsIsStillRead(int $width, int $height): void
+    {
+        $qr = imagecreatefromstring(ReceivedFileFixtures::qrPng(self::SPAYD, 4));
+        self::assertNotFalse($qr);
+        $canvas = imagecreatetruecolor(max(1, $width), max(1, $height));
+        self::assertNotFalse($canvas);
+        imagefill($canvas, 0, 0, (int) imagecolorallocate($canvas, 255, 255, 255));
+        $side = min($width, $height) - 200;
+        imagecopyresampled($canvas, $qr, 100, 100, 0, 0, $side, $side, imagesx($qr), imagesy($qr));
+        ob_start();
+        imagepng($canvas);
+        $png = (string) ob_get_clean();
+        unset($qr, $canvas);
+
+        $reading = $this->reader->read(new DocumentFile('large.png', 'image/png', $png));
+
+        self::assertSame(121050, $reading?->get(ReadField::Total)?->value);
+    }
+
     public function testAnImageWithTooManyPixelsFailsWithoutBeingDecoded(): void
     {
         $this->expectException(ReaderFailed::class);
@@ -174,6 +223,18 @@ final class PaymentQrReaderTest extends TestCase
         self::assertNull($this->reader->read(new DocumentFile('blank.png', 'image/png', $png)));
 
         self::assertLessThan(200 * 1024 * 1024, memory_get_peak_usage() - $before);
+    }
+
+    private function assertRefused(string $message, string $bytes): void
+    {
+        try {
+            $this->reader->read(new DocumentFile('a.png', 'image/png', $bytes));
+        } catch (ReaderFailed $e) {
+            self::assertSame($message, $e->getMessage());
+
+            return;
+        }
+        self::fail('Expected a refusal: '.$message);
     }
 
     /**

@@ -66,6 +66,34 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
         self::assertSame(0, $this->drafts());
     }
 
+    public function testTheEncodedLimitIsInclusive(): void
+    {
+        // The longest body that is let through to be decoded; it is not base64, so decoding refuses it.
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'big.pdf', 'content_base64' => str_repeat('*', 13_981_020)]);
+
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'content_base64', 'reason' => 'file_invalid']);
+        self::assertSame(0, $this->drafts());
+    }
+
+    public function testAFileOfExactly10MbIsAccepted(): void
+    {
+        $pdf = '%PDF-1.7'.str_repeat('0', 10 * 1024 * 1024 - 8);
+        self::assertSame(10 * 1024 * 1024, \strlen($pdf));
+
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'big.pdf', 'content_base64' => base64_encode($pdf)]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(1, $this->drafts());
+    }
+
+    public function testAGuestIsRefusedBeforeTheBodyIsLookedAt(): void
+    {
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'big.pdf', 'content_base64' => str_repeat('*', 13_981_021)], $this->guestSecret());
+
+        self::assertResponseStatusCodeSame(401);
+        self::assertSame(0, $this->drafts());
+    }
+
     public function testRefusedTypeMakesNoDraft(): void
     {
         $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'run.exe', 'content_base64' => base64_encode("MZ\x90\x00 example executable")]);

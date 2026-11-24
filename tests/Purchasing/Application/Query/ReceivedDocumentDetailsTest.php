@@ -75,6 +75,31 @@ final class ReceivedDocumentDetailsTest extends PurchasingTestCase
         $this->details()->of($id);
     }
 
+    public function testTheReadingOfAnUnknownDocumentIsUnknown(): void
+    {
+        $this->expectException(UnknownReceivedDocument::class);
+
+        $this->details()->reading('0190b4a1-0000-7000-8000-000000000000');
+    }
+
+    public function testAGuestReadsNoReadingNotEvenOfAnUnknownDocument(): void
+    {
+        $this->signIn($this->guest);
+        $this->expectException(PurchasingNotAllowed::class);
+
+        $this->details()->reading('0190b4a1-0000-7000-8000-000000000000');
+    }
+
+    public function testTheReadingOfADocumentComesWithTheDocument(): void
+    {
+        $id = $this->draft();
+
+        [$document, $reading] = $this->details()->reading($id);
+
+        self::assertSame($id, $document->id());
+        self::assertSame($id, $reading?->documentId());
+    }
+
     public function testAGuestReadsNoCorrectableDocuments(): void
     {
         $this->signIn($this->guest);

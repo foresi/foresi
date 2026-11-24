@@ -98,6 +98,20 @@ final class ReadingMergeTest extends TestCase
         self::assertTrue(new ReadingMerge()->merge([new Reading([]), new Reading([])])->isEmpty());
     }
 
+    public function testTheAmountsOfAnotherReaderAreSkippedButItsOtherValuesAreKept(): void
+    {
+        $first = $this->reading('isdoc', [ReadField::Total->value => 12100]);
+        $second = new Reading([
+            new ReadValue(ReadField::Currency, 'EUR', 'payment_qr'),
+            new ReadValue(ReadField::VariableSymbol, '2026100', 'payment_qr'),
+        ]);
+
+        $merged = new ReadingMerge()->merge([$first, $second]);
+
+        self::assertNull($merged->get(ReadField::Currency));
+        self::assertSame('2026100', $merged->get(ReadField::VariableSymbol)?->value);
+    }
+
     public function testRoundTripToArray(): void
     {
         $recap = [['rate' => '21', 'baseMinor' => 10000, 'vatMinor' => 2100]];
@@ -126,6 +140,31 @@ final class ReadingMergeTest extends TestCase
         ]);
 
         self::assertSame(['issue_date'], array_keys($restored->values));
+    }
+
+    public function testASkippedEntryDoesNotStopTheOnesAfterIt(): void
+    {
+        $restored = Reading::fromArray([
+            'removed_field' => ['value' => 'x', 'source' => 'isdoc'],
+            'due_date' => 'broken',
+            'currency' => ['value' => null, 'source' => 'isdoc'],
+            'total' => ['value' => 1.5, 'source' => 'isdoc'],
+            'tax_point_date' => ['value' => '2026-10-02', 'source' => 7],
+            'issue_date' => ['value' => '2026-10-01', 'source' => 'isdoc'],
+        ]);
+
+        self::assertSame(['issue_date'], array_keys($restored->values));
+    }
+
+    public function testAnEntryWithAListOrAnIntegerValueIsKept(): void
+    {
+        $restored = Reading::fromArray([
+            'total' => ['value' => 12100, 'source' => 'isdoc'],
+            'vat_recap' => ['value' => [['rate' => '21']], 'source' => 'isdoc'],
+        ]);
+
+        self::assertSame(12100, $restored->get(ReadField::Total)?->value);
+        self::assertSame([['rate' => '21']], $restored->get(ReadField::VatRecap)?->value);
     }
 
     /**

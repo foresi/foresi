@@ -29,6 +29,21 @@ final class DocumentFileTest extends TestCase
         self::assertTrue(new DocumentFile('a.jpg', '', '')->isImage());
     }
 
+    public function testTheMediaTypeIsComparedTrimmedAndInLowerCase(): void
+    {
+        self::assertTrue(new DocumentFile('a.bin', ' application/pdf ', '')->isPdf());
+        self::assertTrue(new DocumentFile('a.bin', 'APPLICATION/PDF', '')->isPdf());
+        self::assertTrue(new DocumentFile('a.bin', ' Image/PNG ; name=a', '')->isImage());
+    }
+
+    public function testEveryImageExtensionIsRecognised(): void
+    {
+        foreach (['png', 'jpg', 'jpeg', 'gif', 'webp', 'tif', 'tiff', 'bmp'] as $extension) {
+            self::assertTrue(new DocumentFile('a.'.$extension, '', '')->isImage(), $extension);
+        }
+        self::assertFalse(new DocumentFile('a.txt', '', '')->isImage());
+    }
+
     public function testXmlMediaTypes(): void
     {
         self::assertTrue(new DocumentFile('a', 'application/xml; charset=utf-8', '')->isXml());

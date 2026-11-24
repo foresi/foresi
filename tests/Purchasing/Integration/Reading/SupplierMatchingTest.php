@@ -114,6 +114,55 @@ final class SupplierMatchingTest extends PurchasingTestCase
         self::assertContains(ReceivedDocumentWarning::SUPPLIER_AMBIGUOUS, $reading->warnings());
     }
 
+    public function testTheCountryMayBeWrittenInLowerCaseOrPadded(): void
+    {
+        foreach (['cz', ' CZ ', "cz\n"] as $country) {
+            $match = $this->matching()->match($this->named(registrationNumber: '87654321', country: $country));
+
+            self::assertSame($this->supplier->id(), $match->party?->id(), var_export($country, true));
+        }
+    }
+
+    public function testACountryThatIsNotTwoLettersIsLeftToTheVatIdCountry(): void
+    {
+        $other = $this->party('Other Example s.r.o.', '11111111', 'CZ11111111');
+
+        foreach (['CZE', 'XCZ', 'C1', ''] as $country) {
+            // The VAT id names the country of the number, which belongs to the other party; the supplier has the VAT id.
+            $match = $this->matching()->match($this->named(registrationNumber: '11111111', country: $country, vatId: 'CZ87654321'));
+
+            self::assertSame($other->id(), $match->party?->id(), $country);
+        }
+    }
+
+    public function testATextOfBlanksNamesNobody(): void
+    {
+        $match = $this->matching()->match($this->named(name: '   ', registrationNumber: " \n", vatId: "\t"));
+
+        self::assertNull($match->party);
+        self::assertNull($match->warning);
+    }
+
+    public function testAnArchivedPartyIsNotFoundByItsVatIdEither(): void
+    {
+        $this->supplier->archive(new \DateTimeImmutable('2026-11-01'));
+        $this->em->flush();
+
+        $match = $this->matching()->match($this->named(vatId: 'CZ87654321'));
+
+        self::assertNull($match->party);
+        self::assertSame(ReceivedDocumentWarning::SUPPLIER_NOT_FOUND, $match->warning);
+    }
+
+    public function testANumberThatFailsItsCheckStillFindsTheContactThatHoldsIt(): void
+    {
+        $held = $this->party('Unchecked Example s.r.o.', '12345678', null);
+
+        $match = $this->matching()->match($this->named(registrationNumber: ' 12345678 ', country: 'CZ'));
+
+        self::assertSame($held->id(), $match->party?->id());
+    }
+
     public function testAReadingThatNamesNobodyLooksForNobody(): void
     {
         $match = $this->matching()->match(new Reading([new ReadValue(ReadField::Total, 12_100, 'isdoc')]));
