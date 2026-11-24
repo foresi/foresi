@@ -32,11 +32,14 @@ final class Version20261124090000 extends AbstractMigration
         $table->addIndex(['document_id', 'position'], 'idx_received_document_line_document');
     }
 
+    /**
+     * In SQL, not on the Schema: dropping and adding an index of the same name in one step makes the schema
+     * comparison rename an implicit index that does not exist (idx_9a71e23c33f7837), and PostgreSQL refuses it.
+     */
     public function down(Schema $schema): void
     {
-        $table = $schema->getTable('received_document_line');
-        $table->dropIndex('idx_received_document_line_document');
-        $table->addIndex(['document_id'], 'idx_received_document_line_document');
-        $table->addUniqueIndex(['document_id', 'position'], 'uniq_received_document_line_position');
+        $this->addSql('DROP INDEX idx_received_document_line_document');
+        $this->addSql('CREATE INDEX idx_received_document_line_document ON received_document_line (document_id)');
+        $this->addSql('CREATE UNIQUE INDEX uniq_received_document_line_position ON received_document_line (document_id, position)');
     }
 }

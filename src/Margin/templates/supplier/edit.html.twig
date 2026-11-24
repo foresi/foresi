@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Sets who bears the costs of a supplier by default from a month on: the firm itself, a client found by name, or
+    nobody, which ends the default from that month. A dialog over the contact's Margin tab, and a page of its own at
+    the same URL. Variables: contactId, name, values (type, contactId, query, fromMonth), error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'party.title'|trans, href: path('app_contacts')}, {label: name, href: path('app_contact_show', {id: contactId, tab: 'margin'})}, {label: 'margin.supplier.edit'|trans}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = name %}
+
+{% block title %}{{ 'margin.supplier.edit_title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-default-form" action="{{ path('app_margin_supplier_default_edit', {id: contactId}) }}" class="grid gap-4" novalidate data-margin-default-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Infrastructure\\Party\\SupplierDefaultController::TOKEN')) }}">
+        {# The first submit button of a form is what Enter presses: it is Save (the footer buttons come later). #}
+        <button type="submit" name="_action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:Select name="type" id="margin-type" :label="'margin.screen.recipient'|trans" :value="values.type" :options="{'': 'margin.supplier.nobody'|trans, own: 'margin.screen.own'|trans, client: 'margin.screen.client'|trans}" />
+        <twig:Ui:Combobox name="contactId" id="margin-contact" textName="query" :label="'margin.screen.client'|trans" :help="'margin.screen.client_help'|trans" :placeholder="'margin.screen.client_placeholder'|trans" :value="values.contactId" :text="values.query" :url="path('app_margin_contacts')" :emptyText="'margin.screen.client_empty'|trans" />
+        <twig:Ui:TextInput type="month" name="fromMonth" id="margin-from-month" :label="'margin.screen.from'|trans" :help="'margin.screen.from_help'|trans" :value="values.fromMonth" width="medium" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-default-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.supplier.edit_title'|trans" icon="users" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ name }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="path('app_contact_show', {id: contactId, tab: 'margin'})">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-default-form" name="_action" value="save" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

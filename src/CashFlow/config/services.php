@@ -10,16 +10,19 @@ use Foresi\CashFlow\Application\ForecastReads;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Application\Pairing;
 use Foresi\CashFlow\Application\PairingReads;
+use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Application\RuleMovements;
 use Foresi\CashFlow\Contract\DocumentPairer;
 use Foresi\CashFlow\Contract\DocumentPairings;
 use Foresi\CashFlow\Contract\ForecastReader;
 use Foresi\CashFlow\Contract\MovementFinder;
 use Foresi\CashFlow\Contract\PairableDocumentSource;
+use Foresi\CashFlow\Contract\PlannedItemCounterparties;
 use Foresi\CashFlow\Contract\PlannedItemDirectory;
 use Foresi\CashFlow\Contract\PlannedPairings;
 use Foresi\CashFlow\Infrastructure\Directory\PlannedItemsDirectory;
 use Foresi\CashFlow\Infrastructure\Screen\DocumentPairingsScreen;
+use Foresi\Tests\CashFlow\Support\ExamplePlannedItemSection;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -52,6 +55,11 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$sources', tagged_iterator(PairableDocumentSource::TAG));
     $services->alias(DocumentPairer::class, Pairing::class)->public();
     $services->alias(PlannedPairings::class, PairingReads::class)->public();
+    $services->alias(PlannedItemCounterparties::class, PlannedItemWrites::class)->public();
     $services->alias(DocumentPairings::class, DocumentPairingsScreen::class)->public();
     $services->alias(PlannedItemDirectory::class, PlannedItemsDirectory::class)->public();
+    if ('test' === $container->env()) {
+        // Lets a test add a module's section to the page of a planned item.
+        $services->set(ExamplePlannedItemSection::class);
+    }
 };

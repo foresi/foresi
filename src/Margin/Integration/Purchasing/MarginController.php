@@ -13,14 +13,11 @@ use Foresi\Margin\Application\AllocationWrites;
 use Foresi\Margin\Application\AssignDocumentInput;
 use Foresi\Margin\Application\DocumentAllocationView;
 use Foresi\Margin\Application\LineAllocationView;
-use Foresi\Margin\Application\MarginAccess;
 use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Domain\MarginRefused;
-use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\PartyRow;
+use Foresi\Margin\Infrastructure\Screen\MappingForm;
 use Foresi\Shared\Application\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -38,16 +35,12 @@ final class MarginController extends AbstractController
 {
     public const string TOKEN = 'margin_screens';
 
-    private const int SEARCH_LIMIT = 10;
-    private const int MIN_SEARCH = 3;
     private const string LINE_KEY = '[A-Za-z0-9:._-]{1,64}';
 
     public function __construct(
-        private readonly MarginAccess $access,
-        private readonly PartyQuery $parties,
         private readonly AllocationReads $reads,
         private readonly AllocationWrites $writes,
-        private readonly LineForm $form,
+        private readonly MappingForm $form,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -127,30 +120,7 @@ final class MarginController extends AbstractController
             'line' => $line,
             'values' => $values,
             'error' => $error,
-            'kinds' => ['whole' => $this->translator->trans('margin.screen.kind.whole'), 'percent' => $this->translator->trans('margin.screen.kind.percent'), 'fixed' => $this->translator->trans('margin.screen.kind.fixed')],
         ], new Response(status: $status));
-    }
-
-    /**
-     * The contacts for the combobox of the dialogs, found by name, registration number, VAT ID or e-mail as the
-     * address book finds them, archived ones left out.
-     */
-    #[Route('/margin/contacts', name: 'app_margin_contacts', methods: ['GET'])]
-    public function contacts(Request $request): JsonResponse
-    {
-        try {
-            $this->access->denyUnlessStaff();
-        } catch (MarginRefused $refused) {
-            throw $this->denied($refused);
-        }
-        $text = trim(mb_substr($request->query->getString('q'), 0, 100));
-        $rows = mb_strlen($text) < self::MIN_SEARCH && !ctype_digit($text) ? [] : \array_slice($this->parties->search($text, null, false, 'name', 1)->rows, 0, self::SEARCH_LIMIT);
-
-        return $this->json(['results' => array_map(static fn (PartyRow $row): array => [
-            'id' => $row->id,
-            'label' => $row->displayName,
-            'hint' => $row->registrationNumber ?? $row->vatId ?? '',
-        ], $rows)]);
     }
 
     private function view(string $id): DocumentAllocationView

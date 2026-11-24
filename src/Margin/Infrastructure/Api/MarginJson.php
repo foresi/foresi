@@ -11,7 +11,11 @@ namespace Foresi\Margin\Infrastructure\Api;
 use Foresi\Margin\Application\DocumentAllocationView;
 use Foresi\Margin\Application\LineAllocationView;
 use Foresi\Margin\Application\MappingView;
+use Foresi\Margin\Application\PlannedAllocationsView;
+use Foresi\Margin\Application\PlannedAllocationVersionView;
 use Foresi\Margin\Application\ShareView;
+use Foresi\Margin\Application\SupplierDefaultsView;
+use Foresi\Margin\Application\SupplierDefaultVersionView;
 use Foresi\Margin\Application\TermView;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
@@ -52,7 +56,44 @@ final class MarginJson
                 'recipient_name' => $share->recipientName,
                 'amount' => JsonValues::money($share->amountCzk),
                 'source' => $share->source,
+                'planned_item_id' => $share->plannedItemId,
+                'occurrence_on' => $share->occurrenceOn,
             ], $line->shares),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function planned(PlannedAllocationsView $view): array
+    {
+        return [
+            'planned_item_id' => $view->plannedItemId,
+            'name' => $view->name,
+            'versions' => array_map(static fn (PlannedAllocationVersionView $version): array => [
+                'from_month' => $version->fromMonth,
+                'allocation' => $version->mapping instanceof MappingView ? self::mapping($version->mapping) : null,
+                'current' => $version->current,
+                'created_at' => $version->createdAt->format(\DATE_ATOM),
+                'created_by' => $version->createdBy,
+            ], $view->versions),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function supplierDefault(SupplierDefaultsView $view): array
+    {
+        return [
+            'supplier_id' => $view->supplierId,
+            'supplier_name' => $view->supplierName,
+            'versions' => array_map(static fn (SupplierDefaultVersionView $version): array => [
+                'from_month' => $version->fromMonth,
+                'recipient' => $version->recipient,
+                'recipient_name' => $version->recipientName,
+                'current' => $version->current,
+            ], $view->versions),
         ];
     }
 

@@ -1,6 +1,51 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 margin:
   title: Marže
+  screen:
+    own: Vlastní spotřeba
+    unknown_contact: Klient, který už není v adresáři
+    recipient: Příjemce
+    client: Klient
+    client_help: Napište alespoň tři písmena jména.
+    client_placeholder: Jméno klienta
+    client_empty: Žádný kontakt neodpovídá.
+    clear: Vymazat
+    from: Platí od
+    from_help: První měsíc, od kterého rozdělení platí.
+    cancel: Zrušit
+    submit: Uložit
+    kind:
+      label: Jak rozdělit
+      help: Procenta dají 100. U pevné částky jeden bere zbytek.
+      whole: Celé jednomu
+      percent: Procenta
+      fixed: Pevná částka
+    row:
+      recipient: "Příjemce {n}"
+      client: "Klient {n}"
+      percent: "Procenta {n}"
+      amount: "Částka {n} (Kč)"
+      rest: "Příjemce {n} dostane zbytek"
+    error:
+      recipient: Vyberte firmu samotnou nebo klienta.
+      client: Klienta v řádku vyberte ze seznamu.
+      amount: Částka je číslo v Kč s nejvýše dvěma desetinnými místy.
+  supplier:
+    tab: Marže
+    title: Výchozí příjemce nákladů od tohoto dodavatele
+    edit: Upravit
+    edit_title: Výchozí příjemce nákladů od tohoto dodavatele
+    none: Žádný výchozí příjemce. Náklady tohoto dodavatele, které nic neřadí, zůstanou nepřiřazené.
+    none_yet: Zatím se žádný výchozí příjemce neuplatňuje. První začíná v pozdějším měsíci.
+    from_month: Od měsíce
+    later: Pozdější
+    earlier: Dřívější
+    ended: Nikdo, od tohoto měsíce bez výchozího příjemce
+    nobody: Nikdo (bez výchozího příjemce)
+    versions: "{count, plural, one {# další verze} few {# další verze} many {# další verze} other {# dalších verzí}}"
+    flash:
+      set: Výchozí příjemce je uložený.
+      ended: Výchozí příjemce od tohoto měsíce končí.
   refused:
     whole_needs_one: "Celý náklad patří právě jednomu příjemci, bez procenta a částky."
     percent_must_add_up: "Procenta jsou dvě nebo víc, každé nad 0 s nejvýš dvěma desetinnými místy a dohromady přesně 100."
@@ -14,3 +59,9 @@ margin:
     recipient_invalid: "Příjemce je firma sama nebo kontakt."
     amount_invalid: "Částka je číslo v Kč s nejvýš dvěma desetinnými místy."
     forbidden: "S marží pracují jen vlastníci a členové organizace."
+    unknown_planned_item: "Položka plánu v cash flow není."
+    not_an_expense: "Klientům se přiřazuje jen plánovaný náklad."
+    not_recurring: "Klientům se přiřazuje jen opakovaný plánovaný náklad."
+    counterparty_required: "Položka plánu potřebuje protistranu, než se její náklady přiřadí."
+    unknown_supplier: "Dodavatel není aktivní kontakt v adresáři."
+    invalid_month: "Měsíc se píše jako RRRR-MM."

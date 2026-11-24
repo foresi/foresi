@@ -10,6 +10,7 @@ namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Contract\FlowSubject;
 use Foresi\CashFlow\Contract\PairedOccurrence;
+use Foresi\CashFlow\Contract\PairedSubject;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Contract\PlannedPairings;
 use Foresi\CashFlow\Domain\DocumentPairing;
@@ -45,6 +46,21 @@ final readonly class PairingReads implements PlannedPairings
             static fn (DocumentPairing $pairing): FlowSubject => new FlowSubject($pairing->subjectType(), $pairing->subjectId()),
             array_filter($this->store->pairingsOfOccurrence($plannedItemId, $on), $this->pairs(...)),
         ));
+    }
+
+    public function ofItem(string $plannedItemId, \DateTimeImmutable $fromDay): array
+    {
+        $from = $fromDay->format('Y-m-d');
+        $rows = [];
+        foreach ($this->store->pairings(null, $plannedItemId) as $pairing) {
+            $on = $pairing->occurrenceOn();
+            if ($this->pairs($pairing) && $on instanceof \DateTimeImmutable && $on->format('Y-m-d') >= $from) {
+                $rows[] = new PairedSubject(new FlowSubject($pairing->subjectType(), $pairing->subjectId()), $on);
+            }
+        }
+        usort($rows, static fn (PairedSubject $a, PairedSubject $b): int => $a->occurrenceOn <=> $b->occurrenceOn);
+
+        return $rows;
     }
 
     /**

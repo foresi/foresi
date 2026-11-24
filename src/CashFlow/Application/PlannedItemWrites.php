@@ -16,6 +16,7 @@ use Foresi\CashFlow\Contract\Event\PlannedItemEnded;
 use Foresi\CashFlow\Contract\Event\PlannedItemOccurrenceSkipped;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Contract\PairingState;
+use Foresi\CashFlow\Contract\PlannedItemCounterparties;
 use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PlannedItem;
@@ -35,7 +36,7 @@ use Psr\Clock\ClockInterface;
  * in one unit of work with its cash-flow.planned_item event, and only the
  * owners and members of the organisation write.
  */
-final readonly class PlannedItemWrites
+final readonly class PlannedItemWrites implements PlannedItemCounterparties
 {
     public function __construct(
         private CashFlowAccess $access,
@@ -122,6 +123,11 @@ final readonly class PlannedItemWrites
 
             return $item;
         });
+    }
+
+    public function set(string $plannedItemId, string $counterpartyId): void
+    {
+        $this->change(new ChangePlannedItemInput($plannedItemId, counterpartyId: $counterpartyId));
     }
 
     /**

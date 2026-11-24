@@ -1,6 +1,51 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 margin:
   title: Margin
+  screen:
+    own: Own consumption
+    unknown_contact: A client that is no longer in the address book
+    recipient: Recipient
+    client: Client
+    client_help: Type at least three letters of the name.
+    client_placeholder: Name of the client
+    client_empty: No contact matches.
+    clear: Clear
+    from: Applies from
+    from_help: The first month the split applies to.
+    cancel: Cancel
+    submit: Save
+    kind:
+      label: How to split
+      help: Percents total 100; with fixed amounts one takes the rest.
+      whole: Whole to one recipient
+      percent: Percent
+      fixed: Fixed amount
+    row:
+      recipient: "Recipient {n}"
+      client: "Client {n}"
+      percent: "Percent {n}"
+      amount: "Amount {n} (CZK)"
+      rest: "Recipient {n} takes the rest"
+    error:
+      recipient: Choose the firm itself or a client.
+      client: Pick the client of a row from the list.
+      amount: An amount is a number in CZK with at most two decimals.
+  supplier:
+    tab: Margin
+    title: Default recipient of the costs of this supplier
+    edit: Edit
+    edit_title: Default recipient of the costs of this supplier
+    none: No default recipient. The costs of this supplier that no mapping claims stay unassigned.
+    none_yet: No default applies yet. The first one starts in a later month.
+    from_month: From month
+    later: Later
+    earlier: Earlier
+    ended: Nobody, no default from this month on
+    nobody: Nobody (no default)
+    versions: "{count, plural, one {# other version} other {# other versions}}"
+    flash:
+      set: The default recipient is saved.
+      ended: The default recipient ends from that month on.
   refused:
     whole_needs_one: "A whole allocation has exactly one recipient and no percent or amount."
     percent_must_add_up: "The percents must be two or more, each above 0 with up to two decimals, adding up to exactly 100."
@@ -14,3 +59,9 @@ margin:
     recipient_invalid: "The recipient is the firm itself or a contact."
     amount_invalid: "The amount is a number in CZK with at most two decimals."
     forbidden: "Only the owners and the members of the organisation work with its margin."
+    unknown_planned_item: "The planned item is not in the cash flow."
+    not_an_expense: "Only a planned cost is mapped to clients."
+    not_recurring: "Only a recurring planned cost is mapped to clients."
+    counterparty_required: "The planned item needs a counterparty before its costs are mapped."
+    unknown_supplier: "The supplier is not an active contact of the address book."
+    invalid_month: "A month is written as YYYY-MM."

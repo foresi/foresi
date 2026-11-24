@@ -81,4 +81,20 @@ class CostShare
     {
         return $this->source;
     }
+
+    /**
+     * The planned item whose mapping gave the share, for a share from a pairing.
+     */
+    public function plannedItemId(): ?string
+    {
+        return $this->plannedItemId;
+    }
+
+    /**
+     * The day of the occurrence the document is paired with, for a share from a pairing.
+     */
+    public function occurrenceOn(): ?\DateTimeImmutable
+    {
+        return $this->occurrenceOn;
+    }
 }

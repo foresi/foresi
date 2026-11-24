@@ -12,7 +12,9 @@ use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\CashFlowStore;
 use Foresi\CashFlow\Application\PairingReads;
+use Foresi\CashFlow\Contract\PairedSubject;
 use Foresi\CashFlow\Domain\DocumentPairing;
+use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 
 /**
@@ -56,6 +58,29 @@ final class PairingReadsTest extends CashFlowTestCase
 
         self::assertSame([0], array_keys($rows));
         self::assertSame(['doc-2'], array_map(static fn (DocumentPairing $row): string => $row->subjectId(), $rows));
+    }
+
+    public function testTheAutoAndConfirmedPairingsOfOneItemFromADayOnAreListedWithTheirOccurrence(): void
+    {
+        $a = $this->planned(on: '2026-05-20', repeat: 'month', name: 'Cloud Host', counterpartyId: $this->customer->id());
+        $b = $this->planned(on: '2026-05-25', repeat: 'month', name: 'Voice API', counterpartyId: $this->customer->id());
+        $now = new \DateTimeImmutable('2026-11-17 10:00:00');
+        $day = static fn (string $on): \DateTimeImmutable => new \DateTimeImmutable($on);
+        $this->em->persist(DocumentPairing::auto('received_document', 'doc-old', $this->customer, $a, $day('2026-09-20'), $now));
+        $this->em->persist(DocumentPairing::auto('received_document', 'doc-nov', $this->customer, $a, $day('2026-11-20'), $now));
+        $confirmed = DocumentPairing::propose('received_document', 'doc-oct', $this->customer, [new PairingCandidate($a->id(), $day('2026-10-20'))], $a, $now);
+        $confirmed->confirm($a, $day('2026-10-20'), 'user-1', $now);
+        $this->em->persist($confirmed);
+        $this->em->persist(DocumentPairing::propose('received_document', 'doc-proposed', $this->customer, [new PairingCandidate($a->id(), $day('2026-10-20'))], $a, $now));
+        $this->em->persist(DocumentPairing::auto('received_document', 'doc-other-item', $this->customer, $b, $day('2026-11-25'), $now));
+        $this->em->flush();
+
+        $rows = $this->reads()->ofItem($a->id(), $day('2026-10-20'));
+
+        self::assertSame([['doc-oct', '2026-10-20'], ['doc-nov', '2026-11-20']], array_map(static fn (PairedSubject $row): array => [$row->subject->id, $row->occurrenceOn->format('Y-m-d')], $rows));
+        self::assertSame('received_document', $rows[0]->subject->type);
+        self::assertNull($rows[0]->subject->url);
+        self::assertSame([], $this->reads()->ofItem($a->id(), $day('2026-11-21')));
     }
 
     private function reads(): PairingReads

@@ -1198,6 +1198,58 @@ nelmio_api_doc:
                                                 recipient_name: { type: string, nullable: true }
                                                 amount: { $ref: '#/components/schemas/Money' }
                                                 source: { type: string, enum: [line, document, planned_item, supplier, unassigned] }
+                                planned_item_id: { type: string, format: uuid, nullable: true, description: 'The planned item whose mapping gave this share (source planned_item); otherwise null.' }
+                                occurrence_on: { type: string, format: date, nullable: true, description: 'The day of the occurrence the document is paired with (source planned_item); otherwise null.' }
+                MarginPlannedAllocations:
+                    type: object
+                    description: The versions of the mapping of a recurring planned cost, latest first. A version applies from its month on until a later one.
+                    required: [planned_item_id, name, versions]
+                    properties:
+                        planned_item_id: { type: string, format: uuid }
+                        name: { type: string }
+                        versions:
+                            type: array
+                            items:
+                                type: object
+                                required: [from_month, allocation, current, created_at, created_by]
+                                properties:
+                                    from_month: { type: string, example: '2026-12', description: 'The first month the version applies to, YYYY-MM in the zone of the instance.' }
+                                    allocation:
+                                        type: object
+                                        nullable: true
+                                        description: 'The mapping as it was typed; null ends the mapping from this month.'
+                                        properties:
+                                            kind: { type: string, enum: [whole, percent, fixed] }
+                                            shares:
+                                                type: array
+                                                items:
+                                                    type: object
+                                                    properties:
+                                                        recipient: { type: string, description: 'own, or the id of a contact.' }
+                                                        recipient_name: { type: string, nullable: true }
+                                                        percent: { type: string, nullable: true, example: '33.33' }
+                                                        amount: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }
+                                                        rest: { type: boolean }
+                                    current: { type: boolean, description: 'The version in force this month.' }
+                                    created_at: { type: string, format: date-time }
+                                    created_by: { type: string, description: 'The id of the person who set it.' }
+                MarginSupplierDefaults:
+                    type: object
+                    description: The versions of the default recipient of a supplier, latest first. A version applies from its month on until a later one.
+                    required: [supplier_id, supplier_name, versions]
+                    properties:
+                        supplier_id: { type: string, format: uuid }
+                        supplier_name: { type: string, nullable: true }
+                        versions:
+                            type: array
+                            items:
+                                type: object
+                                required: [from_month, recipient, recipient_name, current]
+                                properties:
+                                    from_month: { type: string, example: '2026-12' }
+                                    recipient: { type: string, nullable: true, description: 'own, the id of a contact, or null where the default ends.' }
+                                    recipient_name: { type: string, nullable: true }
+                                    current: { type: boolean, description: 'The version in force this month.' }
                 CalendarFeed:
                     type: object
                     description: One of your calendar feeds. Its address is never shown again after it is created.

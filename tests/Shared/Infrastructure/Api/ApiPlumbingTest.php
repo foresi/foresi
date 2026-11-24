@@ -182,6 +182,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/margin/documents/{documentId}' => ['get' => '200'],
                 '/api/v1/margin/documents/{documentId}/assign' => ['post' => '200'],
                 '/api/v1/margin/documents/{documentId}/lines/{lineKey}/allocation' => ['put' => '200'],
+                '/api/v1/margin/planned-items/{plannedItemId}/allocation' => ['get' => '200', 'put' => '200'],
+                '/api/v1/margin/suppliers/{contactId}/default-recipient' => ['get' => '200', 'put' => '200'],
             ],
             'party' => [
                 '/api/v1/firm' => ['get' => '200'],

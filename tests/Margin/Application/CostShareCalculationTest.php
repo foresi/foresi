@@ -11,9 +11,12 @@ namespace Foresi\Tests\Margin\Application;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Margin\Application\CostPairings;
 use Foresi\Margin\Application\CostShareCalculation;
 use Foresi\Margin\Application\CostSources;
 use Foresi\Margin\Application\KnownGaps;
+use Foresi\Margin\Application\MappingVersions;
+use Foresi\Margin\Application\OccurrenceFill;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Contract\CostLine;
 use Foresi\Margin\Domain\Allocation;
@@ -55,7 +58,7 @@ final class CostShareCalculationTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
         $this->source = new FixedCostSource();
-        $this->calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class));
+        $this->calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class), new CostPairings(), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));
     }
 
     public function testALineMappingBeatsTheDocumentMapping(): void
