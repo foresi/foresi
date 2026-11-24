@@ -93,15 +93,21 @@ final class DealScreensTest extends WebTestCase
         $audit = $this->newDeal('Roof audit');
         $this->newDeal('Gutter repair', $this->stages['proposal']);
         $this->newDeal('Chimney check');
+        $inspection = $this->newDeal('Roof inspection');
         $this->client->request('POST', '/sales/deals/'.$audit->id().'/win', ['_token' => $this->token()]);
+        $this->client->request('POST', '/sales/deals/'.$inspection->id().'/lose', ['_token' => $this->token()]);
 
         $crawler = $this->client->request('GET', '/sales/deals');
-        // One table per stage that holds a deal, in the order of the stages, with its count.
-        self::assertSame([$this->stages['inquiry']->id(), $this->stages['proposal']->id()], $crawler->filter('[data-deal-stage]')->each(static fn (Crawler $section): string => (string) $section->attr('data-deal-stage')));
-        self::assertStringContainsString('2 deals', $crawler->filter('[data-deal-stage]')->first()->filter('h2')->text());
+        // One table per stage that holds an open deal, in the order of the stages, with its count;
+        // the won and the lost deals after them, each in a table of their own, not in the stage they were closed in.
+        self::assertSame([$this->stages['inquiry']->id(), $this->stages['proposal']->id(), 'won', 'lost'], $crawler->filter('[data-deal-stage]')->each(static fn (Crawler $section): string => (string) $section->attr('data-deal-stage')));
+        self::assertStringContainsString('1 deal', $crawler->filter('[data-deal-stage]')->first()->filter('h2')->text());
         self::assertStringContainsString('Chimney check', $crawler->filter('[data-deal-stage]')->first()->text());
-        self::assertStringContainsString('Roof audit', $crawler->filter('[data-deal-stage]')->first()->text());
+        self::assertStringNotContainsString('Roof audit', $crawler->filter('[data-deal-stage]')->first()->text());
         self::assertSelectorTextContains('[data-deal-stage="'.$this->stages['proposal']->id().'"]', 'Gutter repair');
+        self::assertSelectorTextContains('[data-deal-stage="won"] h2', 'Won');
+        self::assertSelectorTextContains('[data-deal-stage="won"]', 'Roof audit');
+        self::assertSelectorTextContains('[data-deal-stage="lost"]', 'Roof inspection');
 
         // The Won view holds the deal won only.
         $this->client->request('GET', '/sales/deals?view=won');

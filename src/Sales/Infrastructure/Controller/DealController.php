@@ -44,6 +44,7 @@ use Foresi\Sales\Application\View\DealRow;
 use Foresi\Sales\Contract\SalesSlots;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
+use Foresi\Sales\Domain\DealStatus;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
 use Foresi\Sales\Infrastructure\Column\DealColumns;
@@ -80,8 +81,9 @@ use Symfony\Component\Routing\Requirement\Requirement;
 /**
  * The deals, for the owners and members. The list runs on saved views as
  * every list does (All, Open, Won, Lost, Trash, the filter sheet, Columns) and
- * groups the deals by stage, one table per stage with its count and value,
- * as Odoo's list grouped by stage shows them. A deal is a page of its own:
+ * groups the open deals by stage, one table per stage with its count and value,
+ * as Odoo's list grouped by stage shows them, and the won and the lost deals
+ * in a table each after them. A deal is a page of its own:
  * its header holds Won or Reopen, one prominent action of another module and
  * the rest in "⋯"; its main column the lines and their value, and the
  * sections other modules add as tabs (?tab=), the first by default; its side
@@ -583,9 +585,11 @@ final class DealController extends AbstractController
     }
 
     /**
-     * The deals of the view by stage, in the order of the stages: one section per stage
-     * that holds a deal shown, as a list grouped by stage shows only the groups it has
-     * (Odoo), with the count and the value of its deals.
+     * The open deals of the view by stage, in the order of the stages: one section per
+     * stage that holds a deal shown, as a list grouped by stage shows only the groups it
+     * has (Odoo), with the count and the value of its deals. A closed deal keeps the stage
+     * it was closed in, but it is no longer in the pipeline: the won deals and then the
+     * lost ones follow in a section of their own, as Pipedrive takes them off the stages.
      *
      * @param list<Deal> $deals
      *
@@ -594,8 +598,13 @@ final class DealController extends AbstractController
     private function sections(array $deals, WorkingState $working): array
     {
         $byStage = [];
+        $closed = [DealStatus::Won->value => [], DealStatus::Lost->value => []];
         foreach ($deals as $deal) {
-            $byStage[$deal->stageId()][] = $deal;
+            if ($deal->isOpen()) {
+                $byStage[$deal->stageId()][] = $deal;
+            } else {
+                $closed[$deal->status()->value][] = $deal;
+            }
         }
         $sections = [];
         foreach ($this->reads->stages(true) as $stage) {
@@ -606,6 +615,11 @@ final class DealController extends AbstractController
         }
         foreach ($byStage as $stageId => $rest) {
             $sections[] = $this->section($stageId, $this->screen->stage(null), $rest, $working);
+        }
+        foreach ($closed as $status => $rest) {
+            if ([] !== $rest) {
+                $sections[] = $this->section($status, $this->screen->trans('sales.deals.tab.'.$status), $rest, $working);
+            }
         }
 
         return $sections;
