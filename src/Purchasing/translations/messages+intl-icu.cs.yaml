@@ -239,3 +239,6 @@ purchasing:
     deduction_deadline_passed: "Lhůta pro odpočet DPH uplynula {date}."
     deduction_deadline_near: "Lhůta pro odpočet DPH končí {date}."
     simplified_receipt_over_limit: "Zjednodušený daňový doklad je nad 10 000 Kč s DPH."
+    reading_partly_applied: "Některé hodnoty načtené ze souboru k dokladu nesedí; čekají jako návrhy."
+    supplier_ambiguous: "IČO nebo DIČ dodavatele má víc kontaktů, proto dodavatel nebyl nastaven."
+    supplier_not_found: "IČO ani DIČ dodavatele nemá žádný kontakt."

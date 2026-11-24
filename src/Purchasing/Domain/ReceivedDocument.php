@@ -35,7 +35,8 @@ use Foresi\Shared\Domain\Money;
  * checked against the recap on every save (DocumentLines) and never change it.
  *
  * The original file is an attachment of the kind ATTACHMENT_KIND, named by id; a
- * credit note names the document it corrects by id. In the trash a document
+ * credit note names the document it corrects by id. The source says how the
+ * document came in and never changes. In the trash a document
  * keeps its number and content and takes no change until it is restored.
  */
 #[ORM\Entity]
@@ -187,6 +188,8 @@ class ReceivedDocument implements Audited
         private readonly ?string $createdBy,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
+        #[ORM\Column(type: 'string', length: 16, enumType: DocumentSource::class, options: ['default' => 'manual'])]
+        private readonly DocumentSource $source = DocumentSource::Manual,
     ) {
         $this->id = Id::generate();
         $this->lines = new ArrayCollection();
@@ -546,6 +549,11 @@ class ReceivedDocument implements Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function source(): DocumentSource
+    {
+        return $this->source;
     }
 
     /**

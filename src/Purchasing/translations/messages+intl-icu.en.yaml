@@ -239,3 +239,6 @@ purchasing:
     deduction_deadline_passed: "The time to deduct the VAT ended on {date}."
     deduction_deadline_near: "The time to deduct the VAT ends on {date}."
     simplified_receipt_over_limit: "The simplified receipt is above 10,000 CZK with VAT."
+    reading_partly_applied: "Some values read from the file do not fit the document; they wait as suggestions."
+    supplier_ambiguous: "More than one contact has the supplier's registration or VAT number, so no supplier was set."
+    supplier_not_found: "No contact has the supplier's registration or VAT number."

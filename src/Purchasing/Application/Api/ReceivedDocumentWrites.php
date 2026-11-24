@@ -20,6 +20,7 @@ use Foresi\Purchasing\Application\SetReceivedDocumentLines;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Domain\DocumentLines;
+use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\PaymentMethod;
 use Foresi\Purchasing\Domain\PurchaseTaxTreatment;
@@ -78,7 +79,7 @@ final readonly class ReceivedDocumentWrites
             $input->originalDocumentId,
             $input->supplyCode,
             $this->lines($input->lines, $currency),
-        ))->document->id());
+        ), DocumentSource::Api)->document->id());
     }
 
     /**

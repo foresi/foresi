@@ -26,6 +26,12 @@ final readonly class ReceivedDocumentWarning
     public const string DEDUCTION_DEADLINE_NEAR = 'deduction_deadline_near';
     /** A simplified receipt above the limit of a simplified tax document. */
     public const string SIMPLIFIED_OVER_LIMIT = 'simplified_receipt_over_limit';
+    /** The document refused some values of the reading of its file; they wait as suggestions. */
+    public const string READING_PARTLY_APPLIED = 'reading_partly_applied';
+    /** More than one active contact has the supplier's registration or VAT number the reading found. */
+    public const string SUPPLIER_AMBIGUOUS = 'supplier_ambiguous';
+    /** No active contact has the supplier's registration or VAT number the reading found. */
+    public const string SUPPLIER_NOT_FOUND = 'supplier_not_found';
 
     public const int DEADLINE_DAYS = 60;
 
