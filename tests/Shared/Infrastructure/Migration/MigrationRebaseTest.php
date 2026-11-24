@@ -158,7 +158,7 @@ final class MigrationRebaseTest extends KernelTestCase
             // What a migration after the baselines drops was there before it: the database is given it back.
             foreach ($known as $table => [$columns, $indexes]) {
                 $now = $schema->hasTable($table) ? $schema->getTable($table) : null;
-                if (null === $now || \in_array($table, $dropTables, true)) {
+                if (!$now instanceof \Doctrine\DBAL\Schema\Table || \in_array($table, $dropTables, true)) {
                     continue;
                 }
                 foreach ($columns as $name => $column) {

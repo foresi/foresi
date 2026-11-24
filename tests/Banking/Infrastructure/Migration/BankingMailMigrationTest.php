@@ -240,6 +240,7 @@ final class BankingMailMigrationTest extends KernelTestCase
         foreach ($this->connection()->getDatabasePlatform()->getAlterSchemaSQL($manager->createComparator()->compareSchemas($from, $to)) as $sql) {
             $this->connection()->executeStatement($sql);
         }
+        'up' === $direction ? $migration->postUp($to) : $migration->postDown($to);
     }
 
     /**
