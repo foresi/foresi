@@ -65,3 +65,6 @@ margin:
     counterparty_required: "Položka plánu potřebuje protistranu, než se její náklady přiřadí."
     unknown_supplier: "Dodavatel není aktivní kontakt v adresáři."
     invalid_month: "Měsíc se píše jako RRRR-MM."
+    range_reversed: "Období končí dříve, než začíná."
+    range_too_long: "Najednou se zobrazí nejvýše 24 měsíců."
+    invalid_row: "Řádek je client:<id kontaktu>, own nebo unassigned."

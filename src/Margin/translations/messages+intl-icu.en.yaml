@@ -65,3 +65,6 @@ margin:
     counterparty_required: "The planned item needs a counterparty before its costs are mapped."
     unknown_supplier: "The supplier is not an active contact of the address book."
     invalid_month: "A month is written as YYYY-MM."
+    range_reversed: "The range ends before it starts."
+    range_too_long: "At most 24 months are shown at once."
+    invalid_row: "A row is client:<contact id>, own or unassigned."
