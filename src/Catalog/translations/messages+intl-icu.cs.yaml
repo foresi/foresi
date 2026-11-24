@@ -29,6 +29,7 @@ catalog:
       reset: Zrušit filtr
       archived_title: Žádné archivované produkty
       view_title: V tomto pohledu není žádný produkt
+    search_label: Hledat v produktech
   product:
     new: Nový produkt
     create: Vytvořit produkt

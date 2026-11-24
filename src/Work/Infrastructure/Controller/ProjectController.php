@@ -126,7 +126,7 @@ final class ProjectController extends AbstractController
      * A guest has no index of the projects of the organisation: what is shared with them is their start.
      *
      * The index runs on saved views as the other lists do: All (the projects not archived)
-     * and Archived, with "+ Filter", the person's own views and the Display sheet. The old
+     * and Archived, with the filter sheet, the person's own views and the Settings sheet. The old
      * ?tab=archived opens the Archived view, and ?tab=active All, which shows the same.
      */
     #[OpenToGuest]
@@ -144,15 +144,16 @@ final class ProjectController extends AbstractController
         [$views, $view, $shown] = $this->projectViews($input);
         $list = $this->projectLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_QUERY));
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, self::SORT_NAME);
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, []);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
 
         return $this->render('@Work/projects/index.html.twig', [
             'view' => $view->isAll() ? '' : $view->key,
@@ -164,11 +165,12 @@ final class ProjectController extends AbstractController
             ...$bar,
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
-            'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'))),
+            'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'), $text)),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
-            'filtered' => null !== $filterParam,
+            'text' => $text,
+            'filtered' => '' !== $text || null !== $filterParam,
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
         ]);
     }
@@ -228,7 +230,7 @@ final class ProjectController extends AbstractController
      * A project's tasks on saved views (spec D3, D7): All, which leaves out the
      * finished tasks as the list always did, the person's own tasks and the
      * finished ones ship as views, with the person's own beside them. Who is
-     * responsible, the status and the due date are conditions of "+ Filter"
+     * responsible, the status and the due date are conditions of the filter sheet
      * (D11); the views are the same in every project. List and Board stay a
      * switch of the layout above the views. A guest sees the views and filters
      * but does not save them, as only the staff keep views.
@@ -243,20 +245,22 @@ final class ProjectController extends AbstractController
             return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $id] + $this->taskBuiltQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->taskViews->of($input);
-        $list = $this->queries->projectList($id, new TaskFilter(conditions: new TaskConditions($shown, $this->myMembership(), $this->clock->today()))) ?? throw new NotFoundHttpException();
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_QUERY));
+        $list = $this->queries->projectList($id, new TaskFilter(conditions: new TaskConditions($shown, $this->myMembership(), $this->clock->today()), text: $text)) ?? throw new NotFoundHttpException();
         $definition = $this->taskLists->list();
         $query = array_filter([
             'view' => $view->isAll() ? null : $view->key,
+            'q' => '' === $text ? null : $text,
             WorkingFilter::PARAM => WorkingFilter::param($shown, $view->filter),
         ], static fn (?string $value): bool => null !== $value);
         $context = [
             ProjectTaskColumns::SEEDS => $this->seeds(),
             ProjectTaskColumns::EDITS => $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request),
         ];
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProjectTaskColumns::LIST, $context, $definition->key, $view, $input->all(), filters: $definition);
         $query += $working->query;
-        $bar = $this->viewBar->of($definition, $views, $view, $shown, '', '', $working, self::PROJECT_ROUTE, ['id' => $id]);
+        $bar = $this->viewBar->of($definition, $views, $view, $shown, '', '', $working, self::PROJECT_ROUTE, ['id' => $id] + ('' === $text ? [] : ['q' => $text]));
         $sections = [];
         foreach ($list->sections as $section) {
             // The tasks in no section only when there are some.
@@ -269,7 +273,8 @@ final class ProjectController extends AbstractController
         return $this->render('@Work/projects/show.html.twig', [
             'project' => $list->project,
             'sections' => $sections,
-            'filtered' => [] !== $shown->conditions,
+            'text' => $text,
+            'filtered' => '' !== $text || [] !== $shown->conditions,
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $query[WorkingFilter::PARAM] ?? '',
             'workingQuery' => $working->query,
@@ -277,7 +282,7 @@ final class ProjectController extends AbstractController
             'viewsEditable' => $this->staff->isStaff(),
             ...$this->filterSheet->of($definition, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned),
             ...$bar,
-            ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified']),
+            ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified'], $text),
             'columns' => $working->display->table(),
             'density' => $working->tableDensity(),
             'picker' => $this->taskPicker($id, $working, $query),
@@ -319,18 +324,20 @@ final class ProjectController extends AbstractController
     public function board(string $id, Request $request): Response
     {
         $query = $this->filterQuery($request->query);
-        $board = $this->queries->board($id, $this->filter(['status' => 'all'] + $query)) ?? throw new NotFoundHttpException();
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY));
+        $board = $this->queries->board($id, $this->filter(['status' => 'all'] + $query, $text)) ?? throw new NotFoundHttpException();
         $seeds = $this->seeds();
         $edits = $this->editsOf($board->project, array_merge(...array_map(static fn (StatusTasks $column): array => $column->tasks, $board->columns)), $request);
         $statuses = array_map(static fn (StatusTasks $column): array => ['id' => $column->id, 'name' => $column->name], $board->columns);
 
-        // The board keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        // The board keeps no view: its quick filters, pinned in the Settings sheet, stay in its address.
         $pins = QuickPins::read($request->query->all(), ['responsible' => $this->translator->trans('work.filter.responsible'), 'due' => $this->translator->trans('work.filter.due')], ['responsible', 'due']);
-        $set = array_filter(['responsible' => $query['responsible'], 'due' => $query['due']], static fn (string $value): bool => '' !== $value);
+        $set = array_filter(['responsible' => $query['responsible'], 'due' => $query['due'], 'q' => $text], static fn (string $value): bool => '' !== $value);
 
         return $this->render('@Work/projects/board.html.twig', [
             'project' => $board->project,
-            'query' => ['responsible' => $query['responsible'], 'due' => $query['due']],
+            'query' => ['responsible' => $query['responsible'], 'due' => $query['due']] + ('' === $text ? [] : ['q' => $text]),
+            'text' => $text,
             'pinned' => $pins->pinned,
             'pinnable' => $pins->pinnable,
             'pinsQuery' => $pins->query,
@@ -339,7 +346,7 @@ final class ProjectController extends AbstractController
                 'resetHref' => $this->generateUrl(self::BOARD_ROUTE, ['id' => $id] + $set),
                 'modified' => $pins->modified,
             ],
-            'filtered' => '' !== $query['responsible'] || '' !== $query['due'],
+            'filtered' => '' !== $text || '' !== $query['responsible'] || '' !== $query['due'],
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
@@ -599,7 +606,7 @@ final class ProjectController extends AbstractController
     /**
      * @param array{responsible: string, status: string, due: string} $query
      */
-    private function filter(array $query): TaskFilter
+    private function filter(array $query, string $text = ''): TaskFilter
     {
         $responsible = $query['responsible'];
         if ('me' === $responsible) {
@@ -616,6 +623,7 @@ final class ProjectController extends AbstractController
                 'finished' => true,
                 default => null,
             },
+            text: $text,
         );
     }
 
@@ -794,19 +802,19 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The views of the list as tabs and its "More views" menu (spec D7); no tab counts (D9).
+     * The views of the list as tabs and the other views of its Settings sheet (spec D7); no tab counts (D9).
      * A view opens with its own filter and columns (D10).
      *
      * @param list<ListView> $views
      *
      * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
      */
-    private function tabs(string $id, array $views, string $active, bool $modified): array
+    private function tabs(string $id, array $views, string $active, bool $modified, string $text = ''): array
     {
         [$primary, $overflow] = ListViews::placed($views);
         $link = fn (ListView $view): array => [
             'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
-            'href' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, 'view' => $view->isAll() ? null : $view->key]),
+            'href' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id, 'view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text]),
             'active' => $view->key === $active,
             'modified' => $modified && $view->key === $active,
             'private' => $view->private,
@@ -957,7 +965,7 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The tabs of the index and its "More views" menu (spec D7): All and the primary views
+     * The tabs of the index and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, the other views in the menu. The index counts none (D9).
      *
      * @param list<ListView>        $views
@@ -981,7 +989,7 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the index, and the index without the changed columns.
+     * The Settings sheet: what it keeps of the index, and the index without the changed columns.
      *
      * @param array<string, string> $query
      *

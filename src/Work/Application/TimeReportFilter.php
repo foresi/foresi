@@ -16,7 +16,8 @@ use Foresi\Shared\Application\View\ViewFilter;
  * invoiced or not (Freelo reports, Productive "invoiced = no"). The report
  * page reads the conditions of its saved view instead (TimeReportLists),
  * with no days: a date condition among them names the period, and without
- * one the report holds all the time.
+ * one the report holds all the time. A text narrows the entries to those whose note, task,
+ * project or client holds it, whatever its case.
  */
 final readonly class TimeReportFilter
 {
@@ -29,14 +30,15 @@ final readonly class TimeReportFilter
         public ?bool $billable = null,
         public ?bool $invoiced = null,
         public ViewFilter $conditions = new ViewFilter(),
+        public string $text = '',
     ) {
     }
 
     /**
      * The report a view's working filter holds.
      */
-    public static function ofView(ViewFilter $conditions): self
+    public static function ofView(ViewFilter $conditions, string $text = ''): self
     {
-        return new self(null, null, conditions: $conditions);
+        return new self(null, null, conditions: $conditions, text: $text);
     }
 }

@@ -19,12 +19,16 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Sales\Application\View\DealLists;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Domain\DealLink;
 use Foresi\Sales\Domain\DealStatus;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
+use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -103,6 +107,46 @@ final class DealScreensTest extends WebTestCase
         $this->client->request('GET', '/sales/deals?view=won');
         self::assertSelectorTextContains('main', 'Roof audit');
         self::assertSelectorTextNotContains('main', 'Gutter repair');
+    }
+
+    public function testTheListSearchesTheTitleAndTheClientNameWhateverTheCase(): void
+    {
+        $this->newDeal('Roof audit');
+        $this->newDeal('Gutter repair', $this->stages['proposal']);
+
+        $titles = fn (string $query): array => $this->client->request('GET', '/sales/deals?q='.rawurlencode($query))->filter('[data-deal-stage] tbody tr')->each(static fn (Crawler $row): string => trim($row->filter('a')->first()->text()));
+        self::assertSame(['Roof audit'], $titles('ROOF'));
+        // The client's name finds the deals of the client, the title not holding it.
+        self::assertEqualsCanonicalizing(['Roof audit', 'Gutter repair'], $titles('alpha example'));
+        self::assertSame([], $titles('%'), 'a wildcard is no wildcard');
+        self::assertSame([], $titles('_oof'), 'nor is an underscore');
+        self::assertSame([], $titles('nothing like it'));
+
+        // The search stays in the address of the views, and an empty result is a filtered list.
+        $crawler = $this->client->request('GET', '/sales/deals?q=ROOF');
+        self::assertStringContainsString('q=ROOF', (string) $crawler->filter('nav[aria-label="Views of the deals"] a')->first()->attr('href'));
+        $this->client->request('GET', '/sales/deals?q=nothing');
+        self::assertSelectorTextNotContains('body', 'No deals yet');
+    }
+
+    public function testTheStageFilterNarrowsTheListAndTheStagesAreItsLookup(): void
+    {
+        $this->newDeal('Roof audit');
+        $this->newDeal('Gutter repair', $this->stages['proposal']);
+        $this->newDeal('Chimney check', $this->stages['meeting']);
+        $on = static fn (string $op, mixed $value): string => rawurlencode(WorkingFilter::encode(ViewFilter::all(new Condition(DealLists::STAGE, $op, $value))));
+        $titles = fn (string $filter): array => $this->client->request('GET', '/sales/deals?f='.$filter)->filter('[data-deal-stage] tbody tr')->each(static fn (Crawler $row): string => trim($row->filter('a')->first()->text()));
+
+        self::assertSame(['Gutter repair'], $titles($on('is', $this->stages['proposal']->id())));
+        self::assertEqualsCanonicalizing(['Roof audit', 'Chimney check'], $titles($on('is_not', $this->stages['proposal']->id())));
+        self::assertEqualsCanonicalizing(['Gutter repair', 'Chimney check'], $titles($on('is_any_of', [$this->stages['proposal']->id(), $this->stages['meeting']->id()])));
+
+        // The lookup of the chip and the builder: the active stages, in their order, found by a part of the name.
+        $this->client->request('GET', '/sales/deals/stages');
+        self::assertResponseIsSuccessful();
+        self::assertSame(array_map(static fn (Stage $stage): string => $stage->id(), array_values($this->stages)), $this->lookedUp());
+        $this->client->request('GET', '/sales/deals/stages?q=PROPO');
+        self::assertSame([$this->stages['proposal']->id()], $this->lookedUp());
     }
 
     public function testANewDealFromAContactHasItsClientAndContactPersons(): void
@@ -354,6 +398,18 @@ final class DealScreensTest extends WebTestCase
         self::assertResponseRedirects();
 
         return $this->deal($title);
+    }
+
+    /**
+     * @return list<string> the ids a lookup of the last response offers
+     */
+    private function lookedUp(): array
+    {
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($body);
+        self::assertIsArray($body['results']);
+
+        return array_values(array_map(static fn (mixed $result): string => \is_array($result) && \is_string($result['id'] ?? null) ? $result['id'] : '', $body['results']));
     }
 
     private function product(): Product

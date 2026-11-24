@@ -17,7 +17,7 @@ namespace Foresi\Shared\Application\View;
  * The first default view is the list's All: it holds no condition and stays first.
  *
  * The pinned fields are the quick filters a view shows as chips under its tabs until someone
- * picks others in its Display sheet (Shopify Polaris IndexFilters pins filters to the bar,
+ * picks others in its Settings sheet (Shopify Polaris IndexFilters pins filters to the bar,
  * Linear and Notion keep them with the view): the view keeps its own as display.pinned, and
  * a view that keeps none, as each shipped view, shows these.
  */

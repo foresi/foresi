@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Domain\View;
 
 /**
- * Where a view shows: as a tab, or in the "More views" menu (spec D7).
+ * Where a view shows: as a tab, or listed only in the list's Settings sheet (spec D7).
  */
 enum Placement: string
 {

@@ -147,7 +147,7 @@ final class MyTasksControllerTest extends WebTestCase
 
         self::assertSame(['Fix the form', 'Call the client', 'Write the copy', 'Plan the launch'], $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSame('Assigned to me, unsaved changes', $this->tabs($crawler)[1]);
-        // No fixed select sits in the sheet above "+ Filter" (spec D11).
+        // No fixed select sits in the filter sheet above its conditions (spec D11).
         self::assertCount(0, $crawler->filter('select[name="client"]'));
         self::assertStringContainsString('Example Client', $crawler->filter('main')->text());
 

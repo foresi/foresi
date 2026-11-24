@@ -51,7 +51,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The products of the catalog, for the owners and members. The list runs on
  * saved views as the address book does: All, One-off, Recurring and Archived,
- * with "+ Filter", the person's own views and the Display sheet. A row opens
+ * with the filter sheet, the person's own views and the Settings sheet. A row opens
  * the product as a record in the side sheet. A new product starts in the page
  * header and Edit in the product's, each in a dialog, where the billing kind
  * reveals the period fields (the product library of HubSpot and Pipedrive);
@@ -66,6 +66,7 @@ final class ProductController extends AbstractController
 
     /** The list's one sort, by name; "-name" backwards. */
     private const string SORT_NAME = 'name';
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly ProductLists $productLists,
@@ -95,15 +96,16 @@ final class ProductController extends AbstractController
         [$views, $view, $shown] = $this->views($input);
         $list = $this->productLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, self::SORT_NAME);
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProductColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, []);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
 
         return $this->render('@Catalog/products/index.html.twig', [
             'view' => $view->isAll() ? '' : $view->key,
@@ -114,11 +116,12 @@ final class ProductController extends AbstractController
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
-            'rows' => array_map(fn (Product $product): array => $this->row($product, $working), $this->queries->index($shown, str_starts_with($sort, '-'))),
+            'rows' => array_map(fn (Product $product): array => $this->row($product, $working), $this->queries->index($shown, str_starts_with($sort, '-'), $text)),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
-            'filtered' => null !== $filterParam,
+            'text' => $text,
+            'filtered' => '' !== $text || null !== $filterParam,
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
         ]);
     }
@@ -339,7 +342,7 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * The tabs of the list and its "More views" menu (spec D7): All and the primary views
+     * The tabs of the list and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, the other views in the menu. The list counts none (D9).
      *
      * @param list<ListView>        $views
@@ -363,7 +366,7 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the list, and the list without the changed columns.
+     * The Settings sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

@@ -41,6 +41,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class TimeWeekController extends AbstractController
 {
     public const string ROUTE = 'app_time';
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly TimeQueries $time,
@@ -64,12 +65,13 @@ final class TimeWeekController extends AbstractController
         $people = $owner ? $this->people() : [];
         $person = $request->query->getString('person');
         $person = isset($people[$person]) ? $person : '';
-        $week = $this->time->week($day, '' === $person ? null : $person) ?? throw new NotFoundHttpException();
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
+        $week = $this->time->week($day, '' === $person ? null : $person, $text) ?? throw new NotFoundHttpException();
         $monday = $week->monday;
         $thisMonday = $today->setISODate((int) $today->format('o'), (int) $today->format('W'));
-        // The week keeps no view: its quick filter, pinned in the Display sheet, stays in its address.
+        // The week keeps no view: its quick filter, pinned in the Settings sheet, stays in its address.
         $pins = QuickPins::read($request->query->all(), [] === $people ? [] : ['person' => $this->translator->trans('work.time.person')], ['person']);
-        $query = ('' === $person ? [] : ['person' => $person]) + $pins->query;
+        $query = ('' === $person ? [] : ['person' => $person]) + ('' === $text ? [] : ['q' => $text]) + $pins->query;
         $url = fn (\DateTimeImmutable $monday): string => $this->generateUrl(self::ROUTE, ($monday->format('Y-m-d') === $thisMonday->format('Y-m-d') ? [] : ['week' => $monday->format('Y-m-d')]) + $query);
         $here = $url($monday);
         $mine = '' === $person;
@@ -90,11 +92,12 @@ final class TimeWeekController extends AbstractController
             // An owner alone in the organisation has no one else to switch to.
             'people' => [] === $people ? [] : ['' => $this->translator->trans('work.time.person_me')] + $people,
             'person' => $person,
+            'text' => $text,
             'pinned' => $pins->pinned,
             'pinnable' => $pins->pinnable,
             'pinsQuery' => $pins->query,
             'picker' => [
-                'keep' => ['week' => $monday->format('Y-m-d') === $thisMonday->format('Y-m-d') ? null : $monday->format('Y-m-d'), 'person' => '' === $person ? null : $person],
+                'keep' => ['week' => $monday->format('Y-m-d') === $thisMonday->format('Y-m-d') ? null : $monday->format('Y-m-d'), 'person' => '' === $person ? null : $person, 'q' => '' === $text ? null : $text],
                 'resetHref' => $url($monday),
                 'modified' => $pins->modified,
             ],

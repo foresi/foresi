@@ -1,6 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {# A tab is a 44 px touch target on a phone (Apple HIG, Buttons; WCAG 2.2 SC 2.5.8). #}
-{% set rail = 'inset-shadow-rail' %}
 {% set navClass = 'flex max-w-full gap-x-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-sm:pr-10 max-sm:[mask-image:linear-gradient(to_right,#000_calc(100%_-_40px),transparent)]' %}
 {% set count = 'num inline-flex h-badge items-center rounded-sm px-1.5 text-caption font-medium' %}
 {% set nav %}
@@ -14,24 +13,4 @@
         </a>
     {%- endfor %}
 {% endset %}
-{#- What the menu offers past the views, such as Save as new view and Manage views (saved views, D7). -#}
-{% set actionsSlot %}{% block actions %}{% endblock %}{% endset %}
-{% if more is empty and actionsSlot|trim is empty %}
-<nav {{ attributes.defaults({class: navClass ~ ' ' ~ rail}) }}{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>
-{% else %}
-{# The views past the tabs, after them in a menu, as Shopify's and HubSpot's view tabs (saved views, D7). It sits outside the scrolling row, so the row never clips it.
-   Its trigger is a small icon button, the label its accessible name and tooltip, so it never competes with the tabs. #}
-<div {{ attributes.defaults({class: 'flex min-w-0 items-center gap-x-3 ' ~ rail}) }}>
-    <nav class="{{ navClass }} min-w-0"{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>
-    <twig:Ui:Menu :id="moreId" :label="moreLabel" icon="settings" :iconOnly="true" variant="ghost" size="sm" :float="true" data-dropdown-below-value="true" data-more-views class="shrink-0 {{ this.moreActive ? 'border-b-2 border-green' : '' }}">
-        {%- for item in more %}
-            <twig:Ui:MenuItem :href="item.href" :checked="item.active ?? false">
-                {%- if item.private ?? false %}{{ ux_icon('lucide:lock', {class: 'size-3.5 shrink-0', 'aria-hidden': 'true'}) }}{% endif -%}
-                <span class="min-w-0 flex-1">{{ item.label }}{% if item.modified ?? false %} <span class="inline-block size-2 rounded-sm bg-green align-middle" aria-hidden="true" data-tab-modified></span><span class="sr-only">, {{ 'ui.tabs.modified'|trans }}</span>{% endif %}</span>
-                {%- if item.count is defined and item.count is not null %}<span class="{{ count }} bg-badge-gray text-badge-gray-text">{{ item.count }}</span>{% endif -%}
-            </twig:Ui:MenuItem>
-        {%- endfor %}
-        {%- if actionsSlot|trim is not empty %}<twig:Ui:MenuSection>{{ actionsSlot }}</twig:Ui:MenuSection>{% endif -%}
-    </twig:Ui:Menu>
-</div>
-{% endif %}
+<nav {{ attributes.defaults({class: navClass ~ (rail ? ' inset-shadow-rail' : '')}) }}{% if label %} aria-label="{{ label }}"{% endif %}>{{ nav }}</nav>

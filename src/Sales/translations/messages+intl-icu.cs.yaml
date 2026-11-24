@@ -39,6 +39,7 @@ sales:
             owner: Vlastník
             client: Klient
             trashed: V koši
+            stage: Fáze
         column:
             title: Název
             client: Klient
@@ -52,6 +53,7 @@ sales:
             reset: Zrušit filtr
             trash_title: Koš je prázdný
             view_title: V tomto pohledu není žádný obchod
+        search_label: Hledat v obchodech
     deal:
         new: Nový obchod
         create: Vytvořit obchod

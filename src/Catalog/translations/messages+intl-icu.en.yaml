@@ -29,6 +29,7 @@ catalog:
       reset: Clear the filter
       archived_title: No archived products
       view_title: No product in this view
+    search_label: Search products
   product:
     new: New product
     create: Create product

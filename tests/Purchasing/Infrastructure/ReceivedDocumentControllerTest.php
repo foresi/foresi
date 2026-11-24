@@ -135,7 +135,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $options = $crawler->filter('[data-filter-chips] [data-quick-filter="period"] [role="menuitemradio"]');
         self::assertSame(['this month', 'last month', 'this quarter', 'last quarter', 'this year', 'last year', 'October 2026'], $options->each(static fn (Crawler $option): string => trim($option->text())));
         self::assertSame(['last month'], $options->filter('[aria-checked="true"]')->each(static fn (Crawler $option): string => trim($option->text())));
-        self::assertSame('Month: last month', trim($crawler->filter('[data-filter-chips] [data-quick-filter="period"][data-set] button')->first()->text()));
+        self::assertSame('Month: last month', trim($crawler->filter('[data-filter-chips] [data-quick-filter="period"][data-set] summary')->first()->text()));
         self::assertCount(0, $this->page('/purchasing?month=this_month')->filter('main table tbody tr'));
         self::assertCount(1, $this->page('/purchasing?month=this_quarter')->filter('main table tbody tr'));
         // The month and the supplier are the view's quick filters: an instance holds one firm (ADR 0039), and an old ?firm= narrows nothing.
@@ -153,7 +153,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
         $crawler = $this->page('/purchasing?view=recorded&supplier='.$this->supplier->id().'&kind=tax_invoice&treatment=domestic');
         self::assertCount(1, $crawler->filter('main table tbody tr'));
         self::assertSame('Recorded, unsaved changes1', $this->tabs($crawler)[2]);
-        // No fixed select sits in the sheet above "+ Filter" (spec D11).
+        // No fixed select sits in the filter sheet above its conditions (spec D11).
         self::assertCount(0, $crawler->filter('select[name="supplier"], select[name="kind"], select[name="treatment"]'));
         self::assertStringContainsString('Supplier Example s.r.o.', $crawler->filter('main')->text());
 

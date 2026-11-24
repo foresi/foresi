@@ -48,7 +48,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * first, with its latest event and who did it, as ClickUp, GitHub and Linear
  * group theirs. It runs on saved views as the other lists do (NotificationLists):
  * "Nové" holds what is not done, "Hotové" what is (GitHub Done, ClickUp Cleared),
- * kept three months; "+ Filter" narrows to mentions, assignments, unread rows or
+ * kept three months; the filter sheet narrows to mentions, assignments, unread rows or
  * a time. Each row is done or back again; the header reads them all.
  *
  * The old addresses keep working: ?tab=done opens the Done view, ?filter=mentions
@@ -61,8 +61,9 @@ final class NotificationController extends AbstractController
     public const string TOKEN = 'work_notifications';
     /** The one order of the inbox, newest first. */
     private const string ORDER = '-at';
+    private const int MAX_SEARCH = 100;
     /** The parts of the inbox's address an action carries back to it. */
-    private const array LIST_QUERY = ['view', 'tab', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    private const array LIST_QUERY = ['view', 'tab', 'q', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
 
     public function __construct(private readonly NotificationLists $notificationLists,
         private readonly NotificationQueries $queries,
@@ -91,8 +92,9 @@ final class NotificationController extends AbstractController
         $list = $this->notificationLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $page = max(1, $request->query->getInt('page', 1));
-        $inbox = $this->queries->inbox($me, $shown, $page);
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
+        $inbox = $this->queries->inbox($me, $shown, $page, $text);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // Columns and density are kept for staff with the view; a guest has no saved views, only the address.
         $working = $this->actor->isStaff()
             ? $this->rememberedDisplay->read(NotificationColumns::LIST, [], $list->key, $view, $request->query->all(), filters: $list)
@@ -103,7 +105,7 @@ final class NotificationController extends AbstractController
         }
         $back = $this->generateUrl(self::ROUTE, $page > 1 ? $query + ['page' => (string) $page] : $query);
         $back = substr($back, \strlen($this->generateUrl(self::ROUTE)));
-        $bar = $this->viewBar->of($list, $views, $view, $shown, self::ORDER, self::ORDER, $working, self::ROUTE, []);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, self::ORDER, self::ORDER, $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
         $done = \in_array(true, array_map(static fn (Condition $condition): bool => true === $condition->value, $shown->on(NotificationLists::DONE)), true);
 
         return $this->render('@Work/notifications/index.html.twig', [
@@ -113,8 +115,9 @@ final class NotificationController extends AbstractController
             'view' => $view->isAll() ? '' : $view->key,
             'working' => $filterParam ?? '',
             'workingQuery' => $working->query,
-            'filtered' => null !== $filterParam,
-            'emptyState' => $this->emptyState($view),
+            'text' => $text,
+            'filtered' => '' !== $text || null !== $filterParam,
+            'emptyState' => $this->emptyState($view, '' !== $text),
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
@@ -197,7 +200,7 @@ final class NotificationController extends AbstractController
     }
 
     /**
-     * The tabs of the inbox and its "More views" menu (spec D7), without counts (D9).
+     * The tabs of the inbox and the other views of its Settings sheet (spec D7), without counts (D9).
      *
      * @param list<ListView>        $views
      * @param array<string, string> $query
@@ -220,7 +223,7 @@ final class NotificationController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the list, and the list without the changed columns.
+     * The Settings sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *
@@ -245,9 +248,10 @@ final class NotificationController extends AbstractController
      *
      * @return array{title: string, text: string}
      */
-    private function emptyState(ListView $view): array
+    private function emptyState(ListView $view, bool $searched = false): array
     {
         $key = match (true) {
+            $searched => null,
             $view->isAll() => 'new',
             NotificationLists::DONE_VIEW === $view->key => 'done',
             default => null,

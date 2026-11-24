@@ -54,6 +54,7 @@ final class CashFlowController extends AbstractController
     public const string BALANCE_TOKEN = 'cash_flow_balance';
     public const string MINIMUM_TOKEN = 'cash_flow_minimum';
     public const string EXPECTED_TOKEN = 'cash_flow_expected';
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly ForecastScreen $screen,
@@ -82,14 +83,15 @@ final class CashFlowController extends AbstractController
             ], static fn (?string $value): bool => null !== $value), Response::HTTP_SEE_OTHER);
         }
         $filter = ForecastScreen::filterOf($input->getString(WorkingFilter::PARAM));
-        $keep = [] === $filter->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($filter)];
-        $forecast = $this->forecastOrNull($view, ForecastScreen::certaintiesOf($filter));
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
+        $keep = ([] === $filter->conditions ? [] : [WorkingFilter::PARAM => WorkingFilter::encode($filter)]) + ('' === $text ? [] : ['q' => $text]);
+        $forecast = $this->forecastOrNull($view, ForecastScreen::certaintiesOf($filter), $text);
         if (!$forecast instanceof Forecast) {
             return $this->render('@CashFlow/index.html.twig', ['noFirm' => true]);
         }
-        // The page keeps no view: its quick filters, pinned in the Display sheet, stay in its address.
+        // The page keeps no view: its quick filters, pinned in the Settings sheet, stay in its address.
         $pins = QuickPins::read($input->all(), [ForecastScreen::CERTAINTY => $this->translator->trans('cash_flow.filter.certainty')], $list->pinned);
-        $here = (ForecastScreen::WEEKS === $view ? ['view' => $view] : []) + $pins->query;
+        $here = (ForecastScreen::WEEKS === $view ? ['view' => $view] : []) + ('' === $text ? [] : ['q' => $text]) + $pins->query;
 
         return $this->render('@CashFlow/index.html.twig', [
             'noFirm' => false,
@@ -97,6 +99,7 @@ final class CashFlowController extends AbstractController
             // The accounts are added on the bank tab of Banking; without it the page only says so.
             'bankUrl' => [] === $forecast->accounts ? $this->bankUrl() : null,
             'empty' => !$forecast->isFiltered() && $this->screen->isEmpty($forecast),
+            'text' => $text,
             'filtered' => $forecast->isFiltered() || [] !== $filter->conditions,
             'noFlows' => !$this->screen->hasFlows($forecast),
             'filterKeep' => $here,
@@ -121,7 +124,8 @@ final class CashFlowController extends AbstractController
     {
         $key = $request->query->getString('period');
         $certainties = ForecastScreen::certaintiesOf(ForecastScreen::filterOf($request->query->getString(WorkingFilter::PARAM)));
-        $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key), $certainties) ?? throw new NotFoundHttpException();
+        $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
+        $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key), $certainties, $text) ?? throw new NotFoundHttpException();
         $direction = FlowDirection::tryFrom($request->query->getString('direction')) ?? throw new NotFoundHttpException();
         $category = $request->query->has('category') ? (FlowCategory::tryFrom($request->query->getString('category')) ?? throw new NotFoundHttpException()) : null;
         $period = $this->screen->period($forecast, $key) ?? throw new NotFoundHttpException();
@@ -257,10 +261,10 @@ final class CashFlowController extends AbstractController
     /**
      * @param list<\Foresi\CashFlow\Contract\FlowCertainty>|null $certainties
      */
-    private function forecastOrNull(string $view = ForecastScreen::MONTHS, ?array $certainties = null): ?Forecast
+    private function forecastOrNull(string $view = ForecastScreen::MONTHS, ?array $certainties = null, string $text = ''): ?Forecast
     {
         try {
-            return $this->screen->forecast($view, $certainties);
+            return $this->screen->forecast($view, $certainties, $text);
         } catch (CashFlowRefused $refused) {
             $this->denyIfForbidden($refused);
 

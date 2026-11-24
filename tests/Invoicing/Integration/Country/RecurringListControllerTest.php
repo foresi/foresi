@@ -170,9 +170,11 @@ final class RecurringListControllerTest extends WebTestCase
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'For review']));
         $crawler = $this->client->followRedirect();
         self::assertCount(1, $crawler->filter('tbody tr'));
-        // Six tabs are taken, the trash the last of them, so the new view is in More views, as on the invoice list.
-        self::assertNotContains('For review', $this->tabs($crawler));
-        self::assertStringContainsString('For review', $crawler->filter('main')->text());
+        // Six tabs are taken, the trash the last of them, so the new view stays off them, as on the invoice list:
+        // the Settings sheet lists it unchecked, and while it is open it shows as a tab.
+        self::assertSame('For review', $this->tabs($crawler)[6] ?? null);
+        self::assertCount(1, $crawler->filter('[data-settings-view-list] [data-settings-view][data-label="For review"] input[type="checkbox"]:not([checked])'));
+        self::assertNotContains('For review', $this->tabs($this->client->request('GET', '/invoices/recurring')));
     }
 
     public function testTheBuilderFieldsNarrowTheList(): void

@@ -12,7 +12,8 @@ use Foresi\Documents\Domain\DocumentStatus;
 
 /**
  * Which documents a list shows: of a type, in a status, linked to a record;
- * those out of the trash, or with trashed those in it.
+ * those out of the trash, or with trashed those in it; those whose title holds a text,
+ * whatever its case.
  */
 final readonly class DocumentFilter
 {
@@ -26,6 +27,7 @@ final readonly class DocumentFilter
         public int $limit = 50,
         public int $offset = 0,
         public bool $trashed = false,
+        public string $text = '',
     ) {
     }
 }

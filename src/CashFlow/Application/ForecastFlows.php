@@ -52,6 +52,7 @@ final readonly class ForecastFlows
      * @param list<string>             $excludeSources    the keys of the sources never to call
      * @param list<FlowCategory>       $excludeCategories
      * @param list<FlowCertainty>|null $certainties       the certainties kept; null keeps them all
+     * @param string                   $text              the flows kept are those whose label or subject's label holds it, whatever its case; empty keeps them all
      */
     public function collect(
         \DateTimeImmutable $today,
@@ -61,7 +62,9 @@ final readonly class ForecastFlows
         array $excludeSources = [],
         array $excludeCategories = [],
         ?array $certainties = null,
+        string $text = '',
     ): CollectedFlows {
+        $text = mb_strtolower(trim($text));
         $unavailable = [];
         $restricted = [];
         $expected = $this->store->expectedDates();
@@ -88,6 +91,9 @@ final readonly class ForecastFlows
             }
             foreach ($flows as $flow) {
                 if (\in_array($flow->category, $excludeCategories, true) || (null !== $certainties && !\in_array($flow->certainty, $certainties, true))) {
+                    continue;
+                }
+                if ('' !== $text && !str_contains(mb_strtolower($flow->label.' '.($flow->subject->label ?? '')), $text)) {
                     continue;
                 }
                 $line = $this->line($flow, $expected, $today, $start, $end, $czk);

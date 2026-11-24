@@ -16,11 +16,12 @@ use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ListFields;
+use Foresi\Shared\Application\View\QuickPick;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
  * The deals on saved views: All, Open, Won, Lost and Trash, with the status,
- * the owner and the client as conditions of "+ Filter". Closed deals leave the
+ * the stage, the owner and the client as conditions of the filter sheet. Closed deals leave the
  * open view and are found by their status, as Pipedrive and Odoo keep them.
  */
 final class DealLists implements ListDefinitionSource
@@ -29,10 +30,14 @@ final class DealLists implements ListDefinitionSource
     public const string STATUS = 'status';
     public const string OWNER = 'owner';
     public const string CLIENT = 'client';
+    public const string STAGE = 'stage';
     public const string TRASHED = 'trashed';
 
     /** What an owner reference points to: an owner or member, picked from the people of the organisation. */
     public const string MEMBER = 'member';
+
+    /** What a stage reference points to: one of the firm's active deal stages, picked from the list the page gives. */
+    public const string STAGE_SOURCE = 'stage';
 
     /** What a client reference points to: the builder picks one with the contact picker. */
     public const string CONTACT = 'contact';
@@ -54,10 +59,11 @@ final class DealLists implements ListDefinitionSource
 
         return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::STATUS, FieldType::Enum, 'sales.deals.field.status', options: $statuses, optionLabels: array_combine($statuses, array_map(static fn (string $status): string => 'sales.status.'.$status, $statuses))),
+            new Field(self::STAGE, FieldType::Reference, 'sales.deals.field.stage', ['is', 'is_not', 'is_any_of'], source: self::STAGE_SOURCE, quick: QuickPick::Choices),
             new Field(self::OWNER, FieldType::Reference, 'sales.deals.field.owner', ['is', 'is_not', 'is_any_of'], source: self::MEMBER),
             new Field(self::CLIENT, FieldType::Reference, 'sales.deals.field.client', ['is', 'is_not', 'is_any_of'], source: self::CONTACT),
             new Field(self::TRASHED, FieldType::Boolean, 'sales.deals.field.trashed'),
-        ]), $this->defaults(), [self::STATUS, self::OWNER]);
+        ]), $this->defaults(), [self::STAGE, self::OWNER]);
     }
 
     /**

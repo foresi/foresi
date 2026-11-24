@@ -73,7 +73,7 @@ final readonly class TaxDocumentQueueTabs
     /**
      * The tabs of the list a queue belongs to, as its page shows them: the list's
      * primary views with their counts, then the queue's tab, active while the queue
-     * shows its All; the list's other views go in "More views".
+     * shows its All; the list's other views are listed in its Settings sheet.
      *
      * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
      */

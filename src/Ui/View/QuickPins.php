@@ -13,7 +13,7 @@ use Foresi\Ui\Contract\WorkingDisplay;
 
 /**
  * The quick filters of a list that keeps no saved views, such as the board or the week of time:
- * the page pins its own by default, and its Display sheet pins others in the address, as
+ * the page pins its own by default, and its Settings sheet pins others in the address, as
  * pins=<names in order> (empty for none), as WorkingDisplay reads them for a list with views.
  * Nothing is stored; a link keeps them.
  */
@@ -21,7 +21,7 @@ final readonly class QuickPins
 {
     /**
      * @param list<string>                                          $pinned   the names pinned, in order
-     * @param list<array{key: string, label: string, pinned: bool}> $pinnable what the Display sheet offers, those pinned first
+     * @param list<array{key: string, label: string, pinned: bool}> $pinnable what the Settings sheet offers, those pinned first
      * @param array<string, string>                                 $query    pins, only when it differs from the page's own
      */
     private function __construct(public array $pinned, public array $pinnable, public bool $modified, public array $query)

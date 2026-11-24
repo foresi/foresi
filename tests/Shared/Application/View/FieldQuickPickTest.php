@@ -48,6 +48,17 @@ final class FieldQuickPickTest extends TestCase
         new Field('name', FieldType::Text, 'Name', quick: QuickPick::Lookup);
     }
 
+    public function testAShortListOfRecordsNeedsItsSourceToo(): void
+    {
+        self::assertSame(QuickPick::Choices, (new Field('stage', FieldType::Reference, 'Stage', source: 'stage', quick: QuickPick::Choices))->quickPick);
+        self::assertTrue(QuickPick::Choices->looksUp());
+        self::assertFalse(QuickPick::Values->looksUp());
+
+        $this->expectExceptionMessageIsOrContains('The field "stage" looks up the records of its source, which it names none of.');
+
+        new Field('stage', FieldType::Reference, 'Stage', quick: QuickPick::Choices);
+    }
+
     public function testAQuickFilterPicksSeveralWhereTheFieldTakesAnyOf(): void
     {
         $enum = new Field('kind', FieldType::Enum, 'Kind', options: ['a', 'b']);

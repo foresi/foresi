@@ -14,7 +14,7 @@ use Foresi\Shared\Domain\View\Visibility;
 
 /**
  * The views a person sees on a list, in order (spec D7): All first, then the rest in the
- * one order the owners set in Manage views; a new view, private or shared, comes last
+ * one order the owners set in the Settings sheet; a new view, private or shared, comes last
  * when it is made. A view the module ships
  * and app:views:sync has not stored yet shows as declared, so a list never lacks its
  * defaults. A stored filter the list no longer accepts (a field gone with a module)
@@ -52,7 +52,7 @@ final readonly class ListViews
     }
 
     /**
-     * The views a module ships that an owner hid, in their order: Manage views shows them
+     * The views a module ships that an owner hid, in their order: the Settings sheet shows them
      * again (spec D6).
      *
      * @return list<ListView>
@@ -90,7 +90,7 @@ final readonly class ListViews
     }
 
     /**
-     * The tabs of a list, All among them, and the rest for its "More views" menu: at
+     * The tabs of a list, All among them, and the rest for the other views of its Settings sheet: at
      * most MAX_PRIMARY tabs, the views past them moved to the menu.
      *
      * @param list<ListView> $views

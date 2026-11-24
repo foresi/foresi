@@ -38,8 +38,7 @@ test.describe('list, search and views', () => {
 
   test('searches the list and clears the search', async ({ page }) => {
     await page.goto('/contacts');
-    // The search icon at the end of the tabs opens the search at the start of the filter row.
-    await page.locator('[data-search-toggle]').click();
+    // The search field on the row of the tabs sends on Enter.
     await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).fill('Alpha Example');
     await page.getByRole('searchbox', { name: 'Hledat v kontaktech' }).press('Enter');
 

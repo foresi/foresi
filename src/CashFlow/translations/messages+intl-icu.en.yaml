@@ -304,3 +304,4 @@ cash_flow:
       vat_rate_invalid: Enter a rate from 0 to 100 with at most two decimals, such as 21 or 12.5.
       vat_rate_without_mode: A VAT rate needs the VAT included, on top or self-assessed.
       vat_mode_reverse_charge_in: Self-assessed VAT is for costs only; the recipient of the supply self-assesses it.
+  search_label: Search the cash flow

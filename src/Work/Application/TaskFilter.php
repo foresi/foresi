@@ -19,6 +19,7 @@ final readonly class TaskFilter
     /**
      * @param bool|null           $finished   only the tasks whose status is finished (true) or not (false)
      * @param TaskConditions|null $conditions the conditions of the list's view, which the tasks also hold
+     * @param string              $text       a text the title of the task or of one of its subtasks holds, whatever its case; empty for none
      */
     public function __construct(
         public ?string $responsibleId = null,
@@ -26,6 +27,7 @@ final readonly class TaskFilter
         public ?DueBucket $due = null,
         public ?bool $finished = null,
         public ?TaskConditions $conditions = null,
+        public string $text = '',
     ) {
     }
 }

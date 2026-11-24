@@ -99,7 +99,7 @@ With Cash flow installed, the page of a recorded received document shows a **Pla
 
 **Unpair** and **Do not pair** say the document belongs to no occurrence, and Cash flow never pairs it again on its own; **Pair…** and **Confirm** bring it back. A refusal, such as a day the item does not fall on, is told above the page.
 
-The list of received documents offers the condition **Pairing to confirm** in **+ Filter**: the documents Cash flow proposes occurrences for and waits for a person to decide. Like any condition it can be part of a saved view.
+The list of received documents offers the condition **Pairing to confirm** in the filter sheet (the Filter icon): the documents Cash flow proposes occurrences for and waits for a person to decide. Like any condition it can be part of a saved view.
 
 ## Trash and restore
 

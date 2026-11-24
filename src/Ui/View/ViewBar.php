@@ -25,7 +25,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 /**
  * What a list's views offer around its tabs (spec D7, D10): whether the view shows changes
  * nobody saved, with Save (only for who may change the view, D6), Save as new view and
- * Reset; and the views Manage views changes. The forms post to SavedViewController.
+ * Reset; and the views the Settings sheet of the list changes. The forms post to SavedViewController.
  */
 final readonly class ViewBar
 {
@@ -72,7 +72,7 @@ final readonly class ViewBar
     }
 
     /**
-     * Manage views (spec D6, D7): the tabs and the views in More views in their order, which
+     * The views of the Settings sheet (spec D6, D7): the tabs and the views listed past them in their order, which
      * owners change, and for owners the shipped views they hid, to show again.
      *
      * @param list<ListView>        $views
@@ -88,18 +88,21 @@ final readonly class ViewBar
         $row = fn (ListView $view): array => $this->row($list, $view, $route, $keep);
 
         $all = $tabs[0];
+        $hidden = $owner ? array_map($row, $this->listViews->hidden($list)) : [];
 
         return [
             'all' => ['name' => $all->name, 'translated' => $all->translated],
             'tabs' => array_values(array_map($row, array_filter($tabs, static fn (ListView $view): bool => !$view->isAll()))),
             'more' => array_map($row, $more),
-            'hidden' => $owner ? array_map($row, $this->listViews->hidden($list)) : [],
+            'hidden' => $hidden,
             // One order for everyone, set by owners (D7).
             'canReorder' => $owner,
-            // At most six tabs, All among them (D7): a seventh waits in More views.
+            // At most six tabs, All among them (D7): a seventh is listed only in the Settings sheet.
             'maxTabs' => ListViews::MAX_PRIMARY,
             'primaryFull' => \count($tabs) >= ListViews::MAX_PRIMARY,
-            'canRestore' => $owner && [] !== $list->defaults,
+            // Offered to an owner only while a shipped view is hidden (the hidden ones are an owner's
+            // alone), so the sheet shows nothing to undo otherwise.
+            'canRestore' => [] !== $hidden,
             'list' => $list->key,
             'return' => $return,
         ];
@@ -119,6 +122,7 @@ final readonly class ViewBar
             'translated' => $view->translated,
             'private' => $view->private,
             'primary' => Placement::Primary === $view->placement,
+            'showCount' => $view->showCount,
             'editable' => $this->mayEdit($view, $list),
             // A view a module ships stays shared and is never deleted, only hidden (D6).
             'shipped' => null !== $view->slug,

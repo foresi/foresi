@@ -152,7 +152,7 @@ final class InvoiceListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $toSendCount = $this->recurring->inReview();
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $list = $this->lists->of($kind);
         $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
@@ -574,7 +574,7 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The tabs of a list and its "More views" menu (spec D7): All and the primary views
+     * The tabs of a list and the other views of its Settings sheet (spec D7): All and the primary views
      * as tabs, with the count of those that show one, then the list of its own an
      * advance or a tax document waits in; the other views in the menu.
      *
@@ -606,7 +606,7 @@ final class InvoiceListController extends AbstractController
     }
 
     /**
-     * The Display sheet: what it keeps of the list, and the list without the changed columns.
+     * The Settings sheet: what it keeps of the list, and the list without the changed columns.
      *
      * @param array<string, string> $query
      *

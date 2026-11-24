@@ -79,7 +79,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
 
 /**
  * The deals, for the owners and members. The list runs on saved views as
- * every list does (All, Open, Won, Lost, Trash, "+ Filter", Columns) and
+ * every list does (All, Open, Won, Lost, Trash, the filter sheet, Columns) and
  * groups the deals by stage, one table per stage with its count and value,
  * as Odoo's list grouped by stage shows them. A deal is a page of its own:
  * its header holds Won or Reopen, one prominent action of another module and
@@ -105,6 +105,7 @@ final class DealController extends AbstractController
     /** The list's one sort, by title; "-title" backwards. */
     private const string SORT_TITLE = 'title';
     private const int MAX_QUERY = 100;
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly DealLists $dealLists,
@@ -139,14 +140,17 @@ final class DealController extends AbstractController
         [$views, $view, $shown] = $this->views($input);
         $list = $this->dealLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
         $viewSort = ViewState::sortParam($view->sort, self::SORT_TITLE);
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_TITLE === ltrim($sort, '-') ? $sort : self::SORT_TITLE;
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $working = $this->rememberedDisplay->read(DealColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_TITLE, $working, self::ROUTE, []);
-        $sections = $this->sections($this->queries->index($shown, str_starts_with($sort, '-')), $working);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_TITLE, $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
+        // The clients whose name the text matches: their deals are found by it as well as the deals by title.
+        $clientIds = '' === $text ? [] : $this->partyQuery->matchingIds($text, null, false);
+        $sections = $this->sections($this->queries->index($shown, str_starts_with($sort, '-'), $text, $clientIds), $working);
 
         return $this->render('@Sales/deals/index.html.twig', [
             'view' => $view->isAll() ? '' : $view->key,
@@ -161,7 +165,8 @@ final class DealController extends AbstractController
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
-            'filtered' => null !== $filterParam,
+            'text' => $text,
+            'filtered' => '' !== $text || null !== $filterParam,
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->isAll() ? null : $view->key]),
         ]);
     }
@@ -180,6 +185,25 @@ final class DealController extends AbstractController
             'label' => $row->displayName,
             'hint' => $row->email ?? $row->registrationNumber ?? $this->screen->trans('party.kind.'.$row->kind->value),
         ], $page->rows)]);
+    }
+
+    /**
+     * The active stages the stage filter offers, in their order.
+     */
+    #[Route('/sales/deals/stages', name: 'app_sales_deal_stages', methods: ['GET'])]
+    public function stages(Request $request): JsonResponse
+    {
+        $this->denyUnlessStaff();
+        $text = mb_strtolower(trim(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY)));
+        $results = [];
+        foreach ($this->reads->stages() as $stage) {
+            $name = $this->screen->stage($stage);
+            if ('' === $text || str_contains(mb_strtolower($name), $text)) {
+                $results[] = ['id' => $stage->id(), 'label' => $name];
+            }
+        }
+
+        return $this->json(['results' => $results]);
     }
 
     /**
@@ -1015,6 +1039,7 @@ final class DealController extends AbstractController
     private function references(): array
     {
         return [
+            DealLists::STAGE_SOURCE => ['url' => $this->generateUrl('app_sales_deal_stages'), 'name' => fn (string $stage): ?string => ($found = $this->store->stage($stage)) instanceof Stage ? $this->screen->stage($found) : null],
             DealLists::MEMBER => ['url' => $this->generateUrl('app_sales_deal_owners'), 'name' => $this->screen->owner(...)],
             DealLists::CONTACT => ['url' => $this->generateUrl('app_sales_deal_clients'), 'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName],
         ];

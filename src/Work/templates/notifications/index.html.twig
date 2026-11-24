@@ -26,14 +26,10 @@
 
 {% block content %}
     <div class="grid grid-cols-1 gap-4">
-        {# The tabs, then the search, filter and Display icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'work.notifications.views'|trans" class="min-w-0 flex-1">
-                <twig:block name="actions">{% if staff %}{{ include('@Ui/components/_view_menu.html.twig') }}{% endif %}</twig:block>
-            </twig:Ui:Tabs>
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'notification-filters', toolsSearch: false, toolsColumns: {id: 'notification-columns', action: path('app_notifications')}}) }}
-        </div>
-        <twig:Ui:FilterBar id="notification-filters" :collapsible="true" :action="path('app_notifications')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+        {# The tabs, then the search field and the Filter and Settings icons; the view's unsaved changes are saved from the filter row under them (saved views D10). #}
+        {% set search = {name: 'q', value: text ?? '', label: 'work.notifications.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {manageViews: staff ? manageViews : null, viewBar: staff ? viewBar : null, toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'work.notifications.views'|trans, toolsFilter: 'notification-filters', toolsSearch: search, toolsColumns: {id: 'notification-columns', action: path('app_notifications')}}) }}
+        <twig:Ui:FilterBar id="notification-filters" :search="search" :action="path('app_notifications')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
             :conditions="chips" :quick="quick" :viewBar="staff ? viewBar : null" :builder="builder" :empty="rows is empty" data-notifications-filter>
         </twig:Ui:FilterBar>
 

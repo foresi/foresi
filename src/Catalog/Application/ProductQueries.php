@@ -18,9 +18,10 @@ interface ProductQueries
 {
     /**
      * The products the filter holds, in name order, backwards when asked; the
-     * archived ones only when a condition of the filter asks for them.
+     * archived ones only when a condition of the filter asks for them. A text narrows
+     * them to those whose name or description contains it, whatever its case.
      *
      * @return list<Product>
      */
-    public function index(ViewFilter $filter, bool $descending = false): array;
+    public function index(ViewFilter $filter, bool $descending = false, string $text = ''): array;
 }

@@ -19,33 +19,17 @@ final class Tabs
      */
     public array $items = [];
     public ?string $label = null;
-    /**
-     * @var list<array<string, mixed>> the views past the tabs, as the items, in a "More views" menu after them (saved views, D7)
-     */
-    public array $more = [];
-    /** The label of the menu. */
-    public ?string $moreLabel = null;
-    public string $moreId = 'more-views';
+    /** Whether the tabs draw their own rail; off where the list's toolbar row draws it under the tabs and its tools. */
+    public bool $rail = true;
 
     #[PostMount]
     public function validate(): void
     {
-        if ([] !== $this->more && (null === $this->moreLabel || '' === $this->moreLabel)) {
-            throw new \InvalidArgumentException('The "More views" menu of the tabs needs its label.');
-        }
-        foreach ([...$this->items, ...$this->more] as $item) {
+        foreach ($this->items as $item) {
             if (!isset($item['label'], $item['href']) || !is_string($item['label']) || !is_string($item['href'])) {
                 throw new \InvalidArgumentException('Every tab item needs a string label and href.');
             }
             Style::href($item['href']);
         }
-    }
-
-    /**
-     * Whether the view shown is one of the menu's.
-     */
-    public function moreActive(): bool
-    {
-        return [] !== array_filter($this->more, static fn (array $item): bool => true === ($item['active'] ?? false));
     }
 }

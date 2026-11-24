@@ -40,7 +40,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * My unfinished tasks across the active projects I see, a guest's too, by when they
  * are due, as the My Tasks of Asana, on saved views (spec D3, D7): All, Assigned to
  * me and Watching ship as views, with the person's own beside them. The client of the
- * project is a condition of "+ Filter" (D11); an old ?tab= or ?client= link opens the
+ * project is a condition of the filter sheet (D11); an old ?tab= or ?client= link opens the
  * same tasks. A group with nothing in it is left out. A project known only by its
  * name, for a task shared on its own, is not a link.
  */
@@ -48,6 +48,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class MyTasksController extends AbstractController
 {
     public const string ROUTE = 'app_my_tasks';
+    private const int MAX_SEARCH = 100;
 
     public function __construct(
         private readonly WorkQueries $queries,
@@ -72,13 +73,14 @@ final class MyTasksController extends AbstractController
         [$views, $view, $shown] = $this->myTaskViews->of($input);
         $list = MyTaskLists::list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
-        $groups = TaskGroup::split($this->queries->myTaskList($shown), $this->clock->today());
+        $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
+        $groups = TaskGroup::split($this->queries->myTaskList($shown, $text), $this->clock->today());
         $edits = $this->edits->for(array_merge(...array_map(static fn (TaskGroup $group): array => $group->tasks, $groups)), $request->getRequestUri());
-        $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(MyTaskColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
-        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, []);
+        $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
 
         return $this->render('@Work/my_tasks/index.html.twig', [
             'view' => $view->isAll() ? '' : $view->key,
@@ -86,7 +88,8 @@ final class MyTasksController extends AbstractController
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl(self::ROUTE, [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), $this->references(), pinned: $working->pinned),
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
-            'empty' => $this->emptyOf($view, $shown),
+            'text' => $text,
+            'empty' => $this->emptyOf($view, $shown, '' !== $text),
             'columns' => $working->display->table(),
             'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
@@ -105,9 +108,9 @@ final class MyTasksController extends AbstractController
      * The empty state a view says: a shipped view as it ships, one changed in the
      * builder or a person's own that nothing matches.
      */
-    private function emptyOf(ListView $view, ViewFilter $working): string
+    private function emptyOf(ListView $view, ViewFilter $working, bool $searched = false): string
     {
-        if ($working->toArray() !== $view->filter->toArray()) {
+        if ($searched || $working->toArray() !== $view->filter->toArray()) {
             return 'filtered';
         }
 
@@ -151,7 +154,7 @@ final class MyTasksController extends AbstractController
     }
 
     /**
-     * The tabs of the list and its "More views" menu (spec D7): All and the primary
+     * The tabs of the list and the other views of its Settings sheet (spec D7): All and the primary
      * views as tabs, none with a count (D9); the other views in the menu.
      *
      * @param list<ListView>        $views

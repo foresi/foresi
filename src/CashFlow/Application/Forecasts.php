@@ -73,10 +73,11 @@ final class Forecasts
      * @param int|null                 $months      how many calendar months the horizon covers, 1 to 24; 12 when null
      * @param string|null              $weeksUntil  weeks are used up to the week holding this day, ISO 8601; the end of next month when null
      * @param list<FlowCertainty>|null $certainties the flows counted, by how sure they are; all when null. The balance today is never filtered.
+     * @param string                   $text        the flows counted are those whose label holds it, whatever its case; all when empty
      *
      * @throws CashFlowRefused
      */
-    public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?array $certainties = null): Forecast
+    public function of(?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?array $certainties = null, string $text = ''): Forecast
     {
         $this->access->denyUnlessStaff();
         $this->access->firm();
@@ -102,7 +103,7 @@ final class Forecasts
         }
         // In the order of FlowCertainty, each once.
         $certainties = null === $certainties ? null : array_values(array_filter(FlowCertainty::cases(), static fn (FlowCertainty $certainty): bool => \in_array($certainty, $certainties, true)));
-        $collected = $this->flows->collect($today, $start, $end, $czk, certainties: $certainties);
+        $collected = $this->flows->collect($today, $start, $end, $czk, certainties: $certainties, text: $text);
         $lines = $collected->lines;
         $this->restricted = $collected->restricted;
         array_push($unavailable, ...$collected->unavailable);
@@ -166,6 +167,7 @@ final class Forecasts
             $czk->missing(),
             $this->restricted,
             $certainties,
+            trim($text),
         );
     }
 

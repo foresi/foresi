@@ -2,8 +2,8 @@
 {#
     A list a tax document waits in (the advances missing one, the tax documents waiting for
     a correction), a tab of the list it belongs to: that list's tabs, its own one open, and the
-    controls of every list (docs/design/list-pages.md): the views saved on it under More views,
-    the search, "+ Filter", the Display sheet, Save, Save as new and Reset.
+    controls of every list (docs/design/list-pages.md): the views saved on it in the Settings sheet,
+    the search, the filter sheet, the Settings sheet, Save, Save as new and Reset.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -19,15 +19,11 @@
     {% if messages|trim %}<div class="mb-4 grid gap-2">{{ messages }}</div>{% endif %}
 
     <div class="grid grid-cols-1 gap-4">
-        <div class="flex flex-wrap items-end gap-x-4 gap-y-2 sm:flex-nowrap">
-            <twig:Ui:Tabs :items="tabs" :more="moreViews" :moreLabel="'saved_view.more_views'|trans" :label="'invoice.list.views'|trans" class="min-w-0 flex-1">
-                <twig:block name="actions">{{ include('@Ui/components/_view_menu.html.twig') }}</twig:block>
-            </twig:Ui:Tabs>
-            {{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'tax-document-queue-filters', toolsSearch: true, toolsColumns: {id: 'tax-document-queue-columns', action: path(route)}}) }}
-        </div>
+        {% set search = {name: 'q', value: text, label: 'invoice.list.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'invoice.list.views'|trans, toolsFilter: 'tax-document-queue-filters', toolsSearch: search, toolsColumns: {id: 'tax-document-queue-columns', action: path(route)}}) }}
         <p class="m-0 text-small text-muted">{{ (page.prefix ~ '.intro')|trans }}</p>
-        <twig:Ui:FilterBar id="tax-document-queue-filters" :collapsible="true" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
-            :search="{name: 'q', value: text, label: 'invoice.list.search_label'|trans, placeholder: 'invoice.list.search_placeholder'|trans}"
+        <twig:Ui:FilterBar id="tax-document-queue-filters" :action="path(route)" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :search="search"
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
         </twig:Ui:FilterBar>
         <twig:Ui:DataTable :caption="(page.prefix ~ '.title')|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">

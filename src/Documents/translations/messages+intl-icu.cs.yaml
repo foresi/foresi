@@ -13,6 +13,7 @@ documents:
     list:
         title: Dokumenty
         more: 'Zobrazeno nejnovějších 200 dokumentů. Seznam zúžíte filtry.'
+        search_label: Hledat v dokumentech
     column:
         title: Název
         type: Typ

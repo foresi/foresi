@@ -26,9 +26,11 @@ interface WorkQueries
      * The projects of the index a view holds (saved views, spec D4); the archived ones
      * only when a condition of the view asks for them.
      *
+     * A text narrows them to those whose name or client's name contains it, whatever its case.
+     *
      * @return list<ProjectRow> by name, or by name backwards
      */
-    public function projectIndex(ViewFilter $view, bool $descending = false): array;
+    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = ''): array;
 
     public function projectList(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectList;
 
@@ -67,11 +69,12 @@ interface WorkQueries
 
     /**
      * Unfinished tasks of active projects the signed-in person is responsible for or
-     * watches, narrowed by a checked filter of the My tasks list (MyTaskLists).
+     * watches, narrowed by a checked filter of the My tasks list (MyTaskLists) and by a text
+     * their title or project name contains, whatever its case.
      *
      * @return list<TaskRow> by due date, those without one last
      */
-    public function myTaskList(ViewFilter $filter): array;
+    public function myTaskList(ViewFilter $filter, string $text = ''): array;
 
     public function task(string $taskId): ?TaskDetail;
 

@@ -207,6 +207,8 @@ work:
         decimal: ','
         'yes': ano
         'no': ne
+      search_label: Hledat ve výkazu
+    search_label: Hledat v záznamech času
   cancel: Zrušit
   save: Uložit
   history:
@@ -436,6 +438,7 @@ work:
       filtered_title: Nic tomu neodpovídá
       filtered: Těmto podmínkám neodpovídá žádný úkol.
       reset: Obnovit pohled
+    search_label: Hledat v mých úkolech
   notifications:
     settings: Nastavení
     title: Oznámení
@@ -472,6 +475,7 @@ work:
       filtered: Filtrům nic neodpovídá.
       reset: Zrušit filtry
       view: Tomuto pohledu nic neodpovídá
+    search_label: Hledat v oznámeních
   notification_settings:
     title: Nastavení oznámení
     email_card: E-maily
@@ -552,6 +556,7 @@ work:
       view_title: Tomuto pohledu nic neodpovídá
       filtered_title: Filtrům nic neodpovídá
       reset: Zrušit filtry
+    search_label: Hledat v projektech
   project:
     create: Založit projekt
     archived: Archivovaný
@@ -628,3 +633,5 @@ work:
     move_down: Posunout dolů
     moved: 'Přesunuto do: {status}, pozice {position} z {count}'
     subtasks: 'Hotové podúkoly: {done} z {total}'
+  tasks:
+    search_label: Hledat v úkolech

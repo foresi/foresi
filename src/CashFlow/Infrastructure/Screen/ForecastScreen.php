@@ -89,25 +89,26 @@ final readonly class ForecastScreen
      * weeks kept.
      *
      * @param list<FlowCertainty>|null $certainties the flows counted; all when null
+     * @param string                   $text        the flows counted hold it in their labels; all when empty
      *
      * @throws \Foresi\CashFlow\Application\CashFlowRefused
      */
-    public function forecast(string $view = self::MONTHS, ?array $certainties = null): Forecast
+    public function forecast(string $view = self::MONTHS, ?array $certainties = null, string $text = ''): Forecast
     {
         $today = $this->clock->today();
         if (self::WEEKS !== $view) {
-            return $this->forecasts->of(null, 12, $today->modify('-1 day')->format('Y-m-d'), $certainties);
+            return $this->forecasts->of(null, 12, $today->modify('-1 day')->format('Y-m-d'), $certainties, $text);
         }
         $lastWeek = $today->modify('monday this week')->modify(\sprintf('+%d weeks', self::WEEK_COUNT - 1));
         $lastDay = $lastWeek->modify('+6 days');
         $months = ((int) $lastDay->format('Y') - (int) $today->format('Y')) * 12 + (int) $lastDay->format('n') - (int) $today->format('n') + 1;
 
-        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d'), $certainties));
+        return $this->weeksOnly($this->forecasts->of(null, $months, $lastWeek->format('Y-m-d'), $certainties, $text));
     }
 
     /**
      * The list the filter builder of the page reads (saved views D11), with one
-     * field, Certainty, and its four values: the chips and the "+ Filter" sheet
+     * field, Certainty, and its four values: the chips and the filter sheet
      * as on the other pages, its conditions in the address under "f". The page
      * stores no view of it.
      */
@@ -662,6 +663,7 @@ final readonly class ForecastScreen
             $forecast->unavailableRates,
             $forecast->restrictedSources,
             $forecast->certainties,
+            $forecast->text,
         );
     }
 

@@ -86,10 +86,9 @@ test.describe.serial('the invoice list', () => {
     await expectNoSeriousViolations(page);
 
     // The search applies on Enter; there is no search button.
-    // The search icon at the end of the tabs opens the search at the start of the filter row (Shopify Polaris IndexFilters).
-    await page.locator('[data-search-toggle]').click();
-    await page.getByRole('search').getByRole('searchbox').fill('ÚČETNÍ');
-    await page.getByRole('search').getByRole('searchbox').press('Enter');
+    // The search field sits on the row of the tabs (Shopify Polaris IndexFilters).
+    await page.locator('[data-list-search] input[type=search]').fill('ÚČETNÍ');
+    await page.locator('[data-list-search] input[type=search]').press('Enter');
     await expect(page.locator('tbody tr')).toHaveCount(1);
 
     await page.goto('/invoices');

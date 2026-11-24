@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * The projects index ships All and Archived, the tabs it had (saved views D12), and
- * none of them counts (D9); the fields of "+ Filter" fit a project (D11).
+ * none of them counts (D9); the fields of the filter sheet fit a project (D11).
  */
 final class ProjectListsTest extends KernelTestCase
 {

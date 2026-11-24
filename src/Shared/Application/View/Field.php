@@ -72,7 +72,7 @@ final readonly class Field
         }
         $this->operators = $operators ?? $all;
         $this->quickPick = $quick ?? (FieldType::Reference === $type && null === $source ? QuickPick::Sheet : QuickPick::of($type));
-        if (QuickPick::Lookup === $this->quickPick && null === $source) {
+        if ($this->quickPick->looksUp() && null === $source) {
             throw new \InvalidArgumentException(\sprintf('The field "%s" looks up the records of its source, which it names none of.', $key));
         }
     }

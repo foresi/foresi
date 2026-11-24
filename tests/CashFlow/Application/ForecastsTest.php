@@ -133,6 +133,45 @@ final class ForecastsTest extends CashFlowTestCase
         self::assertFalse($this->forecast(sources: [$source], months: 1, certainties: FlowCertainty::cases())->isFiltered());
     }
 
+    public function testATextMatchesTheLabelThenTheSubjectsLabelWhateverTheCaseOfItsLetters(): void
+    {
+        $this->checkpoint('2026-11-17', '50000.00');
+        $on = new \DateTimeImmutable('2026-11-20', new \DateTimeZone('Europe/Prague'));
+        $labelled = static fn (string $id, ?string $subject): ExpectedFlow => new ExpectedFlow('test.invoices', new FlowSubject('invoice', $id, null, $subject), FlowDirection::In, Money::of('100.00', Currency::CZK), $on, FlowCategory::Revenue, FlowCertainty::Document, 'Faktura '.$id);
+        $source = new FakeSource('test.invoices', [$labelled('FV-3', 'Šťastný s.r.o.'), $labelled('FV-4', null), $labelled('ŽÁDOST', null)]);
+
+        $ids = fn (string $text): array => $this->ids($this->forecast(sources: [$source], months: 1, text: $text)->periods[0]->lines);
+
+        self::assertSame(['FV-3'], $ids('ŠŤASTNÝ'), 'The subject\'s label, its capitals lowered as a person reads them.');
+        self::assertSame(['FV-3'], $ids('fv-3 šťastný'), 'The label, a space, then the subject\'s label.');
+        self::assertSame(['FV-4'], $ids('faktura fv-4'), 'A flow without a subject\'s label is found by its own.');
+        self::assertSame(['ŽÁDOST'], $ids('žádost'), 'The label\'s capitals are lowered too.');
+    }
+
+    public function testATextKeepsTheFlowsWhoseLabelHoldsItAndTheBalanceTodayIsNeverFiltered(): void
+    {
+        $this->checkpoint('2026-11-17', '50000.00');
+        $source = new FakeSource('test.invoices', [
+            $this->flow('FV-1', '2026-11-20', '10000.00'),
+            $this->flow('FV-2', '2026-11-19', '4000.00', FlowCertainty::Plan, FlowDirection::Out),
+        ]);
+
+        $all = $this->forecast(sources: [$source], months: 1);
+        $one = $this->forecast(sources: [$source], months: 1, text: ' invoice FV-2 ');
+        $none = $this->forecast(sources: [$source], months: 1, text: '%');
+
+        self::assertSame('', $all->text);
+        self::assertFalse($all->isFiltered());
+        self::assertSame(5000000 + 1000000 - 400000, $all->periods[0]->closing->minor());
+        self::assertSame(['Invoice FV-2'], $this->labels($one->periods[0]->lines));
+        self::assertSame(5000000 - 400000, $one->periods[0]->closing->minor());
+        self::assertSame(5000000, $one->opening->minor());
+        self::assertSame([true, 'invoice FV-2'], [$one->isFiltered(), $one->text]);
+        self::assertSame([], $none->periods[0]->lines, 'a percent sign is a percent sign');
+        self::assertTrue($none->isFiltered());
+        self::assertSame(5000000, $none->periods[0]->closing->minor());
+    }
+
     public function testNamedCertaintiesAreReadAndAnUnknownOneIsRefused(): void
     {
         self::assertSame([FlowCertainty::Estimate, FlowCertainty::Document], Forecasts::certainties(['estimate', ' document']));
@@ -612,9 +651,9 @@ final class ForecastsTest extends CashFlowTestCase
      * @param list<BalanceSource>       $balanceSources
      * @param list<FlowCertainty>|null  $certainties
      */
-    private function forecast(?array $sources = null, array $balanceSources = [], ?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?ExchangeRates $rates = null, ?array $certainties = null): Forecast
+    private function forecast(?array $sources = null, array $balanceSources = [], ?string $from = null, ?int $months = null, ?string $weeksUntil = null, ?ExchangeRates $rates = null, ?array $certainties = null, string $text = ''): Forecast
     {
-        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($from, $months, $weeksUntil, $certainties);
+        return $this->forecasts($sources ?? [$this->plannedSource()], $balanceSources, $rates)->of($from, $months, $weeksUntil, $certainties, $text);
     }
 
     /**

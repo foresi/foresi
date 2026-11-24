@@ -23,7 +23,7 @@ use Foresi\Shared\Application\View\ViewFilter;
 /**
  * The received documents and the views they ship: the tabs they had, each the same
  * documents as before (spec D12), after All, which every list starts with. The fields
- * the list's sheet had (supplier, kind, VAT treatment) are fields of "+ Filter" (D11),
+ * the list's sheet had (supplier, kind, VAT treatment) are fields of the filter sheet (D11),
  * beside the filterable attributes of the list's data source (DS1): the numbers and the
  * amounts.
  *

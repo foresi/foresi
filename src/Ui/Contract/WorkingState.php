@@ -42,7 +42,7 @@ final readonly class WorkingState
     }
 
     /**
-     * The columns of the Display sheet (Ui:ColumnPicker): the shown ones in their order, then the
+     * The columns of the Settings sheet (Ui:ColumnPicker): the shown ones in their order, then the
      * hidden ones the context offers, in the default order.
      *
      * @return list<array{key: string, label: string, visible: bool, locked: bool}>

@@ -42,11 +42,16 @@ final readonly class DoctrineNotificationQueries implements NotificationQueries
         return (int) $query->getSingleScalarResult();
     }
 
-    public function inbox(Membership $recipient, ViewFilter $view = new ViewFilter(), int $page = 1): NotificationPage
+    public function inbox(Membership $recipient, ViewFilter $view = new ViewFilter(), int $page = 1, string $text = ''): NotificationPage
     {
         $page = max(1, $page);
         [$condition, $parameters] = $this->inView($view);
-        $query = $this->query($recipient, 'SELECT n, t, p, a, au', ' AND '.$condition.' ORDER BY n.createdAt DESC, n.id DESC', ' JOIN n.actor a JOIN a.user au');
+        $text = trim(mb_substr($text, 0, 100));
+        $found = '' === $text ? '' : " AND (LOWER(t.title) LIKE :text ESCAPE '!' OR LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(au.displayName) LIKE :text ESCAPE '!')";
+        $query = $this->query($recipient, 'SELECT n, t, p, a, au', ' AND '.$condition.$found.' ORDER BY n.createdAt DESC, n.id DESC', ' JOIN n.actor a JOIN a.user au');
+        if ('' !== $text) {
+            $query->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%');
+        }
         foreach ($parameters as $name => [$value, $type]) {
             $query->setParameter($name, $value, $type);
         }

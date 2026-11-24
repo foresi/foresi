@@ -128,7 +128,7 @@ final class NotificationControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/notifications?filter=mentions');
         self::assertSame(['Fix the form'], $this->titles($crawler));
-        // No fixed select sits above "+ Filter" (spec D11); the condition is a chip, and the links carry it in f=.
+        // No fixed select sits in the filter sheet above its conditions (spec D11); the condition is a chip, and the links carry it in f=.
         self::assertCount(0, $crawler->filter('select[name="filter"]'));
         self::assertSame(['All, unsaved changes', 'Done'], $this->tabs($crawler));
         self::assertStringContainsString('Reason: Mentions', $crawler->filter('[data-notifications-filter]')->text());
@@ -352,7 +352,7 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame(['Sign the lease'], $this->titles($crawler));
         // A guest has no saved views: the tabs and the filter, without the views' menu, actions or dialogs.
         self::assertSame(['All', 'Done'], $this->tabs($crawler));
-        self::assertCount(0, $crawler->filter('[data-view-save-as-open], [data-view-manage-open], [data-view-save-as-form]'));
+        self::assertCount(0, $crawler->filter('[data-view-save-as-open], [data-settings-views], [data-view-new], [data-view-save-as-form]'));
         self::assertCount(1, $crawler->filter('[data-notifications-filter] [data-filter-sheet-form]'));
         $crawler = $this->client->request('GET', '/notifications?cols=task&f='.WorkingFilter::encode(ViewFilter::all(new Condition(NotificationLists::UNREAD, 'is', true))));
         self::assertSame(['Sign the lease'], $this->titles($crawler));

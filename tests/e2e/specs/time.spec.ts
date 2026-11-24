@@ -104,7 +104,7 @@ test.describe('the week', () => {
 
     // An owner reads the week of anyone of the team.
     // The person is the week's quick filter, a chip under the tabs.
-    await page.locator('[data-filter-chip="person"]').getByRole('button', { name: 'Osoba' }).click();
+    await page.locator('[data-filter-chip="person"] summary').click();
     await page.getByRole('menuitemradio', { name: 'Jana Example' }).click();
     await expect(page).toHaveURL(new RegExp(`week=${lastMonday}`));
     await expect(page.locator('[data-time-week-total]')).toHaveText('2 h 30 min');

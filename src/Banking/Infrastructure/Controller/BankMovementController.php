@@ -141,7 +141,7 @@ final class BankMovementController extends AbstractController
         $text = $mail ? '' : $text;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $context = [MovementColumns::ACCOUNT_COLUMN => \count($page->accounts) > 1];
-        // The quick filters, columns and density changed in the Display sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE, filters: $list);
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
@@ -558,7 +558,7 @@ final class BankMovementController extends AbstractController
     }
 
     /**
-     * The tabs of the screen and its "More views" menu (spec D7): All and the primary
+     * The tabs of the screen and the other views of its Settings sheet (spec D7): All and the primary
      * views as tabs, with the count of those that show one; the other views in the
      * menu. A view of the bank mail shows its count only while a message waits.
      *

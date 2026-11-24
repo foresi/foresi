@@ -339,7 +339,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['/projects/'.$id, '/projects/'.$id.'?view=mine', '/projects/'.$id.'?view=finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(0)->attr('aria-current'));
         self::assertSame(['Brief', 'Wireframes', 'Logo'], $this->titles($crawler));
-        // No fixed select sits above "+ Filter" (spec D11), and no view is changed.
+        // No fixed select sits in the filter sheet above its conditions (spec D11), and no view is changed.
         self::assertCount(0, $crawler->filter('main select[name="responsible"], main select[name="status"], main select[name="due"]'));
         self::assertCount(0, $crawler->filter('[data-view-actions]'));
         self::assertCount(1, $crawler->filter('#view-save-as'));

@@ -27,12 +27,10 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
-        <div class="flex items-end gap-3">
-            {{ include('@Work/time/_tabs.html.twig', {active: 'week'}) }}
-            {% if people is not empty %}{{ include('@Ui/components/_list_tools.html.twig', {toolsFilter: 'time-filters', toolsColumns: {id: 'time-display', action: path('app_time')}}) }}{% endif %}
-        </div>
+        {% set search = {name: 'q', value: text ?? '', label: 'work.time.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: [{label: 'work.time.tab.week'|trans, href: path('app_time'), active: true}, {label: 'work.time.tab.report'|trans, href: path('app_time_report')}], toolbarLabel: 'work.time.views'|trans, toolsFilter: people is not empty ? 'time-filters' : null, toolsSearch: search, toolsColumns: people is not empty ? {id: 'time-display', action: path('app_time')} : null}) }}
         {% if people is not empty %}
-            <twig:Ui:FilterBar id="time-filters" :collapsible="true" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}|merge(pinsQuery)" :pinned="pinned" data-time-person-filter
+            <twig:Ui:FilterBar id="time-filters" :search="search" :action="path('app_time')" :keep="{week: not isCurrent ? week : null}|merge(pinsQuery)" :pinned="pinned" data-time-person-filter
                 :filters="[{name: 'person', label: 'work.time.person'|trans, options: people, value: person}]" />
         {% endif %}
 

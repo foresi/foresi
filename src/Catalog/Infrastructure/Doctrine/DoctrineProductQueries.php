@@ -29,7 +29,7 @@ final readonly class DoctrineProductQueries implements ProductQueries
     {
     }
 
-    public function index(ViewFilter $filter, bool $descending = false): array
+    public function index(ViewFilter $filter, bool $descending = false, string $text = ''): array
     {
         $derived = static fn (Condition $condition): array => [match ($condition->field) {
             ProductLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
@@ -39,7 +39,11 @@ final readonly class DoctrineProductQueries implements ProductQueries
         // The archived products only when the view asks for them.
         $archived = [] === $filter->on(ProductLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
         $direction = $descending ? 'DESC' : 'ASC';
-        $query = $this->entityManager->createQuery('SELECT p FROM '.Product::class.' p WHERE '.$archived.$condition.' ORDER BY p.name '.$direction.', p.id '.$direction);
+        $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(p.description) LIKE :text ESCAPE '!')";
+        $query = $this->entityManager->createQuery('SELECT p FROM '.Product::class.' p WHERE '.$archived.$condition.$found.' ORDER BY p.name '.$direction.', p.id '.$direction);
+        if ('' !== $text) {
+            $query->setParameter('text', '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($text)).'%');
+        }
         foreach ($parameters as $name => [$value, $type]) {
             $query->setParameter($name, $value, $type);
         }

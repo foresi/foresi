@@ -33,7 +33,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The saved views' forms on a list (spec D6, D7, D10), all through SavedViews: Save the
- * working state into the view, Save as new view, and Manage views (the order and the tabs,
+ * working state into the view, Save as new view, and the views of the Settings sheet (the order and the tabs,
  * rename, private or shared, hide or show a shipped view, delete your own) and Restore
  * default views. Each returns to the list it came from, with a message.
  */
@@ -111,6 +111,7 @@ final class SavedViewController extends AbstractController
     {
         $input = $request->request;
         $done = match (true) {
+            $input->has('showCount') => 'saved_view.updated',
             !$input->has('hidden') => 'saved_view.updated',
             $input->getBoolean('hidden') => 'saved_view.hidden',
             default => 'saved_view.shown',
@@ -125,6 +126,7 @@ final class SavedViewController extends AbstractController
                 name: '' === $name || $name === $view->name() ? new Omitted() : $name,
                 // A view a module ships stays shared (spec D6).
                 visibility: !$input->has('visibility') || null !== $view->systemKey() ? new Omitted() : $input->getString('visibility'),
+                showCount: $input->has('showCount') ? $input->getBoolean('showCount') : new Omitted(),
                 placement: '' === $placement || $placement === $view->placement()->value ? new Omitted() : $this->placement($view->listKey(), $placement, true),
                 // Only a view a module ships is hidden, and shown again (D6).
                 hidden: $input->has('hidden') ? $input->getBoolean('hidden') : new Omitted(),
@@ -135,8 +137,44 @@ final class SavedViewController extends AbstractController
     }
 
     /**
-     * The order Manage views shows, top to bottom: the views before the empty marker are
-     * tabs, the ones after it wait in More views (spec D7). One order for everyone, set by
+     * Duplicate in a view's "⋯" menu of the Settings sheet (Linear, Notion): a private copy of the
+     * view with its filters, sort and display, as a tab while the list has room for one.
+     */
+    #[Route('/views/duplicate', name: 'app_view_duplicate', methods: ['POST'])]
+    public function duplicate(Request $request): RedirectResponse
+    {
+        $input = $request->request;
+
+        return $this->attempt($request, function () use ($input): string {
+            $from = $this->views->get($input->getString('ref'));
+            $display = $from->display() ?? [];
+            $columns = $display['columns'] ?? null;
+            $density = $display['density'] ?? null;
+            $groupBy = $display['group_by'] ?? null;
+            $pinned = $display['pinned'] ?? null;
+            $name = $this->translator->trans('saved_view.copy_name', ['name' => $input->getString('name', $from->name())]);
+            $conditions = $from->filters()['conditions'] ?? [];
+            $view = $this->views->create(new CreateViewInput(
+                $from->listKey(),
+                mb_substr($name, 0, SavedView::NAME_MAX_LENGTH),
+                Visibility::Private->value,
+                \is_array($conditions) ? array_values($conditions) : [],
+                $from->sort(),
+                \is_array($columns) ? array_values($columns) : null,
+                \is_string($density) ? $density : null,
+                $from->showCount(),
+                $this->placement($from->listKey(), Placement::Primary->value),
+                \is_string($groupBy) ? $groupBy : null,
+                \is_array($pinned) ? array_values($pinned) : null,
+            ));
+
+            return $this->withView($this->return($input->getString('return')), $view->id());
+        }, 'saved_view.duplicated');
+    }
+
+    /**
+     * The order the Settings sheet shows, top to bottom: the views before the empty marker
+     * are tabs, the ones after it are not (spec D7). One order for everyone, set by
      * owners; a view already where it belongs is left as it is.
      */
     #[Route('/views/order', name: 'app_view_order', methods: ['POST'])]
@@ -153,7 +191,7 @@ final class SavedViewController extends AbstractController
             $tabs = false === $split ? \count($refs) : $split;
             // All is a tab too.
             if ($tabs >= ListViews::MAX_PRIMARY) {
-                throw SavedViewRefused::invalid('primary_full', 'placement', 'A list shows at most six tabs; move another view to More views first.');
+                throw SavedViewRefused::invalid('primary_full', 'placement', 'A list shows at most six tabs; take another view out of the tabs first.');
             }
             $position = 0;
             foreach ($refs as $index => $ref) {
@@ -277,7 +315,7 @@ final class SavedViewController extends AbstractController
     }
 
     /**
-     * Primary while the list has room for another tab (spec D7), else in More views; a
+     * Primary while the list has room for another tab (spec D7), else listed only in the Settings sheet; a
      * view moved to a tab when there is none left is refused.
      */
     private function placement(string $list, string $wanted, bool $strict = false): string
@@ -290,7 +328,7 @@ final class SavedViewController extends AbstractController
             return $wanted;
         }
         if ($strict) {
-            throw SavedViewRefused::invalid('primary_full', 'placement', 'A list shows at most six tabs; move another view to More views first.');
+            throw SavedViewRefused::invalid('primary_full', 'placement', 'A list shows at most six tabs; take another view out of the tabs first.');
         }
 
         return Placement::Overflow->value;

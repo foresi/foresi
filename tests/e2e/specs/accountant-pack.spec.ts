@@ -63,7 +63,7 @@ test.describe.serial('the accountant pack', () => {
     // and the months with documents, applied at once as a condition of the working filter. An invoice
     // is a tax document, so its month is the one of its tax point (DUZP).
     const chip = page.locator('[data-quick-filter="tax_point_date"]');
-    await chip.getByRole('button', { name: 'DUZP' }).click();
+    await chip.locator('summary').click();
     await chip.getByRole('menuitemradio', { name: 'minulý měsíc', exact: true }).click();
 
     await expect(page).toHaveURL(/[?&]f=/);

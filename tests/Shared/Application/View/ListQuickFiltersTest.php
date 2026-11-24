@@ -44,7 +44,7 @@ final class ListQuickFiltersTest extends KernelTestCase
         yield 'tax documents uncorrected' => [TaxDocumentQueueLists::UNCORRECTED, ['deadline', 'deducted']];
         yield 'contacts' => [ContactLists::class, ['roles', 'kind']];
         yield 'received documents' => [ReceivedDocumentLists::class, ['period', 'supplier']];
-        yield 'deals' => [DealLists::class, ['status', 'owner']];
+        yield 'deals' => [DealLists::class, ['stage', 'owner']];
         yield 'my tasks' => [MyTaskLists::class, ['client']];
         yield 'notifications' => [NotificationLists::class, ['reason', 'unread']];
         yield 'projects' => [ProjectLists::class, ['client', 'billable']];
