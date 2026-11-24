@@ -99,6 +99,20 @@ final class MarginPageTest extends WebTestCase
         self::assertCount(0, $page->filter('[data-margin-unassigned-badge]'));
     }
 
+    public function testACostNobodyClaimedAloneStillShowsTheTable(): void
+    {
+        $this->start(Role::Owner);
+        $this->share(self::UNCLAIMED_ONE, '2026-12-01', null, 10_000, CostShareSource::Unassigned);
+
+        $page = $this->client->request('GET', '/margin');
+
+        self::assertCount(0, $page->filter('[data-margin-empty]'));
+        self::assertCount(1, $page->filter('tbody[data-row="unassigned"]'));
+        $link = $page->filter('tbody[data-row="unassigned"] a[data-sheet]');
+        self::assertSame('Unassigned, Dec 2026, Costs: 100.00', $link->attr('aria-label'));
+        self::assertSame('rowgroup', $page->filter('tbody[data-row="unassigned"] th[colspan]')->attr('scope'));
+    }
+
     public function testNothingInTheRangeIsSaidAndNotATableOfDashes(): void
     {
         $this->start(Role::Owner);

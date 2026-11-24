@@ -115,7 +115,7 @@ final class MarginScreensTest extends WebTestCase
         self::assertSame(['line', 'line'], $line->filter('[data-margin-share]')->each(static fn (Crawler $share): ?string => $share->attr('data-margin-share')));
         self::assertStringContainsString('210.00', $line->filter('[data-margin-share]')->first()->text());
         self::assertStringContainsString('490.00', $line->filter('[data-margin-share]')->last()->text());
-        self::assertStringContainsString('Own consumption', $line->filter('[data-margin-share]')->last()->text());
+        self::assertStringContainsString('Own use', $line->filter('[data-margin-share]')->last()->text());
 
         $again = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
         self::assertSame('30', $again->filter('#margin-percent-0')->attr('value'));

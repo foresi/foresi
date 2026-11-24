@@ -51,8 +51,8 @@ final readonly class MarginScreen
      *     range: string,
      *     months: list<array{key: string, label: string}>,
      *     empty: bool,
-     *     groups: list<array{key: string, kind: string, label: string, badge: ?string, lines: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string}>, total: string}>}>,
-     *     totals: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string}>, total: string}>,
+     *     groups: list<array{key: string, kind: string, label: string, badge: ?string, lines: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>}>,
+     *     totals: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>,
      *     gaps: ?array{text: string, documents: list<array{label: string, href: ?string}>}
      * }
      */
@@ -60,14 +60,14 @@ final readonly class MarginScreen
     {
         $groups = [];
         foreach ($table->rows as $row) {
-            $client = 'client' === $row->kind;
+            $client = $this->isClient($row->key);
             $groups[] = [
                 'key' => $row->key,
                 'kind' => $row->kind,
                 'label' => $this->rowLabel($row->key, $row->name),
                 'badge' => MarginRowView::UNASSIGNED === $row->key && $table->unassignedDocuments > 0 ? $this->trans('margin.table.unassigned_documents', ['count' => $table->unassignedDocuments]) : null,
                 // Costs are all a row of the firm's own use or of unassigned has, so it has no revenue and no margin line.
-                'lines' => $client ? $this->lines($row, $table->months) : [$this->line('costs', $row, $table->months, $row->total)],
+                'lines' => $client ? $this->lines($row, $table->months) : [$this->line('costs', $row, $table->months)],
             ];
         }
         $everything = array_map(static fn (string $month): array => [$month, $table->monthTotals[$month] ?? MarginFigures::none()], $table->months);
@@ -75,13 +75,14 @@ final readonly class MarginScreen
         return [
             'range' => $this->monthLabel($table->from).' – '.$this->monthLabel($table->to),
             'months' => array_map(fn (string $month): array => ['key' => $month, 'label' => $this->monthLabel($month)], $table->months),
-            'empty' => $table->total->isEmpty() && [] === array_filter($table->rows, static fn (MarginRowView $row): bool => 'client' === $row->kind),
+            // Only when no row has a figure, Unassigned included: a cost nobody claimed always shows the table.
+            'empty' => array_all($table->rows, fn (MarginRowView $row): bool => !$this->isClient($row->key) && $row->total->isEmpty()),
             'groups' => $groups,
             'totals' => array_map(
                 fn (string $kind): array => [
                     'kind' => $kind,
                     'label' => $this->trans('margin.table.line.'.$kind),
-                    'cells' => array_map(fn (array $month): array => ['text' => $this->amount($this->figure($month[1], $kind)), 'href' => null], $everything),
+                    'cells' => array_map(fn (array $month): array => ['text' => $this->amount($this->figure($month[1], $kind)), 'href' => null, 'label' => null], $everything),
                     'total' => $this->amount($this->figure($table->total, $kind)),
                 ],
                 ['revenue', 'costs', 'margin'],
@@ -113,7 +114,7 @@ final readonly class MarginScreen
             'costs' => ['items' => array_map(fn (MarginCellItem $item): array => $this->item($item, $unassigned), $cell->costs), 'total' => $this->amount($cell->figures->costs)],
             'margin' => $this->amount($cell->figures->margin),
             // Only a client earns revenue; the firm's own use and unassigned are costs alone.
-            'showRevenue' => str_starts_with($cell->row, MarginRowView::CLIENT_PREFIX),
+            'showRevenue' => $this->isClient($cell->row),
         ];
     }
 
@@ -138,10 +139,15 @@ final readonly class MarginScreen
         return $this->urls->generate(MarginPageController::CELL_ROUTE, ['row' => $row, 'month' => $month]);
     }
 
+    private function isClient(string $key): bool
+    {
+        return str_starts_with($key, MarginRowView::CLIENT_PREFIX);
+    }
+
     private function rowLabel(string $key, ?string $name): string
     {
         return match ($key) {
-            MarginRowView::OWN => $this->trans('margin.table.own'),
+            MarginRowView::OWN => $this->trans('margin.screen.own'),
             MarginRowView::UNASSIGNED => $this->trans('margin.table.unassigned'),
             default => MarginRowView::labelOf($key, $name),
         };
@@ -150,29 +156,35 @@ final readonly class MarginScreen
     /**
      * @param list<string> $months
      *
-     * @return list<array{kind: string, label: string, cells: list<array{text: string, href: ?string}>, total: string}>
+     * @return list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>
      */
     private function lines(MarginRowView $row, array $months): array
     {
-        return array_map(fn (string $kind): array => $this->line($kind, $row, $months, $row->total), ['revenue', 'costs', 'margin']);
+        return array_map(fn (string $kind): array => $this->line($kind, $row, $months), ['revenue', 'costs', 'margin']);
     }
 
     /**
      * @param list<string> $months
      *
-     * @return array{kind: string, label: string, cells: list<array{text: string, href: ?string}>, total: string}
+     * @return array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}
      */
-    private function line(string $kind, MarginRowView $row, array $months, MarginFigures $total): array
+    private function line(string $kind, MarginRowView $row, array $months): array
     {
         $cells = [];
         foreach ($months as $month) {
             $figures = $row->cells[$month] ?? MarginFigures::none();
             $money = $this->figure($figures, $kind);
             // The revenue and the costs open what stands behind them; the margin is their difference and says nothing more.
-            $cells[] = ['text' => $this->amount($money), 'href' => 'margin' !== $kind && !$money->isZero() ? $this->cellUrl($row->key, $month) : null];
+            $opens = 'margin' !== $kind && !$money->isZero();
+            $cells[] = [
+                'text' => $this->amount($money),
+                'href' => $opens ? $this->cellUrl($row->key, $month) : null,
+                // A link that reads as a bare number says whose, which month and which line.
+                'label' => $opens ? $this->trans('margin.table.cell', ['row' => $this->rowLabel($row->key, $row->name), 'month' => $this->monthLabel($month), 'line' => $this->trans('margin.table.line.'.$kind), 'amount' => $this->amount($money)]) : null,
+            ];
         }
 
-        return ['kind' => $kind, 'label' => $this->trans('margin.table.line.'.$kind), 'cells' => $cells, 'total' => $this->amount($this->figure($total, $kind))];
+        return ['kind' => $kind, 'label' => $this->trans('margin.table.line.'.$kind), 'cells' => $cells, 'total' => $this->amount($this->figure($row->total, $kind))];
     }
 
     private function figure(MarginFigures $figures, string $kind): Money

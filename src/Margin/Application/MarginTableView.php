@@ -33,7 +33,7 @@ final readonly class MarginTableView
         public array $monthTotals,
         public MarginFigures $total,
         public array $knownGaps,
-        public int $unassignedDocuments = 0,
+        public int $unassignedDocuments,
     ) {
     }
 }

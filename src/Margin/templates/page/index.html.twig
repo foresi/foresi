@@ -64,7 +64,7 @@
                             {% for group in page.groups %}
                                 <tbody data-row="{{ group.key }}" data-row-kind="{{ group.kind }}">
                                     <tr>
-                                        <th scope="colgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-white px-4 text-left font-semibold text-ink">
+                                        <th scope="rowgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-white px-4 text-left font-semibold text-ink">
                                             <span class="inline-flex items-center gap-2">{{ group.label }}{% if group.badge %}<twig:Ui:Badge data-margin-unassigned-badge>{{ group.badge }}</twig:Ui:Badge>{% endif %}</span>
                                         </th>
                                     </tr>
@@ -75,7 +75,7 @@
                             {% endfor %}
                             <tbody data-row="total">
                                 <tr>
-                                    <th scope="colgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left font-semibold text-ink">{{ 'margin.table.all'|trans }}</th>
+                                    <th scope="rowgroup" colspan="{{ page.months|length + 2 }}" class="sticky left-0 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left font-semibold text-ink">{{ 'margin.table.all'|trans }}</th>
                                 </tr>
                                 {% for line in page.totals %}
                                     {{ include('@Margin/page/_line.html.twig', {line: line, strong: line.kind == 'margin', link: link}) }}

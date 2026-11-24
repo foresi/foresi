@@ -45,10 +45,10 @@ margin:
     caption: "Tržby, náklady a marže podle klientů a měsíců, {range}"
     row: Klient a řádek
     currency: částky v Kč
+    cell: "{row}, {month}, {line}: {amount}"
     total: Celkem
     all: Všichni klienti a náklady
     none: Nic
-    own: Vlastní spotřeba
     unassigned: Nepřiřazeno
     unassigned_documents: "{count, plural, one {# doklad} few {# doklady} many {# dokladu} other {# dokladů}}"
     line:

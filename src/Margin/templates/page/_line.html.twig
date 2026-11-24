@@ -5,7 +5,7 @@
     {% for cell in line.cells %}
         <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold text-ink' : 'text-ink' }}">
             {%- if cell.href -%}
-                <a href="{{ cell.href }}" data-sheet class="{{ link }}">{{ cell.text }}</a>
+                <a href="{{ cell.href }}" data-sheet aria-label="{{ cell.label }}" class="{{ link }}">{{ cell.text }}</a>
             {%- elseif cell.text -%}
                 {{ cell.text }}
             {%- else -%}

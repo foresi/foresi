@@ -102,7 +102,7 @@ final class SupplierDefaultScreensTest extends WebTestCase
         self::assertCount(1, $folded);
         self::assertSame(['2027-03', '2026-10'], $folded->filter('[data-margin-version]')->each(static fn (Crawler $version): string => (string) $version->attr('data-margin-version')));
         self::assertSame(['later', 'earlier'], $folded->filter('[data-margin-version]')->each(static fn (Crawler $version): string => (string) $version->attr('data-margin-placed')));
-        self::assertSame(['Nobody, no default from this month on', 'Own consumption'], $folded->filter('[data-margin-recipient]')->each(static fn (Crawler $recipient): string => trim($recipient->text())));
+        self::assertSame(['Nobody, no default from this month on', 'Own use'], $folded->filter('[data-margin-recipient]')->each(static fn (Crawler $recipient): string => trim($recipient->text())));
         self::assertSame(3, $this->stored());
 
         // The dialog starts from the default in force, and the same month replaces its version.

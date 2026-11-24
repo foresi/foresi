@@ -99,7 +99,7 @@ final class PlannedMappingScreensTest extends WebTestCase
         self::assertCount(1, $current);
         self::assertSame('2026-12', trim($current->filter('[data-margin-month]')->text()));
         self::assertSame('percent', $current->filter('[data-margin-kind]')->attr('data-margin-kind'));
-        self::assertSame(['Client A s.r.o.', 'Own consumption'], $current->filter('[data-margin-term] span:first-child')->each(static fn (Crawler $name): string => trim($name->text())));
+        self::assertSame(['Client A s.r.o.', 'Own use'], $current->filter('[data-margin-term] span:first-child')->each(static fn (Crawler $name): string => trim($name->text())));
         self::assertStringContainsString('40', $current->filter('[data-margin-term]')->first()->text());
         self::assertCount(0, $page->filter('[data-margin-versions]'));
 
