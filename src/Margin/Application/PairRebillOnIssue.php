@@ -42,6 +42,10 @@ final readonly class PairRebillOnIssue
      */
     public function pair(string $invoiceId): int
     {
+        // Reading the document starts the session over, so it is read only when some line rebills at all.
+        if (0 === $this->entityManager->getRepository(RebillLink::class)->count([])) {
+            return 0;
+        }
         $document = $this->revenue->document($invoiceId);
         if (!$document instanceof RevenueDocument) {
             return 0;
