@@ -64,7 +64,8 @@ final class ProductLists implements ListDefinitionSource
             new DefaultView(ListDefinition::ALL, 'catalog.products.tab.all', showCount: false, position: 0),
             new DefaultView('one_off', 'catalog.products.tab.one_off', ViewFilter::all(new Condition(self::BILLING_KIND, 'is', BillingKind::OneOff->value)), showCount: false, position: 1),
             new DefaultView('recurring', 'catalog.products.tab.recurring', ViewFilter::all(new Condition(self::BILLING_KIND, 'is', BillingKind::Recurring->value)), showCount: false, position: 2),
-            new DefaultView(self::ARCHIVED, 'catalog.products.tab.archived', ViewFilter::all(new Condition(self::ARCHIVED, 'is', true)), showCount: false, position: 3),
+            new DefaultView('hourly', 'catalog.products.tab.hourly', ViewFilter::all(new Condition(self::BILLING_KIND, 'is', BillingKind::TimeBased->value)), showCount: false, position: 3),
+            new DefaultView(self::ARCHIVED, 'catalog.products.tab.archived', ViewFilter::all(new Condition(self::ARCHIVED, 'is', true)), showCount: false, position: 4),
         ];
     }
 }

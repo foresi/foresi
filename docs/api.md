@@ -560,16 +560,16 @@ Fields of a product:
 | Field | Value |
 | --- | --- |
 | `name` | Required on create, up to 200 characters. |
-| `billing_kind` | `one_off` (the default) or `recurring`. |
-| `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. |
-| `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. |
+| `billing_kind` | `one_off` (the default), `recurring` or `time_based`, billed by the hour. |
+| `unit` | Up to 32 characters, as the unit of an invoice line; may be empty. `h` for `time_based` (empty means `h`, another unit is refused `time_based_unit`). |
+| `unit_price` | A decimal of zero or more, without VAT, or `null` when the price is agreed each time. Required for `time_based`, where it is the hourly rate (`rate_required`). |
 | `currency` | `CZK` (the default), `EUR` or `USD`. |
-| `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off`. |
-| `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off`. |
-| `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off`. |
+| `recurrence_unit` | `day`, `week`, `month` or `year`; required for `recurring`, refused for `one_off` and `time_based`. |
+| `interval` | 1 to 99, required for `recurring`: billed every `interval` units. Refused for `one_off` and `time_based`. |
+| `cycles` | 1 to 999 times, or `null` for no end. Refused for `one_off` and `time_based`. |
 | `description` | Up to 2,000 characters. |
 
-A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence` or `cycles_invalid`.
+A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence`, `time_based_recurrence` or `cycles_invalid`.
 
 ## Sales
 

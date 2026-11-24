@@ -43,7 +43,23 @@ final class ProductRulesTest extends TestCase
         $this->assertRefused('one_off_recurrence', 'recurrenceUnit', $this->draft(recurrenceUnit: 'month'));
         $this->assertRefused('one_off_recurrence', 'interval', $this->draft(interval: 1));
         $this->assertRefused('one_off_recurrence', 'cycles', $this->draft(cycles: 3));
-        $this->assertRefused('billing_kind_unknown', 'billingKind', $this->draft(billingKind: 'time_based'));
+        $this->assertRefused('billing_kind_unknown', 'billingKind', $this->draft(billingKind: 'weekly'));
+    }
+
+    public function testTimeBasedIsBilledByTheHourAtARate(): void
+    {
+        $terms = new ProductRules()->terms($this->draft(unit: 'h', unitPrice: '1200.00', billingKind: 'time_based'));
+        self::assertSame([BillingKind::TimeBased, 'h', 120000, null, null, null], [$terms->billingKind, $terms->unit, $terms->unitPrice?->minor(), $terms->recurrenceUnit, $terms->interval, $terms->cycles]);
+
+        self::assertSame('h', new ProductRules()->terms($this->draft(unit: '', unitPrice: '1200.00', billingKind: 'time_based'))->unit, 'an empty unit is the hour');
+        self::assertSame('h', new ProductRules()->terms($this->draft(unit: '  ', unitPrice: '0', billingKind: 'time_based'))->unit);
+
+        $this->assertRefused('time_based_unit', 'unit', $this->draft(unit: 'piece', unitPrice: '1200.00', billingKind: 'time_based'));
+        $this->assertRefused('time_based_unit', 'unit', $this->draft(unit: 'hour', unitPrice: '1200.00', billingKind: 'time_based'));
+        $this->assertRefused('rate_required', 'unitPrice', $this->draft(unit: 'h', billingKind: 'time_based'));
+        $this->assertRefused('time_based_recurrence', 'recurrenceUnit', $this->draft(unit: 'h', unitPrice: '1200.00', billingKind: 'time_based', recurrenceUnit: 'month'));
+        $this->assertRefused('time_based_recurrence', 'interval', $this->draft(unit: 'h', unitPrice: '1200.00', billingKind: 'time_based', interval: 1));
+        $this->assertRefused('time_based_recurrence', 'cycles', $this->draft(unit: 'h', unitPrice: '1200.00', billingKind: 'time_based', cycles: 3));
     }
 
     /**
@@ -108,6 +124,7 @@ final class ProductRulesTest extends TestCase
     public function testRefusalsNameTheAllowedValues(): void
     {
         self::assertSame('The currency is one of CZK, EUR, USD.', $this->refusal($this->draft(unitPrice: '10', currency: 'GBP'))->getMessage());
+        self::assertSame('The billing kind is one of one_off, recurring, time_based.', $this->refusal($this->draft(billingKind: 'weekly'))->getMessage());
         self::assertSame('The recurrence unit is one of day, week, month, year.', $this->refusal($this->draft(billingKind: 'recurring', recurrenceUnit: 'fortnight', interval: 1))->getMessage());
     }
 

@@ -13,7 +13,7 @@ use Foresi\Shared\Application\View\DefaultView;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * The product list ships All, One-off, Recurring and Archived in that order,
+ * The product list ships All, One-off, Recurring, Hourly and Archived in that order,
  * none of them counting its products, and names each billing kind.
  */
 final class ProductListsTest extends KernelTestCase
@@ -25,9 +25,9 @@ final class ProductListsTest extends KernelTestCase
 
         self::assertSame($list, $lists->list());
         self::assertSame(
-            [['all', 'catalog.products.tab.all', false, 0], ['one_off', 'catalog.products.tab.one_off', false, 1], ['recurring', 'catalog.products.tab.recurring', false, 2], ['archived', 'catalog.products.tab.archived', false, 3]],
+            [['all', 'catalog.products.tab.all', false, 0], ['one_off', 'catalog.products.tab.one_off', false, 1], ['recurring', 'catalog.products.tab.recurring', false, 2], ['hourly', 'catalog.products.tab.hourly', false, 3], ['archived', 'catalog.products.tab.archived', false, 4]],
             array_map(static fn (DefaultView $view): array => [$view->slug, $view->name, $view->showCount, $view->position], $list->defaults),
         );
-        self::assertSame(['one_off' => 'catalog.billing_kind.one_off', 'recurring' => 'catalog.billing_kind.recurring'], $list->field('billing_kind')?->optionLabels);
+        self::assertSame(['one_off' => 'catalog.billing_kind.one_off', 'recurring' => 'catalog.billing_kind.recurring', 'time_based' => 'catalog.billing_kind.time_based'], $list->field('billing_kind')?->optionLabels);
     }
 }

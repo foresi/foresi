@@ -19,11 +19,15 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  * What a product may say. A recurring product bills every interval (1 to 99)
  * of a unit of time, a number of cycles (1 to 999) or with no end; a one-off
  * product has none of these. The price per unit is optional, zero or more,
- * with at most two decimals. The name is required; the unit may be empty.
+ * with at most two decimals. The name is required; the unit may be empty. A
+ * time-based product is billed by the hour: its unit is "h" (an empty unit is
+ * taken as "h"), its price is the hourly rate and is required, and it has no
+ * recurrence.
  */
 final readonly class ProductRules
 {
-    public const array BILLING_KINDS = ['one_off', 'recurring'];
+    public const array BILLING_KINDS = ['one_off', 'recurring', 'time_based'];
+    public const string HOUR = 'h';
     public const array UNITS = ['day', 'week', 'month', 'year'];
     public const array CURRENCIES = ['CZK', 'EUR', 'USD'];
 
@@ -47,9 +51,30 @@ final readonly class ProductRules
         if (mb_strlen($description) > Product::MAX_DESCRIPTION) {
             throw CatalogRefused::invalid('description_too_long', 'description', \sprintf('The description is at most %d characters.', Product::MAX_DESCRIPTION));
         }
-        $kind = BillingKind::tryFrom($draft->billingKind) ?? throw CatalogRefused::invalid('billing_kind_unknown', 'billingKind', 'The billing kind is one_off or recurring.');
+        $kind = BillingKind::tryFrom($draft->billingKind) ?? throw CatalogRefused::invalid('billing_kind_unknown', 'billingKind', 'The billing kind is one of '.implode(', ', self::BILLING_KINDS).'.');
+        $price = $this->price($draft);
+        if (BillingKind::TimeBased === $kind) {
+            $unit = $this->hourly($unit, $price);
+        }
 
-        return new ProductTerms($name, $description, $unit, $this->price($draft), $kind, ...$this->recurrence($kind, $draft));
+        return new ProductTerms($name, $description, $unit, $price, $kind, ...$this->recurrence($kind, $draft));
+    }
+
+    /**
+     * The unit of a time-based product: the hour, which an empty unit means.
+     *
+     * @throws CatalogRefused invalid
+     */
+    private function hourly(string $unit, ?Money $rate): string
+    {
+        if ('' !== $unit && self::HOUR !== $unit) {
+            throw CatalogRefused::invalid('time_based_unit', 'unit', 'A time-based product is billed by the hour: its unit is h.');
+        }
+        if (!$rate instanceof Money) {
+            throw CatalogRefused::invalid('rate_required', 'unitPrice', 'A time-based product needs its hourly rate: give the unit price.');
+        }
+
+        return self::HOUR;
     }
 
     /**
@@ -84,6 +109,15 @@ final readonly class ProductRules
             foreach (['recurrenceUnit' => $draft->recurrenceUnit, 'interval' => $draft->interval, 'cycles' => $draft->cycles] as $field => $value) {
                 if (null !== $value) {
                     throw CatalogRefused::invalid('one_off_recurrence', $field, 'A one-off product has no recurrence unit, interval or cycles; make it recurring to bill it on a period.');
+                }
+            }
+
+            return [null, null, null];
+        }
+        if (BillingKind::TimeBased === $kind) {
+            foreach (['recurrenceUnit' => $draft->recurrenceUnit, 'interval' => $draft->interval, 'cycles' => $draft->cycles] as $field => $value) {
+                if (null !== $value) {
+                    throw CatalogRefused::invalid('time_based_recurrence', $field, 'A time-based product has no recurrence unit, interval or cycles; it is billed by the hours worked.');
                 }
             }
 

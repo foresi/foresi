@@ -37,10 +37,13 @@ final readonly class ProductScreen
     }
 
     /**
-     * "One-off", or "Every 3 months, 12 times" for a recurring product.
+     * "One-off", "Hourly", or "Every 3 months, 12 times" for a recurring product.
      */
     public function billing(Product $product): string
     {
+        if (BillingKind::TimeBased === $product->billingKind()) {
+            return $this->translator->trans('catalog.billing_kind.time_based');
+        }
         $unit = $product->recurrenceUnit();
         if (BillingKind::OneOff === $product->billingKind() || !$unit instanceof \Foresi\Shared\Domain\Schedule\RecurrenceUnit) {
             return $this->translator->trans('catalog.billing_kind.one_off');

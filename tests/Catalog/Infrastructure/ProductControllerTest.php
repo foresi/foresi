@@ -50,7 +50,7 @@ final class ProductControllerTest extends WebTestCase
         self::assertSame('/catalog/products/new', $crawler->filter('header #product-new[data-dialog]')->attr('href'));
         self::assertSelectorTextContains('body', 'No products yet');
         self::assertGreaterThan(0, $crawler->filter('nav a[href="/catalog/products"][aria-current="page"]')->count());
-        self::assertSame(['All', 'One-off', 'Recurring', 'Archived'], $crawler->filter('nav[aria-label="Views of the products"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSame(['All', 'One-off', 'Recurring', 'Hourly', 'Archived'], $crawler->filter('nav[aria-label="Views of the products"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
         // Without JavaScript the dialog is a page of its own.
         $this->client->request('GET', '/catalog/products/new');
         self::assertResponseIsSuccessful();
@@ -89,6 +89,27 @@ final class ProductControllerTest extends WebTestCase
         self::assertResponseRedirects();
         $product = $this->product();
         self::assertSame([BillingKind::OneOff, null, null, null], [$product->billingKind(), $product->recurrenceUnit(), $product->interval(), $product->cycles()]);
+    }
+
+    public function testAnHourlyProductIgnoresThePeriodAndShowsItsRate(): void
+    {
+        $this->signIn();
+        $crawler = $this->client->request('GET', '/catalog/products/new');
+        self::assertCount(1, $crawler->filter('[data-controller="product-billing"] input#unit[data-product-billing-target="unit"]'));
+        $values = $crawler->filter('#product-form')->form()->getPhpValues();
+
+        $this->client->request('POST', '/catalog/products/new', ['name' => 'Support', 'unit' => 'h', 'unitPrice' => '1 200', 'billingKind' => 'time_based', 'interval' => '3'] + $values);
+        self::assertResponseRedirects();
+        $product = $this->product();
+        self::assertSame([BillingKind::TimeBased, 'h', null, null, null, 120000], [$product->billingKind(), $product->unit(), $product->recurrenceUnit(), $product->interval(), $product->cycles(), $product->unitPrice()?->minor()]);
+
+        $this->client->request('GET', '/catalog/products');
+        self::assertSelectorTextContains('table', 'Hourly');
+
+        // The hourly rate is required.
+        $this->client->request('POST', '/catalog/products/new', ['name' => 'Audit', 'unit' => 'h', 'unitPrice' => '', 'billingKind' => 'time_based'] + $values);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#product-form', 'Enter the hourly rate as the price per unit.');
     }
 
     public function testEditsArchivesAndRestoresFromTheRecord(): void

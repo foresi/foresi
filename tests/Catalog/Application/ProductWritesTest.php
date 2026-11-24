@@ -12,6 +12,7 @@ use Foresi\Catalog\Application\ArchiveProductInput;
 use Foresi\Catalog\Application\CatalogRefused;
 use Foresi\Catalog\Application\RestoreProductInput;
 use Foresi\Catalog\Application\UpdateProductInput;
+use Foresi\Catalog\Contract\BillingKind;
 use Foresi\Tests\Catalog\Support\CatalogTestCase;
 
 /**
@@ -28,6 +29,19 @@ final class ProductWritesTest extends CatalogTestCase
         $renamed = $this->writes()->update(new UpdateProductInput($retainer->id(), name: 'Support retainer'));
 
         self::assertSame(['Support retainer', 150005, 'EUR', 2, 12], [$renamed->name(), $renamed->unitPrice()?->minor(), $renamed->unitPrice()?->currency()->value, $renamed->interval(), $renamed->cycles()]);
+    }
+
+    public function testMakingAProductTimeBasedClearsItsPeriodAndNeedsTheHour(): void
+    {
+        $retainer = $this->product('Retainer', 'recurring', 'month', '1500.00', 'CZK', 'month', 2, 12);
+
+        $hourly = $this->writes()->update(new UpdateProductInput($retainer->id(), billingKind: 'time_based', unit: 'h'));
+
+        self::assertSame([BillingKind::TimeBased, 'h', null, null, null, 150000], [$hourly->billingKind(), $hourly->unit(), $hourly->recurrenceUnit(), $hourly->interval(), $hourly->cycles(), $hourly->unitPrice()?->minor()]);
+
+        $other = $this->product('Retainer B', 'recurring', 'month', '1500.00', 'CZK', 'month', 2, 12);
+        $this->expectException(CatalogRefused::class);
+        $this->writes()->update(new UpdateProductInput($other->id(), billingKind: 'time_based'));
     }
 
     public function testArchiveAndRestoreRecordOnlyAChange(): void

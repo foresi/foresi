@@ -43,7 +43,7 @@ final readonly class SearchProductsTool implements ReadTool, StaffOnlyTool
 
     public function description(): string
     {
-        return 'Returns the products of the catalog whose name or description holds the text, all of them without one, in name order: {items} with the id, name, description, unit, unit_price, billing_kind (one_off or recurring), recurrence_unit, interval, cycles and whether it is archived. '
+        return 'Returns the products of the catalog whose name or description holds the text, all of them without one, in name order: {items} with the id, name, description, unit, unit_price, billing_kind (one_off, recurring or time_based, billed by the hour at unit_price), recurrence_unit, interval, cycles and whether it is archived. '
             .'Archived products are left out unless archived is true. Use an id with foresi_get_product, foresi_update_product, foresi_archive_product or foresi_restore_product.';
     }
 
