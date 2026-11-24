@@ -228,7 +228,9 @@ final class GuestApiTest extends WorkApiTestCase
             'integer', 'number' => max(1, $minimum),
             'boolean' => false,
             'array' => $minItems > 0 ? [self::sample((array) ($property['items'] ?? []))] : [],
-            'object' => [] === $object ? new \stdClass() : $object,
+            // The server decodes an empty JSON object as an empty array, which its schema check takes for a list, so
+            // an object with no required member, such as a mapping, is sent with one.
+            'object' => [] === $object ? ['kind' => 'Example'] : $object,
             default => match ($property['format'] ?? null) {
                 'uuid' => '019a0000-0000-7000-8000-0000000000ff',
                 'date' => '2026-11-19',
