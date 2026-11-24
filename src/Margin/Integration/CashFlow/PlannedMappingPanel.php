@@ -44,7 +44,7 @@ final readonly class PlannedMappingPanel implements SlotProvider
             return [];
         }
         $item = $this->items->one($itemId);
-        if (null === $item || FlowDirection::Out !== $item->direction || !$item->recurring) {
+        if (!$item instanceof \Foresi\CashFlow\Contract\PlannedItemSummary || FlowDirection::Out !== $item->direction || !$item->recurring) {
             return [];
         }
         try {

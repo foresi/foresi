@@ -157,7 +157,7 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
             if ($mapping instanceof Allocation) {
                 $this->split($document, $line, $month, $mapping, CostShareSource::Line);
             } elseif ($wholeDocument instanceof Recipient) {
-                $this->split($document, $line, $month, self::whole($wholeDocument), CostShareSource::Document);
+                $this->split($document, $line, $month, $this->whole($wholeDocument), CostShareSource::Document);
             } elseif ($pairing instanceof CostPairing && $planned instanceof Allocation) {
                 $parts = AllocationKind::Fixed === $planned->kind
                     ? $this->fixedParts($document, $pairing, $planned, $fills)[$document->id][$line->key] ?? []
@@ -166,7 +166,7 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
                     $this->add($document->id, $line->key, $month, $recipient->toString(), $amount, CostShareSource::PlannedItem, $pairing);
                 }
             } elseif ($supplier instanceof Recipient) {
-                $this->split($document, $line, $month, self::whole($supplier), CostShareSource::Supplier);
+                $this->split($document, $line, $month, $this->whole($supplier), CostShareSource::Supplier);
             } else {
                 $this->add($document->id, $line->key, $month, null, $line->baseCzk, CostShareSource::Unassigned);
             }
@@ -224,7 +224,7 @@ final readonly class CostShareCalculation implements CostSharesRecalculation
         }
     }
 
-    private static function whole(Recipient $recipient): Allocation
+    private function whole(Recipient $recipient): Allocation
     {
         return new Allocation(AllocationKind::Whole, [new AllocationShare($recipient)]);
     }

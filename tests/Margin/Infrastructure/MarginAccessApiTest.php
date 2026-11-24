@@ -57,7 +57,7 @@ final class MarginAccessApiTest extends ApiTestCase
         $this->get('/api/v1/margin/documents/'.$id, secret: $reader);
         $this->assertProblem(404, 'unknown_document');
 
-        $writer = $this->issued([ApiScope::from('margin:write')]);
+        $this->issued([ApiScope::from('margin:write')]);
         $this->send('PUT', $this->plannedPath($id), ['allocation' => null, 'from_month' => '2026-12'], $reader);
         $this->assertProblem(403, 'insufficient_scope');
         $this->send('PUT', $this->defaultPath($id), ['recipient' => null, 'from_month' => '2026-12'], $reader);

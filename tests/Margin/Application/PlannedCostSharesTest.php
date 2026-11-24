@@ -94,7 +94,7 @@ final class PlannedCostSharesTest extends KernelTestCase
         $this->voiceApi = $this->contact('Voice API');
         $user = new User('owner@example.com', 'hash', 'Olga Owner');
         $this->em->persist($user);
-        $this->em->persist(new Membership($user, Role::Owner, null));
+        $this->em->persist(new Membership($user, Role::Owner));
         $this->em->flush();
         $container->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($user->id(), $user->email(), 'hash'), 'main', ['ROLE_USER']));
 
@@ -181,8 +181,8 @@ final class PlannedCostSharesTest extends KernelTestCase
             'd2 line-1 own 50000 planned_item 2026-12-01 '.self::CLOUD_HOST_ITEM.' 2026-12-05',
         ], $this->shares());
         self::assertSame($novemberShares, $this->shareIds($november), 'The November shares were not counted again.');
-        self::assertSame(['2026-12', '2026-11'], array_map(static fn ($version): string => $version->fromMonth, $view->versions));
-        self::assertSame([true, false], array_map(static fn ($version): bool => $version->current, $view->versions));
+        self::assertSame(['2026-12', '2026-11'], array_map(static fn (\Foresi\Margin\Application\PlannedAllocationVersionView $version): string => $version->fromMonth, $view->versions));
+        self::assertSame([true, false], array_map(static fn (\Foresi\Margin\Application\PlannedAllocationVersionView $version): bool => $version->current, $view->versions));
     }
 
     public function testFixedAmountPerOccurrenceIsFilledInDateOrder(): void
@@ -235,9 +235,9 @@ final class PlannedCostSharesTest extends KernelTestCase
             'd2 line-1 '.$this->clientB.' 20000 line 2026-12-01 - -',
         ], $this->shares());
         self::assertSame('Cloud Host', $view->supplierName);
-        self::assertSame([['2026-12', $this->clientA, 'Client A', true]], array_map(static fn ($version): array => [$version->fromMonth, $version->recipient, $version->recipientName, $version->current], $view->versions));
+        self::assertSame([['2026-12', $this->clientA, 'Client A', true]], array_map(static fn (\Foresi\Margin\Application\SupplierDefaultVersionView $version): array => [$version->fromMonth, $version->recipient, $version->recipientName, $version->current], $view->versions));
         self::assertEquals($view->versions, $this->reads->supplierDefault($this->cloudHost)->versions);
-        self::assertSame(['supplier'], array_map(static fn ($share): string => $share->source, $this->reads->document($unmapped)->lines[0]->shares));
+        self::assertSame(['supplier'], array_map(static fn (\Foresi\Margin\Application\ShareView $share): string => $share->source, $this->reads->document($unmapped)->lines[0]->shares));
     }
 
     public function testASupplierDefaultLeavesEarlierMonthsAlone(): void
@@ -323,7 +323,7 @@ final class PlannedCostSharesTest extends KernelTestCase
         $item = '0197a1de-0000-7000-8000-0000000000e3';
         $this->pairings->items[$item] = new PlannedCostItem($item, 'Office rent', true, true, null);
 
-        $this->assertRefused('counterparty_required', fn () => $this->writes->setPlanned($item, $this->whole($this->clientA), '2026-12'));
+        $this->assertRefused('counterparty_required', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($item, $this->whole($this->clientA), '2026-12'));
     }
 
     public function testWhatAPlannedOrSupplierMappingRefuses(): void
@@ -334,14 +334,14 @@ final class PlannedCostSharesTest extends KernelTestCase
         $this->pairings->items[$once] = new PlannedCostItem($once, 'Laptop', true, false, $this->cloudHost);
         $whole = $this->whole($this->clientA);
 
-        $this->assertRefused('not_an_expense', fn () => $this->writes->setPlanned($income, $whole, '2026-12'));
-        $this->assertRefused('not_recurring', fn () => $this->writes->setPlanned($once, $whole, '2026-12'));
-        $this->assertRefused('unknown_planned_item', fn () => $this->writes->setPlanned('0197a1de-0000-7000-8000-0000000000ff', $whole, '2026-12'));
-        $this->assertRefused('invalid_month', fn () => $this->writes->setPlanned(self::VOICE_API_ITEM, $whole, '2026-13'));
-        $this->assertRefused('invalid_month', fn () => $this->writes->setSupplierDefault($this->cloudHost, Recipient::own(), '2026-1'));
-        $this->assertRefused('unknown_contact', fn () => $this->writes->setPlanned(self::VOICE_API_ITEM, $this->whole('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
-        $this->assertRefused('unknown_supplier', fn () => $this->writes->setSupplierDefault('0197a1de-0000-7000-8000-0000000000fd', Recipient::own(), '2026-12'));
-        $this->assertRefused('unknown_contact', fn () => $this->writes->setSupplierDefault($this->cloudHost, Recipient::client('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
+        $this->assertRefused('not_an_expense', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($income, $whole, '2026-12'));
+        $this->assertRefused('not_recurring', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned($once, $whole, '2026-12'));
+        $this->assertRefused('unknown_planned_item', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned('0197a1de-0000-7000-8000-0000000000ff', $whole, '2026-12'));
+        $this->assertRefused('invalid_month', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $whole, '2026-13'));
+        $this->assertRefused('invalid_month', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::own(), '2026-1'));
+        $this->assertRefused('unknown_contact', fn (): \Foresi\Margin\Application\PlannedAllocationsView => $this->writes->setPlanned(self::VOICE_API_ITEM, $this->whole('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
+        $this->assertRefused('unknown_supplier', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault('0197a1de-0000-7000-8000-0000000000fd', Recipient::own(), '2026-12'));
+        $this->assertRefused('unknown_contact', fn (): \Foresi\Margin\Application\SupplierDefaultsView => $this->writes->setSupplierDefault($this->cloudHost, Recipient::client('0197a1de-0000-7000-8000-0000000000fe'), '2026-12'));
     }
 
     public function testSettingAMonthAgainReplacesItsVersion(): void

@@ -193,7 +193,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
     public function testTheSubjectTypeIsPurchasingsReceivedDocument(): void
     {
         // Read at run time: Margin keeps its own copy, as it may not use Purchasing's integration.
-        self::assertSame(new \ReflectionClassConstant(ReceivedDocumentPairables::class, 'TYPE')->getValue(), CashFlowPairings::RECEIVED_DOCUMENT);
+        self::assertSame(CashFlowPairings::RECEIVED_DOCUMENT, new \ReflectionClassConstant(ReceivedDocumentPairables::class, 'TYPE')->getValue());
     }
 
     /**

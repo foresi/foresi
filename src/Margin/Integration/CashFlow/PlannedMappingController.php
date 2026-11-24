@@ -92,7 +92,7 @@ final class PlannedMappingController extends AbstractController
             'item' => $item,
             'name' => $view->name,
             'back' => $item->url,
-            'hasMapping' => array_any($view->versions, static fn ($version): bool => null !== $version->mapping),
+            'hasMapping' => array_any($view->versions, static fn (\Foresi\Margin\Application\PlannedAllocationVersionView $version): bool => $version->mapping instanceof \Foresi\Margin\Application\MappingView),
             'asksSupplier' => null === $item->counterpartyId,
             'supplier' => $supplier,
             'values' => $values,
@@ -178,7 +178,7 @@ final class PlannedMappingController extends AbstractController
     private function item(string $id): PlannedItemSummary
     {
         $item = $this->items->one($id);
-        if (null === $item || FlowDirection::Out !== $item->direction || !$item->recurring) {
+        if (!$item instanceof PlannedItemSummary || FlowDirection::Out !== $item->direction || !$item->recurring) {
             throw new NotFoundHttpException('Only a recurring planned cost is mapped to clients.');
         }
 
