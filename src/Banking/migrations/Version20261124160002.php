@@ -18,10 +18,15 @@ use Doctrine\Migrations\AbstractMigration;
  * so raw files, movements and links keep working. What was never stored, the
  * Message-ID, the thread headers and the date the sender wrote, stays empty, and
  * the verdict of a mail stored before is unknown. Going down copies everything
- * back and removes the Mail rows of the bank feeds.
+ * back, gives a mail that reached two feeds a dedup key per row, and removes the
+ * Mail rows of the bank feeds.
  */
 final class Version20261124160002 extends AbstractMigration
 {
+    /** A row whose dedup key an earlier row holds already. */
+    private const string LATER_COPY = 'EXISTS (SELECT 1 FROM inbound_message o WHERE o.dedup_key = inbound_message.dedup_key '
+        .'AND (o.received_at < inbound_message.received_at OR (o.received_at = inbound_message.received_at AND o.id < inbound_message.id)))';
+
     public function getDescription(): string
     {
         return 'Copy the bank feeds and the bank mail into the Mail module';
@@ -55,6 +60,11 @@ final class Version20261124160002 extends AbstractMigration
                 token_hash = (SELECT a.token_hash FROM mail_inbound_address a WHERE a.id = bank_feed.mail_inbound_address_id),
                 token_sealed = (SELECT a.token_sealed FROM mail_inbound_address a WHERE a.id = bank_feed.mail_inbound_address_id)
             SQL);
+        // Mail dedups per address, Banking did across all feeds: of a mail that reached two
+        // feeds, the earliest row keeps its key, a later one takes the hash of its bytes, and
+        // one whose bytes are the same as well takes a key made of its own id.
+        $this->addSql('UPDATE inbound_message SET dedup_key = raw_sha256 WHERE '.self::LATER_COPY);
+        $this->addSql("UPDATE inbound_message SET dedup_key = REPLACE(CAST(id AS VARCHAR(36)), '-', '') || REPLACE(CAST(id AS VARCHAR(36)), '-', '') WHERE ".self::LATER_COPY);
         $this->addSql('UPDATE inbound_message SET mail_message_id = NULL');
         $this->addSql('UPDATE bank_feed SET mail_inbound_address_id = NULL');
         $this->addSql("DELETE FROM mail_message WHERE address_id IN (SELECT id FROM mail_inbound_address WHERE purpose = 'bank_feed')");

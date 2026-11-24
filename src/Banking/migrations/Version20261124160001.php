@@ -16,7 +16,8 @@ use Doctrine\Migrations\AbstractMigration;
  * The first of three steps that move the bank mail into the Mail module: the
  * columns that name a feed's Mail address and a message's Mail message, empty
  * until the next step copies the rows. Going down, the moved columns, given
- * back by the steps after this one, are required again.
+ * back by the steps after this one, are required again and the dedup key is
+ * unique again.
  */
 final class Version20261124160001 extends AbstractMigration
 {
@@ -46,6 +47,10 @@ final class Version20261124160001 extends AbstractMigration
         $message->dropColumn('mail_message_id');
         foreach (self::MOVED_MESSAGE_COLUMNS as $column) {
             $message->modifyColumn($column, ['notnull' => true]);
+        }
+        // Going down from the last step, the keys were copied back and made unique by the step after this one.
+        if (!$message->hasIndex('uniq_inbound_message_dedup')) {
+            $message->addUniqueIndex(['dedup_key'], 'uniq_inbound_message_dedup');
         }
     }
 }

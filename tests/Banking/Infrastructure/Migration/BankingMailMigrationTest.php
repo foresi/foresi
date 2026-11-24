@@ -15,6 +15,7 @@ use Doctrine\Migrations\Version\Version;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\RecordMovement;
@@ -142,6 +143,41 @@ final class BankingMailMigrationTest extends KernelTestCase
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_message')));
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_inbound_address')));
         self::assertSame([self::MESSAGE], $this->connection()->fetchFirstColumn('SELECT inbound_message_id FROM bank_movement'));
+    }
+
+    /**
+     * Mail dedups per address, the bank tables did across all feeds: a mail that
+     * reached two feeds after the move gets a key per row on the way down, so
+     * going back never stops half-way.
+     */
+    public function testDownSucceedsAfterOneMailReachedTwoFeeds(): void
+    {
+        $this->up();
+        $second = FirmAccounts::add($this->em, 'CZ5508000000001234567899');
+        $this->em->flush();
+        $other = self::getContainer()->get(GenerateAddress::class)->generate($second->id());
+        $receive = self::getContainer()->get(ReceiveMail::class);
+        $first = 'bank+'.self::TOKEN.'@example.com';
+        // One notice forwarded to both feeds, and the same bytes without a Message-ID to both again.
+        $notice = SyntheticMail::plain($first, 'to-both@mail.example.com');
+        $plain = SyntheticMail::plain($first, null, body: "Another payment.\r\n");
+        foreach ([$notice, $plain] as $raw) {
+            self::assertSame(ReceiveOutcome::Stored, $receive->receive($raw, InboundChannel::Webhook));
+            self::assertSame(ReceiveOutcome::Stored, $receive->receive($raw, InboundChannel::Webhook, $other));
+        }
+        self::assertSame(5, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM inbound_message')));
+
+        foreach (array_reverse(self::STEPS) as $step) {
+            $this->migrate($step, 'down');
+        }
+
+        $keys = array_map(Scalars::text(...), $this->connection()->fetchFirstColumn('SELECT dedup_key FROM inbound_message'));
+        self::assertCount(5, $keys);
+        self::assertCount(5, array_unique($keys), 'every row has a key of its own');
+        self::assertContains(hash('sha256', 'to-both@mail.example.com'), $keys, 'the earlier copy keeps its key');
+        self::assertContains(hash('sha256', $notice), $keys, 'the later copy takes the hash of its bytes');
+        self::assertContains(hash('sha256', $plain), $keys);
+        self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM mail_message')));
     }
 
     /**

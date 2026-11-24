@@ -16,7 +16,7 @@ use Doctrine\Migrations\AbstractMigration;
  * The last step of the move into Mail: the columns Mail keeps now leave the
  * bank tables, and every feed and bank mail names its Mail row. Going down, the
  * columns come back empty and optional for the step before to fill; the first
- * step makes them required again.
+ * step makes them required and the dedup key unique again.
  */
 final class Version20261124160003 extends AbstractMigration
 {
@@ -63,6 +63,6 @@ final class Version20261124160003 extends AbstractMigration
         $message->addColumn('from_address', Types::STRING, ['length' => 320, 'notnull' => false]);
         $message->addColumn('subject', Types::STRING, ['length' => 255, 'notnull' => false]);
         $message->addColumn('received_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
-        $message->addUniqueIndex(['dedup_key'], 'uniq_inbound_message_dedup');
+        // The unique dedup key comes back in the first step, once the keys are copied back and made unique.
     }
 }
