@@ -80,6 +80,11 @@ final readonly class CashFlowPairings implements PairingSource
             : null;
     }
 
+    public function costItems(): array
+    {
+        return array_map(static fn (PlannedItemSummary $item): PlannedCostItem => new PlannedCostItem($item->id, $item->name, true, $item->recurring, $item->counterpartyId, $item->url), $this->items->costs());
+    }
+
     public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable
     {
         if (1 !== preg_match(self::UUID, $plannedItemId)) {

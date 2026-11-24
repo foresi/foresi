@@ -164,13 +164,14 @@ final class InvoiceDetailController extends AbstractController
     }
 
     /**
-     * @return array{text: string, quantity: string, price: string, rate: string, total: string}
+     * @return array{id: string, text: string, quantity: string, price: string, rate: string, total: string}
      */
     private function line(InvoiceLine $line): array
     {
         $rate = $line->rate();
 
         return [
+            'id' => $line->id(),
             'text' => $line->text(),
             'quantity' => trim($this->amounts->quantity($line->quantity()->toDecimal()).' '.$line->unit()),
             'price' => $this->amounts->shown($line->price()),

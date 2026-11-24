@@ -76,6 +76,32 @@ final readonly class RebillPairings
     }
 
     /**
+     * What the lines of an invoice rebill, for a screen that shows it.
+     *
+     * @param list<string> $invoiceLineIds
+     *
+     * @return array<string, RebillPairingView> by the id of the line, only the lines that are paired
+     *
+     * @throws MarginRefused forbidden
+     */
+    public function ofLines(array $invoiceLineIds): array
+    {
+        $this->access->denyUnlessStaff();
+        if ([] === $invoiceLineIds) {
+            return [];
+        }
+        /** @var list<RebillPairing> $stored */
+        $stored = $this->entityManager->getRepository(RebillPairing::class)->findBy(['invoiceLineId' => $invoiceLineIds]);
+        $views = [];
+        foreach ($stored as $pairing) {
+            $item = $this->pairings->item($pairing->plannedItemId());
+            $views[$pairing->invoiceLineId()] = new RebillPairingView($pairing->invoiceLineId(), $pairing->invoiceId(), $pairing->plannedItemId(), $item->name ?? $pairing->plannedItemId(), $item?->url, $pairing->occurrenceOn()->format('Y-m-d'), $pairing->manual());
+        }
+
+        return $views;
+    }
+
+    /**
      * @throws MarginRefused forbidden or unknown_pairing
      */
     public function unpair(string $invoiceLineId): void

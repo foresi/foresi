@@ -96,6 +96,11 @@ final class RecalculateOnPairingTest extends KernelTestCase
             {
                 return null;
             }
+
+            public function costs(): array
+            {
+                return [];
+            }
         };
         $this->pairings = new CashFlowPairings($this->stored, $items);
         $calculation = new CostShareCalculation($this->em, new CostSources([$this->source]), new ShareSplitter(), self::getContainer()->get(InstanceClock::class), new CostPairings([$this->pairings]), new MappingVersions($this->em), new OccurrenceFill(new ShareSplitter()));

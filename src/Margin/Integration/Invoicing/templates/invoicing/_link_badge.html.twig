@@ -1,0 +1,4 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The cost a line of a recurring invoice rebills, a neutral badge under the text of the line (slot invoicing.recurring_line_badges). Variables: name, warnings. #}
+<twig:Ui:Badge tone="gray" data-margin-rebill-link>{{ 'margin.rebill.badge.link'|trans({name: name}) }}</twig:Ui:Badge>
+{% for warning in warnings %}<span class="text-caption text-muted" data-margin-rebill-warning="{{ warning }}">{{ ('margin.rebill.warning.' ~ warning)|trans }}</span>{% endfor %}

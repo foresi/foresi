@@ -51,6 +51,7 @@ margin:
     none: Nic
     unassigned: Nepřiřazeno
     unassigned_documents: "{count, plural, one {# doklad} few {# doklady} many {# dokladu} other {# dokladů}}"
+    unrebilled: "Nepřefakturováno {count}"
     line:
       revenue: Tržby
       costs: Náklady
@@ -61,6 +62,10 @@ margin:
     text: "V období {range} nejsou žádné tržby ani náklady. Změňte měsíce, nebo vystavte fakturu či zaevidujte přijatý doklad."
   sheet:
     assign: Přiřadit
+    unrebilled:
+      title: Zaplaceno, nepřefakturováno
+      text: Náklad, který klient nese, byl zaplacen a žádná faktura klientovi ho zatím nepřefakturovává.
+      template: Opakovaná faktura
     empty:
       revenue: V tomto měsíci není žádný doklad s tržbou.
       costs: V tomto měsíci nejsou žádné náklady.

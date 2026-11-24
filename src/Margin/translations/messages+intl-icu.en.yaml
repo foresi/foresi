@@ -51,6 +51,7 @@ margin:
     none: None
     unassigned: Unassigned
     unassigned_documents: "{count, plural, one {# document} other {# documents}}"
+    unrebilled: "Not rebilled {count}"
     line:
       revenue: Revenue
       costs: Costs
@@ -61,6 +62,10 @@ margin:
     text: "There is no revenue and no cost in {range}. Change the months, or issue an invoice or record a received document."
   sheet:
     assign: Assign
+    unrebilled:
+      title: Paid, not rebilled
+      text: A cost this client bears was paid, and no invoice to the client rebills it yet.
+      template: Recurring invoice
     empty:
       revenue: No revenue document in this month.
       costs: No cost in this month.

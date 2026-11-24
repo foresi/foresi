@@ -4,8 +4,9 @@
     <th scope="row" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-white pr-4 pl-8 text-left {{ strong ? 'font-semibold text-ink' : 'font-normal text-muted' }}">{{ line.label }}</th>
     {% for cell in line.cells %}
         <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold text-ink' : 'text-ink' }}">
+            {%- if cell.unrebilled %}<twig:Ui:Badge class="mr-2 align-middle" data-margin-unrebilled>{{ cell.unrebilled }}</twig:Ui:Badge>{% endif -%}
             {%- if cell.href -%}
-                <a href="{{ cell.href }}" data-sheet aria-label="{{ cell.label }}" class="{{ link }}">{{ cell.text }}</a>
+                <a href="{{ cell.href }}" data-sheet aria-label="{{ cell.label }}" class="{{ link }}">{% if cell.text %}{{ cell.text }}{% else %}<span aria-hidden="true">–</span>{% endif %}</a>
             {%- elseif cell.text -%}
                 {{ cell.text }}
             {%- else -%}

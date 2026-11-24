@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Which planned cost a line of a recurring invoice rebills, or none. A dialog over the template, and a page of its
+    own at the same URL, as the assignment of a received document. Variables: line (text, url), back, linked, options,
+    values (plannedItemId), error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'recurring.list.title'|trans, href: path('app_recurring')}, {label: line.text, href: back}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'margin.rebill.link.description'|trans %}
+
+{% block title %}{{ 'margin.rebill.link.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-rebill-link-form" action="{{ path('app_margin_rebill_link', {id: line.id}) }}" class="grid gap-4" novalidate data-margin-rebill-link-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Invoicing\\RebillController::TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        <p class="m-0 text-small text-muted">{{ line.text }}</p>
+        <twig:Ui:Select name="plannedItemId" id="margin-rebill-item" :label="'margin.rebill.item'|trans" :help="'margin.rebill.item_help'|trans" :value="values.plannedItemId" :options="options" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-rebill-link-form" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.rebill.link.title'|trans" icon="percent" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ 'margin.rebill.link.description'|trans }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="back">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-rebill-link-form" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

@@ -29,10 +29,27 @@ final readonly class PlannedItemsDirectory implements PlannedItemDirectory
     public function one(string $id): ?PlannedItemSummary
     {
         $item = $this->store->plannedItem($id);
-        if (!$item instanceof PlannedItem) {
-            return null;
-        }
 
+        return $item instanceof PlannedItem ? $this->summary($item) : null;
+    }
+
+    public function costs(): array
+    {
+        $costs = array_values(array_filter($this->store->plannedItems(), static fn (PlannedItem $item): bool => FlowDirection::Out === $item->direction()));
+        usort($costs, static fn (PlannedItem $a, PlannedItem $b): int => strcasecmp($a->name(), $b->name()));
+
+        return array_map($this->summary(...), $costs);
+    }
+
+    public function occurrenceHolding(string $id, \DateTimeImmutable $day): ?\DateTimeImmutable
+    {
+        $item = $this->store->plannedItem($id);
+
+        return $item instanceof PlannedItem ? $this->occurrences->holding($item, $day) : null;
+    }
+
+    private function summary(PlannedItem $item): PlannedItemSummary
+    {
         return new PlannedItemSummary(
             $item->id(),
             $item->name(),
@@ -41,12 +58,5 @@ final readonly class PlannedItemsDirectory implements PlannedItemDirectory
             $item->isRecurring(),
             $this->urls->generate(FlowDirection::In === $item->direction() ? 'app_cash_flow_planned_income_item' : 'app_cash_flow_planned_costs_item', ['id' => $item->id()]),
         );
-    }
-
-    public function occurrenceHolding(string $id, \DateTimeImmutable $day): ?\DateTimeImmutable
-    {
-        $item = $this->store->plannedItem($id);
-
-        return $item instanceof PlannedItem ? $this->occurrences->holding($item, $day) : null;
     }
 }

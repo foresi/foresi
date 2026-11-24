@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Pairs a line of an issued invoice with an occurrence of a planned cost: the cost and the day of the occurrence
+    (the tax point of the invoice to begin with), which the service checks. A dialog over the invoice, and a page of its
+    own at the same URL. Variables: lineId, number, back, options, values (plannedItemId, occurrenceOn), error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'invoice.list.title_invoice'|trans, href: path('app_invoices')}, {label: number, href: back}] %}
+{% set dialog_size = 'sm' %}
+{% set dialog_description = 'margin.rebill.pair.description'|trans %}
+
+{% block title %}{{ 'margin.rebill.pair.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="margin-rebill-pair-form" action="{{ path('app_margin_rebill_pair', {id: lineId}) }}" class="grid gap-4" novalidate data-margin-rebill-pair-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Margin\\Integration\\Invoicing\\RebillController::TOKEN')) }}">
+        {% if error %}<twig:Ui:Alert tone="error" data-margin-error autofocus>{{ error }}</twig:Ui:Alert>{% endif %}
+        <twig:Ui:Select name="plannedItemId" id="margin-rebill-item" :label="'margin.rebill.item'|trans" :value="values.plannedItemId" :options="options" />
+        <twig:Ui:TextInput type="date" name="occurrenceOn" id="margin-rebill-day" :label="'margin.rebill.occurrence'|trans" :help="'margin.rebill.occurrence_help'|trans" :value="values.occurrenceOn" width="medium" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="margin-rebill-pair-form" variant="primary">{{ 'margin.rebill.pair.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'margin.rebill.pair.title'|trans" icon="percent" class="max-w-2xl">
+        <p class="m-0 mb-4 text-small text-muted">{{ 'margin.rebill.pair.description'|trans }}</p>
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="back">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="margin-rebill-pair-form" variant="primary">{{ 'margin.rebill.pair.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

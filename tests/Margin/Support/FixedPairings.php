@@ -48,6 +48,11 @@ final class FixedPairings implements PairingSource
         return $this->documents(static fn (CostPairing $pairing): bool => $pairing->plannedItemId === $plannedItemId && $pairing->occurrenceOn->format('Y-m-d') >= $fromMonth->format('Y-m-01'));
     }
 
+    public function costItems(): array
+    {
+        return array_values(array_filter($this->items, static fn (PlannedCostItem $item): bool => $item->expense));
+    }
+
     public function item(string $plannedItemId): ?PlannedCostItem
     {
         return $this->items[$plannedItemId] ?? null;

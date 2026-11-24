@@ -51,6 +51,13 @@ interface PairingSource
     public function occurrenceHolding(string $plannedItemId, \DateTimeImmutable $day): ?\DateTimeImmutable;
 
     /**
+     * The planned items money goes out for, by name, for a person to pick one.
+     *
+     * @return list<PlannedCostItem>
+     */
+    public function costItems(): array;
+
+    /**
      * The days of the occurrences on or after the day that have at least one cost document paired with them, once each, oldest first.
      *
      * @return list<\DateTimeImmutable>

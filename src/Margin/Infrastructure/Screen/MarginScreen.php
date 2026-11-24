@@ -15,6 +15,7 @@ use Foresi\Margin\Application\MarginCellView;
 use Foresi\Margin\Application\MarginFigures;
 use Foresi\Margin\Application\MarginRowView;
 use Foresi\Margin\Application\MarginTableView;
+use Foresi\Margin\Application\UnrebilledOccurrence;
 use Foresi\Margin\Contract\CostDocument;
 use Foresi\Margin\Infrastructure\Controller\MarginPageController;
 use Foresi\Shared\Domain\Money;
@@ -52,8 +53,8 @@ final readonly class MarginScreen
      *     range: string,
      *     months: list<array{key: string, label: string}>,
      *     empty: bool,
-     *     groups: list<array{key: string, kind: string, label: string, badge: ?string, lines: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>}>,
-     *     totals: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>,
+     *     groups: list<array{key: string, kind: string, label: string, badge: ?string, lines: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string, unrebilled: ?string}>, total: string}>}>,
+     *     totals: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string, unrebilled: ?string}>, total: string}>,
      *     gaps: ?array{text: string, documents: list<array{label: string, href: ?string}>}
      * }
      */
@@ -83,7 +84,7 @@ final readonly class MarginScreen
                 fn (string $kind): array => [
                     'kind' => $kind,
                     'label' => $this->trans('margin.table.line.'.$kind),
-                    'cells' => array_map(fn (array $month): array => ['text' => $this->amount($this->figure($month[1], $kind)), 'href' => null, 'label' => null], $everything),
+                    'cells' => array_map(fn (array $month): array => ['text' => $this->amount($this->figure($month[1], $kind)), 'href' => null, 'label' => null, 'unrebilled' => null], $everything),
                     'total' => $this->amount($this->figure($table->total, $kind)),
                 ],
                 ['revenue', 'costs', 'margin'],
@@ -100,6 +101,7 @@ final readonly class MarginScreen
      *     revenue: array{items: list<array<string, mixed>>, total: string},
      *     costs: array{items: list<array<string, mixed>>, total: string},
      *     margin: string,
+     *     unrebilled: list<array{item: string, itemHref: ?string, day: string, templateHref: string}>,
      *     showRevenue: bool
      * }
      */
@@ -114,6 +116,12 @@ final readonly class MarginScreen
             'revenue' => ['items' => array_map($this->item(...), $cell->revenue), 'total' => $this->amount($cell->figures->revenue)],
             'costs' => ['items' => array_map(fn (MarginCellItem $item): array => $this->item($item, $unassigned), $cell->costs), 'total' => $this->amount($cell->figures->costs)],
             'margin' => $this->amount($cell->figures->margin),
+            'unrebilled' => array_map(fn (UnrebilledOccurrence $occurrence): array => [
+                'item' => $occurrence->itemName,
+                'itemHref' => $occurrence->itemUrl,
+                'day' => $occurrence->occurrenceOn->format('Y-m-d'),
+                'templateHref' => $occurrence->templateUrl,
+            ], $cell->unrebilled),
             // Only a client earns revenue; the firm's own use and unassigned are costs alone.
             'showRevenue' => $this->isClient($cell->row),
         ];
@@ -157,7 +165,7 @@ final readonly class MarginScreen
     /**
      * @param list<string> $months
      *
-     * @return list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}>
+     * @return list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string, unrebilled: ?string}>, total: string}>
      */
     private function lines(MarginRowView $row, array $months): array
     {
@@ -167,7 +175,7 @@ final readonly class MarginScreen
     /**
      * @param list<string> $months
      *
-     * @return array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string}>, total: string}
+     * @return array{kind: string, label: string, cells: list<array{text: string, href: ?string, label: ?string, unrebilled: ?string}>, total: string}
      */
     private function line(string $kind, MarginRowView $row, array $months): array
     {
@@ -176,12 +184,16 @@ final readonly class MarginScreen
             $figures = $row->cells[$month] ?? MarginFigures::none();
             $money = $this->figure($figures, $kind);
             // The revenue and the costs open what stands behind them; the margin is their difference and says nothing more.
-            $opens = 'margin' !== $kind && !$money->isZero();
+            // A cost that was paid and not rebilled is behind the costs of its client too, even when the client bears no other.
+            $unrebilled = 'costs' === $kind ? $figures->unrebilled : 0;
+            $opens = 'margin' !== $kind && (!$money->isZero() || $unrebilled > 0);
             $cells[] = [
                 'text' => $this->amount($money),
+                // A neutral note, not an alarm: the cost may be rebilled later.
+                'unrebilled' => $unrebilled > 0 ? $this->trans('margin.table.unrebilled', ['count' => $unrebilled]) : null,
                 'href' => $opens ? $this->cellUrl($row->key, $month) : null,
                 // A link that reads as a bare number says whose, which month and which line.
-                'label' => $opens ? $this->trans('margin.table.cell', ['row' => $this->rowLabel($row->key, $row->name), 'month' => $this->monthLabel($month), 'line' => $this->trans('margin.table.line.'.$kind), 'amount' => $this->amount($money)]) : null,
+                'label' => $opens ? $this->trans('margin.table.cell', ['row' => $this->rowLabel($row->key, $row->name), 'month' => $this->monthLabel($month), 'line' => $this->trans('margin.table.line.'.$kind), 'amount' => '' === $this->amount($money) ? $this->trans('margin.table.none') : $this->amount($money)]) : null,
             ];
         }
 

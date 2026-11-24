@@ -58,6 +58,10 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(PlannedItemCounterparties::class, PlannedItemWrites::class)->public();
     $services->alias(DocumentPairings::class, DocumentPairingsScreen::class)->public();
     $services->alias(PlannedItemDirectory::class, PlannedItemsDirectory::class)->public();
+    if ('e2e' === $container->env()) {
+        // Public handle for tests/e2e/seed.php.
+        $services->alias('e2e.planned_item_writes', PlannedItemWrites::class)->public();
+    }
     if ('test' === $container->env()) {
         // Lets a test add a module's section to the page of a planned item.
         $services->set(ExamplePlannedItemSection::class);
