@@ -155,6 +155,20 @@ final class InboxApiTest extends ApiTestCase
         self::assertNull($this->at('data', 'contact_id'));
     }
 
+    public function testTheSameLinkTwiceUnderTwoKeysIsAlreadyLinked(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/outputs', ['kind' => 'contact', 'id' => $this->customerId], key: 'link-one');
+        self::assertResponseStatusCodeSame(201);
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/outputs', ['kind' => 'contact', 'id' => $this->customerId], key: 'link-two');
+        $this->assertProblem(409, 'already_linked');
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/outputs', ['kind' => 'contact', 'id' => $this->customerId], key: 'link-one');
+        self::assertResponseStatusCodeSame(201, 'The first key answers as it did.');
+        $this->send('GET', '/api/v1/inbox/items/'.$itemId);
+        self::assertCount(1, $this->outputs());
+    }
+
     public function testCreatingAContactNeedsTheContactsScopeToo(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));
@@ -208,9 +222,13 @@ final class InboxApiTest extends ApiTestCase
     /**
      * @param array<string, mixed>|null $body
      */
-    private function send(string $method, string $path, ?array $body = null, ?string $secret = null): void
+    private function send(string $method, string $path, ?array $body = null, ?string $secret = null, ?string $key = null): void
     {
-        $this->client->request($method, $path, server: ['HTTP_AUTHORIZATION' => 'Bearer '.($secret ?? $this->writer), 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: null === $body ? null : json_encode($body, \JSON_THROW_ON_ERROR));
+        $server = ['HTTP_AUTHORIZATION' => 'Bearer '.($secret ?? $this->writer), 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'];
+        if (null !== $key) {
+            $server['HTTP_IDEMPOTENCY_KEY'] = $key;
+        }
+        $this->client->request($method, $path, server: $server, content: null === $body ? null : json_encode($body, \JSON_THROW_ON_ERROR));
     }
 
     /**
