@@ -163,6 +163,18 @@ final class ApiPlumbingTest extends ApiTestCase
             'identity' => [
                 '/api/v1/me' => ['get' => '200'],
             ],
+            'inbox' => [
+                '/api/v1/inbox/items' => ['get' => '200'],
+                '/api/v1/inbox/items/{itemId}' => ['get' => '200'],
+                '/api/v1/inbox/items/{itemId}/contact' => ['put' => '200', 'post' => '201'],
+                '/api/v1/inbox/items/{itemId}/match-again' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/done' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/discard' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/reopen' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/outputs' => ['post' => '201'],
+                '/api/v1/inbox/items/{itemId}/trash' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/restore' => ['post' => '200'],
+            ],
             'invoicing' => [
                 '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
                 '/api/v1/invoices/{invoiceId}' => ['get' => '200', 'patch' => '200'],

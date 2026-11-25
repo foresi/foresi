@@ -62,9 +62,10 @@ final readonly class SenderMatching
     }
 
     /**
-     * The one company or sole trader a person is linked to, archived ones left out.
+     * The one company or sole trader a person is linked to, archived ones left
+     * out; none for a company or sole trader, and for a person with several.
      */
-    private function companyOf(PartySummary $contact): ?string
+    public function companyOf(PartySummary $contact): ?string
     {
         if (ContactKind::Person !== $contact->kind) {
             return null;

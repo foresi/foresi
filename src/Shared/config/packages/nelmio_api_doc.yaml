@@ -1429,6 +1429,80 @@ nelmio_api_doc:
                           required: [address]
                           properties:
                               address: { type: string, format: email, example: 'inbox+abcdefghijklmnopqrstuvwxyz@example.com' }
+                InboxItemSummary:
+                    type: object
+                    description: One of your inbox items on the list, without its text. The sender and subject are the sender's own words.
+                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, others_in_thread, output_count]
+                    properties:
+                        id: { type: string, format: uuid }
+                        state: { type: string, enum: [new, done, discarded] }
+                        state_changed_at: { type: string, format: date-time, description: 'When the state last changed; when it arrived while it is new.' }
+                        received_at: { type: string, format: date-time }
+                        from: { type: string, nullable: true, description: 'The sender address; null once the mail is removed.' }
+                        subject: { type: string, nullable: true, description: 'Null once the mail is removed.' }
+                        verdict: { type: string, enum: [verified, failed, unknown], description: 'What the receiving server said of the sender.' }
+                        forwarded: { type: boolean, description: 'You forwarded it from your own address; matched by the original sender it names, which nobody verified.' }
+                        original_from: { type: string, nullable: true, description: 'The original sender a forward names.' }
+                        contact_id: { type: string, format: uuid, nullable: true }
+                        company_id: { type: string, format: uuid, nullable: true, description: 'The company of a matched person, when the person has exactly one.' }
+                        match_basis: { type: string, enum: [address, domain, manual], nullable: true }
+                        thread_key: { type: string, description: 'The same for the mails of one conversation.' }
+                        others_in_thread: { type: integer, minimum: 0, description: 'How many other items of the conversation you have outside the trash.' }
+                        output_count: { type: integer, minimum: 0, description: 'How many records came of it.' }
+                InboxItemPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/InboxItemSummary' } }
+                        next_cursor: { type: string, nullable: true }
+                InboxItem:
+                    type: object
+                    description: One of your inbox items with its mail as plain text, never HTML. The sender, subject, body and attachment names are the sender's own words.
+                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, warnings, duplicate_of_purpose, mail_removed, body, attachments, thread_item_ids, outputs, email_activity_id, trashed_at]
+                    properties:
+                        id: { type: string, format: uuid }
+                        state: { type: string, enum: [new, done, discarded] }
+                        state_changed_at: { type: string, format: date-time }
+                        received_at: { type: string, format: date-time }
+                        from: { type: string, nullable: true }
+                        subject: { type: string, nullable: true }
+                        verdict: { type: string, enum: [verified, failed, unknown] }
+                        forwarded: { type: boolean }
+                        original_from: { type: string, nullable: true }
+                        contact_id: { type: string, format: uuid, nullable: true }
+                        company_id: { type: string, format: uuid, nullable: true }
+                        match_basis: { type: string, enum: [address, domain, manual], nullable: true }
+                        thread_key: { type: string }
+                        warnings: { type: array, items: { type: string, enum: [sender_not_verified, forwarded_not_verified, duplicate] }, description: 'The sender not verified by the receiving server; a forward whose original sender nobody verified; the same mail received under another purpose before.' }
+                        duplicate_of_purpose: { type: string, nullable: true, example: bank_feed, description: 'The purpose the same mail arrived under before.' }
+                        mail_removed: { type: boolean, description: 'The mail of a discarded item was removed after 30 days; only the item is left.' }
+                        body: { type: string, nullable: true, description: 'The plain text of the mail; null when it has none or is removed.' }
+                        attachments:
+                            type: array
+                            items:
+                                type: object
+                                required: [index, name, mime, size]
+                                properties:
+                                    index: { type: integer, minimum: 0 }
+                                    name: { type: string }
+                                    mime: { type: string, description: 'The type the sender gave.' }
+                                    size: { type: integer, minimum: 0 }
+                        thread_item_ids: { type: array, items: { type: string, format: uuid }, description: 'Your other items of the conversation, oldest first.' }
+                        outputs:
+                            type: array
+                            description: The records that came of it, oldest first.
+                            items:
+                                type: object
+                                required: [kind, id, available, label, url, added_at]
+                                properties:
+                                    kind: { type: string, example: deal }
+                                    id: { type: string, format: uuid }
+                                    available: { type: boolean, description: 'False when the record is gone or not yours to see.' }
+                                    label: { type: string, nullable: true }
+                                    url: { type: string, nullable: true }
+                                    added_at: { type: string, format: date-time }
+                        email_activity_id: { type: string, format: uuid, nullable: true, description: 'The one e-mail activity, made on the first output.' }
+                        trashed_at: { type: string, format: date-time, nullable: true }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.

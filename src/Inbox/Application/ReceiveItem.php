@@ -14,6 +14,7 @@ use Foresi\Identity\Domain\User;
 use Foresi\Inbox\Contract\Event\InboxItemReceived;
 use Foresi\Inbox\Domain\ForwardedSender;
 use Foresi\Inbox\Domain\InboxItem;
+use Foresi\Inbox\Domain\MatchBasis;
 use Foresi\Inbox\Domain\ThreadKey;
 use Foresi\Mail\Contract\CrossPurposeDuplicates;
 use Foresi\Mail\Contract\MailMessageView;
@@ -87,7 +88,7 @@ final readonly class ReceiveItem
             ThreadKey::of($message->references, $message->inReplyTo, $message->messageIdHeader, $id),
             $this->duplicates->of($message->id)[0]['purpose'] ?? null,
         );
-        if (null !== $match->contactId && $match->basis instanceof \Foresi\Inbox\Domain\MatchBasis) {
+        if (null !== $match->contactId && $match->basis instanceof MatchBasis) {
             $item->match($match->contactId, $match->companyId, $match->basis);
         }
 
