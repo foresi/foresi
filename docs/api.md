@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -150,6 +150,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates and amounts, an estimate; see [VAT](#vat). |
 | `/api/v1/vat/periods/{key}` | `vat:read` | One VAT period with the documents, the recurring invoices and the plans behind its amounts; see [VAT](#vat). |
 | `/api/v1/vat/settings` | `vat:read` | Where the firm pays its VAT; see [VAT](#vat). |
+| `/api/v1/exchange-rate/source` | `exchange_rates:read` | Where the firm's exchange rates come from; see [Exchange rates](#exchange-rates). |
 | `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
 | `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |
 | `/api/v1/documents/{documentId}/files/{file}` | `documents:read` | The bytes of a stored file of a document: `pdf`, `signed` or `certificate`. |
@@ -263,7 +264,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), a received document was recorded, changed, trashed, restored or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), the source of the firm's exchange rates changed (`exchange-rate.source.changed`), a received document was recorded, changed, trashed, restored or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -679,6 +680,17 @@ A period the firm does not have is `404 not_found`, and a key that is no month o
 ```bash
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v1/vat/periods?from=2026-11&to=2027-03"
 ```
+
+## Exchange rates
+
+Where the firm's exchange rates to CZK come from: the source a received document takes the rate of its tax point from (see [received documents](purchasing.md#foreign-currency) and [operations](operations.md#exchange-rates)). Reading needs `exchange_rates:read`, changing `exchange_rates:write`, and the owners and members of the organisation may use them: a guest's token is never accepted.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/exchange-rate/source` | `{source, chosen, default, allowed, installed, country}`: the name of the source in use, such as `cnb` (the Czech National Bank) or `ecb` (the ECB reference rates, converted through the euro), `null` when none is installed; `chosen`, true when a person chose it and false while the default applies; the `default` of the firm's country; the sources the firm may choose (`allowed`) and every installed one (`installed`); and the `country` whose rules decide, `null` without its rules. |
+| `PUT /api/v1/exchange-rate/source` | Chooses the source: `source` (up to 16 characters), one of `allowed`. Answers as the read. A source that is not installed is `400 invalid_parameter` with `source_unknown`, one the country does not allow `source_not_allowed`; both list the `allowed` ones. |
+
+A document keeps the rate it was saved with; only rates taken from then on come from the new source, and Foresi never falls back to another source when the chosen one is down. A change of the source in use records the event `exchange-rate.source.changed`, version 1, with the facts `source` (the one chosen) and `previous` (the one used before), and the source as its subject.
 
 ## Margin
 

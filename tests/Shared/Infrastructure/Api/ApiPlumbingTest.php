@@ -160,6 +160,9 @@ final class ApiPlumbingTest extends ApiTestCase
             'events' => [
                 '/api/v1/events' => ['get' => '200'],
             ],
+            'exchange-rate' => [
+                '/api/v1/exchange-rate/source' => ['get' => '200', 'put' => '200'],
+            ],
             'identity' => [
                 '/api/v1/me' => ['get' => '200'],
             ],

@@ -11,9 +11,12 @@ namespace Foresi\ExchangeRate\Contract;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
- * Where rates come from, such as the ČNB. The source answers for a date with its
- * last publication on or before it. A country module offers one (tag
- * "foresi.exchange_rate.source"); without one, there are no rates to fetch.
+ * Where rates come from, such as the ČNB or the ECB. The source answers for a
+ * date with its last publication on or before it. Any module may offer one
+ * (tag "foresi.exchange_rate.source"); several can be installed at once, and
+ * the firm uses one of them: the one it chose, else the default of its
+ * country's RateRules, else the first installed. The Exchange rate module
+ * offers the ECB itself, after every other source.
  */
 #[AutoconfigureTag(self::TAG)]
 interface RateSource
@@ -21,7 +24,8 @@ interface RateSource
     public const string TAG = 'foresi.exchange_rate.source';
 
     /**
-     * A stable name, stored with the rates.
+     * A stable name, stored with the rates and chosen in the settings, such as
+     * "cnb": lower case letters, digits and underscores, at most 16 characters.
      */
     public function name(): string;
 

@@ -1124,14 +1124,22 @@ deptrac:
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - VendorOpenApi
+    # The firm's choice of a source is audited, reads the firm's country from
+    # Party, and is kept for the owners and the members (ADR 0046).
     ExchangeRateDomain:
       - Contract
       - VendorDoctrineOrmMapping
+      - AuditDomain
     ExchangeRateApplication:
       - Contract
       - ExchangeRateDomain
       - SharedDomain
       - SharedApplication
+      - AuditDomain
+      - AuditApplication
+      - PartyDomain
+      - PartyApplication
+      - VendorBrick
     ExchangeRateInfrastructure:
       - Contract
       - ExchangeRateDomain
@@ -1143,6 +1151,8 @@ deptrac:
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
+      - VendorOpenApi
+      - Ui
     # The operator task contract lives in Instance's application layer.
     ExchangeRateSchedule:
       - ExchangeRateApplication

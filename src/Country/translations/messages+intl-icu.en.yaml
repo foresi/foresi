@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+exchange_rate:
+  source:
+    cnb:
+      label: Czech National Bank
+      text: The foreign exchange market rates, published on working days around 14:30 Prague time.

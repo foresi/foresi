@@ -18,9 +18,10 @@ use Symfony\Component\Clock\MockClock;
 
 /**
  * The exchange rates wired by hand: a scratch SQLite database, a source that
- * publishes on Monday to Friday and answers like the ČNB, and a clock in Prague.
- * Friday 6 and Tuesday 10 November 2026 are published; Monday 9 is not (a holiday
- * in this world), nor is the weekend.
+ * publishes on Monday to Friday and answers like the ČNB (priced in CZK) or
+ * like the ECB (priced in EUR), and a clock in Prague. Friday 6 and Tuesday 10
+ * November 2026 are published; Monday 9 is not (a holiday in this world), nor
+ * is the weekend.
  */
 final readonly class RateWorld
 {
@@ -32,12 +33,12 @@ final readonly class RateWorld
     public StoredExchangeRates $rates;
     public FetchDailyRates $daily;
 
-    public function __construct(string $now)
+    public function __construct(string $now, string $base = 'CZK')
     {
         $this->db = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
-        $this->db->executeStatement('CREATE TABLE exchange_rate (rate_date DATE NOT NULL, currency CHAR(3) NOT NULL, amount INTEGER NOT NULL, rate NUMERIC(18, 6) NOT NULL, published_on DATE NOT NULL, source VARCHAR(16) NOT NULL, PRIMARY KEY (rate_date, currency))');
+        $this->db->executeStatement("CREATE TABLE exchange_rate (rate_date DATE NOT NULL, currency CHAR(3) NOT NULL, amount INTEGER NOT NULL, rate NUMERIC(18, 6) NOT NULL, published_on DATE NOT NULL, source VARCHAR(16) NOT NULL, base CHAR(3) DEFAULT 'CZK' NOT NULL, PRIMARY KEY (rate_date, currency, source))");
         $this->clock = new MockClock($now, 'Europe/Prague');
-        $this->source = new FakeRateSource($this->clock);
+        $this->source = new FakeRateSource($this->clock, $base);
         $this->store = new DoctrineRateStore($this->db);
         $this->fetching = new FetchRates($this->source, $this->store, $this->clock);
         $this->rates = new StoredExchangeRates($this->store, $this->fetching, $this->source, $this->clock);

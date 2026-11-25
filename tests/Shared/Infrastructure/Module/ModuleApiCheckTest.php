@@ -39,7 +39,7 @@ final class ModuleApiCheckTest extends TestCase
     public function testAModuleRequiringNoModuleApiIsRefused(): void
     {
         self::assertSame(
-            ['acme-fleet (acme/fleet) requires no foresi/module-api; add "foresi/module-api": "^1.0" to "require" of its composer.json.'],
+            ['acme-fleet (acme/fleet) requires no foresi/module-api; add "foresi/module-api": "^1.1" to "require" of its composer.json.'],
             ModuleApiCheck::problems($this->graph(['acme-fleet' => null])),
         );
     }

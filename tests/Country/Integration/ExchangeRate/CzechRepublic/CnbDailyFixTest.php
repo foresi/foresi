@@ -19,6 +19,8 @@ final class CnbDailyFixTest extends TestCase
         $published = CnbDailyFix::parse($this->fixture('cnb-2026-11-10.txt'));
 
         self::assertSame('2026-11-10', $published->publishedOn->format('Y-m-d'));
+        self::assertSame('CZK', $published->base);
+        self::assertSame('CZK', $published->base);
         self::assertCount(30, $published->quotes);
         self::assertSame('24.335', $published->quotes['EUR']->rate);
         self::assertSame(1, $published->quotes['EUR']->amount);
