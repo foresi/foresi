@@ -27,7 +27,7 @@ final class ModulesCheckCommandTest extends TestCase
         $output = new BufferedOutput();
 
         self::assertSame(Command::SUCCESS, $this->command()($this->io($output)));
-        self::assertStringContainsString('written for the module API 1.0.0', $output->fetch());
+        self::assertStringContainsString('written for the module API 1.1.0', $output->fetch());
     }
 
     public function testAnotherMajorNamesEveryModule(): void

@@ -12,9 +12,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Sales\Application\View\DealLists;
 use Foresi\Sales\Application\View\DealQueries;
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
 
 final readonly class DoctrineDealQueries implements DealQueries
@@ -26,7 +28,7 @@ final readonly class DoctrineDealQueries implements DealQueries
         DealLists::STAGE => 'd.stageId',
     ];
 
-    public function __construct(private EntityManagerInterface $entityManager, private DealLists $lists, private InstanceClock $clock)
+    public function __construct(private EntityManagerInterface $entityManager, private DealLists $lists, private InstanceClock $clock, private Fields $fields)
     {
     }
 
@@ -42,7 +44,8 @@ final readonly class DoctrineDealQueries implements DealQueries
         $direction = $descending ? 'DESC' : 'ASC';
         $found = '';
         if ('' !== $text) {
-            $found = " AND (LOWER(d.title) LIKE :text ESCAPE '!'".([] === $clientIds ? '' : ' OR d.clientPartyId IN (:clients)').')';
+            $found = " AND (LOWER(d.title) LIKE :text ESCAPE '!'".([] === $clientIds ? '' : ' OR d.clientPartyId IN (:clients)')
+                .implode('', array_map(static fn (string $field): string => ' OR '.$field, $this->fields->searched(DealExtension::RECORD, 'd', 'text'))).')';
         }
         $query = $this->entityManager->createQuery('SELECT d FROM '.Deal::class.' d WHERE '.$trashed.$condition.$found.' ORDER BY d.title '.$direction.', d.id '.$direction);
         if ('' !== $text) {
@@ -56,6 +59,8 @@ final readonly class DoctrineDealQueries implements DealQueries
         }
         /** @var list<Deal> $deals */
         $deals = $query->getResult();
+        // The custom fields of the rows, read once for their columns (ADR 0045).
+        $this->fields->values(DealExtension::RECORD, array_map(static fn (Deal $deal): string => $deal->id(), $deals));
 
         return $deals;
     }

@@ -917,6 +917,7 @@ final class ProjectController extends AbstractController
                 null === $project->clientId ? null : $this->generateUrl('app_contact_show', ['id' => $project->clientId]),
                 $project->openTasks,
                 $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
+                $project->id,
             )),
         ];
     }

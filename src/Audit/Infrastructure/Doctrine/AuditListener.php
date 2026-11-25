@@ -22,6 +22,8 @@ use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Shared\Application\Field\FieldRecords;
+use Foresi\Shared\Contract\Field\RecordExtension;
 use Foresi\Shared\Domain\View\SavedView;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -46,6 +48,7 @@ final class AuditListener
         private readonly AuditActor $actor,
         private readonly ClockInterface $clock,
         private readonly AuditCorrelation $correlation,
+        private readonly FieldRecords $fieldRecords,
     ) {
     }
 
@@ -95,11 +98,13 @@ final class AuditListener
 
     /**
      * The audited entities: those of the modules mark themselves Audited; the
-     * shared kernel cannot know the Audit module, so its saved views are named here.
+     * shared kernel cannot know the Audit module, so its saved views are named here,
+     * and so are the extensions that hold the custom fields of a record (ADR 0045),
+     * whatever module declares them.
      */
     private function audited(object $entity): bool
     {
-        return $entity instanceof Audited || $entity instanceof SavedView;
+        return $entity instanceof Audited || $entity instanceof SavedView || $entity instanceof RecordExtension;
     }
 
     /**
@@ -121,19 +126,25 @@ final class AuditListener
      */
     private function entry(EntityManagerInterface $em, object $entity, AuditAction $action, array $changes): AuditEntry
     {
-        $root = $entity instanceof AuditRooted ? $entity->auditRoot() : $entity;
+        $id = $this->identifier($em, $entity);
+        [$rootClass, $rootId] = match (true) {
+            $entity instanceof AuditRooted => [$em->getClassMetadata($entity->auditRoot()::class)->getName(), $this->identifier($em, $entity->auditRoot())],
+            // An extension has the id of its record, so its changes show in the record's history.
+            $entity instanceof RecordExtension => [$this->fieldRecords->ofExtension($entity)?->entity() ?? $em->getClassMetadata($entity::class)->getName(), $id],
+            default => [$em->getClassMetadata($entity::class)->getName(), $id],
+        };
 
         return new AuditEntry(
             $entity::class,
-            $this->identifier($em, $entity),
+            $id,
             $action,
             $changes,
             $this->actor->userId(),
             $this->actor->kind(),
             $this->clock->now(),
             $this->correlation->current(),
-            $em->getClassMetadata($root::class)->getName(),
-            $this->identifier($em, $root),
+            $rootClass,
+            $rootId,
             $this->actor instanceof TokenAuditActor ? $this->actor->apiTokenId() : null,
         );
     }

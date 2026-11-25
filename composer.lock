@@ -3086,7 +3086,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "40e915a1d412180e4dbf2787444853b15c9ab7fe"
+                "reference": "90157377804af7c9aa4434c581642efe63f75536"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3100,6 +3100,7 @@
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/mail": "self.version",
                 "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
@@ -3239,7 +3240,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "418eab5940b8802ad2b277ce20f9acbba6399a16"
+                "reference": "19cb45c62f383d0e43688ce65bcfc340d7776b2e"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3292,7 +3293,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.0.0"
+                "foresi/module-api": "1.1.0"
             },
             "type": "foresi-module",
             "extra": {

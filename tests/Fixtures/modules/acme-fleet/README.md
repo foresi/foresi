@@ -17,6 +17,10 @@ another vendor fails there. It is not installed in the repository otherwise.
 - The event `acme-fleet.vehicle.added`, and a listener of Party's
   `party.contact.archived` that takes the archived contact off as a driver.
 - The setting `acme_fleet.max_vehicles` (bundle configuration, default 25).
+- Custom fields of a contact (`Domain/ContactExtra`, table
+  `acme_fleet_contact_extra`, module API 1.1): an industry (a select), a contract
+  end (a date that sorts the address book), an account code (a searched text) and
+  fleet services (a multi-select), each a filter of the address book.
 
 Install it into a checkout of Foresi:
 
