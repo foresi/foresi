@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../support/test';
 import { signIn } from '../support/session';
 
 // The world of this spec in tests/e2e/seed/taxes.php: a sole trader without payments yet, and a team member.

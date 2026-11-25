@@ -22,7 +22,17 @@
         <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block document_title %}{{ page_title(heading|striptags|html_decode|trim) }}{% endblock %}</title>
         {% block head %}{% endblock %}
         {% block stylesheets %}{% endblock %}
-        {% block javascripts %}{% block importmap %}{{ importmap('app') }}{% endblock %}{% endblock %}
+        {% block javascripts %}
+            {#
+                The nonce of this response's Content-Security-Policy, only on a page that runs scripts.
+                Turbo gives it to the scripts and the progress bar style it adds; it reads the nonce
+                property, so the value is not in "content", and the tag is the same on every page, so a
+                visit keeps the first page's nonce, the one the document's policy holds (Turbo,
+                getCspNonce and HeadSnapshot).
+            #}
+            <meta name="csp-nonce" nonce="{{ csp_nonce() }}">
+            {% block importmap %}{{ importmap('app', {nonce: csp_nonce()}) }}{% endblock %}
+        {% endblock %}
     </head>
     <body data-controller="form-errors"{% block body_attributes %}{% endblock %}>
         {% block body %}{% endblock %}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { addStyle, expect, test, type Page } from '../support/test';
 import path from 'node:path';
 import { expectFocusedClearOfActionBar } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
@@ -17,7 +17,7 @@ const VIEWPORTS = { desktop: { width: 1440, height: 960 }, mobile: { width: 390,
 const STATIC_BAR = '[data-action-bar] { position: static !important; }';
 
 async function undockActionBar(page: Page): Promise<void> {
-  await page.addStyleTag({ content: STATIC_BAR });
+  await addStyle(page, STATIC_BAR);
   await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
 }
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];

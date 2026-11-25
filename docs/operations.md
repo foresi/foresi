@@ -52,6 +52,9 @@ files. Never put a production secret in a committed file.
 | `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
 | `SYSTEM_MAILER_DSN` | **yes** (password) | The mailer of the installation's own mail, such as invitations, for example `smtp://user:pass@smtp.example.com:587`. Never a firm's server, which sends only that firm's documents. The mail is queued on the `mail` transport with its retries, so the existing worker sends it. Empty sends no such mail: the screens say the installation cannot send e-mail yet and `/health` reports `system_mail` as degraded. Check it with `bin/console app:ops:test-mail you@example.com`. |
 | `SYSTEM_MAIL_FROM` | no | The sender of that mail, an address with an optional name: `Foresi <noreply@example.com>`. Empty, or not an address, sends none. |
+| `HSTS_MAX_AGE` | no | How long browsers keep to HTTPS after a response over HTTPS, in seconds: `31536000` (one year) by default, `0` in the dev environment. `0` sends no `Strict-Transport-Security`. See [security headers](#security-headers). |
+| `HSTS_INCLUDE_SUBDOMAINS` | no | `1` (default) adds `includeSubDomains` to it; `0` leaves it out when a subdomain of the application's host still serves plain HTTP. |
+| `CSP_REPORT_URI` | no | An address that receives the browser's reports of Content-Security-Policy violations (`report-uri`), such as the endpoint of an error tracker. Empty (default) sends none. |
 | `MCP_ALLOWED_HOSTS` | no | The host names, without port, that the MCP endpoint at `/mcp` answers for, comma separated; a request for another host gets `403`. The default `localhost,127.0.0.1` does not match a public address, so in production set the host of `DEFAULT_URI`, such as `app.example.com`. See [docs/mcp.md](mcp.md#mcp_allowed_hosts). |
 
 Optionally compile the files into `.env.local.php` for speed with
@@ -271,7 +274,12 @@ no rate on its own and a rate has to be typed by hand.
       root /srv/foresi/current/public;
       client_max_body_size 50m;
 
-      location / { try_files $uri /index.php$is_args$args; }
+      # Files served by nginx itself, such as /assets/; PHP sets these headers on its own answers.
+      location / {
+          try_files $uri /index.php$is_args$args;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      }
       location ~ ^/index\.php(/|$) {
           fastcgi_pass unix:/run/php/php8.4-fpm-foresi.sock;
           fastcgi_split_path_info ^(.+\.php)(/.*)$;
@@ -297,13 +305,56 @@ no rate on its own and a rate has to be typed by hand.
   close the archive); the web server and PHP-FPM must not cut it off first. Ten
   minutes (`fastcgi_read_timeout 600s`, `request_terminate_timeout = 600`) suit a
   few hundred documents; raise both for more.
-- **HTTPS only.** Redirect plain HTTP, and add
-  `Strict-Transport-Security: max-age=31536000` once HTTPS works. Public
-  document links and the sign-in assume https.
+- **HTTPS only.** Redirect plain HTTP. The application sends
+  `Strict-Transport-Security` itself on every answer over HTTPS (see
+  [security headers](#security-headers)); the files nginx serves get it from
+  the `location /` above. Public document links and the sign-in assume https.
 - **Trusted proxies.** Behind a reverse proxy or load balancer (or Cloudflare),
   set `SYMFONY_TRUSTED_PROXIES` to its addresses so the application sees the
   client's address (for throttling and `/health` limits) and the https scheme.
   Do not trust every address unless PHP is reachable only through the proxy.
+
+### Security headers
+
+The application sets the security headers on every answer it gives (OWASP
+Secure Headers Project, OWASP ASVS 5.0 chapter 3.4), so the web server does not
+add them again: a second `Content-Security-Policy` would apply as well, and the
+stricter of the two would win.
+
+| Header | Value |
+| --- | --- |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'nonce-…' 'strict-dynamic'; style-src 'self' 'nonce-…'; style-src-attr 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'` |
+| `X-Frame-Options` | `SAMEORIGIN`, for browsers that do not read `frame-ancestors` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `same-origin`: no referrer to other sites, while the application's own requests keep the `Origin` its CSRF check reads |
+| `Permissions-Policy` | camera, microphone, location, payment, USB and the other device APIs off |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`, over HTTPS only (`HSTS_MAX_AGE`, `HSTS_INCLUDE_SUBDOMAINS`) |
+
+- **Scripts run only with the nonce** of the answer, a new random value each
+  time: the importmap scripts carry it, and Turbo gives it to what it adds. No
+  inline script, `eval` or script from another host runs. Style attributes are
+  allowed, as the components size and colour with them; style elements need the
+  nonce.
+- **Pages with stricter rules keep their own.** The public document links, the
+  attachments and the calendar feeds set their own policy and referrer policy,
+  and those win. In debug, Symfony's error page gets no policy, as it inlines
+  its scripts.
+- **HTTPS is detected per request.** Behind a reverse proxy that ends TLS, set
+  `SYMFONY_TRUSTED_PROXIES`, or the application sees plain HTTP and sends no
+  `Strict-Transport-Security`. HSTS is on by default; keep `HSTS_MAX_AGE=0`
+  until every address of the host answers over HTTPS, as browsers then refuse
+  plain HTTP for the whole `max-age`. Foresi does not ask for HSTS preloading.
+- **A module that loads from another host** (an API it calls from the browser,
+  a payment form it posts to) adds that host in code, by implementing
+  `Foresi\Shared\Application\Http\ContentSecurityPolicySource`; the core
+  policy is never edited. It adds `https://` or `wss://` hosts, `'self'`, and
+  `data:` or `blob:` for images, media, fonts and workers, to `connect-src`,
+  `font-src`, `form-action`, `frame-src`, `img-src`, `media-src`, `script-src`,
+  `style-src` or `worker-src`. Keywords such as `'unsafe-inline'`, `*` and bare
+  schemes are refused when the container starts.
+- **Violations** show in the browser console. To collect them, set
+  `CSP_REPORT_URI`. The end-to-end tests fail on any violation.
 
 ## Deploy
 
@@ -591,7 +642,7 @@ time too, if the schema has changed since ([rollback](#rollback)).
 - [ ] PHP 8.4 with every extension of the [requirements](#requirements); `composer check-platform-reqs --no-dev` passes in the release.
 - [ ] PostgreSQL 17; `DATABASE_URL` uses a role that owns only the Foresi database.
 - [ ] `APP_SECRET`, `MAIL_SECRET_KEYS`, `WEBHOOK_SECRET_KEYS` and `.env.local` stored in a password manager, outside the server.
-- [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; HSTS is on.
+- [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; an answer over HTTPS carries `Strict-Transport-Security` (behind a proxy: `SYMFONY_TRUSTED_PROXIES` is set).
 - [ ] Upload limits of 50M in PHP and the web server; timeouts of ten minutes for the accountant pack.
 - [ ] `SYMFONY_TRUSTED_PROXIES` set when a proxy is in front.
 - [ ] `MCP_ALLOWED_HOSTS` holds the public host (such as `app.example.com`) if assistants connect to `/mcp`.

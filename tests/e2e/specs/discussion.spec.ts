@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '../support/test';
 import { PROJECTS_OWNER_STATE } from '../support/session';
 
 // The signed-in owner of "Example Projects" in tests/e2e/seed.php. The task "Design the homepage"

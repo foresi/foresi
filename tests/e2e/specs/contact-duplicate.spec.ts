@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../support/test';
 import { OWNER_STATE } from '../support/session';
 
 // This spec changes data, so it runs in the "lifecycle" project after the read-only specs.

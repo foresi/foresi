@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { addStyle, expect, test, type Page } from '../support/test';
 import { INVOICING_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -17,7 +17,7 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 // On a phone the action bar floats over whatever field the scroll leaves below it, which
 // axe reads as a target too small. Scrolling moves it away, so the check runs with it in flow.
 async function expectNoSeriousViolationsWithoutTheFloatingBar(page: Page): Promise<void> {
-  const style = await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+  const style = await addStyle(page, '[data-action-bar] { position: static !important; }');
   await expectNoSeriousViolations(page);
   await style.evaluate((element) => element.remove());
 }

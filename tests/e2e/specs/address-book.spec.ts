@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test, type Page } from '@playwright/test';
+import { addStyle, expect, test, type Page } from '../support/test';
 import { expectRowControlsAligned } from '../support/layout';
 import { EMPTY_OWNER_STATE, OWNER_STATE } from '../support/session';
 import { openMoreActions } from '../support/header';
@@ -151,7 +151,7 @@ test.describe('screens', () => {
     await expect(page.locator('#displayName')).toBeVisible();
     await expect(page).toHaveScreenshot('form.png');
     // The content capture shows the docked action bar where it sits at the end of the form.
-    await page.addStyleTag({ content: '[data-action-bar] { position: static !important; }' });
+    await addStyle(page, '[data-action-bar] { position: static !important; }');
     await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
     await expect(page.locator('main')).toHaveScreenshot('form-content.png');
   });

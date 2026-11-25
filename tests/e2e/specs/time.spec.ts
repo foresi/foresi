@@ -2,7 +2,7 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { PROJECTS_GUEST_STATE, PROJECTS_OWNER_STATE } from '../support/session';
 import { openMoreActions } from '../support/header';
 
