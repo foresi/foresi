@@ -46,6 +46,15 @@ interface MailMessages
     public function find(string $id): ?MailMessage;
 
     /**
+     * The messages as stored now, in no order; unknown ids are left out.
+     *
+     * @param list<string> $ids
+     *
+     * @return list<MailMessage>
+     */
+    public function findMany(array $ids): array;
+
+    /**
      * Sets, or with null clears, the moment from which the message may be purged.
      * Nothing happens for an unknown message.
      */

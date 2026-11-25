@@ -196,7 +196,7 @@ final class InboxController extends AbstractController
                 'size' => $this->size($attachment->size),
                 'href' => $this->generateUrl(self::ATTACHMENT_ROUTE, ['id' => $item->id(), 'index' => $attachment->index]),
             ], $detail->attachments),
-            'thread' => array_map($this->threadEntry(...), $detail->thread),
+            'thread' => $this->thread($detail->thread),
             'outputs' => array_map(static fn (OutputView $output): array => ['kind' => $output->output->kind(), 'available' => $output->available, 'label' => $output->label, 'url' => $output->url], $detail->outputs),
             'token' => self::TOKEN,
         ]);
@@ -498,12 +498,22 @@ final class InboxController extends AbstractController
     }
 
     /**
+     * @param list<InboxItem> $items
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function thread(array $items): array
+    {
+        $messages = $this->messages->findMany(array_map(static fn (InboxItem $item): string => $item->mailMessageId(), $items));
+
+        return array_map(fn (InboxItem $item): array => $this->threadEntry($item, $messages[$item->mailMessageId()] ?? null), $items);
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function threadEntry(InboxItem $item): array
+    private function threadEntry(InboxItem $item, ?MailMessageView $message): array
     {
-        $message = $this->messages->find($item->mailMessageId());
-
         return [
             'href' => $this->generateUrl(self::ITEM_ROUTE, ['id' => $item->id()]),
             'subject' => $message instanceof MailMessageView && '' !== trim($message->subject) ? $message->subject : $this->translator->trans('inbox.item.no_subject'),

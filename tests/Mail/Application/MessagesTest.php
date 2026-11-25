@@ -70,6 +70,18 @@ final class MessagesTest extends KernelTestCase
         self::assertNull($this->messages->find(Id::generate()));
     }
 
+    public function testFindManyGivesTheKnownMessagesByTheirIds(): void
+    {
+        $first = $this->stored(MailKit::mail($this->kit->address, messageId: 'one@mail.example.com'));
+        $second = $this->stored(MailKit::mail($this->kit->address, messageId: 'two@mail.example.com'));
+
+        $views = $this->messages->findMany([$second, Id::generate(), $first, $second]);
+
+        self::assertEqualsCanonicalizing([$first, $second], array_keys($views));
+        self::assertEquals($this->messages->find($first), $views[$first]);
+        self::assertSame([], $this->messages->findMany([]));
+    }
+
     public function testRawAndMailReadTheStoredBytes(): void
     {
         $raw = MailKit::mail($this->kit->address);

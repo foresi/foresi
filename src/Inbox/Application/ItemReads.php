@@ -53,10 +53,11 @@ final readonly class ItemReads
         $items = \array_slice($items, 0, $limit);
         $sizes = $this->store->threadSizes($owner, array_map(static fn (InboxItem $item): string => $item->threadKey(), $items));
         $outputs = $this->store->outputCounts(array_map(static fn (InboxItem $item): string => $item->id(), $items));
+        $messages = $this->messages->findMany(array_map(static fn (InboxItem $item): string => $item->mailMessageId(), $items));
 
         return new ItemSlice(array_map(fn (InboxItem $item): ItemRow => new ItemRow(
             $item,
-            $this->messages->find($item->mailMessageId()),
+            $messages[$item->mailMessageId()] ?? null,
             max(0, ($sizes[$item->threadKey()] ?? 1) - 1),
             $outputs[$item->id()] ?? 0,
         ), $items), $hasMore);
