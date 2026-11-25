@@ -27,6 +27,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'mail_message')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_message_dedup', columns: ['address_id', 'dedup_key'])]
 #[ORM\Index(name: 'idx_mail_message_message_id', columns: ['message_id_header'])]
+#[ORM\Index(name: 'idx_mail_message_address_received', columns: ['address_id', 'received_at'])]
+#[ORM\Index(name: 'idx_mail_message_id_bytes', columns: ['message_id_header', 'raw_sha256'])]
+#[ORM\Index(name: 'idx_mail_message_purge_after', columns: ['purge_after'], options: ['where' => '(purge_after IS NOT NULL)'])]
 class MailMessage
 {
     public const int MAX_FROM = 320;
@@ -53,6 +56,10 @@ class MailMessage
     /** Space-separated Message-IDs, oldest first; named so, as REFERENCES is a reserved word in SQL. */
     #[ORM\Column(name: 'references_header', type: 'text', nullable: true)]
     private ?string $references;
+
+    /** When the raw file may be purged; set by the retention rule, none until then. */
+    #[ORM\Column(name: 'purge_after', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $purgeAfter = null;
 
     /**
      * @param string       $dedupKey   sha256 in lowercase hex
@@ -124,6 +131,11 @@ class MailMessage
     public function address(): InboundAddress
     {
         return $this->address;
+    }
+
+    public function purgeAfter(): ?\DateTimeImmutable
+    {
+        return $this->purgeAfter;
     }
 
     public function addressId(): string

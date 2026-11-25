@@ -26,7 +26,7 @@ use Foresi\Shared\Domain\Id;
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_inbound_address')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_token', columns: ['token_hash'])]
-#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'], options: ['where' => '(revoked_at IS NULL AND owner_user_id IS NOT NULL)'])]
+#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'], options: ['where' => '((revoked_at IS NULL) AND (owner_user_id IS NOT NULL))'])]
 #[ORM\Index(name: 'idx_mail_inbound_address_owner', columns: ['owner_user_id'])]
 class InboundAddress implements Audited
 {
@@ -58,6 +58,16 @@ class InboundAddress implements Audited
     #[AuditExcluded]
     #[ORM\Column(name: 'last_received_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastReceivedAt = null;
+
+    /** The last instance day the daily limit was reached; written by plain SQL, see InboundAddressStore::recordDrop(). */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'limit_reached_on', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $limitReachedOn = null;
+
+    /** How many mails were dropped on that day. */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'dropped_on_limit', type: 'integer', options: ['default' => 0])]
+    private int $droppedOnLimit = 0;
 
     /**
      * @param string      $tokenHash   the lowercase hex SHA-256 of the token
@@ -166,6 +176,15 @@ class InboundAddress implements Audited
     public function lastReceivedAt(): ?\DateTimeImmutable
     {
         return $this->lastReceivedAt;
+    }
+
+    /**
+     * How many mails the daily limit dropped on the instance day, which is the
+     * date part of $day, or 0 when it was not reached that day.
+     */
+    public function droppedOn(\DateTimeImmutable $day): int
+    {
+        return $this->limitReachedOn instanceof \DateTimeImmutable && $this->limitReachedOn->format('Y-m-d') === $day->format('Y-m-d') ? $this->droppedOnLimit : 0;
     }
 
     private function checkedHash(string $hash): string

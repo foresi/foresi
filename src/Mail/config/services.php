@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Mail\Application\DailyLimit;
 use Foresi\Mail\Application\InboundAddresses;
 use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Application\InboundFiles;
@@ -77,6 +78,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // The inbound address template; empty means inbound mail is not set up here.
     $services->set(InboundAddresses::class)
         ->arg('$template', '%env(string:mail_inbound:ADDRESS)%');
+    // How many mails one address takes in an instance day; the rest is dropped.
+    $services->set(DailyLimit::class)
+        ->arg('$limit', '%env(int:MAIL_INBOUND_DAILY_LIMIT)%');
     // The operator mailbox mail is polled from; none when MAIL_INBOUND_HOST is empty.
     $services->set(InboundMailbox::class)
         ->factory([ImapInboundMailbox::class, 'fromSettings'])

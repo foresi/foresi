@@ -21,7 +21,7 @@ final class MailJson
     }
 
     /**
-     * @return array{id: string, purpose: string, label: string, masked_address: string, created_at: string, revoked_at: ?string, last_received_at: ?string}
+     * @return array{id: string, purpose: string, label: string, masked_address: string, created_at: string, revoked_at: ?string, last_received_at: ?string, limit_reached_today: bool, dropped_today: int}
      */
     public static function address(AddressView $view, \DateTimeZone $zone): array
     {
@@ -33,6 +33,8 @@ final class MailJson
             'created_at' => $view->createdAt->setTimezone($zone)->format(\DATE_ATOM),
             'revoked_at' => $view->revokedAt?->setTimezone($zone)->format(\DATE_ATOM),
             'last_received_at' => $view->lastReceivedAt?->setTimezone($zone)->format(\DATE_ATOM),
+            'limit_reached_today' => $view->limitReachedToday(),
+            'dropped_today' => $view->droppedToday,
         ];
     }
 }

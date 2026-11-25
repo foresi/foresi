@@ -15,6 +15,7 @@ use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\InboundProcessing;
 use Foresi\Banking\Application\ProcessInboundMessage;
 use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Mail\Application\DailyLimit;
 use Foresi\Mail\Application\InboundAddresses;
 use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Application\InboundFiles;
@@ -22,6 +23,7 @@ use Foresi\Mail\Application\InboundPurposes;
 use Foresi\Mail\Application\MailMessages;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\MailTransaction;
+use Foresi\Mail\Application\NotifyOverLimit;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Application\SenderVerdict;
@@ -204,6 +206,8 @@ final class KbEndToEndTest extends InboundTestCase
             $container->get(SenderVerdict::class),
             $container->get(MailTransaction::class),
             $container->get(ClockInterface::class),
+            $container->get(DailyLimit::class),
+            $container->get(NotifyOverLimit::class),
         );
 
         self::assertSame(ReceiveOutcome::Stored, $receive->receive($this->notice('incoming-booked'), InboundChannel::Webhook));

@@ -541,7 +541,7 @@ curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: appl
 
 ## Mail addresses
 
-Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses that take mail in for one purpose, such as the receipts of a module that reads them. Reading needs `mail_addresses:read`, writing `mail_addresses:write`, and only the owners and members of the organisation have addresses. Each person sees and changes only their own, one active address per purpose; someone else's address is `404 not_found`. An address has `id`, `purpose`, `label`, `masked_address` (the address with its secret part left out), `created_at`, `revoked_at` and `last_received_at`.
+Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses that take mail in for one purpose, such as the receipts of a module that reads them. Reading needs `mail_addresses:read`, writing `mail_addresses:write`, and only the owners and members of the organisation have addresses. Each person sees and changes only their own, one active address per purpose; someone else's address is `404 not_found`. An address has `id`, `purpose`, `label`, `masked_address` (the address with its secret part left out), `created_at`, `revoked_at`, `last_received_at`, and `limit_reached_today` with `dropped_today` (the e-mails dropped today after the address took its daily limit).
 
 | Method and path | Answer |
 | --- | --- |

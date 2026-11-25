@@ -10,6 +10,9 @@ namespace Foresi\Tests\Mail\Application;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Instance\Application\ConfiguredZone;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Instance\Application\ZoneFallback;
 use Foresi\Mail\Application\InboundFiles;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
@@ -18,6 +21,7 @@ use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Support\Mail\FailingInboundFiles;
+use Foresi\Tests\Support\Mail\LimitedReceive;
 use Foresi\Tests\Support\Mail\MailKit;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -179,15 +183,70 @@ final class ReceiveMailTest extends KernelTestCase
         self::assertSame($expected, $keys);
     }
 
-    public function testAboveTenMebibytesIsTooLarge(): void
+    public function testA25MbMessageIsAcceptedAndALargerOneRefused(): void
     {
-        $limit = 10 * 1024 * 1024;
         $header = MailKit::mail($this->kit->address, body: '');
-        $atLimit = $header.str_repeat('a', $limit - \strlen($header));
+        // A text part padded to the size, in lines as a real mail has.
+        $line = str_repeat('a', 76)."\r\n";
+        $padding = ReceiveMail::MAX_BYTES - \strlen($header);
+        $atLimit = $header.str_repeat($line, intdiv($padding, \strlen($line))).str_repeat('a', $padding % \strlen($line));
+        self::assertSame(ReceiveMail::MAX_BYTES, \strlen($atLimit));
 
         self::assertSame(ReceiveOutcome::TooLarge, $this->receive->receive($atLimit.'a', InboundChannel::Webhook));
         self::assertSame(0, $this->rowCount());
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($atLimit, InboundChannel::Webhook));
+        self::assertSame(1, $this->rowCount());
+        self::assertSame(ReceiveMail::MAX_BYTES, Scalars::int($this->connection->fetchOne('SELECT size FROM mail_message')));
+    }
+
+    /**
+     * The count is of the instance day, not the UTC day: mails at 21:30 UTC are
+     * 22:30 in Prague and count to November 20, while 23:30 UTC is already
+     * 00:30 of November 21 there.
+     */
+    public function testTheDailyLimitCountsPerInstanceDay(): void
+    {
+        $limited = LimitedReceive::of(static fn (string $id): mixed => self::getContainer()->get($id), 2, $this->prague());
+        $receive = static fn (string $address, string $id): ReceiveOutcome => $limited->receive->receive(MailKit::mail($address, $id), InboundChannel::Webhook);
+
+        $files = static function (): int {
+            $found = glob(self::getContainer()->getParameter('app.inbound_mail_dir').'/*.eml');
+
+            return false === $found ? 0 : \count($found);
+        };
+        $before = $files();
+        Clock::set(new MockClock('2026-11-20 21:30:00', 'UTC'));
+        self::assertSame(ReceiveOutcome::Stored, $receive($this->kit->address, 'a1@mail.example.com'));
+        self::assertSame(ReceiveOutcome::Stored, $receive($this->kit->address, 'a2@mail.example.com'));
+        self::assertSame(ReceiveOutcome::OverLimit, $receive($this->kit->address, 'a3@mail.example.com'));
+        // Nothing of the dropped mail is kept: no row and no file.
+        self::assertSame(2, $this->rowCount());
+        self::assertSame($before + 2, $files());
+        // A copy of a stored mail after the limit is dropped too, and takes no place.
+        self::assertSame(ReceiveOutcome::OverLimit, $receive($this->kit->address, 'a1@mail.example.com'));
+        self::assertSame(2, $this->rowCount());
+
+        // Past midnight in Prague, still the same UTC day: a new instance day.
+        Clock::set(new MockClock('2026-11-20 23:30:00', 'UTC'));
+        self::assertSame(ReceiveOutcome::Stored, $receive($this->kit->address, 'b1@mail.example.com'));
+        self::assertSame(ReceiveOutcome::Stored, $receive($this->kit->address, 'b2@mail.example.com'));
+        self::assertSame(ReceiveOutcome::OverLimit, $receive($this->kit->address, 'b3@mail.example.com'));
+        self::assertSame(4, $this->rowCount());
+        self::assertStringStartsWith('2026-11-20 23:30:00', Scalars::text($this->connection->fetchOne('SELECT MAX(received_at) FROM mail_message')));
+
+        // The limit is per address: another address takes its own.
+        $other = self::getContainer()->get(AddressIssuer::class)->issue(RecordingPurpose::KEY, null, 'Other');
+        self::assertSame(ReceiveOutcome::Stored, $receive($other->address, 'c1@mail.example.com'));
+    }
+
+    private function prague(): InstanceClock
+    {
+        return new InstanceClock(new ConfiguredZone('Europe/Prague'), new class implements ZoneFallback {
+            public function zone(): ?\DateTimeZone
+            {
+                return null;
+            }
+        }, new Clock());
     }
 
     public function testBytesThatAreNoMailAreUnreadable(): void

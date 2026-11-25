@@ -16,6 +16,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Application\AddressReads;
 use Foresi\Mail\Application\AddressWrites;
 use Foresi\Mail\Application\CreateAddressInput;
@@ -202,6 +203,7 @@ final class AddressWritesTest extends KernelTestCase
             $container->get(StaffCheck::class),
             $container->get(AuditActor::class),
             $container->get(ClockInterface::class),
+            $container->get(InstanceClock::class),
         );
 
         $this->assertRefused('inbound_mail_no_key', static fn (): \Foresi\Mail\Application\IssuedMailAddress => $failing->replace(new ReplaceAddressInput($old->view->id)));
@@ -255,8 +257,13 @@ final class AddressWritesTest extends KernelTestCase
             {
                 $this->inner->touch($id, $at);
             }
+
+            public function recordDrop(string $id, \DateTimeImmutable $day): int
+            {
+                return $this->inner->recordDrop($id, $day);
+            }
         };
-        $racing = new AddressWrites($blind, $container->get(InboundPurposes::class), $container->get(InboundAddresses::class), $container->get(AddressIssuer::class), $container->get(MailTransaction::class), $container->get(StaffCheck::class), $container->get(AuditActor::class), $container->get(ClockInterface::class));
+        $racing = new AddressWrites($blind, $container->get(InboundPurposes::class), $container->get(InboundAddresses::class), $container->get(AddressIssuer::class), $container->get(MailTransaction::class), $container->get(StaffCheck::class), $container->get(AuditActor::class), $container->get(ClockInterface::class), $container->get(InstanceClock::class));
 
         $this->assertRefused('address_exists', static fn (): \Foresi\Mail\Application\IssuedMailAddress => $racing->create(new CreateAddressInput(RecordingPurpose::OWNED_KEY, 'Second')));
 

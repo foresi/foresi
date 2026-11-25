@@ -56,7 +56,7 @@ final readonly class PollMailbox implements OperatorTask
             try {
                 match ($this->receive->receive($item->raw, InboundChannel::Imap)) {
                     ReceiveOutcome::Stored, ReceiveOutcome::Duplicate => $this->mailbox->markDone($item->uid),
-                    ReceiveOutcome::UnknownRecipient => $this->mailbox->markUnknown($item->uid),
+                    ReceiveOutcome::UnknownRecipient, ReceiveOutcome::OverLimit => $this->mailbox->markUnknown($item->uid),
                     ReceiveOutcome::TooLarge, ReceiveOutcome::Unreadable => $this->mailbox->markRejected($item->uid),
                 };
                 $this->failures->clear($item->uid);

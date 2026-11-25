@@ -36,6 +36,11 @@ interface MailMessages
     public function add(MailMessage $message): bool;
 
     /**
+     * How many messages are stored for the address that arrived at or after the moment.
+     */
+    public function countSince(string $addressId, \DateTimeImmutable $since): int;
+
+    /**
      * The message as stored now, or null for none.
      */
     public function find(string $id): ?MailMessage;

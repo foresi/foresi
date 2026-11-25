@@ -41,7 +41,7 @@ final readonly class ListMailAddressesTool implements ReadTool, StaffOnlyTool
 
     public function description(): string
     {
-        return 'Returns your own inbound mail addresses, oldest first, revoked ones too: {addresses} with the id, purpose, label, masked_address (the address with its secret part left out), created_at, revoked_at and last_received_at of each. '
+        return 'Returns your own inbound mail addresses, oldest first, revoked ones too: {addresses} with the id, purpose, label, masked_address (the address with its secret part left out), created_at, revoked_at and last_received_at of each, and limit_reached_today with dropped_today: when true, the daily limit of e-mails is reached today and dropped_today e-mails sent to the address after it were dropped unread. '
             .'The full address is shown only once, by foresi_create_mail_address and foresi_replace_mail_address. Use an id with foresi_rename_mail_address, foresi_revoke_mail_address or foresi_replace_mail_address.';
     }
 

@@ -10,6 +10,7 @@ namespace Foresi\Tests\Mail\Infrastructure;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Application\InboundMailbox;
 use Foresi\Mail\Application\PollFailures;
 use Foresi\Mail\Application\PollMailbox;
@@ -21,6 +22,7 @@ use Foresi\Mail\Infrastructure\Imap\ImapInboundMailbox;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Support\Mail\FailingInboundFiles;
 use Foresi\Tests\Support\Mail\FakeInboundMailbox;
+use Foresi\Tests\Support\Mail\LimitedReceive;
 use Foresi\Tests\Support\Mail\MailKit;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Psr\Log\AbstractLogger;
@@ -104,6 +106,27 @@ final class PollMailboxTest extends KernelTestCase
         $this->poll()->run();
         self::assertSame([], $this->mailbox->inbox());
         self::assertSame(2, $this->rowCount());
+    }
+
+    public function testUnknownRevokedAndOverLimitMailAreMovedToUnknown(): void
+    {
+        $container = self::getContainer();
+        $issuer = $container->get(AddressIssuer::class);
+        $revoked = $issuer->issue(RecordingPurpose::KEY, null, 'Revoked');
+        $issuer->revoke($revoked->id);
+        $limited = LimitedReceive::of(static fn (string $id): mixed => self::getContainer()->get($id), 1, $container->get(InstanceClock::class));
+
+        $stored = $this->mailbox->deliver(MailKit::mail($this->kit->address, 'one@mail.example.com'));
+        $unknown = $this->mailbox->deliver(MailKit::mail($this->kit->unknownAddress(), 'two@mail.example.com'));
+        $revokedItem = $this->mailbox->deliver(MailKit::mail($revoked->address, 'three@mail.example.com'));
+        $overLimit = $this->mailbox->deliver(MailKit::mail($this->kit->address, 'four@mail.example.com'));
+
+        new PollMailbox($this->mailbox, $limited->receive, $this->logger(), $this->failures)->run();
+
+        self::assertSame([$stored], $this->mailbox->movedTo(FakeInboundMailbox::DONE));
+        self::assertSame([$unknown, $revokedItem, $overLimit], $this->mailbox->movedTo(FakeInboundMailbox::UNKNOWN));
+        self::assertSame([], $this->mailbox->inbox());
+        self::assertSame(1, $this->rowCount());
     }
 
     public function testPollingTakesAtMostFiftyOldestFirst(): void

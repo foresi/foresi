@@ -10,6 +10,7 @@ namespace Foresi\Mail\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressNotIssued;
 use Foresi\Mail\Contract\AddressUnavailable;
@@ -35,6 +36,7 @@ final readonly class AddressWrites
         private StaffCheck $staff,
         private AuditActor $actor,
         private ClockInterface $clock,
+        private InstanceClock $instance,
     ) {
     }
 
@@ -214,7 +216,7 @@ final readonly class AddressWrites
 
     private function view(InboundAddress $address): AddressView
     {
-        return AddressView::of($address, $this->addresses->maskedTemplate());
+        return AddressView::of($address, $this->addresses->maskedTemplate(), $this->instance->today());
     }
 
     private function now(): \DateTimeImmutable

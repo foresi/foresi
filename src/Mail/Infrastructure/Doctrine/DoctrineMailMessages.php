@@ -71,6 +71,17 @@ final readonly class DoctrineMailMessages implements MailMessages
         ], ['size' => Types::INTEGER, 'sent_at' => Types::DATETIME_IMMUTABLE, 'received_at' => Types::DATETIME_IMMUTABLE]);
     }
 
+    public function countSince(string $addressId, \DateTimeImmutable $since): int
+    {
+        $count = $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM mail_message WHERE address_id = :address AND received_at >= :since',
+            ['address' => $addressId, 'since' => $since],
+            ['since' => Types::DATETIME_IMMUTABLE],
+        );
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
     public function find(string $id): ?MailMessage
     {
         // A query, not find(): find() answers from the identity map, and the row is written by statements.

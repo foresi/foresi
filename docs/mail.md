@@ -34,7 +34,7 @@ X-Foresi-Recipient: mail+<token>@example.com     (optional)
 <the raw RFC 5322 message>
 ```
 
-For a relay that receives the mail itself, such as an e-mail worker of a mail routing service. Empty `INBOUND_WEBHOOK_SECRET` turns it off (404). The answers, the rate limits and an example relay are in [bank-pairing.md](bank-pairing.md#the-webhook). The webhook answers 202 for a stored message, a duplicate and a message for no known address alike, so the answer says nothing about which addresses exist. The body is at most 10 MiB.
+For a relay that receives the mail itself, such as an e-mail worker of a mail routing service. Empty `INBOUND_WEBHOOK_SECRET` turns it off (404). The answers, the rate limits and an example relay are in [bank-pairing.md](bank-pairing.md#the-webhook). The webhook answers 202 for a stored message, a duplicate and a message for no known address alike, so the answer says nothing about which addresses exist. The body is at most 25 MiB. A message for an address that already took its daily limit is dropped and answered 202 as well.
 
 ## Addresses and purposes
 
@@ -105,6 +105,7 @@ All empty by default, so inbound mail is off until set. Set the password outside
 | `MAIL_INBOUND_ENCRYPTION` | `ssl` (the default) or `starttls`. There is no unencrypted mode, and the certificate is always checked |
 | `MAIL_INBOUND_USER`, `MAIL_INBOUND_PASSWORD` | The login |
 | `MAIL_INBOUND_FOLDER` | The folder read, `INBOX` by default |
+| `MAIL_INBOUND_DAILY_LIMIT` | How many mails one address takes per day of the instance, 500 by default; the rest is dropped unread (webhook: still answered 202; mailbox: moved to `Foresi/Unknown`) |
 | `MAIL_INBOUND_TRUSTED_AUTHSERV` | The authserv-ids of the mailbox's own receiving server, comma separated |
 | `MAIL_INBOUND_TRUSTED_ARC` | The signing domains of trusted ARC sealers, comma separated |
 | `INBOUND_WEBHOOK_SECRET` | The bearer secret of the webhook. Empty turns it off |

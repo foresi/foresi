@@ -53,4 +53,14 @@ interface InboundAddressStore
      * Never moves the time back.
      */
     public function touch(string $id, \DateTimeImmutable $at): void;
+
+    /**
+     * Records one mail dropped over the daily limit, by plain SQL in one statement:
+     * no audit entry. Counts per instance day: a new day starts again at 1.
+     *
+     * @param \DateTimeImmutable $day the instance day, its date part in the instance's zone
+     *
+     * @return int how many mails were dropped on that day now, this one included; 1 means the first
+     */
+    public function recordDrop(string $id, \DateTimeImmutable $day): int;
 }

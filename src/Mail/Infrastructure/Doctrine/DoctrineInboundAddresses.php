@@ -24,6 +24,14 @@ final readonly class DoctrineInboundAddresses implements InboundAddressStore
 {
     private const string TOUCH = 'UPDATE mail_inbound_address SET last_received_at = :at WHERE id = :id AND (last_received_at IS NULL OR last_received_at < :at)';
 
+    /** The count after the update says whether it was the first of the day: the else branch sets 1, the other one adds to a count of 1 or more. */
+    private const string DROP = <<<'SQL'
+        UPDATE mail_inbound_address
+        SET dropped_on_limit = CASE WHEN limit_reached_on = :day THEN dropped_on_limit + 1 ELSE 1 END, limit_reached_on = :day
+        WHERE id = :id
+        RETURNING dropped_on_limit
+        SQL;
+
     public function __construct(private EntityManagerInterface $em, private Connection $connection)
     {
     }
@@ -87,5 +95,12 @@ final readonly class DoctrineInboundAddresses implements InboundAddressStore
     public function touch(string $id, \DateTimeImmutable $at): void
     {
         $this->connection->executeStatement(self::TOUCH, ['at' => $at, 'id' => $id], ['at' => Types::DATETIME_IMMUTABLE]);
+    }
+
+    public function recordDrop(string $id, \DateTimeImmutable $day): int
+    {
+        $dropped = $this->connection->fetchOne(self::DROP, ['day' => $day, 'id' => $id], ['day' => Types::DATE_IMMUTABLE]);
+
+        return is_numeric($dropped) ? (int) $dropped : 0;
     }
 }

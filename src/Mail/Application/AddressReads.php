@@ -10,6 +10,7 @@ namespace Foresi\Mail\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Domain\InboundAddress;
 
 /**
@@ -22,6 +23,7 @@ final readonly class AddressReads
         private InboundAddresses $addresses,
         private StaffCheck $staff,
         private AuditActor $actor,
+        private InstanceClock $clock,
     ) {
     }
 
@@ -39,9 +41,10 @@ final readonly class AddressReads
             throw MailRefused::forbidden();
         }
         $masked = $this->addresses->maskedTemplate();
+        $today = $this->clock->today();
 
         return array_map(
-            static fn (InboundAddress $address): AddressView => AddressView::of($address, $masked),
+            static fn (InboundAddress $address): AddressView => AddressView::of($address, $masked, $today),
             $this->store->ownedBy($userId, null === $purpose || '' === $purpose ? null : $purpose),
         );
     }

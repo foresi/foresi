@@ -24,11 +24,21 @@ final readonly class AddressView
         public \DateTimeImmutable $createdAt,
         public ?\DateTimeImmutable $revokedAt,
         public ?\DateTimeImmutable $lastReceivedAt,
+        /** How many e-mails the daily limit dropped today; 0 when it was not reached today. */
+        public int $droppedToday,
     ) {
     }
 
-    public static function of(InboundAddress $address, string $maskedAddress): self
+    /**
+     * @param \DateTimeImmutable $today midnight of today in the instance's zone
+     */
+    public static function of(InboundAddress $address, string $maskedAddress, \DateTimeImmutable $today): self
     {
-        return new self($address->id(), $address->purpose(), $address->label(), $maskedAddress, $address->createdAt(), $address->revokedAt(), $address->lastReceivedAt());
+        return new self($address->id(), $address->purpose(), $address->label(), $maskedAddress, $address->createdAt(), $address->revokedAt(), $address->lastReceivedAt(), $address->droppedOn($today));
+    }
+
+    public function limitReachedToday(): bool
+    {
+        return $this->droppedToday > 0;
     }
 }

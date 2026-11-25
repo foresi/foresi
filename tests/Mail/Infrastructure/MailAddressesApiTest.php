@@ -11,11 +11,16 @@ namespace Foresi\Tests\Mail\Infrastructure;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
+use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundAddress;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\Party;
 use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Tests\Support\Mail\LimitedReceive;
+use Foresi\Tests\Support\Mail\MailKit;
 use Foresi\Tests\Support\Mail\PartialAddressIndex;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Component\Clock\Clock;
@@ -62,7 +67,7 @@ final class MailAddressesApiTest extends ApiTestCase
 
         $this->get('/api/v1/mail/addresses', secret: $this->writer);
         self::assertResponseIsSuccessful();
-        self::assertSame([['id' => $id, 'purpose' => RecordingPurpose::OWNED_KEY, 'label' => 'Receipts', 'masked_address' => "bank+\u{2026}@example.com", 'created_at' => '2026-11-25T11:00:00+01:00', 'revoked_at' => null, 'last_received_at' => null]], $this->json()['data']);
+        self::assertSame([['id' => $id, 'purpose' => RecordingPurpose::OWNED_KEY, 'label' => 'Receipts', 'masked_address' => "bank+\u{2026}@example.com", 'created_at' => '2026-11-25T11:00:00+01:00', 'revoked_at' => null, 'last_received_at' => null, 'limit_reached_today' => false, 'dropped_today' => 0]], $this->json()['data']);
         self::assertStringNotContainsString($token, (string) $this->client->getResponse()->getContent());
 
         $listed = $this->tool('foresi_list_mail_addresses', []);
@@ -99,6 +104,54 @@ final class MailAddressesApiTest extends ApiTestCase
             }
         }
         self::assertStringContainsString('Receipts', $audit, 'the audit trail knows the address was made');
+    }
+
+    public function testTheDroppedCountIsShownOnTheAddressAndLoggedOnceADay(): void
+    {
+        $this->send('POST', '/api/v1/mail/addresses', ['purpose' => RecordingPurpose::OWNED_KEY, 'label' => 'Receipts']);
+        $address = $this->at('data', 'address');
+        self::assertIsString($address);
+        $id = $this->at('data', 'id');
+        self::assertIsString($id);
+        $token = (string) new InboundAddresses('bank+{token}@example.com')->tokenIn($address);
+        $limited = LimitedReceive::of(static fn (string $id): mixed => self::getContainer()->get($id), 1, self::getContainer()->get(InstanceClock::class));
+        $receive = static fn (string $messageId): ReceiveOutcome => $limited->receive->receive(MailKit::mail($address, $messageId), InboundChannel::Webhook);
+        $row = function () use ($id): array {
+            $this->get('/api/v1/mail/addresses', secret: $this->writer);
+            self::assertResponseIsSuccessful();
+            $rows = $this->json()['data'];
+            self::assertIsArray($rows);
+            $listed = $rows[0];
+            self::assertIsArray($listed);
+            self::assertSame($id, $listed['id']);
+
+            return $listed;
+        };
+
+        self::assertSame(ReceiveOutcome::Stored, $receive('d1@mail.example.com'));
+        self::assertSame([false, 0], [$row()['limit_reached_today'], $row()['dropped_today']]);
+        foreach (['d2', 'd3', 'd4'] as $name) {
+            self::assertSame(ReceiveOutcome::OverLimit, $receive($name.'@mail.example.com'));
+        }
+        self::assertSame([true, 3], [$row()['limit_reached_today'], $row()['dropped_today']]);
+        self::assertSame(1, $limited->logLines());
+        self::assertSame('warning', $limited->line(0)['level']);
+        self::assertStringContainsString($id, $limited->line(0)['context']);
+        self::assertStringContainsString('"limit":1', $limited->line(0)['context']);
+        self::assertStringNotContainsString($token, $limited->line(0)['message'].$limited->line(0)['context']);
+
+        // The MCP list says it too.
+        $listed = $this->tool('foresi_list_mail_addresses', []);
+        self::assertSame([true, 3], [$this->in($listed, 'structuredContent', 'data', 'addresses', 0, 'limit_reached_today'), $this->in($listed, 'structuredContent', 'data', 'addresses', 0, 'dropped_today')]);
+
+        // The next instance day starts again: shown as 0, and the first drop of it is logged.
+        Clock::set(new MockClock('2026-11-26 10:00:00', 'UTC'));
+        self::assertSame([false, 0], [$row()['limit_reached_today'], $row()['dropped_today']]);
+        self::assertSame(ReceiveOutcome::Stored, $receive('e1@mail.example.com'));
+        self::assertSame(ReceiveOutcome::OverLimit, $receive('e2@mail.example.com'));
+        self::assertSame(ReceiveOutcome::OverLimit, $receive('e3@mail.example.com'));
+        self::assertSame([true, 2], [$row()['limit_reached_today'], $row()['dropped_today']]);
+        self::assertSame(2, $limited->logLines());
     }
 
     public function testIssuedAddressesAreNeverCached(): void

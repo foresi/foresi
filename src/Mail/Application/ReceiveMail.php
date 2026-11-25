@@ -31,7 +31,8 @@ use Psr\Clock\ClockInterface;
  * junk that took the ID of a notice never keeps the notice out.
  *
  * Nothing is kept of a mail for no known address, for an address whose purpose
- * no installed module registered, or one its purpose refuses. Never log the
+ * no installed module registered, or one its purpose refuses, or for an address
+ * that already took its daily limit of mail (see DailyLimit). Never log the
  * address.
  *
  * Call it outside any open transaction, as the poller and the webhook do: inside
@@ -40,8 +41,11 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class ReceiveMail
 {
-    /** Notifications are a few kilobytes; anything above this is refused unread. */
-    public const int MAX_BYTES = 10 * 1024 * 1024;
+    /**
+     * Notifications are a few kilobytes, but documents arrive as PDF attachments, so
+     * the limit is Cloudflare's own 25 MiB for mail; anything above it is refused unread.
+     */
+    public const int MAX_BYTES = 25 * 1024 * 1024;
 
     /**
      * The header fields that may name the inbound address, in the order they
@@ -63,6 +67,8 @@ final readonly class ReceiveMail
         private SenderVerdict $verdict,
         private MailTransaction $transaction,
         private ClockInterface $clock,
+        private DailyLimit $limit,
+        private NotifyOverLimit $overLimit,
     ) {
     }
 
@@ -90,6 +96,12 @@ final readonly class ReceiveMail
             return ReceiveOutcome::UnknownRecipient;
         }
 
+        if ($this->limit->reached($address->id())) {
+            $this->overLimit->notify($address->id());
+
+            return ReceiveOutcome::OverLimit;
+        }
+
         return $this->keep($mail, $raw, $channel, $address, $purpose);
     }
 
@@ -102,7 +114,7 @@ final readonly class ReceiveMail
         }
 
         $id = Id::generate();
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $now = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone(new \DateTimeZone('UTC'));
         $verdict = $this->verdict->judge($mail, $channel);
         $key = $this->files->store($id, $raw);
         try {
