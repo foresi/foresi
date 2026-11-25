@@ -161,7 +161,7 @@ final class FieldRegistryTest extends TestCase
         $registry = new FieldRegistry([$this->source(['a_text' => FieldKind::Text])]);
 
         self::assertEquals(new FieldExpression('Note', 'cf_a_text', 'cf_a_text.id = n.id', 'cf_a_text.aText'), $registry->expression('note', 'a_text', 'n'));
-        self::assertSame('x', $registry->expression('note', 'a_text', 'n', 'x')->alias);
+        self::assertEquals(new FieldExpression('Note', 'x', 'x.id = n.id', 'x.aText'), $registry->expression('note', 'a_text', 'n', 'x'));
     }
 
     public function testAnExpressionOfNoFieldIsRefused(): void
@@ -187,6 +187,8 @@ final class FieldRegistryTest extends TestCase
      * @param array<string, array<string, mixed>> $values
      * @param array<string, string>               $options
      * @param list<string>                        $searchable
+     *
+     * @return FieldSource&object{reads: list<list<string>>, writes: list<array{string, string, array<string, mixed>}>}
      */
     private function source(array $kinds, array $values = [], array $options = [], array $searchable = []): FieldSource
     {
@@ -212,7 +214,7 @@ final class FieldRegistryTest extends TestCase
                     return [];
                 }
 
-                return array_values(array_map(fn (FieldKind $kind, string $key): FieldDefinition => new FieldDefinition($key, 'note', $kind, 'test.'.$key, $kind->selects() ? $this->options : [], 'test', searchable: \in_array($key, $this->searchable, true)), $this->kinds, array_keys($this->kinds)));
+                return array_map(fn (FieldKind $kind, string $key): FieldDefinition => new FieldDefinition($key, 'note', $kind, 'test.'.$key, $kind->selects() ? $this->options : [], 'test', searchable: \in_array($key, $this->searchable, true)), $this->kinds, array_keys($this->kinds));
             }
 
             public function read(string $record, array $ids): array
@@ -227,8 +229,10 @@ final class FieldRegistryTest extends TestCase
                 $this->writes[] = [$record, $id, $values];
             }
 
-            public function expression(string $record, string $key, string $root, string $alias): FieldExpression
+            public function expression(string $record, string $key, string $root): FieldExpression
             {
+                $alias = 'cf_'.$key;
+
                 return new FieldExpression('Note', $alias, $alias.'.id = '.$root.'.id', $alias.'.'.lcfirst(str_replace('_', '', ucwords($key, '_'))));
             }
         };

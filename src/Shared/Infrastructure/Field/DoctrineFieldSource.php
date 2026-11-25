@@ -119,8 +119,9 @@ final class DoctrineFieldSource implements FieldSource
         }
     }
 
-    public function expression(string $record, string $key, string $root, string $alias): FieldExpression
+    public function expression(string $record, string $key, string $root): FieldExpression
     {
+        $alias = 'cf_'.$key;
         $field = $this->catalog()[$record]['fields'][$key] ?? throw new \InvalidArgumentException(\sprintf('The %s has no custom field "%s".', $record, $key));
         $entity = $this->records->get($record)?->entity() ?? throw new \LogicException(\sprintf('No module declares the record kind "%s".', $record));
         $rootId = $this->em->getClassMetadata($entity)->getSingleIdentifierFieldName();
@@ -151,7 +152,7 @@ final class DoctrineFieldSource implements FieldSource
      */
     private function empty(ClassMetadata $metadata, object $entity): bool
     {
-        return array_all($metadata->getFieldNames(), fn(string $name): bool => $metadata->isIdentifier($name) || null === $metadata->getFieldValue($entity, $name));
+        return array_all($metadata->getFieldNames(), fn (string $name): bool => $metadata->isIdentifier($name) || null === $metadata->getFieldValue($entity, $name));
     }
 
     /**

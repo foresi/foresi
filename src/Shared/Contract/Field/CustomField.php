@@ -25,16 +25,16 @@ final readonly class CustomField
     public const string OPTION = '/^[a-z0-9_]+$/';
 
     /**
-     * @param string                $label      the translation key of its name
-     * @param array<string, string> $options    of a select or a multi-select, and only of those: the translation key of each option's label, by its key
-     * @param bool                  $filterable a condition of the record's saved views and quick filters
-     * @param bool                  $sortable   a sort of the record's list, where the list sorts by columns; never a long text or a multi-select
-     * @param bool                  $required   the record's dialogs ask for it
-     * @param bool                  $guests     guests see it too
-     * @param bool                  $api        part of the REST and MCP payloads of the record
-     * @param bool                  $template   readable in document templates
-     * @param bool                  $import     offered by the import and the export
-     * @param bool                  $searchable read by the record's text search; a text, a long text or a URL only
+     * @param string                   $label      the translation key of its name
+     * @param array<array-key, string> $options    of a select or a multi-select, and only of those: the translation key of each option's label, by its key (a key of digits alone is an int, as PHP keys an array)
+     * @param bool                     $filterable a condition of the record's saved views and quick filters
+     * @param bool                     $sortable   a sort of the record's list, where the list sorts by columns; never a long text or a multi-select
+     * @param bool                     $required   the record's dialogs ask for it
+     * @param bool                     $guests     guests see it too
+     * @param bool                     $api        part of the REST and MCP payloads of the record
+     * @param bool                     $template   readable in document templates
+     * @param bool                     $import     offered by the import and the export
+     * @param bool                     $searchable read by the record's text search; a text, a long text or a URL only
      */
     public function __construct(
         public FieldKind $kind,

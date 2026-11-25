@@ -107,7 +107,9 @@ final class FieldRegistry implements Fields, ResetInterface
     {
         $source = $this->of($record)[$key][1] ?? throw new \InvalidArgumentException(\sprintf('The %s has no custom field "%s".', $record, $key));
 
-        return $source->expression($record, $key, $root, $alias ?? 'cf_'.$key);
+        $expression = $source->expression($record, $key, $root);
+
+        return null === $alias ? $expression : $expression->aliased($alias);
     }
 
     public function searched(string $record, string $root, string $parameter): array
@@ -164,9 +166,27 @@ final class FieldRegistry implements Fields, ResetInterface
             FieldKind::Date, FieldKind::DateTime => $value instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($value) : throw new \InvalidArgumentException(\sprintf('The field "%s" takes a date.', $key)),
             FieldKind::Boolean => \is_bool($value) ? $value : throw new \InvalidArgumentException(\sprintf('The field "%s" takes true or false.', $key)),
             FieldKind::Select => \is_string($value) && isset($definition->options[$value]) ? $value : throw new \InvalidArgumentException(\sprintf('The field "%s" takes one of %s.', $key, implode(', ', array_keys($definition->options)))),
-            FieldKind::MultiSelect => \is_array($value) && array_is_list($value) && [] === array_filter($value, static fn (mixed $one): bool => !\is_string($one) || !isset($definition->options[$one]))
-                ? array_values(array_unique($value))
-                : throw new \InvalidArgumentException(\sprintf('The field "%s" takes a list of %s.', $key, implode(', ', array_keys($definition->options)))),
+            FieldKind::MultiSelect => $this->selected($definition, $value),
         };
+    }
+
+    /**
+     * @return list<string> the option keys of a multi-select, each once
+     */
+    private function selected(FieldDefinition $definition, mixed $value): array
+    {
+        $refused = new \InvalidArgumentException(\sprintf('The field "%s" takes a list of %s.', $definition->key, implode(', ', array_keys($definition->options))));
+        if (!\is_array($value) || !array_is_list($value)) {
+            throw $refused;
+        }
+        $selected = [];
+        foreach ($value as $one) {
+            if (!\is_string($one) || !isset($definition->options[$one])) {
+                throw $refused;
+            }
+            $selected[$one] = $one;
+        }
+
+        return array_values($selected);
     }
 }

@@ -110,9 +110,11 @@ final class WorkCustomFieldsTest extends WebTestCase
     {
         $project = $this->em->find(Project::class, $projectId) ?? throw new \LogicException('Project.');
         $open = $this->em->getRepository(ProjectStatus::class)->findOneBy(['project' => $project], ['position' => 'ASC']) ?? throw new \LogicException('Status.');
+        $userId = $this->browser->em()->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
+        self::assertIsString($userId);
         $ids = [];
         foreach ($titles as $position => $title) {
-            $task = new Task($project, $title, $open, $position, $this->browser->em()->getConnection()->fetchOne('SELECT id FROM app_user') ?: '', new \DateTimeImmutable());
+            $task = new Task($project, $title, $open, $position, $userId, new \DateTimeImmutable());
             $this->em->persist($task);
             $ids[] = $task->id();
         }

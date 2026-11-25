@@ -2525,7 +2525,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "8992f057e37393bc7c3aa0b14277a6e873bf85a7"
+                "reference": "81cbb0866bc2ac1fda666a69c21dad0541e0957c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2555,6 +2555,7 @@
                 "symfony/security-bundle": "7.4.*",
                 "symfony/security-core": "^7.4",
                 "symfony/security-http": "^7.4",
+                "symfony/service-contracts": "^3.8",
                 "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
                 "tecnickcom/tc-lib-barcode": "^2.17.2",
@@ -3014,7 +3015,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "7e7884528fcafe3a42ebe19a9737b18075c8d449"
+                "reference": "af2a3a8b3d8b01d7728463f6c76b6f8506620fcb"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3037,6 +3038,7 @@
                 "symfony/rate-limiter": "7.4.*",
                 "symfony/routing": "^7.4",
                 "symfony/serializer": "7.4.*",
+                "symfony/service-contracts": "^3.8",
                 "symfony/translation-contracts": "^3.8",
                 "symfony/validator": "7.4.*",
                 "zircote/swagger-php": "^7.5"
@@ -3240,7 +3242,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "19cb45c62f383d0e43688ce65bcfc340d7776b2e"
+                "reference": "47acaf9cf6f0faf52ec2ec3cd9f20a9801896163"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3263,6 +3265,7 @@
                 "scheb/2fa-backup-code": "^8.7",
                 "scheb/2fa-totp": "^8.7",
                 "scheb/2fa-trusted-device": "^8.7",
+                "symfony/cache-contracts": "^3.8",
                 "symfony/clock": "^7.4 || ^8.0",
                 "symfony/config": "^7.4 || ^8.0",
                 "symfony/console": "7.4.*",
@@ -3281,6 +3284,7 @@
                 "symfony/monolog-bundle": "^4.1",
                 "symfony/rate-limiter": "7.4.*",
                 "symfony/routing": "^7.4",
+                "symfony/service-contracts": "^3.8",
                 "symfony/translation-contracts": "^3.8",
                 "symfony/twig-bundle": "7.4.*",
                 "symfony/uid": "7.4.*",

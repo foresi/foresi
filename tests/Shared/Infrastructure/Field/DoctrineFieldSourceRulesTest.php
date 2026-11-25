@@ -107,6 +107,7 @@ final class DoctrineFieldSourceRulesTest extends TestCase
 
             public function loadMetadataForClass(string $className, ClassMetadata $metadata): void
             {
+                \PHPUnit\Framework\Assert::assertInstanceOf(\Doctrine\ORM\Mapping\ClassMetadata::class, $metadata, 'The ORM passes its own metadata.');
                 $this->driver->loadMetadataForClass($className, $metadata);
             }
 

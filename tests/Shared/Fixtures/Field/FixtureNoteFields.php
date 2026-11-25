@@ -20,10 +20,6 @@ use Foresi\Shared\Contract\Field\FieldKind;
 #[ORM\Table(name: 'test_fixture_note_fields')]
 class FixtureNoteFields implements FixtureNoteExtension
 {
-    #[ORM\Id]
-    #[ORM\Column(type: 'guid')]
-    private string $id;
-
     #[ORM\Column(type: 'string', length: 20, nullable: true)]
     #[CustomField(FieldKind::Text, 'test.field.code', filterable: true, sortable: true, searchable: true)]
     private ?string $code = null;
@@ -64,6 +60,7 @@ class FixtureNoteFields implements FixtureNoteExtension
     #[CustomField(FieldKind::Select, 'test.field.size', options: ['small' => 'test.size.small', 'large' => 'test.size.large'], filterable: true, guests: true)]
     private ?string $size = null;
 
+    /** @var list<string>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     #[CustomField(FieldKind::MultiSelect, 'test.field.tags', options: ['red' => 'test.tag.red', 'blue' => 'test.tag.blue'], filterable: true)]
     private ?array $tags = null;
@@ -75,6 +72,16 @@ class FixtureNoteFields implements FixtureNoteExtension
     #[ORM\Column(type: 'guid', nullable: true)]
     #[CustomField(FieldKind::User, 'test.field.owner')]
     private ?string $owner = null;
+
+    /**
+     * Foresi creates the row without it (DoctrineFieldSource::write()); a test may set one up.
+     */
+    public function __construct(
+        #[ORM\Id]
+        #[ORM\Column(type: 'guid')]
+        private string $id,
+    ) {
+    }
 
     public function noteId(): string
     {

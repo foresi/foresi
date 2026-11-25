@@ -74,10 +74,10 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     if ('test' === $container->env()) {
         // A record kind only the tests have, with custom fields of every kind of a module only
         // the tests have (tests/Shared/Fixtures/Field), so they change no list of the application.
-        $services->set(\Foresi\Tests\Shared\Fixtures\Field\FixtureNoteRecord::class);
-        $services->set(\Foresi\Tests\Shared\Fixtures\Field\LentFields::class)->public();
+        $services->set(Foresi\Tests\Shared\Fixtures\Field\FixtureNoteRecord::class);
+        $services->set(Foresi\Tests\Shared\Fixtures\Field\LentFields::class)->public();
         $services->set(DoctrineFieldSource::class)
-            ->arg('$modules', inline_service(ModuleGraph::class)->factory(\Foresi\Tests\Shared\Fixtures\Field\FixtureModules::graph(...))->args([service(InstalledModules::class)]));
+            ->arg('$modules', inline_service(ModuleGraph::class)->factory(Foresi\Tests\Shared\Fixtures\Field\FixtureModules::graph(...))->args([service(InstalledModules::class)]));
     }
 
     // The order of the migrations of all modules (config/packages/doctrine_migrations.yaml).

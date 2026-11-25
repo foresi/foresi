@@ -48,9 +48,9 @@ interface FieldSource
     public function write(string $record, string $id, array $values): void;
 
     /**
-     * Where a query reads a field of the record whose row has the alias $root.
-     *
-     * @param string $alias the alias the field's row takes, unique in the query
+     * Where a query reads a field of the record whose row has the alias $root. The
+     * field's row takes the alias "cf_<key>"; a caller that reads it twice in one
+     * query renames it with FieldExpression::aliased().
      */
-    public function expression(string $record, string $key, string $root, string $alias): FieldExpression;
+    public function expression(string $record, string $key, string $root): FieldExpression;
 }

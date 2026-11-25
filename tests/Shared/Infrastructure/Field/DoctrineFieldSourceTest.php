@@ -157,14 +157,14 @@ final class DoctrineFieldSourceTest extends KernelTestCase
 
     public function testTheExpressionReadsTheExtensionsRowOfTheRecord(): void
     {
-        $expression = $this->source->expression(self::RECORD, 'test_fields_due', 'n', 'cf');
+        $expression = $this->source->expression(self::RECORD, 'test_fields_due', 'n');
 
         self::assertSame(FixtureNoteFields::class, $expression->entity);
-        self::assertSame('cf', $expression->alias);
-        self::assertSame('cf.id = n.id', $expression->correlation);
-        self::assertSame('cf.due', $expression->column);
-        self::assertSame(FixtureNoteFields::class.' cf WHERE cf.id = n.id', $expression->within());
-        self::assertSame('LEFT JOIN '.FixtureNoteFields::class.' cf WITH cf.id = n.id', $expression->join());
+        self::assertSame('cf_test_fields_due', $expression->alias);
+        self::assertSame('cf_test_fields_due.id = n.id', $expression->correlation);
+        self::assertSame('cf_test_fields_due.due', $expression->column);
+        self::assertSame(FixtureNoteFields::class.' cf_test_fields_due WHERE cf_test_fields_due.id = n.id', $expression->within());
+        self::assertSame('LEFT JOIN '.FixtureNoteFields::class.' cf_test_fields_due WITH cf_test_fields_due.id = n.id', $expression->join());
     }
 
     public function testAnExpressionOfNoFieldIsRefused(): void
@@ -172,7 +172,7 @@ final class DoctrineFieldSourceTest extends KernelTestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessageIsOrContains('The fixture_note has no custom field "test_fields_nothing".');
 
-        $this->source->expression(self::RECORD, 'test_fields_nothing', 'n', 'cf');
+        $this->source->expression(self::RECORD, 'test_fields_nothing', 'n');
     }
 
     public function testTheDefinitionsAreKeptInTheCacheOutsideDebug(): void
@@ -217,6 +217,9 @@ final class DoctrineFieldSourceTest extends KernelTestCase
 
     private function rows(): int
     {
-        return (int) $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM test_fixture_note_fields');
+        $rows = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM test_fixture_note_fields');
+        self::assertIsNumeric($rows);
+
+        return (int) $rows;
     }
 }

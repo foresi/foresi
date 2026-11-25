@@ -30,6 +30,23 @@ final readonly class FieldExpression
     }
 
     /**
+     * The same field read under another alias, so that one query can read it twice.
+     * The alias is renamed alone ("cf_x = p.id") or with a path ("cf_x.value"),
+     * never as a part of a path or a parameter.
+     */
+    public function aliased(string $alias): self
+    {
+        $own = '/(?<![\w.:])'.preg_quote($this->alias, '/').'(?!\w)/';
+
+        return new self(
+            $this->entity,
+            $alias,
+            (string) preg_replace($own, $alias, $this->correlation),
+            (string) preg_replace($own, $alias, $this->column),
+        );
+    }
+
+    /**
      * The row as a correlated "<entity> <alias> WHERE <correlation>", which a filter
      * condition and a subquery read in.
      */

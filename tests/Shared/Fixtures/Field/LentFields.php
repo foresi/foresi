@@ -35,13 +35,11 @@ final class LentFields implements FieldSource
      */
     public static function lend(ContainerInterface $container, string $record): Fields
     {
-        $lent = $container->get(self::class);
+        $lent = $container->get(self::class); // @phpstan-ignore symfonyContainer.serviceNotFound (registered in the test environment only, and PHPStan reads the dev container)
         \assert($lent instanceof self);
         $lent->record = $record;
-        $fields = $container->get(Fields::class);
-        \assert($fields instanceof Fields);
 
-        return $fields;
+        return $container->get(Fields::class); // @phpstan-ignore symfonyContainer.privateService (the test container of a KernelTestCase holds the private services)
     }
 
     public function definitions(string $record): array
@@ -66,8 +64,8 @@ final class LentFields implements FieldSource
         $this->fields->write(FixtureNoteExtension::RECORD, $id, $values);
     }
 
-    public function expression(string $record, string $key, string $root, string $alias): FieldExpression
+    public function expression(string $record, string $key, string $root): FieldExpression
     {
-        return $this->fields->expression(FixtureNoteExtension::RECORD, $key, $root, $alias);
+        return $this->fields->expression(FixtureNoteExtension::RECORD, $key, $root);
     }
 }
