@@ -74,7 +74,7 @@ final class AiReaderStatusTest extends WebTestCase
 
         $status = $page->filter('[data-ai-reader-status="configured"]');
         self::assertCount(1, $status);
-        self::assertStringContainsString('Reading by AI: Claude, model claude-example-model, runs on arrival', $this->flat($status));
+        self::assertStringContainsString('Reading by AI: Claude, model claude-example-model, runs on arrival when the other readers miss the total, issue date or supplier', $this->flat($status));
         self::assertStringContainsString('sent to the provider', $status->text());
         self::assertStringNotContainsString(self::KEY, (string) $this->client->getResponse()->getContent());
 
@@ -84,6 +84,23 @@ final class AiReaderStatusTest extends WebTestCase
         $text = $this->flat($page->filter('[data-ai-reader-status="configured"]'));
         self::assertStringContainsString('Reading by AI: Claude, model claude-sonnet-5-5, runs only when you click Read with AI', $text);
         self::assertStringNotContainsString(self::KEY, (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testAnInvalidTriggerLeavesTheReaderOffAndSaysSoWithoutTheValue(): void
+    {
+        $this->start(['AI_READER_PROVIDER' => 'claude', 'AI_READER_API_KEY' => self::KEY, 'AI_READER_TRIGGER' => 'sometimes']);
+
+        $page = $this->page(self::SETTINGS);
+
+        self::assertCount(1, $page->filter('[data-ai-reader-status="not_configured"]'));
+        self::assertStringContainsString('AI_READER_TRIGGER is not valid: use arrival or click', $this->flat($page->filter('[data-ai-reader-trigger-invalid]')));
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertStringNotContainsString('sometimes', $content);
+        self::assertStringNotContainsString(self::KEY, $content);
+
+        $id = $this->draft();
+        $this->readQueued();
+        self::assertCount(0, $this->page('/purchasing/'.$id)->filter('[data-ai-reader-read]'));
     }
 
     public function testReadWithAiActionOnlyOnClickMode(): void

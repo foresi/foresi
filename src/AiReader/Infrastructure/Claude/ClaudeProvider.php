@@ -24,7 +24,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * document is data: nothing it says can reach a tool, because there is none.
  *
  * A failure is a short code and nothing else: the exception never carries the
- * response body, the request or the key, and nothing is logged here.
+ * response body, the request or the key, and nothing is logged here (the caller logs the code).
  */
 final readonly class ClaudeProvider implements AiProvider
 {
@@ -109,6 +109,7 @@ final readonly class ClaudeProvider implements AiProvider
     {
         return match (true) {
             401 === $status, 403 === $status => 'provider_auth',
+            400 === $status, 404 === $status => 'provider_rejected',
             413 === $status => 'too_large',
             429 === $status, 529 === $status => 'provider_busy',
             default => 'provider_unavailable',

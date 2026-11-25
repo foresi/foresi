@@ -53,16 +53,14 @@ final class AiReaderSettingsTest extends TestCase
         self::assertFalse(new AiReaderSettings('claude', self::KEY, '', 'click')->automatic());
     }
 
-    public function testAnUnknownTriggerIsAConfigurationErrorThatNamesNoValue(): void
+    public function testAnUnknownTriggerLeavesTheReaderOffAndNeverThrows(): void
     {
-        try {
-            new AiReaderSettings('claude', self::KEY, '', 'sometimes');
-            self::fail('An unknown trigger must be refused.');
-        } catch (\InvalidArgumentException $e) {
-            self::assertStringContainsString('AI_READER_TRIGGER', $e->getMessage());
-            self::assertStringNotContainsString('sometimes', $e->getMessage());
-            self::assertStringNotContainsString(self::KEY, $e->getMessage().$e->getTraceAsString());
-        }
+        $settings = new AiReaderSettings('claude', self::KEY, '', 'sometimes');
+
+        self::assertFalse($settings->isConfigured());
+        self::assertFalse($settings->triggerIsValid());
+        self::assertTrue(new AiReaderSettings('claude', self::KEY, '', 'click')->triggerIsValid());
+        self::assertTrue(new AiReaderSettings('claude', self::KEY, '', '')->isConfigured());
     }
 
     public function testAnUnknownTriggerNeverBreaksAnInstanceWithoutAKey(): void
@@ -70,6 +68,7 @@ final class AiReaderSettingsTest extends TestCase
         self::assertFalse(new AiReaderSettings('', '', '', 'sometimes')->isConfigured());
         self::assertFalse(new AiReaderSettings('claude', '', '', 'sometimes')->isConfigured());
         self::assertFalse(new AiReaderSettings('other', self::KEY, '', 'sometimes')->isConfigured());
+        self::assertTrue(new AiReaderSettings('claude', '', '', 'sometimes')->triggerIsValid());
     }
 
     /**

@@ -27,14 +27,18 @@ The module reads four environment variables when it runs, so a key never enters 
 | `AI_READER_PROVIDER` | `claude`, or empty for none. Without a provider and a key the module does nothing. |
 | `AI_READER_API_KEY` | Your own API key of the provider. Never commit it. |
 | `AI_READER_MODEL` | The model. Empty means `claude-sonnet-5-5`. |
-| `AI_READER_TRIGGER` | `arrival` (also when empty): the reader runs when a file arrives. `click`: only when a person asks. Any other value is refused while a provider and a key are set. |
+| `AI_READER_TRIGGER` | `arrival` (also when empty): the reader runs when a file arrives. `click`: only when a person asks. Any other value leaves the reader off while a provider and a key are set, and Settings → Received documents says that the trigger is not valid (without printing it). |
 
 ## When it runs
 
 - **On arrival** (trigger `arrival`), the reader runs only when the structured readers left the total, the issue date or the identity of the supplier (its registration number or VAT ID) empty. A file the cheaper readers read completely is never sent to the provider.
 - **On request**, it always runs. With the trigger `click` the reader never runs on arrival, and the menu of a draft's page has **Read with AI** beside **Read again**; both ask Purchasing to read the file again and run every reader that runs on request. With the trigger `arrival`, **Read again** runs it too.
 
-A reading that failed shows a short code, never the provider's text: `provider_auth` (the key was refused), `provider_busy` (the provider is limiting or overloaded), `provider_unavailable`, `too_large`, `invalid_answer` or `not_configured`.
+In `arrival` mode every file the structured readers miss, including files that arrive as mail attachments, is sent to the provider and paid for. Use `click` to control the cost.
+
+A file near the 24 MiB cap needs roughly 120 MB of memory in the worker (the raw file, its base64 copy and the JSON body), so set the `memory_limit` of the worker accordingly.
+
+A reading that failed shows only a generic failure on the draft. The exact reason is a short code, never the provider's text, the file or the key, and it goes to the application log as a warning with the reader that failed: `provider_auth` (the key was refused), `provider_rejected` (the provider refused the request, for example a model name it does not know), `provider_busy` (the provider is limiting or overloaded), `provider_unavailable`, `too_large`, `unsupported_file`, `invalid_answer` or `not_configured`.
 
 ## Adding a provider
 

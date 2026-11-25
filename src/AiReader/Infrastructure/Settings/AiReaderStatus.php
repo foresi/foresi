@@ -43,6 +43,7 @@ final readonly class AiReaderStatus implements SlotProvider
             'provider' => self::NAMES[$this->settings->provider()] ?? $this->settings->provider(),
             'model' => $this->settings->model(),
             'automatic' => $this->settings->automatic(),
+            'trigger_valid' => $this->settings->triggerIsValid(),
             'docs' => self::DOCS,
         ], self::WEIGHT)];
     }

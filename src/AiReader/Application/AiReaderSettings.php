@@ -10,8 +10,8 @@ namespace Foresi\AiReader\Application;
 
 /**
  * What the operator set in the environment for the AI reader: which provider,
- * its key, the model and when the reader runs. Without a provider and a key
- * the reader is inert.
+ * its key, the model and when the reader runs. Without a provider and a key,
+ * or with a trigger it does not know, the reader is inert.
  *
  * The key is never held as text: it is kept masked with a random pad of the
  * instance, so no dump of the object (`var_export`, a cast to an array, a log
@@ -28,6 +28,7 @@ final readonly class AiReaderSettings
     private string $provider;
     private string $model;
     private bool $automatic;
+    private bool $triggerIsValid;
     private string $masked;
     private string $pad;
 
@@ -36,17 +37,15 @@ final readonly class AiReaderSettings
      * @param string $model    empty for the default model
      * @param string $trigger  `arrival` (or empty): the reader runs when a file arrives; `click`: only when a person asks
      *
-     * @throws \InvalidArgumentException for any other trigger, but only when a provider and a key are set, so an
-     *                                   instance that does not use the reader never fails on it
+     *                         any other trigger leaves the reader off (see {@see triggerIsValid()}) and never throws, so a
+     *                         mistake in the environment cannot break a page
      */
     public function __construct(string $provider, #[\SensitiveParameter] string $apiKey, string $model, string $trigger)
     {
         $trigger = strtolower(trim($trigger));
         $key = trim($apiKey);
         $this->provider = strtolower(trim($provider));
-        if (self::CLAUDE === $this->provider && '' !== $key && !\in_array($trigger, ['', self::ARRIVAL, self::CLICK], true)) {
-            throw new \InvalidArgumentException('AI_READER_TRIGGER must be "arrival" or "click", or empty.');
-        }
+        $this->triggerIsValid = !(self::CLAUDE === $this->provider && '' !== $key) || \in_array($trigger, ['', self::ARRIVAL, self::CLICK], true);
         $this->model = '' === trim($model) ? self::DEFAULT_MODEL : trim($model);
         $this->automatic = self::CLICK !== $trigger;
         $this->pad = random_bytes(max(1, \strlen($key)));
@@ -63,7 +62,16 @@ final readonly class AiReaderSettings
      */
     public function isConfigured(): bool
     {
-        return self::CLAUDE === $this->provider && '' !== $this->masked;
+        return $this->triggerIsValid && self::CLAUDE === $this->provider && '' !== $this->masked;
+    }
+
+    /**
+     * False when a provider and a key are set but the trigger is neither `arrival`, `click` nor empty: the reader
+     * is then off. Without a provider and a key there is nothing to be wrong, so it is true.
+     */
+    public function triggerIsValid(): bool
+    {
+        return $this->triggerIsValid;
     }
 
     /**

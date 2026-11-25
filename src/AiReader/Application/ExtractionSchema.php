@@ -31,7 +31,7 @@ final class ExtractionSchema
      */
     public static function fields(): array
     {
-        $amount = 'a decimal string with a point and at most two decimals, positive, without a currency sign or a thousands separator (for example "1210.50")';
+        $amount = 'a decimal string with a point and at most two decimals, never negative (no minus sign, even on a credit note), without a currency sign or a thousands separator (for example "1210.50")';
         $text = static fn (string $description): array => ['anyOf' => [['type' => 'string'], ['type' => 'null']], 'description' => $description];
         $date = static fn (string $description): array => ['anyOf' => [['type' => 'string', 'format' => 'date'], ['type' => 'null']], 'description' => $description.' as YYYY-MM-DD.'];
 

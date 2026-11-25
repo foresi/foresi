@@ -119,12 +119,14 @@ final class ClaudeProviderTest extends TestCase
     {
         yield '401' => [401, 'provider_auth'];
         yield '403' => [403, 'provider_auth'];
+        yield '400' => [400, 'provider_rejected'];
+        yield '404' => [404, 'provider_rejected'];
         yield '413' => [413, 'too_large'];
         yield '429' => [429, 'provider_busy'];
         yield '529' => [529, 'provider_busy'];
         yield '500' => [500, 'provider_unavailable'];
         yield '503' => [503, 'provider_unavailable'];
-        yield '400' => [400, 'provider_unavailable'];
+        yield '502' => [502, 'provider_unavailable'];
     }
 
     #[DataProvider('httpErrors')]
