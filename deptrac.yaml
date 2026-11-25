@@ -797,6 +797,9 @@ deptrac:
       - InstanceDomain
       - InstanceApplication
       - AuditDomain
+      # The event access reads who is signed in and who is staff.
+      - AuditApplication
+      - IdentityApplication
     MailImap:
       - MailDomain
       - MailApplication

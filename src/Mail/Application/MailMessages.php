@@ -44,4 +44,24 @@ interface MailMessages
      * The message as stored now, or null for none.
      */
     public function find(string $id): ?MailMessage;
+
+    /**
+     * Sets, or with null clears, the moment from which the message may be purged.
+     * Nothing happens for an unknown message.
+     */
+    public function schedulePurge(string $id, ?\DateTimeImmutable $after): void;
+
+    /**
+     * The ids of the messages whose purge date has passed, the earliest first.
+     *
+     * @return list<string>
+     */
+    public function duePurge(\DateTimeImmutable $now, int $limit): array;
+
+    /**
+     * Removes the row, by one statement.
+     *
+     * @return bool false when another table still refers to it, so the row stays
+     */
+    public function delete(string $id): bool;
 }

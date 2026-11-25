@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Mail\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
@@ -80,6 +81,37 @@ final readonly class DoctrineMailMessages implements MailMessages
         );
 
         return is_numeric($count) ? (int) $count : 0;
+    }
+
+    public function schedulePurge(string $id, ?\DateTimeImmutable $after): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE mail_message SET purge_after = :after WHERE id = :id',
+            ['after' => $after?->setTimezone(new \DateTimeZone('UTC')), 'id' => $id],
+            ['after' => Types::DATETIME_IMMUTABLE],
+        );
+    }
+
+    public function duePurge(\DateTimeImmutable $now, int $limit): array
+    {
+        $ids = $this->connection->fetchFirstColumn(
+            'SELECT id FROM mail_message WHERE purge_after IS NOT NULL AND purge_after <= :now ORDER BY purge_after, id LIMIT '.max(1, $limit),
+            ['now' => $now->setTimezone(new \DateTimeZone('UTC'))],
+            ['now' => Types::DATETIME_IMMUTABLE],
+        );
+
+        return array_values(array_filter($ids, \is_string(...)));
+    }
+
+    public function delete(string $id): bool
+    {
+        try {
+            $this->connection->executeStatement('DELETE FROM mail_message WHERE id = :id', ['id' => $id]);
+        } catch (ForeignKeyConstraintViolationException) {
+            return false;
+        }
+
+        return true;
     }
 
     public function find(string $id): ?MailMessage

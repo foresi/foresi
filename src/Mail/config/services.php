@@ -20,11 +20,15 @@ use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\PollFailures;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\StoredMessages;
+use Foresi\Mail\Application\StoredRetention;
 use Foresi\Mail\Application\TrustSettings;
 use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\CrossPurposeDuplicates;
 use Foresi\Mail\Contract\InboundPurpose;
+use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Infrastructure\CachePollFailures;
+use Foresi\Mail\Infrastructure\Doctrine\DoctrineCrossPurposeDuplicates;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineInboundAddresses;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineMailMessages;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineMailTransaction;
@@ -62,6 +66,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(MailParts::class, ZbatesonMailReader::class);
     $services->alias(Messages::class, StoredMessages::class);
     $services->alias(AddressIssuer::class, IssueAddresses::class);
+    $services->alias(CrossPurposeDuplicates::class, DoctrineCrossPurposeDuplicates::class);
+    $services->alias(MessageRetention::class, StoredRetention::class);
 
     // Raw mail as it arrived; never below public/. Back it up with the database.
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');
@@ -99,6 +105,10 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     if ('test' === $container->env()) {
         // Inside the test cache, so a test never writes to the real share directory.
         $container->parameters()->set('app.inbound_mail_dir', '%kernel.cache_dir%/inbound-mail');
+
+        // Contracts nothing in a test boot uses yet, reached by the Mail tests.
+        $services->alias(CrossPurposeDuplicates::class, DoctrineCrossPurposeDuplicates::class)->public();
+        $services->alias(MessageRetention::class, StoredRetention::class)->public();
 
         // The operator mailbox in memory, and an inbound file store a test can make fail.
         $services->set(FakeInboundMailbox::class);

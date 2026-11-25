@@ -28,6 +28,7 @@ use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Domain\InboundChannel;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Banking\Support\Scalars;
 use Psr\Clock\ClockInterface;
@@ -208,6 +209,7 @@ final class KbEndToEndTest extends InboundTestCase
             $container->get(ClockInterface::class),
             $container->get(DailyLimit::class),
             $container->get(NotifyOverLimit::class),
+            $container->get(EventRecorder::class),
         );
 
         self::assertSame(ReceiveOutcome::Stored, $receive->receive($this->notice('incoming-booked'), InboundChannel::Webhook));

@@ -8,12 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Mail\Application;
 
+use Foresi\Mail\Contract\Event\MailMessageReceived;
 use Foresi\Mail\Contract\InboundMail;
 use Foresi\Mail\Contract\InboundPurpose;
 use Foresi\Mail\Contract\NotAccepted;
 use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Mail\Domain\MailMessage;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
@@ -29,6 +31,10 @@ use Psr\Clock\ClockInterface;
  * second fetch after a crash, or one fetch and one post of the same bytes. A
  * copy with a Message-ID stored already but other bytes is a row of its own, so
  * junk that took the ID of a notice never keeps the notice out.
+ *
+ * Once the purpose has accepted a mail, the thin event mail.message.received is
+ * recorded in the same transaction: a mail that is refused, fails or is a duplicate
+ * records none.
  *
  * Nothing is kept of a mail for no known address, for an address whose purpose
  * no installed module registered, or one its purpose refuses, or for an address
@@ -69,6 +75,7 @@ final readonly class ReceiveMail
         private ClockInterface $clock,
         private DailyLimit $limit,
         private NotifyOverLimit $overLimit,
+        private EventRecorder $events,
     ) {
     }
 
@@ -123,11 +130,12 @@ final readonly class ReceiveMail
                 $mail->messageId(), $this->inReplyTo($mail), $this->references($mail), $mail->from(), $mail->subject(), $mail->date(),
                 $now, $verdict->result, $verdict->basis,
             );
-            $stored = $this->transaction->run(function () use ($message, $purpose, $id, $addressId): bool {
+            $stored = $this->transaction->run(function () use ($message, $purpose, $id, $address, $addressId): bool {
                 if (!$this->messages->add($message)) {
                     return false;
                 }
                 $purpose->accept($id, $addressId);
+                $this->events->record(new MailMessageReceived($id, $address->purpose()));
 
                 return true;
             });

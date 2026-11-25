@@ -72,8 +72,17 @@ Other modules reach Mail only through `Foresi\Mail\Contract`:
 | `Messages` | Read a stored message: the view, the raw bytes, the plain text, the attachments, the parsed mail, the authentication results in header order and the sender verdict |
 | `MailMessageView` | The id, address, purpose, channel, headers, sender, subject, dates, verdict, SHA-256 and size of one message |
 | `InboundMail` | The parsed message that parsers read |
+| `CrossPurposeDuplicates` | The other stored messages with the same `Message-ID` and the same bytes that arrived under an address of another purpose |
+| `MessageRetention` | `release()` schedules the removal of a discarded message's row and raw file; `keep()` takes the release back |
+| `Event\MailMessageReceived` | The event `mail.message.received` |
 
-Mail events and further consumers come with later steps; there is none yet.
+### The event
+
+When a purpose has accepted a mail, `mail.message.received` is recorded in the same transaction. It carries the message id and the key of the purpose, and nothing of the mail: no address, sender, subject or text. The consumer that owns the purpose reads the message through `Messages`. A mail that is refused, fails or is a duplicate records no event. The people who may read the events of Mail are the owners and members; the arrival of a mail for a person's own address is seen by that person only, in the feed and in their webhooks, and one for an address nobody owns, such as the bank feed, by every reader.
+
+### Retention
+
+Nothing removes a message until its consumer releases it, for example when the person discards the item made of it. The operator task `mail-purge` runs daily and removes, a batch at a time, the row and the raw file of each message whose release date has passed. A row another table still refers to is kept with its file, and the task logs its id and tries again the next day.
 
 ## Dedup, the raw store and the row
 

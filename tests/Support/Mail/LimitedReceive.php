@@ -20,6 +20,7 @@ use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\NotifyOverLimit;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\SenderVerdict;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 use Psr\Log\AbstractLogger;
 
@@ -101,6 +102,7 @@ final readonly class LimitedReceive
                     $this->records->append(['level' => \is_string($level) ? $level : '', 'message' => (string) $message, 'context' => (string) json_encode($context)]);
                 }
             }),
+            self::get($service, EventRecorder::class),
         ), $logged);
     }
 }
