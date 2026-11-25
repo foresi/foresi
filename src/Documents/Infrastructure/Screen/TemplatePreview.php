@@ -48,7 +48,9 @@ final readonly class TemplatePreview
     {
         $padding = \sprintf('%smm %smm %smm %smm', self::mm($page->marginTopMm), self::mm($page->marginRightMm), self::mm($page->marginBottomMm), self::mm($page->marginLeftMm));
 
-        return '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;padding:'.$padding.';font-family:Inter,system-ui,sans-serif;font-size:11pt;line-height:1.4}</style></head><body>'.$html.'</body></html>';
+        // A style attribute, not a <style> element: the srcdoc frame inherits the page's
+        // Content-Security-Policy, which allows style attributes but no style element without a nonce.
+        return '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:'.$padding.';font-family:Inter,system-ui,sans-serif;font-size:11pt;line-height:1.4">'.$html.'</body></html>';
     }
 
     private static function mm(float $value): string

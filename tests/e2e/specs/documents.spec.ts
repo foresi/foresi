@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { signIn } from '../support/session';
 
 // The world of this spec in tests/e2e/seed/documents.php: the NDA type, a template of it without

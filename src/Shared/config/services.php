@@ -7,10 +7,12 @@
 declare(strict_types=1);
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Shared\Application\Http\ContentSecurityPolicySource;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
+use Foresi\Shared\Infrastructure\Http\ContentSecurityPolicy;
 use Foresi\Shared\Infrastructure\Migration\ModuleVersionComparator;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
@@ -37,7 +39,14 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->set('env(OPERATOR_EMAIL)', '')
         // Mail of the installation itself, such as invitations; empty sends none (docs/operations.md).
         ->set('env(SYSTEM_MAILER_DSN)', '')
-        ->set('env(SYSTEM_MAIL_FROM)', '');
+        ->set('env(SYSTEM_MAIL_FROM)', '')
+        // The security headers (docs/operations.md, "Security headers"). HSTS is sent over HTTPS
+        // only; development keeps it off so that a local https server does not pin localhost.
+        ->set('env(HSTS_MAX_AGE)', 'dev' === $container->env() ? '0' : '31536000')
+        ->set('env(HSTS_INCLUDE_SUBDOMAINS)', '1')
+        ->set('env(CSP_REPORT_URI)', '')
+        ->set('foresi.hsts.max_age', '%env(int:HSTS_MAX_AGE)%')
+        ->set('foresi.hsts.include_subdomains', '%env(bool:HSTS_INCLUDE_SUBDOMAINS)%');
 
     $services->set(RegistryCache::class)
         ->arg('$registryCache', service('cache.registry'));
@@ -51,6 +60,11 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // A module's lists that saved views apply to, whichever module declares them.
     $builder->registerForAutoconfiguration(ListDefinitionSource::class)->addTag(ListDefinitionSource::TAG);
+
+    // What modules add to the Content-Security-Policy of the pages.
+    $builder->registerForAutoconfiguration(ContentSecurityPolicySource::class)->addTag(ContentSecurityPolicySource::TAG);
+    $services->set(ContentSecurityPolicy::class)
+        ->arg('$reportUri', '%env(CSP_REPORT_URI)%');
 
     // The firewall of the public routes that are stateless too (config/packages/security.yaml).
     $services->set('foresi.security.public_stateless_route', PublicRoute::class)

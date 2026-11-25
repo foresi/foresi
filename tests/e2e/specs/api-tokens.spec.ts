@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, request as playwrightRequest, test, type APIRequestContext } from '@playwright/test';
+import { expect, request as playwrightRequest, test, type APIRequestContext } from '../support/test';
 import { signIn, worldHeader } from '../support/session';
 import { totpCode } from '../support/totp';
 

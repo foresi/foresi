@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { signIn, worldState } from '../support/session';
 
 // The owner of "Example People" in tests/e2e/seed.php; the e2e installation has no system mail.
