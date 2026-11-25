@@ -152,6 +152,8 @@ test.describe('the task', () => {
   test('shows the time against the estimate', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await expect(page.locator('[data-task-time-total]')).toHaveText('4 h 30 min z 5 h');
     await expect(page.locator('[data-task-time] [data-time-entry]')).toHaveCount(3);
@@ -161,6 +163,8 @@ test.describe('the task', () => {
   test('logs time in the dialog, billable as the project is, and the week has it today', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
     // The task opens in the sheet; the dialog over it hands back to the sheet, not to a page.
     const sheet = page.locator('dialog#sheet');
@@ -189,6 +193,8 @@ test.describe('the task', () => {
     const title = 'Write the copy for the about page';
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: title, exact: true }).click();
     await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-running-timer]')).toHaveCount(0);
@@ -300,6 +306,8 @@ test.describe('on a phone', () => {
   test('the task with its time has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await expect(page.locator('[data-task-time] [data-time-entry]').first()).toBeVisible();
     await expectNoSeriousViolations(page);

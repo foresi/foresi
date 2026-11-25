@@ -37,6 +37,8 @@ async function freezeDates(page: Page, scope: Locator): Promise<void> {
 async function openWebsite(page: Page): Promise<void> {
   await page.goto('/projects');
   await page.getByRole('link', { name: 'Website', exact: true }).click();
+  // The projects list has a New task of its own: wait for the project before acting on it.
+  await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
   await expect(page.locator('main h1')).toHaveText('Website');
 }
 

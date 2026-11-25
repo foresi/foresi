@@ -78,6 +78,8 @@ test.describe('the guest', () => {
     await owner.goto('/projects');
     const office = await owner.getByRole('link', { name: 'Office move', exact: true }).getAttribute('href');
     await owner.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(owner.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     const contactForm = await owner.getByRole('link', { name: 'Fix the contact form', exact: true }).getAttribute('href');
     await owner.context().close();
 
@@ -114,6 +116,8 @@ test.describe('the owner', () => {
   test('shares a task with the guest from its header, and the guest finds it on their start page', async ({ page, browser }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Fix the contact form', exact: true }).click();
     await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Fix the contact form');
@@ -138,6 +142,8 @@ test.describe('the owner', () => {
   test('makes a task private, and a team member it is not shared with no longer sees it', async ({ page, browser }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Review the cookie banner', exact: true }).click();
     await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('Review the cookie banner');
@@ -160,6 +166,8 @@ test.describe('the owner', () => {
     await expect(member).not.toHaveURL(/\/login/);
     await member.goto('/projects');
     await member.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(member.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await expect(member.getByRole('link', { name: 'Design the homepage', exact: true })).toBeVisible();
     await expect(member.locator('main')).not.toContainText('Review the cookie banner');
     const response = await member.goto(address);
