@@ -182,7 +182,9 @@ function times(string $root, array $arguments): int
     $previous = readTimes($arguments[2] ?? '');
 
     // A mutant starts with testStarted, which names its file in locationHint, and ends with
-    // testFinished, which carries its duration in milliseconds.
+    // testFinished (killed), testFailed (escaped) or testIgnored, which carry its duration in
+    // milliseconds. An escaped mutant runs every test that covers it, so it is often the
+    // dearest of its file.
     $fileOf = [];
     $times = [];
     $finished = [];
@@ -198,7 +200,7 @@ function times(string $root, array $arguments): int
         } elseif (str_contains($line, '##teamcity[testSuiteFinished ')
             && preg_match("/name='([^']+)'/", $line, $match)) {
             $finished[$match[1]] = true;
-        } elseif (str_contains($line, '##teamcity[testFinished ')
+        } elseif (preg_match('/^##teamcity\\[test(?:Finished|Failed|Ignored) /', $line)
             && preg_match("/nodeId='([^']+)'.*duration='(\\d+)'/", $line, $match)
             && isset($fileOf[$match[1]])) {
             $path = $fileOf[$match[1]];
