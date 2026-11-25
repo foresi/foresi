@@ -17,6 +17,7 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
@@ -133,6 +134,7 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
      */
     public function sharesOf(array $subjectIds): array
     {
+        $subjectIds = Id::onlyUuids($subjectIds);
         /** @var list<array{id: string, net: int, vat: int}> $documents */
         $documents = $this->entityManager->createQuery('SELECT i.id AS id, i.netMinor AS net, i.vatMinor AS vat FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
             ->setParameter('ids', $subjectIds)

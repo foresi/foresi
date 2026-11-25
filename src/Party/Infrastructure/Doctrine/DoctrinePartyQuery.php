@@ -27,6 +27,7 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Roles live in a JSON column, so the role filter and the counts
@@ -123,6 +124,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     public function findMany(array $ids): array
     {
+        $ids = Id::onlyUuids($ids);
         if ([] === $ids) {
             return [];
         }
