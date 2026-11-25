@@ -15,6 +15,7 @@ use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Domain\ItemState;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;
+use Foresi\Shared\Domain\Id;
 
 /**
  * The person's own inbox: a page of their items outside the trash, the newest
@@ -45,6 +46,8 @@ final readonly class ItemReads
     {
         $owner = $this->access->me();
         $limit = max(1, min(self::MAX_LIMIT, $limit));
+        // A cursor that is no item id, such as a crafted ?after=, starts at the top.
+        $afterId = null !== $afterId && Id::isValid($afterId) ? $afterId : null;
         $items = $this->store->page($owner, $state, $unmatched, $afterId, $limit + 1);
         $hasMore = \count($items) > $limit;
         $items = \array_slice($items, 0, $limit);

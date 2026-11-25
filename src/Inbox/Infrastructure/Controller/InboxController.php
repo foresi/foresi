@@ -34,6 +34,7 @@ use Foresi\Mail\Contract\MailAttachmentContent;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\SenderCheck;
+use Foresi\Mail\Contract\UnknownMailMessage;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Contract\PartyDirectory;
@@ -216,7 +217,12 @@ final class InboxController extends AbstractController
         if (!$known || !$detail->message instanceof MailMessageView) {
             throw new NotFoundHttpException('The mail has no attachment with this number.');
         }
-        $content = $this->messages->attachment($detail->message->id, $index);
+        try {
+            $content = $this->messages->attachment($detail->message->id, $index);
+        } catch (UnknownMailMessage $gone) {
+            // Removed or unreadable since the page was read.
+            throw new NotFoundHttpException('The mail has no attachment with this number.', $gone);
+        }
 
         return $this->download($content, $index);
     }
@@ -543,7 +549,12 @@ final class InboxController extends AbstractController
      */
     private function fromName(string $messageId): string
     {
-        $from = $this->messages->mail($messageId)->headers('From')[0] ?? '';
+        try {
+            $from = $this->messages->mail($messageId)->headers('From')[0] ?? '';
+        } catch (\RuntimeException|\InvalidArgumentException) {
+            // The raw file is missing, changed or not a mail: the dialog starts without a name.
+            return '';
+        }
         if (1 === preg_match('/^\s*"?([^"<]{1,200}?)"?\s*<[^>]+>\s*$/u', $from, $match)) {
             return trim($match[1]);
         }
