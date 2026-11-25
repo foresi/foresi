@@ -13,6 +13,7 @@ use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
 use Foresi\Shared\Infrastructure\Http\ContentSecurityPolicy;
+use Foresi\Shared\Infrastructure\Mcp\ReadToolLoader;
 use Foresi\Shared\Infrastructure\Migration\ModuleVersionComparator;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Registry\PublicRegistryClient;
@@ -61,6 +62,10 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->set(PublicRegistryClient::class)
         ->arg('$registryOutgoingLimiter', service('limiter.registry_outgoing'));
     $services->alias(Sealer::class, SodiumSealer::class);
+
+    // The MCP tools are named after the module each belongs to.
+    $services->set(ReadToolLoader::class)
+        ->arg('$modules', inline_service(ModuleGraph::class)->factory([service(InstalledModules::class), 'graph']));
 
     // The order of the migrations of all modules (config/packages/doctrine_migrations.yaml).
     $services->set(ModuleVersionComparator::class)

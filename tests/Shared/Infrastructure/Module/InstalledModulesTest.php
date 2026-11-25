@@ -68,7 +68,7 @@ final class InstalledModulesTest extends TestCase
 
     public function testReadsHardAndOptionalDependencies(): void
     {
-        $manifest = InstalledModules::manifestFrom(self::composer(), ['foresi/shared', 'foresi/work', 'foresi/timesheet']);
+        $manifest = InstalledModules::manifestFrom(self::composer(), ['foresi/shared' => 'shared', 'foresi/work' => 'work', 'foresi/timesheet' => 'timesheet']);
 
         self::assertSame(['shared', 'work'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
         self::assertSame(['invoicing'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->optional));
@@ -135,7 +135,16 @@ final class InstalledModulesTest extends TestCase
         $composer = self::composer();
         yield 'unknown kind' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['kind' => 'plugin']]])];
         yield 'package not named after the id' => [array_replace_recursive($composer, ['name' => 'foresi/time'])];
-        yield 'namespace outside App' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['namespace' => 'Vendor\\Timesheet\\']]])];
+        yield 'a Foresi package outside the Foresi namespace' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['namespace' => 'Vendor\\Timesheet\\']]])];
+        yield 'a Foresi namespace below a module' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['namespace' => 'Foresi\\Timesheet\\Hours\\']]])];
+        yield 'a namespace the autoload does not declare' => [array_replace($composer, ['autoload' => ['psr-4' => ['Foresi\\Time\\' => '']]])];
+        yield 'an id the namespace does not give' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['module' => 'hours']], 'name' => 'foresi/hours'])];
+        yield 'a package name that is not one' => [array_replace($composer, ['name' => 'Foresi Timesheet'])];
+        yield 'the module API without a range' => [array_replace_recursive($composer, ['require' => ['foresi/module-api' => ['^1.0']]])];
+        yield 'another vendor in the Foresi namespace' => [self::acme(['extra' => ['foresi' => ['namespace' => 'Foresi\\Fleet\\', 'module' => 'fleet', 'bundle' => 'Foresi\\Fleet\\FleetBundle']], 'autoload' => ['psr-4' => ['Foresi\\Fleet\\' => '']]])];
+        yield 'another vendor with an id its namespace does not give' => [self::acme(['extra' => ['foresi' => ['module' => 'fleet']]])];
+        yield 'another vendor with a bundle not named after the id' => [self::acme(['extra' => ['foresi' => ['bundle' => 'Acme\\Fleet\\FleetBundle']]])];
+        yield 'a namespace of one segment' => [self::acme(['extra' => ['foresi' => ['namespace' => 'Acme\\', 'module' => 'acme', 'bundle' => 'Acme\\AcmeBundle']], 'autoload' => ['psr-4' => ['Acme\\' => '']]])];
         yield 'scopes not a list' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => 'hours']]])];
         yield 'a guest scope without how far' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => [['resource' => 'hours']]]]])];
         yield 'a guest scope going further than writing' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['scopes' => [['resource' => 'hours', 'guest' => 'admin']]]]])];
@@ -158,6 +167,39 @@ final class InstalledModulesTest extends TestCase
         $this->expectException(InvalidManifest::class);
 
         InstalledModules::manifestFrom($composer, []);
+    }
+
+    public function testAModuleOfAnotherVendorHasTheIdOfItsNamespace(): void
+    {
+        $manifest = InstalledModules::manifestFrom(self::acme(), ['foresi/shared' => 'shared', 'foresi/party' => 'party', 'acme/fleet' => 'acme-fleet']);
+
+        self::assertSame('acme-fleet', $manifest->id->value);
+        self::assertSame('acme/fleet', $manifest->package);
+        self::assertSame('Acme\\Fleet\\', $manifest->namespace);
+        self::assertSame('Acme\\Fleet\\AcmeFleetBundle', $manifest->bundle);
+        self::assertSame(['shared', 'party'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
+        self::assertSame('^1.0', $manifest->moduleApi);
+    }
+
+    public function testARequiredModuleIsFoundByItsPackageWhateverItsVendor(): void
+    {
+        $composer = array_replace_recursive(self::composer(), ['require' => ['acme/fleet' => '*']]);
+
+        $manifest = InstalledModules::manifestFrom($composer, ['acme/fleet' => 'acme-fleet', 'foresi/work' => 'work']);
+
+        self::assertSame(['work', 'acme-fleet'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
+    }
+
+    public function testAModuleWithoutTheModuleApiHasNoRange(): void
+    {
+        self::assertNull(InstalledModules::manifestFrom(self::composer(), [])->moduleApi);
+    }
+
+    public function testEveryModuleRequiresTheModuleApi(): void
+    {
+        foreach ($this->modules()->graph()->all() as $module) {
+            self::assertSame('^1.0', $module->moduleApi, $module->id->value);
+        }
     }
 
     public function testAcceptedProblemsComeFromTheRootComposerJson(): void
@@ -197,6 +239,7 @@ final class InstalledModulesTest extends TestCase
             'name' => 'foresi/timesheet',
             'type' => 'foresi-module',
             'require' => ['foresi/shared' => '*', 'foresi/work' => '*', 'psr/clock' => '^1.0'],
+            'autoload' => ['psr-4' => ['Foresi\\Timesheet\\' => '']],
             'extra' => ['foresi' => [
                 'module' => 'timesheet',
                 'kind' => 'module',
@@ -204,6 +247,29 @@ final class InstalledModulesTest extends TestCase
                 'optional' => ['invoicing'],
             ] + ($bundle ? ['bundle' => TimesheetBundle::class] : [])],
         ];
+    }
+
+    /**
+     * The manifest of a module of another vendor, with $changes merged in.
+     *
+     * @param array<mixed> $changes
+     *
+     * @return array<mixed>
+     */
+    private static function acme(array $changes = []): array
+    {
+        return array_replace_recursive([
+            'name' => 'acme/fleet',
+            'type' => 'foresi-module',
+            'require' => ['foresi/module-api' => '^1.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
+            'autoload' => ['psr-4' => ['Acme\\Fleet\\' => '']],
+            'extra' => ['foresi' => [
+                'module' => 'acme-fleet',
+                'kind' => 'module',
+                'namespace' => 'Acme\\Fleet\\',
+                'bundle' => 'Acme\\Fleet\\AcmeFleetBundle',
+            ]],
+        ], $changes);
     }
 
     private function modules(): InstalledModules

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Module;
 
+use Foresi\Shared\Contract\ModuleApi;
 use Foresi\Shared\Domain\Module\GraphProblem;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
@@ -44,7 +45,8 @@ final class ProjectModulesTest extends TestCase
      * Every package is split into its own repository and installed from
      * Packagist.org (ADR 0034, Distribution), so each one must stand on its own:
      * the licence text travels with it, and the packages of this repository
-     * require each other at the same version, as they are released in lockstep.
+     * require each other at the same version, as they are released in lockstep,
+     * and the module API at the range this Foresi provides.
      */
     public function testEveryPackageCanBePublishedOnItsOwn(): void
     {
@@ -67,11 +69,22 @@ final class ProjectModulesTest extends TestCase
             self::assertFileExists($directory.'/LICENSE', \sprintf('%s ships without the licence text; copy LICENSE into it.', $package));
             self::assertSame($licence, file_get_contents($directory.'/LICENSE'), \sprintf('%s/LICENSE differs from LICENSE.', $package));
             foreach ((array) ($composer['require'] ?? []) as $dependency => $constraint) {
-                if (str_starts_with((string) $dependency, 'foresi/')) {
+                // The module API has a version of its own, not the release's (ADR 0044).
+                if (ModuleApi::PACKAGE === $dependency) {
+                    self::assertSame('^1.0', $constraint, \sprintf('%s must require %s at ^1.0, the major this Foresi provides.', $package, $dependency));
+                } elseif (str_starts_with((string) $dependency, 'foresi/')) {
                     self::assertSame('self.version', $constraint, \sprintf('%s must require %s at self.version.', $package, $dependency));
                 }
             }
         }
+    }
+
+    public function testSharedProvidesTheModuleApiOfTheContract(): void
+    {
+        $composer = json_decode((string) file_get_contents($this->projectDir().'/src/Shared/composer.json'), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($composer);
+
+        self::assertSame([ModuleApi::PACKAGE => ModuleApi::VERSION], $composer['provide'] ?? null, 'foresi/shared provides the module API at ModuleApi::VERSION.');
     }
 
     public function testProblemsAreExactlyTheAcceptedOnes(): void

@@ -1768,7 +1768,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "40b927542ed9ccca4bdb2e65e9757a807dff4259"
+                "reference": "09d879643b33dfe817ab5cbb9faf59b853625c52"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1779,6 +1779,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -1834,7 +1835,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "d1dbf71b9a5c4772bce1053a59c50cf9ac2c1678"
+                "reference": "266e5df8a63c0bcdb9fd8e24f7589707a2ee21fc"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1843,6 +1844,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
@@ -1891,7 +1893,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "ced09e24c0370e1e5550f586270a14137f210925"
+                "reference": "d13f754bb499b80a7d01e8244271abce9f81fe17"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1899,6 +1901,7 @@
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "symfony/clock": "^7.4 || ^8.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0"
@@ -1941,7 +1944,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "8ebad19ef4c6d65940e72d2558a77f6181c13389"
+                "reference": "dc294321b36b95927dffd1927e0ec165442a6cd1"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1952,6 +1955,7 @@
                 "foresi/instance": "self.version",
                 "foresi/invoicing": "self.version",
                 "foresi/mail": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -2006,7 +2010,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Calendar",
-                "reference": "1c93ae40765871a4accb342cb62090b6486508f1"
+                "reference": "b36d7010dd3a9497f7622f42897e5cbb1a4465c0"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2015,6 +2019,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/log": "^3.0",
@@ -2068,7 +2073,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "c8b532e614988b170ac7523688b0587882ede965"
+                "reference": "243130517b9eaf7dbec070e074600713e22eb5b8"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2078,6 +2083,7 @@
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -2136,7 +2142,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "08cb256cbdb2aed3cf830629154cd8802d6a3683"
+                "reference": "e8a7bfd06eaeb933b0e13df06605f70e5dddded2"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2146,6 +2152,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -2229,10 +2236,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "0b591f1a104921066cd0269552b18ff46a4b492f"
+                "reference": "8b45173746d3c6d7e4f2d945b85dd74a4deccc61"
             },
             "require": {
                 "chillerlan/php-qrcode": "^6.0.1",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
@@ -2281,7 +2289,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Documents",
-                "reference": "f1e116615f5b75cfbc80782279989d254d6072ae"
+                "reference": "5dbd6ecc3e077cb1a864fbf2ae7fea72d1ef3a69"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2292,6 +2300,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
@@ -2347,7 +2356,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "7ac485b4ca200e7e77708e6ef6eacca298bdd0d6"
+                "reference": "ce59c038055aa76332ecc8e0689c6752b3bcde55"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2357,6 +2366,7 @@
                 "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
                 "psr/event-dispatcher": "^1.0",
@@ -2413,13 +2423,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "7de4298a0cb148be7ebbffc488e2bdf8d344b014"
+                "reference": "7b438209a89e4af6f8e3771e083d0fd78aa72ce1"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
                 "symfony/console": "7.4.*",
@@ -2463,7 +2474,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "e69fd19c671ab852999591d33c796b6e48822d82"
+                "reference": "e18ba0f0f63022e22009cbbf47ef502c3aec73a9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2472,6 +2483,7 @@
                 "doctrine/orm": "^3.7.5",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -2536,7 +2548,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "5e415a995920bff3a46db067acb5b84b1c8873b4"
+                "reference": "f2590da6a2d0906431f7cf645c564f573bb0092f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2548,6 +2560,7 @@
                 "foresi/import": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/invoicing": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
@@ -2600,7 +2613,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "71b815647345cbc6fb28d41fa8b13ef8ebe0329a"
+                "reference": "d00fbc8a9e9e3600e4af08870d07e8941b027f3c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2610,6 +2623,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "openspout/openspout": "^5.12",
@@ -2664,12 +2678,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "9031fc0598c5fec3bf06a69c067303450437395a"
+                "reference": "faa5a532d9ce26116d041a11b5cdbaa72ac6259b"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
@@ -2724,7 +2739,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "7e5904bd52409a8f82c43c0838f548c4c2373b65"
+                "reference": "e70cb1c1839d3f8874c2469d416594e85483abb9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2733,6 +2748,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -2809,7 +2825,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Mail",
-                "reference": "42de23a0206dc6ef62c441f832b1f3b9d85e244a"
+                "reference": "0590696f8fc955ad364d680283944e4aeedae65c"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -2818,18 +2834,22 @@
                 "doctrine/orm": "^3.7.5",
                 "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "psr/cache": "^3.0",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "symfony/cache": "7.4.*",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/rate-limiter": "7.4.*",
                 "symfony/routing": "^7.4",
-                "zbateson/mail-mime-parser": "^4.0.8"
+                "zbateson/mail-mime-parser": "^4.0.8",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -2838,7 +2858,10 @@
                     "kind": "module",
                     "namespace": "Foresi\\Mail\\",
                     "bundle": "Foresi\\Mail\\MailBundle",
-                    "optional": []
+                    "optional": [],
+                    "scopes": [
+                        "mail_addresses"
+                    ]
                 }
             },
             "autoload": {
@@ -2869,7 +2892,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Margin",
-                "reference": "b54d33f4d14ea892318fb83de3b718433ad050dc"
+                "reference": "cc7ac63002c725544dbedcefd6482c22e3fc3936"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2879,6 +2902,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -2939,7 +2963,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "ae1cbe7b03ddd896e5c19cf48d918182bee67e4e"
+                "reference": "3d0b60b14b2183b39aa0873b5971f063f48d9731"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2948,6 +2972,7 @@
                 "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
@@ -3010,7 +3035,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "365acc04621098283dd0a11b46aa9f76262d2f4e"
+                "reference": "7677627580b0777187de19adb0c79dfc8348eec9"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3024,6 +3049,7 @@
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3089,7 +3115,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "35790194c011e2cc070b937be030f4195f76009f"
+                "reference": "227550f7ffd521d39123cdb4e79cd6a6ebbda996"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3101,6 +3127,7 @@
                 "foresi/catalog": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3161,16 +3188,18 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "aa38e4b6cd5c240824eaf70a071a11a7af75f89e"
+                "reference": "804968d1dfea60e4655e4ae8949d69349d322fad"
             },
             "require": {
                 "brick/math": "^1.0",
                 "brick/money": "^0.15.2",
+                "composer/semver": "^3.4",
                 "doctrine/dbal": "^4.5",
                 "doctrine/doctrine-bundle": "^3.3.4",
                 "doctrine/doctrine-migrations-bundle": "^4.0.1",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "foresi/module-api": "^1.0",
                 "guzzlehttp/psr7": "^3.2",
                 "league/commonmark": "^2.10",
                 "mcp/sdk": "^0.9",
@@ -3210,6 +3239,9 @@
                 "tecnickcom/tc-lib-pdf": "^8.82.2",
                 "twig/twig": "^3.30",
                 "zircote/swagger-php": "^7.5"
+            },
+            "provide": {
+                "foresi/module-api": "1.0.0"
             },
             "type": "foresi-module",
             "extra": {
@@ -3266,7 +3298,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "d6fa2fce059288a2d0c43c473f1002a3ab693275"
+                "reference": "2d66a07bc208405c3ddf8498c24c7fd6383d371a"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3276,6 +3308,7 @@
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3335,7 +3368,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "7200554aebdfc84b41307ab9aaa4bdc0916578c5"
+                "reference": "56983e75a09d883ea727a57eeef2c8cd4dfed09f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3345,6 +3378,7 @@
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/invoicing": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3395,9 +3429,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "c7b3bbfcf12fd4f37b6d6c3365f4fc96d08d137c"
+                "reference": "131b87b20130e62202d397e3a938787c7562b902"
             },
             "require": {
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/event-dispatcher": "^7.4",
@@ -3459,7 +3494,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "76d4cf96bf9a139a3eb0c8b357bb4dd3c4e90066"
+                "reference": "1ae0c3a2ae7c7e82c8632ecb3f9d0d846de96cfd"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3469,6 +3504,7 @@
                 "foresi/exchange-rate": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3528,7 +3564,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "13634a36ba90e0f391ec59f6aa741e3a7f9bfc44"
+                "reference": "ca7bb0670ebc016c1ffde612cb056bc167ab1c7d"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3540,6 +3576,7 @@
                 "foresi/events": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
@@ -3601,7 +3638,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "1042f89afc87edf15733e4f8ffe9df5b60cd7e1e"
+                "reference": "8e5ed57aca9bf2a6c6585b4881eb82ba67c0026a"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3611,6 +3648,7 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
@@ -3637,7 +3675,9 @@
                     "kind": "module",
                     "namespace": "Foresi\\Work\\",
                     "bundle": "Foresi\\Work\\WorkBundle",
-                    "optional": [],
+                    "optional": [
+                        "activities"
+                    ],
                     "scopes": [
                         {
                             "resource": "projects",
