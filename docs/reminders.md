@@ -21,7 +21,7 @@ The reminder run starts at **08:00** in the organisation's time zone every day (
 - it is outside the trash and was sent (by e-mail, or marked sent by hand);
 - it fell due on or after the day reminders were switched on, so switching on never sends a wave about old invoices;
 - its contact is reminded for this firm (below);
-- it still owes something after its recorded payments, and at least the minimum; an invoice in another currency is reminded whatever its amount;
+- it still owes something after its recorded payments, and at least the minimum, which is an amount in the home currency, the currency every invoice is issued in;
 - it has had fewer than 10 reminders, and there is an address to send to;
 - the day has come: the due date plus the first delay for the first reminder, the previous reminder's day plus the next delay after that.
 

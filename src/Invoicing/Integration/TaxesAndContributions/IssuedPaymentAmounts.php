@@ -25,6 +25,7 @@ use Foresi\TaxesAndContributions\Contract\OpenAmount;
 use Foresi\TaxesAndContributions\Contract\Subject;
 use Foresi\TaxesAndContributions\Contract\VatShare;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * The income actually received (B2, B3): each part of a payment that paid an
@@ -133,6 +134,11 @@ final readonly class IssuedPaymentAmounts implements ActualAmountSource
      */
     public function sharesOf(array $subjectIds): array
     {
+        // PostgreSQL refuses a value that is not a UUID in a uuid column; such an id names no document.
+        $subjectIds = array_values(array_filter($subjectIds, Uuid::isValid(...)));
+        if ([] === $subjectIds) {
+            return [];
+        }
         /** @var list<array{id: string, net: int, vat: int}> $documents */
         $documents = $this->entityManager->createQuery('SELECT i.id AS id, i.netMinor AS net, i.vatMinor AS vat FROM '.Invoice::class.' i WHERE i.id IN (:ids)')
             ->setParameter('ids', $subjectIds)

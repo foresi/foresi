@@ -2,7 +2,10 @@
 # phpstan-strict-rules, phpstan-symfony, phpstan-doctrine and phpstan-phpunit
 # are registered by phpstan/extension-installer.
 parameters:
-    level: max
+    # The highest level of PHPStan 2.x, written out instead of "max" so that a PHPStan release
+    # with a new level does not raise it unseen: a new level is adopted on purpose, in its own
+    # pull request.
+    level: 10
     paths:
         - src
         - tests
