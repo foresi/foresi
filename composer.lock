@@ -1835,10 +1835,11 @@
             "dist": {
                 "type": "path",
                 "url": "src/AiReader",
-                "reference": "ba5a63e7b3f09fee25e5fd99691d2860cc9d5a3d"
+                "reference": "9170151b0d77814fa7d462d19b4612b926473d7f"
             },
             "require": {
                 "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
                 "foresi/purchasing": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
