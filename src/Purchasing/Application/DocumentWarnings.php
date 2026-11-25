@@ -12,6 +12,7 @@ use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Domain\Party;
+use Foresi\Purchasing\Application\Mail\MailIntakes;
 use Foresi\Purchasing\Domain\ExchangeRate;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentKind;
@@ -31,6 +32,7 @@ final readonly class DocumentWarnings
 
     public function __construct(
         private DuplicateDocuments $duplicates,
+        private MailIntakes $intakes,
         private Attachments $attachments,
         private InstanceClock $clock,
     ) {
@@ -53,6 +55,9 @@ final readonly class DocumentWarnings
         }
         if ($this->simplifiedOverLimit($document)) {
             $warnings[] = new ReceivedDocumentWarning(ReceivedDocumentWarning::SIMPLIFIED_OVER_LIMIT);
+        }
+        if ($this->senderUnverified($document)) {
+            $warnings[] = new ReceivedDocumentWarning(ReceivedDocumentWarning::SENDER_UNVERIFIED);
         }
 
         return new ReceivedDocumentWarnings($warnings);
@@ -78,6 +83,16 @@ final readonly class DocumentWarnings
         $number = $document->supplierNumber();
 
         return $supplier instanceof Party && '' !== $number ? $this->duplicates->withSupplierNumber($supplier, $number, $document->id()) : [];
+    }
+
+    /**
+     * Derived from the verdict stored on the intake of the mail, never stored on the document.
+     */
+    private function senderUnverified(ReceivedDocument $document): bool
+    {
+        $mail = $document->sourceMailId();
+
+        return null !== $mail && 'failed' === $this->intakes->verdictOf($mail);
     }
 
     private function deadline(ReceivedDocument $document): ?ReceivedDocumentWarning

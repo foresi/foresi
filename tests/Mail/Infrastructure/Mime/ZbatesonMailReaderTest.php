@@ -160,6 +160,61 @@ final class ZbatesonMailReaderTest extends TestCase
         new ZbatesonMailReader($parser)->read("From: info@kb.cz\r\n\r\nBody\r\n");
     }
 
+    public function testMarksAnInlineLogoWithContentId(): void
+    {
+        $raw = $this->mixed(
+            "Content-Type: image/png; name=\"logo.png\"\r\nContent-Disposition: inline; filename=\"logo.png\"\r\nContent-ID: <logo@example.com>\r\nContent-Transfer-Encoding: base64\r\n\r\niVBORw0KGgo=",
+        );
+
+        $attachment = new ZbatesonMailReader()->attachments($raw)[0];
+
+        self::assertTrue($attachment->inline);
+        self::assertSame('logo@example.com', $attachment->contentId);
+        self::assertSame('logo.png', $attachment->name);
+    }
+
+    public function testAnAttachedPdfIsNotInline(): void
+    {
+        $raw = $this->mixed(
+            "Content-Type: application/pdf; name=\"invoice.pdf\"\r\nContent-Disposition: attachment; filename=\"invoice.pdf\"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=",
+        );
+
+        $attachment = new ZbatesonMailReader()->attachments($raw)[0];
+
+        self::assertFalse($attachment->inline);
+        self::assertNull($attachment->contentId);
+    }
+
+    public function testAnInlinePdfFromAppleMailIsInlineButKeptByName(): void
+    {
+        $raw = $this->mixed(
+            "Content-Type: application/pdf; name=\"invoice.pdf\"\r\nContent-Disposition: inline; filename=\"invoice.pdf\"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=",
+        );
+
+        $attachments = new ZbatesonMailReader()->attachments($raw);
+
+        self::assertCount(1, $attachments);
+        self::assertTrue($attachments[0]->inline);
+        self::assertNull($attachments[0]->contentId);
+        self::assertSame('invoice.pdf', $attachments[0]->name);
+    }
+
+    public function testAPartWithoutDispositionIsInlineOnlyWithAContentId(): void
+    {
+        $withId = $this->mixed("Content-Type: image/png; name=\"a.png\"\r\nContent-ID: <a@example.com>\r\nContent-Transfer-Encoding: base64\r\n\r\niVBORw0KGgo=");
+        $without = $this->mixed("Content-Type: application/pdf; name=\"b.pdf\"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=");
+
+        self::assertTrue(new ZbatesonMailReader()->attachments($withId)[0]->inline);
+        self::assertFalse(new ZbatesonMailReader()->attachments($without)[0]->inline);
+    }
+
+    private function mixed(string $part): string
+    {
+        return "From: sender@example.com\r\nSubject: Test\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"b1\"\r\n\r\n"
+            ."--b1\r\nContent-Type: text/plain\r\n\r\nBody\r\n"
+            ."--b1\r\n".$part."\r\n--b1--\r\n";
+    }
+
     private function read(string $fixture): InboundMail
     {
         return new ZbatesonMailReader()->read($this->raw($fixture));

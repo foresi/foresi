@@ -1,23 +1,111 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    Settings → Received documents: a host for the sections other modules add (PurchasingSlots::SETTINGS_SECTIONS), such
-    as the state of a reader. Each section is a card of its own; with none, the page says so.
+    Settings → Received documents. The capture address of the signed-in person: Mail keeps it, a new one and a
+    rename open in a dialog from the page header, and Replace and Revoke ask first, as the bank address of an
+    account does. The address is shown in full to its owner with a copy button. Then the steps that forward
+    supplier mail to it, and the recent e-mails with what came of each; their sender, subject and attachment
+    names are the sender's text, escaped by Twig. Last, the sections other modules add
+    (PurchasingSlots::SETTINGS_SECTIONS), such as the state of a reader, each a card of its own.
+    Variables: address (OwnAddress or null), revealed (the full address or null), lastReceived (when mail last came, formatted, or null), unavailable (why no address can
+    be made here, or null), mailGuide, recentColumns, recent.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'purchasing.settings.title'|trans}] %}
+{% set token = csrf_token(constant('Foresi\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentsSettingsController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set link_class = 'font-semibold text-current underline underline-offset-2 ' ~ focus %}
 
 {% block title %}{{ 'purchasing.settings.title'|trans }}{% endblock %}
 
-{% block content %}
-    {% set sections = slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::SETTINGS_SECTIONS')) %}
-    {% if sections is empty %}
-        <twig:Ui:EmptyState icon="settings" :title="'purchasing.settings.empty_title'|trans" :text="'purchasing.settings.empty_text'|trans" data-purchasing-settings-empty />
-    {% else %}
-        <div class="grid gap-4">
-            {% for item in sections %}
-                <div data-purchasing-settings-section>{{ include(item.template, item.data) }}</div>
-            {% endfor %}
-        </div>
+{% block actions %}
+    {% if address is null and unavailable is null %}
+        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_capture_address_new')" data-dialog aria-haspopup="dialog" data-capture-create>{{ 'purchasing.capture.create'|trans }}</twig:Ui:Button>
     {% endif %}
+    {% if address %}
+        <twig:Ui:MoreActions menuId="capture-address-actions">
+            <twig:block name="last">
+                <twig:Ui:MenuItem icon="pencil" :href="path('app_capture_address_rename', {id: address.id})" data-dialog aria-haspopup="dialog" data-capture-rename>{{ 'purchasing.capture.rename'|trans }}</twig:Ui:MenuItem>
+                <form method="post" action="{{ path('app_capture_address_replace', {id: address.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    data-confirm-title="{{ 'purchasing.capture.confirm.replace_title'|trans }}" data-confirm-text="{{ 'purchasing.capture.confirm.replace_text'|trans }}"
+                    data-confirm-accept="{{ 'purchasing.capture.replace'|trans }}" data-confirm-cancel="{{ 'purchasing.capture.keep'|trans }}" data-confirm-tone="danger" data-capture-replace>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="refresh-cw" :disabled="unavailable is not null">{{ 'purchasing.capture.replace'|trans }}</twig:Ui:MenuItem>
+                </form>
+                <form method="post" action="{{ path('app_capture_address_revoke', {id: address.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    data-confirm-title="{{ 'purchasing.capture.confirm.revoke_title'|trans }}" data-confirm-text="{{ 'purchasing.capture.confirm.revoke_text'|trans }}"
+                    data-confirm-accept="{{ 'purchasing.capture.revoke'|trans }}" data-confirm-cancel="{{ 'purchasing.capture.keep'|trans }}" data-confirm-tone="danger" data-capture-revoke>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" tone="danger" icon="x">{{ 'purchasing.capture.revoke'|trans }}</twig:Ui:MenuItem>
+                </form>
+            </twig:block>
+        </twig:Ui:MoreActions>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4" :role="tone == 'error' ? 'alert' : 'status'">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid gap-4">
+        <twig:Ui:Card :title="'purchasing.capture.title'|trans" icon="inbox" data-capture-address>
+            <div class="grid gap-3">
+                <p class="m-0 text-small text-muted">{{ 'purchasing.capture.intro'|trans }}</p>
+                {% if address %}
+                    {% if revealed %}
+                        <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'purchasing.capture.copied'|trans }}" data-copy-failed-value="{{ 'purchasing.capture.copy_failed'|trans }}">
+                            <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="capture-address" :label="address.label" :value="revealed" readonly spellcheck="false" autocomplete="off" data-copy-target="source" data-capture-value /></div>
+                            <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'purchasing.capture.copy'|trans }}</span></twig:Ui:Button>
+                            <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+                        </div>
+                        <p class="m-0 text-caption text-muted">{{ 'purchasing.capture.secret'|trans }}</p>
+                    {% else %}
+                        <twig:Ui:Alert tone="warning">{{ 'purchasing.capture.hidden'|trans({address: address.maskedAddress}) }}</twig:Ui:Alert>
+                    {% endif %}
+                    <p class="m-0 text-caption text-muted" data-capture-last>
+                        {%- if lastReceived %}{{ 'purchasing.capture.last'|trans({date: lastReceived}) }}{% else %}{{ 'purchasing.capture.last_none'|trans }}{% endif -%}
+                    </p>
+                    {% if address.limitReachedToday %}
+                        <twig:Ui:Alert tone="warning" data-capture-limit>{{ 'purchasing.capture.limit'|trans({count: address.droppedToday}) }}</twig:Ui:Alert>
+                    {% endif %}
+                {% elseif unavailable %}
+                    <twig:Ui:Alert tone="warning" data-capture-unavailable>{{ unavailable }} <a href="{{ mailGuide }}" target="_blank" rel="noopener" class="{{ link_class }}">{{ 'purchasing.capture.mail_guide'|trans }}</a></twig:Ui:Alert>
+                {% else %}
+                    <p class="m-0 text-text" data-capture-none>{{ 'purchasing.capture.none'|trans }}</p>
+                {% endif %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'purchasing.capture.forward.title'|trans" icon="send" data-capture-instructions>
+            <div class="grid gap-2">
+                {% for client, steps in {gmail: 3, outlook: 4, apple: 3} %}
+                    <details class="group" data-capture-forward="{{ client }}">
+                        <summary class="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-small font-semibold text-ink {{ focus }} [&::-webkit-details-marker]:hidden">
+                            {{ ux_icon('lucide:chevron-right', {class: 'size-4 transition-transform group-open:rotate-90', 'aria-hidden': 'true'}) }}
+                            <span>{{ ('purchasing.capture.forward.' ~ client ~ '.title')|trans }}</span>
+                        </summary>
+                        <ol class="m-0 mt-1.5 grid list-decimal gap-1 pl-9 text-small text-text">
+                            {% for step in 1..steps %}<li>{{ ('purchasing.capture.forward.' ~ client ~ '.step_' ~ step)|trans }}</li>{% endfor %}
+                        </ol>
+                    </details>
+                {% endfor %}
+                <p class="m-0 text-caption text-muted">{{ 'purchasing.capture.forward.what'|trans }}</p>
+            </div>
+        </twig:Ui:Card>
+
+        <section class="grid gap-2" aria-labelledby="capture-recent-title" data-capture-recent>
+            <h2 id="capture-recent-title" class="m-0 text-body font-semibold text-ink">{{ 'purchasing.capture.recent.title'|trans }}</h2>
+            {% if recent is empty %}
+                <p class="m-0 text-small text-muted" data-capture-recent-empty>{{ 'purchasing.capture.recent.empty'|trans }}</p>
+            {% else %}
+                <twig:Ui:DataTable :caption="'purchasing.capture.recent.title'|trans" :columns="recentColumns" :rows="recent" />
+            {% endif %}
+        </section>
+
+        {% for item in slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::SETTINGS_SECTIONS')) %}
+            <div data-purchasing-settings-section>{{ include(item.template, item.data) }}</div>
+        {% endfor %}
+    </div>
 {% endblock %}

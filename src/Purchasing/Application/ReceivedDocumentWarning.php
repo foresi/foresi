@@ -33,6 +33,9 @@ final readonly class ReceivedDocumentWarning
     /** No active contact has the supplier's registration or VAT number the reading found. */
     public const string SUPPLIER_NOT_FOUND = 'supplier_not_found';
 
+    /** The mail the draft was filed from failed the check of its sender. */
+    public const string SENDER_UNVERIFIED = 'sender_unverified';
+
     public const int DEADLINE_DAYS = 60;
 
     /**

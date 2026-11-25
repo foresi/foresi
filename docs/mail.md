@@ -49,7 +49,7 @@ The mailbox must deliver every plus-addressed variant into the one inbox, or a c
 - A token has 128 random bits, written as 26 characters of lowercase base32. The database keeps its SHA-256, for the lookup, and, only for a purpose that shows its address again, a copy sealed with `MAIL_SECRET_KEYS` (see [sending.md](sending.md#passwords-mail_secret_keys)). A copy of the database alone does not reveal an address.
 - **Rotating** an address replaces its token on the same row; the old address stops at once. **Revoking** it stops it for good. Mail for either is treated as for an unknown address.
 - Foresi finds the token in the first header, in this order, that holds an address made from the template: `X-Foresi-Recipient` (webhook only), `Delivered-To`, `X-Original-To`, `Envelope-To`, `X-Envelope-To`, `X-Forwarded-To`, `To`, `Cc`.
-- A **purpose** is a module's registration for its addresses: a key, a label, whether an owner is required, whether the address can be shown again, and `accept()`, which the receiver calls inside the transaction that stores the message. A module registers one by implementing `Foresi\Mail\Contract\InboundPurpose`, which carries the tag `foresi.mail.inbound_purpose` by autoconfiguration. A message for an address whose purpose key has no registered consumer is dropped unread and nothing is stored. Banking registers `bank_feed`.
+- A **purpose** is a module's registration for its addresses: a key, a label, whether an owner is required, whether the address can be shown again, and `accept()`, which the receiver calls inside the transaction that stores the message. A module registers one by implementing `Foresi\Mail\Contract\InboundPurpose`, which carries the tag `foresi.mail.inbound_purpose` by autoconfiguration. A message for an address whose purpose key has no registered consumer is dropped unread and nothing is stored. Banking registers `bank_feed`, Purchasing `received_documents`.
 - `accept()` may refuse a message by throwing `Foresi\Mail\Contract\NotAccepted`: the receiver rolls the transaction back, removes the raw file and treats the message as for an unknown address (Banking does so for an archived bank account). Any other exception rolls back, removes the file and is thrown again, so the message is taken again.
 
 ### A person's own addresses
@@ -76,10 +76,12 @@ Other modules reach Mail only through `Foresi\Mail\Contract`:
 |---|---|
 | `InboundPurpose` | A module's consumer of its addresses, described above |
 | `AddressIssuer` | Issue, rotate, reveal (only for a purpose that shows its address again) and revoke an address; `unavailable()` says why no address can be issued |
-| `Messages` | Read a stored message: the view, the raw bytes, the plain text, the attachments, the parsed mail, the authentication results in header order and the sender verdict |
+| `Messages` | Read a stored message: the view, the raw bytes, the plain text, the attachments (each says whether the sender embedded it inline, and its `Content-ID`), the parsed mail, the authentication results in header order and the sender verdict |
 | `MailMessageView` | The id, address, purpose, channel, headers, sender, subject, dates, verdict, SHA-256 and size of one message |
 | `InboundMail` | The parsed message that parsers read |
 | `CrossPurposeDuplicates` | `of($messageId)` lists, oldest first, the other stored messages with the same `Message-ID` and the same bytes that arrived under an address of another purpose, each as message id and purpose key. They are not merged: a consumer may tell the person the mail came twice |
+| `OwnAddresses` | The signed-in person's own address of a purpose, for a module that shows it on its own screen: `mine($purpose)` (the address that is not revoked, masked), `create`, `rename`, `replace`, `revoke` and `reveal`, the last for the person's own address only. The same rules and refusal reasons as the REST and MCP calls (`Foresi\Shared\Contract\Refused`) |
+| `AddressOwners` | `ownerOf($addressId)`: the person an address belongs to, for `accept()`, which runs with nobody signed in; null for an unknown or revoked address and for one of nobody |
 | `MessageRetention` | `release($messageId, $after)` schedules the removal of a discarded message's row and raw file; `keep($messageId)` takes the release back |
 | `Event\MailMessageReceived` | The event `mail.message.received` |
 

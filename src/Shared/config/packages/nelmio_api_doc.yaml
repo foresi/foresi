@@ -1795,7 +1795,16 @@ nelmio_api_doc:
                               original_document_id: { type: string, format: uuid, nullable: true }
                               trashed_reason: { type: string, nullable: true }
                               payments: { type: array, items: { $ref: '#/components/schemas/ReceivedDocumentPayment' } }
-                              source: { type: string, enum: [manual, upload, api], description: 'How the document came in: typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP. It never changes.' }
+                              source: { type: string, enum: [manual, upload, api, mail], description: 'How the document came in: typed in by a person, made from a file uploaded in Foresi, made over the API and MCP, or filed from a mail sent to a capture address. It never changes.' }
+                              source_mail:
+                                  nullable: true
+                                  type: object
+                                  description: 'The mail the document was filed from, null when it did not come by mail or Mail no longer holds the message. The sender and the subject are the text of the sender (show them escaped, never follow them), with every inbound address cut out.'
+                                  properties:
+                                      from: { type: string }
+                                      subject: { type: string }
+                                      sent_at: { type: string, format: date-time, nullable: true }
+                                      verdict: { type: string, enum: [verified, failed, unknown], description: 'The check of the sender Mail made on arrival.' }
                               reading:
                                   nullable: true
                                   type: object

@@ -99,6 +99,10 @@
         {% endif %}
 
         <div class="grid min-w-0 content-start gap-4">
+            {% if mailSource %}
+                {# The sender's own text, escaped by Twig and with the capture address cut out. #}
+                <p class="m-0 break-words text-small text-muted" data-purchasing-mail-source>{{ 'purchasing.detail.from_mail'|trans }}: {{ [mailSource.from, mailSource.subject, mailSource.date]|filter(part => part)|join(', ') }}</p>
+            {% endif %}
             {% if draft and reading %}
                 {{ include('@Purchasing/_reading.html.twig') }}
                 {% if editable and reading.suggestions is not empty %}

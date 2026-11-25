@@ -12,6 +12,8 @@ use Foresi\Attachment\Domain\Attachment;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Purchasing\Application\DeleteReceivedDocumentDraft;
 use Foresi\Purchasing\Application\EditReceivedDocument;
+use Foresi\Purchasing\Application\Mail\MailSource;
+use Foresi\Purchasing\Application\Mail\MailSources;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentDetail;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentDetails;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentHistoryEntry;
@@ -73,6 +75,7 @@ final class ReceivedDocumentController extends AbstractController
         private readonly ReadAgain $readingAgain,
         private readonly AcceptReadValues $accepting,
         private readonly ReadingScreen $reading,
+        private readonly MailSources $mailSources,
         private readonly ReceivedDocumentForm $form,
         private readonly ReceivedDocumentScreen $screen,
         private readonly InstanceClock $clock,
@@ -259,6 +262,7 @@ final class ReceivedDocumentController extends AbstractController
             'stale' => isset($errors[RefusalFields::FORM]) && $this->translator->trans('purchasing.refused.'.ReceivedDocumentRefused::STALE) === $errors[RefusalFields::FORM],
             'editable' => !$document->isTrashed(),
             'reading' => $this->reading->of($document, $detail->reading),
+            'mailSource' => $this->mailSource($document),
             'kinds' => $this->screen->kinds(),
             'treatments' => $this->screen->treatments(),
             'currencies' => $this->screen->currencies(),
@@ -313,6 +317,25 @@ final class ReceivedDocumentController extends AbstractController
     private function toDocument(string $id): RedirectResponse
     {
         return $this->redirectToRoute('app_purchasing_document', ['id' => $id], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * The mail a draft was filed from, ready to show: the sender and the subject are the sender's text and the template escapes them.
+     *
+     * @return array{from: string, subject: string, date: string|null}|null
+     */
+    private function mailSource(ReceivedDocument $document): ?array
+    {
+        $mail = $this->mailSources->of($document);
+        if (!$mail instanceof MailSource) {
+            return null;
+        }
+
+        return [
+            'from' => $mail->from,
+            'subject' => $mail->subject,
+            'date' => $mail->sentAt?->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
+        ];
     }
 
     private function checkToken(Request $request): void
