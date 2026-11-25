@@ -9,10 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Support;
 
 use Foresi\Banking\Application\BankMessageParsers;
+use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\IntakeStatement;
 use Foresi\Banking\Application\PendingChanges;
 use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\ReceivedStatements;
 use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\Invoice;
@@ -21,7 +24,9 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Application\FirmBankAccounts;
+use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -122,9 +127,19 @@ abstract class InboundTestCase extends BankingTestCase
             $container->get(Messages::class),
             $parsers ?? $container->get(BankMessageParsers::class),
             $container->get(FirmBankAccounts::class),
-            $this->recordMovement,
-            $this->pairing,
-            $pending ?? $container->get(PendingChanges::class),
+            new IntakeStatement(
+                $container->get(FirmBankAccounts::class),
+                $container->get(BankMovements::class),
+                $container->get(ReceivedStatements::class),
+                $this->recordMovement,
+                $this->pairing,
+                $pending ?? $container->get(PendingChanges::class),
+                $container->get(TransactionalWork::class),
+                $container->get(ConflictRetry::class),
+                $container->get(ClockInterface::class),
+                $container->get(EventRecorder::class),
+                $container->get(InstanceFirm::class),
+            ),
             $container->get(TransactionalWork::class),
             $container->get(ConflictRetry::class),
             $container->get(ClockInterface::class),

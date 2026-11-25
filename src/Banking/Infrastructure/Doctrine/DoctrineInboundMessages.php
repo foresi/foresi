@@ -26,9 +26,9 @@ use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\ProcessingResult;
 use Foresi\Banking\Application\TrustVerdict;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Shared\Application\View\ViewFilter;
 use Psr\Clock\ClockInterface;
 
@@ -253,7 +253,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
                 $status,
                 $this->optional($row['failure']),
                 $this->optional($row['failure_detail']),
-                null === $row['trust'] ? null : MessageTrust::from($this->text($row['trust'])),
+                null === $row['trust'] ? null : MovementTrust::from($this->text($row['trust'])),
                 $this->optional($row['trust_basis']),
                 // The signature of the parser set is no parser's name.
                 null !== $parserId && str_starts_with($parserId, BankMessageParsers::SIGNATURE_PREFIX) ? null : $parserId,

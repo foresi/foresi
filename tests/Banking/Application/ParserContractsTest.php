@@ -11,9 +11,9 @@ namespace Foresi\Tests\Banking\Application;
 use Foresi\Banking\Application\DefaultPairingRules;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseResult;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -85,9 +85,9 @@ final class ParserContractsTest extends TestCase
 
     public function testAVerdictNamesItsBasis(): void
     {
-        $verdict = new TrustVerdict(MessageTrust::Verified, 'dkim');
+        $verdict = new TrustVerdict(MovementTrust::Verified, 'dkim');
 
-        self::assertSame(MessageTrust::Verified, $verdict->trust);
+        self::assertSame(MovementTrust::Verified, $verdict->trust);
         self::assertSame('dkim', $verdict->basis);
     }
 
@@ -95,7 +95,7 @@ final class ParserContractsTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new TrustVerdict(MessageTrust::Verified, 'looks-fine');
+        new TrustVerdict(MovementTrust::Verified, 'looks-fine');
     }
 
     public function testTheDefaultIsToPairAutomaticallyAndSettleNoDifference(): void

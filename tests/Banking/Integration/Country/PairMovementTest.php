@@ -18,7 +18,7 @@ use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
@@ -146,7 +146,7 @@ final class PairMovementTest extends BankingTestCase
     {
         $invoice = $this->issue->issue($this->input());
         $unverified = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
-        $accepted = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), new TrustVerdict(MessageTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
+        $accepted = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), new TrustVerdict(MovementTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
         $allocation = [new AllocationRequest($invoice->id(), $this->czk('1210.00'))];
 
         $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($unverified->id(), $allocation));
@@ -166,7 +166,7 @@ final class PairMovementTest extends BankingTestCase
     public function testAFailedTrustIsRefusedWhateverReasonTheMovementStands(): void
     {
         $invoice = $this->issue->issue($this->input());
-        $failed = $this->recordMovement->record($this->incoming('1210.00'), new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL));
+        $failed = $this->recordMovement->record($this->incoming('1210.00'), new TrustVerdict(MovementTrust::Failed, TrustVerdict::DKIM_FAIL));
         $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'no_invoice' WHERE id = ?", [$failed->id()]);
         $this->em->clear();
 
@@ -193,7 +193,7 @@ final class PairMovementTest extends BankingTestCase
         $outgoing = $this->recordMovement->record($this->incoming('10.00', direction: MovementDirection::Outgoing), self::verified());
         $this->recordMovement->record($this->incoming('10.00', messageId: '01963c5e-0000-7000-8000-000000000001'), self::verified());
         $duplicate = $this->recordMovement->record($this->incoming('10.00', messageId: '01963c5e-0000-7000-8000-000000000002'), self::verified());
-        $rejected = $this->recordMovement->record($this->incoming('11.00'), new TrustVerdict(MessageTrust::Failed, TrustVerdict::DKIM_FAIL));
+        $rejected = $this->recordMovement->record($this->incoming('11.00'), new TrustVerdict(MovementTrust::Failed, TrustVerdict::DKIM_FAIL));
         $own = $this->recordMovement->record($this->incoming('12.00', counterIban: self::IBAN), self::verified());
         $allocation = [new AllocationRequest($invoice->id(), $this->czk('10.00'))];
 

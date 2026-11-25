@@ -18,8 +18,8 @@ use Foresi\Banking\Application\FirmPairingRules;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankFeed;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Invoicing\Application\InvoicingCountries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
@@ -423,7 +423,7 @@ final class FirmBankController extends AbstractController
             'channel' => $this->translator->trans('bank.account.address.check.channel.'.$check->channel),
             'authserv' => $check->authservId,
             'server' => $this->translator->trans(null === $check->authservId ? 'bank.account.address.check.no_header' : ($check->trusted ? 'bank.account.address.check.trusted' : 'bank.account.address.check.untrusted')),
-            'verdict' => $check->trust instanceof MessageTrust
+            'verdict' => $check->trust instanceof MovementTrust
                 ? $this->translator->trans('bank.message.trust.'.$check->trust->value).(null === $check->basis ? '' : ' ('.$check->basis.')')
                 : $this->translator->trans('bank.account.address.check.pending'),
         ];

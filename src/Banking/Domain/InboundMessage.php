@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Banking\Contract\MovementTrust;
 
 /**
  * How far the processing of one bank mail got, as a machine log. The mail
@@ -30,8 +31,8 @@ class InboundMessage
     #[ORM\Column(type: 'string', length: 16, enumType: InboundStatus::class)]
     private InboundStatus $status = InboundStatus::Received;
 
-    #[ORM\Column(type: 'string', length: 16, nullable: true, enumType: MessageTrust::class)]
-    private ?MessageTrust $trust = null;
+    #[ORM\Column(type: 'string', length: 16, nullable: true, enumType: MovementTrust::class)]
+    private ?MovementTrust $trust = null;
 
     #[ORM\Column(name: 'trust_basis', type: 'string', length: 32, nullable: true)]
     private ?string $trustBasis = null;
@@ -88,7 +89,7 @@ class InboundMessage
         return $this->status;
     }
 
-    public function trust(): ?MessageTrust
+    public function trust(): ?MovementTrust
     {
         return $this->trust;
     }

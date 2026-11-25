@@ -17,8 +17,8 @@ use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Application\PairingOptions;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\InvoicingCountries;
@@ -329,7 +329,7 @@ final class PairingChoicesTest extends BankingTestCase
     {
         $incoming = MovementDirection::Incoming === $direction;
 
-        return new BankMovement($this->account, null, $direction, $this->czk($amount), new \DateTimeImmutable('2026-11-20'), null, null, $counterName, $vs, null, null, null, null, str_repeat('a', 64), MessageTrust::Verified, 'dmarc', $incoming ? MovementState::Unmatched : MovementState::Recorded, $incoming ? UnmatchedReason::NoInvoice : null);
+        return new BankMovement($this->account, null, $direction, $this->czk($amount), new \DateTimeImmutable('2026-11-20'), null, null, $counterName, $vs, null, null, null, null, str_repeat('a', 64), MovementTrust::Verified, 'dmarc', $incoming ? MovementState::Unmatched : MovementState::Recorded, $incoming ? UnmatchedReason::NoInvoice : null);
     }
 
     /**

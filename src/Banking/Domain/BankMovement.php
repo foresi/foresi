@@ -11,7 +11,9 @@ namespace Foresi\Banking\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Banking\Contract\MovementChannel;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
@@ -28,6 +30,11 @@ use Foresi\Shared\Domain\Money;
  * same movement told twice can be told apart from two equal ones. The fields the
  * bank gave have no setter but are not readonly: the row lock reloads the movement
  * into the same object.
+ *
+ * A movement keeps the channel and the source that told it first, and the
+ * statement it came in. When another source tells the same movement later, it
+ * corroborates it: the movement keeps what the bank said first and adds that
+ * source, its reference and statement, and the higher trust of the two.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'bank_movement')]
@@ -35,6 +42,8 @@ use Foresi\Shared\Domain\Money;
 #[ORM\Index(name: 'idx_bank_movement_account_booked', columns: ['firm_bank_account_id', 'booked_on'])]
 #[ORM\Index(name: 'idx_bank_movement_message', columns: ['inbound_message_id'])]
 #[ORM\Index(name: 'idx_bank_movement_payment', columns: ['payment_id'])]
+#[ORM\Index(name: 'idx_bank_movement_source_reference', columns: ['firm_bank_account_id', 'source_id', 'bank_reference'])]
+#[ORM\Index(name: 'idx_bank_movement_statement', columns: ['bank_statement_id'])]
 class BankMovement implements Audited
 {
     public const int MAX_COUNTER_ACCOUNT = 64;
@@ -42,6 +51,8 @@ class BankMovement implements Audited
     public const int MAX_SYMBOL = 10;
     public const int MAX_MESSAGE = 500;
     public const int MAX_BANK_REFERENCE = 64;
+    /** The source of a movement recorded before sources were kept, or by a test. */
+    public const string MAIL_SOURCE = 'mail';
 
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
@@ -69,6 +80,21 @@ class BankMovement implements Audited
     #[AuditExcluded]
     #[ORM\Column(type: 'integer')]
     private int $version = 1;
+
+    #[ORM\Column(name: 'corroborated_source_id', type: 'string', length: 64, nullable: true)]
+    private ?string $corroboratedSourceId = null;
+
+    #[ORM\Column(name: 'corroborated_reference', type: 'string', length: self::MAX_BANK_REFERENCE, nullable: true)]
+    private ?string $corroboratedReference = null;
+
+    #[ORM\Column(name: 'corroborated_statement_id', type: 'guid', nullable: true)]
+    private ?string $corroboratedStatementId = null;
+
+    #[ORM\Column(name: 'corroborated_message_id', type: 'guid', nullable: true)]
+    private ?string $corroboratedMessageId = null;
+
+    #[ORM\Column(name: 'corroborated_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $corroboratedAt = null;
 
     /**
      * @param string $fingerprint sha256 of what the bank said, in hex
@@ -105,12 +131,18 @@ class BankMovement implements Audited
         private ?string $bankReference,
         #[ORM\Column(type: 'string', length: 64, options: ['fixed' => true])]
         private string $fingerprint,
-        #[ORM\Column(type: 'string', length: 16, enumType: MessageTrust::class)]
-        private MessageTrust $trust,
+        #[ORM\Column(type: 'string', length: 16, enumType: MovementTrust::class)]
+        private MovementTrust $trust,
         #[ORM\Column(name: 'trust_basis', type: 'string', length: 32)]
         private string $trustBasis,
         MovementState $state,
         ?UnmatchedReason $unmatchedReason = null,
+        #[ORM\Column(type: 'string', length: 16, enumType: MovementChannel::class)]
+        private MovementChannel $channel = MovementChannel::Mail,
+        #[ORM\Column(name: 'source_id', type: 'string', length: 64)]
+        private string $sourceId = self::MAIL_SOURCE,
+        #[ORM\Column(name: 'bank_statement_id', type: 'guid', nullable: true)]
+        private ?string $statementId = null,
     ) {
         if ($amount->isZero() || $amount->isNegative()) {
             throw new \InvalidArgumentException('A movement amount is positive; the direction carries the sign.');
@@ -183,6 +215,37 @@ class BankMovement implements Audited
         $this->unmatchedReason = UnmatchedReason::Blocked;
         $this->paymentId = null;
         $this->autoPairBlocked = true;
+        ++$this->version;
+    }
+
+    /**
+     * Another source told this movement too. What the bank said first stays; the
+     * source, its reference and where it came are added, and the trust rises when
+     * the other source is trusted more.
+     *
+     * @param string|null $reference   the other source's bank reference of the movement
+     * @param string|null $statementId the statement it came in
+     * @param string|null $messageId   the bank mail it came in
+     *
+     * @throws \LogicException when another source corroborated it already, or it is a possible duplicate
+     */
+    public function corroborate(string $sourceId, ?string $reference, ?string $statementId, ?string $messageId, MovementTrust $trust, string $basis, \DateTimeImmutable $at): void
+    {
+        if ($this->isCorroborated() || MovementState::PossibleDuplicate === $this->state) {
+            throw new \LogicException('Only a movement no other source told yet is corroborated.');
+        }
+        if (null !== $reference && mb_strlen($reference) > self::MAX_BANK_REFERENCE) {
+            throw new \InvalidArgumentException('A value of the movement is longer than its column.');
+        }
+        $this->corroboratedSourceId = $sourceId;
+        $this->corroboratedReference = $reference;
+        $this->corroboratedStatementId = $statementId;
+        $this->corroboratedMessageId = $messageId;
+        $this->corroboratedAt = $at;
+        if ($trust->isAbove($this->trust)) {
+            $this->trust = $trust;
+            $this->trustBasis = $basis;
+        }
         ++$this->version;
     }
 
@@ -266,7 +329,7 @@ class BankMovement implements Audited
         return $this->fingerprint;
     }
 
-    public function trust(): MessageTrust
+    public function trust(): MovementTrust
     {
         return $this->trust;
     }
@@ -299,6 +362,51 @@ class BankMovement implements Audited
     public function version(): int
     {
         return $this->version;
+    }
+
+    public function channel(): MovementChannel
+    {
+        return $this->channel;
+    }
+
+    public function sourceId(): string
+    {
+        return $this->sourceId;
+    }
+
+    public function statementId(): ?string
+    {
+        return $this->statementId;
+    }
+
+    public function isCorroborated(): bool
+    {
+        return $this->corroboratedAt instanceof \DateTimeImmutable;
+    }
+
+    public function corroboratedSourceId(): ?string
+    {
+        return $this->corroboratedSourceId;
+    }
+
+    public function corroboratedReference(): ?string
+    {
+        return $this->corroboratedReference;
+    }
+
+    public function corroboratedStatementId(): ?string
+    {
+        return $this->corroboratedStatementId;
+    }
+
+    public function corroboratedMessageId(): ?string
+    {
+        return $this->corroboratedMessageId;
+    }
+
+    public function corroboratedAt(): ?\DateTimeImmutable
+    {
+        return $this->corroboratedAt;
     }
 
     private function assertReason(MovementState $state, ?UnmatchedReason $reason): void
