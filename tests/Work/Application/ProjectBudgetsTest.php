@@ -104,6 +104,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
 
     public function testASourceActivityMustBeLinkedToTheProject(): void
     {
+        // Until Activities says which activities are linked to a project (the "Add to project budget" follow-up), every source is refused (NoBudgetSourceCheck).
         $project = $this->project();
 
         self::assertSame('source_not_on_project', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 480, sourceActivityId: Id::generate())));

@@ -28,7 +28,7 @@ final readonly class ProjectBudgets
     public function __construct(
         private VisibleWork $work,
         private ProjectBudgetStore $budgets,
-        private BudgetSources $sources,
+        private BudgetSourceCheck $sources,
         private AuditActor $actor,
         private ClockInterface $clock,
         private InstanceClock $instanceClock,
