@@ -14,7 +14,7 @@ use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Changes what the address book form edits: the name, identifiers, phones,

@@ -12,7 +12,7 @@ use Foresi\Calendar\Contract\CalendarEntry;
 use Foresi\Calendar\Contract\CalendarEntrySource;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Domain\FeedToken;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Psr\Log\LoggerInterface;
 

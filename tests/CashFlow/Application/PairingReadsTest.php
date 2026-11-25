@@ -69,7 +69,7 @@ final class PairingReadsTest extends CashFlowTestCase
         $this->em->persist(DocumentPairing::auto('received_document', 'doc-old', $this->customer, $a, $day('2026-09-20'), $now));
         $this->em->persist(DocumentPairing::auto('received_document', 'doc-nov', $this->customer, $a, $day('2026-11-20'), $now));
         $confirmed = DocumentPairing::propose('received_document', 'doc-oct', $this->customer, [new PairingCandidate($a->id(), $day('2026-10-20'))], $a, $now);
-        $confirmed->confirm($a, $day('2026-10-20'), 'user-1', $now);
+        $confirmed->confirm($a, $day('2026-10-20'), '019a0000-0000-7000-8000-0000000000a1', $now);
         $this->em->persist($confirmed);
         $this->em->persist(DocumentPairing::propose('received_document', 'doc-proposed', $this->customer, [new PairingCandidate($a->id(), $day('2026-10-20'))], $a, $now));
         $this->em->persist(DocumentPairing::auto('received_document', 'doc-other-item', $this->customer, $b, $day('2026-11-25'), $now));

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Events\Fixtures\Shape\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEvent;
 
 #[DomainEvent('invoicing.invoice.c')]
 final readonly class NoPayload

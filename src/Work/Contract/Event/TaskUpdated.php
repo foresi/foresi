@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * Something of a task changed: what it is called or says, who is responsible,

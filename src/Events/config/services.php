@@ -9,7 +9,7 @@ declare(strict_types=1);
 use Foresi\Events\Application\EventSink;
 use Foresi\Events\Infrastructure\Dbal\DbalEventRecorder;
 use Foresi\Shared\Application\Event\EventOutbox;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 

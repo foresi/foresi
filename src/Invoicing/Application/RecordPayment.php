@@ -18,7 +18,7 @@ use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;

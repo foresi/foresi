@@ -1,0 +1,24 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The fleet's vehicles in the Ui shell. #}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'acme_fleet.vehicles.title'|trans}] %}
+
+{% block title %}{{ 'acme_fleet.vehicles.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% if vehicles is empty %}
+        <p id="acme-fleet-empty">{{ 'acme_fleet.vehicles.empty'|trans }}</p>
+    {% else %}
+        <table id="acme-fleet-vehicles">
+            <thead>
+                <tr><th>{{ 'acme_fleet.vehicles.name'|trans }}</th><th>{{ 'acme_fleet.vehicles.plate'|trans }}</th></tr>
+            </thead>
+            <tbody>
+                {% for vehicle in vehicles %}
+                    <tr><td>{{ vehicle.name }}</td><td>{{ vehicle.plate }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

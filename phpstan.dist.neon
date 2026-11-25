@@ -2,7 +2,10 @@
 # phpstan-strict-rules, phpstan-symfony, phpstan-doctrine and phpstan-phpunit
 # are registered by phpstan/extension-installer.
 parameters:
-    level: max
+    # The highest level of PHPStan 2.x, written out instead of "max" so that a PHPStan release
+    # with a new level does not raise it unseen: a new level is adopted on purpose, in its own
+    # pull request.
+    level: 10
     paths:
         - src
         - tests
@@ -12,6 +15,8 @@ parameters:
         # Boots the e2e environment and reads its public services; PHPStan only knows the dev container.
         - tests/e2e/seed.php
         - tests/e2e/seed
+        # A module of another vendor, not installed here (the External module workflow installs it).
+        - tests/Fixtures/modules
     symfony:
         containerXmlPath: var/cache/dev/Foresi_KernelDevDebugContainer.xml
     doctrine:

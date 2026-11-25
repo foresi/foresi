@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Infrastructure\Events;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Sales\Application\SalesAccess;
 use Foresi\Shared\Application\Event\EventReadAccess;
 

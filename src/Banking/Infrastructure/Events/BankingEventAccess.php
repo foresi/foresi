@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Infrastructure\Events;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**

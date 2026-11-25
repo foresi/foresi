@@ -34,6 +34,16 @@ final readonly class OperationTool implements WriteTool, StaffOnlyTool
         return $this->definition->operation->tool;
     }
 
+    /**
+     * The input class of the operation, which tells the module it belongs to.
+     *
+     * @return class-string
+     */
+    public function input(): string
+    {
+        return $this->definition->input;
+    }
+
     public function title(): string
     {
         return $this->definition->operation->title;

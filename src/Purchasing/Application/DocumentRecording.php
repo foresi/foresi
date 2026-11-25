@@ -17,7 +17,7 @@ use Foresi\Purchasing\Domain\EvidenceSeries;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 

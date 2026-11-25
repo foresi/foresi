@@ -10,7 +10,7 @@ namespace Foresi\Work\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Work\Contract\Event\ProjectBudgetChanged;
 use Foresi\Work\Domain\BudgetCounting;
 use Foresi\Work\Domain\Project;

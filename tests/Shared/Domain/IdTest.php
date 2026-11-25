@@ -45,4 +45,14 @@ final class IdTest extends TestCase
     {
         self::assertFalse(Id::isValid(strtoupper(Id::generate())));
     }
+
+    public function testOnlyUuidsKeepsTheUuidsOfAnyVersionInTheirOrderAsAList(): void
+    {
+        $v7 = Id::generate();
+        $v4 = '9b2f4c1e-3d5a-4e8f-9a7b-1c2d3e4f5a6b';
+
+        self::assertSame([$v7, $v4], Id::onlyUuids(['not-an-id', $v7, 'd1', $v4, '']));
+        self::assertSame([], Id::onlyUuids(['not-an-id']));
+        self::assertSame([], Id::onlyUuids([]));
+    }
 }
