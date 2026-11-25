@@ -111,10 +111,11 @@ final readonly class ActivityWrites
     public function addLink(string $activityId, string $kind, string $id): void
     {
         $this->access->denyUnlessStaff();
-        $link = $this->targets->check([['kind' => $kind, 'id' => $id]])[0];
 
-        $this->transaction->run(function () use ($activityId, $link): void {
+        $this->transaction->run(function () use ($activityId, $kind, $id): void {
+            // The activity first, as update() does, so an unknown one is not_found before any link refusal.
             $activity = $this->visible($activityId);
+            $link = $this->targets->check([['kind' => $kind, 'id' => $id]])[0];
             if ($activity->isTrashed()) {
                 throw ActivitiesRefused::conflict('trashed', 'The activity is in the trash; restore it before changing it.');
             }
