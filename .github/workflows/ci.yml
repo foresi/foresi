@@ -608,7 +608,7 @@ jobs:
   # request. On a pull request they are skipped, and a skipped job counts as passed for
   # the required check. Each leg runs in two shards (bin/test-shard): in one job the suite
   # alone took about 30 minutes on PostgreSQL and ran into the 45-minute timeout (November 2026).
-  postgres:
+  postgres-shards:
     name: Tests (postgres, shard ${{ matrix.shard }})
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
@@ -758,6 +758,23 @@ jobs:
       - name: Claim race (SQLite and PostgreSQL)
         if: ${{ matrix.shard == 1 }}
         run: vendor/bin/phpunit --group claim-race
+
+  # "Tests (postgres)" is a required check of main, so one job of that name reports the
+  # result of the shards. On a pull request the shards are skipped and it passes.
+  postgres:
+    name: Tests (postgres)
+    needs: postgres-shards
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: The shards passed
+        env:
+          SHARDS: ${{ needs.postgres-shards.result }}
+        run: |
+          echo "PostgreSQL shards: ${SHARDS}"
+          [ "${SHARDS}" = success ] || [ "${SHARDS}" = skipped ]
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
   # runs on it too, on the in-memory SQLite database of the test environment.
