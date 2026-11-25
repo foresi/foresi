@@ -14,7 +14,7 @@ Nothing in a mail is ever followed or rendered. The text is shown as plain text,
 
 ## Your address
 
-Under **Account → Inbox addresses** (`/account/inbox`) you make your address, give it a name that says what it is for, and copy it. It is one address per person. The full address is shown **once**; the list shows it masked. If it leaks, **replace** it (the old one stops at once and you get a new one, shown once) or **revoke** it. You can also rename it. The list counts the mails dropped today when your address reached its daily limit (see [mail.md](mail.md#limits)).
+In the user menu, **Inbox addresses** (`/account/inbox`), you make your address, give it a name that says what it is for, and copy it. It is one address per person. The full address is shown **once**; the list shows it masked. If it leaks, **replace** it (the old one stops at once and you get a new one, shown once) or **revoke** it. You can also rename it. The list counts the mails dropped today when your address reached its daily limit (see [mail.md](mail.md#limits)).
 
 The page shows how to forward mail to the address from Gmail, Outlook and Apple Mail, with links to each provider's own help. You can forward single mails or set up automatic forwarding of what you want to see here.
 
