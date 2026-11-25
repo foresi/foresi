@@ -48,15 +48,15 @@ final class StatementChain
      */
     public static function gaps(array $statements): array
     {
-        $chains = [];
+        $chained = [];
         foreach ($statements as $statement) {
             if (null === $statement->sequence() && null === $statement->openingBalance() && null === $statement->closingBalance()) {
                 continue;
             }
-            $chains[$statement->account()->id()."\0".$statement->sourceId()][] = $statement;
+            $chained[] = $statement;
         }
         $gaps = [];
-        foreach ($chains as $chain) {
+        foreach (self::grouped($chained) as $chain) {
             $before = null;
             $previous = null;
             foreach (self::ordered($chain) as $statement) {
@@ -91,12 +91,7 @@ final class StatementChain
      */
     public static function chains(array $statements): array
     {
-        $chains = [];
-        foreach ($statements as $statement) {
-            $chains[$statement->account()->id()."\0".$statement->sourceId()][] = $statement;
-        }
-
-        return array_values(array_map(self::ordered(...), $chains));
+        return array_map(self::ordered(...), self::grouped($statements));
     }
 
     /**
@@ -118,19 +113,42 @@ final class StatementChain
     {
         usort($chain, static fn (ReceivedStatement $a, ReceivedStatement $b): int => [
             ($a->periodTo() ?? $a->receivedAt())->format('Y-m-d'),
-            $a->sequence()->year ?? 0,
-            $a->sequence()->number ?? 0,
+            $a->sequence()?->year,
+            $a->sequence()?->number,
             $a->receivedAt()->format('Y-m-d H:i:s.u'),
             $a->id(),
         ] <=> [
             ($b->periodTo() ?? $b->receivedAt())->format('Y-m-d'),
-            $b->sequence()->year ?? 0,
-            $b->sequence()->number ?? 0,
+            $b->sequence()?->year,
+            $b->sequence()?->number,
             $b->receivedAt()->format('Y-m-d H:i:s.u'),
             $b->id(),
         ]);
 
         return $chain;
+    }
+
+    /**
+     * One group per account and source, in the order each first comes.
+     *
+     * @param list<ReceivedStatement> $statements
+     *
+     * @return list<list<ReceivedStatement>>
+     */
+    private static function grouped(array $statements): array
+    {
+        $byAccount = [];
+        foreach ($statements as $statement) {
+            $byAccount[$statement->account()->id()][$statement->sourceId()][] = $statement;
+        }
+        $groups = [];
+        foreach ($byAccount as $bySource) {
+            foreach ($bySource as $group) {
+                $groups[] = $group;
+            }
+        }
+
+        return $groups;
     }
 
     private static function reissues(ReceivedStatement $statement, ReceivedStatement $previous): bool

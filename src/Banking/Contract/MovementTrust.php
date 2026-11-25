@@ -28,15 +28,10 @@ enum MovementTrust: string
      */
     public function isAbove(self $other): bool
     {
-        return $this->rank() > $other->rank();
-    }
-
-    private function rank(): int
-    {
         return match ($this) {
-            self::Verified => 2,
-            self::Unverified => 1,
-            self::Failed => 0,
+            self::Verified => self::Verified !== $other,
+            self::Unverified => self::Failed === $other,
+            self::Failed => false,
         };
     }
 }

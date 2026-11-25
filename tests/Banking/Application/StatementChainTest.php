@@ -151,6 +151,42 @@ final class StatementChainTest extends TestCase
         self::assertSame([], StatementChain::gaps([$earlier, $wrong, $corrected, $later]));
     }
 
+    public function testAStatementWithANumberAndNoBalanceIsChainedPastAPlainOne(): void
+    {
+        $plain = $this->statement(null, '2026-11', null, null, ['5.00']);
+        $earlier = $this->statement(42, '2026-10', '900.00', '1000.00', ['100.00']);
+        $later = $this->statement(44, '2026-12', null, null, []);
+
+        $gaps = StatementChain::gaps([$plain, $earlier, $later]);
+
+        self::assertSame([[StatementGapKind::Number, $later, $earlier]], $this->described($gaps));
+        self::assertSame('number:'.$earlier->id().':'.$later->id(), $gaps[0]->key());
+    }
+
+    public function testAStatementWithAnOpeningBalanceOnlyIsChainedByIt(): void
+    {
+        $earlier = $this->statement(42, '2026-10', '900.00', '1000.00', ['100.00']);
+        $opening = $this->statement(null, '2026-11', '900.00', null, []);
+
+        self::assertSame([[StatementGapKind::Balance, $opening, $earlier]], $this->described(StatementChain::gaps([$earlier, $opening])));
+    }
+
+    public function testAStatementWithoutBalancesFollowingOnHasNoGap(): void
+    {
+        $earlier = $this->statement(42, '2026-10', '900.00', '1000.00', ['100.00']);
+        $later = $this->statement(43, '2026-11', null, null, []);
+
+        self::assertSame([], StatementChain::gaps([$earlier, $later]));
+    }
+
+    public function testTwoAccountsOfOneSourceAreTwoChains(): void
+    {
+        $main = $this->statement(42, '2026-10', '900.00', '1000.00', ['100.00']);
+        $savings = $this->statement(1, '2026-10', '0.00', '10.00', ['10.00'], account: $this->other);
+
+        self::assertSame([[$main], [$savings]], StatementChain::chains([$main, $savings]));
+    }
+
     /**
      * @param list<string> $entries signed amounts
      */

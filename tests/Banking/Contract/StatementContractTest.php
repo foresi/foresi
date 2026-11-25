@@ -9,12 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Contract;
 
 use Foresi\Banking\Contract\BankStatement;
+use Foresi\Banking\Contract\IntakeResult;
 use Foresi\Banking\Contract\MovementChannel;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\MovementProvenance;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\StatementFile;
+use Foresi\Banking\Contract\StatementRefused;
 use Foresi\Banking\Contract\StatementSequence;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -203,6 +205,57 @@ final class StatementContractTest extends TestCase
         self::assertTrue(MovementTrust::Unverified->isAbove(MovementTrust::Failed));
         self::assertFalse(MovementTrust::Unverified->isAbove(MovementTrust::Unverified));
         self::assertFalse(MovementTrust::Unverified->isAbove(MovementTrust::Verified));
+        self::assertTrue(MovementTrust::Verified->isAbove(MovementTrust::Failed));
+        self::assertFalse(MovementTrust::Verified->isAbove(MovementTrust::Verified));
+        self::assertFalse(MovementTrust::Failed->isAbove(MovementTrust::Failed));
+        self::assertFalse(MovementTrust::Failed->isAbove(MovementTrust::Unverified));
+    }
+
+    public function testANameIsCutByCharacters(): void
+    {
+        self::assertSame(str_repeat('ř', 255), new StatementFile(str_repeat('ř', 300), 'bytes')->shortName());
+    }
+
+    public function testARefusalCarriesItsReasonAndDetail(): void
+    {
+        $refused = new StatementRefused(StatementRefused::UNKNOWN_ACCOUNT, 'No such account.');
+
+        self::assertSame([StatementRefused::UNKNOWN_ACCOUNT, 'No such account.'], [$refused->reason, $refused->getMessage()]);
+    }
+
+    public function testAnIntakeResultOpensAndClosesNoGapByDefault(): void
+    {
+        $result = new IntakeResult(null, [], [], 0);
+
+        self::assertSame([0, 0], [$result->gapsDetected, $result->gapsClosed]);
+    }
+
+    public function testSequencesOfTwoKindsAreNotCompared(): void
+    {
+        self::assertNull(StatementSequence::electronic(5)->followsOn(StatementSequence::withinYear(4, 2026)));
+        self::assertNull(StatementSequence::withinYear(5, 2026)->followsOn(StatementSequence::electronic(4)));
+    }
+
+    public function testAStatementIdIsCountedInCharacters(): void
+    {
+        $id = str_repeat('ř', 64);
+
+        self::assertSame($id, new BankStatement(self::IBAN, Currency::CZK, [], $id)->statementId);
+    }
+
+    public function testAPeriodMayBeOpenAtEitherEnd(): void
+    {
+        $day = new \DateTimeImmutable('2026-11-30');
+
+        self::assertSame($day, new BankStatement(self::IBAN, Currency::CZK, [], from: $day)->from);
+        self::assertSame($day, new BankStatement(self::IBAN, Currency::CZK, [], to: $day)->to);
+    }
+
+    public function testAnEntryOfAnotherCurrencyFirstLeavesTheRestInTheNet(): void
+    {
+        $statement = new BankStatement(self::IBAN, Currency::CZK, [self::entry('5.00', currency: Currency::EUR), self::entry('210.00')]);
+
+        self::assertTrue(Money::of('210.00', Currency::CZK)->equals($statement->net()));
     }
 
     private static function entry(string $amount, MovementDirection $direction = MovementDirection::Incoming, Currency $currency = Currency::CZK): ParsedMovement

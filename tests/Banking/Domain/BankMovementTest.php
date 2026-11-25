@@ -187,6 +187,52 @@ final class BankMovementTest extends TestCase
         $movement->pairWith('refund-2');
     }
 
+    public function testACorroborationAddsTheOtherSourceAndRaisesTheVersion(): void
+    {
+        $movement = $this->movement();
+        $at = new \DateTimeImmutable('2026-11-21 08:00:00');
+
+        $movement->corroborate('cz.fio', str_repeat('ř', BankMovement::MAX_BANK_REFERENCE), 'statement-1', null, MovementTrust::Unverified, 'unverified_source', $at);
+
+        self::assertTrue($movement->isCorroborated());
+        self::assertSame(['cz.fio', str_repeat('ř', BankMovement::MAX_BANK_REFERENCE), 'statement-1', null, $at], [$movement->corroboratedSourceId(), $movement->corroboratedReference(), $movement->corroboratedStatementId(), $movement->corroboratedMessageId(), $movement->corroboratedAt()]);
+        self::assertSame([MovementTrust::Verified, 'dmarc'], [$movement->trust(), $movement->trustBasis()]);
+        self::assertSame(2, $movement->version());
+    }
+
+    public function testACorroborationWithoutAReferenceIsKept(): void
+    {
+        $movement = $this->movement();
+
+        $movement->corroborate('cz.fio', null, null, 'message-1', MovementTrust::Verified, 'bank_api', new \DateTimeImmutable('2026-11-21'));
+
+        self::assertNull($movement->corroboratedReference());
+        self::assertSame('message-1', $movement->corroboratedMessageId());
+    }
+
+    public function testATooLongReferenceIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->movement()->corroborate('cz.fio', str_repeat('x', BankMovement::MAX_BANK_REFERENCE + 1), null, null, MovementTrust::Verified, 'bank_api', new \DateTimeImmutable('2026-11-21'));
+    }
+
+    public function testAMovementIsCorroboratedOnce(): void
+    {
+        $movement = $this->movement();
+        $movement->corroborate('cz.fio', null, null, null, MovementTrust::Verified, 'bank_api', new \DateTimeImmutable('2026-11-21'));
+
+        $this->expectException(\LogicException::class);
+        $movement->corroborate('cz.kb', null, null, null, MovementTrust::Verified, 'bank_api', new \DateTimeImmutable('2026-11-22'));
+    }
+
+    public function testAPossibleDuplicateIsNotCorroborated(): void
+    {
+        $movement = $this->movement(state: MovementState::PossibleDuplicate, reason: null);
+
+        $this->expectException(\LogicException::class);
+        $movement->corroborate('cz.fio', null, null, null, MovementTrust::Verified, 'bank_api', new \DateTimeImmutable('2026-11-21'));
+    }
+
     private function movement(
         string $amount = '100.00',
         ?string $counterAccount = null,
