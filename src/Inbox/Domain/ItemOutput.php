@@ -9,16 +9,19 @@ declare(strict_types=1);
 namespace Foresi\Inbox\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditRooted;
 use Foresi\Shared\Domain\Id;
 
 /**
  * A record that came of an inbox item, such as the deal it was linked to, by
  * the record's kind and id. A record of its own, not a collection of the item,
- * since changes to collections of audited entities are not audited.
+ * since changes to collections of audited entities are not audited. Audited
+ * under its item, so the item's history says who linked which record and when.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'inbox_item_output')]
-class ItemOutput
+class ItemOutput implements Audited, AuditRooted
 {
     public const int MAX_KIND = 40;
 
@@ -47,6 +50,11 @@ class ItemOutput
             throw new \InvalidArgumentException('An output names its record by its UUIDv7 id.');
         }
         $this->addedAt = $addedAt->setTimezone(new \DateTimeZone('UTC'));
+    }
+
+    public function auditRoot(): object
+    {
+        return $this->item;
     }
 
     public function itemId(): string

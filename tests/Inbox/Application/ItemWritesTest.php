@@ -235,6 +235,22 @@ final class ItemWritesTest extends InboxTestCase
         self::assertSame(2, $this->rows('SELECT COUNT(*) FROM inbox_item_output'));
     }
 
+    public function testEveryOutputIsAuditedUnderItsItem(): void
+    {
+        $first = $this->contact('person', 'Client C', 'client.c@client-c.example.com');
+        $second = $this->contact('person', 'Client D', 'client.d@client-d.example.com');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $this->writes()->link(new LinkItemInput($itemId, 'contact', $first));
+        $this->writes()->link(new LinkItemInput($itemId, 'contact', $second));
+
+        $entries = $this->em->getConnection()->fetchAllAssociative('SELECT entity_id, user_id, changes FROM audit_entry WHERE entity_class = ? AND root_class = ? AND root_id = ? ORDER BY occurred_at, id', [ItemOutput::class, InboxItem::class, $itemId]);
+        self::assertCount(2, $entries);
+        $ids = array_column($entries, 'entity_id');
+        self::assertEqualsCanonicalizing(['-contact-'.$first, '-contact-'.$second], $ids);
+        self::assertSame([$this->owner->id(), $this->owner->id()], array_column($entries, 'user_id'));
+    }
+
     public function testLinkRefusesAnUnknownKindARecordItCannotLinkAndOneLinkedAlready(): void
     {
         $person = $this->contact('person', 'Client A', self::CLIENT);
