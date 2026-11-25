@@ -335,7 +335,7 @@ final class ProjectControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/projects/'.$id);
         // Then the sections other modules add, such as Activities.
-        self::assertSame(['List', 'Board', 'Activities'], $crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        self::assertSame(['List', 'Board', 'Activities', 'Budget'], $crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
         self::assertSame(['All', 'Mine', 'Finished'], $this->tabs($crawler));
         self::assertSame(['/projects/'.$id, '/projects/'.$id.'?view=mine', '/projects/'.$id.'?view=finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(0)->attr('aria-current'));

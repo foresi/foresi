@@ -105,6 +105,12 @@ work:
     time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
     date: Zadejte datum jako RRRR-MM-DD.
+    hours_invalid: Zadejte hodiny jako číslo s nejvýš dvěma desetinnými místy, třeba 8 nebo -2,5.
+    hours_zero: Zadejte jiný počet hodin než nulu.
+    budget_below_zero: Rozpočet projektu by klesl pod nulu.
+    budget_note: Poznámka může mít nejvýš 500 znaků.
+    budget_counting: Vyberte veškerý čas, nebo jen fakturovatelný.
+    source_not_on_project: Zdrojem musí být aktivita tohoto projektu.
   time:
     title: Čas
     log: Zapsat čas
@@ -566,6 +572,7 @@ work:
       list: Seznam
       board: Nástěnka
       activities: Aktivity
+      budget: Rozpočet
     field:
       name: Název
       client: Klient
@@ -582,6 +589,52 @@ work:
       name_required: Zadejte název projektu.
       workflow: Vyberte jeden z postupů.
       rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
+  budget:
+    title: Časový rozpočet
+    fact: 'Rozpočet {budget, number} h · čerpáno {used, number} h · zbývá {left, number} h'
+    over: Přečerpáno
+    hours: '{hours, number} h'
+    signed_hours: '{hours, number, :: sign-always} h'
+    add: Přidat změnu
+    save: Uložit
+    added: Změna je přidaná do rozpočtu.
+    removed: Změna je z rozpočtu odebraná.
+    remove: Odebrat
+    remove_confirm:
+      title: 'Odebrat změnu {hours}?'
+      text: Odeberte změnu zadanou omylem. Správný rozpočet snížíte přidáním změny s minusem.
+    changes: Změny rozpočtu
+    source_activity: Aktivita
+    kpi:
+      budget: Rozpočet
+      used_all: Čerpáno (veškerý čas)
+      used_billable: Čerpáno (fakturovatelný čas)
+      left: Zbývá
+      estimate: Odhady úkolů
+    column:
+      effective_on: Datum
+      hours: Hodiny
+      note: Poznámka
+      source: Zdroj
+      author: Zadal(a)
+    field:
+      hours: Hodiny
+      hours_help: Plus nebo minus, třeba 8 nebo -2,5.
+      effective_on: Datum
+      note: Poznámka
+      note_placeholder: Třeba kdo hodiny schválil
+    empty:
+      title: Zatím žádný časový rozpočet
+      text: Přidejte hodiny schválené pro projekt. Přečerpání se ukáže, nikdy neblokuje.
+    counting:
+      open: Počítání
+      title: Který čas čerpá rozpočet
+      legend: Počítat
+      all: Veškerý čas
+      all_help: Fakturovatelný i nefakturovatelný čas.
+      billable: Jen fakturovatelný čas
+      billable_help: Nefakturovatelný čas, třeba práce za paušál, se nepočítá.
+      saved: Rozpočet počítá zvolený čas.
   workflow:
     simple: Jednoduchý
     simple_text: K udělání, Probíhá, Hotovo

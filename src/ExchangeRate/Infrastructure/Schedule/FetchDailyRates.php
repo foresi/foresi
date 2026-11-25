@@ -15,12 +15,14 @@ use Foresi\Instance\Application\Schedule\OperatorTask;
 use Psr\Clock\ClockInterface;
 
 /**
- * Fetches today's rates once the source has published them. It ticks every ten
- * minutes and does nothing before the publication time of the day (the ČNB
- * publishes around 14:30, Prague time, the task waits until 14:35) or once the
- * day has rates, so a missed tick, a late publication and a failed fetch are all
- * made up by the next one. A day without a publication has none stored until the
- * source's settled time, so it is asked a few times and then left alone.
+ * Fetches today's rates of the source the firm converts at, once it has
+ * published them. It ticks every ten minutes and does nothing before the
+ * publication time of the day (the ČNB publishes around 14:30, Prague time,
+ * the task waits until 14:35; the ECB around 16:00 CET, the task waits until
+ * 16:10) or once the day has rates, so a missed tick, a late publication and
+ * a failed fetch are all made up by the next one. Only that source is
+ * fetched. A day without a publication has none stored until the source's
+ * settled time, so it is asked a few times and then left alone.
  */
 final readonly class FetchDailyRates implements OperatorTask
 {
@@ -52,7 +54,7 @@ final readonly class FetchDailyRates implements OperatorTask
         }
 
         $today = $now->setTime(0, 0);
-        if (!$this->store->has($today)) {
+        if (!$this->store->has($this->source->name(), $today)) {
             $this->fetching->fetch($today);
         }
     }

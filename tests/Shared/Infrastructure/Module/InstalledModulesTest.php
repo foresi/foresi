@@ -94,7 +94,7 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());

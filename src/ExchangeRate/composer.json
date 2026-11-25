@@ -1,6 +1,6 @@
 {
     "name": "foresi/exchange-rate",
-    "description": "Daily exchange rates.",
+    "description": "Daily exchange rates from the source the firm chooses among those its country allows, with the ECB reference rates built in.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",
@@ -9,15 +9,26 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "brick/math": "^1.0",
         "doctrine/dbal": "^4.5",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
         "foresi/instance": "self.version",
         "foresi/module-api": "^1.0",
+        "foresi/party": "self.version",
         "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
         "psr/clock": "^1.0",
         "symfony/console": "7.4.*",
-        "symfony/dependency-injection": "^7.4 || ^8.0"
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4",
+        "symfony/translation-contracts": "^3.8",
+        "zircote/swagger-php": "^7.5"
     },
     "autoload": {
         "psr-4": {
@@ -33,7 +44,10 @@
             "kind": "module",
             "namespace": "Foresi\\ExchangeRate\\",
             "bundle": "Foresi\\ExchangeRate\\ExchangeRateBundle",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "exchange_rates"
+            ]
         }
     }
 }

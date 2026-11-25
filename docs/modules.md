@@ -674,6 +674,12 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
+What each minor version added:
+
+| Version | Added |
+| --- | --- |
+| 1.1 | `Foresi\ExchangeRate\Contract\RateRules` (`foresi.exchange_rate.rules`), the legal rate of a country; `PublishedRates::$base`, the currency a source's quotes are priced in (leaving it out is deprecated and means CZK). A module that uses them requires `^1.1`. |
+
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
@@ -781,7 +787,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
-| Exchange rates | `RateSource` (`foresi.exchange_rate.source`) |
+| Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |

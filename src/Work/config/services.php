@@ -15,6 +15,8 @@ use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ManageWorkflow;
+use Foresi\Work\Application\ProjectBudgetReads;
+use Foresi\Work\Application\ProjectBudgets;
 use Foresi\Work\Application\PurgeDeletedComments;
 use Foresi\Work\Application\PurgeDeletedTasks;
 use Foresi\Work\Application\PurgeTrashedLabels;
@@ -53,6 +55,7 @@ return static function (ContainerConfigurator $container): void {
         foreach ([
             ManageProjects::class, ManageSections::class, ManageWorkflow::class, ManageTasks::class, ManageLabels::class,
             TaskHistory::class, ManageComments::class, PurgeDeletedTasks::class, PurgeDeletedComments::class, PurgeTrashedTime::class, PurgeTrashedLabels::class, ManageSharing::class, ManageTime::class,
+            ProjectBudgets::class, ProjectBudgetReads::class,
         ] as $service) {
             $services->set($service)->public();
         }

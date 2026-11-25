@@ -8,52 +8,56 @@ declare(strict_types=1);
 
 namespace Foresi\ExchangeRate\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Foresi\ExchangeRate\Application\RateStore;
 use Foresi\ExchangeRate\Contract\PublishedRates;
 use Foresi\ExchangeRate\Contract\Quote;
-use Foresi\ExchangeRate\Domain\ExchangeRate;
 
 /**
  * Plain statements on the global exchange_rate table, the same on SQLite and
- * PostgreSQL. Saving is one insert per quote that leaves a stored rate as it is,
- * so two fetches of the same day at once are no harm.
+ * PostgreSQL. Saving is one insert per quote that leaves a stored quote as it
+ * is, so two fetches of the same day at once are no harm.
  */
 final readonly class DoctrineRateStore implements RateStore
 {
     private const string INSERT = <<<'SQL'
-        INSERT INTO exchange_rate (rate_date, currency, amount, rate, published_on, source)
-        VALUES (:date, :currency, :amount, :rate, :published, :source)
-        ON CONFLICT (rate_date, currency) DO NOTHING
+        INSERT INTO exchange_rate (rate_date, currency, source, amount, rate, base, published_on)
+        VALUES (:date, :currency, :source, :amount, :rate, :base, :published)
+        ON CONFLICT (rate_date, currency, source) DO NOTHING
         SQL;
 
     public function __construct(private Connection $connection)
     {
     }
 
-    public function find(string $currency, \DateTimeImmutable $date): ?ExchangeRate
+    public function find(string $source, \DateTimeImmutable $date, array $currencies): ?PublishedRates
     {
-        $row = $this->connection->fetchAssociative(
-            'SELECT amount, CAST(rate AS VARCHAR(40)) AS rate, published_on FROM exchange_rate WHERE rate_date = :date AND currency = :currency',
-            ['date' => $date->format('Y-m-d'), 'currency' => $currency],
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT currency, amount, CAST(rate AS VARCHAR(40)) AS rate, base, published_on FROM exchange_rate WHERE rate_date = :date AND source = :source AND currency IN (:currencies)',
+            ['date' => $date->format('Y-m-d'), 'source' => $source, 'currencies' => $currencies],
+            ['currencies' => ArrayParameterType::STRING],
         );
-        if (false === $row) {
+        if ([] === $rows) {
             return null;
         }
-        \assert(is_numeric($row['amount']) && \is_string($row['rate']) && \is_string($row['published_on']));
 
-        return new ExchangeRate(
-            $currency,
-            (int) $row['amount'],
-            $this->trimmed($row['rate']),
-            $date,
-            new \DateTimeImmutable(substr($row['published_on'], 0, 10)),
-        );
+        $quotes = [];
+        $base = $published = null;
+        foreach ($rows as $row) {
+            \assert(\is_string($row['currency']) && is_numeric($row['amount']) && \is_string($row['rate']) && \is_string($row['base']) && \is_string($row['published_on']));
+            $currency = trim($row['currency']);
+            $quotes[$currency] = new Quote($currency, (int) $row['amount'], $this->trimmed($row['rate']));
+            $base = trim($row['base']);
+            $published = substr($row['published_on'], 0, 10);
+        }
+
+        return new PublishedRates(new \DateTimeImmutable($published), $quotes, $base);
     }
 
-    public function has(\DateTimeImmutable $date): bool
+    public function has(string $source, \DateTimeImmutable $date): bool
     {
-        return false !== $this->connection->fetchOne('SELECT 1 FROM exchange_rate WHERE rate_date = :date', ['date' => $date->format('Y-m-d')]);
+        return false !== $this->connection->fetchOne('SELECT 1 FROM exchange_rate WHERE rate_date = :date AND source = :source', ['date' => $date->format('Y-m-d'), 'source' => $source]);
     }
 
     public function save(\DateTimeImmutable $validOn, PublishedRates $published, string $source): void
@@ -63,10 +67,11 @@ final readonly class DoctrineRateStore implements RateStore
                 $this->connection->executeStatement(self::INSERT, [
                     'date' => $validOn->format('Y-m-d'),
                     'currency' => $quote->currency,
+                    'source' => $source,
                     'amount' => $quote->amount,
                     'rate' => $quote->rate,
+                    'base' => $published->base,
                     'published' => $published->publishedOn->format('Y-m-d'),
-                    'source' => $source,
                 ]);
             }
         });
