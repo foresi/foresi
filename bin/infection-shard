@@ -11,8 +11,23 @@ declare(strict_types=1);
  *   bin/infection-shard files INDEX COUNT [PATH...]
  *       Prints the source files of shard INDEX (1 to COUNT), one per line. The files are
  *       the ones Infection mutates (infection.json5, including its excludes), spread over
- *       the shards by size so that they take about as long. PATH limits the files, to try it.
+ *       the shards so that they take about as long. PATH limits the files, to try it.
  *       With INFECTION_SHARD_MANIFEST set, the split is also written to that file as JSON.
+ *
+ *       A file weighs the seconds its mutants took in an earlier full run, from the JSON
+ *       file INFECTION_SHARD_TIMES names (see times and collect). What a mutant costs
+ *       depends on the tests that kill it, not on the size of the file: in the run of
+ *       2026-11-25 one file of 437 lines took a sixth of the whole run. The size of a file
+ *       stands in for a file that was not measured, scaled to seconds by the files that were.
+ *
+ *   bin/infection-shard times LOG FILES [PREVIOUS]
+ *       Prints the seconds the mutants of each source file took, as JSON, from the output of
+ *       Infection with --teamcity in LOG. FILES lists the files of the shard, one per line;
+ *       a file the log does not finish (a shard stopped before its end) keeps its time from
+ *       PREVIOUS, the times the shard was split by, when that is longer than its part.
+ *
+ *   bin/infection-shard collect DIRECTORY...
+ *       Puts the times-INDEX.json of the shards in the directories together, as JSON.
  *
  *   bin/infection-shard merge DIRECTORY...
  *       Reads shard-INDEX.json (the Infection summary of a shard, from --logger-summary-json)
@@ -32,7 +47,9 @@ $command = array_shift($arguments);
 exit(match ($command) {
     'files' => files($root, $arguments),
     'merge' => merge($arguments),
-    default => fail("Usage: bin/infection-shard files INDEX COUNT [PATH...] | merge DIRECTORY...\n"),
+    'times' => times($root, $arguments),
+    'collect' => collect($arguments),
+    default => fail("Usage: bin/infection-shard files INDEX COUNT [PATH...] | merge DIRECTORY... | times LOG FILES [PREVIOUS] | collect DIRECTORY...\n"),
 });
 
 function fail(string $message): int
@@ -72,20 +89,18 @@ function files(string $root, array $arguments): int
         return fail("Infection lists no source file.\n");
     }
 
-    // Longest processing time first: each file goes to the shard with the least so far. The size
-    // of a file stands in for its number of mutants. Ties are broken by path, so every job that
-    // runs this on the same checkout gets the same split.
-    $sizes = [];
-    foreach ($paths as $path) {
-        $sizes[$path] = (int) filesize($root.'/'.$path);
-    }
-    uksort($sizes, static fn (string $a, string $b): int => [$sizes[$b], $a] <=> [$sizes[$a], $b]);
+    $costs = costs($root, $paths, readTimes((string) getenv('INFECTION_SHARD_TIMES')));
 
-    $load = array_fill(1, $count, 0);
+    // Longest processing time first: each file goes to the shard with the least so far. Ties
+    // are broken by path, so every job that runs this on the same checkout and times gets the
+    // same split.
+    uksort($costs, static fn (string $a, string $b): int => [$costs[$b], $a] <=> [$costs[$a], $b]);
+
+    $load = array_fill(1, $count, 0.0);
     $shards = array_fill(1, $count, []);
-    foreach ($sizes as $path => $size) {
+    foreach ($costs as $path => $cost) {
         $target = array_search(min($load), $load, true);
-        $load[$target] += $size;
+        $load[$target] += $cost;
         $shards[$target][] = $path;
     }
 
@@ -97,6 +112,128 @@ function files(string $root, array $arguments): int
     if (false !== $manifest && '' !== $manifest) {
         file_put_contents($manifest, json_encode(['index' => $index, 'count' => $count, 'files' => $mine], \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT)."\n");
     }
+
+    return 0;
+}
+
+/**
+ * @param list<string>         $paths
+ * @param array<string, float> $times
+ *
+ * @return array<string, float>
+ */
+function costs(string $root, array $paths, array $times): array
+{
+    $sizes = [];
+    foreach ($paths as $path) {
+        $sizes[$path] = (float) filesize($root.'/'.$path);
+    }
+
+    // Seconds per byte of the files that were measured; one when none was.
+    $measuredSeconds = 0.0;
+    $measuredBytes = 0.0;
+    foreach ($paths as $path) {
+        if (isset($times[$path])) {
+            $measuredSeconds += $times[$path];
+            $measuredBytes += $sizes[$path];
+        }
+    }
+    $scale = $measuredSeconds > 0 && $measuredBytes > 0 ? $measuredSeconds / $measuredBytes : 1.0;
+
+    $costs = [];
+    foreach ($paths as $path) {
+        $costs[$path] = $times[$path] ?? $sizes[$path] * $scale;
+    }
+
+    return $costs;
+}
+
+/**
+ * @return array<string, float> empty when the file is not given or not there
+ */
+function readTimes(string $file): array
+{
+    if ('' === $file || !is_file($file)) {
+        return [];
+    }
+    $data = json_decode((string) file_get_contents($file), true);
+    if (!\is_array($data)) {
+        return [];
+    }
+    $times = [];
+    foreach ($data as $path => $seconds) {
+        if (\is_string($path) && (\is_int($seconds) || \is_float($seconds))) {
+            $times[$path] = (float) $seconds;
+        }
+    }
+
+    return $times;
+}
+
+/**
+ * @param list<string> $arguments
+ */
+function times(string $root, array $arguments): int
+{
+    [$log, $list] = [$arguments[0] ?? '', $arguments[1] ?? ''];
+    if (!is_file($log) || !is_file($list)) {
+        return fail("Usage: bin/infection-shard times LOG FILES [PREVIOUS]\n");
+    }
+    $previous = readTimes($arguments[2] ?? '');
+
+    // A mutant starts with testStarted, which names its file in locationHint, and ends with
+    // testFinished, which carries its duration in milliseconds.
+    $fileOf = [];
+    $times = [];
+    $finished = [];
+    $handle = fopen($log, 'r');
+    if (false === $handle) {
+        return fail("$log cannot be read.\n");
+    }
+    while (false !== ($line = fgets($handle))) {
+        if (str_contains($line, '##teamcity[testStarted ')
+            && preg_match("/nodeId='([^']+)'.*locationHint='infection:\\/\\/(.+?)::/", $line, $match)) {
+            $path = str_starts_with($match[2], $root.'/') ? substr($match[2], \strlen($root) + 1) : $match[2];
+            $fileOf[$match[1]] = $path;
+        } elseif (str_contains($line, '##teamcity[testSuiteFinished ')
+            && preg_match("/name='([^']+)'/", $line, $match)) {
+            $finished[$match[1]] = true;
+        } elseif (str_contains($line, '##teamcity[testFinished ')
+            && preg_match("/nodeId='([^']+)'.*duration='(\\d+)'/", $line, $match)
+            && isset($fileOf[$match[1]])) {
+            $path = $fileOf[$match[1]];
+            $times[$path] = ($times[$path] ?? 0.0) + (int) $match[2] / 1000;
+        }
+    }
+    fclose($handle);
+
+    $result = [];
+    foreach (array_filter(array_map('trim', file($list) ?: []), static fn (string $path): bool => '' !== $path) as $path) {
+        $seconds = isset($finished[$path]) ? $times[$path] ?? 0.0 : max($times[$path] ?? 0.0, $previous[$path] ?? 0.0);
+        $result[$path] = round($seconds, 1);
+    }
+    ksort($result);
+    echo json_encode($result, \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES), "\n";
+
+    return 0;
+}
+
+/**
+ * @param list<string> $directories
+ */
+function collect(array $directories): int
+{
+    $times = [];
+    foreach ($directories as $directory) {
+        foreach (glob(rtrim($directory, '/').'/{,*/}times-*.json', \GLOB_BRACE) ?: [] as $file) {
+            $times += readTimes($file);
+        }
+    }
+    if ([] === $times) {
+        return fail("No times found.\n");
+    }
+    ksort($times);
+    echo json_encode($times, \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES), "\n";
 
     return 0;
 }
