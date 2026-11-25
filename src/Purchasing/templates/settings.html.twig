@@ -18,6 +18,9 @@
 {% block title %}{{ 'purchasing.settings.title'|trans }}{% endblock %}
 
 {% block actions %}
+    {% if address is null and unavailable is null %}
+        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_capture_address_new')" data-dialog aria-haspopup="dialog" data-capture-create>{{ 'purchasing.capture.create'|trans }}</twig:Ui:Button>
+    {% endif %}
     {% if address %}
         <twig:Ui:MoreActions menuId="capture-address-actions">
             <twig:block name="last">
@@ -36,8 +39,6 @@
                 </form>
             </twig:block>
         </twig:Ui:MoreActions>
-    {% elseif unavailable is null %}
-        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_capture_address_new')" data-dialog aria-haspopup="dialog" data-capture-create>{{ 'purchasing.capture.create'|trans }}</twig:Ui:Button>
     {% endif %}
 {% endblock %}
 
