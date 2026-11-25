@@ -86,6 +86,25 @@ final readonly class EmailActivity
     }
 
     /**
+     * Adds the item's matched contact and its company to an activity made
+     * before the match; never removes one. Nothing before the first output.
+     *
+     * @throws Refused when Activities refuses a link for another reason than the trash
+     */
+    public function linkContacts(InboxItem $item): void
+    {
+        $activityId = $item->emailActivityId();
+        if (null === $activityId) {
+            return;
+        }
+        foreach (array_unique(array_filter([$item->contactId(), $item->companyId()], static fn (?string $id): bool => null !== $id)) as $contactId) {
+            if ($this->records->canLink(self::CONTACT, $contactId)) {
+                $this->extend($activityId, self::CONTACT, $contactId);
+            }
+        }
+    }
+
+    /**
      * The mail's subject on one line, cut to what an activity holds; the sender
      * when the mail has none.
      */

@@ -85,6 +85,30 @@ final class ItemWritesTest extends InboxTestCase
         self::assertEqualsCanonicalizing(['contact:'.$person, 'contact:'.$company, 'contact:'.$output], $this->links((string) $item->emailActivityId()));
     }
 
+    public function testAContactMatchedAfterTheFirstLinkJoinsTheActivity(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, from: 'Someone <someone@unknown.example.com>'));
+        $output = $this->contact('person', 'Client C', 'client.c@client-c.example.com');
+        $this->writes()->link(new LinkItemInput($itemId, 'contact', $output));
+        $activityId = (string) $this->item($itemId)->emailActivityId();
+        self::assertSame(['contact:'.$output], $this->links($activityId));
+        $person = $this->contact('person', 'Client A', self::CLIENT);
+        $company = $this->contact('company', 'Client A s.r.o.', 'office@client-a.example.com', '12345679');
+        self::getContainer()->get(ContactPersonWrites::class)->link($company, $person, 'Director');
+        $other = $this->contact('person', 'Client D', 'client.d@client-d.example.com');
+
+        $this->writes()->match(new MatchItemInput($itemId, $person));
+        self::assertEqualsCanonicalizing(['contact:'.$output, 'contact:'.$person, 'contact:'.$company], $this->links($activityId));
+
+        $this->writes()->match(new MatchItemInput($itemId, $other));
+        $this->writes()->match(new MatchItemInput($itemId, null));
+        self::assertEqualsCanonicalizing(['contact:'.$output, 'contact:'.$person, 'contact:'.$company, 'contact:'.$other], $this->links($activityId), 'Added, never removed.');
+
+        $created = $this->writes()->createContact(new CreateContactFromItemInput($itemId, 'person', 'Client E', 'Example Street 2', 'Example City', '110 00', 'CZ', email: 'client.e@client-e.example.com'))->contactId();
+        self::assertContains('contact:'.$created, $this->links($activityId));
+        self::assertSame(1, $this->rows('SELECT COUNT(*) FROM activities_activity'));
+    }
+
     public function testMatchRefusesAnUnknownOrArchivedContact(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));

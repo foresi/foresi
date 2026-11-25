@@ -46,7 +46,9 @@ use Foresi\Shared\Domain\Id;
  * audited through the item:
  *
  * - match it to a contact by hand, or to none, or again by its sender as on
- *   arrival; create a contact from the sender and match the item to it;
+ *   arrival; create a contact from the sender and match the item to it. An
+ *   e-mail activity made before gets the new contact and its company too, and
+ *   keeps the ones it had;
  * - mark it done, discard it or reopen it. A discarded item without an output
  *   gives its mail back to Mail, which removes it 30 days later; leaving the
  *   discarded state keeps the mail again;
@@ -124,6 +126,7 @@ final readonly class ItemWrites
             };
             if (null !== $match->contactId && $match->basis instanceof MatchBasis) {
                 $item->match($match->contactId, $match->companyId, $match->basis);
+                $this->emailActivity->linkContacts($item);
             } else {
                 $item->unmatch();
             }
@@ -158,6 +161,7 @@ final readonly class ItemWrites
             ));
             // A new contact is linked to no company yet.
             $item->match($id, null, MatchBasis::Manual);
+            $this->emailActivity->linkContacts($item);
 
             return $item;
         });
@@ -189,7 +193,7 @@ final readonly class ItemWrites
 
     /**
      * @throws InboxRefused kind_unknown, record_not_linkable, already_linked, not_found, forbidden
-     * @throws Refused      when Activities refuses the e-mail activity
+     * @throws Refused      when Activities refuses the e-mail activity, such as type_unknown while the type email is archived
      */
     public function link(LinkItemInput $input): InboxItem
     {
@@ -295,6 +299,7 @@ final readonly class ItemWrites
     private function matchTo(InboxItem $item, PartySummary $contact): void
     {
         $item->match($contact->id, $this->matching->companyOf($contact), MatchBasis::Manual);
+        $this->emailActivity->linkContacts($item);
     }
 
     /**
