@@ -631,9 +631,9 @@ work:
       title: Which time uses the budget
       legend: Count
       all: All time
-      all_help: Billable and non-billable time use the budget.
+      all_help: Billable and non-billable time.
       billable: Billable time only
-      billable_help: Time logged non-billable, such as flat-fee work, leaves the budget alone.
+      billable_help: Non-billable time, such as flat-fee work, does not count.
       saved: The budget counts the chosen time.
   workflow:
     simple: Simple

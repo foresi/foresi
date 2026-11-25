@@ -631,9 +631,9 @@ work:
       title: Který čas čerpá rozpočet
       legend: Počítat
       all: Veškerý čas
-      all_help: Rozpočet čerpá fakturovatelný i nefakturovatelný čas.
+      all_help: Fakturovatelný i nefakturovatelný čas.
       billable: Jen fakturovatelný čas
-      billable_help: Čas zapsaný jako nefakturovatelný, třeba práce za paušál, rozpočet nečerpá.
+      billable_help: Nefakturovatelný čas, třeba práce za paušál, se nepočítá.
       saved: Rozpočet počítá zvolený čas.
   workflow:
     simple: Jednoduchý
