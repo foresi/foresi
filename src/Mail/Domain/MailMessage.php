@@ -29,7 +29,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_mail_message_message_id', columns: ['message_id_header'])]
 #[ORM\Index(name: 'idx_mail_message_address_received', columns: ['address_id', 'received_at'])]
 #[ORM\Index(name: 'idx_mail_message_id_bytes', columns: ['message_id_header', 'raw_sha256'])]
-#[ORM\Index(name: 'idx_mail_message_purge_after', columns: ['purge_after'], options: ['where' => '(purge_after IS NOT NULL)'])]
+#[ORM\Index(name: 'idx_mail_message_purge_after', columns: ['purge_after'])]
 class MailMessage
 {
     public const int MAX_FROM = 320;

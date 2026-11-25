@@ -26,7 +26,8 @@ use Foresi\Shared\Domain\Id;
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_inbound_address')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_token', columns: ['token_hash'])]
-#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'], options: ['where' => '((revoked_at IS NULL) AND (owner_user_id IS NOT NULL))'])]
+// One active address per person and purpose: partial on PostgreSQL, see InboundAddressSchema.
+#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'])]
 #[ORM\Index(name: 'idx_mail_inbound_address_owner', columns: ['owner_user_id'])]
 class InboundAddress implements Audited
 {
