@@ -1205,6 +1205,17 @@ nelmio_api_doc:
                                 account_hint: { type: string, example: '705-<number of your tax office>/0710' }
                                 variable_symbol: { type: string, example: '12345678' }
                                 source_url: { type: string, format: uri }
+                ExchangeRateSource:
+                    type: object
+                    description: Where the firm's exchange rates to CZK come from (ADR 0046).
+                    required: [source, chosen, default, allowed, installed, country]
+                    properties:
+                        source: { type: string, nullable: true, example: cnb, description: 'The source in use; null when none is installed.' }
+                        chosen: { type: boolean, description: 'True when a person chose it, false while the default applies.' }
+                        default: { type: string, nullable: true, example: cnb, description: 'The default of the firm''s country, or the first installed source without its rules.' }
+                        allowed: { type: array, items: { type: string }, example: [cnb, ecb], description: The installed sources the firm may choose. }
+                        installed: { type: array, items: { type: string }, example: [cnb, ecb], description: Every installed source. }
+                        country: { type: string, nullable: true, example: CZ, description: 'The country whose rules decide; null without rules.' }
                 MarginTable:
                     type: object
                     description: Revenue, costs and margin in CZK of the clients by month, with the firm's own use and what nobody claims.

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+exchange_rate:
+  source:
+    cnb:
+      label: Česká národní banka
+      text: Kurzy devizového trhu, vyhlašované v pracovní dny kolem 14:30 pražského času.

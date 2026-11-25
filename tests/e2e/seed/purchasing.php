@@ -40,7 +40,7 @@ $createParty->createFrom(new PartyInput(PartyKind::SoleTrader, 'Example Cloud In
 $createParty->createFrom($party(PartyKind::Company, 'Example Office Supplies s.r.o.', [PartyRole::Supplier], 'office@example.com', 2, '12345679', 'CZ12345679'));
 $rateStore = $container->get('e2e.rate_store');
 \assert($rateStore instanceof RateStore);
-$rateStore->save(new DateTimeImmutable('2026-10-14'), new PublishedRates(new DateTimeImmutable('2026-10-14'), ['USD' => new Quote('USD', 1, '23.500'), 'EUR' => new Quote('EUR', 1, '24.300')]), 'seed');
+$rateStore->save(new DateTimeImmutable('2026-10-14'), new PublishedRates(new DateTimeImmutable('2026-10-14'), ['USD' => new Quote('USD', 1, '23.500'), 'EUR' => new Quote('EUR', 1, '24.300')], 'CZK'), 'cnb');
 $purchasingOwner = $entityManager->getRepository(User::class)->findOneBy(['email' => 'purchasing@example.com']) ?? throw new LogicException('The owner of the purchasing world is missing.');
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($purchasingOwner->id(), $purchasingOwner->email(), 'hash'), 'main', ['ROLE_USER']));
 $suppliers = [];

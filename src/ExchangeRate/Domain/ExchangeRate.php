@@ -10,7 +10,8 @@ namespace Foresi\ExchangeRate\Domain;
 
 /**
  * What a currency was worth in CZK on a date: $amount units of the currency cost
- * $rate CZK (the ČNB quotes some currencies per 100 or per 1000, so one unit is
+ * $rate CZK (the ČNB quotes some currencies per 100 or per 1000, and a cross rate
+ * through the euro is given for 1, 100 or 1000 units, so one unit is
  * rate / amount). The rate is a decimal string, never a float. $validOn is the
  * date asked for; $publishedOn is the day the rate was published, which is
  * earlier on a weekend, a holiday and before the day's publication.

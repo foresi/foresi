@@ -87,7 +87,7 @@ final class LegalEntityControllerTest extends WebTestCase
         // The modules installed here give the links of these; the others leave theirs out.
         $router = self::getContainer()->get('router');
         $installed = array_values(array_filter(
-            ['/settings/firm Firm', '/settings/people People', '/settings/labels Labels', '/settings/documents Documents', '/settings/received-documents Received documents', '/settings/activities Activities', '/settings/sales Sales', '/imports Import and export', '/settings/api API and MCP', '/settings/webhooks Webhooks'],
+            ['/settings/firm Firm', '/settings/people People', '/settings/labels Labels', '/settings/documents Documents', '/settings/received-documents Received documents', '/settings/exchange-rates Exchange rates', '/settings/activities Activities', '/settings/sales Sales', '/imports Import and export', '/settings/api API and MCP', '/settings/webhooks Webhooks'],
             static function (string $link) use ($router): bool {
                 try {
                     $router->match(explode(' ', $link, 2)[0]);
