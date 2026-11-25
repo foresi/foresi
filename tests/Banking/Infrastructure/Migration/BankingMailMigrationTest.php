@@ -21,8 +21,8 @@ use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankFeed;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Migrations\Version20261124160001;
 use Foresi\Banking\Migrations\Version20261124160002;
 use Foresi\Banking\Migrations\Version20261124160003;
@@ -206,7 +206,7 @@ final class BankingMailMigrationTest extends KernelTestCase
         ]);
         $container->get(RecordMovement::class)->record(
             new MovementInput($this->account->id(), self::MESSAGE, MovementDirection::Incoming, Money::of('150.00', Currency::CZK), new \DateTimeImmutable('2026-11-20'), null, null, 'Example Buyer Ltd', '2026001', null, null, null, null),
-            new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC),
+            new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC),
         );
         $this->em->flush();
         $this->em->clear();

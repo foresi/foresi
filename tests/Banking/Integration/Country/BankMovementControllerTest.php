@@ -13,7 +13,7 @@ use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\MovementPage;
 use Foresi\Banking\Application\MovementRow;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\View\Condition;
@@ -43,8 +43,8 @@ final class BankMovementControllerTest extends BankScreenTestCase
 
             return $account;
         });
-        $pairedId = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
-        $unmatchedId = $this->movement('500.00', '99999999', trust: MessageTrust::Verified);
+        $pairedId = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
+        $unmatchedId = $this->movement('500.00', '99999999', trust: MovementTrust::Verified);
         $outgoingId = $this->movement('80.00', null, MovementDirection::Outgoing, account: $second);
 
         $all = $this->page('/bank');
@@ -78,7 +78,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         // Saved views, D12: All and the tabs it had, the same counts on the same tabs (D9), counted within the search.
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
         $this->movement('500.00', '1');
         $this->movement('600.00');
         $this->movement('90.00', null, MovementDirection::Outgoing);
@@ -101,7 +101,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
         $first = $this->movement('500.00', '1');
         $second = $this->movement('600.00');
         $this->movement('90.00', null, MovementDirection::Outgoing);
@@ -117,10 +117,10 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260009');
-        $this->movement('1300.00', '20260009', trust: MessageTrust::Verified);
+        $this->movement('1300.00', '20260009', trust: MovementTrust::Verified);
         $this->movement('500.00', '1');
-        $waiting = $this->movement('50.00', '20260009', MovementDirection::Outgoing, trust: MessageTrust::Verified);
-        $supplier = $this->movement('75.00', '55500001', MovementDirection::Outgoing, trust: MessageTrust::Verified, counterName: 'Example Supplier s.r.o.', counterIban: 'SK3112000000198742637541');
+        $waiting = $this->movement('50.00', '20260009', MovementDirection::Outgoing, trust: MovementTrust::Verified);
+        $supplier = $this->movement('75.00', '55500001', MovementDirection::Outgoing, trust: MovementTrust::Verified, counterName: 'Example Supplier s.r.o.', counterIban: 'SK3112000000198742637541');
 
         $crawler = $this->page('/bank?tab=outgoing_unmatched');
 
@@ -140,7 +140,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $byAmount = $this->invoice(due: '2026-11-10', customer: $stranger);
         $byCustomer = $this->invoice('700.00', customer: $payer);
         $other = $this->invoice('300.00', customer: $stranger);
-        $movement = $this->movement('1210.00', '20260007', trust: MessageTrust::Verified, counterName: 'Example Payer s.r.o.', auto: false);
+        $movement = $this->movement('1210.00', '20260007', trust: MovementTrust::Verified, counterName: 'Example Payer s.r.o.', auto: false);
 
         $dialog = $this->dialog($this->pairUrl($movement));
 
@@ -209,9 +209,9 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $paid = $this->invoice(vs: '20260009');
-        $this->movement('1210.00', '20260009', trust: MessageTrust::Verified);
+        $this->movement('1210.00', '20260009', trust: MovementTrust::Verified);
         self::assertSame([$paid->id() => 121000], $this->liveAllocations(), 'Paid by its notice.');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, bookedOn: '2026-11-18', auto: false);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified, bookedOn: '2026-11-18', auto: false);
         $form = $this->pairForm($movement);
 
         $posted = $form;
@@ -229,7 +229,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified, auto: false);
 
         $dialog = $this->dialog($this->pairUrl($movement));
 
@@ -243,7 +243,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $first = $this->invoice(vs: '20260001');
         $found = $this->invoice('500.00', due: '2026-12-30');
         $this->invoice('300.00');
-        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1815.00', '20260001', trust: MovementTrust::Verified, auto: false);
         $number = $found->number();
 
         $form = $this->pairForm($movement);
@@ -263,7 +263,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $this->signedIn();
         $first = $this->invoice(vs: '20260001');
         $second = $this->invoice('500.00', vs: '20260001', due: '2026-11-30');
-        $movement = $this->movement('1815.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1815.00', '20260001', trust: MovementTrust::Verified, auto: false);
         $form = $this->pairForm($movement, 'tab=unmatched');
         self::assertSame(['1210.00', '605.00'], [$form['amounts'][$first->id()], $form['amounts'][$second->id()]], 'Prefilled oldest due first.');
 
@@ -285,7 +285,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified, auto: false);
         $form = $this->pairForm($movement);
         $form['amounts'][$invoice->id()] = '1000.00';
 
@@ -307,7 +307,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1209.50', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1209.50', '20260001', trust: MovementTrust::Verified, auto: false);
         $form = $this->pairForm($movement);
         self::assertArrayNotHasKey('settle', $form, 'Offered, not ticked.');
         $this->dialog($this->pairUrl($movement));
@@ -331,7 +331,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified, auto: false);
         $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
         $flash = $this->page('/bank')->filter('[data-undo] form');
         $token = Scalars::text($flash->filter('input[name="_token"]')->attr('value'));
@@ -360,7 +360,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified, auto: false);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified, auto: false);
         $this->dialogPost($this->pairUrl($movement), $this->pairForm($movement));
         $token = Scalars::text($this->page('/bank')->filter('[data-undo] form input[name="_token"]')->attr('value'));
         $clock = Clock::get();
@@ -378,7 +378,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $paired = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $paired = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
         $this->client->request('POST', '/bank/movements/'.$paired.'/undo', ['_token' => $this->formToken()]);
 
         self::assertResponseRedirects('/bank');
@@ -389,7 +389,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
         $list = $this->page('/bank');
         self::assertCount(1, $this->row($list, $movement)->filter('a[href="/bank/movements/'.$movement.'/unpair"][data-dialog]'));
 
@@ -414,7 +414,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $rejected = $this->movement('1210.00', '20260001', trust: MessageTrust::Failed);
+        $rejected = $this->movement('1210.00', '20260001', trust: MovementTrust::Failed);
         $outgoing = $this->movement('1210.00', '20260001', MovementDirection::Outgoing);
         $token = $this->formToken();
 
@@ -434,7 +434,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $this->signedIn();
         for ($i = 1; $i <= 26; ++$i) {
             $this->invoice('100.00', vs: (string) (900 + $i));
-            $this->movement('121.00', (string) (900 + $i), trust: MessageTrust::Verified);
+            $this->movement('121.00', (string) (900 + $i), trust: MovementTrust::Verified);
         }
         $this->em()->clear();
 
@@ -457,7 +457,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
     {
         $this->signedIn();
         $invoice = $this->invoice(vs: '20260001');
-        $movement = $this->movement('1210.00', '20260001', trust: MessageTrust::Verified);
+        $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
 
         $crawler = $this->page('/invoices/'.$invoice->id().'/edit');
 

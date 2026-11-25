@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Console;
 
+use Foresi\Shared\Contract\ModuleApi;
 use Foresi\Shared\Infrastructure\Console\ModulesCheckCommand;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +28,7 @@ final class ModulesCheckCommandTest extends TestCase
         $output = new BufferedOutput();
 
         self::assertSame(Command::SUCCESS, $this->command()($this->io($output)));
-        self::assertStringContainsString('written for the module API 1.1.0', $output->fetch());
+        self::assertStringContainsString('written for the module API '.ModuleApi::VERSION, $output->fetch());
     }
 
     public function testAnotherMajorNamesEveryModule(): void

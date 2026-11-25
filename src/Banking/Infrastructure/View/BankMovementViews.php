@@ -40,7 +40,7 @@ final readonly class BankMovementViews
     public function of(InputBag $input): array
     {
         $list = $this->lists->list();
-        $views = $this->views->of($list, $this->actor->userId());
+        $views = $this->views();
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
         $account = $input->getString(BankMovementLists::ACCOUNT);
@@ -49,5 +49,15 @@ final readonly class BankMovementViews
         }
 
         return [$list, $views, $view, $working];
+    }
+
+    /**
+     * The person's views of the bank screen, in their order.
+     *
+     * @return list<ListView>
+     */
+    public function views(): array
+    {
+        return $this->views->of($this->lists->list(), $this->actor->userId());
     }
 }

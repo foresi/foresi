@@ -12,7 +12,7 @@ use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Integration\CashFlow\MovementFlows;
 use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\CreatePlannedItemInput;
@@ -649,7 +649,7 @@ final class CashFlowSourcesTest extends CashFlowTestCase
             null,
             'Example payment',
             null,
-        ), new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC));
+        ), new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC));
     }
 
     private function plannedItem(string $name, string $amount, string $on, ?string $counterpartyId = null, ?string $matchAccount = null, ?string $matchVariableSymbol = null): string

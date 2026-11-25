@@ -351,3 +351,22 @@ bank:
       failed: '{count, plural, one {A bank e-mail could not be processed.} other {# bank e-mails could not be processed.}} Check them and try again.'
       unmatched: '{count, plural, one {An incoming payment is not paired with an invoice.} other {# incoming payments are not paired with an invoice.}}'
       link: Show
+  statement:
+    title: Bank statements
+    tab: Statements
+    caption: 'Statements of {account}, {source}'
+    none: '–'
+    empty_title: No statements yet
+    empty_text: Bank statements read from a file or a bank's API show here, account by account.
+    notice: '{count, plural, one {Bank statements of an account do not follow on.} other {Bank statements of # accounts do not follow on.}}'
+    column:
+      number: Number
+      period: Period
+      opening: Opening balance
+      closing: Closing balance
+      entries: Entries
+      received: Received
+    gap:
+      number: 'A statement between {previous} and {current} is missing.'
+      balance: 'Opening balance {actual} differs from the previous closing balance {expected} by {difference}, or an earlier statement is missing.'
+      inner: 'The entries add up to a closing balance of {expected}, the statement states {actual}: the file may be cut short.'

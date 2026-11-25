@@ -17,7 +17,7 @@ use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Application\UnpairMovement;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\CancelPayment;
 use Foresi\Invoicing\Application\InvoiceInput;
@@ -89,7 +89,7 @@ abstract class PairingWorker extends KernelTestCase
         $issue = $container->get(IssueInvoice::class);
         $record = $container->get(RecordMovement::class);
         $day = new \DateTimeImmutable('2026-11-01');
-        $verified = new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
+        $verified = new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC);
         for ($i = 0; $i < $invoices; ++$i) {
             $symbol = (string) (2026100 + $i);
             // 1,000.00 with 21 % VAT: 1,210.00 to pay.

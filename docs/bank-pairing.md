@@ -308,9 +308,41 @@ Per firm, under **Firm › Bank › Pairing**:
 
 The small-difference settlement applies only when the switch is on, the movement pays a single invoice, and the firm's country module gives a limit for the currency. The Czech module allows **up to 0,99 Kč in CZK** and nothing in any other currency. The payment then records the amount that came, and the difference is written off on the invoice so that it closes **exactly**: 999,01 Kč for an invoice of 1 000,00 Kč makes it paid, with 0,99 Kč settled; 998,99 Kč makes it partly paid. The difference may go either way. The settled amount counts toward the invoice only, never toward the payment.
 
+## Statements and other channels
+
+Bank mail is one channel. A statement file (camt.053, ABO/GPC, MT940) and a bank's API are others, and all of them hand their movements to one service of Banking, `StatementIntake` (module API 1.2, see [modules.md](modules.md#ports-of-business-modules) and [ADR 0047](adr/0047-bank-statement-intake.md)). Banking's own mail path goes through it too, so the rules below hold for every channel. Foresi ships no statement format and no connector yet: a module adds a format as a `StatementFormat` (tag `foresi.banking.statement_format`) and a connector as a module with a scheduled job of its own.
+
+Every movement records its **channel** (mail, statement or API) and its **source**: the parser, format or connector that told it, such as `cz.kb`.
+
+### What vouches for a statement
+
+| Channel | Verdict | Basis |
+|---|---|---|
+| Bank mail | As in [What Foresi believes](#what-foresi-believes) | `dmarc`, `arc`, … |
+| A connector that reached the bank's own API over TLS with the firm's credentials | Verified | `bank-api` |
+| A statement file a staff member uploaded | Verified: the person who uploads may pay by hand as well; the statement keeps who uploaded it and the SHA-256 of the file | `uploaded` |
+| A module that cannot vouch for its source | Unverified | `unverified-source` |
+
+A verified movement pays by the [pairing rules](#what-pairs-by-itself), an unverified one waits for a person, whatever channel brought it.
+
+### One movement, told twice
+
+- **The same source again** (a statement uploaded again, an API that returns some days twice): an entry with a bank reference the source gave before is skipped as already known. Without a reference, an entry equal to one of another submission of the same source is a **possible duplicate** and never pays. The same file from the same source a second time changes nothing at all.
+- **Another channel** (the mail notice came on Monday, the statement on Tuesday): when exactly one movement of the account has the same direction, amount, booked day and variable symbol, and the same counter-account when both state one, and no other source confirmed it yet, the entry **confirms** that movement instead of adding a second one. The movement keeps what the bank said first and gains the statement's source, reference and the time of the confirmation. When the statement is trusted more, an unverified mail and a verified statement say, the movement becomes verified, and one that waited for being unverified is paired again. Two or more such movements make the entry a possible duplicate, for a person to decide.
+
+### Gaps between statements
+
+A statement keeps its number, period, opening and closing balance and how many entries it had. The statements of one account and one source are a chain, ordered by the end of their period and their number; two sources of one account, a monthly file and a daily API say, are two chains, as they cover the days differently. Foresi warns when:
+
+- a number is missing between two statements (a number within a year starts at 1 in a new year);
+- a statement's opening balance is not the previous closing balance;
+- a statement's own entries do not add up from its opening to its closing balance, as a file cut short would.
+
+The movements are recorded all the same. A statement of the number of the one before is that statement again, corrected by the bank, and takes its place. A gap closes by itself once the missing statement comes. Each gap opened records `banking.statement.gap_detected`, each closed `banking.statement.gap_closed` (both version 1), for webhooks. Bank mail has no number or balance and is never part of a chain.
+
 ## The bank screen
 
-**Bank** in the navigation has five tabs:
+**Bank** in the navigation has five tabs, and a sixth once a statement came in:
 
 | Tab | What it lists |
 |---|---|
@@ -319,8 +351,9 @@ The small-difference settlement applies only when the switch is on, the movement
 | Unmatched | Incoming movements waiting for a person; the tab shows their count |
 | Outgoing unmatched | Outgoing movements waiting for a person, with the reason and the suggested refunds; the tab shows their count |
 | Messages | The bank mail: received, from, subject, status and the reason in words |
+| Statements | Per account and source, the statements newest first: number, period, opening and closing balance, entries and when it came. A gap shows under the statement after it, such as "A statement between 42/2026 and 44/2026 is missing." or "Opening balance … differs from the previous closing balance … by …, or an earlier statement is missing."; the tab counts the gaps |
 
-The list filters by account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait.
+The list filters by account and a search over partner, VS or amount. The shell also shows a notice while failed or rejected messages, or unmatched movements, wait, and while the statements of an account do not follow on.
 
 - **Pair** opens a dialog with the suggested invoices first (same variable symbol, then same amount, then same customer) and a search over the firm's other unpaid invoices in the movement's currency. Tick one or more; the amounts fill in oldest due first, and the parts must add up to the movement. When the firm allows it, the difference on one invoice can be written off, up to the limit. Pairing needs no confirm: the flash "Paired with …" offers **Undo**, for ten minutes. Only the invoices the dialog offered can be paid, and an invoice paid meanwhile is refused under its lock.
 - For a movement Foresi did not verify (listed as "Not verified, check it in the bank first"), the dialog warns, nothing is ticked or filled in, and the box "I checked the payment in the bank" must be ticked. Find the payment in your internet banking first.
@@ -386,5 +419,6 @@ Raw bank messages hold the names and account numbers of payers, the amounts, and
 - **Country modules:** the interface `InvoicingCountry` has a new method, `settlementLimit(Currency $currency): ?int`, the most minor units a firm of the country may write off on an invoice in the currency, or null for none. A third-party country module must implement it; return null to keep small differences unsettled.
 - **New environment variables**, all empty by default, so bank mail stays off until set (they were called `BANK_INBOX_*` until the Mail module took them over, see [mail.md](mail.md#settings)): `MAIL_INBOUND_ADDRESS`, `MAIL_INBOUND_TRUSTED_AUTHSERV`, `MAIL_INBOUND_TRUSTED_ARC`, `MAIL_INBOUND_HOST`, `MAIL_INBOUND_PORT` (993), `MAIL_INBOUND_ENCRYPTION` (`ssl`), `MAIL_INBOUND_USER`, `MAIL_INBOUND_PASSWORD`, `MAIL_INBOUND_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
 - **The settings were renamed** from `BANK_INBOX_*` to `MAIL_INBOUND_*`, one for one. The old names still work for one more release and log a deprecation warning; rename them in `.env.local` or the service environment. `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` keep their names. The operator task `bank-inbox` is now `mail-inbox`.
+- **Statements (module API 1.2).** The migration adds the table `bank_statement` and gives every movement a channel and a source: `mail` and the parser that read its message, or `mail` when none is known. `Foresi\Banking\Domain\MessageTrust` is now `Foresi\Banking\Contract\MovementTrust`, the trust scale of every channel; Domain is internal, so a module that used the old name moves to the contract one.
 - Include `inbound-mail` in backups.
 - The worker command is unchanged.

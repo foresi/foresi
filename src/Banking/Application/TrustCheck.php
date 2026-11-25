@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 
 /**
  * What the owner needs to set up trust, of the last message an account got:
@@ -27,7 +27,7 @@ final readonly class TrustCheck
         public string $channel,
         public ?string $authservId,
         public bool $trusted,
-        public ?MessageTrust $trust,
+        public ?MovementTrust $trust,
         public ?string $basis,
     ) {
     }

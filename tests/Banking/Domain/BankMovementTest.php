@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Domain;
 
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Party\Domain\FirmBankAccount;
@@ -200,6 +200,6 @@ final class BankMovementTest extends TestCase
     ): BankMovement {
         $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
 
-        return new BankMovement($account, null, $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MessageTrust::Verified, 'dmarc', $state, $reason);
+        return new BankMovement($account, null, $direction, Money::of($amount, Currency::CZK), new \DateTimeImmutable('2026-11-20'), $counterAccount, $counterIban, $counterName, null, null, null, $message, null, $fingerprint, MovementTrust::Verified, 'dmarc', $state, $reason);
     }
 }

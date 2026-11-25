@@ -16,8 +16,8 @@ use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Application\UnpairMovement;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Domain\Invoice;
@@ -97,12 +97,12 @@ abstract class BankingTestCase extends InvoiceTestCase
 
     protected static function verified(): TrustVerdict
     {
-        return new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
+        return new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC);
     }
 
     protected static function unverified(): TrustVerdict
     {
-        return new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
+        return new TrustVerdict(MovementTrust::Unverified, TrustVerdict::NO_RESULTS);
     }
 
     protected function storedMovement(string $id): BankMovement

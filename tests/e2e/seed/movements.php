@@ -12,7 +12,7 @@ use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Contract\DocumentKind;
@@ -67,8 +67,8 @@ foreach (['Consulting' => '1000.00', 'Workshop' => '2000.00', 'Audit' => '500.00
     ], true));
 }
 $movementsAccount = $entityManager->getRepository(FirmBankAccount::class)->findOneBy(['iban' => 'CZ6508000000192000145399']) ?? throw new LogicException('The account of the movements firm is missing.');
-$verified = new TrustVerdict(MessageTrust::Verified, TrustVerdict::DMARC);
-$unverified = new TrustVerdict(MessageTrust::Unverified, TrustVerdict::NO_RESULTS);
+$verified = new TrustVerdict(MovementTrust::Verified, TrustVerdict::DMARC);
+$unverified = new TrustVerdict(MovementTrust::Unverified, TrustVerdict::NO_RESULTS);
 $movement = static fn (FirmBankAccount $account, MovementDirection $direction, string $amount, ?string $vs, ?string $name, ?string $counter, ?string $message, TrustVerdict $trust): string => $recordMovement->record(new MovementInput($account->id(), null, $direction, Money::of($amount, Currency::CZK), $day, $counter, null, $name, $vs, null, null, $message, null), $trust)->id();
 $pairMovement->auto($movement($movementsAccount, MovementDirection::Incoming, '1210.00', '20260001', 'Example Payer a.s.', '2000000123/0800', 'Faktura 20260001', $verified));
 $pairMovement->auto($movement($movementsAccount, MovementDirection::Incoming, '2420.00', '20260002', 'Example Payer a.s.', '2000000123/0800', 'Workshop', $unverified));

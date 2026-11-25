@@ -536,7 +536,7 @@ Implement `Foresi\Instance\Contract\ScheduledJob`. `name()` is a stable name of 
 
 ## Reference
 
-Every extension point below is part of the module API since version 1.0, the first version.
+Every extension point below is part of the module API since version 1.0, the first version, unless it names a later one ("since 1.1").
 
 ### The manifest
 
@@ -592,7 +592,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.1.0), and `"provide": {"foresi/module-api": "1.1.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.2.0), and `"provide": {"foresi/module-api": "1.2.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -601,11 +601,12 @@ What each minor version added:
 | Version | Added |
 | --- | --- |
 | 1.1 | `Foresi\ExchangeRate\Contract\RateRules` (`foresi.exchange_rate.rules`), the legal rate of a country; `PublishedRates::$base`, the currency a source's quotes are priced in (leaving it out is deprecated and means CZK). A module that uses them requires `^1.1`. |
+| 1.2 | Banking: the `StatementIntake` service, the one way bank movements enter, and the `StatementFormat` port for statement files, with their values (`BankStatement`, `StatementSequence`, `StatementFile`, `MovementProvenance`, `MovementChannel`, `MovementTrust`, `IntakeResult`) and the events `banking.statement.gap_detected` and `banking.statement.gap_closed`. A module that uses them requires `^1.2`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.1.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.2.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -696,7 +697,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Module | Ports and their tags |
 | --- | --- |
 | Activities | `ActivityTarget` (`foresi.activities.target`) |
-| Banking | `BankMessageParser` (`foresi.banking.message_parser`) |
+| Banking | `BankMessageParser` (`foresi.banking.message_parser`); `StatementFormat` (`foresi.banking.statement_format`, since 1.2) and the `StatementIntake` service (since 1.2), see [bank pairing](bank-pairing.md#statements-and-other-channels) |
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |

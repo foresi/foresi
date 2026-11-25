@@ -12,7 +12,6 @@ use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
-use Foresi\Banking\Application\MovementPage;
 use Foresi\Banking\Application\MovementRow;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\PairingChoice;
@@ -20,12 +19,15 @@ use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Application\PairingOptions;
 use Foresi\Banking\Application\PairingRefused;
 use Foresi\Banking\Application\PairMovement;
+use Foresi\Banking\Application\ReceivedStatements;
+use Foresi\Banking\Application\StatementChain;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Application\UnpairMovement;
 use Foresi\Banking\Application\View\BankMovementLists;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
+use Foresi\Banking\Domain\ReceivedStatement;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Banking\Infrastructure\Column\MovementColumns;
 use Foresi\Banking\Infrastructure\View\BankMovementViews;
@@ -114,6 +116,8 @@ final class BankMovementController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly ReceivedStatements $statements,
+        private readonly StatementRows $statementRows,
     ) {
     }
 
@@ -156,7 +160,7 @@ final class BankMovementController extends AbstractController
             ...$this->filterSheet->of($list, $shown, fn (ViewFilter $next): string => $this->generateUrl('app_bank_movements', [WorkingFilter::PARAM => WorkingFilter::param($next, $view->filter)] + array_diff_key($query, [WorkingFilter::PARAM => true])), pinned: $working->pinned),
             ...$bar,
             'text' => $text,
-            ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
+            ...$this->tabs($views, $view->key, $page->counts, $query, $bar['viewBar']['modified']),
             'columns' => $mail ? $this->messageColumns(\count($page->accounts) > 1) : $working->display->table(),
             'rows' => $mail
                 ? array_map(fn (MessageRow $row): array => $this->messageRow($row, \count($page->accounts) > 1, $here), $page->messages)
@@ -168,6 +172,26 @@ final class BankMovementController extends AbstractController
             'filtered' => '' !== $text || null !== $filterParam,
             'paired' => $this->pairedFlash($request),
             'noAccounts' => [] === $page->accounts,
+        ]);
+    }
+
+    /**
+     * The statements that came in, a table per account and source in the order of
+     * their chain, newest first, each gap said on the statement after it, as Odoo
+     * says it on the statement whose opening balance does not follow on. A tab of
+     * the bank screen, shown once a statement came in.
+     */
+    #[Route('/bank/statements', name: 'app_bank_statements', methods: ['GET'])]
+    public function statements(): Response
+    {
+        $this->denyUnlessStaff();
+        $statements = $this->statements->all();
+        $views = $this->views->views();
+        $tabs = $this->tabs($views, '', $this->screen->counts('', $this->counted($views)), [], false, $statements);
+
+        return $this->render('@Banking/statements.html.twig', [
+            ...$tabs,
+            'chains' => $this->statementRows->chains($statements),
         ]);
     }
 
@@ -326,7 +350,7 @@ final class BankMovementController extends AbstractController
      */
     private function checkFirst(BankMovement $movement): bool
     {
-        return MessageTrust::Verified !== $movement->trust();
+        return MovementTrust::Verified !== $movement->trust();
     }
 
     /**
@@ -497,7 +521,7 @@ final class BankMovementController extends AbstractController
             MovementState::Paired === $movement->state() => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
-            UnmatchedReason::Rejected === $movement->unmatchedReason(), MessageTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
+            UnmatchedReason::Rejected === $movement->unmatchedReason(), MovementTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
             // Outgoing money pairs only as a refund, so only while something is to refund.
             !$movement->isIncoming() && !$this->refundsOffered($movement) => PairingRefused::NOT_INCOMING,
             default => null,
@@ -562,16 +586,20 @@ final class BankMovementController extends AbstractController
      * views as tabs, with the count of those that show one; the other views in the
      * menu. A view of the bank mail shows its count only while a message waits.
      *
-     * @param list<ListView>        $views
-     * @param array<string, string> $query
+     * The Statements tab follows them once a statement came in.
+     *
+     * @param list<ListView>               $views
+     * @param array<string, int>           $counts     by the key of the view
+     * @param array<string, string>        $query
+     * @param list<ReceivedStatement>|null $statements the statements when their tab is the one shown
      *
      * @return array{tabs: list<array<string, mixed>>, moreViews: list<array<string, mixed>>}
      */
-    private function tabs(array $views, string $active, MovementPage $page, array $query, bool $modified): array
+    private function tabs(array $views, string $active, array $counts, array $query, bool $modified, ?array $statements = null): array
     {
         [$primary, $overflow] = ListViews::placed($views);
-        $link = function (ListView $view, bool $count) use ($active, $page, $query, $modified): array {
-            $counted = $count && $view->showCount ? ($page->counts[$view->key] ?? null) : null;
+        $link = function (ListView $view, bool $count) use ($active, $counts, $query, $modified): array {
+            $counted = $count && $view->showCount ? ($counts[$view->key] ?? null) : null;
 
             return [
                 'label' => $view->translated ? $this->translator->trans($view->name) : $view->name,
@@ -584,7 +612,35 @@ final class BankMovementController extends AbstractController
             ];
         };
 
-        return ['tabs' => array_map(static fn (ListView $view): array => $link($view, true), $primary), 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
+        $tabs = array_map(static fn (ListView $view): array => $link($view, true), $primary);
+        $shown = null !== $statements;
+        $statements ??= $this->statements->all();
+        if ([] !== $statements) {
+            $tabs[] = $this->statementsTab($statements, $shown);
+        }
+
+        return ['tabs' => $tabs, 'moreViews' => array_map(static fn (ListView $view): array => $link($view, false), $overflow)];
+    }
+
+    /**
+     * The Statements tab, its count the gaps, none while every chain follows on.
+     *
+     * @param list<ReceivedStatement> $statements
+     *
+     * @return array<string, mixed>
+     */
+    private function statementsTab(array $statements, bool $active): array
+    {
+        $gaps = \count(StatementChain::gaps($statements));
+
+        return [
+            'label' => $this->translator->trans('bank.statement.tab'),
+            'href' => $this->generateUrl('app_bank_statements'),
+            'count' => 0 === $gaps ? null : $gaps,
+            'active' => $active,
+            'modified' => false,
+            'private' => false,
+        ];
     }
 
     /**

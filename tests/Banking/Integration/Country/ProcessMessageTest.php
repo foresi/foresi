@@ -19,6 +19,7 @@ use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\PendingChanges;
 use Foresi\Banking\Application\ProcessMessage;
+use Foresi\Banking\Application\ReceivedStatements;
 use Foresi\Banking\Application\RetryInboundMessage;
 use Foresi\Banking\Contract\BankMessageParser;
 use Foresi\Banking\Contract\ParseResult;
@@ -452,6 +453,6 @@ final class ProcessMessageTest extends InboundTestCase
         $translator = $container->get(TranslatorInterface::class);
         $translator->setLocale('en');
 
-        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class));
+        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class), $container->get(ReceivedStatements::class));
     }
 }

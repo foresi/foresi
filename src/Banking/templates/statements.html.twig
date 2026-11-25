@@ -1,0 +1,27 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Statements tab of the bank screen: the statements that came in, a table per account and
+    source, newest first. A statement that does not follow on the one before says so under its
+    opening balance, as Odoo says it on the statement ("…or an earlier statement is missing"); one
+    whose entries do not add up says so under its closing balance. No search or filter: an account
+    has a statement a month.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'bank.movement.title'|trans}] %}
+
+{% block title %}{{ 'bank.statement.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-4">
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'bank.movement.views'|trans}) }}
+        {% for chain in chains %}
+            <section class="grid gap-2" aria-labelledby="bank-statements-{{ loop.index }}" data-statement-chain>
+                <h2 id="bank-statements-{{ loop.index }}" class="m-0 text-body font-semibold text-ink">{{ chain.title }} <span class="font-normal text-muted">· {{ chain.source }}</span></h2>
+                <twig:Ui:DataTable :caption="'bank.statement.caption'|trans({account: chain.title, source: chain.source})" :columns="chain.columns" :rows="chain.rows" density="dense" />
+            </section>
+        {% else %}
+            <twig:Ui:EmptyState icon="file-text" :title="'bank.statement.empty_title'|trans" :text="'bank.statement.empty_text'|trans" />
+        {% endfor %}
+    </div>
+{% endblock %}

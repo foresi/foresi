@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\MovementRow;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Contract\MovementDirection;
@@ -68,14 +69,74 @@ final readonly class DoctrineBankMovements implements BankMovements
         $this->em->persist($movement);
     }
 
-    public function fingerprintTakenByOther(string $fingerprint, ?string $inboundMessageId): bool
+    public function fingerprintTakenByOther(string $fingerprint, string $sourceId, ?string $inboundMessageId, ?string $statementId = null): bool
     {
-        $query = null === $inboundMessageId
-            ? $this->em->createQuery('SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE m.fingerprint = :fingerprint')
-            : $this->em->createQuery('SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE m.fingerprint = :fingerprint AND (m.inboundMessageId IS NULL OR m.inboundMessageId <> :message)')
-                ->setParameter('message', $inboundMessageId);
+        $dql = 'SELECT COUNT(m.id) FROM '.BankMovement::class.' m WHERE m.fingerprint = :fingerprint AND m.sourceId = :source';
+        $parameters = ['fingerprint' => $fingerprint, 'source' => $sourceId];
+        if (null !== $inboundMessageId) {
+            $dql .= ' AND (m.inboundMessageId IS NULL OR m.inboundMessageId <> :message)';
+            $parameters['message'] = $inboundMessageId;
+        } elseif (null !== $statementId) {
+            $dql .= ' AND (m.statementId IS NULL OR m.statementId <> :statement)';
+            $parameters['statement'] = $statementId;
+        }
 
-        return 0 < (int) $query->setParameter('fingerprint', $fingerprint)->getSingleScalarResult();
+        return 0 < (int) $this->em->createQuery($dql)->setParameters($parameters)->getSingleScalarResult();
+    }
+
+    public function referenceKnown(string $accountId, string $sourceId, string $reference): bool
+    {
+        $found = $this->em->createQuery('SELECT m.id FROM '.BankMovement::class.' m WHERE m.account = :account AND ((m.sourceId = :source AND m.bankReference = :reference) OR (m.corroboratedSourceId = :source AND m.corroboratedReference = :reference))')
+            ->setParameters(['account' => $accountId, 'source' => $sourceId, 'reference' => $reference])
+            ->setMaxResults(1)
+            ->getOneOrNullResult();
+
+        return null !== $found;
+    }
+
+    public function corroborationCandidates(MovementInput $input): array
+    {
+        $symbol = null === $input->variableSymbol ? 'm.variableSymbol IS NULL' : 'm.variableSymbol = :symbol';
+        $query = $this->em->createQuery('SELECT m FROM '.BankMovement::class.' m WHERE m.account = :account AND m.sourceId <> :source AND m.corroboratedAt IS NULL AND m.state <> :duplicate'
+            .' AND m.direction = :direction AND m.amountMinor = :minor AND m.currency = :currency AND m.bookedOn = :booked AND '.$symbol.' ORDER BY m.id')
+            ->setParameters([
+                'account' => $input->accountId,
+                'source' => $input->sourceId,
+                'duplicate' => MovementState::PossibleDuplicate,
+                'direction' => $input->direction,
+                'minor' => $input->amount->minor(),
+                'currency' => $input->amount->currency(),
+                'booked' => $input->bookedOn->format('Y-m-d'),
+            ]);
+        if (null !== $input->variableSymbol) {
+            $query->setParameter('symbol', $input->variableSymbol);
+        }
+        /** @var list<BankMovement> $movements */
+        $movements = $query->getResult();
+
+        return array_values(array_filter($movements, static fn (BankMovement $movement): bool => self::sameCounterAccount($movement, $input)));
+    }
+
+    /**
+     * A counter-account stated on both sides by IBAN or by local number is the same;
+     * one stated on one side only, or in two ways that cannot be compared, does not
+     * tell the two apart.
+     */
+    private static function sameCounterAccount(BankMovement $movement, MovementInput $input): bool
+    {
+        if (null !== $movement->counterIban() && null !== $input->counterIban) {
+            return self::compact($movement->counterIban()) === self::compact($input->counterIban);
+        }
+        if (null !== $movement->counterAccount() && null !== $input->counterAccount) {
+            return self::compact($movement->counterAccount()) === self::compact($input->counterAccount);
+        }
+
+        return true;
+    }
+
+    private static function compact(?string $account): string
+    {
+        return strtoupper((string) preg_replace('/\s+/u', '', (string) $account));
     }
 
     public function hasLivePayment(string $movementId): bool
