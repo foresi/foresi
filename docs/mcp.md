@@ -104,7 +104,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
 | `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |
 | `foresi_search_projects` | Searches the projects you see, newest first, by `query`, `archived` and `client_id`, through a saved view of `work.projects` (`view_id`) or conditions (`filter`). |
-| `foresi_get_project` | One project with its statuses (id, name, type, position) and the sections you see. A status of type `done` or `closed` completes a task. |
+| `foresi_get_project` | One project with its statuses (id, name, type, position), the sections you see and its time budget `{hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. A status of type `done` or `closed` completes a task. |
+| `foresi_get_project_budget` | The time budget of a project (`project_id`): budget, used and left in hours and minutes, `counting` (`all` or `billable`), the sum of the task estimates, and the changes, the latest first, with their notes; `changes` is `null` for a guest. Over budget is a negative left, never a refusal. |
 | `foresi_list_project_people` | Who may be responsible for a task of a project (`project_id`, optional `task_id`): their ids are the `responsible_id` of a task. |
 | `foresi_search_tasks` | Searches the tasks you see, newest first, by `query`, `project_id`, `assignee` (`me` or a person), `status_type`, `finished` and `due`, through a saved view of `work.my_tasks` (`view_id`) or conditions (`filter`). Your tasks still to do: `assignee: "me"`, `finished: false`. |
 | `foresi_get_task` | One task with its description, watchers, subtasks and dates. A private task not shared with you is not found. |
@@ -122,6 +123,9 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_update_project` | **Write.** Changes the name, client or description of a project (`project_id`). |
 | `foresi_archive_project` | **Write.** Archives a project (`project_id`). |
 | `foresi_restore_project` | **Write.** Restores an archived project (`project_id`). |
+| `foresi_add_project_budget_change` | **Write.** Adds a dated change to the time budget of a project (`project_id`, `hours` such as `"8"` or `"-2.5"`, or `minutes`; optional `effective_on`, `note`, `source_activity_id`). The budget never goes below zero (`budget_below_zero`). |
+| `foresi_remove_project_budget_change` | **Write, destructive.** Removes a change entered by mistake (`project_id`, `change_id`); the audit log keeps it. |
+| `foresi_set_project_budget_counting` | **Write.** Chooses which time uses the budget (`project_id`, `counting`: `all` or `billable`). |
 | `foresi_log_time` | **Write.** Logs time on a project or task: `worked_on` with `minutes`, or `started_at` and `ended_at`. |
 | `foresi_start_timer` | **Write.** Starts your timer on a project or task; one that runs is stopped first. |
 | `foresi_stop_timer` | **Write.** Stops your running timer (`entry_id`). |

@@ -43,6 +43,9 @@ final class WorkOperationsTest extends KernelTestCase
         'time_entries.log' => ['POST', '/api/v1/time-entries', 'foresi_log_time', 'time_entries:write', false],
         'time_entries.start_timer' => ['POST', '/api/v1/time-entries/timer', 'foresi_start_timer', 'time_entries:write', false],
         'time_entries.stop_timer' => ['POST', '/api/v1/time-entries/{entryId}/stop', 'foresi_stop_timer', 'time_entries:write', false],
+        'work.project_budget.add_change' => ['POST', '/api/v1/projects/{projectId}/budget-changes', 'foresi_add_project_budget_change', 'projects:write', false],
+        'work.project_budget.remove_change' => ['DELETE', '/api/v1/projects/{projectId}/budget-changes/{changeId}', 'foresi_remove_project_budget_change', 'projects:write', true],
+        'work.project_budget.set_counting' => ['PUT', '/api/v1/projects/{projectId}/budget-counting', 'foresi_set_project_budget_counting', 'projects:write', false],
     ];
 
     public function testEachOperationIsDeclaredUnderTheScopeOfItsResource(): void

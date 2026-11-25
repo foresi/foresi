@@ -127,6 +127,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
 | `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
+| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. The project itself carries `budget {hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. |
 | `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
 | `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first. |
 | `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
@@ -428,6 +429,9 @@ The writes of projects need `projects:write`, those of tasks and comments `tasks
 | `PATCH /api/v1/projects/{projectId}` | The project as it is now. |
 | `POST /api/v1/projects/{projectId}/archive` | The archived project. |
 | `POST /api/v1/projects/{projectId}/restore` | The project, active again. |
+| `POST /api/v1/projects/{projectId}/budget-changes` | `201` with the time budget as `GET /api/v1/projects/{projectId}/budget` shows it, and `Location`. |
+| `DELETE /api/v1/projects/{projectId}/budget-changes/{changeId}` | The budget without the change. For a change entered by mistake; the audit log keeps it. |
+| `PUT /api/v1/projects/{projectId}/budget-counting` | The budget as it now counts. |
 | `POST /api/v1/time-entries` | `201` with the entry. |
 | `POST /api/v1/time-entries/timer` | `201` with the running entry. A timer that ran already is stopped and saved first. |
 | `POST /api/v1/time-entries/{entryId}/stop` | The stopped entry. The entry must be the person's running timer. |
@@ -440,18 +444,19 @@ curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: app
   "https://app.example.com/api/v1/tasks/0193a1b2-0000-7000-8000-000000000010"
 ```
 
-A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
+A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. A budget change takes `hours` (a decimal number in a string, plus or minus, at most two decimal places, such as `"8"` or `"-2.5"`) or `minutes`, not both, `effective_on` (`YYYY-MM-DD`, today when left out), `note` (at most 500 characters) and `source_activity_id` (an activity linked to the project); the counting takes `counting` (`all` or `billable`). Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
 
 What a work write refuses:
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which: `name`, `date`, `client`, `parent`, `responsible`, `comment_empty`, `comment_too_long`, `duration`, `time_note` or `time_task`. |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which: `name`, `date`, `client`, `parent`, `responsible`, `comment_empty`, `comment_too_long`, `duration`, `time_note`, `time_task`, `hours_invalid`, `hours_zero`, `budget_note` or `source_not_on_project`. |
 | 403 | `forbidden` | Only the owners and team members do this, such as starting a project. |
 | 403 | `task_not_yours`, `comment_not_yours`, `time_not_yours` | Only who created it, or an owner, may. |
 | 404 | `not_found` | No such project, section, status, task, label, comment or entry the person sees. |
 | 409 | `archived` | The project is archived. |
 | 409 | `parent_in_trash`, `comment_deleted`, `time_invoiced`, `timer_running`, `timer_not_running` | The record is in a state that does not allow it. |
+| 409 | `budget_below_zero` | The change, or removing it, would take the project's time budget below zero. |
 
 ## Cash flow
 

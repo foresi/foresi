@@ -10,6 +10,7 @@ namespace Foresi\Work\Infrastructure\Api;
 
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Work\Application\ProjectBudgetReads;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use OpenApi\Attributes as OA;
@@ -29,8 +30,9 @@ final readonly class ProjectApiController
     public const string READ_SCOPE = 'projects:read';
     public const string LIST = 'api_v1_projects';
     public const string SHOW = 'api_v1_project';
+    public const string BUDGET = 'api_v1_project_budget';
 
-    public function __construct(private ScopeGuard $scope, private WorkLists $lists, private WorkQueries $queries, private WorkJson $json)
+    public function __construct(private ScopeGuard $scope, private WorkLists $lists, private WorkQueries $queries, private WorkJson $json, private ProjectBudgetReads $budgets)
     {
     }
 
@@ -62,7 +64,21 @@ final readonly class ProjectApiController
         $this->scope->require(self::READ_SCOPE);
         $project = $this->queries->project($projectId) ?? throw new WorkRefused('unknown');
 
-        return new JsonResponse(['data' => $this->json->projectDetail($project)]);
+        return new JsonResponse(['data' => $this->json->projectDetail($project, $this->budgets->find($projectId))]);
+    }
+
+    #[Route('/api/v1/projects/{projectId}/budget', name: self::BUDGET, methods: ['GET'])]
+    #[OA\Tag(name: 'Projects')]
+    #[OA\Response(response: 200, description: 'The time budget of the project: budget, used and left in hours and minutes, which time counts, the sum of the task estimates and the dated changes; changes is null for a guest.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/ProjectBudget')], type: 'object'))]
+    #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the projects:read scope.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 404, description: 'No such project the token\'s person sees.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    public function budget(string $projectId): JsonResponse
+    {
+        $this->scope->require(self::READ_SCOPE);
+
+        return new JsonResponse(['data' => WorkJson::budget($this->budgets->budget($projectId))]);
     }
 
     #[Route('/api/v1/projects/{projectId}/people', name: 'api_v1_project_people', methods: ['GET'])]
