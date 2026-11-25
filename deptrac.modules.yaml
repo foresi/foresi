@@ -614,9 +614,12 @@ deptrac:
       - mail_contract
       - party
       - party_contract
+      - shared
+      - shared_contract
     country_integration_purchasing:
       - country
       - country_contract
+      - exchange_rate_contract
       - party
       - party_contract
       - purchasing_contract
