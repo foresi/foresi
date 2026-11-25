@@ -26,6 +26,7 @@ use Foresi\Purchasing\Contract\Reading\ReadValue;
 use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * The background job that reads the original file of a received document. No
@@ -60,6 +61,7 @@ final readonly class ReadDocument
         private PurchasingUnit $unit,
         private AuditCorrelation $correlation,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -87,7 +89,9 @@ final readonly class ReadDocument
             }
             try {
                 $reading = $reader->read($file);
-            } catch (ReaderFailed) {
+            } catch (ReaderFailed $e) {
+                // The message is a short code, never the file, a body or a key.
+                $this->logger->warning('A reader failed to read a received document.', ['reader' => $reader->source(), 'code' => $e->getMessage()]);
                 $failed = true;
 
                 continue;

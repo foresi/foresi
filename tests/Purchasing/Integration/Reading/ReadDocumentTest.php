@@ -34,6 +34,7 @@ use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Tests\Support\IsdocFixtures;
 use Foresi\Tests\Support\Purchasing\StubFallbackReader;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -567,6 +568,7 @@ final class ReadDocumentTest extends PurchasingTestCase
             $container->get(PurchasingUnit::class),
             $container->get(AuditCorrelation::class),
             $container->get(ClockInterface::class),
+            $container->get(LoggerInterface::class),
         );
     }
 
