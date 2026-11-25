@@ -6,9 +6,12 @@
 
 declare(strict_types=1);
 
+use Foresi\Purchasing\Application\Mail\CaptureAddressBook;
+use Foresi\Purchasing\Application\Mail\CaptureAddresses;
 use Foresi\Purchasing\Application\Reading\ReadDocument;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Contract\Reading\DocumentReader;
+use Foresi\Purchasing\Infrastructure\Doctrine\DoctrineCaptureAddressBook;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -27,6 +30,14 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // this tag, in reader order by tag priority (set per reader).
     $builder->registerForAutoconfiguration(DocumentReader::class)->addTag(DocumentReader::TAG);
     $services->set(ReadDocument::class)->arg('$readers', tagged_iterator(DocumentReader::TAG));
+
+    $services->alias(CaptureAddressBook::class, DoctrineCaptureAddressBook::class);
+
+    if ('test' === $container->env()) {
+        // Public for the tests of the capture addresses, which no screen drives yet.
+        $services->set(CaptureAddresses::class)->public();
+        $services->alias(CaptureAddressBook::class, DoctrineCaptureAddressBook::class)->public();
+    }
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.

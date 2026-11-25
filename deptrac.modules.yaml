@@ -634,6 +634,7 @@ deptrac:
       - country
       - country_contract
       - exchange_rate_contract
+      - mail_contract
       - party
       - party_contract
       - purchasing_contract
@@ -1041,6 +1042,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing_contract
@@ -1058,6 +1061,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -1075,6 +1079,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
@@ -1094,6 +1100,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - margin_contract
       - party
       - party_contract
@@ -1114,6 +1122,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
@@ -1134,6 +1144,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
