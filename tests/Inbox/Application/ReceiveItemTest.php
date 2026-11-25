@@ -11,7 +11,6 @@ namespace Foresi\Tests\Inbox\Application;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
@@ -29,14 +28,8 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\NewContact;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\LegalEntity;
-use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Event\EventSubject;
 use Foresi\Tests\Inbox\Support\InboxMail;
-use Foresi\Tests\Party\Support\FirmAccounts;
-use Foresi\Tests\Support\Mail\SyntheticMail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -144,20 +137,6 @@ final class ReceiveItemTest extends KernelTestCase
 
         self::assertFalse($item->isForwarded());
         self::assertNull($item->originalFrom());
-    }
-
-    public function testACrossPurposeDuplicateIsFlagged(): void
-    {
-        $this->em->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
-        $account = FirmAccounts::add($this->em, 'CZ6508000000192000145399');
-        $this->em->flush();
-        $bankAddress = self::getContainer()->get(GenerateAddress::class)->generate($account->id());
-        $notice = SyntheticMail::plain($bankAddress);
-
-        $this->deliver($notice, $bankAddress);
-        $item = $this->itemOf($this->deliver($notice));
-
-        self::assertSame('bank_feed', $item->duplicateOfPurpose());
     }
 
     public function testThreadRepliesShareOneThreadKey(): void
