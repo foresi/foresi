@@ -126,7 +126,7 @@ final class InboxController extends AbstractController
         $list = $this->inboxLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $after = $request->query->getString('after');
-        $slice = $this->refused(fn () => $this->reads->list($this->stateOf($shown), $this->unmatchedIn($shown), '' === $after ? null : $after, self::PAGE_SIZE));
+        $slice = $this->refused(fn (): \Foresi\Inbox\Application\ItemSlice => $this->reads->list($this->stateOf($shown), $this->unmatchedIn($shown), '' === $after ? null : $after, self::PAGE_SIZE));
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $working = $this->rememberedDisplay->read(InboxColumns::LIST, [], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
@@ -190,7 +190,7 @@ final class InboxController extends AbstractController
             'warnings' => $detail->warnings(),
             'duplicateOf' => $item->duplicateOfPurpose(),
             'text' => null === $detail->text ? null : UntrustedText::shown($detail->text),
-            'attachments' => array_map(fn ($attachment): array => [
+            'attachments' => array_map(fn (\Foresi\Mail\Contract\MailAttachment $attachment): array => [
                 'name' => $attachment->name,
                 'size' => $this->size($attachment->size),
                 'href' => $this->generateUrl(self::ATTACHMENT_ROUTE, ['id' => $item->id(), 'index' => $attachment->index]),
@@ -225,7 +225,7 @@ final class InboxController extends AbstractController
     public function done(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn () => $this->writes->done(new MarkItemDoneInput($id)));
+        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->done(new MarkItemDoneInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.done'));
 
         return $this->afterAction($request, $id, toList: true);
@@ -235,7 +235,7 @@ final class InboxController extends AbstractController
     public function discard(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn () => $this->writes->discard(new DiscardItemInput($id)));
+        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->discard(new DiscardItemInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.discarded', ['days' => ItemWrites::DISCARD_DAYS]));
 
         return $this->afterAction($request, $id, toList: true);
@@ -245,7 +245,7 @@ final class InboxController extends AbstractController
     public function reopen(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn () => $this->writes->reopen(new ReopenItemInput($id)));
+        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->reopen(new ReopenItemInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.reopened'));
 
         return $this->afterAction($request, $id, toList: false);
@@ -265,7 +265,7 @@ final class InboxController extends AbstractController
     public function unmatch(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn () => $this->writes->match(new MatchItemInput($id, null)));
+        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->match(new MatchItemInput($id, null)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.unmatched'));
 
         return $this->redirectToRoute(self::ITEM_ROUTE, ['id' => $id]);

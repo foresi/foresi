@@ -66,7 +66,7 @@ final class AccountInboxController extends AbstractController
     public function index(): Response
     {
         $addresses = $this->mine();
-        $active = array_filter($addresses, static fn (AddressView $address): bool => null === $address->revokedAt);
+        $active = array_filter($addresses, static fn (AddressView $address): bool => !$address->revokedAt instanceof \DateTimeImmutable);
 
         return $this->render('@Inbox/account/index.html.twig', [
             'columns' => [
@@ -213,7 +213,7 @@ final class AccountInboxController extends AbstractController
     {
         $zone = $this->clock->timezone();
         $created = $address->createdAt->setTimezone($zone)->format($this->translator->trans('format.datetime'));
-        $revoked = null !== $address->revokedAt;
+        $revoked = $address->revokedAt instanceof \DateTimeImmutable;
 
         return [
             'id' => $address->id,

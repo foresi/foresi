@@ -82,7 +82,7 @@ final class ActivityRecorderTest extends ActivitiesTestCase
 
     public function testRecordRefusesAnUnknownTypeAndAGuest(): void
     {
-        $this->assertReason('type_unknown', fn () => $this->recorder()->record(new RecordedActivity('no_such_type', 'Subject', '', new \DateTimeImmutable('2026-11-20 09:30:00'), $this->owner->user()->id())));
+        $this->assertReason('type_unknown', fn (): string => $this->recorder()->record(new RecordedActivity('no_such_type', 'Subject', '', new \DateTimeImmutable('2026-11-20 09:30:00'), $this->owner->user()->id())));
 
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
         $user = new User('guest@example.com', 'hash', 'Example Guest');
@@ -92,7 +92,7 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->em->persist($guest);
         $this->em->flush();
         $this->signIn($guest);
-        $this->assertReason('forbidden', fn () => $this->recorder()->record($this->email('Re: Offer')));
+        $this->assertReason('forbidden', fn (): string => $this->recorder()->record($this->email('Re: Offer')));
     }
 
     private function recorder(): ActivityRecorder
@@ -116,7 +116,7 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->em->clear();
         $activity = $this->store()->activity($activityId) ?? throw new \LogicException();
 
-        return array_map(static fn ($link): string => $link->kind().':'.$link->targetId(), $this->store()->links($activity));
+        return array_map(static fn (\Foresi\Activities\Domain\ActivityLink $link): string => $link->kind().':'.$link->targetId(), $this->store()->links($activity));
     }
 
     private function assertReason(string $reason, \Closure $call): void
