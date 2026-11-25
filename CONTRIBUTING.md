@@ -114,6 +114,18 @@ The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). 
 
 After the release, the `Split packages` job pushes every `src/<Module>/` and `packages/core/` to its read-only repository `foresi/<name>`, and Packagist publishes the tag from there (ADR 0034).
 
+### The extension contract
+
+What other modules, including those of other vendors, may rely on is the extension contract ([ADR 0044](docs/adr/0044-public-extension-contract.md)). It covers the `Contract\` namespaces, the few classes marked `@api`, the manifest, the `foresi.*` service tags, the contract events and the Ui slots. Everything else is internal. The contract has a version of its own, the module API version, which `foresi/shared` provides as the virtual package `foresi/module-api`.
+
+* A change to the contract follows these rules in the same pull request:
+  * An addition raises the module API's minor version.
+  * Removing something or changing it incompatibly raises the major version.
+  * Code that is deprecated keeps working until the next major version. Its docblock says `@deprecated since module API x.y, removed in z.0, use X instead`, and it calls `trigger_deprecation()` when it runs.
+  * The pull request's Release notes say what changed for module authors.
+* Never deprecate code in the same change that adds it, and never remove code that no release has shipped as deprecated.
+* A renamed class keeps its old name as an alias, and a renamed tag keeps its old name in the map of old tags in Shared, until the next major version.
+
 ### A new module
 
 The split pushes only to repositories that exist, so a new module needs these steps before the release that first contains it; without them the `Split packages` job fails and names the module:
