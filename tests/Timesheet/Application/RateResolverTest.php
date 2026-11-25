@@ -21,6 +21,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Application\RateResolver;
 use Foresi\Timesheet\Application\UnknownRateTarget;
+use Foresi\Timesheet\Contract\ProjectRateSource;
 use Foresi\Timesheet\Domain\RateSource;
 use Foresi\Work\Application\Projects;
 use Foresi\Work\Domain\Project;
@@ -29,8 +30,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The precedence of hourly rates: the project, else its client for the
- * invoicing defaults, else the person.
+ * The precedence of hourly rates: a rate another module sets for the project
+ * (the hourly deal line), else the project, else its client for the invoicing
+ * defaults, else the person.
  */
 final class RateResolverTest extends TestCase
 {
@@ -78,6 +80,63 @@ final class RateResolverTest extends TestCase
         self::assertSame($expected[1], $resolved->source);
     }
 
+    public function testALinkedDealLineRateComesFirst(): void
+    {
+        $party = new Party(PartyKind::Person, 'Example Client', null, null, '');
+        $party->changeInvoicingDefaults($this->defaults(Money::of('1100', Currency::CZK)));
+        $project = new Project('DUD', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
+        $project->changeHourlyRate(Money::of('1000', Currency::CZK));
+        $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
+        $membership->changeHourlyRate(Money::of('900', Currency::CZK));
+        $asked = new \ArrayObject();
+        $none = $this->source(null, $asked);
+        $line = $this->source(Money::of('1200', Currency::CZK), $asked);
+        $never = $this->source(Money::of('1', Currency::CZK), $asked);
+
+        $resolved = $this->resolver($project, $membership, [$none, $line, $never])->resolve($project->id(), $membership->id());
+
+        self::assertNotNull($resolved);
+        self::assertTrue(Money::of('1200', Currency::CZK)->equals($resolved->rate));
+        self::assertSame(RateSource::DealLine, $resolved->source);
+        self::assertCount(2, $asked, 'the sources are asked in turn until one has a rate');
+    }
+
+    public function testWithoutASourceTheOrderIsUnchanged(): void
+    {
+        $project = new Project('DUD', null, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
+        $project->changeHourlyRate(Money::of('1000', Currency::CZK));
+        $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
+        $asked = new \ArrayObject();
+
+        $resolved = $this->resolver($project, $membership, [$this->source(null, $asked)])->resolve($project->id(), $membership->id());
+
+        self::assertNotNull($resolved);
+        self::assertTrue(Money::of('1000', Currency::CZK)->equals($resolved->rate));
+        self::assertSame(RateSource::Project, $resolved->source);
+    }
+
+    /**
+     * @param \ArrayObject<int, string> $asked the projects it was asked for
+     */
+    private function source(?Money $rate, \ArrayObject $asked): ProjectRateSource
+    {
+        return new readonly class($rate, $asked) implements ProjectRateSource {
+            /**
+             * @param \ArrayObject<int, string> $asked
+             */
+            public function __construct(private ?Money $rate, private \ArrayObject $asked)
+            {
+            }
+
+            public function rateFor(string $projectId): ?Money
+            {
+                $this->asked->append($projectId);
+
+                return $this->rate;
+            }
+        };
+    }
+
     /**
      * @return iterable<string, array{bool, string}>
      */
@@ -99,14 +158,17 @@ final class RateResolverTest extends TestCase
         $this->resolver($project, $membership)->resolve($knownProject ? $project->id() : $unknown, $knownProject ? $unknown : $membership->id());
     }
 
-    private function resolver(Project $project, Membership $membership): RateResolver
+    /**
+     * @param list<ProjectRateSource> $sources
+     */
+    private function resolver(Project $project, Membership $membership, array $sources = []): RateResolver
     {
         $projects = self::createStub(Projects::class);
         $projects->method('project')->willReturnCallback(static fn (string $id): ?Project => $id === $project->id() ? $project : null);
         $people = self::createStub(People::class);
         $people->method('membership')->willReturnCallback(static fn (string $id): ?Membership => $id === $membership->id() ? $membership : null);
 
-        return new RateResolver($projects, $people);
+        return new RateResolver($projects, $people, $sources);
     }
 
     private function defaults(?Money $rate): InvoicingDefaults

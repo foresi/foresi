@@ -81,6 +81,11 @@ final readonly class DoctrineSalesStore implements SalesStore
         return $lines;
     }
 
+    public function lineOfProject(string $projectId): ?DealLine
+    {
+        return $this->em->getRepository(DealLine::class)->findOneBy(['projectId' => $projectId]);
+    }
+
     public function contactsOf(string $dealId): array
     {
         /** @var list<DealContact> $contacts */

@@ -22,10 +22,14 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  * none, and how it is billed. A line added from a product copies what the
  * product says at that moment and keeps the product's id only to show where
  * it came from: a later change to the product never changes the line.
+ *
+ * An hourly (time-based) line may link to one project of Work, whose billable
+ * time it bills at its rate; a project serves at most one line.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'sales_deal_line')]
 #[ORM\Index(name: 'idx_sales_deal_line_deal', columns: ['deal_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_sales_deal_line_project', columns: ['project_id'])]
 class DealLine implements Audited
 {
     public const int MAX_NAME = 200;
@@ -66,6 +70,9 @@ class DealLine implements Audited
     #[ORM\Column(type: 'smallint', nullable: true)]
     private ?int $cycles;
 
+    #[ORM\Column(name: 'project_id', type: 'guid', nullable: true)]
+    private ?string $projectId = null;
+
     public function __construct(
         #[ORM\Column(name: 'deal_id', type: 'guid')]
         private readonly string $dealId,
@@ -95,13 +102,23 @@ class DealLine implements Audited
         $this->cycles = $terms->cycles;
     }
 
+    /**
+     * Links the line to a project of Work, or unlinks it with null. Checked by
+     * Foresi\Sales\Application\DealLineWrites: only an hourly line has one.
+     */
+    public function linkProject(?string $projectId): void
+    {
+        $this->projectId = $projectId;
+    }
+
     public function moveTo(int $position): void
     {
         $this->position = $position;
     }
 
     /**
-     * The same line for another deal, such as a follow-up: what it says is copied.
+     * The same line for another deal, such as a follow-up: what it says is
+     * copied, not the project, which serves one line only.
      */
     public function copyFor(string $dealId, int $position): self
     {
@@ -132,6 +149,12 @@ class DealLine implements Audited
     public function productId(): ?string
     {
         return $this->productId;
+    }
+
+    /** The project of Work whose billable time the line bills; null for none. */
+    public function projectId(): ?string
+    {
+        return $this->projectId;
     }
 
     public function name(): string

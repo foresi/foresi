@@ -39,6 +39,7 @@ final readonly class DealLineWrites
         private SalesClock $clock,
         private DealLineRules $rules,
         private Products $products,
+        private LineProjects $projects,
     ) {
     }
 
@@ -53,6 +54,7 @@ final readonly class DealLineWrites
             $deal = $this->deal($input->dealId);
             $terms = null === $input->productId ? $this->typed($input) : $this->fromProduct($input->productId, $input);
             $line = new DealLine($deal->id(), \count($this->store->linesOf($deal->id())), $input->productId, $terms);
+            $line->linkProject($this->project($deal, null, $terms->billingKind, $input->projectId));
             $this->store->add($line);
             $this->updated($deal);
 
@@ -74,7 +76,7 @@ final readonly class DealLineWrites
             // A line made one-off or time-based keeps no recurrence, unless the input sends one, which is refused.
             $recurs = BillingKind::Recurring->value === $kind;
             $price = $line->unitPrice();
-            $line->change($this->rules->terms(new DealLineDraft(
+            $terms = $this->rules->terms(new DealLineDraft(
                 $this->given($input->name, $line->name()),
                 $this->given($input->unit, $line->unit()),
                 $this->given($input->quantity, $line->quantity()),
@@ -84,7 +86,11 @@ final readonly class DealLineWrites
                 $this->given($input->recurrenceUnit, $recurs ? $line->recurrenceUnit()?->value : null),
                 $this->given($input->interval, $recurs ? $line->interval() : null),
                 $this->given($input->cycles, $recurs ? $line->cycles() : null),
-            )));
+            ));
+            // Checked before anything changes, so a refusal leaves the line as it was.
+            $projectId = $this->project($deal, $line, $terms->billingKind, $this->given($input->projectId, $line->projectId()));
+            $line->change($terms);
+            $line->linkProject($projectId);
             $this->updated($deal);
 
             return $line;
@@ -176,6 +182,40 @@ final readonly class DealLineWrites
         }
 
         return new DealLineTerms($product->name, $product->unit, $this->rules->quantityOf($product->billingKind, $input->quantity ?? (BillingKind::TimeBased === $product->billingKind ? null : '1')), $product->unitPrice, $product->billingKind, $product->recurrenceUnit, $product->interval, $product->cycles);
+    }
+
+    /**
+     * The project a line of this kind may link to: only an hourly line has
+     * one. A project newly linked is one the person sees, not archived, of the
+     * deal's client or of no client, and not linked to another line; the
+     * project a line already has is kept as it is.
+     *
+     * @throws SalesRefused invalid, or conflict when another line has the project
+     */
+    private function project(Deal $deal, ?DealLine $line, BillingKind $kind, ?string $projectId): ?string
+    {
+        if (null === $projectId) {
+            return null;
+        }
+        if (BillingKind::TimeBased !== $kind) {
+            throw SalesRefused::invalid('project_only_on_time_based', 'projectId', 'Only a time_based line links to a project; unlink it with project_id null first.');
+        }
+        if ($line?->projectId() === $projectId) {
+            return $projectId;
+        }
+        $project = $this->projects->find($projectId) ?? throw SalesRefused::invalid('project_unknown', 'projectId', 'There is no project with this id. Find it with foresi_search_projects.');
+        if ($project->archived) {
+            throw SalesRefused::invalid('project_archived', 'projectId', 'The project is archived; restore it first to link it.');
+        }
+        if (null !== $project->clientId && $project->clientId !== $deal->clientPartyId()) {
+            throw SalesRefused::invalid('project_client_differs', 'projectId', 'The project is for another client than the deal.');
+        }
+        $other = $this->store->lineOfProject($project->id);
+        if ($other instanceof DealLine && $other->id() !== $line?->id()) {
+            throw SalesRefused::conflict('project_already_linked', 'The project is linked to a line of another deal, or of this one; a project serves one hourly line. Unlink it there first.', 'projectId', ['dealId' => $other->dealId(), 'lineId' => $other->id()]);
+        }
+
+        return $project->id;
     }
 
     /**

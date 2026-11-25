@@ -24,7 +24,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_add_deal_line',
     scope: 'sales:write',
     title: 'Add a line to a deal',
-    description: 'Adds what a deal sells. With product_id (from foresi_search_products) the line copies the product\'s name, unit, price and billing as they are now, and a later change of the product leaves it as it is; give only the quantity then. Without a product, type the name, unit, price and billing in: a one_off line is billed once, a recurring one every interval of its recurrence_unit, a time_based one by the hours worked (unit h, unit_price is the hourly rate, quantity the hours expected and optional). A line without a price is left out of the deal\'s value.',
+    description: 'Adds what a deal sells. With product_id (from foresi_search_products) the line copies the product\'s name, unit, price and billing as they are now, and a later change of the product leaves it as it is; give only the quantity then. Without a product, type the name, unit, price and billing in: a one_off line is billed once, a recurring one every interval of its recurrence_unit, a time_based one by the hours worked (unit h, unit_price is the hourly rate, quantity the hours expected and optional), and with project_id its project\'s billable time is invoiced at its rate. A line without a price is left out of the deal\'s value.',
     status: 201,
     response: 'SalesDeal',
     staffOnly: true,
@@ -54,6 +54,8 @@ final readonly class AddDealLineInput
         public ?int $interval = null,
         #[Field('How many times a recurring line is billed, 1 to 999; null for no end.')]
         public ?int $cycles = null,
+        #[Field('The project (from foresi_search_projects) whose billable time a time_based line bills at its rate; only a time_based line has one, of the deal\'s client or of no client, and a project serves one line.', format: 'uuid')]
+        public ?string $projectId = null,
     ) {
     }
 }

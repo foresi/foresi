@@ -13,6 +13,8 @@ namespace Foresi\Timesheet\Domain;
  */
 enum RateSource: string
 {
+    /** The rate a module sets for the whole project (ProjectRateSource): the hourly deal line it is linked to. */
+    case DealLine = 'deal_line';
     case Project = 'project';
     case Client = 'client';
     case Person = 'person';

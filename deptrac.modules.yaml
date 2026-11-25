@@ -275,6 +275,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Sales\\Integration\\Documents\\.*
+    - name: sales_integration_timesheet
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Sales\\Integration\\Timesheet\\.*
+    - name: sales_integration_work
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Sales\\Integration\\Work\\.*
     - name: shared
       collectors:
         - type: classLike
@@ -1194,6 +1202,43 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    sales_integration_timesheet:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - sales
+      - sales_contract
+      - shared
+      - shared_contract
+      - timesheet_contract
+      - ui
+      - ui_contract
+      - work_contract
+    sales_integration_work:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - sales
+      - sales_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work_contract
     shared:
       - shared_contract
     shared_contract: []

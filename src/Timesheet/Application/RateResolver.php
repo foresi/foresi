@@ -13,6 +13,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Contract\ProjectRateSource;
 use Foresi\Timesheet\Domain\RateSource;
 use Foresi\Timesheet\Domain\ResolvedRate;
 use Foresi\Work\Application\Projects;
@@ -20,8 +21,9 @@ use Foresi\Work\Domain\Project;
 
 /**
  * The hourly rate of time a person worked on a project, when a firm invoices
- * it: the project's own rate; else the rate among its client's invoicing
- * defaults; else the person's rate. With none
+ * it: the rate a module sets for the project (ProjectRateSource, such as the
+ * hourly deal line it is linked to); else the project's own rate; else the rate
+ * among its client's invoicing defaults; else the person's rate. With none
  * of them, as for an internal project of a person without a rate, there is none.
  *
  * It reads what is stored now; an invoice keeps the rate it took, so a change
@@ -31,9 +33,13 @@ use Foresi\Work\Domain\Project;
  */
 final readonly class RateResolver
 {
+    /**
+     * @param iterable<ProjectRateSource> $sources asked in turn, wired in config/services.php
+     */
     public function __construct(
         private Projects $projects,
         private People $people,
+        private iterable $sources = [],
     ) {
     }
 
@@ -49,6 +55,12 @@ final readonly class RateResolver
         $membership = Id::isValid($membershipId) ? $this->people->membership($membershipId) : null;
         if (!$membership instanceof Membership) {
             throw new UnknownRateTarget('Unknown membership.');
+        }
+        foreach ($this->sources as $source) {
+            $rate = $source->rateFor($project->id());
+            if ($rate instanceof Money) {
+                return new ResolvedRate($rate, RateSource::DealLine);
+            }
         }
         $rate = $project->hourlyRate();
         if ($rate instanceof Money) {

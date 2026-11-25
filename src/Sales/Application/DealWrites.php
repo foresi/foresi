@@ -58,6 +58,7 @@ final readonly class DealWrites
         private SalesClock $clock,
         private PartyDirectory $parties,
         private ContactPersonWrites $contactPersons,
+        private LineProjects $projects,
     ) {
     }
 
@@ -97,7 +98,9 @@ final readonly class DealWrites
     /**
      * Changes the fields given. Another client takes the contact persons given in the same
      * call, checked against it, or none; a deal linked to other deals keeps its client, as a
-     * link joins deals of one client only. The person of the dialog, when one is given, is
+     * link joins deals of one client only; a deal whose hourly line links a project of its
+     * client keeps its client too, as a line links only a project of the deal's client or of
+     * no client. The person of the dialog, when one is given, is
      * added to the client (the new one, when it changes) and becomes the last of the deal's
      * contact persons.
      *
@@ -125,6 +128,7 @@ final readonly class DealWrites
                 if ([] !== $this->store->linksOf($deal->id())) {
                     throw SalesRefused::conflict('client_has_links', 'The deal is linked to other deals, and a link joins deals of one client only; remove its links with foresi_remove_deal_link first.', 'clientPartyId');
                 }
+                $this->denyIfProjectOfClient($deal, $client->id);
                 $deal->changeClient($client->id, $now);
                 $persons ??= [];
             }
@@ -309,6 +313,26 @@ final readonly class DealWrites
     private function updated(Deal $deal): void
     {
         $this->events->record(new DealUpdated($deal->id(), $deal->status()->value, $deal->stageId()));
+    }
+
+    /**
+     * Refuses another client while a line links a project of a client other than the new
+     * one, or a project the person does not see; a project of no client goes with any.
+     *
+     * @throws SalesRefused conflict
+     */
+    private function denyIfProjectOfClient(Deal $deal, string $clientId): void
+    {
+        foreach ($this->store->linesOf($deal->id()) as $line) {
+            $projectId = $line->projectId();
+            if (null === $projectId) {
+                continue;
+            }
+            $project = $this->projects->find($projectId);
+            if (!$project instanceof LineProject || (null !== $project->clientId && $project->clientId !== $clientId)) {
+                throw SalesRefused::conflict('client_has_projects', 'A line of the deal links a project of its client, and a line links only a project of the deal\'s client; unlink the project on the line first.', 'clientPartyId', ['lineId' => $line->id(), 'projectId' => $projectId]);
+            }
+        }
     }
 
     /**

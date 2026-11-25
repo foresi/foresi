@@ -153,12 +153,17 @@ sales:
         empty_text: Přidejte produkt z katalogu nebo zapište položku ručně; hodnota obchodu vychází z položek.
         not_estimated: Neodhadnuto
         per_hour: '{rate} / h'
+        no_project: Bez projektu
+        project_archived: archivovaný
+        project_hidden: Projekt, který nevidíte
+        logged: '{hours} h fakturovatelného času'
         confirm:
             remove: 'Odebrat položku {name}?'
         column:
             name: Položka
             quantity: Množství
             billing: Fakturace
+            project: Projekt
             total: Částka
         field:
             product: Z katalogu
@@ -176,6 +181,8 @@ sales:
             recurrence_unit: Období
             cycles: Kolikrát
             cycles_help: Nechte prázdné, když nekončí.
+            project: Projekt
+            project_help: Fakturovatelný čas projektu se účtuje sazbou položky.
         unit_of_time:
             day: Dny
             week: Týdny
@@ -200,6 +207,8 @@ sales:
         hourly_rate: '{rate} / h'
         hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
         hourly_mark: po hodinách
+    project_fact:
+        label: Obchod
     link:
         title: Propojené obchody
         new: Propojit obchod
@@ -267,6 +276,7 @@ sales:
         client_unknown: Vyberte kontakt z adresáře.
         client_archived: Kontakt je archivovaný; obnovte ho, chcete-li s ním začít obchod.
         client_has_links: Obchod je propojený s dalšími obchody klienta; než klienta změníte, odeberte propojení.
+        client_has_projects: Hodinová položka obchodu je napojená na projekt klienta; než klienta změníte, odpojte projekt.
         contact_person_not_of_client: Vyberte kontaktní osoby klienta.
         owner_not_staff: Vlastníkem je vlastník nebo člen organizace.
         stage_unknown: Vyberte fázi.
@@ -298,6 +308,11 @@ sales:
         billing_kind_unknown: Vyberte jednorázově, opakovaně nebo po hodinách.
         quantity_required: Zadejte množství; prázdné může být jen u položky po hodinách.
         time_based_unit: Položka po hodinách má jednotku h.
+        project_only_on_time_based: Na projekt se váže jen položka po hodinách.
+        project_unknown: Vyberte projekt, který vidíte.
+        project_archived: Projekt je archivovaný; obnovte ho, abyste ho mohli navázat.
+        project_already_linked: Projekt je už navázaný na jinou položku po hodinách; projekt slouží jedné položce.
+        project_client_differs: Projekt je pro jiného klienta než obchod.
         rate_required: "Položka po hodinách potřebuje sazbu: zadejte cenu za jednotku."
         time_based_recurrence: Položka po hodinách nemá období.
         one_off_recurrence: Jednorázová položka nemá období.

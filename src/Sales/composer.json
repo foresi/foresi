@@ -48,7 +48,9 @@
             "bundle": "Foresi\\Sales\\SalesBundle",
             "optional": [
                 "documents",
-                "activities"
+                "activities",
+                "timesheet",
+                "work"
             ],
             "scopes": [
                 "sales"

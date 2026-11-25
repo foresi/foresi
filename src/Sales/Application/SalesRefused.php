@@ -19,7 +19,10 @@ use Foresi\Shared\Application\Refused;
  */
 final class SalesRefused extends \DomainException implements Refused
 {
-    private function __construct(private readonly string $reason, private readonly RefusalKind $kind, private readonly ?string $field, string $message)
+    /**
+     * @param array<string, bool|float|int|list<bool|float|int|string>|string|null> $details
+     */
+    private function __construct(private readonly string $reason, private readonly RefusalKind $kind, private readonly ?string $field, string $message, private readonly array $details = [])
     {
         parent::__construct($message);
     }
@@ -29,9 +32,12 @@ final class SalesRefused extends \DomainException implements Refused
         return new self($reason, RefusalKind::Invalid, $field, $message);
     }
 
-    public static function conflict(string $reason, string $message, ?string $field = null): self
+    /**
+     * @param array<string, bool|float|int|list<bool|float|int|string>|string|null> $details what the caller needs to resolve it, such as the id of the record in the way
+     */
+    public static function conflict(string $reason, string $message, ?string $field = null, array $details = []): self
     {
-        return new self($reason, RefusalKind::Conflict, $field, $message);
+        return new self($reason, RefusalKind::Conflict, $field, $message, $details);
     }
 
     public static function notFound(string $message): self
@@ -83,6 +89,6 @@ final class SalesRefused extends \DomainException implements Refused
 
     public function details(): array
     {
-        return [];
+        return $this->details;
     }
 }

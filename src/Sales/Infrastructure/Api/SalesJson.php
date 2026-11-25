@@ -13,6 +13,7 @@ use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Sales\Application\DealDetail;
 use Foresi\Sales\Application\DealLinkView;
 use Foresi\Sales\Application\HourlyValue;
+use Foresi\Sales\Application\LineProjects;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesStore;
 use Foresi\Sales\Application\StageNames;
@@ -34,6 +35,7 @@ final readonly class SalesJson
         private PartyDirectory $parties,
         private StageNames $stageNames,
         private LostReasonNames $reasonNames,
+        private LineProjects $projects,
     ) {
     }
 
@@ -140,7 +142,23 @@ final readonly class SalesJson
             'recurrence_unit' => $line->recurrenceUnit()?->value,
             'interval' => $line->interval(),
             'cycles' => $line->cycles(),
+            ...$this->project($line),
         ];
+    }
+
+    /**
+     * The project of an hourly line and the billable time logged on it.
+     *
+     * @return array{project: array{id: string, name: ?string}|null, logged_billable_minutes: ?int}
+     */
+    private function project(DealLine $line): array
+    {
+        $id = $line->projectId();
+        if (null === $id) {
+            return ['project' => null, 'logged_billable_minutes' => null];
+        }
+
+        return ['project' => ['id' => $id, 'name' => $this->projects->find($id)?->name], 'logged_billable_minutes' => $this->projects->billableMinutes($id)];
     }
 
     /**

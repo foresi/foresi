@@ -63,7 +63,7 @@
                                         <span class="min-w-0 font-medium text-ink [overflow-wrap:anywhere]">{{ entry.title }}</span>
                                         <span class="text-text">{{ entry.person }}</span>
                                         <time datetime="{{ entry.datetime }}" class="text-muted">{{ entry.date }}</time>
-                                        {% if entry.rate %}<span class="num text-muted" data-time-invoice-rate>{{ entry.rate }}</span>{% else %}<twig:Ui:Badge tone="red" data-time-invoice-no-rate>{{ 'timesheet.invoice.no_rate'|trans }}</twig:Ui:Badge>{% endif %}
+                                        {% if entry.rate %}<span class="num text-muted" data-time-invoice-rate>{{ entry.rate }}</span>{% if entry.rateSource %}<span class="text-muted" data-time-invoice-rate-source>{{ entry.rateSource }}</span>{% endif %}{% else %}<twig:Ui:Badge tone="red" data-time-invoice-no-rate>{{ 'timesheet.invoice.no_rate'|trans }}</twig:Ui:Badge>{% endif %}
                                     </span>
                                     {% if entry.note is not empty %}<span class="text-small text-text [overflow-wrap:anywhere]">{{ entry.note }}</span>{% endif %}
                                 </label>

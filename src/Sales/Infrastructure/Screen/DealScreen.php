@@ -267,6 +267,7 @@ final class DealScreen implements ResetInterface
             'recurrenceUnit' => $line?->recurrenceUnit()->value ?? 'month',
             'interval' => (string) ($line?->interval() ?? 1),
             'cycles' => null === $line?->cycles() ? '' : (string) $line->cycles(),
+            'projectId' => $line?->projectId() ?? '',
         ];
     }
 

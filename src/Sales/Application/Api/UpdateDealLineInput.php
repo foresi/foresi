@@ -25,7 +25,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_update_deal_line',
     scope: 'sales:write',
     title: 'Update a line of a deal',
-    description: 'Changes the fields given of a line of a deal and keeps the rest; unit_price null leaves it without a price. A time_based line has the unit h, its unit_price is the hourly rate (needed) and it has no recurrence. Making a recurring line one_off or time_based clears its recurrence_unit, interval and cycles. The product it was copied from does not change.',
+    description: 'Changes the fields given of a line of a deal and keeps the rest; unit_price null leaves it without a price. A time_based line has the unit h, its unit_price is the hourly rate (needed) and it has no recurrence. Making a recurring line one_off or time_based clears its recurrence_unit, interval and cycles. project_id links a time_based line to the project whose billable time it bills at its rate, null unlinks it; time already invoiced keeps the rate it took. The product it was copied from does not change.',
     response: 'SalesDeal',
     staffOnly: true,
 )]
@@ -54,6 +54,8 @@ final readonly class UpdateDealLineInput
         public int|Omitted|null $interval = new Omitted(),
         #[Field('How many times a recurring line is billed, 1 to 999; null for no end.')]
         public int|Omitted|null $cycles = new Omitted(),
+        #[Field('The project (from foresi_search_projects) whose billable time a time_based line bills at its rate; null unlinks it. Only a time_based line has one, of the deal\'s client or of no client, and a project serves one line; make the line another kind only after unlinking it.', format: 'uuid')]
+        public string|Omitted|null $projectId = new Omitted(),
     ) {
     }
 }

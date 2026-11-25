@@ -39,6 +39,9 @@ interface SalesStore
      */
     public function linesOf(string $dealId): array;
 
+    /** The line linked to the project, whatever its deal's state; null for none. */
+    public function lineOfProject(string $projectId): ?DealLine;
+
     /**
      * @return list<DealContact> in their order
      */

@@ -35,6 +35,8 @@ use Foresi\Sales\Application\DealReads;
 use Foresi\Sales\Application\DealValue;
 use Foresi\Sales\Application\DealValues;
 use Foresi\Sales\Application\DealWrites;
+use Foresi\Sales\Application\LineProject;
+use Foresi\Sales\Application\LineProjects;
 use Foresi\Sales\Application\SalesAccess;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Application\SalesStore;
@@ -127,6 +129,7 @@ final class DealController extends AbstractController
         private readonly FilterSheet $filterSheet,
         private readonly SlotRegistry $slots,
         private readonly ContactPersonWrites $contactPersons,
+        private readonly LineProjects $lineProjects,
     ) {
     }
 
@@ -311,6 +314,7 @@ final class DealController extends AbstractController
             'stages' => array_map(fn (Stage $stage): array => ['id' => $stage->id(), 'name' => $this->screen->stage($stage), 'current' => $stage->id() === $deal->stageId()], $stages),
             'details' => $this->details($detail),
             'lines' => $this->lineRows($detail),
+            'lineProjects' => [] !== array_filter($detail->lines, static fn (DealLine $line): bool => null !== $line->projectId()),
             'totals' => $this->totalRows($detail->value),
             'links' => $this->linkViews($detail),
             'linkable' => !$deal->isTrashed() && [] !== $this->linkOptions($detail),
@@ -762,7 +766,8 @@ final class DealController extends AbstractController
                 'cells' => [
                     'name' => $line->name(),
                     'quantity' => $this->screen->lineAmount($line),
-                    'billing' => $this->screen->billing($line),
+                    'billing' => $this->screen->billing($line).$this->logged($line),
+                    'project' => $this->projectCell($line),
                     'total' => $this->screen->lineTotal($line),
                 ],
                 'actions' => $actions,
@@ -770,6 +775,40 @@ final class DealController extends AbstractController
         }
 
         return $rows;
+    }
+
+    /**
+     * The project of an hourly line, a link to its page; a project the person
+     * does not see is named as such, without a link.
+     *
+     * @return array<string, mixed>|string
+     */
+    private function projectCell(DealLine $line): array|string
+    {
+        $id = $line->projectId();
+        if (null === $id) {
+            return '';
+        }
+        $project = $this->lineProjects->find($id);
+
+        return $project instanceof LineProject
+            ? ['links' => [['text' => $project->name, 'href' => $project->url, 'opens' => Opens::PAGE]], 'plain' => true]
+            : $this->screen->trans('sales.line.project_hidden');
+    }
+
+    /**
+     * " · 2.5 h billable logged" after the billing of a line linked to a project;
+     * nothing for a project the person does not see.
+     */
+    private function logged(DealLine $line): string
+    {
+        $id = $line->projectId();
+        $minutes = null === $id ? null : $this->lineProjects->billableMinutes($id);
+        if (null === $minutes) {
+            return '';
+        }
+
+        return ' · '.$this->screen->trans('sales.line.logged', ['hours' => $this->screen->quantity((string) round($minutes / 60, 2))]);
     }
 
     /**
