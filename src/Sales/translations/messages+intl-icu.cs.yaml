@@ -207,6 +207,8 @@ sales:
         hourly_rate: '{rate} / h'
         hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
         hourly_mark: po hodinách
+    project_fact:
+        label: Obchod
     link:
         title: Propojené obchody
         new: Propojit obchod
@@ -274,6 +276,7 @@ sales:
         client_unknown: Vyberte kontakt z adresáře.
         client_archived: Kontakt je archivovaný; obnovte ho, chcete-li s ním začít obchod.
         client_has_links: Obchod je propojený s dalšími obchody klienta; než klienta změníte, odeberte propojení.
+        client_has_projects: Hodinová položka obchodu je napojená na projekt klienta; než klienta změníte, odpojte projekt.
         contact_person_not_of_client: Vyberte kontaktní osoby klienta.
         owner_not_staff: Vlastníkem je vlastník nebo člen organizace.
         stage_unknown: Vyberte fázi.

@@ -207,6 +207,8 @@ sales:
         hourly_rate: '{rate} / h'
         hourly_expected: '{rate} / h (≈ {hours} h = {amount})'
         hourly_mark: hourly
+    project_fact:
+        label: Deal
     link:
         title: Linked deals
         new: Link a deal
@@ -274,6 +276,7 @@ sales:
         client_unknown: Choose a contact of the address book.
         client_archived: The contact is archived; restore it to start a deal with it.
         client_has_links: The deal is linked to other deals of the client; remove the links before you change the client.
+        client_has_projects: The deal's hourly line links a project of the client; unlink the project before you change the client.
         contact_person_not_of_client: Choose contact persons of the client.
         owner_not_staff: The owner is an owner or member of the organisation.
         stage_unknown: Choose a stage.

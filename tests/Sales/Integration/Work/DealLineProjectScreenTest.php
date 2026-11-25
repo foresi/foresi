@@ -17,7 +17,7 @@ use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 /**
  * The project of an hourly line on the deal's screens: picked in the line's
  * dialog among the client's active projects, and shown on the line with the
- * billable time logged on it.
+ * billable time logged on it; and the deal in the header of the project.
  */
 final class DealLineProjectScreenTest extends SalesScreenTestCase
 {
@@ -54,6 +54,13 @@ final class DealLineProjectScreenTest extends SalesScreenTestCase
         self::assertSelectorTextContains('[data-deal-lines] table', 'DUD');
         self::assertSelectorTextContains('[data-deal-lines] table', '2.5 h billable logged');
         self::assertSelectorTextContains('[data-deal-lines] thead', 'Project');
+
+        // The project's header names the deal, the line and its rate, the deal linked to its page.
+        $project = $this->client->request('GET', '/projects/'.$dud->id());
+        $fact = $project->filter('[data-project-facts] [data-project-deal]');
+        self::assertCount(1, $fact);
+        self::assertSame('/sales/deals/'.$deal->id(), $fact->filter('a')->attr('href'));
+        self::assertMatchesRegularExpression('/^Deal: DUD · DUD development · 1[\s,.\x{a0}\x{202f}]?200[^·]* \/ h$/u', trim(preg_replace('/\s+/u', ' ', $fact->text()) ?? ''));
 
         $edit = $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/'.$line->id().'/edit');
         self::assertSame($dud->id(), $edit->filter('#projectId option[selected]')->attr('value'));

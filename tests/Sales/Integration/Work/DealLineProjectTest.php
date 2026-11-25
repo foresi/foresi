@@ -24,6 +24,8 @@ use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
 use Foresi\Sales\Integration\Timesheet\DealLineRates;
+use Foresi\Sales\Integration\Work\DealProjectFacts;
+use Foresi\Work\Contract\ProjectSlots;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -201,6 +203,26 @@ final class DealLineProjectTest extends SalesTestCase
         self::assertIsArray($audit);
         self::assertSame([$line->id(), ['id' => $this->dud->id(), 'name' => 'DUD'], 90], [$hourly['id'], $hourly['project'], $hourly['logged_billable_minutes']]);
         self::assertSame([null, null], [$audit['project'], $audit['logged_billable_minutes']], 'a line without a project');
+    }
+
+    public function testTheProjectHeaderNamesTheDealWhileItGivesTheRate(): void
+    {
+        $deal = $this->deal('DUD');
+        $this->hourly($deal, $this->dud->id());
+        $facts = self::getContainer()->get(DealProjectFacts::class);
+        $context = ['projectId' => $this->dud->id(), 'clientId' => $this->client->id(), 'return' => '/projects/'.$this->dud->id()];
+
+        $items = [...$facts->items(ProjectSlots::HEADER_FACTS, $context)];
+        self::assertCount(1, $items);
+        self::assertSame(['DUD', 'DUD development'], [$items[0]->data['deal'], $items[0]->data['line']]);
+        self::assertSame([], [...$facts->items(ProjectSlots::SECTIONS, $context)], 'another slot');
+
+        $this->deals()->lose(new LoseDealInput($deal->id(), $this->reasons['price']->id()));
+        self::assertSame([], [...$facts->items(ProjectSlots::HEADER_FACTS, $context)], 'a lost deal gives no rate');
+        $this->deals()->reopen(new ReopenDealInput($deal->id()));
+
+        $this->signIn($this->guest);
+        self::assertSame([], [...$facts->items(ProjectSlots::HEADER_FACTS, $context)], 'a guest works with no deals');
     }
 
     public function testAFollowUpDealCopiesTheLineWithoutItsProject(): void

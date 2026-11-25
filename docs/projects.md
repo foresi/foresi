@@ -43,7 +43,7 @@ With the Activities module installed, a project's page has an **Activities** tab
 The project's page has two slots, `Foresi\Work\Contract\ProjectSlots`, the way the deal's page has `SalesSlots`. Both get the context `projectId`, `clientId` (or null) and `return`, the address of the page as shown, with its tab.
 
 - `ProjectSlots::SECTIONS` (`work.project.sections`): tabs after List and Board, by weight. An item's data holds `key` (lowercase letters, digits and dashes), `label` and either `href`, a local address of a fragment loaded into `<turbo-frame id="project-section-<key>">`, or the item's template. `?tab=<key>` shows the section in place of the tasks. Activities is one, at weight 10.
-- `ProjectSlots::HEADER_FACTS` (`work.project.header_facts`): short facts under the header, next to the client line, such as a time budget. The item's template is included with its data and the context.
+- `ProjectSlots::HEADER_FACTS` (`work.project.header_facts`): short facts under the header, next to the client line, such as a time budget. The item's template is included with its data and the context. Sales names there the deal whose hourly line the project is linked to, with the line and its rate, while the deal is open or won and only for owners and members.
 
 ## The task page
 
