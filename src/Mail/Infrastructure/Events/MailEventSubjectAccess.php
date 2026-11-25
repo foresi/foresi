@@ -46,7 +46,7 @@ final readonly class MailEventSubjectAccess implements EventSubjectAccess
             return false;
         }
         $message = $this->messages->find($subject->id);
-        if (null === $message) {
+        if (!$message instanceof \Foresi\Mail\Contract\MailMessageView) {
             return false;
         }
 
