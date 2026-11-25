@@ -20,6 +20,8 @@ export APP_REQUIRE_2FA=false
 export MAIL_INBOUND_ADDRESS="bank+{token}@example.com"
 # The receiving server whose Authentication-Results the seeded bank mail carries.
 export MAIL_INBOUND_TRUSTED_AUTHSERV="mx.example.com"
+# The secret of the relay's webhook, so the inbox spec can post a mail as a relay would; a throwaway, never a real one.
+export INBOUND_WEBHOOK_SECRET="e2e-inbound-webhook-secret"
 # The seed posts its bank mail as a relay would, through the webhook's channel.
 export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
 # The seeded firms are Czech, so the instance's zone is Prague. A seed that counts its due

@@ -98,6 +98,8 @@ const WORLDS = [
     'sales' => ['Example Sales', 'sales@example.com', 'Sales Example'],
     // A VAT payer with one client's invoice and one received document nobody has claimed, for the Margin spec.
     'margin' => ['Example Margin', 'margin@example.com', 'Margin Example'],
+    // A client and a deal for the inbox spec, which creates its own inbox address and receives its own mail.
+    'inbox' => ['Example Inbox', 'inbox@example.com', 'Inbox Example'],
 ];
 
 if (\in_array('--worlds', $argv, true)) {

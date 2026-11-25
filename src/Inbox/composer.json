@@ -1,0 +1,55 @@
+{
+    "name": "foresi/inbox",
+    "description": "A person's own inbox: mail forwarded to their inbox address becomes an item matched to the sender's contact, seen by them alone.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "doctrine/dbal": "^4.5",
+        "doctrine/migrations": "^3.9",
+        "doctrine/orm": "^3.7.5",
+        "doctrine/persistence": "^4.2",
+        "foresi/activities": "self.version",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/mail": "self.version",
+        "foresi/module-api": "^1.0",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "psr/clock": "^1.0",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/validator": "7.4.*",
+        "zircote/swagger-php": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Inbox\\": ""
+        },
+        "exclude-from-classmap": [
+            "migrations/"
+        ]
+    },
+    "extra": {
+        "foresi": {
+            "module": "inbox",
+            "kind": "module",
+            "namespace": "Foresi\\Inbox\\",
+            "bundle": "Foresi\\Inbox\\InboxBundle",
+            "optional": [],
+            "scopes": [
+                "inbox"
+            ]
+        }
+    }
+}

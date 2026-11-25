@@ -68,7 +68,7 @@ test.describe('navigation', () => {
       await expect(sidebar.getByRole('heading', { level: 2, name: 'Přehled' })).toBeVisible();
     }
     // The inbox sits under the start page: where a person begins, not a part of the projects.
-    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
+    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Přehled/, /Schránka/, /Oznámení/]);
     await shot(page, 'sidebar');
 
     for (const [label, area, links] of [

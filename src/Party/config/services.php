@@ -19,14 +19,18 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
+use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\ContactPersonWrites;
+use Foresi\Party\Contract\ContactsByEmail;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
+use Foresi\Party\Infrastructure\Directory\DoctrineContactCreation;
 use Foresi\Party\Infrastructure\Directory\DoctrineContactPersonWrites;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineContactsByEmail;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
@@ -83,6 +87,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class);
     // Sales adds a contact person to a deal's client through the contract.
     $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class);
+    // Inbox matches a sender to the address book, with nobody signed in, and creates a contact from a message.
+    $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class);
+    $services->alias(ContactCreation::class, DoctrineContactCreation::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));
@@ -110,6 +117,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->set(ExampleContactTab::class);
         $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class)->public();
         $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class)->public();
+        $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class)->public();
+        $services->alias(ContactCreation::class, DoctrineContactCreation::class)->public();
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();

@@ -18,6 +18,15 @@ interface Messages
     public function find(string $messageId): ?MailMessageView;
 
     /**
+     * Several messages at once, as find() reads each, for a list.
+     *
+     * @param list<string> $messageIds
+     *
+     * @return array<string, MailMessageView> by message id; an unknown id is left out
+     */
+    public function findMany(array $messageIds): array;
+
+    /**
      * The bytes as they came.
      *
      * @throws UnknownMailMessage

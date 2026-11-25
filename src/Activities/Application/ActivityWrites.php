@@ -103,6 +103,33 @@ final readonly class ActivityWrites
     }
 
     /**
+     * Adds one record to the activity's links and leaves the others as they are; a record it is
+     * linked to already changes nothing, and records no event. The record is checked as any link is.
+     *
+     * @throws ActivitiesRefused link_kind_unknown and link_target_unknown as invalid, not_found, trashed as a conflict
+     */
+    public function addLink(string $activityId, string $kind, string $id): void
+    {
+        $this->access->denyUnlessStaff();
+
+        $this->transaction->run(function () use ($activityId, $kind, $id): void {
+            // The activity first, as update() does, so an unknown one is not_found before any link refusal.
+            $activity = $this->visible($activityId);
+            $link = $this->targets->check([['kind' => $kind, 'id' => $id]])[0];
+            if ($activity->isTrashed()) {
+                throw ActivitiesRefused::conflict('trashed', 'The activity is in the trash; restore it before changing it.');
+            }
+            foreach ($this->links($activity) as $existing) {
+                if ($existing->name() === $link->name()) {
+                    return;
+                }
+            }
+            $this->store->add(new ActivityLink($activity, $link->kind, $link->id));
+            $this->events->record(new ActivityUpdated($activity->id(), $this->typeOf($activity)->key(), [...$this->linkNames($activity), $link->name()], $activity->ownerUserId()));
+        });
+    }
+
+    /**
      * Marks it done and, when the input names a next one, plans that on the same
      * records for the same owner. Both happen or neither does.
      *
