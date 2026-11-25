@@ -35,4 +35,20 @@ interface MailIntakes
      * run that starts again goes on from.
      */
     public function draftsOf(string $messageId): int;
+
+    /**
+     * The newest mails of a person, newest first.
+     *
+     * @return list<MailIntake>
+     */
+    public function latestOf(string $ownerUserId, int $limit): array;
+
+    /**
+     * The first draft each mail made, by the id of the mail; mails without a draft are left out.
+     *
+     * @param list<string> $messageIds
+     *
+     * @return array<string, string>
+     */
+    public function firstDraftsOf(array $messageIds): array;
 }

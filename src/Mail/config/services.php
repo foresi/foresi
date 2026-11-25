@@ -117,7 +117,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         // Contracts nothing in a test boot uses yet, reached by the Mail tests.
         $services->alias(CrossPurposeDuplicates::class, DoctrineCrossPurposeDuplicates::class)->public();
         $services->alias(MessageRetention::class, StoredRetention::class)->public();
-        $services->alias(OwnAddresses::class, PersonalAddresses::class)->public();
 
         // The operator mailbox in memory, and an inbound file store a test can make fail.
         $services->set(FakeInboundMailbox::class);

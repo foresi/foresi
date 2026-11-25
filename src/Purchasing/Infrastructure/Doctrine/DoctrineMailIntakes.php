@@ -57,4 +57,32 @@ final readonly class DoctrineMailIntakes implements MailIntakes
             ->setParameter('mail', $messageId)
             ->getSingleScalarResult();
     }
+
+    public function latestOf(string $ownerUserId, int $limit): array
+    {
+        return $this->entityManager->createQuery('SELECT i FROM '.MailIntake::class.' i WHERE i.ownerUserId = :owner ORDER BY i.createdAt DESC, i.id DESC')
+            ->setParameter('owner', $ownerUserId)
+            ->setMaxResults(max(1, $limit))
+            ->getResult();
+    }
+
+    public function firstDraftsOf(array $messageIds): array
+    {
+        if ([] === $messageIds) {
+            return [];
+        }
+        $rows = $this->entityManager->getConnection()->fetchAllAssociative(
+            'SELECT source_mail_id, id FROM received_document WHERE source_mail_id IN (?) ORDER BY created_at, id',
+            [$messageIds],
+            [\Doctrine\DBAL\ArrayParameterType::STRING],
+        );
+        $first = [];
+        foreach ($rows as $row) {
+            if (\is_string($row['source_mail_id']) && \is_string($row['id']) && !isset($first[$row['source_mail_id']])) {
+                $first[$row['source_mail_id']] = $row['id'];
+            }
+        }
+
+        return $first;
+    }
 }
