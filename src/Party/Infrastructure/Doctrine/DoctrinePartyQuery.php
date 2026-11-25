@@ -27,7 +27,7 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\View\ViewFilter;
-use Symfony\Component\Uid\Uuid;
+use Foresi\Shared\Domain\Id;
 
 /**
  * Roles live in a JSON column, so the role filter and the counts
@@ -124,8 +124,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     public function findMany(array $ids): array
     {
-        // A value that is not a UUID names no party, and PostgreSQL refuses it in a uuid column.
-        $ids = array_values(array_filter($ids, Uuid::isValid(...)));
+        $ids = Id::onlyUuids($ids);
         if ([] === $ids) {
             return [];
         }
