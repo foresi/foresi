@@ -181,6 +181,7 @@ api_tokens:
     sales: Sales
     taxes: Taxes and contributions
     vat: VAT
+    exchange_rates: Exchange rates
     margin: Margin
     received_documents: Received documents
     views: Saved views

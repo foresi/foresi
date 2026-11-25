@@ -18,6 +18,9 @@ use Foresi\ExchangeRate\Contract\Quote;
  */
 final class CnbDailyFix
 {
+    /** The ČNB prices every currency in Czech crowns. */
+    public const string BASE = 'CZK';
+
     /**
      * @throws \UnexpectedValueException the text is not a daily fix file
      */
@@ -48,6 +51,6 @@ final class CnbDailyFix
             $quotes[$fields[3]] = new Quote($fields[3], (int) $fields[2], str_replace(',', '.', $fields[4]));
         }
 
-        return new PublishedRates($publishedOn, $quotes);
+        return new PublishedRates($publishedOn, $quotes, self::BASE);
     }
 }

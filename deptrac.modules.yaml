@@ -734,16 +734,31 @@ deptrac:
       - shared
       - shared_contract
     exchange_rate:
+      - audit
+      - audit_contract
       - exchange_rate_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
+      - party
+      - party_contract
       - shared
       - shared_contract
+      - ui
+      - ui_contract
     exchange_rate_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
+      - party
+      - party_contract
       - shared
       - shared_contract
+      - ui_contract
     identity:
       - audit
       - audit_contract

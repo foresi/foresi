@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The choice of the source of the firm's exchange rates among those its country allows: a small dialog over
+    Settings → Exchange rates; the same URL is a page. Variables: options (each with value, label and text), value,
+    error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'exchange_rate.settings.change'|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'exchange_rate.settings.title'|trans, href: path('app_exchange_rate_settings')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+{% set dialog_description = 'exchange_rate.settings.form.description'|trans %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="exchange-rate-source-form" action="{{ path('app_exchange_rate_settings_source') }}" class="grid gap-4" novalidate data-exchange-rate-source-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\ExchangeRate\\Infrastructure\\Controller\\ExchangeRateSettingsController::TOKEN')) }}">
+        {% if options|length > 1 %}
+            <twig:Ui:RadioCards name="source" id="source" :legend="'exchange_rate.settings.form.source'|trans" :options="options" :value="value" :error="error ? error|trans : null" />
+        {% else %}
+            <twig:Ui:Alert tone="info">{{ 'exchange_rate.settings.form.single'|trans }}</twig:Ui:Alert>
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'exchange_rate.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="exchange-rate-source-form" variant="primary">{{ 'exchange_rate.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="banknote" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_exchange_rate_settings')">{{ 'exchange_rate.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="exchange-rate-source-form" variant="primary">{{ 'exchange_rate.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

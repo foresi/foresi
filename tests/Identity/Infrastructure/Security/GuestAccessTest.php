@@ -78,6 +78,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_margin_document', 'api_v1_operation_margin.documents.assign', 'api_v1_operation_margin.line_allocations.set',
         'api_v1_margin_planned_item_allocation', 'api_v1_margin_supplier_default', 'api_v1_margin_table', 'api_v1_margin_cell', 'api_v1_operation_margin.planned_allocations.set', 'api_v1_operation_margin.supplier_defaults.set', 'api_v1_margin_unrebilled', 'api_v1_operation_margin.rebill_links.set', 'api_v1_operation_margin.rebill_pairings.pair', 'api_v1_operation_margin.rebill_pairings.unpair',
         'api_v1_vat_periods', 'api_v1_vat_period', 'api_v1_vat_settings', 'api_v1_operation_vat.settings.set',
+        'api_v1_exchange_rate_source', 'api_v1_operation_exchange-rate.source.set',
         'api_v1_operation_vat.period.return_amount.set', 'api_v1_operation_vat.period.return_amount.clear', 'api_v1_operation_vat.period.settle', 'api_v1_operation_vat.period.reopen', 'api_v1_operation_vat.payment.assign', 'api_v1_operation_vat.payment.reset',
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',
         'api_v1_recurring_invoices', 'api_v1_recurring_invoice', 'api_v1_recurring_invoice_preview',

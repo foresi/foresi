@@ -189,4 +189,51 @@ final class StoredExchangeRatesTest extends TestCase
 
         self::assertSame('2026-11-10', $rate->validOn->format('Y-m-d'));
     }
+
+    public function testARatePricedInEurosIsTheCrossRateThroughTheEuro(): void
+    {
+        $world = new RateWorld('2026-11-12 10:00:00', 'EUR');
+
+        $euro = $world->rates->rateOn('EUR', new \DateTimeImmutable('2026-11-10'));
+        $dollar = $world->rates->rateOn('USD', new \DateTimeImmutable('2026-11-10'));
+
+        self::assertSame([1, '24.435', '2026-11-10'], [$euro->amount, $euro->rate, $euro->publishedOn->format('Y-m-d')]);
+        // 24.435 CZK per EUR divided by 1.0935 USD per EUR, half up to six decimals.
+        self::assertSame([1, '22.345679'], [$dollar->amount, $dollar->rate]);
+        self::assertSame(4, $world->rows());
+        self::assertSame(['2026-11-10'], $world->source->asked);
+    }
+
+    public function testACrossRateBelowOneCrownIsGivenPerHundredOrPerThousandUnits(): void
+    {
+        $world = new RateWorld('2026-11-12 10:00:00', 'EUR');
+
+        $yen = $world->rates->rateOn('JPY', new \DateTimeImmutable('2026-11-10'));
+        $rupiah = $world->rates->rateOn('IDR', new \DateTimeImmutable('2026-11-10'));
+
+        self::assertSame([100, '14.02537'], [$yen->amount, $yen->rate]);
+        self::assertSame([1000, '1.218356'], [$rupiah->amount, $rupiah->rate]);
+        self::assertCount(1, $world->source->asked);
+    }
+
+    public function testACrossRateIsReadFromTheStoreAndHoldsOverTheWeekend(): void
+    {
+        $world = new RateWorld('2026-11-12 10:00:00', 'EUR');
+
+        $saturday = $world->rates->rateOn('USD', new \DateTimeImmutable('2026-11-07'));
+        $again = $world->rates->rateOn('USD', new \DateTimeImmutable('2026-11-07'));
+
+        self::assertSame(['22.5', '2026-11-06'], [$saturday->rate, $saturday->publishedOn->format('Y-m-d')]);
+        self::assertSame('22.5', $again->rate);
+        self::assertCount(1, $world->source->asked);
+    }
+
+    public function testACurrencyTheEuroSourceDoesNotQuoteIsNotAvailable(): void
+    {
+        $world = new RateWorld('2026-11-12 10:00:00', 'EUR');
+
+        $this->expectException(RateNotAvailable::class);
+
+        $world->rates->rateOn('JPY', new \DateTimeImmutable('2026-11-06'));
+    }
 }

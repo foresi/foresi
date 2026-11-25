@@ -232,33 +232,48 @@ when the result is failed or the time is older than a day (backup) or eight days
 
 ## Exchange rates
 
-Received documents in a foreign currency are converted at the rate of the Czech
-National Bank (see [received documents](purchasing.md#foreign-currency)). The
-rates are fetched by a timed job of the worker, `exchange-rates`: it ticks every
-ten minutes and does nothing before 14:35 Prague time, when the bank has
-published the day's rates (around 14:30), or once the day has rates, so a missed
-tick, a late publication and a failed fetch are all made up by the next tick.
-The worker therefore must run all the time and reach `www.cnb.cz` over HTTPS; a
-fetch is one request with a 5 second timeout, and a failure is logged as a
-warning and retried. On a day without a publication (a weekend, a holiday) the
-rates of the previous publication are stored under that day once it is settled at
-15:00, so asking for it later is a read.
+Documents in a foreign currency are converted at the rate of the source the firm
+converts at (see [received documents](purchasing.md#foreign-currency)): the one
+chosen in Settings → Exchange rates, else the default of the firm's country (the
+Czech National Bank for a Czech firm), else the first installed source. The
+choice and what each country allows are in [ADR 0046](adr/0046-exchange-rate-sources-and-the-legal-rate.md).
+An instance where nobody chose keeps the ČNB, as before.
 
-The rates are global to the installation, kept in the database, and need no
-backup of their own. A document keeps the rate it was saved with, so fetching
-later never changes a recorded document.
+| Source | Host | Published | The task fetches from |
+| --- | --- | --- | --- |
+| `cnb`, the Czech National Bank (Czech country module) | `www.cnb.cz` | business days around 14:30 Prague time | 14:35, settled at 15:00 |
+| `ecb`, the ECB euro reference rates (built in) | `www.ecb.europa.eu` | TARGET working days around 16:00 CET | 16:10, settled at 17:00 |
 
-To fetch by hand, for a date missed or to check the connection:
+The rates are fetched by a timed job of the worker, `exchange-rates`: it ticks
+every ten minutes and fetches only the source in use. It does nothing before that
+source's time, or once the day has rates, so a missed tick, a late publication and
+a failed fetch are all made up by the next tick. The worker therefore must run all
+the time and reach the host of the source over HTTPS; a fetch is one request with
+a 5 second timeout, and a failure is logged as a warning and retried. Foresi never
+switches to another source when one is down. On a day without a publication (a
+weekend, a holiday) the rates of the previous publication are stored under that
+day once it is settled, so asking for it later is a read. The ECB quotes per 1 EUR;
+the rate to CZK is the cross rate through the euro. It reads today from its daily
+file and an earlier date from its history of the last 90 days, so a date older
+than that has no ECB rate.
+
+The rates are global to the installation, kept in the database per source, and
+need no backup of their own. A document keeps the rate it was saved with, so
+fetching later or switching the source never changes a recorded document.
+
+To fetch by hand, for a date missed, to check the connection, or to fill another
+source before the firm switches to it:
 
 ```bash
-bin/console app:exchange-rate:fetch              # today
-bin/console app:exchange-rate:fetch 2026-11-06   # a date, as YYYY-MM-DD
+bin/console app:exchange-rate:fetch                     # today, the source in use
+bin/console app:exchange-rate:fetch 2026-11-06          # a date, as YYYY-MM-DD
+bin/console app:exchange-rate:fetch --source=ecb        # any installed source
 ```
 
-It stores the rates of the date and prints how many it stored and the day they
-were published; it exits non-zero when the bank gave no usable answer, and
-nothing is stored then. Without the fetch, a document in a foreign currency takes
-no rate on its own and a rate has to be typed by hand.
+It stores the rates of the date and prints how many it stored, of which source
+and the day they were published; it exits non-zero when the source gave no usable
+answer, and nothing is stored then. Without the fetch, a document in a foreign
+currency takes no rate on its own and a rate has to be typed by hand.
 
 ## Web server
 
