@@ -620,7 +620,7 @@ work:
     field:
       hours: Hours
       hours_help: Plus or minus, such as 8 or -2.5.
-      effective_on: Counts from
+      effective_on: Date
       note: Note
       note_placeholder: Such as who approved the hours
     empty:

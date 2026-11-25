@@ -72,4 +72,14 @@ final readonly class ProjectBudgetReads
             return null;
         }
     }
+
+    /**
+     * Which time uses the budget of a project the person sees.
+     *
+     * @throws WorkRefused unknown for a project the person does not see
+     */
+    public function counting(string $projectId): BudgetCounting
+    {
+        return $this->work->project($projectId)->budgetCounting();
+    }
 }

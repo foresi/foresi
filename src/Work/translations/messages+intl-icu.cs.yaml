@@ -620,7 +620,7 @@ work:
     field:
       hours: Hodiny
       hours_help: Plus nebo minus, třeba 8 nebo -2,5.
-      effective_on: Platí od
+      effective_on: Datum
       note: Poznámka
       note_placeholder: Třeba kdo hodiny schválil
     empty:

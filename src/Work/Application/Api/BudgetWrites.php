@@ -61,7 +61,7 @@ final readonly class BudgetWrites
             return null;
         }
         $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $value) {
+        if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $value || (int) $day->format('Y') < 1900) {
             throw new WorkRefused('date', 'effectiveOn');
         }
 

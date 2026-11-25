@@ -25,7 +25,7 @@ use Foresi\Work\Domain\ProjectBudgetChange;
     title: 'Add a change to a project budget',
     description: 'Adds hours to the time budget of a project, or takes them away with a minus: the budget is the sum of its changes, and a project without any has none. '
         .'Give hours, a decimal number with at most two decimal places such as "8" or "-2.5", or minutes, a whole number, not both (hours_invalid; zero is hours_zero). '
-        .'The budget never goes below zero (budget_below_zero); time logged over it is shown, never refused. effective_on is today when left out. '
+        .'The budget never goes below zero (budget_below_zero); time logged over it is shown, never refused. effective_on, the date in the change log, is today when left out; every change counts in the budget whatever its date. '
         .'source_activity_id names the activity the change comes from, such as an e-mail, which must be linked to the project (source_not_on_project). '
         .'Only the owners and team members may, on a project that is not archived. Answers the budget as foresi_get_project_budget does.',
     status: 201,
@@ -41,7 +41,7 @@ final readonly class AddProjectBudgetChangeInput
         public ?string $hours = null,
         #[Field('The minutes, plus or minus, in place of hours.')]
         public ?int $minutes = null,
-        #[Field('The day the change counts from, YYYY-MM-DD; today when left out.', format: 'date')]
+        #[Field('The date of the change in the change log, YYYY-MM-DD, such as the day the hours were approved; today when left out. The budget is the sum of all changes, whatever their date.', format: 'date')]
         public ?string $effectiveOn = null,
         #[Field('Why, such as who approved the hours.', maxLength: ProjectBudgetChange::MAX_NOTE_LENGTH)]
         public string $note = '',

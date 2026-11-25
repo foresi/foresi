@@ -39,7 +39,7 @@ final readonly class ProjectBudgets
 
     /**
      * @param int                     $minutes     plus or minus, not zero
-     * @param \DateTimeImmutable|null $effectiveOn the day the change counts from; today when null
+     * @param \DateTimeImmutable|null $effectiveOn the date of the change in its log; today when null
      *
      * @throws WorkRefused
      */
@@ -87,8 +87,12 @@ final readonly class ProjectBudgets
         if (!$change instanceof ProjectBudgetChange || $change->project()->id() !== $project->id()) {
             throw new WorkRefused('unknown');
         }
-        $this->unit->run(function () use ($project, $change): void {
+        $this->unit->run(function () use ($project, $change, $changeId): void {
             $this->budgets->lock($project);
+            // Removed meanwhile by someone else, who held the lock first.
+            if (!$this->budgets->change($changeId) instanceof ProjectBudgetChange) {
+                throw new WorkRefused('unknown');
+            }
             if (($this->budgets->budgetMinutes($project) ?? 0) - $change->minutes() < 0) {
                 throw new WorkRefused('budget_below_zero');
             }

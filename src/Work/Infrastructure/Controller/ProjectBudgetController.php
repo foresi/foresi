@@ -64,7 +64,7 @@ final class ProjectBudgetController extends AbstractController
             ];
             $minutes = BudgetHours::minutes($values['hours']);
             $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['effectiveOn']);
-            if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $values['effectiveOn']) {
+            if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $values['effectiveOn'] || (int) $day->format('Y') < 1900) {
                 $errors['effectiveOn'] = $this->translator->trans('work.refused.date');
                 $day = null;
             }
@@ -98,7 +98,7 @@ final class ProjectBudgetController extends AbstractController
     public function counting(string $id, Request $request): Response
     {
         $project = $this->editable($id);
-        $counting = $this->reads->budget($id)->counting;
+        $counting = $this->reads->counting($id);
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
