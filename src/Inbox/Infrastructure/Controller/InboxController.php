@@ -225,7 +225,7 @@ final class InboxController extends AbstractController
     public function done(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->done(new MarkItemDoneInput($id)));
+        $this->refused(fn (): InboxItem => $this->writes->done(new MarkItemDoneInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.done'));
 
         return $this->afterAction($request, $id, toList: true);
@@ -235,7 +235,7 @@ final class InboxController extends AbstractController
     public function discard(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->discard(new DiscardItemInput($id)));
+        $this->refused(fn (): InboxItem => $this->writes->discard(new DiscardItemInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.discarded', ['days' => ItemWrites::DISCARD_DAYS]));
 
         return $this->afterAction($request, $id, toList: true);
@@ -245,7 +245,7 @@ final class InboxController extends AbstractController
     public function reopen(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->reopen(new ReopenItemInput($id)));
+        $this->refused(fn (): InboxItem => $this->writes->reopen(new ReopenItemInput($id)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.reopened'));
 
         return $this->afterAction($request, $id, toList: false);
@@ -265,7 +265,7 @@ final class InboxController extends AbstractController
     public function unmatch(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): \Foresi\Inbox\Domain\InboxItem => $this->writes->match(new MatchItemInput($id, null)));
+        $this->refused(fn (): InboxItem => $this->writes->match(new MatchItemInput($id, null)));
         $this->addFlash('success', $this->translator->trans('inbox.flash.unmatched'));
 
         return $this->redirectToRoute(self::ITEM_ROUTE, ['id' => $id]);
