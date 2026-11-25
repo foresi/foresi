@@ -163,8 +163,6 @@ inbox:
       address: Adresa
       created: Vytvořena
       dropped: Dnes zahozeno
-    state:
-      revoked: Zrušena
     field:
       label: Název
       label_help: 'Například „Přeposílání z Gmailu“.'

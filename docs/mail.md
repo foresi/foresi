@@ -76,7 +76,6 @@ Other modules reach Mail only through `Foresi\Mail\Contract`:
 |---|---|
 | `InboundPurpose` | A module's consumer of its addresses, described above |
 | `AddressIssuer` | Issue, rotate, reveal (only for a purpose that shows its address again) and revoke an address; `unavailable()` says why no address can be issued |
-| `PersonalAddresses` | The signed-in person's own addresses of a purpose that belongs to people (list, create, rename, replace, revoke), with the rules, refusals and audit of the address calls above; Inbox's settings screen uses it |
 | `Messages` | Read a stored message: the view (`findMany` for a list's messages in one query), the raw bytes, the plain text, the attachments (each says whether the sender embedded it inline, and its `Content-ID`), the parsed mail, the authentication results in header order and the sender verdict |
 | `MailMessageView` | The id, address, purpose, channel, headers, sender, subject, dates, verdict, SHA-256 and size of one message |
 | `InboundMail` | The parsed message that parsers read |

@@ -163,8 +163,6 @@ inbox:
       address: Address
       created: Created
       dropped: Dropped today
-    state:
-      revoked: Revoked
     field:
       label: Label
       label_help: 'Such as "Gmail forwarding".'
