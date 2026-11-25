@@ -83,7 +83,7 @@ final readonly class ModuleNamespace
             $segments = \array_slice($segments, -1);
         }
 
-        return ModuleId::of(implode('-', array_map(self::kebab(...), $segments)));
+        return ModuleId::of(implode('-', array_map($this->kebab(...), $segments)));
     }
 
     /**
@@ -112,7 +112,7 @@ final readonly class ModuleNamespace
         return '@'.($this->own() ? self::OWN_VENDOR.'/' : '').$this->id()->value;
     }
 
-    private static function kebab(string $segment): string
+    private function kebab(string $segment): string
     {
         return strtolower((string) preg_replace(['/([A-Z]+)([A-Z][a-z])/', '/([a-z\d])([A-Z])/'], '\1-\2', $segment));
     }

@@ -27,11 +27,11 @@ final class ModuleNamespaceTest extends TestCase
      */
     public static function namespaces(): iterable
     {
-        yield 'Foresi\'s own' => ['Foresi\\CashFlow\\', 'cash-flow', 'Foresi\\CashFlow\\CashFlowBundle', 'foresi_cash_flow', '@foresi/cash-flow', true];
-        yield 'Foresi\'s own of several words' => ['Foresi\\TaxesAndContributions\\', 'taxes-and-contributions', 'Foresi\\TaxesAndContributions\\TaxesAndContributionsBundle', 'foresi_taxes_and_contributions', '@foresi/taxes-and-contributions', true];
-        yield 'another vendor\'s' => ['Acme\\Fleet\\', 'acme-fleet', 'Acme\\Fleet\\AcmeFleetBundle', 'acme_fleet', '@acme-fleet', false];
-        yield 'another vendor\'s of three segments' => ['Acme\\Erp\\FleetCare\\', 'acme-erp-fleet-care', 'Acme\\Erp\\FleetCare\\AcmeErpFleetCareBundle', 'acme_erp_fleet_care', '@acme-erp-fleet-care', false];
-        yield 'an acronym' => ['ACMECorp\\Fleet\\', 'acme-corp-fleet', 'ACMECorp\\Fleet\\AcmeCorpFleetBundle', 'acme_corp_fleet', '@acme-corp-fleet', false];
+        yield 'Foresi\'s own' => ['Foresi\\CashFlow\\', 'cash-flow', \Foresi\CashFlow\CashFlowBundle::class, 'foresi_cash_flow', '@foresi/cash-flow', true];
+        yield 'Foresi\'s own of several words' => ['Foresi\\TaxesAndContributions\\', 'taxes-and-contributions', \Foresi\TaxesAndContributions\TaxesAndContributionsBundle::class, 'foresi_taxes_and_contributions', '@foresi/taxes-and-contributions', true];
+        yield 'another vendor\'s' => ['Acme\\Garage\\', 'acme-garage', 'Acme\\Garage\\AcmeGarageBundle', 'acme_garage', '@acme-garage', false];
+        yield 'another vendor\'s of three segments' => ['Acme\\Erp\\GarageCare\\', 'acme-erp-garage-care', 'Acme\\Erp\\GarageCare\\AcmeErpGarageCareBundle', 'acme_erp_garage_care', '@acme-erp-garage-care', false];
+        yield 'an acronym' => ['ACMECorp\\Garage\\', 'acme-corp-garage', 'ACMECorp\\Garage\\AcmeCorpGarageBundle', 'acme_corp_garage', '@acme-corp-garage', false];
     }
 
     #[DataProvider('namespaces')]
@@ -48,7 +48,7 @@ final class ModuleNamespaceTest extends TestCase
 
     public function testTheNamespaceOfABundleIsWhereItSits(): void
     {
-        self::assertSame('Acme\\Fleet\\', ModuleNamespace::ofBundle('Acme\\Fleet\\AcmeFleetBundle')->value);
+        self::assertSame('Acme\\Garage\\', ModuleNamespace::ofBundle('Acme\\Garage\\AcmeGarageBundle')->value);
     }
 
     public function testAFixtureBelowForesiIsOneOfForesisOwnButNotOfAPackage(): void
@@ -82,15 +82,15 @@ final class ModuleNamespaceTest extends TestCase
     public function testToolsOfForesisPackagesStartWithForesi(): void
     {
         self::assertSame('foresi_', $this->manifest('cash-flow', 'foresi/cash-flow', 'Foresi\\CashFlow\\')->toolPrefix());
-        self::assertSame('acme_fleet_', $this->manifest('acme-fleet', 'acme/fleet', 'Acme\\Fleet\\')->toolPrefix());
+        self::assertSame('acme_garage_', $this->manifest('acme-garage', 'acme/garage', 'Acme\\Garage\\')->toolPrefix());
     }
 
     public function testAModuleOwnsTheClassesOfItsNamespace(): void
     {
-        $manifest = $this->manifest('acme-fleet', 'acme/fleet', 'Acme\\Fleet\\');
+        $manifest = $this->manifest('acme-garage', 'acme/garage', 'Acme\\Garage\\');
 
-        self::assertTrue($manifest->owns('Acme\\Fleet\\Application\\AddVehicleInput'));
-        self::assertFalse($manifest->owns('Acme\\FleetCare\\Application\\AddVehicleInput'));
+        self::assertTrue($manifest->owns('Acme\\Garage\\Application\\AddVehicleInput'));
+        self::assertFalse($manifest->owns('Acme\\GarageCare\\Application\\AddVehicleInput'));
     }
 
     private function manifest(string $id, string $package, string $namespace): ModuleManifest

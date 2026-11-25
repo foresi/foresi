@@ -145,13 +145,13 @@ final readonly class ReadToolLoader implements LoaderInterface
     {
         $class = $tool instanceof OperationTool ? $tool->input() : $tool::class;
         $owner = null;
-        foreach (null === $this->modules ? [] : $this->modules->all() as $module) {
+        foreach ($this->modules?->all() ?? [] as $module) {
             if ($module->owns($class) && \strlen($module->namespace) > \strlen($owner->namespace ?? '')) {
                 $owner = $module;
             }
         }
 
-        return null === $owner ? self::NAME_PREFIX : $owner->toolPrefix();
+        return $owner?->toolPrefix() ?? self::NAME_PREFIX;
     }
 
     private function register(RegistryInterface $registry, ReadTool|WriteTool $tool, ToolAnnotations $annotations): void
