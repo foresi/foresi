@@ -9,8 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Mail\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Mail\Application\AddressAlreadyActive;
 use Foresi\Mail\Application\InboundAddressStore;
 use Foresi\Mail\Domain\InboundAddress;
 
@@ -43,9 +45,43 @@ final readonly class DoctrineInboundAddresses implements InboundAddressStore
         return $this->em->find(InboundAddress::class, $id);
     }
 
+    public function ownedBy(string $ownerUserId, ?string $purpose = null): array
+    {
+        $query = $this->em->createQuery('SELECT a FROM '.InboundAddress::class.' a WHERE a.ownerUserId = :owner'.(null === $purpose ? '' : ' AND a.purpose = :purpose').' ORDER BY a.createdAt ASC, a.id ASC')
+            ->setParameter('owner', $ownerUserId);
+        if (null !== $purpose) {
+            $query->setParameter('purpose', $purpose);
+        }
+
+        /** @var list<InboundAddress> $addresses */
+        $addresses = $query->getResult();
+
+        return $addresses;
+    }
+
+    public function activeOf(string $ownerUserId, string $purpose): ?InboundAddress
+    {
+        $address = $this->em->createQuery('SELECT a FROM '.InboundAddress::class.' a WHERE a.ownerUserId = :owner AND a.purpose = :purpose AND a.revokedAt IS NULL')
+            ->setParameter('owner', $ownerUserId)
+            ->setParameter('purpose', $purpose)
+            ->setMaxResults(1)
+            ->getOneOrNullResult();
+
+        return $address instanceof InboundAddress ? $address : null;
+    }
+
     public function add(InboundAddress $address): void
     {
         $this->em->persist($address);
+    }
+
+    public function flush(): void
+    {
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException) {
+            throw new AddressAlreadyActive('The person has an active address for this purpose.');
+        }
     }
 
     public function touch(string $id, \DateTimeImmutable $at): void

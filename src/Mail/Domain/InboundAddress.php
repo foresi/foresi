@@ -20,11 +20,13 @@ use Foresi\Shared\Domain\Id;
  * only for a purpose that shows its addresses again, opens it for the owner.
  * Neither goes to the audit log, nor does the time of the last message. Rotating
  * replaces both at once, so the old address stops being found the moment the new
- * one is stored; a revoked address takes in nothing.
+ * one is stored; a revoked address takes in nothing. A person has at most one
+ * address that is not revoked for a purpose (a partial unique index).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_inbound_address')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_token', columns: ['token_hash'])]
+#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'], options: ['where' => '(revoked_at IS NULL AND owner_user_id IS NOT NULL)'])]
 #[ORM\Index(name: 'idx_mail_inbound_address_owner', columns: ['owner_user_id'])]
 class InboundAddress implements Audited
 {
@@ -97,6 +99,18 @@ class InboundAddress implements Audited
         $this->tokenHash = $tokenHash;
         $this->tokenSealed = $this->checkedSealed($tokenSealed);
         $this->lastReceivedAt = null;
+    }
+
+    /**
+     * @throws \DomainException when the label is empty or longer than MAX_LABEL
+     */
+    public function rename(string $label): void
+    {
+        $label = trim($label);
+        if ('' === $label || mb_strlen($label) > self::MAX_LABEL) {
+            throw new \DomainException(\sprintf('A label is 1 to %d characters.', self::MAX_LABEL));
+        }
+        $this->label = $label;
     }
 
     public function revoke(\DateTimeImmutable $at): void

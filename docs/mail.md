@@ -52,6 +52,15 @@ The mailbox must deliver every plus-addressed variant into the one inbox, or a c
 - A **purpose** is a module's registration for its addresses: a key, a label, whether an owner is required, whether the address can be shown again, and `accept()`, which the receiver calls inside the transaction that stores the message. A module registers one by implementing `Foresi\Mail\Contract\InboundPurpose`, which carries the tag `app.mail_inbound_purpose` by autoconfiguration. A message for an address whose purpose key has no registered consumer is dropped unread and nothing is stored. Banking registers `bank_feed`.
 - `accept()` may refuse a message by throwing `Foresi\Mail\Contract\NotAccepted`: the receiver rolls the transaction back, removes the raw file and treats the message as for an unknown address (Banking does so for an archived bank account). Any other exception rolls back, removes the file and is thrown again, so the message is taken again.
 
+### A person's own addresses
+
+A purpose whose `ownerRequired()` is true has addresses that belong to one person, and each person manages their own over REST and MCP (scope `mail_addresses`, see [api.md](api.md#mail-addresses)): create, rename, revoke, replace and list. The rules:
+
+- One address per person and purpose that is not revoked, enforced by a partial unique index (`uniq_mail_inbound_address_owner_purpose`), so two requests at once cannot make two. A second `create` is `address_exists`; a revoked address does not count.
+- The full address is in the answer that creates or replaces it, once, with `Cache-Control: no-store`. A list shows `masked_address` only (the template with the token cut out), as the database holds only the hash of the token.
+- **Replace** revokes the old address and issues a new one with the same purpose and label in one transaction, so the old one stays active when the new one cannot be made.
+- A purpose that has no owners (`bank_feed`) is not managed here: its addresses are as unknown to these calls as another person's, and Banking manages them on the bank account. Guests have no addresses.
+
 ## The contracts
 
 Other modules reach Mail only through `Foresi\Mail\Contract`:

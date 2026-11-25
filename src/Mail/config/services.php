@@ -108,6 +108,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
             ->args([RecordingPurpose::KEY, false]);
         $services->set('test.mail_purpose_reshowable', RecordingPurpose::class)
             ->args([RecordingPurpose::RESHOWABLE_KEY, true]);
+        // One that belongs to a person, as the addresses people manage themselves do.
+        $services->set('test.mail_purpose_owned', RecordingPurpose::class)
+            ->args([RecordingPurpose::OWNED_KEY, false, true]);
     }
 
     if ('e2e' === $container->env()) {

@@ -89,6 +89,24 @@ final class InboundAddressTest extends TestCase
         self::assertSame(str_repeat('ř', InboundAddress::MAX_LABEL), $long->label());
     }
 
+    public function testRenamingTrimsTheLabelAndRefusesAnEmptyOrTooLongOne(): void
+    {
+        $address = $this->open(hash('sha256', 'token'));
+
+        $address->rename('  Receipts  ');
+        self::assertSame('Receipts', $address->label());
+        $address->rename(str_repeat('ř', InboundAddress::MAX_LABEL));
+        self::assertSame(str_repeat('ř', InboundAddress::MAX_LABEL), $address->label());
+        foreach (['', '   ', str_repeat('ř', InboundAddress::MAX_LABEL + 1)] as $label) {
+            try {
+                $address->rename($label);
+                self::fail('Not refused.');
+            } catch (\DomainException) {
+                self::assertSame(str_repeat('ř', InboundAddress::MAX_LABEL), $address->label());
+            }
+        }
+    }
+
     public function testRevokingTwiceKeepsTheFirstMoment(): void
     {
         $address = $this->open(hash('sha256', 'token'));

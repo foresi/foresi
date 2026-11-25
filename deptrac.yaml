@@ -777,6 +777,9 @@ deptrac:
       - InstanceDomain
       - InstanceApplication
       - AuditDomain
+      # Whose addresses they are: the signed-in person, and whether they are staff.
+      - AuditApplication
+      - IdentityApplication
     MailInfrastructure:
       - Contract
       - SharedInfrastructure
@@ -788,6 +791,7 @@ deptrac:
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
       - VendorZbateson
+      - VendorOpenApi
       - SharedDomain
       - SharedApplication
       - InstanceDomain

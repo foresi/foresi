@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -138,6 +138,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/planned-items/{plannedItemId}` | `cashflow:read` | One planned item. |
 | `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id` (paired with the item, or listing it among the candidates). |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
+| `/api/v1/mail/addresses` | `mail_addresses:read` | Your inbound mail addresses, oldest first, revoked ones too, without their tokens; `purpose` filters them. See [Mail addresses](#mail-addresses). |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
@@ -536,6 +537,23 @@ Your own calendar feeds (see [calendar](calendar.md)): secret iCal addresses for
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "Phone"}' "https://app.example.com/api/v1/calendar/feeds"
+```
+
+## Mail addresses
+
+Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses that take mail in for one purpose, such as the receipts of a module that reads them. Reading needs `mail_addresses:read`, writing `mail_addresses:write`, and only the owners and members of the organisation have addresses. Each person sees and changes only their own, one active address per purpose; someone else's address is `404 not_found`. An address has `id`, `purpose`, `label`, `masked_address` (the address with its secret part left out), `created_at`, `revoked_at` and `last_received_at`.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/mail/addresses` | Your addresses, revoked ones too, never their tokens; `purpose` filters them. |
+| `POST /api/v1/mail/addresses` | `201` with the address and, this once, its full `address`; the answer is sent with `Cache-Control: no-store`. Body: `purpose` and `label` (1 to 80 characters). Refused: `purpose_unknown`, `purpose_has_no_owners` (a bank feed is managed on its bank account), `label_required`, `label_too_long` (400), `address_exists` (409, you have an active address for the purpose), `inbound_mail_not_configured` and `inbound_mail_no_key` (503, the operator has to set them up). |
+| `PATCH /api/v1/mail/addresses/{addressId}` | The address with its new `label`; the address itself stays. |
+| `DELETE /api/v1/mail/addresses/{addressId}` | The address with `revoked_at`. It takes in nothing from now on and stays listed. Revoking it again is `409 address_revoked`. |
+| `POST /api/v1/mail/addresses/{addressId}/replace` | `201` with a new address of the same purpose and label, its full `address` shown this once (`Cache-Control: no-store`); the old one is revoked in the same step, and kept as it was when the new one cannot be made. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"purpose": "purchasing", "label": "Receipts"}' "https://app.example.com/api/v1/mail/addresses"
 ```
 
 ## Catalog
