@@ -42,8 +42,8 @@ With the Activities module installed, a project's page has an **Activities** tab
 
 The project's page has two slots, `Foresi\Work\Contract\ProjectSlots`, the way the deal's page has `SalesSlots`. Both get the context `projectId`, `clientId` (or null) and `return`, the address of the page as shown, with its tab.
 
-- `ProjectSlots::SECTIONS` (`work.project.sections`): tabs after List and Board, by weight. An item's data holds `key` (lowercase letters, digits and dashes), `label` and either `href`, a local address of a fragment loaded into `<turbo-frame id="project-section-<key>">`, or the item's template. `?tab=<key>` shows the section in place of the tasks. Activities is one, at weight 10.
-- `ProjectSlots::HEADER_FACTS` (`work.project.header_facts`): short facts under the header, next to the client line, such as a time budget. The item's template is included with its data and the context. Sales names there the deal whose hourly line the project is linked to, with the line and its rate, while the deal is open or won and only for owners and members.
+- `ProjectSlots::SECTIONS` (`work.project.sections`): tabs after List and Board, by weight. An item's data holds `key` (lowercase letters, digits and dashes), `label` and either `href`, a local address of a fragment loaded into `<turbo-frame id="project-section-<key>">`, or the item's template. `?tab=<key>` shows the section in place of the tasks. Activities is one, at weight 10, and Budget, at weight 20.
+- `ProjectSlots::HEADER_FACTS` (`work.project.header_facts`): short facts under the header, next to the client line, such as a time budget. The item's template is included with its data and the context. Sales names there the deal whose hourly line the project is linked to, with the line and its rate, while the deal is open or won and only for owners and members (weight 10); Work shows the time budget after it (weight 20).
 
 ## The task page
 
@@ -120,6 +120,21 @@ A guest starts on **Shared with me**: the projects they see (the whole project, 
 
 E-mails go out through the system mailer of the installation, never a firm's server. A mention and a task given to you are e-mailed about two minutes later, unless you have read them in the inbox by then; the rest comes in one daily summary at the hour you choose, in the organisation's time zone. **Notification settings**, in the user menu and in the header of the inbox, sets for each kind of event: at once (mentions and tasks given to you only), in the daily summary, or not at all, the hour of the summary, and a switch to receive no e-mails. Every e-mail has a link that stops that kind of e-mail after one confirmation, and supports one-click unsubscribe in mail clients. Without a system mailer, notifications stay in the inbox.
 
+## Time budget
+
+A project may have a **time budget** in hours: the hours approved for it, such as "8 h of development approved" in a client's e-mail. The budget is the sum of its **changes**, each dated, plus or minus, with a note: "+8 h approved", later "+4 h for the second phase" or "-2 h moved to another project". A project without a change has no budget; approving hours is optional, and a firm that does not approve enters one change. This follows Harvest's project budget in total hours and the recorded budget changes of Oracle Primavera Unifier.
+
+- **On the project.** Under the header: "Budget 8 h · used 2.5 h · left 5.5 h". Going over is shown, with an **Over budget** badge and a negative left, and never blocked: time is still logged, and none of it turns non-billable on its own (Harvest does the same).
+- **Budget tab.** Owners and team members have a **Budget** tab after Activities: budget, used, left and the sum of the task estimates, then the changes, the latest first, with the date, hours, note, the source activity and who entered it. **Add change** opens a dialog for the hours (`8`, `-2.5` or `2,5`, at most two decimal places), the date of the change (today), such as the day the hours were approved, and a note; every change counts in the budget whatever its date. A row's menu removes a change entered by mistake; to lower a budget that was right, add a minus change. The budget never goes below zero. Whoever may edit the project may change its budget; an archived project keeps it and takes no change.
+- **Counting.** **Counting** in the tab chooses which time uses the budget: **All time** (the default, billable and non-billable) or **Billable time only**, so that work logged non-billable, such as flat-fee operation of a site, leaves the budget alone. Used is the project's time by anyone: not in the trash, not on a task in the trash, and not a timer that still runs.
+- **Task estimates** stay on their tasks; the tab shows their sum (of the tasks not in the trash) next to the budget.
+- **Guests.** A guest who sees the project sees the budget, used and left under the header and in `foresi_get_project`, never the changes: their notes and sources may hold commercial terms.
+- **Source.** A change may name the activity it comes from, such as the e-mail that approved the hours, which must be linked to the project (`source_not_on_project`). For now every `sourceActivityId` is refused with `source_not_on_project`: Activities does not yet say which activities are linked to a project. The inbox action "Add to project budget" brings that check and lifts the refusal.
+
+Over the API and MCP the budget is `GET /api/v1/projects/{id}/budget` and `foresi_get_project_budget` (`projects:read`), and `budget {hours, used_hours, left_hours, counting, estimate_hours}` (or null) in `foresi_get_project`. Changes are written with `work.project_budget.add_change`, `work.project_budget.remove_change` and `work.project_budget.set_counting` (`projects:write`, see [work writes](api.md#work-writes)), and each records the event `work.project_budget.changed` with the ids of the project and the change and what happened (`added`, `removed`, `counting`).
+
+In the APQC Process Classification Framework, setting a project's budget sits under 13.2.3.3 *Develop project plans* (element 16413) and showing budget, used and left under 13.2.3.5 *Review and report project performance* (16417). These ids are of the Cross-Industry PCF 7.4; they are not yet checked against PCF 8.0.
+
 ## Time
 
 Owners and team members log the time they spend on the work; guests never see time and cannot open its screens. Time goes on a task the person sees, or on a project without a task when the whole project is open to them, for work that belongs to no task, such as a call with the client.
@@ -146,7 +161,7 @@ Every entry, its change and its deletion reach the audit log, under its task or 
 
 Projects, tasks, comments, labels and time can be read and changed with a personal API token or an MCP client, with the scopes `projects`, `tasks` and `time_entries` (see [the REST API](api.md#projects-and-tasks) and [MCP](mcp.md#tools)). A token acts as its person: it sees and changes exactly what they do on these screens, so a member's token does not reach a project open only to the people it is shared with, and a private task stays hidden. Guests hold no token. The tasks of a person in one instance are `GET /api/v1/tasks?assignee=me&finished=false`, or `foresi_search_tasks` with `assignee: "me"`; a client that follows several instances holds one token for each.
 
-A task records the events `work.task.created`, `work.task.updated` (with the fields changed), `work.task.completed` (it reached a status of type done or closed) and `work.task.trashed`, and a comment `work.comment.added`. They carry ids only, and the [event feed](api.md#events) and webhooks show each only to who sees its task. Sharing, sections, the workflow and notifications stay on the screens.
+A task records the events `work.task.created`, `work.task.updated` (with the fields changed), `work.task.completed` (it reached a status of type done or closed) and `work.task.trashed`, and a comment `work.comment.added`; a project's time budget records `work.project_budget.changed`. They carry ids only, and the [event feed](api.md#events) and webhooks show each only to who sees its task, or its project. Sharing, sections, the workflow and notifications stay on the screens.
 
 ## Operating it
 

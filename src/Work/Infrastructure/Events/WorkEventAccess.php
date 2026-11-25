@@ -14,8 +14,10 @@ use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
 use Foresi\Shared\Contract\Event\EventSubject;
+use Foresi\Work\Application\Projects;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
 
 /**
@@ -23,11 +25,12 @@ use Foresi\Work\Domain\Task;
  * and each only by who sees its task as WorkVisibility decides: a private task
  * or a project not shared with a member stays out of their feed and their
  * webhooks, as it stays out of their lists. A task in the trash counts as it
- * would out of it.
+ * would out of it. A project's events, such as a change of its budget, are
+ * read by who sees the project.
  */
 final readonly class WorkEventAccess implements EventReadAccess, EventSubjectAccess
 {
-    public function __construct(private WorkVisibility $visibility, private ActorRole $role, private Tasks $tasks, private People $people)
+    public function __construct(private WorkVisibility $visibility, private ActorRole $role, private Tasks $tasks, private People $people, private Projects $projects)
     {
     }
 
@@ -48,6 +51,10 @@ final readonly class WorkEventAccess implements EventReadAccess, EventSubjectAcc
 
     public function sees(EventSubject $subject): bool
     {
+        $project = $this->project($subject);
+        if ($project instanceof Project) {
+            return $this->visibility->canSeeProject($project);
+        }
         $task = $this->task($subject);
 
         return $task instanceof Task && $this->visibility->canSeeTask($task);
@@ -55,10 +62,22 @@ final readonly class WorkEventAccess implements EventReadAccess, EventSubjectAcc
 
     public function userSees(string $userId, EventSubject $subject): bool
     {
-        $task = $this->task($subject);
         $membership = $this->people->membershipOf($userId);
+        if (!$membership instanceof Membership || !$membership->isActive()) {
+            return false;
+        }
+        $project = $this->project($subject);
+        if ($project instanceof Project) {
+            return $this->visibility->scopeOf($membership)->seesProject($project);
+        }
+        $task = $this->task($subject);
 
-        return $task instanceof Task && $membership instanceof Membership && $membership->isActive() && $this->visibility->scopeOf($membership)->seesTask($task);
+        return $task instanceof Task && $this->visibility->scopeOf($membership)->seesTask($task);
+    }
+
+    private function project(EventSubject $subject): ?Project
+    {
+        return 'project' === $subject->type ? $this->projects->project($subject->id) : null;
     }
 
     private function task(EventSubject $subject): ?Task

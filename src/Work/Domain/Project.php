@@ -29,6 +29,9 @@ use Foresi\Shared\Domain\Money;
  *
  * An hour on the project may be billed at a rate of its own, which comes
  * before the rate of its client and of the person who worked.
+ *
+ * Its time budget is the sum of its budget changes (ProjectBudgetChange); the
+ * project only keeps which of its time uses it.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project')]
@@ -61,6 +64,9 @@ class Project implements Audited
 
     #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
     private ?Currency $hourlyRateCurrency = null;
+
+    #[ORM\Column(name: 'budget_counting', type: 'string', length: 16, enumType: BudgetCounting::class, options: ['default' => 'all'])]
+    private BudgetCounting $budgetCounting = BudgetCounting::All;
 
     public function __construct(
         string $name,
@@ -156,6 +162,19 @@ class Project implements Audited
     public function hourlyRate(): ?Money
     {
         return null === $this->hourlyRateMinor || !$this->hourlyRateCurrency instanceof Currency ? null : Money::ofMinor($this->hourlyRateMinor, $this->hourlyRateCurrency);
+    }
+
+    /**
+     * Which time uses the project's time budget: all of it, or the billable time only.
+     */
+    public function countBudget(BudgetCounting $counting): void
+    {
+        $this->budgetCounting = $counting;
+    }
+
+    public function budgetCounting(): BudgetCounting
+    {
+        return $this->budgetCounting;
     }
 
     public function isArchived(): bool

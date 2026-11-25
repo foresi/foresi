@@ -105,6 +105,12 @@ work:
     time_task_in_trash: Restore the task the time belongs to first.
     estimate: Enter an estimate of at least a minute and at most 9,999 hours.
     date: Enter the date as YYYY-MM-DD.
+    hours_invalid: Enter the hours as a number with at most two decimal places, such as 8 or -2.5.
+    hours_zero: Enter hours other than zero.
+    budget_below_zero: The budget of the project would go below zero.
+    budget_note: A note can have at most 500 characters.
+    budget_counting: Choose all time or billable time only.
+    source_not_on_project: The source must be an activity of this project.
   time:
     title: Time
     log: Log time
@@ -566,6 +572,7 @@ work:
       list: List
       board: Board
       activities: Activities
+      budget: Budget
     field:
       name: Name
       client: Client
@@ -582,6 +589,52 @@ work:
       name_required: Enter the name of the project.
       workflow: Choose one of the workflows.
       rate: Enter a rate, such as 1500 or 1500.50.
+  budget:
+    title: Time budget
+    fact: 'Budget {budget, number} h · used {used, number} h · left {left, number} h'
+    over: Over budget
+    hours: '{hours, number} h'
+    signed_hours: '{hours, number, :: sign-always} h'
+    add: Add change
+    save: Save
+    added: The change is added to the budget.
+    removed: The change is removed from the budget.
+    remove: Remove
+    remove_confirm:
+      title: 'Remove the change {hours}?'
+      text: Remove a change entered by mistake. To lower a budget that was right, add a minus change instead.
+    changes: Changes of the budget
+    source_activity: Activity
+    kpi:
+      budget: Budget
+      used_all: Used (all time)
+      used_billable: Used (billable time)
+      left: Left
+      estimate: Task estimates
+    column:
+      effective_on: Date
+      hours: Hours
+      note: Note
+      source: Source
+      author: Entered by
+    field:
+      hours: Hours
+      hours_help: Plus or minus, such as 8 or -2.5.
+      effective_on: Date
+      note: Note
+      note_placeholder: Such as who approved the hours
+    empty:
+      title: No time budget yet
+      text: Add the hours approved for the project. Over budget is shown, never blocked.
+    counting:
+      open: Counting
+      title: Which time uses the budget
+      legend: Count
+      all: All time
+      all_help: Billable and non-billable time.
+      billable: Billable time only
+      billable_help: Non-billable time, such as flat-fee work, does not count.
+      saved: The budget counts the chosen time.
   workflow:
     simple: Simple
     simple_text: To do, In progress, Done

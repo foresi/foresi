@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Api\Operation;
 
 use Foresi\Shared\Contract\Operation\OperationOutput;
+use Foresi\Work\Application\ProjectBudgetReads;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
@@ -23,7 +24,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class WorkAnswers
 {
-    public function __construct(private WorkQueries $queries, private TimeQueries $time, private WorkJson $json, private UrlGeneratorInterface $urls)
+    public function __construct(private WorkQueries $queries, private TimeQueries $time, private WorkJson $json, private UrlGeneratorInterface $urls, private ProjectBudgetReads $budgets)
     {
     }
 
@@ -44,7 +45,19 @@ final readonly class WorkAnswers
     {
         $project = $this->queries->project($id) ?? throw new WorkRefused('unknown');
 
-        return new OperationOutput($this->json->projectDetail($project), \sprintf($summary, $project->row->name), $created ? $this->urls->generate(ProjectApiController::SHOW, ['projectId' => $id]) : null);
+        return new OperationOutput($this->json->projectDetail($project, $this->budgets->find($id)), \sprintf($summary, $project->row->name), $created ? $this->urls->generate(ProjectApiController::SHOW, ['projectId' => $id]) : null);
+    }
+
+    /**
+     * The time budget of the project as it is now.
+     *
+     * @param string|null $created the address of the change created, for REST
+     */
+    public function budget(string $projectId, string $summary, ?string $created = null): OperationOutput
+    {
+        $budget = $this->budgets->budget($projectId);
+
+        return new OperationOutput(WorkJson::budget($budget), $summary, $created);
     }
 
     public function comment(string $commentId, string $taskId, string $summary, bool $created = false): OperationOutput
