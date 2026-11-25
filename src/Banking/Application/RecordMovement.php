@@ -29,8 +29,10 @@ use Foresi\Shared\Domain\Money;
  * wants both, so the reason an incoming movement is recorded with is what the
  * matcher says now, and auto() settles it under the locks.
  *
- * Outgoing money goes the same way, to a refund: the same movement from another
- * message is a possible duplicate, and money to or from another account of the
+ * Outgoing money goes the same way, to a refund: the same movement told again by
+ * its source in another message or statement is a possible duplicate, and so is
+ * one that two movements another source recorded could be (StatementIntake
+ * corroborates one when it is the only one), and money to or from another account of the
  * firm is an own transfer; neither ever pays or refunds an invoice. Outgoing
  * money that no invoice with something to refund fits, by its symbol, amount,
  * account or customer, pays a supplier or a salary: it is recorded only, and waits
@@ -90,7 +92,8 @@ final readonly class RecordMovement
 
     private function stateOf(MovementInput $input): MovementState
     {
-        if ($this->movements->fingerprintTakenByOther($input->fingerprint(), $input->inboundMessageId)) {
+        if ($this->movements->fingerprintTakenByOther($input->fingerprint(), $input->sourceId, $input->inboundMessageId, $input->statementId)
+            || \count($this->movements->corroborationCandidates($input)) > 1) {
             return MovementState::PossibleDuplicate;
         }
         if ($this->isOwnAccount($input->counterIban)) {
@@ -136,6 +139,9 @@ final readonly class RecordMovement
             $verdict->basis,
             $state,
             $reason,
+            $input->channel,
+            $input->sourceId,
+            $input->statementId,
         );
     }
 

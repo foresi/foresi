@@ -17,7 +17,7 @@ use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\IssueInvoice;
@@ -170,7 +170,7 @@ abstract class BankScreenTestCase extends WebTestCase
         string $amount,
         ?string $vs = null,
         MovementDirection $direction = MovementDirection::Incoming,
-        MessageTrust $trust = MessageTrust::Unverified,
+        MovementTrust $trust = MovementTrust::Unverified,
         ?FirmBankAccount $account = null,
         string $bookedOn = '2026-11-19',
         ?string $counterName = 'Example Remitter Ltd',
@@ -180,8 +180,8 @@ abstract class BankScreenTestCase extends WebTestCase
     ): string {
         return $this->scoped(function () use ($amount, $vs, $direction, $trust, $account, $bookedOn, $counterName, $message, $auto, $counterIban): string {
             $basis = match ($trust) {
-                MessageTrust::Verified => TrustVerdict::DMARC,
-                MessageTrust::Failed => TrustVerdict::DKIM_FAIL,
+                MovementTrust::Verified => TrustVerdict::DMARC,
+                MovementTrust::Failed => TrustVerdict::DKIM_FAIL,
                 default => TrustVerdict::NO_RESULTS,
             };
             $container = self::getContainer();

@@ -18,10 +18,10 @@ use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\RetryInboundMessage;
 use Foresi\Banking\Application\UnknownInboundMessage;
 use Foresi\Banking\Application\View\BankMovementLists;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Contract\NotificationLines;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\MailMessageView;
@@ -86,7 +86,7 @@ final class InboundMessageController extends AbstractController
             'account' => $this->firm->get()->name().' · '.$this->text->account($row->accountLabel, $row->accountIban),
             'status' => $this->text->status($row->status, $row->stuck),
             'reason' => $this->text->reason($row->status, $row->failure, $row->stuck),
-            'trust' => $row->trust instanceof MessageTrust ? $this->translator->trans('bank.message.trust.'.$row->trust->value) : null,
+            'trust' => $row->trust instanceof MovementTrust ? $this->translator->trans('bank.message.trust.'.$row->trust->value) : null,
             // MessageRow names no parser for the signature of the parser set.
             'parser' => null === $row->parserId ? null : $row->parserId.(null === $row->parserVersion ? '' : ' v'.$row->parserVersion),
             'attempts' => $row->attempts,

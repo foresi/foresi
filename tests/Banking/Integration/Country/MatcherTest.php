@@ -12,8 +12,8 @@ use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\MatchDecision;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
@@ -144,7 +144,7 @@ final class MatcherTest extends BankingTestCase
     /**
      * On an account in the currency of the movement, unless one is given.
      */
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
+    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
         if (!$account instanceof FirmBankAccount) {
             $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, 'DE89370400440532013000', $currency));

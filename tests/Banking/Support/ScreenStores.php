@@ -13,6 +13,7 @@ use Foresi\Banking\Application\ClaimedMessage;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\ProcessingResult;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\InboundMessage;
@@ -72,7 +73,17 @@ final class ScreenStores
                 throw new \LogicException('Not read by the screen.');
             }
 
-            public function fingerprintTakenByOther(string $fingerprint, ?string $inboundMessageId): bool
+            public function fingerprintTakenByOther(string $fingerprint, string $sourceId, ?string $inboundMessageId, ?string $statementId = null): bool
+            {
+                throw new \LogicException('Not read by the screen.');
+            }
+
+            public function referenceKnown(string $accountId, string $sourceId, string $reference): bool
+            {
+                throw new \LogicException('Not read by the screen.');
+            }
+
+            public function corroborationCandidates(MovementInput $input): array
             {
                 throw new \LogicException('Not read by the screen.');
             }

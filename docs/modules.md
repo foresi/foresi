@@ -38,7 +38,7 @@ A module is a Composer package of type `foresi-module`, and its `composer.json` 
     "license": "AGPL-3.0-only",
     "require": {
         "php": ">=8.4",
-        "foresi/module-api": "^1.1",
+        "foresi/module-api": "^1.3",
         "foresi/identity": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
@@ -72,7 +72,7 @@ The real file also requires the Doctrine and Symfony packages that the code impo
 
 What matters here:
 
-- `"foresi/module-api": "^1.1"` says which versions of the module API the module is written for: 1.1, which brought custom fields, up to but not including 2.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
+- `"foresi/module-api": "^1.3"` says which versions of the module API the module is written for: 1.3, which brought custom fields, up to but not including 2.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
 - The namespace `Acme\Fleet\` gives everything else its name. The module id is `acme-fleet`, and the bundle is `Acme\Fleet\AcmeFleetBundle`. `extra.foresi.module` and `extra.foresi.bundle` must say exactly that, and `autoload.psr-4` must declare the same namespace. See [Names](#names).
 - The modules you need are ordinary Composer requirements: the module uses Identity, Party, Shared and Ui, so it requires them. A module you can work without goes in `extra.foresi.optional` instead (see [Integrate with an optional module](#integrate-with-an-optional-module)).
 - `scopes` declares the resources an API token can be given: `acme_fleet_vehicles` gives the scopes `acme_fleet_vehicles:read` and `acme_fleet_vehicles:write`.
@@ -527,7 +527,7 @@ Foresi has no settings screen for modules. A setting that the people of a firm c
 
 A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, and keeps its changes in the record's history.
 
-1. Require the record's module and module API 1.1 in `composer.json`, such as `"foresi/party": "*"` and `"foresi/module-api": "^1.1"` for a contact.
+1. Require the record's module and module API 1.3 in `composer.json`, such as `"foresi/party": "*"` and `"foresi/module-api": "^1.3"` for a contact.
 2. Write an entity in `Domain/` that implements the record's extension interface:
 
    | Record | Extension interface | Its id accessor | The list that shows the fields |
@@ -614,7 +614,7 @@ Implement `Foresi\Instance\Contract\ScheduledJob`. `name()` is a stable name of 
 
 ## Reference
 
-Every extension point below is part of the module API since version 1.0, the first version, unless it names a later one.
+Every extension point below is part of the module API since version 1.0, the first version, unless it names a later one ("since 1.1").
 
 ### The manifest
 
@@ -670,7 +670,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.1.0), and `"provide": {"foresi/module-api": "1.1.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.3.0), and `"provide": {"foresi/module-api": "1.3.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -679,11 +679,13 @@ What each minor version added:
 | Version | Added |
 | --- | --- |
 | 1.1 | `Foresi\ExchangeRate\Contract\RateRules` (`foresi.exchange_rate.rules`), the legal rate of a country; `PublishedRates::$base`, the currency a source's quotes are priced in (leaving it out is deprecated and means CZK). A module that uses them requires `^1.1`. |
+| 1.2 | Banking: the `StatementIntake` service, the one way bank movements enter, and the `StatementFormat` port for statement files, with their values (`BankStatement`, `StatementSequence`, `StatementFile`, `MovementProvenance`, `MovementChannel`, `MovementTrust`, `IntakeResult`) and the events `banking.statement.gap_detected` and `banking.statement.gap_closed`. A module that uses them requires `^1.2`. |
+| 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.1.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.3.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -691,7 +693,7 @@ This Foresi provides the module API 1.1.0, which these modules are not written f
 ```
 $ bin/console app:modules:check --api=2.0
  [ERROR] These modules are not written for the module API 2.0:
- * acme-fleet (acme/fleet) requires foresi/module-api ^1.1.
+ * acme-fleet (acme/fleet) requires foresi/module-api ^1.3.
 ```
 
 The deployment (`ops/deploy.sh`) runs `app:modules:check` after `composer install` and before the migrations, so an incompatible module never touches the database.
@@ -732,7 +734,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | `Refused`, `RefusalKind` | — | One refusal for every surface: the REST status and error, the MCP error, the message on a screen. |
 | `ModuleApi` | — | The provided module API version. |
 
-#### Custom fields (`Foresi\Shared\Contract\Field`, since 1.1)
+#### Custom fields (`Foresi\Shared\Contract\Field`, since 1.3)
 
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
@@ -783,7 +785,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Module | Ports and their tags |
 | --- | --- |
 | Activities | `ActivityTarget` (`foresi.activities.target`) |
-| Banking | `BankMessageParser` (`foresi.banking.message_parser`) |
+| Banking | `BankMessageParser` (`foresi.banking.message_parser`); `StatementFormat` (`foresi.banking.statement_format`, since 1.2) and the `StatementIntake` service (since 1.2), see [bank pairing](bank-pairing.md#statements-and-other-channels) |
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |

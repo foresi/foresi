@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Banking\Domain\MessageTrust;
 
 /**
  * One bank mail as the Messages tab lists it. The parser is named only when one
@@ -29,7 +29,7 @@ final readonly class MessageRow
         public InboundStatus $status,
         public ?string $failure,
         public ?string $failureDetail,
-        public ?MessageTrust $trust,
+        public ?MovementTrust $trust,
         public ?string $trustBasis,
         public ?string $parserId,
         public ?int $parserVersion,

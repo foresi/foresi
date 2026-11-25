@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Application\View\BankMovementLists;
+use Foresi\Shared\Application\View\ViewFilter;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -39,12 +40,7 @@ final readonly class BankScreen
         $pages = max(1, (int) ceil($total / MovementFilter::PER_PAGE));
         $page = max(1, min($filter->page, $pages));
         $offset = ($page - 1) * MovementFilter::PER_PAGE;
-        $ofMail = array_filter($filter->counted, BankMovementLists::showsMail(...));
-        $ofMovements = array_diff_key($filter->counted, $ofMail);
-        $counts = [] === $ofMovements ? [] : $this->movements->counts($filter->text, $ofMovements);
-        foreach ($ofMail as $key => $view) {
-            $counts[$key] = $this->messages->needingAttention($stuckBefore, $view);
-        }
+        $counts = $this->counts($filter->text, $filter->counted);
 
         return new MovementPage(
             $mail ? [] : $this->movements->rows($filter, $offset, MovementFilter::PER_PAGE),
@@ -56,6 +52,27 @@ final readonly class BankScreen
             $counts,
             $mail,
         );
+    }
+
+    /**
+     * The counts of the views within the text: the movements each holds, or for a
+     * view of the bank mail the messages waiting for someone.
+     *
+     * @param array<string, ViewFilter> $counted by key
+     *
+     * @return array<string, int> by the same key
+     */
+    public function counts(string $text, array $counted): array
+    {
+        $ofMail = array_filter($counted, BankMovementLists::showsMail(...));
+        $ofMovements = array_diff_key($counted, $ofMail);
+        $counts = [] === $ofMovements ? [] : $this->movements->counts($text, $ofMovements);
+        $stuckBefore = self::stuckBefore($this->clock);
+        foreach ($ofMail as $key => $view) {
+            $counts[$key] = $this->messages->needingAttention($stuckBefore, $view);
+        }
+
+        return $counts;
     }
 
     /**

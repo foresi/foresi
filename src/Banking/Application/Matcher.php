@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\InvoicingCountries;
@@ -151,9 +151,9 @@ final readonly class Matcher
     private function gate(BankMovement $movement, PairingRules $rules): ?UnmatchedReason
     {
         return match (true) {
-            MessageTrust::Failed === $movement->trust() => UnmatchedReason::Rejected,
+            MovementTrust::Failed === $movement->trust() => UnmatchedReason::Rejected,
             $movement->amount()->currency() !== $movement->account()->currency() => UnmatchedReason::AccountCurrency,
-            MessageTrust::Verified !== $movement->trust() => UnmatchedReason::Unverified,
+            MovementTrust::Verified !== $movement->trust() => UnmatchedReason::Unverified,
             $movement->isAutoPairBlocked() => UnmatchedReason::Blocked,
             !$rules->autoPairing => UnmatchedReason::AutoPairingOff,
             default => null,

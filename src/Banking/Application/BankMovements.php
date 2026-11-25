@@ -41,11 +41,29 @@ interface BankMovements
     public function add(BankMovement $movement): void;
 
     /**
-     * Whether a movement with the fingerprint came in another message, or in none.
+     * Whether the source told a movement with the fingerprint in another message or
+     * statement, or in none.
      *
      * @param string|null $inboundMessageId the message the new one comes in; its own movements do not count
+     * @param string|null $statementId      the statement the new one comes in; its own movements do not count
      */
-    public function fingerprintTakenByOther(string $fingerprint, ?string $inboundMessageId): bool;
+    public function fingerprintTakenByOther(string $fingerprint, string $sourceId, ?string $inboundMessageId, ?string $statementId = null): bool;
+
+    /**
+     * Whether the source told a movement of the account with the bank reference
+     * before, first or as the one that corroborated it.
+     */
+    public function referenceKnown(string $accountId, string $sourceId, string $reference): bool;
+
+    /**
+     * The movements of the account another source recorded that the input may be:
+     * the same direction, amount, booked day and variable symbol (none on both is the
+     * same), and the same counter-account when both state one, by IBAN or by local
+     * number; none another source confirmed already, and no possible duplicate.
+     *
+     * @return list<BankMovement> oldest recorded first
+     */
+    public function corroborationCandidates(MovementInput $input): array;
 
     /**
      * Whether a payment that is not cancelled came from the movement, whichever path
