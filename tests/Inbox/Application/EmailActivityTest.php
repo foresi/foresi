@@ -69,4 +69,38 @@ final class EmailActivityTest extends TestCase
         self::assertSame('a@example.com', EmailActivity::subject('  ', 'a@example.com'));
         self::assertSame('E-mail', EmailActivity::subject(null, null));
     }
+
+    public function testTheSubjectOfAMailWithoutOneIsTheTrimmedSenderAndNeverBlank(): void
+    {
+        self::assertSame('a@example.com', EmailActivity::subject(null, "  a@example.com\n"));
+        self::assertSame('E-mail', EmailActivity::subject(' ', "  \t"));
+    }
+
+    public function testTheSubjectIsCutInCharactersAndEndsWithoutBlanks(): void
+    {
+        self::assertSame(str_repeat('ž', 200), EmailActivity::subject(str_repeat('ž', 300), null), 'Characters, not bytes.');
+        self::assertSame(str_repeat('a', 199), EmailActivity::subject(str_repeat('a', 199).' b', null), 'No blank where the cut falls.');
+    }
+
+    public function testABodyOfExactlyTheLimitInCharactersIsNotCutWhateverItsBytes(): void
+    {
+        $head = "From: a\\@example\\.com\nDate: 2026-11-25 10:00\n\n";
+        $body = EmailActivity::cut('a@example.com', '2026-11-25 10:00', str_repeat('ž', EmailActivity::MAX_BODY - mb_strlen($head)));
+
+        self::assertSame(EmailActivity::MAX_BODY, mb_strlen($body));
+        self::assertStringEndsNotWith(EmailActivity::CUT, $body);
+    }
+
+    public function testAnOddRunOfBackslashesAtTheCutLosesOneAndAnEvenRunStays(): void
+    {
+        // Each backslash of the mail becomes two; a run of them cut after any number leaves an odd or even run at the end.
+        foreach (['', 'x'] as $shift) {
+            $body = EmailActivity::cut('a@example.com', '2026-11-25 10:00', $shift.str_repeat('\\', EmailActivity::MAX_BODY));
+            $kept = substr($body, 0, -\strlen(EmailActivity::CUT));
+
+            self::assertSame(0, strspn(strrev($kept), '\\') % 2, 'No lone backslash before the closing line.');
+            self::assertLessThanOrEqual(EmailActivity::MAX_BODY, mb_strlen($body));
+            self::assertGreaterThanOrEqual(EmailActivity::MAX_BODY - 1, mb_strlen($body));
+        }
+    }
 }

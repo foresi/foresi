@@ -89,6 +89,40 @@ final class InboxItemTest extends TestCase
         $item->recordEmailActivity(Id::generate());
     }
 
+    public function testAPurposeKeyHasOneToFortyCharacters(): void
+    {
+        $make = static function (string $purpose): InboxItem {
+            $id = Id::generate();
+
+            return new InboxItem($id, Id::generate(), Id::generate(), new \DateTimeImmutable(), false, null, ThreadKey::of([], null, 'm@example.com', $id), $purpose);
+        };
+
+        self::assertSame(str_repeat('a', 40), $make(str_repeat('a', 40))->duplicateOfPurpose());
+        foreach (['', str_repeat('a', 41)] as $refused) {
+            try {
+                $make($refused);
+                self::fail(\sprintf('The purpose "%s" should be refused.', $refused));
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testAContactAndItsCompanyAreNamedByTheirIds(): void
+    {
+        $item = $this->item();
+
+        foreach ([['not-an-id', null], [Id::generate(), 'not-an-id']] as [$contact, $company]) {
+            try {
+                $item->match($contact, $company, MatchBasis::Manual);
+                self::fail('A contact is named by its id.');
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        self::assertNull($item->contactId());
+    }
+
     private function item(?\DateTimeImmutable $receivedAt = null): InboxItem
     {
         $id = Id::generate();

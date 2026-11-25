@@ -97,7 +97,8 @@ final readonly class EmailActivity
         if (null === $activityId) {
             return;
         }
-        foreach (array_unique(array_filter([$item->contactId(), $item->companyId()], static fn (?string $id): bool => null !== $id)) as $contactId) {
+        // An item never names one contact as both its contact and its company (InboxItem::match()).
+        foreach (array_filter([$item->contactId(), $item->companyId()], static fn (?string $id): bool => null !== $id) as $contactId) {
             if ($this->records->canLink(self::CONTACT, $contactId)) {
                 $this->extend($activityId, self::CONTACT, $contactId);
             }
@@ -130,9 +131,10 @@ final readonly class EmailActivity
         if (mb_strlen($body) <= self::MAX_BODY) {
             return $body;
         }
-        $kept = mb_substr($body, 0, self::MAX_BODY - mb_strlen(self::CUT));
+        // CUT is ASCII, so its bytes are its characters.
+        $kept = mb_substr($body, 0, self::MAX_BODY - \strlen(self::CUT));
         // The cut must not split an escape and leave a lone backslash before the closing line.
-        $trailing = \strlen($kept) - \strlen(rtrim($kept, '\\'));
+        $trailing = strspn(strrev($kept), '\\');
         if (1 === $trailing % 2) {
             $kept = substr($kept, 0, -1);
         }

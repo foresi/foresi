@@ -49,7 +49,15 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->recorder()->link($id, 'deal', $dealId);
 
         self::assertEqualsCanonicalizing(['contact:'.$this->contactId, 'deal:'.$dealId], $this->linkNames($id));
-        self::assertCount(1, $this->eventData('activities.activity.updated'));
+        $events = $this->eventData('activities.activity.updated');
+        self::assertCount(1, $events);
+        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId], json_decode($events[0], true, flags: \JSON_THROW_ON_ERROR)['links'], 'The event names the records the activity has now: the old ones, then the new.');
+
+        $otherDealId = Id::generate();
+        $this->deals->add($otherDealId, 'Other deal');
+        $this->recorder()->link($id, 'deal', $otherDealId);
+        $events = $this->eventData('activities.activity.updated');
+        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId, 'deal:'.$otherDealId], json_decode($events[1], true, flags: \JSON_THROW_ON_ERROR)['links']);
     }
 
     public function testLinkingARecordTwiceChangesNothing(): void
@@ -80,9 +88,10 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->assertReason('trashed', fn () => $this->recorder()->link($id, 'contact', $this->contactId));
     }
 
-    public function testRecordRefusesAnUnknownTypeAndAGuest(): void
+    public function testRecordAndLinkRefuseAnUnknownTypeAndAGuest(): void
     {
         $this->assertReason('type_unknown', fn (): string => $this->recorder()->record(new RecordedActivity('no_such_type', 'Subject', '', new \DateTimeImmutable('2026-11-20 09:30:00'), $this->owner->user()->id())));
+        $recorded = $this->recorder()->record($this->email('Re: Offer'));
 
         $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
         $user = new User('guest@example.com', 'hash', 'Example Guest');
@@ -93,6 +102,7 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->em->flush();
         $this->signIn($guest);
         $this->assertReason('forbidden', fn (): string => $this->recorder()->record($this->email('Re: Offer')));
+        $this->assertReason('forbidden', fn () => $this->recorder()->link($recorded, 'contact', $this->contactId));
     }
 
     private function recorder(): ActivityRecorder

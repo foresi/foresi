@@ -83,4 +83,39 @@ final class ForwardParserTest extends TestCase
         self::assertNull($parser->parse("---------- Forwarded message ---------\r\nDate: Mon, Nov 23, 2026\r\n\r\nFrom: Client A <client.a@client-a.example.com>\r\n"), 'A block that ends before its From line names nobody.');
         self::assertNull($parser->parse("________________________________\r\nThe quarterly report is attached.\r\nFrom: Client A <client.a@client-a.example.com>\r\n"), 'A line of underscores above text is not a block.');
     }
+
+    public function testAFullStopAfterTheAddressIsNotPartOfIt(): void
+    {
+        $sender = new ForwardParser()->parse(InboxMail::gmailForward('Please reply to client.a@client-a.example.com.'));
+
+        self::assertSame('client.a@client-a.example.com', $sender?->address);
+    }
+
+    public function testTheFromLineIsFoundUpToTheEighthLineOfTheBlockAndNotBeyond(): void
+    {
+        $parser = new ForwardParser();
+        $block = static fn (int $headersBefore): string => "---------- Forwarded message ---------\r\n".str_repeat("Subject: Offer\r\n", $headersBefore)."From: Client A <client.a@client-a.example.com>\r\n";
+
+        self::assertSame('client.a@client-a.example.com', $parser->parse($block(7))?->address, 'The eighth line.');
+        self::assertNull($parser->parse($block(8)), 'The ninth line is out of reach.');
+        self::assertNull($parser->parse($block(12)));
+    }
+
+    public function testABlockThatEndsTheMailBeforeAnyFromLineNamesNobody(): void
+    {
+        $parser = new ForwardParser();
+
+        self::assertNull($parser->parse('---------- Forwarded message ---------'));
+        self::assertNull($parser->parse("---------- Forwarded message ---------\r\nDate: Mon, Nov 23, 2026"));
+        self::assertNull($parser->parse("---------- Forwarded message ---------\r\n\r\n"));
+    }
+
+    public function testAnAddressOfExactly320CharactersIsTheLongestKept(): void
+    {
+        $parser = new ForwardParser();
+        $address = static fn (int $length): string => str_repeat('a', $length - \strlen('@client-a.example.com')).'@client-a.example.com';
+
+        self::assertSame(320, \strlen($parser->parse(InboxMail::gmailForward($address(320)))?->address ?? ''));
+        self::assertNull($parser->parse(InboxMail::gmailForward($address(321))));
+    }
 }

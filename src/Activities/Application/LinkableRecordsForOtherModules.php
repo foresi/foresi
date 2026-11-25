@@ -31,9 +31,7 @@ final readonly class LinkableRecordsForOtherModules implements LinkableRecords
 
     public function canLink(string $kind, string $id): bool
     {
-        if (!Id::isValid($id) || !\in_array($kind, $this->targets->kinds(), true)) {
-            return false;
-        }
+        // check() refuses an id that is none and a kind no module offers, as it does a record that cannot be linked.
         try {
             $this->targets->check([['kind' => $kind, 'id' => $id]]);
         } catch (ActivitiesRefused) {

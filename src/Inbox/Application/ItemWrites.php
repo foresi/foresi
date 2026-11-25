@@ -84,8 +84,6 @@ final readonly class ItemWrites
      */
     public function match(MatchItemInput $input): InboxItem
     {
-        $this->access->me();
-
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->own($input->itemId);
             if (null === $input->contactId) {
@@ -114,8 +112,6 @@ final readonly class ItemWrites
      */
     public function matchAgain(MatchItemAgainInput $input): InboxItem
     {
-        $this->access->me();
-
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->own($input->itemId);
             $message = $this->messages->find($item->mailMessageId());
@@ -143,8 +139,6 @@ final readonly class ItemWrites
      */
     public function createContact(CreateContactFromItemInput $input): InboxItem
     {
-        $this->access->me();
-
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->own($input->itemId);
             $id = $this->creation->create(new NewContact(
@@ -258,8 +252,6 @@ final readonly class ItemWrites
      */
     public function restore(RestoreItemInput $input): InboxItem
     {
-        $this->access->me();
-
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->ownOrTrashed($input->itemId);
             $item->restore();

@@ -35,4 +35,11 @@ final class FreeMailDomainsTest extends TestCase
             self::assertFalse(FreeMailDomains::isFree($domain), $domain);
         }
     }
+
+    public function testWhiteSpaceAroundTheDomainIsIgnored(): void
+    {
+        self::assertTrue(FreeMailDomains::isFree("  Gmail.com\n"));
+        self::assertTrue(FreeMailDomains::isFree(' @seznam.cz. '));
+        self::assertFalse(FreeMailDomains::isFree("  \t"));
+    }
 }

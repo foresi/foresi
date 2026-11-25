@@ -10,7 +10,15 @@ namespace Foresi\Tests\Mail\Application;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Mail\Application\AuthenticationResultsParser;
+use Foresi\Mail\Application\InboundFiles;
+use Foresi\Mail\Application\MailMessages;
+use Foresi\Mail\Application\MailParts;
+use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\SenderVerdict;
+use Foresi\Mail\Application\StoredMessages;
+use Foresi\Mail\Application\TrustSettings;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AuthenticationResult;
@@ -80,6 +88,26 @@ final class MessagesTest extends KernelTestCase
         self::assertEqualsCanonicalizing([$first, $second], array_keys($views));
         self::assertEquals($this->messages->find($first), $views[$first]);
         self::assertSame([], $this->messages->findMany([]));
+    }
+
+    public function testFindManyAsksTheStoreOnceForEachIdAsAList(): void
+    {
+        $container = self::getContainer();
+        $asked = [];
+        $store = $this->createStub(MailMessages::class);
+        $store->method('findMany')->willReturnCallback(static function (array $ids) use (&$asked): array {
+            $asked[] = $ids;
+
+            return [];
+        });
+        $messages = new StoredMessages($store, $container->get(InboundFiles::class), $container->get(MailReader::class), $container->get(MailParts::class), $container->get(AuthenticationResultsParser::class), $container->get(TrustSettings::class), $container->get(SenderVerdict::class));
+        $first = Id::generate();
+        $second = Id::generate();
+
+        $messages->findMany([$second, $first, $second, $second]);
+        $messages->findMany([]);
+
+        self::assertSame([[$second, $first]], $asked, 'A list without repeats; nothing asked for no ids.');
     }
 
     public function testRawAndMailReadTheStoredBytes(): void

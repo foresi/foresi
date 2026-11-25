@@ -106,7 +106,8 @@ final readonly class ReceiveItem
      */
     private function forwardOf(MailMessageView $message, User $owner): ?ForwardedSender
     {
-        if (null === $message->from || mb_strtolower(trim($message->from)) !== mb_strtolower(trim($owner->email()))) {
+        // A user's e-mail address is kept trimmed and in lower case, and is ASCII.
+        if (null === $message->from || strtolower(trim($message->from)) !== $owner->email()) {
             return null;
         }
 

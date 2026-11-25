@@ -34,7 +34,6 @@ final readonly class RecordsForOtherModules implements ActivityRecorder
             $type->id(),
             $activity->subject,
             $activity->body,
-            done: true,
             doneAt: $activity->doneAt->format(\DATE_ATOM),
             links: $activity->links,
             ownerUserId: $activity->ownerUserId,

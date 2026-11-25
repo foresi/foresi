@@ -40,10 +40,8 @@ final class FreeMailDomains
      */
     public static function isFree(string $domain): bool
     {
-        $domain = rtrim(ltrim(mb_strtolower(trim($domain)), '@'), '.');
-        if ('' === $domain) {
-            return false;
-        }
+        // Domain names are ASCII here (an internationalised one arrives as punycode), so no multibyte case folding.
+        $domain = rtrim(ltrim(strtolower(trim($domain)), '@'), '.');
         if (\in_array($domain, self::DOMAINS, true)) {
             return true;
         }

@@ -79,13 +79,9 @@ final class ForwardParser
         $headers = 0;
         for ($index = $start, $count = \count($lines); $index < $count && $headers < self::HEADER_LINES; ++$index) {
             $line = $this->unquoted($lines[$index]);
-            if ('' === $line) {
-                if (0 === $headers) {
-                    // Apple Mail leaves a blank line between the marker and the block.
-                    continue;
-                }
-
-                return null;
+            if ('' === $line && 0 === $headers) {
+                // Apple Mail leaves a blank line between the marker and the block; a later one ends the headers.
+                continue;
             }
             if (1 === preg_match(self::FROM, $line, $from)) {
                 return $this->sender($from[1]);
