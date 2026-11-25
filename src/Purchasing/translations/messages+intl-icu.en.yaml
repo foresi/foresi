@@ -185,6 +185,8 @@ purchasing:
     read: "Read"
     nothing_found: "Nothing found"
     failed: "Reading failed"
+  settings:
+    title: "Received documents"
   reading:
     reading: "Reading the file…"
     read: "Read from {sources}"
@@ -288,8 +290,6 @@ purchasing:
     supplier_ambiguous: "More than one contact has the supplier's registration or VAT number, so no supplier was set."
     supplier_not_found: "No contact has the supplier's registration or VAT number."
     sender_unverified: "The mail this came with did not pass the check of its sender; make sure it is from who it says before you rely on it."
-  settings:
-    title: "Received documents"
   capture:
     title: "Capture address"
     intro: "Forward supplier invoices and receipts to your own capture address. Each attachment Foresi can read becomes a draft of a received document, which is then read in the background. The address is yours: only you see it, and the drafts are yours."

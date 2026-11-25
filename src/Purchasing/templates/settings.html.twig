@@ -4,7 +4,8 @@
     rename open in a dialog from the page header, and Replace and Revoke ask first, as the bank address of an
     account does. The address is shown in full to its owner with a copy button. Then the steps that forward
     supplier mail to it, and the recent e-mails with what came of each; their sender, subject and attachment
-    names are the sender's text, escaped by Twig.
+    names are the sender's text, escaped by Twig. Last, the sections other modules add
+    (PurchasingSlots::SETTINGS_SECTIONS), such as the state of a reader, each a card of its own.
     Variables: address (OwnAddress or null), revealed (the full address or null), lastReceived (when mail last came, formatted, or null), unavailable (why no address can
     be made here, or null), mailGuide, recentColumns, recent.
 #}
@@ -102,5 +103,9 @@
                 <twig:Ui:DataTable :caption="'purchasing.capture.recent.title'|trans" :columns="recentColumns" :rows="recent" />
             {% endif %}
         </section>
+
+        {% for item in slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::SETTINGS_SECTIONS')) %}
+            <div data-purchasing-settings-section>{{ include(item.template, item.data) }}</div>
+        {% endfor %}
     </div>
 {% endblock %}

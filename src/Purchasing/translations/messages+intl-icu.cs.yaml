@@ -185,6 +185,8 @@ purchasing:
     read: "Načteno"
     nothing_found: "Nic nenalezeno"
     failed: "Nenačteno"
+  settings:
+    title: "Přijaté doklady"
   reading:
     reading: "Načítám soubor…"
     read: "Načteno: {sources}"
@@ -288,8 +290,6 @@ purchasing:
     supplier_ambiguous: "IČO nebo DIČ dodavatele má víc kontaktů, proto dodavatel nebyl nastaven."
     supplier_not_found: "IČO ani DIČ dodavatele nemá žádný kontakt."
     sender_unverified: "E-mail, se kterým doklad přišel, neprošel kontrolou odesílatele; než se na něj spolehnete, ověřte, že je od toho, od koho má být."
-  settings:
-    title: "Přijaté doklady"
   capture:
     title: "Sběrná adresa"
     intro: "Přeposílejte faktury a účtenky od dodavatelů na svou sběrnou adresu. Každá příloha, kterou Foresi umí přečíst, se stane konceptem přijatého dokladu a ten se pak načte na pozadí. Adresa je vaše: vidíte ji jen vy a koncepty jsou vaše."

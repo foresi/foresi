@@ -35,7 +35,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * with what came of each. Mail keeps the address (OwnAddresses); a new one and
  * a rename open in a dialog from the page header, and Replace and Revoke ask
  * first, as the bank address of an account does. The address is shown in full
- * to its owner only, with a copy button, and the page is never cached.
+ * to its owner only, with a copy button, and the page is never cached. Below
+ * them come the sections other modules add (PurchasingSlots::SETTINGS_SECTIONS),
+ * such as the state of a reader.
  */
 final class ReceivedDocumentsSettingsController extends AbstractController
 {

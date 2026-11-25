@@ -19,12 +19,14 @@ use Foresi\Purchasing\Application\Mail\ReceivedDocumentsPurpose;
 use Foresi\Purchasing\Domain\MailIntake;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Purchasing\Support\StoredMessages;
+use Foresi\Ui\Slot\SlotRegistry;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * Settings → Received documents: the person's own capture address, made, renamed, replaced and revoked
- * from the page header; the forwarding steps; and the recent e-mails with the sender's text escaped.
+ * from the page header; the forwarding steps; the recent e-mails with the sender's text escaped; and the
+ * sections other modules add, for the owners and members only.
  */
 final class ReceivedDocumentsSettingsTest extends WebTestCase
 {
@@ -211,6 +213,29 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
         self::assertStringContainsString('Inbound mail is not set up on this server', $alert->text());
         self::assertSame('https://github.com/foresi/foresi/blob/main/docs/mail.md', $alert->filter('a')->attr('href'));
         self::assertCount(0, $page->filter('[data-capture-create]'));
+    }
+
+    public function testThePageIsInTheSettingsNavigation(): void
+    {
+        $this->signIn(Role::Owner);
+
+        $page = $this->client->request('GET', self::URL);
+
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $page->filter('nav a[href="'.self::URL.'"][aria-current="page"]')->count());
+        self::assertCount(0, $page->filter('nav a[href="/purchasing"][aria-current="page"]'));
+    }
+
+    public function testThePageRendersWithNoSectionProvider(): void
+    {
+        $this->signIn(Role::Owner);
+        self::getContainer()->set(SlotRegistry::class, new SlotRegistry([]));
+
+        $page = $this->client->request('GET', self::URL);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $page->filter('[data-capture-address]'), 'The capture address is a section of the page itself.');
+        self::assertCount(0, $page->filter('[data-purchasing-settings-section]'));
     }
 
     public function testAGuestIsRefused(): void

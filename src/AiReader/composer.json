@@ -1,0 +1,39 @@
+{
+    "name": "foresi/ai-reader",
+    "description": "Reads received documents with an AI model, as a fallback for the files the structured readers could not read.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "foresi/instance": "self.version",
+        "foresi/module-api": "^1.0",
+        "foresi/purchasing": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "symfony/console": "7.4.*",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/http-client": "^7.4.23",
+        "symfony/http-client-contracts": "^3.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\AiReader\\": ""
+        }
+    },
+    "extra": {
+        "foresi": {
+            "module": "ai-reader",
+            "kind": "module",
+            "namespace": "Foresi\\AiReader\\",
+            "bundle": "Foresi\\AiReader\\AiReaderBundle",
+            "optional": [],
+            "config-requires": [
+                "symfony/http-client"
+            ]
+        }
+    }
+}

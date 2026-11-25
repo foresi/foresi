@@ -8,8 +8,8 @@
     never stop it; a refusal is told next to its field and in the summary over the form. A row of the
     list opens it in the side sheet (layout/record.html.twig, docs/design/overlays.md); a document
     with lines is a form all the time, so the sheet shows it full screen. Over the values of a draft,
-    the reading of its file says where it stands (_reading), with Read again in the menu of the page
-    header, and the values it found that the draft does not hold are offered to take.
+    the reading of its file says where it stands (_reading), with Read again and the rows other modules add
+    (PurchasingSlots::DOCUMENT_ACTIONS) in the menu of the page header, and the values it found that the draft does not hold are offered to take.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -45,6 +45,10 @@
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'purchasing.reading.again'|trans }}</twig:Ui:MenuItem>
                 </form>
+                {# Rows of other modules' integrations, such as a reader that runs on request (PurchasingSlots::DOCUMENT_ACTIONS). #}
+                {% for item in slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::DOCUMENT_ACTIONS'), {documentId: document.id}) %}
+                    {{ include(item.template, item.data|merge({documentId: document.id, token: token})) }}
+                {% endfor %}
             {% endif %}
             {% if editable %}
                 <twig:Ui:MenuItem icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'purchasing.trash.open'|trans }}</twig:Ui:MenuItem>

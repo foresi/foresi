@@ -18,20 +18,26 @@ use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Contract\Reading\DocumentFile;
 use Foresi\Purchasing\Contract\Reading\DocumentReader;
+use Foresi\Purchasing\Contract\Reading\FallbackReader;
 use Foresi\Purchasing\Contract\Reading\ReaderFailed;
+use Foresi\Purchasing\Contract\Reading\ReadField;
 use Foresi\Purchasing\Contract\Reading\Reading;
+use Foresi\Purchasing\Contract\Reading\ReadValue;
 use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * The background job that reads the original file of a received document. No
  * person runs it: it runs in the worker, within the correlation of the step
  * that asked for it, so the history shows the filled values with the upload.
  *
- * Every reader that supports the file runs, in reader order (a reader that
- * only runs on request only when a person asked); one that cannot read the
- * file is noted and the next one runs, and the merge decides between their
+ * Every reader that supports the file runs, in reader order. A reader that
+ * only runs on request runs only when a person asked. A fallback reader runs,
+ * when the file arrives, only when the readers before it left the total, the
+ * issue date or the identity of the supplier empty. A reader that cannot read
+ * the file is noted and the next one runs, and the merge decides between their
  * values. The file is read outside the transaction. The values are applied in
  * one unit with the document locked, its version checked again there, so a
  * person who saved the draft meanwhile keeps what they typed.
@@ -55,6 +61,7 @@ final readonly class ReadDocument
         private PurchasingUnit $unit,
         private AuditCorrelation $correlation,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -77,9 +84,14 @@ final readonly class ReadDocument
             if (!$reader->supports($file) || (!$reader->automatic() && !$message->manual)) {
                 continue;
             }
+            if ($reader instanceof FallbackReader && !$message->manual && $this->hasKeyFields($readings)) {
+                continue;
+            }
             try {
                 $reading = $reader->read($file);
-            } catch (ReaderFailed) {
+            } catch (ReaderFailed $e) {
+                // The message is a short code, never the file, a body or a key.
+                $this->logger->warning('A reader failed to read a received document.', ['reader' => $reader->source(), 'code' => $e->getMessage()]);
                 $failed = true;
 
                 continue;
@@ -99,6 +111,21 @@ final readonly class ReadDocument
             $applied = $this->application->apply($document, $merged, $message->baseVersion, $message->keepTyped);
             $reading->finish($merged, $applied->applied, $applied->suggested, $applied->warnings, $this->now());
         });
+    }
+
+    /**
+     * Whether the readings so far, merged, hold the total, the issue date and
+     * the registration number or the VAT id of the supplier.
+     *
+     * @param list<Reading> $readings
+     */
+    private function hasKeyFields(array $readings): bool
+    {
+        $merged = $this->merge->merge($readings);
+
+        return $merged->get(ReadField::Total) instanceof ReadValue
+            && $merged->get(ReadField::IssueDate) instanceof ReadValue
+            && ($merged->get(ReadField::SupplierRegistrationNumber) instanceof ReadValue || $merged->get(ReadField::SupplierVatId) instanceof ReadValue);
     }
 
     /**
