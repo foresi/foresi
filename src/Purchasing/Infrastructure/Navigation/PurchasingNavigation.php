@@ -9,14 +9,16 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Navigation;
 
 use Foresi\Identity\Contract\StaffCheck;
+use Foresi\Purchasing\Infrastructure\Controller\ReceivedDocumentsSettingsController;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * The received documents in the sidebar, under Finance next to the bank, as
  * iDoklad keeps its received documents and Fakturoid its costs; the number is
- * the drafts that wait to be completed. Only the staff see it.
+ * the drafts that wait to be completed, and the settings of received documents under Settings. Only the staff see them.
  */
 final readonly class PurchasingNavigation implements NavigationItemProvider
 {
@@ -30,6 +32,7 @@ final readonly class PurchasingNavigation implements NavigationItemProvider
     {
         if ($this->staff->isStaff()) {
             yield new NavigationItem(CoreNavigationAreas::PURCHASING, 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE]);
+            yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.purchasing_settings', 'file-text', ReceivedDocumentsSettingsController::ROUTE, weight: 42, routePrefixes: [ReceivedDocumentsSettingsController::ROUTE], section: CoreNavigationAreas::SECTION_FIRM);
         }
     }
 }

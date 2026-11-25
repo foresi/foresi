@@ -50,7 +50,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            array_values(array_intersect(['activities', 'banking', 'calendar', 'cash-flow', 'catalog', 'country', 'documents', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'mail', 'margin', 'purchasing', 'sales', 'taxes-and-contributions', 'timesheet', 'vat', 'work'], $installed)),
+            array_values(array_intersect(['activities', 'ai-reader', 'banking', 'calendar', 'cash-flow', 'catalog', 'country', 'documents', 'exchange-rate', 'idoklad', 'import', 'invoicing', 'mail', 'margin', 'purchasing', 'sales', 'taxes-and-contributions', 'timesheet', 'vat', 'work'], $installed)),
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }

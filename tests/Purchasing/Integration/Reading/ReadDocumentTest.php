@@ -32,7 +32,10 @@ use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Infrastructure\Messenger\ReadReceivedDocumentHandler;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Tests\Support\IsdocFixtures;
+use Foresi\Tests\Support\Purchasing\StubFallbackReader;
 use Psr\Clock\ClockInterface;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -125,6 +128,110 @@ final class ReadDocumentTest extends PurchasingTestCase
         $this->em->flush();
         $this->readDocument(...$readers)->read(new ReadReceivedDocument($message->documentId, $message->baseVersion, true, null));
         self::assertSame(['ai'], $asked->getArrayCopy(), 'A person asked, so the reader that waits for a request runs too.');
+    }
+
+    public function testFallbackReaderSkippedWhenStructuredReadersFoundTheKeyFields(): void
+    {
+        $message = $this->uploaded();
+        /** @var \ArrayObject<int, string> $asked */
+        $asked = new \ArrayObject();
+
+        $this->readDocument(
+            $this->stub('isdoc', fn (): Reading => $this->keyFieldsReading()),
+            $this->stub('ai', static function () use ($asked): ?Reading {
+                $asked[] = 'ai';
+
+                return null;
+            }, fallback: true),
+            $this->stub('later', static function () use ($asked): ?Reading {
+                $asked[] = 'later';
+
+                return null;
+            }),
+        )->read($message);
+
+        self::assertSame(['later'], $asked->getArrayCopy(), 'The total, the issue date and the supplier are there, so the fallback reader stays out, and the readers after it still run.');
+    }
+
+    public function testFallbackReaderRunsWhenAKeyFieldIsMissing(): void
+    {
+        $message = $this->uploaded();
+        /** @var \ArrayObject<int, string> $asked */
+        $asked = new \ArrayObject();
+        $fallback = $this->stub('ai', static function () use ($asked): ?Reading {
+            $asked[] = 'ai';
+
+            return null;
+        }, fallback: true);
+        $without = static fn (ReadField $field): Reading => new Reading(array_filter(
+            [new ReadValue(ReadField::Total, 12_100, 'isdoc'), new ReadValue(ReadField::IssueDate, '2026-10-28', 'isdoc'), new ReadValue(ReadField::SupplierVatId, 'DE123456789', 'isdoc')],
+            static fn (ReadValue $value): bool => $value->field !== $field,
+        ));
+
+        foreach ([ReadField::Total, ReadField::IssueDate, ReadField::SupplierVatId] as $missing) {
+            $asked->exchangeArray([]);
+            $this->reading($message->documentId)->start($message->baseVersion, new \DateTimeImmutable());
+            $this->em->flush();
+            $this->readDocument($this->stub('isdoc', static fn (): Reading => $without($missing)), $fallback)->read($message);
+            self::assertSame(['ai'], $asked->getArrayCopy(), 'Without '.$missing->value.' the fallback reader runs.');
+        }
+
+        $asked->exchangeArray([]);
+        $this->reading($message->documentId)->start($message->baseVersion, new \DateTimeImmutable());
+        $this->em->flush();
+        $this->readDocument($fallback)->read($message);
+        self::assertSame(['ai'], $asked->getArrayCopy(), 'Nothing read before it.');
+    }
+
+    public function testFallbackReaderRunsWhenAPersonAsks(): void
+    {
+        $message = $this->uploaded();
+        /** @var \ArrayObject<int, string> $asked */
+        $asked = new \ArrayObject();
+
+        $this->reading($message->documentId)->start($message->baseVersion, new \DateTimeImmutable());
+        $this->em->flush();
+        $this->readDocument(
+            $this->stub('isdoc', fn (): Reading => $this->keyFieldsReading()),
+            $this->stub('ai', static function () use ($asked): ?Reading {
+                $asked[] = 'ai';
+
+                return null;
+            }, fallback: true),
+        )->read(new ReadReceivedDocument($message->documentId, $message->baseVersion, true, null));
+
+        self::assertSame(['ai'], $asked->getArrayCopy());
+    }
+
+    public function testAiFailureKeepsStructuredValues(): void
+    {
+        $message = $this->uploaded();
+        $logger = new class extends AbstractLogger {
+            /** @var list<array{mixed, array<mixed>}> */
+            public array $records = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->records[] = [$level, $context];
+            }
+        };
+        $this->logger = $logger;
+
+        $this->readDocument(
+            $this->stub('isdoc', static fn (): Reading => new Reading([
+                new ReadValue(ReadField::SupplierNumber, 'FV-2026-77', 'isdoc'),
+                new ReadValue(ReadField::Total, 12_100, 'isdoc'),
+            ])),
+            $this->stub('ai', static fn (): never => throw new ReaderFailed('provider_unavailable'), fallback: true),
+        )->read($message);
+        self::assertSame([['warning', ['reader' => 'ai', 'code' => 'provider_unavailable']]], $logger->records, 'The failure is logged with its reader and its code only.');
+
+        $reading = $this->reading($message->documentId);
+        self::assertSame(ReadingState::Read, $reading->state());
+        self::assertNull($reading->failure());
+        $document = $this->document($message->documentId);
+        self::assertSame('FV-2026-77', $document->supplierNumber());
+        self::assertSame(12_100, $document->total()?->minor());
     }
 
     public function testRunningTwiceAppliesOnce(): void
@@ -404,6 +511,15 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::getContainer()->get(EventDispatcherInterface::class)->dispatch(new WorkerMessageFailedEvent($last, 'async', new \RuntimeException('Something broke.')));
     }
 
+    private function keyFieldsReading(): Reading
+    {
+        return new Reading([
+            new ReadValue(ReadField::Total, 12_100, 'isdoc'),
+            new ReadValue(ReadField::IssueDate, '2026-10-28', 'isdoc'),
+            new ReadValue(ReadField::SupplierRegistrationNumber, '12345678', 'isdoc'),
+        ]);
+    }
+
     private function isdocReading(): Reading
     {
         return new Reading([
@@ -454,6 +570,8 @@ final class ReadDocumentTest extends PurchasingTestCase
     /**
      * The job with these readers in place of the installed ones.
      */
+    private ?LoggerInterface $logger = null;
+
     private function readDocument(DocumentReader ...$readers): ReadDocument
     {
         $container = self::getContainer();
@@ -469,14 +587,19 @@ final class ReadDocumentTest extends PurchasingTestCase
             $container->get(PurchasingUnit::class),
             $container->get(AuditCorrelation::class),
             $container->get(ClockInterface::class),
+            $this->logger ?? $container->get(LoggerInterface::class),
         );
     }
 
     /**
      * @param \Closure(DocumentFile): ?Reading $read
      */
-    private function stub(string $source, \Closure $read, bool $supports = true, bool $automatic = true): DocumentReader
+    private function stub(string $source, \Closure $read, bool $supports = true, bool $automatic = true, bool $fallback = false): DocumentReader
     {
+        if ($fallback) {
+            return new StubFallbackReader($source, $read, $supports, $automatic);
+        }
+
         return new readonly class($source, $read, $supports, $automatic) implements DocumentReader {
             /**
              * @param \Closure(DocumentFile): ?Reading $reader

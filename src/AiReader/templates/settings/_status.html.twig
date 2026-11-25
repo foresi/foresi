@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The state of reading with AI, a section of Settings → Received documents (PurchasingSlots::SETTINGS_SECTIONS).
+    Variables: configured, trigger_valid (false: the trigger is not valid, the reader is off), provider (the name), model, automatic (runs on arrival, otherwise only on click),
+    docs (the public page that explains how to set it up). The key is never passed here.
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+<twig:Ui:Card :title="'ai_reader.settings.title'|trans" icon="file-text" :data-ai-reader-status="configured ? 'configured' : 'not_configured'">
+    {% if configured %}
+        <p class="m-0 font-medium text-ink">
+            {{- (automatic ? 'ai_reader.settings.configured_arrival' : 'ai_reader.settings.configured_click')|trans({provider: provider, model: model}) -}}
+        </p>
+    {% else %}
+        <p class="m-0 font-medium text-ink">{{ 'ai_reader.settings.not_set_up'|trans }}</p>
+        <p class="m-0 mt-1 text-small text-muted">
+            {{ 'ai_reader.settings.not_set_up_text'|trans }}
+            <a href="{{ docs }}" class="font-medium text-text underline underline-offset-2 {{ focus }}" rel="noopener noreferrer" target="_blank">{{ 'ai_reader.settings.docs'|trans }}</a>
+        </p>
+    {% endif %}
+    {% if not trigger_valid %}
+        <p class="m-0 mt-1 text-small text-badge-red-text" data-ai-reader-trigger-invalid>{{ 'ai_reader.settings.trigger_invalid'|trans }}</p>
+    {% endif %}
+    <p class="m-0 mt-2 text-small text-muted">{{ 'ai_reader.settings.sent'|trans }}</p>
+</twig:Ui:Card>

@@ -1,0 +1,210 @@
+{
+    "type": "object",
+    "properties": {
+        "kind": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "enum": [
+                        "tax_invoice",
+                        "simplified_receipt",
+                        "foreign_invoice",
+                        "credit_note",
+                        "advance_request",
+                        "other"
+                    ]
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "What the document is. A credit note subtracts, but its amounts stay positive."
+        },
+        "supplier_name": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The name of the supplier: the party that issued the document, not the one it is addressed to."
+        },
+        "supplier_registration_number": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The company registration number of the supplier, as printed."
+        },
+        "supplier_vat_id": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The VAT identification number of the supplier, as printed, with its country prefix."
+        },
+        "supplier_country": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The country of the supplier as two capital letters (ISO 3166-1 alpha-2, for example \"DE\")."
+        },
+        "supplier_number": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The number of the document as the supplier issued it."
+        },
+        "variable_symbol": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The variable symbol or payment reference printed on the document."
+        },
+        "issue_date": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The date the document was issued as YYYY-MM-DD."
+        },
+        "tax_point_date": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The date of the taxable supply as YYYY-MM-DD."
+        },
+        "due_date": {
+            "anyOf": [
+                {
+                    "type": "string",
+                    "format": "date"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The date the payment is due as YYYY-MM-DD."
+        },
+        "currency": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The currency of the amounts as three capital letters (ISO 4217, for example \"EUR\")."
+        },
+        "total": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The total amount to pay including VAT, as a decimal string with a point and at most two decimals, never negative (no minus sign, even on a credit note), without a currency sign or a thousands separator (for example \"1210.50\")."
+        },
+        "vat_recap": {
+            "anyOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "rate": {
+                                "type": "string",
+                                "description": "The VAT rate as a percent number without a percent sign (for example \"21\" or \"0\")."
+                            },
+                            "base": {
+                                "type": "string",
+                                "description": "The taxable base of this rate, as a decimal string with a point and at most two decimals, never negative (no minus sign, even on a credit note), without a currency sign or a thousands separator (for example \"1210.50\")."
+                            },
+                            "vat": {
+                                "type": "string",
+                                "description": "The VAT amount of this rate, as a decimal string with a point and at most two decimals, never negative (no minus sign, even on a credit note), without a currency sign or a thousands separator (for example \"1210.50\")."
+                            }
+                        },
+                        "required": [
+                            "rate",
+                            "base",
+                            "vat"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The VAT summary: one row per VAT rate. Null when the document prints none."
+        },
+        "bank_account": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "The bank account the supplier asks to be paid to: an IBAN, or a domestic number in the form prefix-number/bank code."
+        }
+    },
+    "required": [
+        "kind",
+        "supplier_name",
+        "supplier_registration_number",
+        "supplier_vat_id",
+        "supplier_country",
+        "supplier_number",
+        "variable_symbol",
+        "issue_date",
+        "tax_point_date",
+        "due_date",
+        "currency",
+        "total",
+        "vat_recap",
+        "bank_account"
+    ],
+    "additionalProperties": false
+}

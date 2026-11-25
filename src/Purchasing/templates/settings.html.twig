@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Settings → Received documents: a host for the sections other modules add (PurchasingSlots::SETTINGS_SECTIONS), such
+    as the state of a reader. Each section is a card of its own; with none, the page says so.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'purchasing.settings.title'|trans}] %}
+
+{% block title %}{{ 'purchasing.settings.title'|trans }}{% endblock %}
+
+{% block content %}
+    {% set sections = slot_items(constant('Foresi\\Purchasing\\Contract\\PurchasingSlots::SETTINGS_SECTIONS')) %}
+    {% if sections is empty %}
+        <twig:Ui:EmptyState icon="settings" :title="'purchasing.settings.empty_title'|trans" :text="'purchasing.settings.empty_text'|trans" data-purchasing-settings-empty />
+    {% else %}
+        <div class="grid gap-4">
+            {% for item in sections %}
+                <div data-purchasing-settings-section>{{ include(item.template, item.data) }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
