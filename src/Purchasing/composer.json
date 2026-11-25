@@ -36,6 +36,7 @@
         "symfony/serializer": "7.4.*",
         "symfony/translation": "7.4.*",
         "symfony/translation-contracts": "^3.8",
+        "symfony/uid": "7.4.*",
         "symfony/validator": "7.4.*",
         "zircote/swagger-php": "^7.5"
     },
