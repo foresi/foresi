@@ -24,6 +24,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Recurring invoices | Templates that issue invoices on a schedule | [recurring.md](docs/recurring.md) |
 | Payments | Payments recorded by hand or paired from the bank's payment e-mails | [bank-pairing.md](docs/bank-pairing.md) |
 | Mail | Inbound mail: the operator mailbox and the webhook, personal addresses with daily limits, who sent a message, and the raw files it is kept in | [mail.md](docs/mail.md) |
+| Inbox | Your own e-mail address in Foresi: mail you forward there becomes an item matched to the sender's contact, for you alone | [inbox.md](docs/inbox.md) |
 | Received documents | Supplier invoices, receipts and credit notes beside the original file, with VAT treatments and foreign currencies | [purchasing.md](docs/purchasing.md) |
 | Catalog | Products with their unit, price and a one-off or recurring way of billing | [catalog.md](docs/catalog.md) |
 | Sales | Deals with stages, lines copied from the catalog, a value per currency, won or lost with a reason, and follow-up deals, on the client's page | [sales.md](docs/sales.md) |
