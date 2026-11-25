@@ -82,6 +82,7 @@ nav:
     projects: Projekty
     labels: Štítky
     my_tasks: Moje úkoly
+    tasks: Úkoly
     time: Čas
     notifications: Oznámení
 ui:
@@ -118,6 +119,7 @@ ui:
     move_down: 'Posunout {label} dolů'
     moved: '{label} je teď na pozici {position} z {total}.'
     density: Hustota řádků
+    group: Seskupit podle
     density_comfortable: Pohodlná
     density_comfortable_hint: 56 px
     density_dense: Kompaktní

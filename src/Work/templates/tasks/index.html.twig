@@ -1,0 +1,59 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Every task the person sees across the active projects, on saved views: All open, Mine (where the
+    list opens), Overdue, Unassigned, High and urgent, No due date, and the person's own views; the
+    filter sheet and the Settings sheet as every list has them, which also says what the view groups
+    by. The column headers sort. A group with nothing on the page is left out; its count is that of
+    the whole list. The status, the responsible person, the due date and the priority change in the row.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.tasks.title'|trans}] %}
+
+{% block title %}{{ 'work.tasks.title'|trans }}{% endblock %}
+
+{# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
+{% block head %}{{ include('@Work/_morph_refresh.html.twig') }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="newTask" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-quick-task-new>{{ 'work.task.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {% set search = {name: 'q', value: text ?? '', label: 'work.tasks.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'work.tasks.views'|trans, toolsFilter: 'tasks-filters', toolsSearch: search, toolsColumns: {id: 'tasks-columns', action: path('app_tasks')}}) }}
+        <twig:Ui:FilterBar id="tasks-filters" :search="search" :action="path('app_tasks')" :keep="{view: view, f: working != '' ? working : null, sort: sortKept}|merge(workingQuery)"
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="groups is empty" data-tasks-filter>
+        </twig:Ui:FilterBar>
+
+        {% for group in groups %}
+            {% if grouped %}
+                <section class="grid gap-2" aria-labelledby="group-{{ loop.index }}-title" data-task-group="{{ group.key }}">
+                    <h2 id="group-{{ loop.index }}-title" class="m-0 text-heading font-semibold text-ink">{{ group.name }} <span class="num font-normal text-muted">({{ group.count }})</span></h2>
+                    <twig:Ui:DataTable :caption="group.name" :columns="columns" :rows="group.rows" :density="density" />
+                </section>
+            {% else %}
+                <div data-task-group="all">
+                    <twig:Ui:DataTable :caption="'work.tasks.title'|trans" :columns="columns" :rows="group.rows" :density="density" />
+                </div>
+            {% endif %}
+        {% else %}
+            {% if empty == 'filtered' %}
+                <twig:Ui:EmptyState icon="search" :title="'work.tasks.empty.filtered_title'|trans" :text="'work.tasks.empty.filtered'|trans">
+                    <twig:Ui:Button :href="resetHref">{{ 'work.tasks.empty.reset'|trans }}</twig:Ui:Button>
+                </twig:Ui:EmptyState>
+            {% else %}
+                <twig:Ui:EmptyState icon="square-check-big" :title="('work.tasks.empty.' ~ empty ~ '_title')|trans" :text="('work.tasks.empty.' ~ empty ~ '_text')|trans" />
+            {% endif %}
+        {% endfor %}
+        {% if pages > 1 %}
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="m-0 text-small text-muted" data-tasks-total>{{ 'work.tasks.total'|trans({count: total}) }}</p>
+                <twig:Ui:Pagination :page="page" :pages="pages" :baseUrl="pageBase" />
+            </div>
+        {% endif %}
+    </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
+{% endblock %}

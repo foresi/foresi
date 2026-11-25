@@ -24,7 +24,9 @@ final readonly class TaskSliceFilter
     /**
      * @param string|null     $responsible ME, a membership id, or null for anyone and no one
      * @param bool|null       $finished    true for tasks in a finished status, false for the others, null for both
-     * @param ViewFilter|null $view        the conditions of a saved view of the list work.my_tasks, and of a filter
+     * @param ViewFilter|null $view        the conditions of a saved view and of a filter, as fields of the list work.tasks (TaskLists)
+     * @param bool            $open        whether a finished task is left out unless a condition of the view asks about the status type, as the list work.tasks does
+     * @param string          $sort        one of TaskLists::SORTS, a minus first for backwards; empty for the newest first
      */
     public function __construct(
         public string $text = '',
@@ -34,6 +36,8 @@ final readonly class TaskSliceFilter
         public ?bool $finished = null,
         public ?DueBucket $due = null,
         public ?ViewFilter $view = null,
+        public bool $open = false,
+        public string $sort = '',
     ) {
     }
 }

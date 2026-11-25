@@ -528,7 +528,7 @@ final class TaskController extends AbstractController
 
     /**
      * The page a property was changed from, with its filters: the list or the
-     * board of a project, or My tasks. Anything else is the task page (null).
+     * board of a project, the list of all tasks or My tasks. Anything else is the task page (null).
      */
     private function returnPath(string $return): ?string
     {
@@ -537,7 +537,7 @@ final class TaskController extends AbstractController
             return null;
         }
         $path = $parts['path'] ?? '';
-        $place = $path === $this->generateUrl(MyTasksController::ROUTE)
+        $place = \in_array($path, [$this->generateUrl(MyTasksController::ROUTE), $this->generateUrl(TaskListController::ROUTE)], true)
             || (1 === preg_match('#^/projects/('.Requirement::UUID_V7.')(/board)?$#D', $path, $match)
                 && $path === $this->generateUrl(isset($match[2]) ? ProjectController::BOARD_ROUTE : ProjectController::PROJECT_ROUTE, ['id' => $match[1]]));
         if (!$place || 1 === preg_match('/[\x00-\x20\\\\]/', $return)) {

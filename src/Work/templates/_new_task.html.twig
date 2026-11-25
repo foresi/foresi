@@ -1,0 +1,8 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    New task in the header of a Work page (plan 37.1): a dialog that asks for the project, prefilled
+    with the page's own when it has one (project), and comes back to the page. A page whose own
+    action leads passes variant 'secondary'. Without JavaScript the
+    same link is a page.
+#}
+<twig:Ui:Button :variant="variant|default('primary')" icon="plus" :href="path('app_task_new', {project: project|default(null), return: app.request.requestUri})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-quick-task-new>{{ 'work.task.new'|trans }}</twig:Ui:Button>

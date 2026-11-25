@@ -507,7 +507,7 @@ final class TaskControllerTest extends WebTestCase
         $id = $this->taskId('Brief');
         $token = $this->token($this->client->request('GET', '/tasks/'.$id));
 
-        foreach (['/projects/'.$project.'/board?due=overdue', '/projects/'.$project.'/board', '/my-tasks?tab=watching', '/my-tasks', '/projects/'.$project] as $place) {
+        foreach (['/projects/'.$project.'/board?due=overdue', '/projects/'.$project.'/board', '/my-tasks?tab=watching', '/my-tasks', '/tasks?view=overdue&sort=-priority', '/projects/'.$project] as $place) {
             $this->client->request('POST', '/tasks/'.$id.'/due', ['_token' => $token, 'return' => $place, 'due' => '2026-12-24']);
             self::assertResponseRedirects($place, 303, $place);
         }

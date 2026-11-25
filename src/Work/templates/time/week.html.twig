@@ -21,6 +21,7 @@
         <twig:Ui:Button :href="current" :aria-current="isCurrent ? 'date' : false" data-time-week-current>{{ 'work.time.this_week'|trans }}</twig:Ui:Button>
         <twig:Ui:IconButton icon="chevron-right" :href="next" :label="'work.time.next_week'|trans" data-time-week-next />
     </div>
+    {{ include('@Work/_new_task.html.twig', {variant: 'secondary'}) }}
     {% if logUrl %}<twig:Ui:Button variant="primary" icon="plus" :href="logUrl" class="max-sm:col-span-2" data-dialog aria-haspopup="dialog" data-time-new-open>{{ 'work.time.log'|trans }}</twig:Ui:Button>{% endif %}
 {% endblock %}
 
