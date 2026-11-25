@@ -3,9 +3,11 @@
     A new line of a deal, or one changed. A new line is picked from the catalog, which copies the product with
     the quantity given, or typed in with its own name, unit, price and billing (Pipedrive and HubSpot add
     products to a deal this way); while a product is chosen the typed fields hide (deal-line). The period shows
-    only for a recurring line; the unit of a time-based line is fixed to h and its quantity, the hours expected, may be empty. A dialog over the deal; the same URL is a page.
-    Variables: deal, line (null for a new one), action, values, errors, products (labels by id), billingKinds,
-    units, currencies.
+    only for a recurring line; the unit of a time-based line is fixed to h and its quantity, the hours expected, may be empty,
+    and only a time-based line picks the project whose billable time it bills (Odoo's order line "based on timesheets"). A
+    dialog over the deal; the same URL is a page.
+    Variables: deal, line (null for a new one), action, values, errors, products (labels by id), projects (labels by id,
+    null without Work), billingKinds, units, currencies.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
@@ -37,6 +39,11 @@
                 <div class="{{ column }}">
                     <twig:Ui:Select name="billingKind" id="billingKind" :label="'sales.line.field.billing_kind'|trans" :options="billingKinds" :value="values.billingKind" :error="errors.billingKind|default(null)" data-deal-line-target="kind" data-action="change->deal-line#changed" />
                 </div>
+                {% if projects is not null %}
+                    <div class="{{ column }}" data-deal-line-target="project">
+                        <twig:Ui:Select name="projectId" id="projectId" :label="'sales.line.field.project'|trans" :help="'sales.line.field.project_help'|trans" :options="projects" :value="values.projectId" :error="errors.projectId|default(null)" />
+                    </div>
+                {% endif %}
                 <div class="{{ column }} grid gap-4 sm:grid-cols-3" data-deal-line-target="period">
                     <twig:Ui:TextInput name="interval" id="interval" :label="'sales.line.field.interval'|trans" :value="values.interval" :error="errors.interval|default(null)" inputmode="numeric" autocomplete="off" maxlength="2" />
                     <twig:Ui:Select name="recurrenceUnit" id="recurrenceUnit" :label="'sales.line.field.recurrence_unit'|trans" :options="units" :value="values.recurrenceUnit" :error="errors.recurrenceUnit|default(null)" />

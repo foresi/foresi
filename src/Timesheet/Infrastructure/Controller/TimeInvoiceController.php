@@ -19,6 +19,7 @@ use Foresi\Timesheet\Application\TimeInvoicingRefused;
 use Foresi\Timesheet\Application\TimeScope;
 use Foresi\Timesheet\Domain\BillableTime;
 use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\RateSource;
 use Foresi\Timesheet\Domain\TimeLine;
 use Foresi\Timesheet\Domain\TimeLines;
 use Foresi\Timesheet\Domain\TimeRounding;
@@ -218,6 +219,8 @@ final class TimeInvoiceController extends AbstractController
             'note' => $entry->note,
             'minutes' => $minutes,
             'rate' => $rate instanceof Money ? $this->translator->trans('timesheet.invoice.per_hour', ['rate' => $rate->format($this->translator->getLocale())]) : null,
+            // Only the rate of a deal line is named: it is the one set outside the project, the person and the client.
+            'rateSource' => RateSource::DealLine === $candidate->source ? $this->translator->trans('timesheet.invoice.rate_of_deal_line') : null,
             'rateMinor' => $rate?->minor(),
             'rateCurrency' => $rate?->currency()->value,
             'rateScale' => $rate instanceof Money ? 10 ** $rate->currency()->minorUnits() : null,

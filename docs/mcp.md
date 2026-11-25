@@ -79,8 +79,8 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_follow_up_deal` | **Write.** Opens a deal for the same client and contact persons that follows from `deal_id`: `title`, optional `line_ids` to copy, `stage_id`, `owner_user_id`. Staff only. |
 | `foresi_add_deal_link` | **Write.** Links a deal (`deal_id`) as following from another deal (`to_deal_id`) of the same client. Staff only. |
 | `foresi_remove_deal_link` | **Write.** Removes a link (`link_id`) of a deal (`deal_id`); both deals stay. Staff only. |
-| `foresi_add_deal_line` | **Write.** Adds a line to a deal (`deal_id`): a `product_id` and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency` and billing. Staff only. |
-| `foresi_update_deal_line` | **Write.** Changes the fields given of a line (`deal_id`, `line_id`); `unit_price` `null` clears the price. Staff only. |
+| `foresi_add_deal_line` | **Write.** Adds a line to a deal (`deal_id`): a `product_id` and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency` and billing; a `time_based` line may take a `project_id` whose billable time it bills at its rate. Staff only. |
+| `foresi_update_deal_line` | **Write.** Changes the fields given of a line (`deal_id`, `line_id`); `unit_price` `null` clears the price, `project_id` `null` unlinks the project. Staff only. |
 | `foresi_remove_deal_line` | **Write, destructive.** Removes a line (`deal_id`, `line_id`) from a deal. Staff only. |
 | `foresi_reorder_deal_lines` | **Write.** Puts the lines of a deal (`deal_id`) in the order of `line_ids`, naming every line once. Staff only. |
 | `foresi_create_deal_stage` | **Write.** Adds a stage at the end of the order: `name`, optional `key`. Staff only. |

@@ -13,6 +13,7 @@ timesheet:
     entries: Čas k vyfakturování
     no_rate: Bez sazby
     per_hour: '{rate}/hod'
+    rate_of_deal_line: sazba položky obchodu
     hours: '{hours} hod'
     unit: hod
     total_hours: Celkem hodin

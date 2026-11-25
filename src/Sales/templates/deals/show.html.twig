@@ -20,7 +20,7 @@
     as link tabs, the first, Activities, by default and only the active one loaded, in its lazy frame
     (NN/g, Tabs, used right: the most used tab first and selected). The side column: the details, the
     notes and the linked deals.
-    Variables: deal, badge, stageName, stages (id, name, current), details, lines, totals, links, linkable,
+    Variables: deal, badge, stageName, stages (id, name, current), details, lines, lineProjects (whether a line links a project), totals, links, linkable,
     slotActions, tabs, section, context.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -129,12 +129,17 @@
                             <twig:Ui:Button icon="plus" size="sm" :href="path('app_sales_deal_line_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-line-new>{{ 'sales.line.new'|trans }}</twig:Ui:Button>
                         {% endif %}
                     </div>
-                    <twig:Ui:DataTable :caption="'sales.line.title'|trans" :actionToken="token" :rows="lines" :columns="[
+                    {% set lineColumns = [
                         {key: 'name', label: 'sales.line.column.name'|trans, truncate: true},
                         {key: 'quantity', label: 'sales.line.column.quantity'|trans, phone: false},
                         {key: 'billing', label: 'sales.line.column.billing'|trans, phone: false},
+                    ] %}
+                    {% if lineProjects %}
+                        {% set lineColumns = lineColumns|merge([{key: 'project', label: 'sales.line.column.project'|trans, phone: false}]) %}
+                    {% endif %}
+                    <twig:Ui:DataTable :caption="'sales.line.title'|trans" :actionToken="token" :rows="lines" :columns="lineColumns|merge([
                         {key: 'total', label: 'sales.line.column.total'|trans, align: 'right'},
-                    ]" :totals="totals ?: null">
+                    ])" :totals="totals ?: null">
                         <twig:block name="empty">
                             <twig:Ui:EmptyState icon="tag" :title="'sales.line.empty_title'|trans" :text="'sales.line.empty_text'|trans" />
                         </twig:block>

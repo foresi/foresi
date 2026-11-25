@@ -153,12 +153,17 @@ sales:
         empty_text: Add a product of the catalog or type a line in; the deal's value comes from its lines.
         not_estimated: Not estimated
         per_hour: '{rate} / h'
+        no_project: No project
+        project_archived: archived
+        project_hidden: A project you do not see
+        logged: '{hours} h billable logged'
         confirm:
             remove: 'Remove the line {name}?'
         column:
             name: Line
             quantity: Quantity
             billing: Billing
+            project: Project
             total: Amount
         field:
             product: From the catalog
@@ -176,6 +181,8 @@ sales:
             recurrence_unit: Period
             cycles: Times
             cycles_help: Leave empty for no end.
+            project: Project
+            project_help: Its billable time is invoiced at this line's rate.
         unit_of_time:
             day: Days
             week: Weeks
@@ -298,6 +305,11 @@ sales:
         billing_kind_unknown: Choose one-off, recurring or hourly.
         quantity_required: Enter the quantity; only an hourly line may leave it empty.
         time_based_unit: An hourly line has the unit h.
+        project_only_on_time_based: Only an hourly line links to a project.
+        project_unknown: Choose a project you see.
+        project_archived: The project is archived; restore it to link it.
+        project_already_linked: The project is already linked to another hourly line; a project serves one line.
+        project_client_differs: The project is for another client than the deal.
         rate_required: "An hourly line needs its rate: enter the price per unit."
         time_based_recurrence: An hourly line has no period.
         one_off_recurrence: A one-off line has no period.

@@ -18,9 +18,12 @@ use Foresi\Sales\Application\Api\UpdateDealLineInput;
 use Foresi\Sales\Application\DealDetail;
 use Foresi\Sales\Application\DealLineWrites;
 use Foresi\Sales\Application\DealReads;
+use Foresi\Sales\Application\LineProject;
+use Foresi\Sales\Application\LineProjects;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Infrastructure\Screen\DealScreen;
+use Foresi\Shared\Application\Api\Omitted;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
@@ -42,13 +45,14 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class DealLineController extends AbstractController
 {
-    private const array TYPED = ['name', 'unit', 'unitPrice', 'currency', 'billingKind', 'recurrenceUnit', 'interval', 'cycles'];
+    private const array TYPED = ['name', 'unit', 'unitPrice', 'currency', 'billingKind', 'recurrenceUnit', 'interval', 'cycles', 'projectId'];
 
     public function __construct(
         private readonly DealReads $reads,
         private readonly DealLineWrites $writes,
         private readonly Products $products,
         private readonly DealScreen $screen,
+        private readonly LineProjects $projects,
     ) {
     }
 
@@ -67,7 +71,7 @@ final class DealLineController extends AbstractController
                     $this->writes->add(new AddDealLineInput($id, $values['productId'], quantity: $this->quantity($values['quantity'], $request->getLocale())));
                 } else {
                     $d = $this->draft($values, $request->getLocale());
-                    $this->writes->add(new AddDealLineInput($id, null, $d['name'], $d['unit'], $d['quantity'], $d['unitPrice'], $d['currency'], $d['billingKind'], $d['recurrenceUnit'], $d['interval'], $d['cycles']));
+                    $this->writes->add(new AddDealLineInput($id, null, $d['name'], $d['unit'], $d['quantity'], $d['unitPrice'], $d['currency'], $d['billingKind'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $d['projectId']));
                 }
                 $this->addFlash('success', $this->screen->trans('sales.line.flash.added'));
 
@@ -93,7 +97,8 @@ final class DealLineController extends AbstractController
             $values = $this->posted($request) + $values;
             try {
                 $d = $this->draft($values, $request->getLocale());
-                $this->writes->update(new UpdateDealLineInput($id, $lineId, $d['name'], $d['unit'], $d['quantity'], $d['unitPrice'], $d['currency'], $d['billingKind'], $d['recurrenceUnit'], $d['interval'], $d['cycles']));
+                // Without Work installed the form has no project field, and the line keeps what it has.
+                $this->writes->update(new UpdateDealLineInput($id, $lineId, $d['name'], $d['unit'], $d['quantity'], $d['unitPrice'], $d['currency'], $d['billingKind'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $this->projects->installed() ? $d['projectId'] : new Omitted()));
                 $this->addFlash('success', $this->screen->trans('sales.line.flash.saved'));
 
                 return $this->back($id);
@@ -151,6 +156,7 @@ final class DealLineController extends AbstractController
             'values' => $values,
             'errors' => $errors,
             'products' => $line instanceof DealLine ? [] : $this->productOptions(),
+            'projects' => $this->projectOptions($detail, $line),
         ] + $this->screen->lineOptions(), new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
@@ -164,6 +170,32 @@ final class DealLineController extends AbstractController
         $options = [];
         foreach ($this->products->search('') as $product) {
             $options[$product->id] = $this->productLabel($product);
+        }
+
+        return $options;
+    }
+
+    /**
+     * The projects an hourly line may link to: the client's active ones, and the
+     * one the line has, archived or not; null without Work, so the form has no field.
+     *
+     * @return array<string, string>|null
+     */
+    private function projectOptions(DealDetail $detail, ?DealLine $line): ?array
+    {
+        if (!$this->projects->installed()) {
+            return null;
+        }
+        $options = ['' => $this->screen->trans('sales.line.no_project')];
+        foreach ($this->projects->ofClient($detail->deal->clientPartyId()) as $project) {
+            $options[$project->id] = $project->name;
+        }
+        $linked = $line?->projectId();
+        if (null !== $linked && !isset($options[$linked])) {
+            $project = $this->projects->find($linked);
+            $options[$linked] = $project instanceof LineProject
+                ? $project->name.($project->archived ? ' · '.$this->screen->trans('sales.line.project_archived') : '')
+                : $this->screen->trans('sales.line.project_hidden');
         }
 
         return $options;
@@ -196,11 +228,12 @@ final class DealLineController extends AbstractController
 
     /**
      * The form's values as the use cases take them: a one-off line sends no period,
-     * which the form hides but still sends without JavaScript.
+     * and a line other than an hourly one no project, which the form hides but
+     * still sends without JavaScript.
      *
      * @param array<string, string> $values
      *
-     * @return array{name: string, unit: string, quantity: ?string, unitPrice: ?string, currency: string, billingKind: string, recurrenceUnit: ?string, interval: ?int, cycles: ?int}
+     * @return array{name: string, unit: string, quantity: ?string, unitPrice: ?string, currency: string, billingKind: string, recurrenceUnit: ?string, interval: ?int, cycles: ?int, projectId: ?string}
      *
      * @throws SalesRefused
      */
@@ -233,6 +266,8 @@ final class DealLineController extends AbstractController
             'recurrenceUnit' => $recurs && '' !== $values['recurrenceUnit'] ? $values['recurrenceUnit'] : null,
             'interval' => $interval,
             'cycles' => $cycles,
+            // Only an hourly line links to a project; the form hides the field for the other kinds.
+            'projectId' => BillingKind::TimeBased->value === $values['billingKind'] && '' !== $values['projectId'] ? $values['projectId'] : null,
         ];
     }
 

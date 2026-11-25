@@ -89,9 +89,9 @@ final readonly class TimeInvoicing
             }
             $pair = "{$entry->projectId}/{$entry->membershipId}";
             if (!\array_key_exists($pair, $rates)) {
-                $rates[$pair] = $this->rates->resolve($entry->projectId, $entry->membershipId)?->rate;
+                $rates[$pair] = $this->rates->resolve($entry->projectId, $entry->membershipId);
             }
-            $candidates[] = new TimeCandidate($entry, $rates[$pair]);
+            $candidates[] = new TimeCandidate($entry, $rates[$pair]?->rate, $rates[$pair]?->source);
         }
 
         return $candidates;

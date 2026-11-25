@@ -712,6 +712,8 @@ nelmio_api_doc:
                                     recurrence_unit: { type: string, enum: [day, week, month, year], nullable: true }
                                     interval: { type: integer, nullable: true }
                                     cycles: { type: integer, nullable: true }
+                                    project: { type: object, nullable: true, description: 'The project whose billable time a time_based line bills at its rate; null for none. The name is null for a project the caller does not see.', properties: { id: { type: string, format: uuid }, name: { type: string, nullable: true } } }
+                                    logged_billable_minutes: { type: integer, nullable: true, description: 'The billable minutes logged on the project that the caller sees, the trash left out; null without a project.' }
                         value:
                             type: object
                             description: What the priced lines are worth, one total per currency, never converted; both lists are empty without a priced line.

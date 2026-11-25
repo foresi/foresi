@@ -13,6 +13,7 @@ timesheet:
     entries: Time to invoice
     no_rate: No rate
     per_hour: '{rate}/h'
+    rate_of_deal_line: rate of the deal line
     hours: '{hours} h'
     unit: h
     total_hours: Total hours

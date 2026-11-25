@@ -7,13 +7,14 @@ import { Controller } from '@hotwired/stimulus';
  * The form of a deal's line: a line picked from the catalog copies the
  * product, so the typed fields hide while a product is chosen; the period
  * fields show only for a recurring line, and the unit of a time-based line is
- * fixed to the hour, "h". Without JavaScript every field shows and the
- * server ignores what does not apply (an empty unit of a time-based line is "h").
+ * fixed to the hour, "h"; only a time-based line picks a project. Without
+ * JavaScript every field shows and the server ignores what does not apply (an
+ * empty unit of a time-based line is "h", the project of another kind).
  *
  *     <div data-controller="deal-line">
  */
 export default class extends Controller {
-    static targets = ['product', 'typed', 'kind', 'period', 'unit', 'quantity'];
+    static targets = ['product', 'typed', 'kind', 'period', 'unit', 'quantity', 'project'];
 
     previousKind = null;
 
@@ -28,6 +29,9 @@ export default class extends Controller {
         }
         if (this.hasPeriodTarget && this.hasKindTarget) {
             this.periodTarget.hidden = 'recurring' !== this.kindTarget.value;
+        }
+        if (this.hasProjectTarget && this.hasKindTarget) {
+            this.projectTarget.hidden = 'time_based' !== this.kindTarget.value;
         }
         if (this.hasUnitTarget && this.hasKindTarget) {
             if ('time_based' === this.kindTarget.value) {
