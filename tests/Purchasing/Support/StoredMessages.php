@@ -35,6 +35,19 @@ final readonly class StoredMessages implements Messages
             : null;
     }
 
+    public function findMany(array $messageIds): array
+    {
+        $found = [];
+        foreach ($messageIds as $messageId) {
+            $view = $this->find($messageId);
+            if ($view instanceof MailMessageView) {
+                $found[$messageId] = $view;
+            }
+        }
+
+        return $found;
+    }
+
     public function raw(string $messageId): string
     {
         throw new \LogicException('Not stored.');
