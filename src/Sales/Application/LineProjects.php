@@ -9,15 +9,24 @@ declare(strict_types=1);
 namespace Foresi\Sales\Application;
 
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * The projects an hourly line may link to, from the source installed
  * (LineProjectSource); with none, there are no projects, and a line given
- * one is refused as for an unknown project.
+ * one is refused as for an unknown project. A deal page and the deal's JSON
+ * ask for each linked line, so a project and its logged time are read once
+ * per request (reset between requests and messages).
  */
-final readonly class LineProjects
+final class LineProjects implements ResetInterface
 {
-    private ?LineProjectSource $source;
+    private readonly ?LineProjectSource $source;
+
+    /** @var array<string, LineProject|null> */
+    private array $found = [];
+
+    /** @var array<string, int|null> */
+    private array $minutes = [];
 
     /**
      * @param iterable<LineProjectSource> $sources
@@ -40,19 +49,37 @@ final readonly class LineProjects
 
     public function find(string $projectId): ?LineProject
     {
-        return $this->source?->find($projectId);
+        if (!\array_key_exists($projectId, $this->found)) {
+            $this->found[$projectId] = $this->source?->find($projectId);
+        }
+
+        return $this->found[$projectId];
     }
 
     /**
-     * @return list<LineProject>
+     * @return list<LineProject> the active projects of the client and those of no client, by name
      */
     public function ofClient(string $clientId): array
     {
         return $this->source?->ofClient($clientId) ?? [];
     }
 
-    public function billableMinutes(string $projectId): int
+    /**
+     * The billable minutes logged on a project the person sees; null for one
+     * they do not see, whose time is not theirs to know.
+     */
+    public function billableMinutes(string $projectId): ?int
     {
-        return $this->source?->billableMinutes($projectId) ?? 0;
+        if (!\array_key_exists($projectId, $this->minutes)) {
+            $this->minutes[$projectId] = $this->find($projectId) instanceof LineProject ? $this->source?->billableMinutes($projectId) : null;
+        }
+
+        return $this->minutes[$projectId];
+    }
+
+    public function reset(): void
+    {
+        $this->found = [];
+        $this->minutes = [];
     }
 }

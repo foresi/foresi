@@ -176,7 +176,8 @@ final class DealLineController extends AbstractController
     }
 
     /**
-     * The projects an hourly line may link to: the client's active ones, and the
+     * The projects an hourly line may link to: the active ones of the client and
+     * of no client, and the
      * one the line has, archived or not; null without Work, so the form has no field.
      *
      * @return array<string, string>|null

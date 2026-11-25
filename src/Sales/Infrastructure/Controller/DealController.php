@@ -797,16 +797,18 @@ final class DealController extends AbstractController
     }
 
     /**
-     * " · 2.5 h billable logged" after the billing of a line linked to a project.
+     * " · 2.5 h billable logged" after the billing of a line linked to a project;
+     * nothing for a project the person does not see.
      */
     private function logged(DealLine $line): string
     {
         $id = $line->projectId();
-        if (null === $id) {
+        $minutes = null === $id ? null : $this->lineProjects->billableMinutes($id);
+        if (null === $minutes) {
             return '';
         }
 
-        return ' · '.$this->screen->trans('sales.line.logged', ['hours' => $this->screen->quantity((string) round($this->lineProjects->billableMinutes($id) / 60, 2))]);
+        return ' · '.$this->screen->trans('sales.line.logged', ['hours' => $this->screen->quantity((string) round($minutes / 60, 2))]);
     }
 
     /**

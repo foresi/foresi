@@ -12,12 +12,18 @@ use Foresi\Sales\Application\Api\AddDealLineInput;
 use Foresi\Sales\Application\Api\LoseDealInput;
 use Foresi\Sales\Application\Api\ReopenDealInput;
 use Foresi\Sales\Application\Api\TrashDealInput;
+use Foresi\Sales\Application\Api\UpdateDealInput;
 use Foresi\Sales\Application\Api\UpdateDealLineInput;
 use Foresi\Sales\Application\Api\WinDealInput;
 use Foresi\Sales\Application\DealReads;
+use Foresi\Sales\Application\LineProject;
+use Foresi\Sales\Application\LineProjects;
+use Foresi\Sales\Application\SalesRefused;
+use Foresi\Sales\Application\SalesWork;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
+use Foresi\Sales\Integration\Timesheet\DealLineRates;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -71,6 +77,22 @@ final class DealLineProjectTest extends SalesTestCase
         self::assertSame($this->dud->id(), $this->reload(DealLine::class, $first->id())->projectId());
     }
 
+    public function testTwoLinksOfOneProjectAtOnceRefuseTheSecond(): void
+    {
+        $this->hourly($this->deal('DUD'), $this->dud->id());
+        $second = $this->hourly($this->deal('DUD again'), null);
+
+        // As if the check had passed for both: the unique index stops the second link.
+        try {
+            self::getContainer()->get(SalesWork::class)->run(function () use ($second): void {
+                $this->reload(DealLine::class, $second->id())->linkProject($this->dud->id());
+            });
+            self::fail('The second link is refused.');
+        } catch (SalesRefused $refused) {
+            self::assertSame(['project_already_linked', RefusalKind::Conflict], [$refused->reason(), $refused->kind()]);
+        }
+    }
+
     public function testAProjectOfAnotherClientIsRefused(): void
     {
         $other = $this->projects->create('Other', $this->company('Beta Example s.r.o.')->id());
@@ -78,6 +100,44 @@ final class DealLineProjectTest extends SalesTestCase
 
         $this->assertRefused('project_client_differs', fn (): DealLine => $this->hourly($this->deal(), $other->id()));
         self::assertSame($internal->id(), $this->hourly($this->deal(), $internal->id())->projectId(), 'a project of no client');
+    }
+
+    public function testADealWithAProjectOfItsClientKeepsItsClient(): void
+    {
+        $deal = $this->deal('DUD');
+        $line = $this->hourly($deal, $this->dud->id());
+        $beta = $this->company('Beta Example s.r.o.');
+
+        $refused = $this->assertRefused('client_has_projects', fn (): Deal => $this->deals()->update(new UpdateDealInput($deal->id(), clientPartyId: $beta->id())));
+        self::assertSame(['lineId' => $line->id(), 'projectId' => $this->dud->id()], $refused->details());
+
+        // A project of no client goes with any client; so does a deal once the project is unlinked.
+        $this->lines()->update(new UpdateDealLineInput($deal->id(), $line->id(), projectId: $this->projects->create('Internal', null)->id()));
+        self::assertSame($beta->id(), $this->deals()->update(new UpdateDealInput($deal->id(), clientPartyId: $beta->id()))->clientPartyId());
+    }
+
+    public function testThePickerOffersTheClientsProjectsAndThoseOfNoClient(): void
+    {
+        $this->projects->create('Internal', null);
+        $this->projects->create('Other', $this->company('Beta Example s.r.o.')->id());
+        $archived = $this->projects->create('Archived', null);
+        $this->projects->archive($archived->id());
+
+        $names = array_map(static fn (LineProject $project): string => $project->name, self::getContainer()->get(LineProjects::class)->ofClient($this->client->id()));
+
+        self::assertSame(['DUD', 'Internal'], $names);
+    }
+
+    public function testTheRateIsReadOncePerProjectForARequest(): void
+    {
+        $line = $this->hourly($this->deal('DUD'), $this->dud->id());
+        $rates = self::getContainer()->get(DealLineRates::class);
+        self::assertTrue($rates->rateFor($this->dud->id())?->equals(Money::of('1200', Currency::CZK)) ?? false);
+
+        $this->lines()->update(new UpdateDealLineInput($line->dealId(), $line->id(), unitPrice: '1300.00'));
+        self::assertTrue($rates->rateFor($this->dud->id())?->equals(Money::of('1200', Currency::CZK)) ?? false, 'kept for the request');
+
+        $this->assertRate('1300', RateSource::DealLine);
     }
 
     public function testOnlyAnHourlyLineOfAKnownActiveProjectLinks(): void
@@ -158,6 +218,8 @@ final class DealLineProjectTest extends SalesTestCase
     private function assertRate(string $amount, RateSource $source, string $message = ''): void
     {
         $this->em->clear();
+        // Each check stands for a request of its own.
+        self::getContainer()->get(DealLineRates::class)->reset();
         $resolved = self::getContainer()->get(RateResolver::class)->resolve($this->dud->id(), $this->owner->id());
 
         self::assertNotNull($resolved, $message);

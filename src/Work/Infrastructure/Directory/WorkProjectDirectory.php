@@ -34,7 +34,7 @@ final readonly class WorkProjectDirectory implements ProjectDirectory
         return $detail instanceof ProjectDetail ? $this->summary($detail->row) : null;
     }
 
-    public function ofClient(string $clientId, bool $activeOnly = true): array
+    public function ofClient(?string $clientId, bool $activeOnly = true): array
     {
         $rows = $activeOnly ? $this->queries->projects() : [...$this->queries->projects(), ...$this->queries->projects(true)];
         $rows = array_values(array_filter($rows, static fn (ProjectRow $row): bool => $row->clientId === $clientId));

@@ -21,7 +21,9 @@ interface ProjectDirectory
     public function find(string $id): ?ProjectSummary;
 
     /**
+     * @param string|null $clientId a contact of the address book, or null for the projects of no client
+     *
      * @return list<ProjectSummary> the projects of the client the person sees, by name; the archived ones too unless active only
      */
-    public function ofClient(string $clientId, bool $activeOnly = true): array;
+    public function ofClient(?string $clientId, bool $activeOnly = true): array;
 }

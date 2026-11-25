@@ -27,13 +27,13 @@ final class DealLineProjectScreenTest extends SalesScreenTestCase
         $this->actAsOwner();
         $projects = self::getContainer()->get(ManageProjects::class);
         $dud = $projects->create('DUD', $this->company->id());
-        $projects->create('Internal', null);
+        $internal = $projects->create('Internal', null);
         self::getContainer()->get(ManageTime::class)->log($dud->id(), null, new \DateTimeImmutable('2026-11-16'), 150, billable: true);
 
         $form = $this->client->request('GET', '/sales/deals/'.$deal->id().'/lines/new')->filter('#deal-line-form')->form();
         $field = $form['projectId'];
         self::assertInstanceOf(ChoiceFormField::class, $field);
-        self::assertSame(['', $dud->id()], $field->availableOptionValues(), 'no project, or an active one of the client');
+        self::assertSame(['', $dud->id(), $internal->id()], $field->availableOptionValues(), 'no project, or an active one of the client or of no client');
         $form['name'] = 'DUD development';
         $form['quantity'] = '';
         $form['unit'] = '';

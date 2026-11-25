@@ -33,7 +33,10 @@ final readonly class WorkLineProjects implements LineProjectSource
 
     public function ofClient(string $clientId): array
     {
-        return array_map($this->line(...), $this->projects->ofClient($clientId));
+        $projects = [...$this->projects->ofClient($clientId), ...$this->projects->ofClient(null)];
+        usort($projects, static fn (ProjectSummary $a, ProjectSummary $b): int => strnatcasecmp($a->name, $b->name));
+
+        return array_map($this->line(...), $projects);
     }
 
     public function billableMinutes(string $projectId): int

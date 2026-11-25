@@ -24,7 +24,7 @@ interface LineProjectSource
     public function find(string $projectId): ?LineProject;
 
     /**
-     * @return list<LineProject> the active projects of the client the person sees, by name
+     * @return list<LineProject> the active projects the person sees of the client and of no client, by name
      */
     public function ofClient(string $clientId): array;
 

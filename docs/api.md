@@ -589,7 +589,7 @@ Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dea
 | Method and path | Answer |
 | --- | --- |
 | `POST /api/v1/sales/deals` | `201` with the new deal: `title`, `client_party_id`, and optionally `stage_id`, `owner_user_id`, `description` and `contact_person_ids`. The first stage and the caller are the defaults. |
-| `PATCH /api/v1/sales/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `client_party_id`, `contact_person_ids` (the whole list; an empty list removes them all). Another client takes the `contact_person_ids` of the same call, checked against it, or none; an archived client is refused with `client_archived`, and a deal linked to other deals with `client_has_links` (`409`) until its links are removed. |
+| `PATCH /api/v1/sales/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `client_party_id`, `contact_person_ids` (the whole list; an empty list removes them all). Another client takes the `contact_person_ids` of the same call, checked against it, or none; an archived client is refused with `client_archived`, a deal linked to other deals with `client_has_links` (`409`) until its links are removed, and a deal whose line links a project of its client with `client_has_projects` (`409`) until the project is unlinked. |
 | `POST /api/v1/sales/deals/{dealId}/stage` | An open deal moved to `stage_id`. A won or lost deal is refused with `deal_not_open`. |
 | `POST /api/v1/sales/deals/{dealId}/win` | The open deal won. |
 | `POST /api/v1/sales/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `note`. |
