@@ -12,7 +12,7 @@ use Foresi\Events\Application\Query\EventRow;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Catalogue\UnknownEventType;
 use Foresi\Events\Infrastructure\Payload\EventPayloads;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**

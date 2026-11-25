@@ -12,6 +12,7 @@
         "doctrine/dbal": "^4.5",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
+        "foresi/module-api": "^1.0",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Application\InvoiceSends;
 use Foresi\Invoicing\Application\SendLogFilter;
 use Foresi\Invoicing\Application\SendLogRow;

@@ -18,6 +18,7 @@
         "foresi/import": "self.version",
         "foresi/instance": "self.version",
         "foresi/invoicing": "self.version",
+        "foresi/module-api": "^1.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",

@@ -21,7 +21,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * The one way to create a party: it always comes with exactly one billing

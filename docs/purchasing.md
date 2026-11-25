@@ -6,7 +6,7 @@ The list is **Money, Costs** in the sidebar (in Czech, **Finance, Náklady**), u
 
 ## Who may use it
 
-Owners and team members of the organisation. A guest never sees received documents: the menu item is not shown and every address of the module answers "forbidden". The same check sits in every use case of the module, not in the screens, so the coming API and MCP are refused alike. See [people](people.md) for the roles.
+Owners and team members of the organisation. A guest never sees received documents: the menu item is not shown and every address of the module answers "forbidden". The same check sits in every use case of the module, not in the screens, so the [REST API](api.md#received-documents) and [MCP](mcp.md) are refused alike. See [people](people.md) for the roles.
 
 ## Concepts
 

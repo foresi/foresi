@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Foresi is under active development and has no stable release yet. Security fixes are applied to the default branch.
+Foresi is under active development and has not reached 1.0.0; the releases are 0.x versions, and every merged change that users notice is published as a [GitHub release](https://github.com/foresi/foresi/releases). Security fixes are applied to the default branch and reach you in the next release, so run the latest one.
 
 ## Inbound surface
 

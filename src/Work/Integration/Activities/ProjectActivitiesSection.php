@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Integration\Activities;
 
 use Foresi\Activities\Contract\RecordActivities;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
 use Foresi\Work\Contract\ProjectSlots;

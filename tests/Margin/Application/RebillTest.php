@@ -81,6 +81,25 @@ final class RebillTest extends KernelTestCase
     private const string LINE_A2 = '0197a1de-0000-7000-8000-0000000000f6';
     private const string LINE_CAPITALS = '0197a1de-0000-7000-8000-0000000000f7';
 
+    private const string ELSEWHERE = '0197a1de-0000-7000-8000-00000000a001';
+    private const string L1 = '0197a1de-0000-7000-8000-00000000a002';
+    private const string PAIRED = '0197a1de-0000-7000-8000-00000000a003';
+    private const string L2 = '0197a1de-0000-7000-8000-00000000a004';
+    private const string L3 = '0197a1de-0000-7000-8000-00000000a005';
+    private const string HAND = '0197a1de-0000-7000-8000-00000000a000';
+    private const string HAND2 = '0197a1de-0000-7000-8000-00000000a007';
+    private const string OTHER = '0197a1de-0000-7000-8000-00000000a008';
+    private const string UNLINKED = '0197a1de-0000-7000-8000-00000000a009';
+    private const string VOICE_LINE = '0197a1de-0000-7000-8000-00000000a010';
+    private const string I0 = '0197a1de-0000-7000-8000-00000000b000';
+    private const string I1 = '0197a1de-0000-7000-8000-00000000b001';
+    private const string I2 = '0197a1de-0000-7000-8000-00000000b002';
+    private const string COST_1 = '0197a1de-0000-7000-8000-00000000c001';
+    private const string COST_2 = '0197a1de-0000-7000-8000-00000000c002';
+    private const string COST_3 = '0197a1de-0000-7000-8000-00000000c003';
+    private const string COST_NOV = '0197a1de-0000-7000-8000-00000000c004';
+    private const string COST_OCT = '0197a1de-0000-7000-8000-00000000c005';
+
     private EntityManagerInterface $em;
     private FixedRevenueSource $revenue;
     private FixedPairings $pairings;
@@ -156,17 +175,17 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->holdMonth('2026-12');
         // The tax point is 30 November in Prague, which is still 29 November in UTC for the first hour of the day.
-        $november = $this->invoice('i1', $this->clientA, '2026-11-30', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('l2', null, Money::ofMinor(5_000, Currency::CZK))]);
-        $this->invoice('i2', $this->clientA, '2026-12-01', [new RevenueLine('l3', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $november = $this->invoice(self::I1, $this->clientA, '2026-11-30', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::L2, null, Money::ofMinor(5_000, Currency::CZK))]);
+        $this->invoice(self::I2, $this->clientA, '2026-12-01', [new RevenueLine(self::L3, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
 
         self::assertSame('2026-11-30T00:00:00+01:00', $november->taxPointOn->format(\DATE_ATOM), 'the invoice is in the hour between Prague and UTC midnight');
         self::assertSame('2026-11-29', $november->taxPointOn->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d'));
-        self::assertSame(1, $this->pairOnIssue->pair('i1'));
-        self::assertSame(1, $this->pairOnIssue->pair('i2'));
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1));
+        self::assertSame(1, $this->pairOnIssue->pair(self::I2));
         $this->em->flush();
 
         $pairings = $this->em->getRepository(RebillPairing::class)->findBy([], ['invoiceLineId' => 'ASC']);
-        self::assertSame(['l1 2026-11-01 i1 false', 'l3 2026-12-01 i2 false'], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId().' '.$pairing->occurrenceOn()->format('Y-m-d').' '.$pairing->invoiceId().' '.($pairing->manual() ? 'true' : 'false'), $pairings));
+        self::assertSame([self::L1.' 2026-11-01 '.self::I1.' false', self::L3.' 2026-12-01 '.self::I2.' false'], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId().' '.$pairing->occurrenceOn()->format('Y-m-d').' '.$pairing->invoiceId().' '.($pairing->manual() ? 'true' : 'false'), $pairings));
         self::assertSame([$this->clientA, self::CLOUD_HOST], [$pairings[0]->customerId(), $pairings[0]->plannedItemId()]);
     }
 
@@ -175,9 +194,9 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
         $stranger = $this->contact('Client C');
-        $this->invoice('i1', $stranger, '2026-11-10', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $stranger, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
 
-        self::assertSame(0, $this->pairOnIssue->pair('i1'));
+        self::assertSame(0, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
 
         self::assertSame([], $this->em->getRepository(RebillPairing::class)->findAll());
@@ -186,9 +205,9 @@ final class RebillTest extends KernelTestCase
     public function testALineWithoutALinkOrAnOccurrenceIsNotPaired(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->invoice('i1', $this->clientA, '2026-11-10', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('l2', self::LINE_B, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::L2, self::LINE_B, Money::ofMinor(100_000, Currency::CZK))]);
 
-        self::assertSame(0, $this->pairOnIssue->pair('i1'), 'no occurrence holds the day, and line B has no link');
+        self::assertSame(0, $this->pairOnIssue->pair(self::I1), 'no occurrence holds the day, and line B has no link');
         self::assertSame(0, $this->pairOnIssue->pair('unknown'));
     }
 
@@ -196,11 +215,11 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $this->clientA, '2026-11-10', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
 
-        self::assertSame(1, $this->pairOnIssue->pair('i1'));
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
-        self::assertSame(0, $this->pairOnIssue->pair('i1'));
+        self::assertSame(0, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
 
         self::assertCount(1, $this->em->getRepository(RebillPairing::class)->findAll());
@@ -211,7 +230,7 @@ final class RebillTest extends KernelTestCase
         // Cloud Host is split between Client A and Client B; only Client A has a rebill line.
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
 
         $flagged = $this->unrebilled->between('2026-11', '2026-11');
 
@@ -222,7 +241,7 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
 
         self::assertEqualsCanonicalizing([$this->clientA, $this->clientB], array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->recipientId, $this->unrebilled->between('2026-11', '2026-11')));
     }
@@ -231,9 +250,9 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->pairOnIssue->pair('i1');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
 
         self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
@@ -243,15 +262,15 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->pairOnIssue->pair('i1');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
 
-        $this->manual->unpair('l1');
+        $this->manual->unpair(self::L1);
 
         self::assertCount(1, $this->unrebilled->between('2026-11', '2026-11'));
-        $this->assertRefusal(MarginRefused::UNKNOWN_PAIRING, fn () => $this->manual->unpair('l1'));
+        $this->assertRefusal(MarginRefused::UNKNOWN_PAIRING, fn () => $this->manual->unpair(self::L1));
     }
 
     public function testAnOccurrenceWithoutAPairedCostIsNotFlagged(): void
@@ -265,8 +284,8 @@ final class RebillTest extends KernelTestCase
     public function testAnOccurrenceBeforeTheMonthOfTheLinkIsNotFlagged(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-oct', self::CLOUD_HOST, '2026-10-01');
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_OCT, self::CLOUD_HOST, '2026-10-01');
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
 
         self::assertSame(['2026-11'], array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->month, $this->unrebilled->between('2026-10', '2026-11')), 'The link was made on 12 November: November counts, October does not.');
     }
@@ -281,7 +300,7 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, null);
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         self::assertSame('2026-12-01', $this->links->set(self::LINE_A, self::CLOUD_HOST)?->createdOn, '00:30 on 1 December in Prague');
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
 
         self::assertSame([$this->clientB], array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->recipientId, $this->unrebilled->between('2026-11', '2026-11')), 'Client B was linked in November, Client A only in December.');
     }
@@ -289,7 +308,7 @@ final class RebillTest extends KernelTestCase
     public function testARecipientDroppedFromTheMappingIsNotFlagged(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
         // From November the whole cost goes to Client B.
         $this->em->persist(new PlannedAllocation(Uuid::v7()->toRfc4122(), self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::client($this->clientB))]), new \DateTimeImmutable(), 'user'));
         $this->em->flush();
@@ -300,7 +319,7 @@ final class RebillTest extends KernelTestCase
     public function testTheMarginTableCountsTheFlaggedOccurrencesPerClientAndMonth(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
 
         $table = MarginJson::table($this->table->of('2026-10', '2026-11'));
 
@@ -323,14 +342,14 @@ final class RebillTest extends KernelTestCase
     public function testAHandWrittenLineCanBePaired(): void
     {
         $this->holdMonth('2026-11');
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
 
-        $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
+        $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
 
-        $pairing = $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => 'hand']);
+        $pairing = $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => self::HAND]);
         self::assertInstanceOf(RebillPairing::class, $pairing);
-        self::assertSame([true, 'i1', $this->clientA, '2026-11-01'], [$pairing->manual(), $pairing->invoiceId(), $pairing->customerId(), $pairing->occurrenceOn()->format('Y-m-d')]);
+        self::assertSame([true, self::I1, $this->clientA, '2026-11-01'], [$pairing->manual(), $pairing->invoiceId(), $pairing->customerId(), $pairing->occurrenceOn()->format('Y-m-d')]);
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'), 'Pairing by hand counts as rebilled.');
     }
@@ -338,26 +357,26 @@ final class RebillTest extends KernelTestCase
     public function testAHandPairingIsRefusedWhenItCannotBeRight(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
         $stranger = $this->contact('Client C');
-        $this->invoice('i2', $stranger, '2026-11-20', [new RevenueLine('other', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I2, $stranger, '2026-11-20', [new RevenueLine(self::OTHER, null, Money::ofMinor(100_000, Currency::CZK))]);
 
         $this->assertRefusal(MarginRefused::UNKNOWN_INVOICE_LINE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('nope', self::CLOUD_HOST, '2026-11-01'));
-        $this->assertRefusal(MarginRefused::UNKNOWN_PLANNED_ITEM, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('hand', '0197a1de-0000-7000-8000-0000000000e9', '2026-11-01'));
-        $this->assertRefusal(MarginRefused::INVALID_DAY, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('hand', self::CLOUD_HOST, '2026-11'));
-        $this->assertRefusal(MarginRefused::NOT_AN_OCCURRENCE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('hand', self::CLOUD_HOST, '2026-12-01'));
-        $this->assertRefusal(MarginRefused::CUSTOMER_NOT_A_RECIPIENT, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('other', self::CLOUD_HOST, '2026-11-01'));
-        $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
-        $this->assertRefusal(MarginRefused::ALREADY_PAIRED, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01'));
+        $this->assertRefusal(MarginRefused::UNKNOWN_PLANNED_ITEM, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, '0197a1de-0000-7000-8000-0000000000e9', '2026-11-01'));
+        $this->assertRefusal(MarginRefused::INVALID_DAY, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11'));
+        $this->assertRefusal(MarginRefused::NOT_AN_OCCURRENCE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-12-01'));
+        $this->assertRefusal(MarginRefused::CUSTOMER_NOT_A_RECIPIENT, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::OTHER, self::CLOUD_HOST, '2026-11-01'));
+        $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
+        $this->assertRefusal(MarginRefused::ALREADY_PAIRED, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01'));
         self::assertCount(1, $this->em->getRepository(RebillPairing::class)->findAll());
     }
 
     public function testAHandPairingTakesAnyDayOfThePeriodAndStoresTheOccurrence(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
 
-        $view = $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-20');
+        $view = $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-20');
 
         self::assertSame('2026-11-01', $view->occurrenceOn);
         $stored = $this->em->getRepository(RebillPairing::class)->findAll();
@@ -413,11 +432,11 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->holdMonth('2026-12');
         // 1 December in New York: the same date read as midnight UTC would be 19:00 on 30 November there.
-        $this->invoice('i1', $this->clientA, '2026-12-01', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('hand', null, Money::ofMinor(5_000, Currency::CZK))], $zone);
+        $this->invoice(self::I1, $this->clientA, '2026-12-01', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::CZK))], $zone);
 
-        self::assertSame(1, $this->pairOnIssue->pair('i1'));
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
-        $pairing = $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => 'l1']);
+        $pairing = $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => self::L1]);
         self::assertSame('2026-12-01', $pairing?->occurrenceOn()->format('Y-m-d'), 'The tax point of 1 December pairs with the December occurrence.');
 
         $manual = new RebillPairings($container->get(MarginAccess::class), new RevenueSources([$this->revenue]), new CostPairings([$this->pairings]), new MappingVersions($this->em), $this->em, $container->get(TransactionalWork::class), new InstanceClock(new ConfiguredZone('America/New_York'), new class implements ZoneFallback {
@@ -426,8 +445,8 @@ final class RebillTest extends KernelTestCase
                 return null;
             }
         }, new Clock()));
-        $manual->pair('hand', self::CLOUD_HOST, '2026-12-01');
-        self::assertSame('2026-12-01', $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => 'hand'])?->occurrenceOn()->format('Y-m-d'));
+        $manual->pair(self::HAND, self::CLOUD_HOST, '2026-12-01');
+        self::assertSame('2026-12-01', $this->em->getRepository(RebillPairing::class)->findOneBy(['invoiceLineId' => self::HAND])?->occurrenceOn()->format('Y-m-d'));
     }
 
     public function testAnOrphanLinkCanBeRemoved(): void
@@ -442,28 +461,28 @@ final class RebillTest extends KernelTestCase
 
     public function testAHandPairingToAnIncomeItemIsRefused(): void
     {
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
 
-        $this->assertRefusal(MarginRefused::NOT_AN_EXPENSE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('hand', self::RETAINER, '2026-11-01'));
+        $this->assertRefusal(MarginRefused::NOT_AN_EXPENSE, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::HAND, self::RETAINER, '2026-11-01'));
     }
 
     public function testTheTrashedInvoiceRebillsNothingUntilItIsRestored(): void
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->pairOnIssue->pair('i1');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairOnIssue->pair(self::I1);
         $this->em->flush();
         self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
 
         $drop = new DropRebillOnTrash($this->em);
-        self::assertSame(1, $drop->drop('i1'));
+        self::assertSame(1, $drop->drop(self::I1));
         $this->em->flush();
         self::assertCount(1, $this->unrebilled->between('2026-11', '2026-11'), 'The invoice in the trash does not count as rebilled.');
-        self::assertSame(0, $drop->drop('i1'), 'A second delivery removes nothing.');
+        self::assertSame(0, $drop->drop(self::I1), 'A second delivery removes nothing.');
 
-        self::assertSame(1, $this->pairOnIssue->pair('i1'), 'Restored, its line is paired again.');
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1), 'Restored, its line is paired again.');
         $this->em->flush();
         self::assertSame([], $this->unrebilled->between('2026-11', '2026-11'));
     }
@@ -474,10 +493,10 @@ final class RebillTest extends KernelTestCase
 
         $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): ?\Foresi\Margin\Application\RebillLinkView => $this->links->set(self::LINE_A, self::CLOUD_HOST));
         $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): array => $this->links->ofLines([self::LINE_A]));
-        $this->assertRefusal(MarginRefused::FORBIDDEN, fn () => $this->manual->unpair('l1'));
+        $this->assertRefusal(MarginRefused::FORBIDDEN, fn () => $this->manual->unpair(self::L1));
         $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): array => $this->unrebilled->between('2026-11', '2026-11'));
-        $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair('l1', self::CLOUD_HOST, '2026-11-01'));
-        $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): array => $this->manual->ofLines(['l1']));
+        $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): \Foresi\Margin\Application\RebillPairingView => $this->manual->pair(self::L1, self::CLOUD_HOST, '2026-11-01'));
+        $this->assertRefusal(MarginRefused::FORBIDDEN, fn (): array => $this->manual->ofLines([self::L1]));
     }
 
     public function testACustomerIdWrittenInCapitalsIsTheCustomerOfTheMapping(): void
@@ -486,18 +505,18 @@ final class RebillTest extends KernelTestCase
         $this->revenue->templateLines[self::LINE_CAPITALS] = new TemplateLine(self::LINE_CAPITALS, self::TEMPLATE_A, $capitals, 'Cloud Host', '/invoices/recurring/'.self::TEMPLATE_A);
         self::assertSame([], $this->links->set(self::LINE_CAPITALS, self::CLOUD_HOST)?->warnings, 'The customer bears a share, however its id is written.');
 
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
         self::assertSame([$this->clientA], array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->recipientId, $this->unrebilled->between('2026-11', '2026-11')));
 
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $capitals, '2026-11-10', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('hand', null, Money::ofMinor(5_000, Currency::CZK))]);
-        self::assertSame(1, $this->pairOnIssue->pair('i1'));
-        $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $capitals, '2026-11-10', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND, null, Money::ofMinor(5_000, Currency::CZK))]);
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1));
+        $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
         $this->em->flush();
 
         $stored = $this->em->getRepository(RebillPairing::class)->findBy([], ['invoiceLineId' => 'ASC']);
-        self::assertSame(['hand '.$this->clientA, 'l1 '.$this->clientA], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId().' '.$pairing->customerId(), $stored), 'The customer is stored as the mapping writes it.');
+        self::assertSame([self::HAND.' '.$this->clientA, self::L1.' '.$this->clientA], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId().' '.$pairing->customerId(), $stored), 'The customer is stored as the mapping writes it.');
     }
 
     public function testALineThatCannotBePairedDoesNotStopTheLinesAfterIt(): void
@@ -508,23 +527,23 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->holdMonth('2026-11', self::VOICE_API);
         // A pairing of another line exists, and so does the one of the line "paired".
-        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), 'elsewhere', 'i0', $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
-        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), 'paired', 'i1', $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
+        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::ELSEWHERE, self::I0, $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
+        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::PAIRED, self::I1, $this->clientB, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
         $this->em->flush();
         $money = Money::ofMinor(100_000, Currency::CZK);
         // Client B bears a share of Cloud Host but not of Voice API.
-        $this->invoice('i1', $this->clientB, '2026-11-10', [new RevenueLine('hand', null, $money), new RevenueLine('unlinked', self::LINE_A, $money), new RevenueLine('voice', self::LINE_A2, $money), new RevenueLine('paired', self::LINE_B, $money), new RevenueLine('l1', self::LINE_B, $money)]);
+        $this->invoice(self::I1, $this->clientB, '2026-11-10', [new RevenueLine(self::HAND, null, $money), new RevenueLine(self::UNLINKED, self::LINE_A, $money), new RevenueLine(self::VOICE_LINE, self::LINE_A2, $money), new RevenueLine(self::PAIRED, self::LINE_B, $money), new RevenueLine(self::L1, self::LINE_B, $money)]);
 
-        self::assertSame(1, $this->pairOnIssue->pair('i1'));
+        self::assertSame(1, $this->pairOnIssue->pair(self::I1));
         $this->em->flush();
 
-        self::assertSame(['elsewhere', 'l1', 'paired'], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId(), $this->em->getRepository(RebillPairing::class)->findBy([], ['invoiceLineId' => 'ASC'])));
+        self::assertSame([self::ELSEWHERE, self::L1, self::PAIRED], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId(), $this->em->getRepository(RebillPairing::class)->findBy([], ['invoiceLineId' => 'ASC'])));
     }
 
     public function testAChangeInsideAnOuterTransactionIsFlushedWhenTheCallReturns(): void
     {
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
         $connection = $this->em->getConnection();
         $rows = static fn (string $table): mixed => $connection->fetchOne('SELECT COUNT(*) FROM '.$table);
         $link = $this->em->getClassMetadata(RebillLink::class)->getTableName();
@@ -536,9 +555,9 @@ final class RebillTest extends KernelTestCase
             self::assertEquals(1, $rows($link), 'A link made.');
             $this->links->set(self::LINE_A, null);
             self::assertEquals(0, $rows($link), 'A link removed.');
-            $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
+            $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
             self::assertEquals(1, $rows($pairing), 'A pairing made.');
-            $this->manual->unpair('hand');
+            $this->manual->unpair(self::HAND);
             self::assertEquals(0, $rows($pairing), 'A pairing removed.');
         } finally {
             $connection->rollBack();
@@ -552,9 +571,9 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A2, self::VOICE_API);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->pairings->pair('cost-2', self::CLOUD_HOST, '2026-11-15');
-        $this->pairings->pair('cost-3', self::VOICE_API, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_2, self::CLOUD_HOST, '2026-11-15');
+        $this->pairings->pair(self::COST_3, self::VOICE_API, '2026-11-01');
         [$first, $second] = [$this->clientA, $this->clientB];
         if ($first > $second) {
             [$first, $second] = [$second, $first];
@@ -576,7 +595,7 @@ final class RebillTest extends KernelTestCase
         $this->addVoiceApi();
         $this->links->set(self::LINE_A2, self::CLOUD_HOST);
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
 
         $found = $this->unrebilled->between('2026-11', '2026-11');
 
@@ -587,11 +606,11 @@ final class RebillTest extends KernelTestCase
     {
         $this->addVoiceApi();
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->pairings->pair('cost-2', self::CLOUD_HOST, '2026-11-15');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_2, self::CLOUD_HOST, '2026-11-15');
         // 1 November of Cloud Host is rebilled; Client A rebilled 15 November of Voice API, which is another cost.
-        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), 'l1', 'i1', $this->clientA, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
-        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), 'l2', 'i1', $this->clientA, self::VOICE_API, new \DateTimeImmutable('2026-11-15'), false));
+        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::L1, self::I1, $this->clientA, self::CLOUD_HOST, new \DateTimeImmutable('2026-11-01'), false));
+        $this->em->persist(new RebillPairing(Uuid::v7()->toRfc4122(), self::L2, self::I1, $this->clientA, self::VOICE_API, new \DateTimeImmutable('2026-11-15'), false));
         $this->em->flush();
 
         self::assertSame(['2026-11-15'], array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->occurrenceOn->format('Y-m-d'), $this->unrebilled->between('2026-11', '2026-11')));
@@ -603,8 +622,8 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
         $this->links->set(self::LINE_A2, self::VOICE_API);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->pairings->pair('cost-2', self::VOICE_API, '2026-11-01');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_2, self::VOICE_API, '2026-11-01');
         $recipients = fn (): array => array_map(static fn (\Foresi\Margin\Application\UnrebilledOccurrence $occurrence): string => $occurrence->itemName.' '.$occurrence->recipientId, $this->unrebilled->between('2026-11', '2026-11'));
         $all = ['Cloud Host '.min($this->clientA, $this->clientB), 'Cloud Host '.max($this->clientA, $this->clientB), 'Voice API '.$this->clientA];
         self::assertSame($all, $recipients());
@@ -626,8 +645,8 @@ final class RebillTest extends KernelTestCase
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
         $this->links->set(self::LINE_A2, self::VOICE_API);
-        $this->pairings->pair('cost-1', self::CLOUD_HOST, '2026-11-01');
-        $this->pairings->pair('cost-2', self::VOICE_API, '2026-11-02');
+        $this->pairings->pair(self::COST_1, self::CLOUD_HOST, '2026-11-01');
+        $this->pairings->pair(self::COST_2, self::VOICE_API, '2026-11-02');
 
         $table = MarginJson::table($this->table->of('2026-10', '2026-11'));
 
@@ -646,33 +665,33 @@ final class RebillTest extends KernelTestCase
         $this->holdMonth('2026-11');
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->links->set(self::LINE_B, self::CLOUD_HOST);
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine('hand2', null, Money::ofMinor(5_000, Currency::CZK))]);
-        $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
-        $this->manual->pair('hand2', self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK)), new RevenueLine(self::HAND2, null, Money::ofMinor(5_000, Currency::CZK))]);
+        $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
+        $this->manual->pair(self::HAND2, self::CLOUD_HOST, '2026-11-01');
 
         self::assertSame([], $this->links->ofLines([]));
         self::assertSame([], $this->manual->ofLines([]));
         self::assertSame([self::LINE_A], array_keys($this->links->ofLines([self::LINE_A])));
         self::assertEqualsCanonicalizing([self::LINE_A, self::LINE_B], array_keys($this->links->ofLines([self::LINE_A, self::LINE_B])));
-        self::assertSame(['hand'], array_keys($this->manual->ofLines(['hand'])));
-        self::assertEqualsCanonicalizing(['hand', 'hand2'], array_keys($this->manual->ofLines(['hand', 'hand2'])));
+        self::assertSame([self::HAND], array_keys($this->manual->ofLines([self::HAND])));
+        self::assertEqualsCanonicalizing([self::HAND, self::HAND2], array_keys($this->manual->ofLines([self::HAND, self::HAND2])));
 
-        $this->manual->unpair('hand2');
-        self::assertSame(['hand'], array_keys($this->manual->ofLines(['hand', 'hand2'])), 'Only the line asked for is unpaired.');
-        $this->assertRefusal(MarginRefused::UNKNOWN_PAIRING, fn () => $this->manual->unpair('hand2'));
-        self::assertSame(['hand'], array_keys($this->manual->ofLines(['hand'])));
+        $this->manual->unpair(self::HAND2);
+        self::assertSame([self::HAND], array_keys($this->manual->ofLines([self::HAND, self::HAND2])), 'Only the line asked for is unpaired.');
+        $this->assertRefusal(MarginRefused::UNKNOWN_PAIRING, fn () => $this->manual->unpair(self::HAND2));
+        self::assertSame([self::HAND], array_keys($this->manual->ofLines([self::HAND])));
     }
 
     public function testALinkOrPairingToAnItemThatIsGoneIsShownByItsId(): void
     {
         $this->holdMonth('2026-11');
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('hand', null, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->manual->pair('hand', self::CLOUD_HOST, '2026-11-01');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::HAND, null, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->manual->pair(self::HAND, self::CLOUD_HOST, '2026-11-01');
         unset($this->pairings->items[self::CLOUD_HOST]);
 
         $link = $this->links->ofLine(self::LINE_A);
-        $pairing = $this->manual->ofLines(['hand'])['hand'] ?? null;
+        $pairing = $this->manual->ofLines([self::HAND])[self::HAND] ?? null;
 
         self::assertSame([self::CLOUD_HOST, null], [$link?->plannedItemName, $link?->plannedItemUrl]);
         self::assertSame([self::CLOUD_HOST, null], [$pairing?->plannedItemName, $pairing?->plannedItemUrl]);
@@ -682,16 +701,16 @@ final class RebillTest extends KernelTestCase
     {
         $this->links->set(self::LINE_A, self::CLOUD_HOST);
         $this->holdMonth('2026-11');
-        $this->invoice('i1', $this->clientA, '2026-11-20', [new RevenueLine('l1', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->invoice('i2', $this->clientA, '2026-11-21', [new RevenueLine('l2', self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
-        $this->pairOnIssue->pair('i1');
-        $this->pairOnIssue->pair('i2');
+        $this->invoice(self::I1, $this->clientA, '2026-11-20', [new RevenueLine(self::L1, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->invoice(self::I2, $this->clientA, '2026-11-21', [new RevenueLine(self::L2, self::LINE_A, Money::ofMinor(100_000, Currency::CZK))]);
+        $this->pairOnIssue->pair(self::I1);
+        $this->pairOnIssue->pair(self::I2);
         $this->em->flush();
 
-        self::assertSame(1, new DropRebillOnTrash($this->em)->drop('i1'));
+        self::assertSame(1, new DropRebillOnTrash($this->em)->drop(self::I1));
         $this->em->flush();
 
-        self::assertSame(['l2'], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId(), $this->em->getRepository(RebillPairing::class)->findAll()));
+        self::assertSame([self::L2], array_map(static fn (RebillPairing $pairing): string => $pairing->invoiceLineId(), $this->em->getRepository(RebillPairing::class)->findAll()));
     }
 
     public function testTheCostItemsOfEverySourceAreListedOnceByName(): void
@@ -711,8 +730,8 @@ final class RebillTest extends KernelTestCase
     public function testTheOccurrencesOfEverySourceAreListedOldestFirst(): void
     {
         $other = new FixedPairings();
-        $this->pairings->pair('cost-nov', self::CLOUD_HOST, '2026-11-01');
-        $other->pair('cost-oct', self::CLOUD_HOST, '2026-10-01');
+        $this->pairings->pair(self::COST_NOV, self::CLOUD_HOST, '2026-11-01');
+        $other->pair(self::COST_OCT, self::CLOUD_HOST, '2026-10-01');
 
         $days = new CostPairings([$this->pairings, $other])->occurrencesWithDocumentsFrom(self::CLOUD_HOST, new \DateTimeImmutable('2026-09-01'));
 
@@ -727,8 +746,8 @@ final class RebillTest extends KernelTestCase
         self::assertSame([], [...$panel->items(InvoicingSlots::RECURRING_LINE_ACTIONS, [])]);
         self::assertSame([], [...$panel->items(InvoicingSlots::INVOICE_LINE_BADGES, ['lineId' => 1])]);
         self::assertSame([], [...$panel->items('invoicing.something_else', ['lineId' => self::LINE_A])]);
-        self::assertSame([], [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => 'l1', 'kind' => 'advance'])]);
-        self::assertCount(1, [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => 'l1', 'kind' => 'invoice'])]);
+        self::assertSame([], [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => self::L1, 'kind' => 'advance'])]);
+        self::assertCount(1, [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => self::L1, 'kind' => 'invoice'])]);
     }
 
     private function addVoiceApi(): void

@@ -29,6 +29,8 @@
     <testsuites>
         <testsuite name="Project Test Suite">
             <directory>tests</directory>
+            <!-- A module of another vendor, not installed here: the External module workflow runs its tests. -->
+            <exclude>tests/Fixtures/modules</exclude>
         </testsuite>
     </testsuites>
 

@@ -10,7 +10,7 @@ namespace Foresi\Purchasing\Infrastructure\Attachment;
 
 use Foresi\Attachment\Application\AttachmentAccess;
 use Foresi\Attachment\Domain\Attachment;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Purchasing\Application\ReceivedDocuments;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 

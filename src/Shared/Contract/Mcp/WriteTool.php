@@ -23,7 +23,9 @@ interface WriteTool
     public const string TAG = 'foresi.shared.mcp_write_tool';
 
     /**
-     * Unique, in snake case, starting with "foresi_", such as "foresi_create_webhook_endpoint".
+     * Unique, in snake case, starting with the prefix of the tool's module:
+     * "foresi_" for Foresi's own, such as "foresi_create_webhook_endpoint", and the module id
+     * in snake case for any other vendor's, such as "acme_fleet_add_vehicle".
      */
     public function name(): string;
 

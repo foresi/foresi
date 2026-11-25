@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Party\Application\InstanceFirm;

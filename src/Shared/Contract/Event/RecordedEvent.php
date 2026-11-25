@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-
 /**
  * A contract event as it was stored: its id, name and version, when it
  * happened, the correlation it belongs to and its facts. What a listener

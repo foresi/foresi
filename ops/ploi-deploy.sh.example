@@ -47,6 +47,8 @@ for dir in var/share var/imports; do
 done
 
 composer install --no-dev --optimize-autoloader --classmap-authoritative --no-progress
+# Every installed module must be written for this release's module API (ADR 0044).
+$PHP bin/console app:modules:check
 
 $PHP bin/console importmap:install
 $PHP bin/console tailwind:build --minify

@@ -693,7 +693,7 @@ final class IssueInvoiceTest extends InvoiceTestCase
             $this->deductions(),
             $container->get(\Foresi\Invoicing\Application\CorrectionRules::class),
             $container->get(\Foresi\Invoicing\Application\BilledWork::class),
-            $container->get(\Foresi\Shared\Application\Event\EventRecorder::class),
+            $container->get(\Foresi\Shared\Contract\Event\EventRecorder::class),
         );
 
         try {

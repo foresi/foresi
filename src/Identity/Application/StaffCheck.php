@@ -9,13 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Identity\Application;
 
 use Foresi\Audit\Application\AuditActor;
+use Foresi\Identity\Contract\StaffCheck as StaffCheckContract;
 
 /**
  * Whether the signed-in user works for the active organisation, as its owner or a
- * member. Guests do not. Roles are membership data, so the
- * firewall does not know them.
+ * member, from the memberships. Other modules use it as
+ * Foresi\Identity\Contract\StaffCheck.
  */
-final readonly class StaffCheck
+final readonly class StaffCheck implements StaffCheckContract
 {
     public function __construct(
         private MembershipDirectory $memberships,
@@ -30,11 +31,6 @@ final readonly class StaffCheck
         return null !== $userId && $this->isStaffMember($userId);
     }
 
-    /**
-     * Whether a given user, signed in or not, still works for the active
-     * organisation as its owner or a member: for work done on their behalf, such
-     * as a copy of a mail a run sends for them.
-     */
     public function isStaffMember(string $userId): bool
     {
         return $this->memberships->roleOf($userId)?->isStaff() ?? false;

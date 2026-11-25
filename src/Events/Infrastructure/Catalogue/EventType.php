@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Events\Infrastructure\Catalogue;
 
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Module\ModuleId;
 
 /**

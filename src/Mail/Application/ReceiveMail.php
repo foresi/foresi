@@ -15,7 +15,7 @@ use Foresi\Mail\Contract\NotAccepted;
 use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Mail\Domain\MailMessage;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 

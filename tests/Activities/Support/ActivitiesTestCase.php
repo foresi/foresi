@@ -27,7 +27,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Clock;

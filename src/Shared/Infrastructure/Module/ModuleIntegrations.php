@@ -12,6 +12,7 @@ use Foresi\Shared\Domain\Module\InvalidManifest;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Domain\Module\ModuleNamespace;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 /**
@@ -28,13 +29,14 @@ final readonly class ModuleIntegrations
 
     /**
      * @param string|null $srcDir        null reads each module from the directory Composer installed
-     *                                   its package in (vendor/foresi/<package>, or the path repository);
-     *                                   a directory reads <Name>/ below it instead, for fixtures
-     * @param string      $rootNamespace the namespace of $srcDir; module namespaces start with "Foresi\"
+     *                                   its package in (vendor/<vendor>/<package>, or the path repository);
+     *                                   a directory reads <Module>/ below it instead, the module's id
+     *                                   in StudlyCase, for fixtures and the application's src/
+     * @param string      $rootNamespace the namespace of $srcDir, where <Module>\ is found
      */
     public function __construct(
         private ?string $srcDir = null,
-        private string $rootNamespace = 'Foresi\\',
+        private string $rootNamespace = ModuleNamespace::OWN,
     ) {
     }
 
@@ -49,7 +51,7 @@ final readonly class ModuleIntegrations
         foreach ($graph->all() as $module) {
             $integrations = [...$integrations, ...(null === $this->srcDir
                 ? $this->ofModule($module, InstalledModules::directoryOf($module), $graph)
-                : $this->in($module, $this->srcDir.'/'.$this->relative($module), $this->rootNamespace.$this->relative($module).'\\', $graph))];
+                : $this->in($module, $this->srcDir.'/'.$module->id->directory(), $this->rootNamespace.$module->id->directory().'\\', $graph))];
         }
         usort($integrations, static fn (ModuleIntegration $a, ModuleIntegration $b): int => [$a->module->value, $a->uses->value] <=> [$b->module->value, $b->uses->value]);
 
@@ -77,7 +79,7 @@ final readonly class ModuleIntegrations
         $integrations = [];
         $base = $directory.'/'.self::DIRECTORY;
         foreach ($this->subdirectories($base) as $name) {
-            $uses = $this->optionalIn($module, $name) ?? throw new InvalidManifest(\sprintf('Module %s has integration code in %s/%s/%s but lists no module %s in extra.foresi.optional of its composer.json.', $module->id->value, $this->relative($module), self::DIRECTORY, $name, $name));
+            $uses = $this->optionalIn($module, $name) ?? throw new InvalidManifest(\sprintf('Module %s has integration code in %s/%s/%s but lists no module %s in extra.foresi.optional of its composer.json.', $module->id->value, $module->id->directory(), self::DIRECTORY, $name, $name));
             $integrations[] = new ModuleIntegration(
                 $module->id,
                 $uses,
@@ -107,12 +109,6 @@ final readonly class ModuleIntegrations
         }
 
         return $integrations;
-    }
-
-    private function relative(ModuleManifest $module): string
-    {
-        // The manifest guarantees "Foresi\<Name>\".
-        return substr($module->namespace, \strlen('Foresi\\'), -1);
     }
 
     /**

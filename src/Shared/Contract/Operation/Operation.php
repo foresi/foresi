@@ -22,7 +22,7 @@ final readonly class Operation
      * @param string      $name              unique, such as "contacts.create"
      * @param string      $method            the HTTP method: POST, PUT (a whole replacement), PATCH or DELETE
      * @param string      $path              below /api/v1, such as "/api/v1/contacts/{contactId}"
-     * @param string      $tool              the MCP tool, such as "foresi_create_contact"
+     * @param string      $tool              the MCP tool, such as "foresi_create_contact"; it starts with the prefix of the module (ReadTool::name())
      * @param string      $scope             the scope a token needs, such as "contacts:write"
      * @param string      $title             a short name for people, such as "Create a contact"
      * @param string      $description       what it changes and when to use it, written for agents

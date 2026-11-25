@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Controller;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Application\CustomerOption;
 use Foresi\Invoicing\Application\CustomerPicker;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
