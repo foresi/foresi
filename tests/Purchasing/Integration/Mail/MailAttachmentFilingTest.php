@@ -45,6 +45,7 @@ use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Tests\Support\IsdocFixtures;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
  * A mail to the capture address of a person: each attachment a reader can open
@@ -449,7 +450,15 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
     private function fileMail(string $messageId): void
     {
-        self::getContainer()->get(FileMailAttachmentsHandler::class)(new FileMailAttachments($messageId));
+        // As the Messenger worker runs it: nobody is signed in while the job works.
+        $tokens = self::getContainer()->get(TokenStorageInterface::class);
+        $signedIn = $tokens->getToken();
+        $tokens->setToken(null);
+        try {
+            self::getContainer()->get(FileMailAttachmentsHandler::class)(new FileMailAttachments($messageId));
+        } finally {
+            $tokens->setToken($signedIn);
+        }
         $this->em->clear();
     }
 
