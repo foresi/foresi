@@ -10,6 +10,7 @@ namespace Foresi\Purchasing\Infrastructure\Api;
 
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Purchasing\Application\Mail\MailSource;
 use Foresi\Purchasing\Application\PaymentBalance;
 use Foresi\Purchasing\Application\Query\PaidDocument;
 use Foresi\Purchasing\Application\Query\PayableDocument;
@@ -27,7 +28,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Money in minor units; paid and remaining are positive, also for a credit
  * note, whose total is negative. The detail has the lines as reports read
  * them: the stored ones, or one implicit line per rate named by the English
- * name of the document's kind.
+ * name of the document's kind. A document filed from a mail has source_mail: the sender,
+ * the subject, the date sent and Mail's check of the sender, with every inbound address cut out.
  */
 final class ReceivedDocumentJson
 {
@@ -55,12 +57,13 @@ final class ReceivedDocumentJson
     /**
      * @return array<string, mixed>
      */
-    public static function detail(PaidDocument $paid, LegalEntity $firm, TranslatorInterface $translator): array
+    public static function detail(PaidDocument $paid, LegalEntity $firm, TranslatorInterface $translator, ?MailSource $mail = null): array
     {
         $document = $paid->document;
 
         return self::summary($document, $paid->balance, $firm) + [
             'source' => $document->source()->value,
+            'source_mail' => $mail instanceof MailSource ? ['from' => $mail->from, 'subject' => $mail->subject, 'sent_at' => JsonValues::timestamp($mail->sentAt), 'verdict' => $mail->verdict] : null,
             'reading' => $paid->reading instanceof DocumentReading ? self::reading($paid->reading) : null,
             'supplier_snapshot' => [
                 'name' => $document->supplier()->name,

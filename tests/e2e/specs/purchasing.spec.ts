@@ -254,6 +254,31 @@ test.describe('margin', () => {
   });
 });
 
+test.describe('capture address', () => {
+  test('create a capture address in its dialog, then replace it, and the address changes', async ({ page }) => {
+    await page.goto('/settings/received-documents');
+    await page.locator('[data-capture-create]').click();
+    const dialog = page.getByRole('dialog', { name: 'Vytvořit adresu' });
+    await dialog.getByLabel('Název').fill('Faktury od dodavatelů');
+    await dialog.getByRole('button', { name: 'Vytvořit adresu' }).click();
+
+    await expect(page.getByText('Sběrná adresa je připravená.')).toBeVisible();
+    const field = page.locator('[data-capture-value]');
+    await expect(field).toHaveValue(/^bank\+[a-z2-7]{26}@example\.com$/);
+    const old = await field.inputValue();
+
+    const menu = await openMoreActions(page);
+    await menu.getByRole('menuitem', { name: 'Nahradit adresu' }).click();
+    const confirm = page.getByRole('alertdialog', { name: 'Nahradit sběrnou adresu?' });
+    await confirm.getByRole('button', { name: 'Nahradit adresu' }).click();
+
+    await expect(page.getByText('Adresa je nahrazená.')).toBeVisible();
+    await expect(field).toHaveValue(/^bank\+[a-z2-7]{26}@example\.com$/);
+    expect(await field.inputValue()).not.toBe(old);
+    await expectNoSeriousViolations(page);
+  });
+});
+
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
     // An instance holds one firm (ADR 0039), so the list holds the seeded documents too.

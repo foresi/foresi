@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\InstanceFirm;
+use Foresi\Purchasing\Application\Mail\MailSources;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
@@ -22,7 +23,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class ReceivedDocumentAnswer
 {
-    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm, private TranslatorInterface $translator)
+    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm, private TranslatorInterface $translator, private MailSources $mailSources)
     {
     }
 
@@ -34,7 +35,7 @@ final readonly class ReceivedDocumentAnswer
         $paid = $this->balances->of($id);
 
         return new OperationOutput(
-            ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator),
+            ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator, $this->mailSources->of($paid->document)),
             \sprintf($summary, $paid->document->evidenceNumber() ?? $id),
             $created ? $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $id]) : null,
         );

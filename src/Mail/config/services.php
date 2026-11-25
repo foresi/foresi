@@ -18,17 +18,21 @@ use Foresi\Mail\Application\MailParts;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\PersonalAddressBook;
+use Foresi\Mail\Application\PersonalAddresses;
 use Foresi\Mail\Application\PollFailures;
 use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\StoredAddressOwners;
 use Foresi\Mail\Application\StoredMessages;
 use Foresi\Mail\Application\StoredRetention;
 use Foresi\Mail\Application\TrustSettings;
 use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\AddressOwners;
 use Foresi\Mail\Contract\CrossPurposeDuplicates;
 use Foresi\Mail\Contract\InboundPurpose;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
-use Foresi\Mail\Contract\PersonalAddresses;
+use Foresi\Mail\Contract\OwnAddresses;
+use Foresi\Mail\Contract\PersonalAddresses as PersonalAddressesContract;
 use Foresi\Mail\Infrastructure\CachePollFailures;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineCrossPurposeDuplicates;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineInboundAddresses;
@@ -70,7 +74,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(AddressIssuer::class, IssueAddresses::class);
     $services->alias(CrossPurposeDuplicates::class, DoctrineCrossPurposeDuplicates::class);
     $services->alias(MessageRetention::class, StoredRetention::class);
-    $services->alias(PersonalAddresses::class, PersonalAddressBook::class);
+    $services->alias(PersonalAddressesContract::class, PersonalAddressBook::class);
+    $services->alias(OwnAddresses::class, PersonalAddresses::class);
+    $services->alias(AddressOwners::class, StoredAddressOwners::class);
 
     // Raw mail as it arrived; never below public/. Back it up with the database.
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');
@@ -130,6 +136,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         // One that belongs to a person, as the addresses people manage themselves do.
         $services->set('test.mail_purpose_owned', RecordingPurpose::class)
             ->args([RecordingPurpose::OWNED_KEY, false, true]);
+        $services->set('test.mail_purpose_owned_reshowable', RecordingPurpose::class)
+            ->args([RecordingPurpose::OWNED_RESHOWABLE_KEY, true, true]);
     }
 
     if ('e2e' === $container->env()) {

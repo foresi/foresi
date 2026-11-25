@@ -116,7 +116,7 @@ After the release, the `Split packages` job pushes every `src/<Module>/` and `pa
 
 ### The extension contract
 
-What other modules, including those of other vendors, may rely on is the extension contract ([ADR 0044](docs/adr/0044-public-extension-contract.md)). It covers the `Contract\` namespaces, the few classes marked `@api`, the manifest, the `foresi.*` service tags, the contract events and the Ui slots. Everything else is internal. The contract has a version of its own, the module API version, which `foresi/shared` provides as the virtual package `foresi/module-api`.
+What other modules, including those of other vendors, may rely on is the extension contract ([ADR 0044](docs/adr/0044-public-extension-contract.md)). It covers the `Contract\` namespaces, the few classes marked `@api`, the manifest, the `foresi.*` service tags, the contract events and the Ui slots. Everything else is internal. The contract has a version of its own, the module API version, which `foresi/shared` provides as the virtual package `foresi/module-api`. [docs/modules.md](docs/modules.md) teaches module authors how to use it and lists every extension point.
 
 * A change to the contract follows these rules in the same pull request:
   * An addition raises the module API's minor version.

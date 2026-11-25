@@ -17,6 +17,7 @@ use Foresi\Purchasing\Application\PurchasingRefused;
 use Foresi\Purchasing\Application\Reading\ReadAgain;
 use Foresi\Purchasing\Application\ReceivedDocumentInput;
 use Foresi\Purchasing\Application\ReceivedDocuments;
+use Foresi\Purchasing\Application\ReceivedFileTypes;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Application\SetReceivedDocumentLines;
 use Foresi\Purchasing\Application\TrashReceivedDocument;
@@ -46,7 +47,7 @@ use Foresi\Shared\Domain\Money;
 final readonly class ReceivedDocumentWrites
 {
     /** The largest file of an upload, decoded. */
-    public const int MAX_UPLOAD = 10 * 1024 * 1024;
+    public const int MAX_UPLOAD = ReceivedFileTypes::MAX_BYTES;
     public const string FILE_INVALID = 'file_invalid';
     public const string FILE_TOO_LARGE = 'file_too_large';
     public const string FILE_TYPE_UNSUPPORTED = 'file_type_unsupported';
@@ -62,6 +63,7 @@ final readonly class ReceivedDocumentWrites
         private SetReceivedDocumentLines $settingLines,
         private ReadAgain $readingAgain,
         private UploadReceivedDocuments $uploads,
+        private ReceivedFileTypes $types,
     ) {
     }
 
@@ -131,7 +133,7 @@ final readonly class ReceivedDocumentWrites
         if (\strlen($bytes) > self::MAX_UPLOAD) {
             throw PurchasingRefused::file(self::FILE_TOO_LARGE, 'The file is larger than 10 MB.');
         }
-        if (!$this->readable($bytes, $input->fileName)) {
+        if (!$this->types->accepts($bytes, $input->fileName)) {
             throw PurchasingRefused::file(self::FILE_TYPE_UNSUPPORTED, 'The file must be a PDF, an image (PNG, JPEG, GIF, WebP, HEIC), an ISDOC file (.isdoc, .isdocx) or XML.');
         }
         $path = tempnam(sys_get_temp_dir(), 'foresi-upload-');
@@ -217,20 +219,6 @@ final readonly class ReceivedDocumentWrites
 
             return $input->documentId;
         });
-    }
-
-    /**
-     * What the file may be: one of the types a reader can open, by its bytes and not by what the
-     * client says; an .isdocx is a ZIP, told by its extension.
-     */
-    private function readable(string $bytes, string $fileName): bool
-    {
-        $type = new \finfo(\FILEINFO_MIME_TYPE)->buffer($bytes);
-        if ('application/zip' === $type) {
-            return 'isdocx' === strtolower(pathinfo($fileName, \PATHINFO_EXTENSION));
-        }
-
-        return \in_array($type, ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence', 'application/xml', 'text/xml'], true);
     }
 
     /**

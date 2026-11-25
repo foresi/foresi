@@ -18,6 +18,7 @@ use ZBateson\MailMimeParser\Header\DateHeader;
 use ZBateson\MailMimeParser\IMessage;
 use ZBateson\MailMimeParser\MailMimeParser;
 use ZBateson\MailMimeParser\Message\IMessagePart;
+use ZBateson\MailMimeParser\Message\IMimePart;
 
 /**
  * Reads mail with zbateson/mail-mime-parser, the only code that touches the
@@ -62,7 +63,16 @@ final class ZbatesonMailReader implements MailReader, MailParts
     {
         $attachments = [];
         foreach ($this->parts($raw) as $index => $part) {
-            $attachments[] = new MailAttachment($index, $this->nameOf($part, $index), $this->typeOf($part), \strlen($this->bytesOf($part)));
+            $contentId = $this->contentIdOf($part);
+            $disposition = $this->dispositionOf($part);
+            $attachments[] = new MailAttachment(
+                $index,
+                $this->nameOf($part, $index),
+                $this->typeOf($part),
+                \strlen($this->bytesOf($part)),
+                'inline' === $disposition || (null === $disposition && null !== $contentId),
+                $contentId,
+            );
         }
 
         return $attachments;
@@ -92,6 +102,22 @@ final class ZbatesonMailReader implements MailReader, MailParts
         $name = $this->guarded(static fn (): ?string => $part->getFilename());
 
         return null === $name || '' === trim($name) ? 'attachment-'.($index + 1) : trim($name);
+    }
+
+    private function contentIdOf(IMessagePart $part): ?string
+    {
+        return $this->nonEmpty($this->guarded(static fn (): ?string => $part->getContentId()));
+    }
+
+    /**
+     * The lowercase disposition the sender wrote, or null when the part has none. The header is read
+     * itself, as the library answers "inline" for a part without one.
+     */
+    private function dispositionOf(IMessagePart $part): ?string
+    {
+        $disposition = $this->guarded(static fn (): ?string => $part instanceof IMimePart ? $part->getHeaderValue('Content-Disposition') : null);
+
+        return null === $disposition ? null : strtolower(trim($disposition));
     }
 
     /**

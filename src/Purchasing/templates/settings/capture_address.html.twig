@@ -1,0 +1,36 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new capture address with its label, or a new label for the one there is: a dialog over Settings → Received
+    documents; the same URL is a page. Variables: address (OwnAddress or null for a new one), label, error, action.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = (address ? 'purchasing.capture.rename' : 'purchasing.capture.create')|trans %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'purchasing.settings.title'|trans, href: path('app_received_documents_settings')}, {label: heading}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="capture-address-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Purchasing\\Infrastructure\\Controller\\ReceivedDocumentsSettingsController::TOKEN')) }}">
+        <twig:Ui:TextInput name="label" id="capture-label" :label="'purchasing.capture.field.label'|trans" :help="'purchasing.capture.field.label_hint'|trans" :value="label" :error="error" maxlength="80" autocomplete="off" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="capture-address-form" variant="primary">{{ (address ? 'purchasing.save' : 'purchasing.capture.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="inbox" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_received_documents_settings')">{{ 'purchasing.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="capture-address-form" variant="primary">{{ (address ? 'purchasing.save' : 'purchasing.capture.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

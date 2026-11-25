@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Infrastructure\Attachment;
 
-use Foresi\Attachment\Application\AttachmentAccess;
+use Foresi\Attachment\Application\UserAttachmentAccess;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Purchasing\Application\ReceivedDocuments;
@@ -22,7 +22,7 @@ use Foresi\Purchasing\Domain\ReceivedDocument;
  * one here: a draft goes for good together with its file, and a recorded
  * document keeps the file it was recorded from.
  */
-final readonly class ReceivedDocumentAttachmentAccess implements AttachmentAccess
+final readonly class ReceivedDocumentAttachmentAccess implements UserAttachmentAccess
 {
     public function __construct(private ReceivedDocuments $documents, private StaffCheck $staff)
     {
@@ -35,14 +35,22 @@ final readonly class ReceivedDocumentAttachmentAccess implements AttachmentAcces
 
     public function canSee(string $ownerKind, string $ownerId): bool
     {
-        return $this->document($ownerKind, $ownerId) instanceof ReceivedDocument;
+        return $this->document($ownerKind, $ownerId, $this->staff->isStaff()) instanceof ReceivedDocument;
     }
 
     public function canAttach(string $ownerKind, string $ownerId): bool
     {
-        $document = $this->document($ownerKind, $ownerId);
+        return $this->mayAttach($this->document($ownerKind, $ownerId, $this->staff->isStaff()));
+    }
 
-        return $document instanceof ReceivedDocument && !$document->isTrashed() && (!$document->isRecorded() || null === $document->originalAttachmentId());
+    public function canSeeAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        return $this->document($ownerKind, $ownerId, $this->staff->isStaffMember($userId)) instanceof ReceivedDocument;
+    }
+
+    public function canAttachAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        return $this->mayAttach($this->document($ownerKind, $ownerId, $this->staff->isStaffMember($userId)));
     }
 
     public function canDelete(Attachment $attachment): bool
@@ -50,9 +58,14 @@ final readonly class ReceivedDocumentAttachmentAccess implements AttachmentAcces
         return false;
     }
 
-    private function document(string $ownerKind, string $ownerId): ?ReceivedDocument
+    private function mayAttach(?ReceivedDocument $document): bool
     {
-        if (ReceivedDocument::ATTACHMENT_KIND !== $ownerKind || !$this->staff->isStaff()) {
+        return $document instanceof ReceivedDocument && !$document->isTrashed() && (!$document->isRecorded() || null === $document->originalAttachmentId());
+    }
+
+    private function document(string $ownerKind, string $ownerId, bool $staff): ?ReceivedDocument
+    {
+        if (ReceivedDocument::ATTACHMENT_KIND !== $ownerKind || !$staff) {
             return null;
         }
 

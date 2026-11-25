@@ -42,7 +42,7 @@ final readonly class ReceivedDocumentListQuery
         // Where the reading of the file stands, and how the document came in.
         #[Assert\Choice(choices: ['reading', 'read', 'nothing_found', 'failed'])]
         public ?string $reading = null,
-        #[Assert\Choice(choices: ['manual', 'upload', 'api'])]
+        #[Assert\Choice(choices: ['manual', 'upload', 'api', 'mail'])]
         public ?string $source = null,
     ) {
     }
