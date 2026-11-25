@@ -18,7 +18,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     tool: 'foresi_link_inbox_item',
     scope: 'inbox:write',
     title: 'Link an inbox item to a record',
-    description: 'Links one of your inbox items to a record made elsewhere, such as a deal: the record becomes an output of the item and the e-mail shows on the record\'s activity timeline. The first link makes the e-mail activity (subject, sender, date and text of the mail, linked to the matched contact too); later links add to that one activity. The kind is one activities link to (foresi_create_activity lists them in its refusals). Refused with kind_unknown for a kind no module offers, record_not_linkable for a record you may not link to, and already_linked when it is an output already.',
+    description: 'Links one of your inbox items to a record made elsewhere, such as a deal: the record becomes an output of the item and the e-mail shows on the record\'s activity timeline. The first link makes the e-mail activity (subject, sender, date and text of the mail, linked to the matched contact too); later links add to that one activity. The kind is one activities link to; a kind_unknown refusal lists the kinds offered. Refused with kind_unknown for a kind no module offers, record_not_linkable for a record you may not link to, and already_linked when it is an output already.',
     status: 201,
     response: 'InboxItem',
     staffOnly: true,

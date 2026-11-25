@@ -23,8 +23,9 @@ use Foresi\Shared\Contract\Refused;
  *
  * It is an activity of the type email, done when the mail arrived and owned by
  * the item's owner. Its subject is the mail's, cut to 200 characters; its body
- * the sender, the date and the plain text, cut to the 20,000 characters an
- * activity holds with a closing line that points to the item. It is linked to
+ * the sender, the date and the plain text, escaped so the activity's Markdown
+ * shows them literally (no links of the mail, spec 6a), cut to the 20,000
+ * characters an activity holds with a closing line that points to the item. It is linked to
  * the matched contact, the contact's company and each output whose kind a module
  * offers to activities. The raw mail stays the source.
  */
@@ -100,16 +101,35 @@ final readonly class EmailActivity
 
     /**
      * "From: <sender>\nDate: <received>\n\n" and the text, at most MAX_BODY
-     * characters in all; a longer one is cut and ends with the CUT line.
+     * characters in all; a longer one is cut and ends with the CUT line. The
+     * sender and the text are made literal() first, so the activity shows them
+     * as written, and the cut never splits an escape.
      */
     public static function cut(string $sender, string $received, string $text): string
     {
-        $body = 'From: '.$sender."\nDate: ".$received."\n\n".str_replace(["\r\n", "\r"], "\n", $text);
+        $body = 'From: '.self::literal($sender)."\nDate: ".$received."\n\n".self::literal(str_replace(["\r\n", "\r"], "\n", $text));
         if (mb_strlen($body) <= self::MAX_BODY) {
             return $body;
         }
+        $kept = mb_substr($body, 0, self::MAX_BODY - mb_strlen(self::CUT));
+        // The cut must not split an escape and leave a lone backslash before the closing line.
+        $trailing = \strlen($kept) - \strlen(rtrim($kept, '\\'));
+        if (1 === $trailing % 2) {
+            $kept = substr($kept, 0, -1);
+        }
 
-        return mb_substr($body, 0, self::MAX_BODY - mb_strlen(self::CUT)).self::CUT;
+        return $kept.self::CUT;
+    }
+
+    /**
+     * The text with every ASCII punctuation character backslash-escaped, so the
+     * Markdown of the activity screens shows it as written (spec 6a): no link,
+     * heading, list, emphasis or HTML of the mail, and no address or URL made a
+     * link, since an escaped "." "@" or ":" breaks what the autolinks look for.
+     */
+    public static function literal(string $text): string
+    {
+        return (string) preg_replace('/[!-\/:-@\[-`{-~]/', '\\\\$0', $text);
     }
 
     private function body(InboxItem $item, ?MailMessageView $message): string

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Inbox\Application;
 
+use Foresi\Activities\Application\ActivityTargets;
 use Foresi\Activities\Contract\LinkableRecords;
 use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\Api\CreateContactFromItemInput;
@@ -20,16 +21,32 @@ use Foresi\Inbox\Application\Api\ReopenItemInput;
 use Foresi\Inbox\Application\Api\RestoreItemInput;
 use Foresi\Inbox\Application\Api\TrashItemInput;
 use Foresi\Inbox\Application\EmailActivity;
+use Foresi\Inbox\Application\InboxAccess;
+use Foresi\Inbox\Application\InboxTransaction;
 use Foresi\Inbox\Application\ItemReads;
+use Foresi\Inbox\Application\ItemStore;
+use Foresi\Inbox\Application\ItemWrites;
 use Foresi\Inbox\Application\PurgeTrashedItems;
+use Foresi\Inbox\Application\SenderMatching;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
+use Foresi\Inbox\Contract\InboxOutput;
 use Foresi\Inbox\Domain\InboxItem;
+use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Domain\ItemState;
 use Foresi\Inbox\Domain\MatchBasis;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
+use Foresi\Instance\Application\InstanceClock;
+use Foresi\Mail\Contract\MessageRetention;
+use Foresi\Mail\Contract\Messages;
+use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\ContactPersonWrites;
+use Foresi\Party\Contract\PartyDirectory;
+use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Application\Markdown;
 use Foresi\Shared\Contract\Refused;
 use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Activities\Support\FakeActivityTarget;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\InboxTestCase;
 
@@ -185,7 +202,7 @@ final class ItemWritesTest extends InboxTestCase
         $activity = $this->em->getConnection()->fetchAssociative('SELECT a.subject, a.body, a.done_at, a.owner_user_id, t.type_key FROM activities_activity a JOIN activities_type t ON t.id = a.type_id WHERE a.id = ?', [$activityId]);
         self::assertIsArray($activity);
         self::assertSame('Offer for the new office', $activity['subject']);
-        self::assertSame("From: client.a@client-a.example.com\nDate: 2026-11-25 10:00\n\nHello, please find our offer below.\nKind regards\n", $activity['body']);
+        self::assertSame("From: client\\.a\\@client\\-a\\.example\\.com\nDate: 2026-11-25 10:00\n\nHello\\, please find our offer below\\.\nKind regards\n", $activity['body']);
         self::assertSame('email', $activity['type_key']);
         self::assertSame($this->owner->id(), $activity['owner_user_id']);
         self::assertIsString($activity['done_at']);
@@ -256,6 +273,101 @@ final class ItemWritesTest extends InboxTestCase
         $this->assertRefused('not_found', fn (): InboxItem => $this->writes()->done(new MarkItemDoneInput($itemId)));
     }
 
+    public function testAnEmailLinkedOnlyToRecordsAColleagueCannotSeeStaysTheOwners(): void
+    {
+        $deals = new FakeActivityTarget('deal');
+        $seen = Id::generate();
+        $unseen = Id::generate();
+        $deals->add($seen, 'Example deal');
+        $deals->add($unseen, 'Secret deal');
+        self::getContainer()->set(ActivityTargets::class, new ActivityTargets([$deals]));
+        $itemId = $this->receive(InboxMail::plain($this->address, from: 'Someone <someone@unknown.example.com>'));
+        $this->writes()->link(new LinkItemInput($itemId, 'deal', $unseen));
+
+        $deals->hide($unseen);
+        $this->signIn($this->person('member@example.com', Role::Member));
+        self::assertNull(self::getContainer()->get(InboxItems::class)->find($itemId), 'No record of it is the colleague\'s to see.');
+
+        $deals->remove($unseen);
+        $deals->add($unseen, 'Secret deal');
+        $this->signIn($this->owner);
+        $this->writes()->link(new LinkItemInput($itemId, 'deal', $seen));
+        $deals->hide($unseen);
+        $this->signIn($this->person('other@example.com', Role::Member));
+        $view = self::getContainer()->get(InboxItems::class)->find($itemId);
+        self::assertInstanceOf(InboxItemView::class, $view);
+        self::assertSame([$seen], array_map(static fn (InboxOutput $output): string => $output->recordId, $view->outputs), 'Only the records the colleague sees.');
+    }
+
+    public function testALinkMadeAtTheSameMomentElsewhereIsAlreadyLinked(): void
+    {
+        $person = $this->contact('person', 'Client A', self::CLIENT);
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->writes()->link(new LinkItemInput($itemId, 'contact', $person));
+        // The other request added the output after this one looked for it.
+        $store = new DoctrineItemStore($this->em);
+        $blind = new readonly class($store) implements ItemStore {
+            public function __construct(private ItemStore $store)
+            {
+            }
+
+            public function item(string $id): ?InboxItem
+            {
+                return $this->store->item($id);
+            }
+
+            public function itemOfMessage(string $mailMessageId): ?InboxItem
+            {
+                return $this->store->itemOfMessage($mailMessageId);
+            }
+
+            public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array
+            {
+                return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit);
+            }
+
+            public function threadSizes(string $ownerUserId, array $threadKeys): array
+            {
+                return $this->store->threadSizes($ownerUserId, $threadKeys);
+            }
+
+            public function threadOf(InboxItem $item): array
+            {
+                return $this->store->threadOf($item);
+            }
+
+            public function outputs(InboxItem $item): array
+            {
+                return [];
+            }
+
+            public function outputCounts(array $itemIds): array
+            {
+                return $this->store->outputCounts($itemIds);
+            }
+
+            public function trashedBefore(\DateTimeImmutable $time): array
+            {
+                return $this->store->trashedBefore($time);
+            }
+
+            public function add(InboxItem|ItemOutput $record): void
+            {
+                $this->store->add($record);
+            }
+
+            public function remove(InboxItem|ItemOutput $record): void
+            {
+                $this->store->remove($record);
+            }
+        };
+        $this->em->clear();
+        $c = self::getContainer();
+        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(ContactCreation::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class));
+
+        $this->assertRefused('already_linked', fn (): InboxItem => $writes->link(new LinkItemInput($itemId, 'contact', $person)));
+    }
+
     public function testATrashedItemIsReachedOnlyByRestore(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));
@@ -292,6 +404,28 @@ final class ItemWritesTest extends InboxTestCase
         self::assertNull($this->purgeAfter($messages[1]), 'Kept: the contact\'s timeline still shows the e-mail.');
     }
 
+    public function testTheMarkdownAndLinksOfAMailShowAsTextOnTheActivity(): void
+    {
+        $text = "# Urgent\r\nPay [here](https://pay.example.com/now) or at https://bank.example.com/x and www.example.com.\r\n* <b>bold</b> _x_\r\nWrite to someone@example.com.\r\n";
+        $itemId = $this->receive(InboxMail::plain($this->address, body: $text));
+        $this->writes()->link(new LinkItemInput($itemId, 'contact', $this->contact('person', 'Client A', self::CLIENT)));
+        $body = $this->em->getConnection()->fetchOne('SELECT body FROM activities_activity WHERE id = ?', [$this->item($itemId)->emailActivityId()]);
+        self::assertIsString($body);
+
+        $html = $this->rendered($body);
+
+        self::assertStringNotContainsString('<a', $html, 'No link of the mail, not even its sender.');
+        self::assertStringNotContainsString('<h', $html);
+        self::assertStringNotContainsString('<li', $html);
+        self::assertStringNotContainsString('<em', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringContainsString('# Urgent', $html);
+        self::assertStringContainsString('[here](https://pay.example.com/now)', $html);
+        self::assertStringContainsString('https://bank.example.com/x', $html);
+        self::assertStringContainsString('From: client.a&#64;client-a.example.com', $html, 'The sanitizer writes @ as an entity.');
+        self::assertStringContainsString('&lt;b&gt;bold&lt;/b&gt; _x_', $html);
+    }
+
     public function testTheEmailActivityIsTheMailCutToWhatAnActivityHolds(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address, subject: str_repeat('Long subject ', 30), body: str_repeat('x', 25000)));
@@ -304,6 +438,14 @@ final class ItemWritesTest extends InboxTestCase
         self::assertIsString($activity['body']);
         self::assertSame(EmailActivity::MAX_BODY, mb_strlen($activity['body']));
         self::assertStringEndsWith(EmailActivity::CUT, $activity['body']);
+    }
+
+    /**
+     * A body as the activity screen renders it: {{ activity.body|markdown }} is Markdown::toHtml().
+     */
+    private function rendered(string $body): string
+    {
+        return self::getContainer()->get(Markdown::class)->toHtml($body);
     }
 
     private function purgeAfter(string $messageId): ?string

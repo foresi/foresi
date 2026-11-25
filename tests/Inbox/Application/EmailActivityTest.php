@@ -19,7 +19,7 @@ final class EmailActivityTest extends TestCase
 {
     public function testAShortBodyIsTheSenderTheDateAndTheText(): void
     {
-        self::assertSame("From: client.a@client-a.example.com\nDate: 2026-11-25 10:00\n\nHello,\nthe offer.\n", EmailActivity::cut('client.a@client-a.example.com', '2026-11-25 10:00', "Hello,\r\nthe offer.\r\n"));
+        self::assertSame("From: client\\.a\\@client\\-a\\.example\\.com\nDate: 2026-11-25 10:00\n\nHello\\,\nthe offer\\.\n", EmailActivity::cut('client.a@client-a.example.com', '2026-11-25 10:00', "Hello,\r\nthe offer.\r\n"));
     }
 
     public function testALongBodyIsCutWithTheClosingLine(): void
@@ -27,17 +27,39 @@ final class EmailActivityTest extends TestCase
         $body = EmailActivity::cut('client.a@client-a.example.com', '2026-11-25 10:00', str_repeat('ž', 30000));
 
         self::assertSame(EmailActivity::MAX_BODY, mb_strlen($body), 'Characters, not bytes.');
-        self::assertStringStartsWith("From: client.a@client-a.example.com\nDate: 2026-11-25 10:00\n\nžž", $body);
+        self::assertStringStartsWith("From: client\\.a\\@client\\-a\\.example\\.com\nDate: 2026-11-25 10:00\n\nžž", $body);
         self::assertStringEndsWith("ž\n\nFull e-mail in the inbox item", $body);
     }
 
     public function testABodyOfExactlyTheLimitIsNotCut(): void
     {
-        $head = "From: a@example.com\nDate: 2026-11-25 10:00\n\n";
+        $head = "From: a\\@example\\.com\nDate: 2026-11-25 10:00\n\n";
         $body = EmailActivity::cut('a@example.com', '2026-11-25 10:00', str_repeat('x', EmailActivity::MAX_BODY - mb_strlen($head)));
 
         self::assertSame(EmailActivity::MAX_BODY, mb_strlen($body));
         self::assertStringEndsNotWith(EmailActivity::CUT, $body);
+    }
+
+    public function testEveryPunctuationCharacterIsEscapedAndTheEscapedLengthCounts(): void
+    {
+        self::assertSame('\\[a\\]\\(https\\:\\/\\/x\\.example\\.com\\) \\# \\\\ ž', EmailActivity::literal('[a](https://x.example.com) # \\ ž'));
+
+        $body = EmailActivity::cut('a@example.com', '2026-11-25 10:00', str_repeat('.', 15000));
+        // Counted after escaping: 30,000 escaped characters are cut, at most one short of the limit.
+        self::assertContains(mb_strlen($body), [EmailActivity::MAX_BODY - 1, EmailActivity::MAX_BODY]);
+        self::assertStringEndsWith('\\.'.EmailActivity::CUT, $body);
+    }
+
+    public function testTheCutNeverLeavesALoneBackslash(): void
+    {
+        $head = "From: a\\@example\\.com\nDate: 2026-11-25 10:00\n\n";
+        // One letter shifts the escapes so that the cut falls between a backslash and its character.
+        $body = EmailActivity::cut('a@example.com', '2026-11-25 10:00', 'x'.str_repeat('.', EmailActivity::MAX_BODY));
+
+        $kept = substr($body, 0, -\strlen(EmailActivity::CUT));
+        self::assertSame(0, (\strlen($kept) - \strlen(rtrim($kept, '\\'))) % 2);
+        self::assertStringStartsWith($head.'x\\.', $body);
+        self::assertLessThanOrEqual(EmailActivity::MAX_BODY, mb_strlen($body));
     }
 
     public function testTheSubjectIsOneLineCutToTwoHundredOrTheSender(): void

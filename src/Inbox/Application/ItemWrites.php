@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Application;
 
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Foresi\Activities\Contract\LinkableRecords;
 use Foresi\Inbox\Application\Api\CreateContactFromItemInput;
 use Foresi\Inbox\Application\Api\DiscardItemInput;
@@ -193,7 +194,20 @@ final readonly class ItemWrites
     public function link(LinkItemInput $input): InboxItem
     {
         $userId = $this->access->me();
+        try {
+            return $this->linked($input, $userId);
+        } catch (UniqueConstraintViolationException) {
+            // The same link made at the same moment by another request.
+            throw InboxRefused::conflict('already_linked', 'The item is linked to this record already.');
+        }
+    }
 
+    /**
+     * @throws InboxRefused
+     * @throws Refused
+     */
+    private function linked(LinkItemInput $input, string $userId): InboxItem
+    {
         return $this->transaction->run(function () use ($input, $userId): InboxItem {
             $item = $this->access->own($input->itemId);
             $kinds = $this->records->kinds();

@@ -52,7 +52,10 @@ final readonly class ItemsForOtherModules implements InboxItems
         if (!$item instanceof InboxItem) {
             return null;
         }
-        $detail = $this->reads->detail($item, $item->isOwnedBy($this->actor->userId()));
+        $owner = $item->isOwnedBy($this->actor->userId());
+        $detail = $this->reads->detail($item, $owner);
+        // Another person learns nothing of the owner's mailbox: not the thread, nor records they do not see.
+        $outputs = $owner ? $detail->outputs : array_values(array_filter($detail->outputs, static fn (OutputView $output): bool => $output->available));
 
         return new InboxItemView(
             $item->id(),
@@ -69,7 +72,7 @@ final readonly class ItemsForOtherModules implements InboxItems
             $detail->text,
             array_map(static fn (MailAttachment $attachment): InboxAttachment => new InboxAttachment($attachment->index, $attachment->name, $attachment->contentType, $attachment->size), $detail->attachments),
             array_map(static fn (InboxItem $other): string => $other->id(), $detail->thread),
-            array_map(static fn (OutputView $output): InboxOutput => new InboxOutput($output->output->kind(), $output->output->recordId(), $output->output->addedAt()), $detail->outputs),
+            array_map(static fn (OutputView $output): InboxOutput => new InboxOutput($output->output->kind(), $output->output->recordId(), $output->output->addedAt()), $outputs),
             $item->emailActivityId(),
             $item->duplicateOfPurpose(),
         );
