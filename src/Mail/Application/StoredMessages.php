@@ -37,9 +37,22 @@ final readonly class StoredMessages implements Messages
     public function find(string $messageId): ?MailMessageView
     {
         $message = $this->messages->find($messageId);
-        if (!$message instanceof MailMessage) {
-            return null;
+
+        return $message instanceof MailMessage ? $this->view($message) : null;
+    }
+
+    public function findMany(array $messageIds): array
+    {
+        $views = [];
+        foreach ([] === $messageIds ? [] : $this->messages->findMany(array_values(array_unique($messageIds))) as $message) {
+            $views[$message->id()] = $this->view($message);
         }
+
+        return $views;
+    }
+
+    private function view(MailMessage $message): MailMessageView
+    {
         $address = $message->address();
 
         return new MailMessageView(

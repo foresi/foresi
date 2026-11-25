@@ -124,4 +124,18 @@ final readonly class DoctrineMailMessages implements MailMessages
 
         return $message instanceof MailMessage ? $message : null;
     }
+
+    public function findMany(array $ids): array
+    {
+        if ([] === $ids) {
+            return [];
+        }
+        /** @var list<MailMessage> $messages */
+        $messages = $this->em->createQuery('SELECT m, a FROM '.MailMessage::class.' m JOIN m.address a WHERE m.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getResult();
+
+        return $messages;
+    }
 }

@@ -1,0 +1,46 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The inbox address just made (or replaced), shown this once with a button to copy it and how to forward
+    mail to it. It is the answer to the form, never a redirect, and is not cached. In the dialog the list
+    under it is loaded again when the dialog closes.
+    Variables: label, address, help.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'inbox.account.title'|trans, href: path('app_account_inbox')}, {label: 'inbox.account.created.title'|trans}] %}
+{% set dialog_size = 'md' %}
+{% set dialog_reload = true %}
+
+{% block head %}
+    <meta name="turbo-cache-control" content="no-cache">
+{% endblock %}
+
+{% block title %}{{ 'inbox.account.created.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <div class="grid gap-4">
+        <twig:Ui:Alert tone="warning" data-inbox-address-once>{{ 'inbox.account.created.once'|trans }}</twig:Ui:Alert>
+        <p class="m-0 text-text">{{ 'inbox.account.created.text'|trans({label: label}) }}</p>
+        <div class="flex flex-wrap items-end gap-2" data-controller="copy" data-copy-done-value="{{ 'inbox.account.created.copied'|trans }}" data-copy-failed-value="{{ 'inbox.account.created.copy_failed'|trans }}">
+            <div class="min-w-0 flex-1 basis-64"><twig:Ui:TextInput id="inbox-address" :label="'inbox.account.created.field'|trans" :value="address" readonly spellcheck="false" autocomplete="off" data-copy-target="source" /></div>
+            <twig:Ui:Button icon="copy" data-action="copy#copy"><span data-copy-target="label">{{ 'inbox.account.created.copy'|trans }}</span></twig:Ui:Button>
+            <span class="sr-only" aria-live="polite" data-copy-target="status"></span>
+        </div>
+        <p class="m-0 text-caption text-muted">{{ 'inbox.account.created.next'|trans }}</p>
+    </div>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button variant="primary" data-action="dialog#dismiss">{{ 'inbox.account.created.done'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'inbox.account.created.title'|trans" icon="mail" class="max-w-2xl">
+        {{ body }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button variant="primary" :href="path('app_account_inbox')">{{ 'inbox.account.created.done'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+    <div class="mt-4 max-w-2xl">{{ include('@Inbox/account/_forwarding.html.twig') }}</div>
+{% endblock %}

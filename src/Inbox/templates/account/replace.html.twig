@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Replace an inbox address: asks first, as the old address stops working at once, and answers with the
+    new address shown once. A dialog over the addresses; the same URL is a page of its own.
+    Variables: id, label, error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'inbox.account.replace_title'|trans %}
+{% set crumbs = [{label: 'inbox.account.title'|trans, href: path('app_account_inbox')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-address-form" action="{{ path('app_account_inbox_replace', {id: id}) }}" class="grid gap-4" data-turbo="false" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Inbox\\Infrastructure\\Controller\\AccountInboxController::TOKEN')) }}">
+        {% if error is not null %}<twig:Ui:Alert tone="error">{{ error }}</twig:Ui:Alert>{% endif %}
+        <p class="m-0 text-text">{{ 'inbox.account.replace_text'|trans({label: label}) }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-address-form" variant="primary">{{ 'inbox.account.replace_submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="mail" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_account_inbox')">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-address-form" variant="primary">{{ 'inbox.account.replace_submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

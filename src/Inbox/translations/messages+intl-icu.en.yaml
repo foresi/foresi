@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    inbox: Inbox
+inbox:
+  title: Inbox
+  user_menu: Inbox addresses
+  addresses_link: Inbox addresses
+  views: Inbox views
+  older: Older
+  cancel: Cancel
+  tab:
+    new: New
+    done: Done
+    discarded: Discarded
+    unmatched: Unmatched
+  state:
+    new: New
+    done: Done
+    discarded: Discarded
+  field:
+    state: State
+    match: Contact
+  column:
+    sender: Sender
+    contact: Contact
+    subject: Subject
+    received: Received
+    outputs: Outputs
+  list:
+    thread: '{subject} (+{count} more)'
+    outputs: '{count, plural, one {# record} other {# records}}'
+  action:
+    done: Done
+    discard: Discard
+    reopen: Reopen
+    link: Link…
+    create_contact: Create contact
+    match: Match contact…
+    match_other: Change contact…
+    match_again: Match again
+    unmatch: Remove match
+  discard:
+    confirm_title: Discard this item?
+    confirm_text: The mail is kept for 30 days, then removed, unless you reopen or link it first.
+  empty:
+    new_title: Nothing new
+    new_text: Mail you forward to your inbox address waits here.
+    done_title: Nothing done yet
+    done_text: Items you mark done are kept here.
+    discarded_title: Nothing discarded
+    discarded_text: Discarded items are kept for 30 days, then removed with their mail.
+    unmatched_title: Every new item has a contact
+    unmatched_text: New items whose sender is no contact of yours show here.
+    view: No items in this view
+    filtered: No item matches the filter.
+    reset: Clear the filter
+  match:
+    unmatched: Unmatched
+    title: Match to a contact
+    intro: Pick the contact this mail is about.
+    contact: Contact
+    placeholder: Start typing a name
+    empty: No contact found
+    submit: Match
+    refused:
+      contact_required: Pick a contact.
+      contact_unknown: This contact does not exist.
+      contact_archived: This contact is archived.
+  flash:
+    done: Marked done.
+    discarded: 'Discarded. The mail is kept for {days} days.'
+    reopened: Reopened.
+    matched: Matched to the contact.
+    match_again_none: No contact found for the sender.
+    unmatched: Match removed.
+    contact_created: Contact created and matched.
+    linked: Linked.
+  item:
+    no_subject: (no subject)
+    mail_removed: The mail itself has been removed. Only what you did with it is kept.
+    details: The mail
+    from: From
+    original_from: Original sender
+    original_from_note: The forwarded mail's own words, not verified
+    received: Received
+    contact: Contact
+    no_contact: Not matched
+    basis:
+      address: Matched by the sender's address
+      domain: Matched by the sender's domain
+      manual: Matched by you
+    text: Text
+    attachments: Attachments
+    no_attachments: This mail has no attachments.
+    attachments_note: Files come from the sender. They are only offered for download and never opened here.
+    outputs: What came of it
+    no_outputs: Nothing linked yet.
+    output_unavailable: A record that is gone or not yours to see
+    thread: Other mails of the conversation
+    size_b: '{size} B'
+    size_kb: '{size} kB'
+  warning:
+    sender_not_verified: Sender not verified. The receiving server could not confirm who sent this mail.
+    forwarded_not_verified: Forwarded, original sender not verified. The original sender is what the forwarded text says; nobody checked it.
+    duplicate: 'Already received as {purpose}. The same mail came to another address of yours before.'
+  link:
+    title: Link to a record
+    intro: Links this mail to a record, such as a deal or a project, and shows it on that record's timeline.
+    kind: Kind of record
+    record_id: Record id
+    record_id_help: The id from the record's address.
+    submit: Link
+    refused:
+      kind_unknown: No record of this kind can be linked.
+      record_not_linkable: This record does not exist or you may not link to it.
+      already_linked: This record is linked already.
+      type_unknown: The activity type E-mail is archived. Restore it under Settings, Activities, then link again.
+  create_contact:
+    title: Create a contact
+    intro: Name and e-mail come from the sender. Fill in the billing address; the new contact is matched to this item.
+    kind: What it is
+    display_name: Name
+    email: E-mail
+    phone: Phone
+    street: Street and number
+    city: City
+    postal_code: Postal code
+    country: Country
+    registration_number: Registration number
+    vat_id: VAT id
+    submit: Create contact
+    existing: 'A contact with this registration number or VAT id exists already. Match the item to it instead:'
+    refused:
+      duplicate: A contact with this registration number or VAT id exists already.
+  forwarding:
+    title: Forward mail to your inbox address
+    intro: Forward a mail to your inbox address from your mail program, or set up automatic forwarding for what you want to see here.
+    help: The provider's help page
+    gmail:
+      title: Gmail
+      steps: Open the mail, choose Forward, enter your inbox address and send. Automatic forwarding needs the address confirmed first.
+    outlook:
+      title: Outlook
+      steps: Open the mail, choose Forward and enter your inbox address. A rule can forward mail on its own.
+    apple:
+      title: Apple Mail
+      steps: Select the mail, choose Message, Forward and enter your inbox address. iCloud Mail can forward on its own.
+  account:
+    title: Inbox addresses
+    intro: The address that takes the mail you forward into your inbox. Only you see what arrives there. Keep it private; revoke or replace it if it leaks.
+    new: New inbox address
+    new_title: New inbox address
+    new_submit: Create the address
+    rename_title: Rename the address
+    rename_submit: Save
+    replace_title: Replace the address
+    replace_text: 'The address "{label}" stops working at once and you get a new one, shown once. Update your forwarding afterwards.'
+    replace_submit: Replace the address
+    dropped: '{count, plural, =0 {none} one {# mail} other {# mails}}'
+    column:
+      label: Label
+      address: Address
+      created: Created
+      dropped: Dropped today
+    field:
+      label: Label
+      label_help: 'Such as "Gmail forwarding".'
+    action:
+      rename: Rename
+      replace: Replace
+      revoke: Revoke
+    confirm:
+      revoke:
+        title: 'Revoke the address {label}?'
+        text: The address stops working at once and cannot be brought back. Mail sent to it is dropped.
+    flash:
+      renamed: Address renamed.
+      revoked: 'The address {label} is revoked.'
+    empty:
+      title: No inbox address yet
+      text: Make one, then forward mail to it.
+    refused:
+      label_required: Say what the address is for.
+      label_too_long: The label is too long.
+      address_exists: You have an inbox address already. Replace it or revoke it first.
+      inbound_mail_not_configured: Inbound mail is not set up on this server. Ask the person who runs it.
+      inbound_mail_no_key: Inbound mail is not set up on this server. Ask the person who runs it.
+    created:
+      title: Your inbox address
+      once: This is the only time the full address is shown. Copy it now.
+      text: 'The address "{label}" is ready.'
+      field: Inbox address
+      copy: Copy
+      copied: Copied
+      copy_failed: Copying failed. Select the address and copy it.
+      next: Forward mail to this address; it appears in your inbox.
+      done: Done

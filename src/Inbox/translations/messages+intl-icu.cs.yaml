@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    inbox: Schránka
+inbox:
+  title: Schránka
+  user_menu: Adresy schránky
+  addresses_link: Adresy schránky
+  views: Pohledy schránky
+  older: Starší
+  cancel: Zrušit
+  tab:
+    new: Nové
+    done: Hotové
+    discarded: Zahozené
+    unmatched: Nepřiřazené
+  state:
+    new: Nové
+    done: Hotové
+    discarded: Zahozené
+  field:
+    state: Stav
+    match: Kontakt
+  column:
+    sender: Odesílatel
+    contact: Kontakt
+    subject: Předmět
+    received: Přijato
+    outputs: Výstupy
+  list:
+    thread: '{subject} (+{count} další)'
+    outputs: '{count, plural, one {# záznam} few {# záznamy} other {# záznamů}}'
+  action:
+    done: Hotovo
+    discard: Zahodit
+    reopen: Znovu otevřít
+    link: Propojit…
+    create_contact: Vytvořit kontakt
+    match: Přiřadit kontakt…
+    match_other: Změnit kontakt…
+    match_again: Přiřadit znovu
+    unmatch: Zrušit přiřazení
+  discard:
+    confirm_title: Zahodit tuto položku?
+    confirm_text: E-mail se uchová 30 dní a pak se odstraní, pokud ji předtím znovu neotevřete nebo nepropojíte.
+  empty:
+    new_title: Nic nového
+    new_text: E-maily, které přepošlete na adresu své schránky, čekají tady.
+    done_title: Zatím nic hotového
+    done_text: Položky označené jako hotové se uchovají tady.
+    discarded_title: Nic zahozeného
+    discarded_text: Zahozené položky se uchovají 30 dní a pak se odstraní i s e-mailem.
+    unmatched_title: Každá nová položka má kontakt
+    unmatched_text: Nové položky, jejichž odesílatel není váš kontakt, se ukážou tady.
+    view: V tomto pohledu nejsou žádné položky
+    filtered: Filtru neodpovídá žádná položka.
+    reset: Zrušit filtr
+  match:
+    unmatched: Nepřiřazené
+    title: Přiřadit ke kontaktu
+    intro: Vyberte kontakt, kterého se tento e-mail týká.
+    contact: Kontakt
+    placeholder: Začněte psát jméno
+    empty: Žádný kontakt nenalezen
+    submit: Přiřadit
+    refused:
+      contact_required: Vyberte kontakt.
+      contact_unknown: Tento kontakt neexistuje.
+      contact_archived: Tento kontakt je archivovaný.
+  flash:
+    done: Označeno jako hotové.
+    discarded: 'Zahozeno. E-mail se uchová {days} dní.'
+    reopened: Znovu otevřeno.
+    matched: Přiřazeno ke kontaktu.
+    match_again_none: Pro odesílatele nebyl nalezen žádný kontakt.
+    unmatched: Přiřazení zrušeno.
+    contact_created: Kontakt vytvořen a přiřazen.
+    linked: Propojeno.
+  item:
+    no_subject: (bez předmětu)
+    mail_removed: Samotný e-mail už byl odstraněn. Zůstalo jen to, co jste s ním udělali.
+    details: E-mail
+    from: Od
+    original_from: Původní odesílatel
+    original_from_note: Podle textu přeposlaného e-mailu, nikdo to neověřil
+    received: Přijato
+    contact: Kontakt
+    no_contact: Nepřiřazeno
+    basis:
+      address: Přiřazeno podle adresy odesílatele
+      domain: Přiřazeno podle domény odesílatele
+      manual: Přiřazeno vámi
+    text: Text
+    attachments: Přílohy
+    no_attachments: Tento e-mail nemá žádné přílohy.
+    attachments_note: Soubory pocházejí od odesílatele. Nabízí se jen ke stažení a nikdy se tady neotevírají.
+    outputs: Co z toho vzešlo
+    no_outputs: Zatím nic nepropojeno.
+    output_unavailable: Záznam, který už neexistuje nebo ho nesmíte vidět
+    thread: Další e-maily konverzace
+    size_b: '{size} B'
+    size_kb: '{size} kB'
+  warning:
+    sender_not_verified: Odesílatel není ověřen. Přijímající server nemohl potvrdit, kdo e-mail poslal.
+    forwarded_not_verified: Přeposláno, původní odesílatel není ověřen. Původní odesílatel je to, co říká přeposlaný text; nikdo to nekontroloval.
+    duplicate: 'Už přijato jako {purpose}. Stejný e-mail přišel dříve na jinou vaši adresu.'
+  link:
+    title: Propojit se záznamem
+    intro: Propojí tento e-mail se záznamem, například s obchodem nebo projektem, a ukáže ho na jeho časové ose.
+    kind: Druh záznamu
+    record_id: Id záznamu
+    record_id_help: Id z adresy záznamu.
+    submit: Propojit
+    refused:
+      kind_unknown: Záznam tohoto druhu nelze propojit.
+      record_not_linkable: Tento záznam neexistuje nebo k němu nesmíte propojovat.
+      already_linked: Tento záznam už je propojen.
+      type_unknown: Typ aktivity E-mail je archivovaný. Obnovte ho v Nastavení, Aktivity, a propojte znovu.
+  create_contact:
+    title: Vytvořit kontakt
+    intro: Jméno a e-mail se berou z odesílatele. Doplňte fakturační adresu; nový kontakt se přiřadí k této položce.
+    kind: Co to je
+    display_name: Jméno
+    email: E-mail
+    phone: Telefon
+    street: Ulice a číslo
+    city: Město
+    postal_code: PSČ
+    country: Země
+    registration_number: Registrační číslo
+    vat_id: DIČ
+    submit: Vytvořit kontakt
+    existing: 'Kontakt s tímto registračním číslem nebo DIČ už existuje. Přiřaďte položku k němu:'
+    refused:
+      duplicate: Kontakt s tímto registračním číslem nebo DIČ už existuje.
+  forwarding:
+    title: Přeposílání e-mailů na adresu schránky
+    intro: Přepošlete e-mail na adresu své schránky z poštovního programu, nebo nastavte automatické přeposílání toho, co tu chcete vidět.
+    help: Nápověda poskytovatele
+    gmail:
+      title: Gmail
+      steps: Otevřete e-mail, zvolte Přeposlat, zadejte adresu své schránky a odešlete. Automatické přeposílání vyžaduje nejdřív potvrdit adresu.
+    outlook:
+      title: Outlook
+      steps: Otevřete e-mail, zvolte Přeposlat a zadejte adresu své schránky. Pravidlo umí přeposílat poštu samo.
+    apple:
+      title: Apple Mail
+      steps: Vyberte e-mail, zvolte Zpráva, Přeposlat a zadejte adresu své schránky. iCloud Mail umí přeposílat samo.
+  account:
+    title: Adresy schránky
+    intro: Adresa, která přijímá e-maily, které přeposíláte do své schránky. To, co na ni přijde, vidíte jen vy. Nesdílejte ji; pokud unikne, zrušte ji nebo nahraďte.
+    new: Nová adresa schránky
+    new_title: Nová adresa schránky
+    new_submit: Vytvořit adresu
+    rename_title: Přejmenovat adresu
+    rename_submit: Uložit
+    replace_title: Nahradit adresu
+    replace_text: 'Adresa „{label}“ přestane okamžitě fungovat a dostanete novou, zobrazenou jen jednou. Pak upravte své přeposílání.'
+    replace_submit: Nahradit adresu
+    dropped: '{count, plural, =0 {žádný} one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    column:
+      label: Název
+      address: Adresa
+      created: Vytvořena
+      dropped: Dnes zahozeno
+    field:
+      label: Název
+      label_help: 'Například „Přeposílání z Gmailu“.'
+    action:
+      rename: Přejmenovat
+      replace: Nahradit
+      revoke: Zrušit
+    confirm:
+      revoke:
+        title: 'Zrušit adresu {label}?'
+        text: Adresa přestane okamžitě fungovat a nelze ji vrátit. E-maily na ni poslané se zahodí.
+    flash:
+      renamed: Adresa přejmenována.
+      revoked: 'Adresa {label} je zrušena.'
+    empty:
+      title: Zatím žádná adresa schránky
+      text: Vytvořte ji a pak na ni přeposílejte e-maily.
+    refused:
+      label_required: Napište, k čemu adresa slouží.
+      label_too_long: Název je příliš dlouhý.
+      address_exists: Adresu schránky už máte. Nahraďte ji, nebo ji nejdřív zrušte.
+      inbound_mail_not_configured: Příjem e-mailů není na tomto serveru nastaven. Obraťte se na toho, kdo ho provozuje.
+      inbound_mail_no_key: Příjem e-mailů není na tomto serveru nastaven. Obraťte se na toho, kdo ho provozuje.
+    created:
+      title: Adresa vaší schránky
+      once: Celá adresa se zobrazí jen teď. Zkopírujte si ji.
+      text: 'Adresa „{label}“ je připravena.'
+      field: Adresa schránky
+      copy: Kopírovat
+      copied: Zkopírováno
+      copy_failed: Kopírování se nepovedlo. Označte adresu a zkopírujte ji.
+      next: Přeposílejte e-maily na tuto adresu; objeví se ve vaší schránce.
+      done: Hotovo

@@ -12,13 +12,10 @@ use Foresi\Party\Application\Query\ContactDetail;
 use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Application\Query\ContactPersonLink;
 use Foresi\Party\Application\UnknownParty as NoSuchContact;
-use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Party\Contract\UnknownParty;
-use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\PartyRole;
 
 /**
  * The contract over the address book's own reads of one contact (ContactDetails), so the
@@ -26,7 +23,7 @@ use Foresi\Party\Domain\PartyRole;
  */
 final readonly class DoctrinePartyDirectory implements PartyDirectory
 {
-    public function __construct(private ContactDetails $contacts)
+    public function __construct(private ContactDetails $contacts, private PartySummaryFactory $summaries)
     {
     }
 
@@ -75,19 +72,8 @@ final readonly class DoctrinePartyDirectory implements PartyDirectory
     {
         $contact = $detail->contact;
 
-        return new PartySummary(
-            $contact->id,
-            ContactKind::from($contact->kind->value),
-            $contact->name,
-            $contact->registrationNumber,
-            $contact->vatId,
-            // The billing address comes first; every contact has one, the first address is the fallback.
-            $this->lines($contact->billingAddress ?? ($detail->addresses[0] ?? null)?->address),
-            $contact->email,
-            $this->phone($detail),
-            array_map(static fn (PartyRole $role): string => $role->value, $contact->roles),
-            $contact->archived,
-        );
+        // The billing address comes first; every contact has one, the first address is the fallback.
+        return $this->summaries->of($contact, $contact->billingAddress ?? ($detail->addresses[0] ?? null)?->address, $detail->phone, $detail->mobile);
     }
 
     private function person(ContactDetail $person, ContactPersonLink $link): PartyPersonSummary
@@ -98,17 +84,5 @@ final readonly class DoctrinePartyDirectory implements PartyDirectory
     private function phone(ContactDetail $detail): ?string
     {
         return '' !== $detail->phone ? $detail->phone : ('' !== $detail->mobile ? $detail->mobile : null);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function lines(?Address $address): array
-    {
-        if (!$address instanceof Address) {
-            return [];
-        }
-
-        return array_values(array_filter([trim($address->street), trim($address->postalCode.' '.$address->city), trim($address->countryCode)], static fn (string $line): bool => '' !== $line));
     }
 }

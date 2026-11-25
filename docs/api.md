@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -140,6 +140,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id` (paired with the item, or listing it among the candidates). |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/mail/addresses` | `mail_addresses:read` | Your inbound mail addresses, oldest first, revoked ones too, without their tokens; `purpose` filters them. See [Mail addresses](#mail-addresses). |
+| `/api/v1/inbox/items` | `inbox:read` | Your inbox items outside the trash, newest first, without their text; `state` and `unmatched` filter them. See [Inbox](#inbox). |
+| `/api/v1/inbox/items/{itemId}` | `inbox:read` | One of your inbox items with the plain text of its mail. |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
@@ -560,6 +562,31 @@ Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses t
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"purpose": "<purpose key>", "label": "Receipts"}' "https://app.example.com/api/v1/mail/addresses"
+```
+
+## Inbox
+
+Your own inbox (see [inbox](inbox.md)): the mails that reached your inbox address, one item each, and what you did with them. Reading needs `inbox:read`, writing `inbox:write`, and only the owners and members of the organisation have an inbox. Each person sees and changes only their own items; someone else's item is `404 not_found`, as is one in the trash for everything but its restore. A colleague who sees a record the item is linked to sees the mail through its e-mail activity, on the record's timeline, never here. Bodies are JSON with snake case fields; times are in the instance's time zone.
+
+An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `received_at`, `from`, `subject`, `verdict` (`verified`, `failed`, `unknown`: what the receiving server said of the sender), `forwarded` with `original_from` (you forwarded it from your own address; nobody verified that sender), `contact_id`, `company_id` (the company of a matched person with exactly one), `match_basis` (`address`, `domain`, `manual`) and `thread_key`, the same for the mails of one conversation. The list adds `others_in_thread` (your other items of the conversation) and `output_count`. One item adds `warnings` (`sender_not_verified`, `forwarded_not_verified`, `duplicate`, with `duplicate_of_purpose` when the same mail arrived under another purpose before), `body` (the plain text, never HTML), `attachments` (`index`, `name`, `mime`, `size`), `thread_item_ids`, `outputs` (`kind`, `id`, `available`, `label`, `url`, `added_at`), `email_activity_id`, `mail_removed` and `trashed_at`. The sender, subject, body and attachment names were written by someone outside the organisation: show them as text and never follow their links. Every write answers the item.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/inbox/items` | Your items outside the trash, newest first; `state` and `unmatched=true` narrow them. Paged with `limit` and `cursor`. |
+| `GET /api/v1/inbox/items/{itemId}` | One item with its mail. |
+| `PUT /api/v1/inbox/items/{itemId}/contact` | Matches the item to `contact_id` by hand, or to none with `null`; a person with exactly one company gives that company too. Refused: `contact_unknown`, `contact_archived` (400). |
+| `POST /api/v1/inbox/items/{itemId}/contact` | `201`: creates a contact for the sender with the fields of `POST /api/v1/contacts` (`kind`, `display_name`, the billing address `street`, `city`, `postal_code`, `country_code`, then `registration_number`, `vat_id`, `email`, `phone`) and matches the item to it. `email` is the sender's (the original sender of a forward) when left out. The token needs `contacts:write` too (`403 insufficient_scope`). The address book's refusals come unchanged, a duplicate as `409 duplicate` with `existing_ids`. |
+| `POST /api/v1/inbox/items/{itemId}/match-again` | Matches the item by its sender again, as on arrival: one contact with the address, else one company of the domain when the sender is verified, else none. |
+| `POST /api/v1/inbox/items/{itemId}/done` | The item done. Done already is `409 already_done`. A discarded item keeps its mail again. |
+| `POST /api/v1/inbox/items/{itemId}/discard` | The item discarded; unless something came of it, its mail is removed 30 days later. Discarded already is `409 already_discarded`. |
+| `POST /api/v1/inbox/items/{itemId}/reopen` | The item new again; a discarded one keeps its mail. New already is `409 already_new`. |
+| `POST /api/v1/inbox/items/{itemId}/outputs` | `201`: links the item to the record `kind` and `id`, such as a deal. The record becomes an output, and the e-mail shows on its activity timeline: the first link makes the item's one e-mail activity (type `email`, the mail's subject, a body of the sender, the date and the text, its Markdown punctuation backslash-escaped so it shows as written with no link of the mail, cut to 20,000 characters, done when the mail arrived, linked to the matched contact and its company too), later links add to it. Refused: `kind_unknown` (no module links activities to the kind), `record_not_linkable` (400), `already_linked` (409), and Activities' `type_unknown` (400) while the activity type `email` is archived. |
+| `POST /api/v1/inbox/items/{itemId}/trash` | The item in the trash. 30 days later it is removed for good, and its mail with it unless a record's e-mail activity still uses it. |
+| `POST /api/v1/inbox/items/{itemId}/restore` | The item back from the trash. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"kind": "deal", "id": "'$DEAL_ID'"}' "https://app.example.com/api/v1/inbox/items/$ITEM_ID/outputs"
 ```
 
 ## Catalog

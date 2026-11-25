@@ -207,12 +207,15 @@ final class ReceiveMailTest extends KernelTestCase
     public function testTheDailyLimitCountsPerInstanceDay(): void
     {
         $limited = LimitedReceive::of(static fn (string $id): mixed => self::getContainer()->get($id), 2, $this->prague());
-        $receive = static fn (string $address, string $id): ReceiveOutcome => $limited->receive->receive(MailKit::mail($address, $id), InboundChannel::Webhook);
+        // Marked, so a file another test process writes to the shared directory meanwhile does not count.
+        $marker = bin2hex(random_bytes(8));
+        $receive = static fn (string $address, string $id): ReceiveOutcome => $limited->receive->receive(MailKit::mail($address, $id, headers: ['X-Test-Run' => $marker]), InboundChannel::Webhook);
 
-        $files = static function (): int {
-            $found = glob(self::getContainer()->getParameter('app.inbound_mail_dir').'/*.eml');
+        $files = static function () use ($marker): int {
+            $directory = self::getContainer()->getParameter('app.inbound_mail_dir');
+            $found = glob($directory.'/*.eml');
 
-            return false === $found ? 0 : \count($found);
+            return false === $found ? 0 : \count(array_filter($found, static fn (string $file): bool => str_contains((string) @file_get_contents($file), $marker)));
         };
         $before = $files();
         Clock::set(new MockClock('2026-11-20 21:30:00', 'UTC'));
