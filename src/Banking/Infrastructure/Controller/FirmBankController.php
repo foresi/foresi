@@ -11,19 +11,20 @@ namespace Foresi\Banking\Infrastructure\Controller;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Foresi\Banking\Application\AddressRefusal;
 use Foresi\Banking\Application\AddressRefused;
+use Foresi\Banking\Application\BankFeedPurpose;
 use Foresi\Banking\Application\BankFeeds;
 use Foresi\Banking\Application\ChangePairing;
 use Foresi\Banking\Application\FirmPairingRules;
 use Foresi\Banking\Application\GenerateAddress;
-use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Party\Application\BankAccountRefused;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
@@ -78,8 +79,7 @@ final class FirmBankController extends AbstractController
         private readonly BankAccountUsage $usage,
         private readonly BankFeeds $feeds,
         private readonly GenerateAddress $generate,
-        private readonly InboundAddresses $addresses,
-        private readonly MailSecrets $secrets,
+        private readonly AddressIssuer $addresses,
         private readonly FirmPairingRules $pairing,
         private readonly ChangePairing $changePairing,
         private readonly InvoicingCountries $countries,
@@ -420,7 +420,7 @@ final class FirmBankController extends AbstractController
         }
 
         return [
-            'channel' => $this->translator->trans('bank.account.address.check.channel.'.$check->channel->value),
+            'channel' => $this->translator->trans('bank.account.address.check.channel.'.$check->channel),
             'authserv' => $check->authservId,
             'server' => $this->translator->trans(null === $check->authservId ? 'bank.account.address.check.no_header' : ($check->trusted ? 'bank.account.address.check.trusted' : 'bank.account.address.check.untrusted')),
             'verdict' => $check->trust instanceof MessageTrust
@@ -434,14 +434,11 @@ final class FirmBankController extends AbstractController
      */
     private function unavailable(): ?string
     {
-        if (!$this->addresses->isConfigured()) {
-            return $this->translator->trans('bank.account.address.refused.'.AddressRefusal::NotConfigured->value);
-        }
-        if (!$this->secrets->isConfigured()) {
-            return $this->translator->trans('bank.account.address.refused.'.AddressRefusal::NoKey->value);
-        }
-
-        return null;
+        return match ($this->addresses->unavailable(BankFeedPurpose::KEY)) {
+            AddressUnavailable::NotConfigured => $this->translator->trans('bank.account.address.refused.'.AddressRefusal::NotConfigured->value),
+            AddressUnavailable::NoKey => $this->translator->trans('bank.account.address.refused.'.AddressRefusal::NoKey->value),
+            null => null,
+        };
     }
 
     /**

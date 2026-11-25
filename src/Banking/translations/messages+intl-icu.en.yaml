@@ -120,7 +120,7 @@ bank:
       flash:
         generated: 'The address for {name} is ready. Enter it in your bank.'
       refused:
-        not_configured: Bank e-mail is not set up on this server. The administrator turns it on with BANK_INBOX_ADDRESS.
+        not_configured: Bank e-mail is not set up on this server. The administrator turns it on with MAIL_INBOUND_ADDRESS.
         no_key: 'The address cannot be stored: the server has no MAIL_SECRET_KEYS key.'
         archived: An archived account gets no address. Restore it first.
         conflict: An address was generated elsewhere meanwhile. Check it, and generate a new one if needed.

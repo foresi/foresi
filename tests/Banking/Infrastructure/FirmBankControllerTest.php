@@ -9,16 +9,19 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Infrastructure;
 
 use Doctrine\DBAL\Connection;
+use Foresi\Banking\Application\FeedRoute;
 use Foresi\Banking\Application\GenerateAddress;
-use Foresi\Banking\Application\InboundAddresses;
-use Foresi\Banking\Application\InboundToken;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Identity\Domain\Role;
-use Foresi\Invoicing\Application\MailSecrets;
+use Foresi\Mail\Application\InboundAddresses;
+use Foresi\Mail\Application\InboundAddressStore;
+use Foresi\Mail\Application\InboundToken;
+use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -159,10 +162,10 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertResponseRedirects($this->url('pairing'));
         $address = $this->shownAddress($account);
         $token = Scalars::text($this->addresses()->tokenIn($address));
-        $row = $this->connection()->fetchAssociative('SELECT * FROM bank_feed');
+        $row = $this->connection()->fetchAssociative('SELECT f.*, a.token_hash, a.token_sealed FROM bank_feed f JOIN mail_inbound_address a ON a.id = f.mail_inbound_address_id');
         self::assertIsArray($row);
         self::assertSame(InboundToken::hash($token), $row['token_hash']);
-        self::assertSame($token, self::getContainer()->get(MailSecrets::class)->open(Scalars::text($row['token_sealed'])));
+        self::assertSame($token, self::getContainer()->get(Sealer::class)->open(Scalars::text($row['token_sealed'])));
         self::assertStringNotContainsString($token, Scalars::text(json_encode($row)));
         self::assertStringNotContainsString($token, Scalars::text(json_encode($this->connection()->fetchAllAssociative('SELECT * FROM audit_entry'))));
     }
@@ -176,7 +179,7 @@ final class FirmBankControllerTest extends WebTestCase
         $address = $this->shownAddress($account);
 
         self::assertMatchesRegularExpression(self::ADDRESS, $address);
-        $route = $this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($address))));
+        $route = $this->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($address))));
         self::assertNotNull($route);
         self::assertSame($account, $route->accountId);
         // The dialog of the account shows the same address with the setup steps.
@@ -229,8 +232,8 @@ final class FirmBankControllerTest extends WebTestCase
         $new = $this->shownAddress($account);
 
         self::assertNotSame($old, $new);
-        self::assertNull($this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($old)))));
-        self::assertNotNull($this->directory()->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($new)))));
+        self::assertNull($this->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($old)))));
+        self::assertNotNull($this->route(InboundToken::hash(Scalars::text($this->addresses()->tokenIn($new)))));
         self::assertSame(2, Scalars::int($this->connection()->fetchOne('SELECT generation FROM bank_feed')));
     }
 
@@ -267,7 +270,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testWithoutAnAddressTemplateGeneratingIsRefused(): void
     {
-        $this->changeEnv('BANK_INBOX_ADDRESS', '');
+        $this->changeEnv('MAIL_INBOUND_ADDRESS', '');
         $this->signedInFirm();
         $account = $this->withAccount();
 
@@ -443,9 +446,14 @@ final class FirmBankControllerTest extends WebTestCase
         return new InboundAddresses('bank+{token}@example.com');
     }
 
-    private function directory(): DoctrineBankFeedDirectory
+    /**
+     * The feed mail with this token hash goes to, as Mail routes it to the feed's address.
+     */
+    private function route(string $tokenHash): ?FeedRoute
     {
-        return new DoctrineBankFeedDirectory($this->connection());
+        $address = self::getContainer()->get(InboundAddressStore::class)->routable($tokenHash);
+
+        return $address instanceof InboundAddress ? new DoctrineBankFeedDirectory($this->connection())->route($address->id()) : null;
     }
 
     private function connection(): Connection

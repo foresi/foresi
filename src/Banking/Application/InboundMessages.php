@@ -13,29 +13,17 @@ use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Shared\Application\View\ViewFilter;
 
 /**
- * The inbound messages.
+ * The bank mail: how far the processing of each Mail message of a feed got.
+ * The mail itself is read through Mail's contract.
  */
 interface InboundMessages
 {
     /**
-     * Whether a message with this dedup key is stored already.
+     * Stores a new message, waiting for processing, by a single statement; call it
+     * inside the transaction that stored the mail. The message object is not
+     * managed afterwards.
      */
-    public function has(string $dedupKey): bool;
-
-    /**
-     * The sha256 of the raw bytes of the message with this dedup key, or null
-     * when none is stored.
-     */
-    public function rawHashOf(string $dedupKey): ?string;
-
-    /**
-     * Stores a new message by a single statement. Of two messages with one dedup
-     * key only the first is stored, even at the same moment; the message object
-     * is not managed afterwards.
-     *
-     * @return bool false when a message with its dedup key is stored already
-     */
-    public function add(InboundMessage $message): bool;
+    public function add(InboundMessage $message): void;
 
     /**
      * The message as stored now, or null for none.

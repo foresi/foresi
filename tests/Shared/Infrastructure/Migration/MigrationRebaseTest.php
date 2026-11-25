@@ -146,11 +146,31 @@ final class MigrationRebaseTest extends KernelTestCase
         $schema = new \Doctrine\DBAL\Schema\Schema();
         $dropTables = [];
         $dropColumns = [];
+        $restoreColumns = [];
+        $restoreIndexes = [];
         foreach ($this->migrations() as $version) {
             $before = $this->columnsByTable($schema);
+            $known = $this->definitions($schema);
             $repository->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration()->up($schema);
             if (!\in_array($version, $afterBaselines, true)) {
                 continue;
+            }
+            // What a migration after the baselines drops was there before it: the database is given it back.
+            foreach ($known as $table => [$columns, $indexes]) {
+                $now = $schema->hasTable($table) ? $schema->getTable($table) : null;
+                if (!$now instanceof \Doctrine\DBAL\Schema\Table || \in_array($table, $dropTables, true)) {
+                    continue;
+                }
+                foreach ($columns as $name => $column) {
+                    if (!$now->hasColumn($name) && !\in_array([$table, $name], $dropColumns, true)) {
+                        $restoreColumns[] = [$table, $name, $column];
+                    }
+                }
+                foreach ($indexes as $name => $index) {
+                    if (!$now->hasIndex($name) && !$index->isPrimary()) {
+                        $restoreIndexes[] = [$table, $index];
+                    }
+                }
             }
             foreach ($this->columnsByTable($schema) as $table => $columns) {
                 if (!\array_key_exists($table, $before)) {
@@ -163,15 +183,53 @@ final class MigrationRebaseTest extends KernelTestCase
             }
         }
         foreach ($dropColumns as [$table, $column]) {
+            // An index on the column goes first, as a column that an index uses cannot be dropped.
+            $manager = $this->db->createSchemaManager();
+            foreach ($manager->listTableIndexes($table) as $index) {
+                if (!$index->isPrimary() && \in_array($column, $index->getColumns(), true)) {
+                    $manager->dropIndex($index->getName(), $table);
+                }
+            }
             $this->db->executeStatement(\sprintf('ALTER TABLE %s DROP COLUMN %s', $table, $column));
         }
         foreach ($dropTables as $table) {
             $this->db->createSchemaManager()->dropTable($table);
         }
+        $platform = $this->db->getDatabasePlatform();
+        foreach ($restoreColumns as [$table, $name, $column]) {
+            $definition = $column->toArray(true);
+            $definition['type'] = $column->getType();
+            $definition['notnull'] = false;
+            $this->db->executeStatement(\sprintf('ALTER TABLE %s ADD COLUMN %s', $table, $platform->getColumnDeclarationSQL($name, $definition)));
+        }
+        foreach ($restoreIndexes as [$table, $index]) {
+            $this->db->createSchemaManager()->createIndex($index, $table);
+        }
         $this->db->executeStatement('DELETE FROM doctrine_migration_versions');
         foreach (GlobalMigrationHistory::VERSIONS as $version) {
             $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-20 12:00:00', 'execution_time' => 5]);
         }
+    }
+
+    /**
+     * @return array<string, array{array<string, \Doctrine\DBAL\Schema\Column>, array<string, \Doctrine\DBAL\Schema\Index>}> the columns and indexes of each table
+     */
+    private function definitions(\Doctrine\DBAL\Schema\Schema $schema): array
+    {
+        $definitions = [];
+        foreach ($schema->getTables() as $table) {
+            $columns = [];
+            foreach ($table->getColumns() as $column) {
+                $columns[$column->getName()] = $column;
+            }
+            $indexes = [];
+            foreach ($table->getIndexes() as $index) {
+                $indexes[$index->getName()] = $index;
+            }
+            $definitions[$table->getName()] = [$columns, $indexes];
+        }
+
+        return $definitions;
     }
 
     /**

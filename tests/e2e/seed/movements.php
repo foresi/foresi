@@ -9,11 +9,9 @@ declare(strict_types=1);
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairMovement;
-use Foresi\Banking\Application\ReceiveInboundMail;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\LineInput;
@@ -25,6 +23,8 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
@@ -50,7 +50,7 @@ $receiveMail = $container->get('e2e.receive_inbound_mail');
 \assert($recordMovement instanceof RecordMovement);
 \assert($pairMovement instanceof PairMovement);
 \assert($generateAddress instanceof GenerateAddress);
-\assert($receiveMail instanceof ReceiveInboundMail);
+\assert($receiveMail instanceof ReceiveMail);
 $movementsFirm = new LegalEntity('Example Movements s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), $address(5), VatStatus::Registered, 'Example register, entry C 2468');
 $entityManager->persist($movementsFirm);
 $firmAccount($movementsFirm);
@@ -81,7 +81,7 @@ $notice = static function (string $name, string $to, ?string $auth, string $mess
     $raw = str_replace("To: bank+token@example.com\n", 'To: '.$to."\n", $fixture('kb/'.$name.'.eml'));
     $raw = (string) preg_replace('/^Message-ID: <[^>]+>$/m', 'Message-ID: <'.$messageId.'>', $raw, 1);
 
-    return null === $auth ? $raw : strtok($fixture('auth/'.$auth.'.eml'), "\n")."\n".$raw;
+    return null === $auth ? $raw : strtok($fixture('../Mail/auth/'.$auth.'.eml'), "\n")."\n".$raw;
 };
 $firstAddress = $generateAddress->generate($movementsAccount->id());
 $mails = [
@@ -98,9 +98,14 @@ foreach ($mails as $kind => $raw) {
     $receiveMail->receive($raw, InboundChannel::Webhook);
     if ('stuck' === $kind) {
         // As if the queue had given up on it two hours ago, before reading it.
+        $stuckId = $entityManager->getConnection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]);
         $entityManager->getConnection()->executeStatement(
-            "UPDATE inbound_message SET status = 'received', trust = NULL, trust_basis = NULL, parser_id = NULL, parser_version = NULL, failure = NULL, failure_detail = NULL, attempts = 3, processed_at = NULL, received_at = ? WHERE raw_sha256 = ?",
-            [new DateTimeImmutable('-2 hours'), hash('sha256', $raw)],
+            "UPDATE inbound_message SET status = 'received', trust = NULL, trust_basis = NULL, parser_id = NULL, parser_version = NULL, failure = NULL, failure_detail = NULL, attempts = 3, processed_at = NULL WHERE id = ?",
+            [$stuckId],
+        );
+        $entityManager->getConnection()->executeStatement(
+            'UPDATE mail_message SET received_at = ? WHERE id = ?',
+            [new DateTimeImmutable('-2 hours'), $stuckId],
             [Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE],
         );
     }

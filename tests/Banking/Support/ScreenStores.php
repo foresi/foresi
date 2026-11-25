@@ -126,17 +126,7 @@ final class ScreenStores
             {
             }
 
-            public function has(string $dedupKey): bool
-            {
-                throw new \LogicException('Not read by the screen.');
-            }
-
-            public function rawHashOf(string $dedupKey): ?string
-            {
-                throw new \LogicException('Not read by the screen.');
-            }
-
-            public function add(InboundMessage $message): bool
+            public function add(InboundMessage $message): void
             {
                 throw new \LogicException('Not read by the screen.');
             }

@@ -23,8 +23,11 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  *
  * A module may use the modules it requires, whole, as before contracts
  * existed. An optional dependency it may use only from its integration code
- * and only through that module's contract. A contract may use the contracts
- * of the required modules and the core it requires.
+ * and only through that module's contract, together with the contract of a
+ * module that dependency requires and the module lists as optional too (Country
+ * reads Banking's parser contract, which hands it Mail's InboundMail). A
+ * contract may use the contracts of the required modules and the core it
+ * requires.
  *
  * Ids and namespaces are validated, so they are written unquoted. A layer is
  * named by the module id with "_" for "-", as Deptrac reads the ruleset
@@ -64,7 +67,16 @@ final readonly class DeptracModulesConfig
             foreach ($optional as $id) {
                 $integration = $own.'_integration_'.$this->layer($id);
                 $lines = [...$lines, ...$this->collector($integration, $namespace.'Integration\\\\'.$id->directory().'\\\\.*')];
-                $rules[$integration] = [$own, $contract, ...($graph->has($id) ? [$this->layer($id).'_contract'] : []), ...$requiredLayers];
+                $theirs = [];
+                if ($graph->has($id)) {
+                    $theirs[] = $this->layer($id).'_contract';
+                    foreach ($graph->get($id)->requires as $through) {
+                        if ($graph->has($through) && array_any($module->optional, static fn (ModuleId $optional): bool => $optional->equals($through))) {
+                            $theirs[] = $this->layer($through).'_contract';
+                        }
+                    }
+                }
+                $rules[$integration] = [$own, $contract, ...$theirs, ...$requiredLayers];
             }
         }
 

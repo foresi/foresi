@@ -9,6 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\InboundMessage;
+use Foresi\Mail\Contract\AuthenticationResult;
+use Foresi\Mail\Contract\MailMessageView;
+use Foresi\Mail\Contract\Messages;
 
 /**
  * The trust check of the last message of a feed, for the owner's Pairing tab:
@@ -23,10 +26,7 @@ final readonly class TrustChecks
 
     public function __construct(
         private InboundMessages $messages,
-        private InboundFiles $files,
-        private MailReader $reader,
-        private AuthenticationResultsParser $parser,
-        private TrustSettings $settings,
+        private Messages $mail,
     ) {
     }
 
@@ -36,31 +36,20 @@ final readonly class TrustChecks
     public function lastOf(string $feedId): ?TrustCheck
     {
         $message = $this->messages->lastOfFeed($feedId);
-        if (!$message instanceof InboundMessage) {
+        $view = $message instanceof InboundMessage ? $this->mail->find($message->mailMessageId()) : null;
+        if (!$message instanceof InboundMessage || !$view instanceof MailMessageView) {
             return null;
         }
-        $authservId = $this->topmostAuthserv($message);
+        $topmost = $this->mail->authenticationResults($message->mailMessageId())[0] ?? null;
+        // The sender may have written it, when no server added one above: shown as text, and short.
+        $authservId = $topmost instanceof AuthenticationResult ? mb_substr($topmost->authservId, 0, self::MAX_ID) : '';
 
         return new TrustCheck(
-            $message->channel(),
-            $authservId,
-            null !== $authservId && $this->settings->trustsAuthserv($authservId, $message->channel()),
+            $view->channel,
+            '' === $authservId ? null : $authservId,
+            '' !== $authservId && $topmost->trusted,
             $message->trust(),
             $message->trustBasis(),
         );
-    }
-
-    private function topmostAuthserv(InboundMessage $message): ?string
-    {
-        try {
-            $mail = $this->reader->read($this->files->read($message->id(), $message->rawKey(), $message->rawSha256()));
-        } catch (\RuntimeException|\InvalidArgumentException) {
-            return null;
-        }
-        $headers = $mail->headers('Authentication-Results');
-        // The sender may have written it, when no server added one above: shown as text, and short.
-        $authservId = [] === $headers ? '' : mb_substr(TrustSettings::name($this->parser->parse($headers[0])['authserv']), 0, self::MAX_ID);
-
-        return '' === $authservId ? null : $authservId;
     }
 }

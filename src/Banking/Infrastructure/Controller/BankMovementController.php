@@ -10,7 +10,6 @@ namespace Foresi\Banking\Infrastructure\Controller;
 
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
-use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\MovementPage;
@@ -36,6 +35,7 @@ use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\Payment;
+use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
@@ -106,7 +106,7 @@ final class BankMovementController extends AbstractController
         private readonly BankText $text,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
-        private readonly InboundAddresses $addresses,
+        private readonly AddressIssuer $addresses,
         private readonly Ownership $ownership,
         private readonly ClockInterface $clock,
         private readonly BankMovementViews $views,

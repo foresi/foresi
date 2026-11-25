@@ -91,6 +91,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\Invoicing\\.*
+    - name: country_integration_mail
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Country\\Integration\\Mail\\.*
     - name: country_integration_purchasing
       collectors:
         - type: classLike
@@ -183,6 +187,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Invoicing\\Integration\\Vat\\.*
+    - name: mail
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Mail\\(?!Contract\\|Integration\\).*
+    - name: mail_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Mail\\Contract\\.*
     - name: margin
       collectors:
         - type: classLike
@@ -426,6 +438,8 @@ deptrac:
       - instance_contract
       - invoicing
       - invoicing_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -440,6 +454,7 @@ deptrac:
       - instance
       - instance_contract
       - invoicing_contract
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -457,6 +472,8 @@ deptrac:
       - instance_contract
       - invoicing
       - invoicing_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -569,6 +586,8 @@ deptrac:
       - banking_contract
       - country
       - country_contract
+      - invoicing_contract
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -589,9 +608,18 @@ deptrac:
       - party_contract
       - shared
       - shared_contract
+    country_integration_mail:
+      - country
+      - country_contract
+      - mail_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
     country_integration_purchasing:
       - country
       - country_contract
+      - exchange_rate_contract
       - party
       - party_contract
       - purchasing_contract
@@ -600,6 +628,7 @@ deptrac:
     country_integration_taxes_and_contributions:
       - country
       - country_contract
+      - exchange_rate_contract
       - party
       - party_contract
       - shared
@@ -608,6 +637,7 @@ deptrac:
     country_integration_vat:
       - country
       - country_contract
+      - exchange_rate_contract
       - party
       - party_contract
       - shared
@@ -835,6 +865,21 @@ deptrac:
       - ui
       - ui_contract
       - vat_contract
+    mail:
+      - audit
+      - audit_contract
+      - instance
+      - instance_contract
+      - mail_contract
+      - shared
+      - shared_contract
+    mail_contract:
+      - audit
+      - audit_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
     margin:
       - audit
       - audit_contract

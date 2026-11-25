@@ -14,10 +14,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Banking\Application\AddressRefusal;
 use Foresi\Banking\Application\AddressRefused;
 use Foresi\Banking\Application\BankFeeds;
-use Foresi\Banking\Application\InboundAddresses;
 use Foresi\Banking\Domain\BankFeed;
-use Foresi\Invoicing\Application\MailSecrets;
-use Foresi\Invoicing\Application\MailSecretsUnavailable;
+use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\AddressNotIssued;
+use Foresi\Mail\Contract\AddressUnavailable;
 
 /**
  * Through the ORM, except touch(), which is plain SQL by the feed's id.
@@ -29,8 +29,7 @@ final readonly class DoctrineBankFeeds implements BankFeeds
     public function __construct(
         private EntityManagerInterface $em,
         private Connection $connection,
-        private MailSecrets $secrets,
-        private InboundAddresses $addresses,
+        private AddressIssuer $issuer,
     ) {
     }
 
@@ -64,12 +63,10 @@ final readonly class DoctrineBankFeeds implements BankFeeds
     public function revealAddress(BankFeed $feed): string
     {
         try {
-            $token = $this->secrets->open($feed->tokenSealed());
-        } catch (MailSecretsUnavailable) {
-            throw new AddressRefused(AddressRefusal::NoKey);
+            return $this->issuer->reveal($feed->addressId()) ?? throw new \LogicException('The address of a bank feed is always shown again; Mail has none to show.');
+        } catch (AddressNotIssued $refused) {
+            throw new AddressRefused(AddressUnavailable::NoKey === $refused->reason ? AddressRefusal::NoKey : AddressRefusal::NotConfigured);
         }
-
-        return $this->addresses->addressFor($token);
     }
 
     public function touch(string $feedId, \DateTimeImmutable $at): void

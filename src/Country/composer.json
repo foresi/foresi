@@ -30,6 +30,7 @@
                 "banking",
                 "exchange-rate",
                 "invoicing",
+                "mail",
                 "purchasing",
                 "taxes-and-contributions",
                 "vat"

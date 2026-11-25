@@ -16,6 +16,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Support\Mail\SyntheticMail;
 
 /**
  * A fresh schema with one firm whose account has an inbound address, and
@@ -24,7 +25,7 @@ use Foresi\Tests\Party\Support\FirmAccounts;
  */
 final readonly class InboundMailKit
 {
-    public const string MESSAGE_ID = 'notice-1@mail.example.com';
+    public const string MESSAGE_ID = SyntheticMail::MESSAGE_ID;
     public const string IBAN = 'CZ6508000000192000145399';
     public const string OTHER_TOKEN = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -59,21 +60,7 @@ final readonly class InboundMailKit
      */
     public static function mail(string $to, ?string $messageId = self::MESSAGE_ID, array $headers = [], string $body = "A payment arrived on your account.\r\n"): string
     {
-        $lines = [];
-        foreach ($headers as $name => $value) {
-            $lines[] = $name.': '.$value;
-        }
-        $lines[] = 'From: Example Bank <info@bank.example.com>';
-        $lines[] = 'To: '.$to;
-        $lines[] = 'Subject: Payment notification';
-        $lines[] = 'Date: Fri, 20 Nov 2026 10:00:00 +0100';
-        if (null !== $messageId) {
-            $lines[] = 'Message-ID: <'.$messageId.'>';
-        }
-        $lines[] = 'MIME-Version: 1.0';
-        $lines[] = 'Content-Type: text/plain; charset=utf-8';
-
-        return implode("\r\n", $lines)."\r\n\r\n".$body;
+        return SyntheticMail::plain($to, $messageId, $headers, $body);
     }
 
     public function unknownAddress(): string

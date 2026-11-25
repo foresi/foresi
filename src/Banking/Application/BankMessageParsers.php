@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Contract\BankMessageParser;
-use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Contract\ParseFailure;
+use Foresi\Mail\Contract\InboundMail;
 
 /**
  * Finds the parser of a mail among the tagged country modules. A mail two

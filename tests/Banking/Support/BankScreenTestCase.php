@@ -14,12 +14,9 @@ use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairMovement;
 use Foresi\Banking\Application\ProcessMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
-use Foresi\Banking\Application\ReceiveOutcome;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\InvoiceInput;
@@ -34,6 +31,9 @@ use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -69,7 +69,7 @@ abstract class BankScreenTestCase extends WebTestCase
     protected const string COUNTER_IBAN = 'CZ1208000000009876543210';
     protected const array DIALOG = ['HTTP_X_FORESI_DIALOG' => '1', 'HTTP_ACCEPT' => 'application/json, text/html'];
     private const string KB_FIXTURES = __DIR__.'/../../Fixtures/Banking/kb/';
-    private const string AUTH_FIXTURES = __DIR__.'/../../Fixtures/Banking/auth/';
+    private const string AUTH_FIXTURES = __DIR__.'/../../Fixtures/Mail/auth/';
 
     protected KernelBrowser $client;
     protected SignedInBrowser $browser;
@@ -286,8 +286,8 @@ abstract class BankScreenTestCase extends WebTestCase
     {
         return $this->scoped(function () use ($raw, $process): string {
             $container = self::getContainer();
-            self::assertSame(ReceiveOutcome::Stored, $container->get(ReceiveInboundMail::class)->receive($raw, InboundChannel::Webhook));
-            $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM inbound_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
+            self::assertSame(ReceiveOutcome::Stored, $container->get(ReceiveMail::class)->receive($raw, InboundChannel::Webhook));
+            $id = Scalars::text($this->connection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
             if ($process) {
                 $container->get(ProcessMessage::class)->process($id);
             }

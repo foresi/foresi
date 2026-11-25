@@ -10,18 +10,16 @@ namespace Foresi\Tests\Banking\Support;
 
 use Foresi\Banking\Application\BankMessageParsers;
 use Foresi\Banking\Application\GenerateAddress;
-use Foresi\Banking\Application\InboundFiles;
 use Foresi\Banking\Application\InboundMessages;
-use Foresi\Banking\Application\MailAuthentication;
-use Foresi\Banking\Application\MailReader;
 use Foresi\Banking\Application\PendingChanges;
 use Foresi\Banking\Application\ProcessMessage;
-use Foresi\Banking\Application\ReceiveInboundMail;
-use Foresi\Banking\Application\ReceiveOutcome;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\Invoice;
+use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Contract\Messages;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
@@ -35,10 +33,10 @@ use Psr\Clock\ClockInterface;
 abstract class InboundTestCase extends BankingTestCase
 {
     protected const string KB_FIXTURES = __DIR__.'/../../Fixtures/Banking/kb/';
-    protected const string AUTH_FIXTURES = __DIR__.'/../../Fixtures/Banking/auth/';
+    protected const string AUTH_FIXTURES = __DIR__.'/../../Fixtures/Mail/auth/';
 
     protected string $address;
-    protected ReceiveInboundMail $receive;
+    protected ReceiveMail $receive;
     protected ProcessMessage $process;
 
     protected function setUp(): void
@@ -46,7 +44,7 @@ abstract class InboundTestCase extends BankingTestCase
         parent::setUp();
         $container = self::getContainer();
         $this->address = $container->get(GenerateAddress::class)->generate($this->account->id());
-        $this->receive = $container->get(ReceiveInboundMail::class);
+        $this->receive = $container->get(ReceiveMail::class);
         $this->process = $container->get(ProcessMessage::class);
     }
 
@@ -79,7 +77,7 @@ abstract class InboundTestCase extends BankingTestCase
     {
         self::assertSame(ReceiveOutcome::Stored, $this->receive->receive($raw, InboundChannel::Webhook));
 
-        return Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM inbound_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
+        return Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]));
     }
 
     /**
@@ -121,10 +119,8 @@ abstract class InboundTestCase extends BankingTestCase
 
         return new ProcessMessage(
             $container->get(InboundMessages::class),
-            $container->get(InboundFiles::class),
-            $container->get(MailReader::class),
+            $container->get(Messages::class),
             $parsers ?? $container->get(BankMessageParsers::class),
-            $container->get(MailAuthentication::class),
             $container->get(FirmBankAccounts::class),
             $this->recordMovement,
             $this->pairing,

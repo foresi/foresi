@@ -156,7 +156,7 @@ deptrac:
       collectors:
         - type: directory
           value: src/Invoicing/Infrastructure/.*
-    # Bank movements, inbound bank mail and pairing. The layers exist before all
+    # Bank movements, the processing of bank mail and pairing. The layers exist before all
     # their code does: a directory collector matching nothing is no error.
     - name: BankingDomain
       collectors:
@@ -168,18 +168,32 @@ deptrac:
           value: src/Banking/Application/.*
     - name: BankingInfrastructure
       collectors:
+        - type: directory
+          value: src/Banking/Infrastructure/.*
+    # Inbound mail: the addresses, the stored messages and the two ways they come in.
+    # Other modules use it through Foresi\Mail\Contract only.
+    - name: MailDomain
+      collectors:
+        - type: directory
+          value: src/Mail/Domain/.*
+    - name: MailApplication
+      collectors:
+        - type: directory
+          value: src/Mail/Application/.*
+    - name: MailInfrastructure
+      collectors:
         - type: bool
           must:
             - type: directory
-              value: src/Banking/Infrastructure/.*
+              value: src/Mail/Infrastructure/.*
           must_not:
             - type: directory
-              value: src/Banking/Infrastructure/Imap/.*
+              value: src/Mail/Infrastructure/Imap/.*
     # The IMAP adapter, the only code that may use the IMAP library and what it brings.
-    - name: BankingImap
+    - name: MailImap
       collectors:
         - type: directory
-          value: src/Banking/Infrastructure/Imap/.*
+          value: src/Mail/Infrastructure/Imap/.*
     # Projects and tasks of the organisation, shared by its firms.
     - name: WorkDomain
       collectors:
@@ -347,7 +361,7 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Monolog\\
-    # MIME parsing; only the Banking module's infrastructure may use it.
+    # MIME parsing; only the Mail module's infrastructure may use it.
     - name: VendorZbateson
       collectors:
         - type: classLike
@@ -731,7 +745,6 @@ deptrac:
       - VendorDoctrine
       - VendorDoctrineOrmMapping
       - VendorDbalConnection
-      - VendorZbateson
       - SharedDomain
       - SharedApplication
       - InstanceDomain
@@ -748,9 +761,41 @@ deptrac:
       - IdentityApplication
       # Notices on every page about bank mail that needs someone.
       - Ui
-    BankingImap:
-      - BankingDomain
-      - BankingApplication
+    # Mail builds on the shared kernel, the audit log of its addresses and the
+    # operator schedule; no module's code but its own uses anything of it outside
+    # Foresi\Mail\Contract.
+    MailDomain:
+      - Contract
+      - VendorDoctrineOrmMapping
+      - SharedDomain
+      - AuditDomain
+    MailApplication:
+      - Contract
+      - MailDomain
+      - SharedDomain
+      - SharedApplication
+      - InstanceDomain
+      - InstanceApplication
+      - AuditDomain
+    MailInfrastructure:
+      - Contract
+      - SharedInfrastructure
+      - MailDomain
+      - MailApplication
+      - VendorSymfony
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - VendorZbateson
+      - SharedDomain
+      - SharedApplication
+      - InstanceDomain
+      - InstanceApplication
+      - AuditDomain
+    MailImap:
+      - MailDomain
+      - MailApplication
       - VendorSymfony
       - VendorImapEngine
       - SharedDomain

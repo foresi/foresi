@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\MessageTrust;
 
 /**
@@ -20,11 +19,12 @@ use Foresi\Banking\Domain\MessageTrust;
 final readonly class TrustCheck
 {
     /**
+     * @param string      $channel    imap or webhook, as Mail names it
      * @param string|null $authservId the authserv-id of the topmost Authentication-Results, or null for none or an unreadable mail
      * @param string|null $basis      one of the TrustVerdict constants, or null while the message waits
      */
     public function __construct(
-        public InboundChannel $channel,
+        public string $channel,
         public ?string $authservId,
         public bool $trusted,
         public ?MessageTrust $trust,

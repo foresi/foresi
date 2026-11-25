@@ -26,7 +26,6 @@ use Foresi\Banking\Application\MessageRow;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\ProcessingResult;
 use Foresi\Banking\Application\TrustVerdict;
-use Foresi\Banking\Domain\InboundChannel;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
@@ -34,29 +33,29 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Psr\Clock\ClockInterface;
 
 /**
- * Plain statements, the same on SQLite and PostgreSQL. The insert does
- * nothing on a second dedup key, so of two deliveries
- * of one mail at the same moment exactly one is stored, and no failed insert
- * leaves the persistence session broken. Processing writes by plain statements
- * too: the processing of a message starts the session over on the way, and the
- * row is a log no person edits. Setting a message aside and recording one anyway
+ * Plain statements, the same on SQLite and PostgreSQL. Mail stores each mail
+ * once and hands it over once, so the insert is plain. What the lists show of
+ * the mail itself, when it came, from whom and about what, is read from Mail's
+ * table of the same id in the same statement. Processing writes by plain
+ * statements too: the processing of a message starts the session over on the
+ * way, and the row is a log no person edits. Setting a message aside and recording one anyway
  * are the changes a person makes, so each writes its own line to the audit log.
  */
 final readonly class DoctrineInboundMessages implements InboundMessages
 {
-    private const string HAS = 'SELECT 1 FROM inbound_message WHERE dedup_key = :key';
-
     private const string ADD = <<<'SQL'
-        INSERT INTO inbound_message (id, bank_feed_id, channel, dedup_key, raw_key, raw_sha256, size, from_address, subject, received_at, status, attempts)
-        VALUES (:id, :feed, :channel, :key, :raw_key, :raw_sha256, :size, :from_address, :subject, :received_at, :status, 0)
-        ON CONFLICT (dedup_key) DO NOTHING
+        INSERT INTO inbound_message (id, mail_message_id, bank_feed_id, status, attempts)
+        VALUES (:id, :mail, :feed, :status, 0)
         SQL;
 
     private const string CLAIMED = <<<'SQL'
-        SELECT m.raw_key, m.raw_sha256, m.channel, f.firm_bank_account_id
+        SELECT m.mail_message_id, f.firm_bank_account_id
         FROM inbound_message m JOIN bank_feed f ON f.id = m.bank_feed_id
         WHERE m.id = :id
         SQL;
+
+    /** The mail of a message, kept by Mail under the id the row names. */
+    private const string MAIL = 'JOIN mail_message mm ON mm.id = m.mail_message_id ';
 
     private const string FINISH = <<<'SQL'
         UPDATE inbound_message SET status = :status, trust = :trust, trust_basis = :basis, parser_id = :parser, parser_version = :version,
@@ -67,7 +66,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     private const string FAILED_ATTEMPT = 'UPDATE inbound_message SET attempts = attempts + 1 WHERE id = :id';
 
     /** The account a message came to, through its feed. */
-    private const string FEED = 'JOIN bank_feed f ON f.id = m.bank_feed_id '
+    private const string FEED = self::MAIL.'JOIN bank_feed f ON f.id = m.bank_feed_id '
         .'JOIN firm_bank_account a ON a.id = f.firm_bank_account_id';
 
     public function __construct(
@@ -80,33 +79,14 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     ) {
     }
 
-    public function has(string $dedupKey): bool
+    public function add(InboundMessage $message): void
     {
-        return false !== $this->connection->fetchOne(self::HAS, ['key' => $dedupKey]);
-    }
-
-    public function rawHashOf(string $dedupKey): ?string
-    {
-        $hash = $this->connection->fetchOne('SELECT raw_sha256 FROM inbound_message WHERE dedup_key = :key', ['key' => $dedupKey]);
-
-        return false === $hash ? null : $this->text($hash);
-    }
-
-    public function add(InboundMessage $message): bool
-    {
-        return 1 === $this->connection->executeStatement(self::ADD, [
+        $this->connection->executeStatement(self::ADD, [
             'id' => $message->id(),
+            'mail' => $message->mailMessageId(),
             'feed' => $message->feedId(),
-            'channel' => $message->channel()->value,
-            'key' => $message->dedupKey(),
-            'raw_key' => $message->rawKey(),
-            'raw_sha256' => $message->rawSha256(),
-            'size' => $message->size(),
-            'from_address' => $message->fromAddress(),
-            'subject' => $message->subject(),
-            'received_at' => $message->receivedAt(),
             'status' => InboundStatus::Received->value,
-        ], ['size' => Types::INTEGER, 'received_at' => Types::DATETIME_IMMUTABLE]);
+        ]);
     }
 
     public function find(string $id): ?InboundMessage
@@ -123,7 +103,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     public function lastOfFeed(string $feedId): ?InboundMessage
     {
         $id = $this->connection->fetchOne(
-            'SELECT id FROM inbound_message WHERE bank_feed_id = :feed ORDER BY received_at DESC, id DESC LIMIT 1',
+            'SELECT m.id FROM inbound_message m '.self::MAIL.'WHERE m.bank_feed_id = :feed ORDER BY mm.received_at DESC, m.id DESC LIMIT 1',
             ['feed' => $feedId],
         );
 
@@ -146,7 +126,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
             throw new \LogicException('A claimed message has no feed.');
         }
 
-        return new ClaimedMessage($id, $this->text($row['firm_bank_account_id']), $this->text($row['raw_key']), $this->text($row['raw_sha256']), InboundChannel::from($this->text($row['channel'])));
+        return new ClaimedMessage($id, $this->text($row['firm_bank_account_id']), $this->text($row['mail_message_id']));
     }
 
     public function finish(string $id, ProcessingResult $result, \DateTimeImmutable $at): void
@@ -191,19 +171,20 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     public function due(array $parserVersions, string $signature, int $limit): array
     {
         $query = $this->connection->createQueryBuilder()
-            ->select('id')
-            ->from('inbound_message')
-            ->where('status IN (:statuses)')
-            ->orderBy('received_at')
-            ->addOrderBy('id')
+            ->select('m.id')
+            ->from('inbound_message', 'm')
+            ->join('m', 'mail_message', 'mm', 'mm.id = m.mail_message_id')
+            ->where('m.status IN (:statuses)')
+            ->orderBy('mm.received_at')
+            ->addOrderBy('m.id')
             ->setMaxResults(max(1, $limit))
             ->setParameter('statuses', [InboundStatus::Failed->value, InboundStatus::NotBankMail->value], ArrayParameterType::STRING)
             ->setParameter('prefix', BankMessageParsers::SIGNATURE_PREFIX.'%')
             ->setParameter('signature', $signature);
-        $stale = ['(parser_id LIKE :prefix AND parser_id <> :signature)'];
+        $stale = ['(m.parser_id LIKE :prefix AND m.parser_id <> :signature)'];
         $index = 0;
         foreach ($parserVersions as $parserId => $version) {
-            $stale[] = \sprintf('(parser_id = :parser%1$d AND parser_version < :version%1$d)', $index);
+            $stale[] = \sprintf('(m.parser_id = :parser%1$d AND m.parser_version < :version%1$d)', $index);
             $query->setParameter('parser'.$index, $parserId)->setParameter('version'.$index, $version, ParameterType::INTEGER);
             ++$index;
         }
@@ -216,7 +197,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
     {
         [$where, $parameters, $types] = $this->conditions->mail($view ?? new ViewFilter(), 'v');
         $count = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where.' AND (m.status IN (:waiting) OR (m.status = :received AND m.received_at < :before))',
+            'SELECT COUNT(*) FROM inbound_message m '.self::FEED.' WHERE '.$where.' AND (m.status IN (:waiting) OR (m.status = :received AND mm.received_at < :before))',
             $parameters + ['waiting' => [InboundStatus::Failed->value, InboundStatus::Rejected->value], 'received' => InboundStatus::Received->value, 'before' => $stuckBefore],
             $types + ['waiting' => ArrayParameterType::STRING, 'before' => Types::DATETIME_IMMUTABLE],
         );
@@ -252,9 +233,9 @@ final readonly class DoctrineInboundMessages implements InboundMessages
      */
     private function listed(string $where, array $parameters, \DateTimeImmutable $stuckBefore, int $offset, int $limit, array $types = []): array
     {
-        $sql = 'SELECT m.id, m.received_at, m.from_address, m.subject, m.status, m.failure, m.failure_detail, m.trust, m.trust_basis, m.parser_id, m.parser_version, m.attempts, '
+        $sql = 'SELECT m.id, mm.received_at, mm.from_address, mm.subject, m.status, m.failure, m.failure_detail, m.trust, m.trust_basis, m.parser_id, m.parser_version, m.attempts, '
             .'a.label AS account_label, a.iban AS account_iban FROM inbound_message m '.self::FEED.' WHERE '.$where
-            .' ORDER BY m.received_at DESC, m.id DESC LIMIT '.max(1, $limit).' OFFSET '.max(0, $offset);
+            .' ORDER BY mm.received_at DESC, m.id DESC LIMIT '.max(1, $limit).' OFFSET '.max(0, $offset);
         $type = Type::getType(Types::DATETIME_IMMUTABLE);
         $platform = $this->connection->getDatabasePlatform();
 
@@ -300,7 +281,7 @@ final readonly class DoctrineInboundMessages implements InboundMessages
                 return null;
             }
             // Still in the queue: the worker may take it any moment, so it is left to it.
-            $sql .= ' AND received_at < :before';
+            $sql .= ' AND (SELECT mm.received_at FROM mail_message mm WHERE mm.id = inbound_message.mail_message_id) < :before';
             $parameters['before'] = $receivedBefore;
             $types['before'] = Types::DATETIME_IMMUTABLE;
         }

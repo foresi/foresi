@@ -15,41 +15,38 @@ use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * A bank feed belongs to one account and names the inbound address of Mail it receives on.
+ */
 final class BankFeedTest extends TestCase
 {
-    public function testItKeepsTheHashOfItsToken(): void
-    {
-        $hash = hash('sha256', 'token');
-
-        self::assertSame($hash, $this->open($hash)->tokenHash());
-    }
-
-    #[DataProvider('badHashes')]
-    public function testATokenHashIsSixtyFourLowercaseHexDigits(string $hash): void
+    #[DataProvider('blankAddresses')]
+    public function testAFeedNamesItsInboundAddress(string $addressId): void
     {
         $this->expectException(\DomainException::class);
-        $this->expectExceptionMessageIsOrContains('A token hash is 64 lowercase hex digits.');
+        $this->expectExceptionMessageIsOrContains('A bank feed names its inbound address.');
 
-        $this->open($hash);
+        BankFeed::open($this->account(), $addressId, new \DateTimeImmutable('2026-11-02 12:00:00'));
     }
 
     /**
      * @return iterable<string, array{string}>
      */
-    public static function badHashes(): iterable
+    public static function blankAddresses(): iterable
     {
-        $hash = hash('sha256', 'token');
-
-        yield 'something before' => ['x'.$hash];
-        yield 'something after' => [$hash.'x'];
-        yield 'a line end after' => [$hash."\n"];
-        yield 'upper case' => [strtoupper($hash)];
+        yield 'none' => [''];
+        yield 'blanks only' => ["  \t "];
     }
 
-    private function open(string $hash): BankFeed
+    public function testAFeedKeepsItsAddress(): void
     {
-        $account = FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
+        $feed = BankFeed::open($this->account(), '01937f4e-0000-7000-8000-000000000001', new \DateTimeImmutable('2026-11-02 12:00:00'));
 
-        return BankFeed::open($account, $hash, 'sealed', new \DateTimeImmutable('2026-11-02T09:00:00+01:00'));
+        self::assertSame('01937f4e-0000-7000-8000-000000000001', $feed->addressId());
+    }
+
+    private function account(): FirmBankAccount
+    {
+        return FirmBankAccount::open(Iban::fromString('CZ6508000000192000145399'), Currency::CZK, '', 0);
     }
 }

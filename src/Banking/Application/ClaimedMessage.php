@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Banking\Domain\InboundChannel;
-
 /**
  * An inbound message one worker took for processing, with what processing
  * needs of it: plain values, so a session started over keeps them.
@@ -17,15 +15,13 @@ use Foresi\Banking\Domain\InboundChannel;
 final readonly class ClaimedMessage
 {
     /**
-     * @param string         $accountId the bank account of the feed the message came to
-     * @param InboundChannel $channel   the path it came by, whose receiving servers are trusted
+     * @param string $accountId     the bank account of the feed the message came to
+     * @param string $mailMessageId Mail's message, read through Mail's contract
      */
     public function __construct(
         public string $id,
         public string $accountId,
-        public string $rawKey,
-        public string $rawSha256,
-        public InboundChannel $channel,
+        public string $mailMessageId,
     ) {
     }
 }

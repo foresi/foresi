@@ -17,29 +17,20 @@ use Foresi\Shared\Domain\Id;
 
 /**
  * The inbound address of one bank account: where the bank's payment
- * notifications are sent. The secret token in the address is stored twice and
- * never as it is: its SHA-256 hash, the key mail is routed by, and a sealed copy
- * that only shows it again to the firm. Neither the sealed copy nor the time of
- * the last message goes to the audit log; a new token shows there as a new
- * hash and generation. Rotating replaces both at once, so the old address stops
- * being found the moment the new one is stored.
+ * notifications are sent. The address itself, its token stored as a hash and a
+ * sealed copy, is Mail's inbound address of the purpose bank_feed, named here
+ * by its id; a new token shows in the audit log as a new generation. The time
+ * of the last message does not go to the audit log.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'bank_feed')]
 #[ORM\UniqueConstraint(name: 'uniq_bank_feed_account', columns: ['firm_bank_account_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_bank_feed_token', columns: ['token_hash'])]
+#[ORM\UniqueConstraint(name: 'uniq_bank_feed_address', columns: ['mail_inbound_address_id'])]
 class BankFeed implements Audited, AuditRooted
 {
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
-
-    #[ORM\Column(name: 'token_hash', type: 'string', length: 64, options: ['fixed' => true])]
-    private string $tokenHash;
-
-    #[AuditExcluded]
-    #[ORM\Column(name: 'token_sealed', type: 'text')]
-    private string $tokenSealed;
 
     /** 1 for the first token, one more for every new one. */
     #[ORM\Column(type: 'integer')]
@@ -57,36 +48,30 @@ class BankFeed implements Audited, AuditRooted
         #[ORM\ManyToOne(targetEntity: FirmBankAccount::class)]
         #[ORM\JoinColumn(name: 'firm_bank_account_id', nullable: false, onDelete: 'RESTRICT')]
         private readonly FirmBankAccount $account,
-        string $tokenHash,
-        string $tokenSealed,
+        #[ORM\Column(name: 'mail_inbound_address_id', type: 'guid')]
+        private readonly string $addressId,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
-        $this->id = Id::generate();
-        $this->tokenHash = $this->checkedHash($tokenHash);
-        $this->tokenSealed = $this->checkedSealed($tokenSealed);
-    }
-
-    /**
-     * @param string $tokenHash   the lowercase hex SHA-256 of the token
-     * @param string $tokenSealed the token, sealed
-     */
-    public static function open(FirmBankAccount $account, string $tokenHash, string $tokenSealed, \DateTimeImmutable $at): self
-    {
-        return new self($account, $tokenHash, $tokenSealed, $at);
-    }
-
-    /**
-     * A new token in place of the old one, which is not found any more.
-     */
-    public function rotate(string $tokenHash, string $tokenSealed, \DateTimeImmutable $at): void
-    {
-        $tokenHash = $this->checkedHash($tokenHash);
-        if (hash_equals($this->tokenHash, $tokenHash)) {
-            throw new \DomainException('A new token must differ from the old one.');
+        if ('' === trim($addressId)) {
+            throw new \DomainException('A bank feed names its inbound address.');
         }
-        $this->tokenHash = $tokenHash;
-        $this->tokenSealed = $this->checkedSealed($tokenSealed);
+        $this->id = Id::generate();
+    }
+
+    /**
+     * @param string $addressId the id of Mail's inbound address
+     */
+    public static function open(FirmBankAccount $account, string $addressId, \DateTimeImmutable $at): self
+    {
+        return new self($account, $addressId, $at);
+    }
+
+    /**
+     * Mail gave the address a new token in place of the old one, which is not found any more.
+     */
+    public function rotated(\DateTimeImmutable $at): void
+    {
         ++$this->generation;
         $this->rotatedAt = $at;
         $this->lastReceivedAt = null;
@@ -107,14 +92,9 @@ class BankFeed implements Audited, AuditRooted
         return $this->account;
     }
 
-    public function tokenHash(): string
+    public function addressId(): string
     {
-        return $this->tokenHash;
-    }
-
-    public function tokenSealed(): string
-    {
-        return $this->tokenSealed;
+        return $this->addressId;
     }
 
     public function generation(): int
@@ -135,23 +115,5 @@ class BankFeed implements Audited, AuditRooted
     public function lastReceivedAt(): ?\DateTimeImmutable
     {
         return $this->lastReceivedAt;
-    }
-
-    private function checkedHash(string $hash): string
-    {
-        if (1 !== preg_match('/^[0-9a-f]{64}$/D', $hash)) {
-            throw new \DomainException('A token hash is 64 lowercase hex digits.');
-        }
-
-        return $hash;
-    }
-
-    private function checkedSealed(string $sealed): string
-    {
-        if ('' === $sealed) {
-            throw new \DomainException('The sealed token is missing.');
-        }
-
-        return $sealed;
     }
 }

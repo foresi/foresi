@@ -12,10 +12,7 @@ use Foresi\Banking\Application\AcceptRefused;
 use Foresi\Banking\Application\AcceptRejectedMessage;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\DismissInboundMessage;
-use Foresi\Banking\Application\InboundAddresses;
-use Foresi\Banking\Application\InboundFiles;
 use Foresi\Banking\Application\InboundMessages;
-use Foresi\Banking\Application\MailReader;
 use Foresi\Banking\Application\Ownership;
 use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\RetryInboundMessage;
@@ -26,6 +23,9 @@ use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\MailMessageView;
+use Foresi\Mail\Contract\Messages;
 use Foresi\Party\Application\InstanceFirm;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -53,8 +53,7 @@ final class InboundMessageController extends AbstractController
 
     public function __construct(
         private readonly InboundMessages $messages,
-        private readonly InboundFiles $files,
-        private readonly MailReader $reader,
+        private readonly Messages $mail,
         private readonly RetryInboundMessage $retrying,
         private readonly AcceptRejectedMessage $accepting,
         private readonly DismissInboundMessage $dismissing,
@@ -62,7 +61,7 @@ final class InboundMessageController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
-        private readonly InboundAddresses $addresses,
+        private readonly AddressIssuer $addresses,
         private readonly Ownership $ownership,
         private readonly InstanceFirm $firm,
         private readonly LoggerInterface $logger,
@@ -74,14 +73,15 @@ final class InboundMessageController extends AbstractController
     {
         $this->denyUnlessStaff();
         $message = $this->message($id);
+        $mail = $this->mailOf($message);
         $row = $this->messages->row($id, BankScreen::stuckBefore($this->clock)) ?? throw new NotFoundHttpException();
 
         $body = $this->body($message);
 
         return $this->render('@Banking/message.html.twig', [
             'message' => $message,
-            'subject' => $this->addresses->masked($message->subject()),
-            'from' => null === $message->fromAddress() ? null : $this->addresses->masked($message->fromAddress()),
+            'subject' => $this->addresses->masked($mail->subject),
+            'from' => null === $mail->from ? null : $this->addresses->masked($mail->from),
             'received' => $this->text->time($row->receivedAt),
             'account' => $this->firm->get()->name().' · '.$this->text->account($row->accountLabel, $row->accountIban),
             'status' => $this->text->status($row->status, $row->stuck),
@@ -145,7 +145,7 @@ final class InboundMessageController extends AbstractController
             return $this->toList($return);
         }
         if (!$post) {
-            return $this->render('@Banking/accept.html.twig', ['message' => $message, 'subject' => $this->addresses->masked($message->subject()), 'return' => $return, 'cancel' => $this->listUrl($return)]);
+            return $this->render('@Banking/accept.html.twig', ['message' => $message, 'subject' => $this->addresses->masked($this->mailOf($message)->subject), 'return' => $return, 'cancel' => $this->listUrl($return)]);
         }
 
         try {
@@ -183,7 +183,7 @@ final class InboundMessageController extends AbstractController
         if (!$post) {
             return $this->render('@Banking/dismiss.html.twig', [
                 'message' => $message,
-                'subject' => $this->addresses->masked($message->subject()),
+                'subject' => $this->addresses->masked($this->mailOf($message)->subject),
                 'reason' => $this->text->reason($message->status(), $message->failure(), $this->stuck($message)),
                 'return' => $return,
                 'cancel' => $this->listUrl($return),
@@ -206,7 +206,7 @@ final class InboundMessageController extends AbstractController
     private function body(InboundMessage $message): ?string
     {
         try {
-            $mail = $this->reader->read($this->files->read($message->id(), $message->rawKey(), $message->rawSha256()));
+            $mail = $this->mail->mail($message->mailMessageId());
         } catch (\RuntimeException|\InvalidArgumentException) {
             return null;
         }
@@ -221,7 +221,15 @@ final class InboundMessageController extends AbstractController
 
     private function stuck(InboundMessage $message): bool
     {
-        return InboundStatus::Received === $message->status() && $message->receivedAt() < BankScreen::stuckBefore($this->clock);
+        return InboundStatus::Received === $message->status() && $this->mailOf($message)->receivedAt < BankScreen::stuckBefore($this->clock);
+    }
+
+    /**
+     * What Mail keeps of the message's mail; a message of no mail is not found.
+     */
+    private function mailOf(InboundMessage $message): MailMessageView
+    {
+        return $this->mail->find($message->mailMessageId()) ?? throw new NotFoundHttpException();
     }
 
     private function message(string $id): InboundMessage

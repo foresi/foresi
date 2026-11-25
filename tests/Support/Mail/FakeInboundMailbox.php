@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Support\Mail;
 
-use Foresi\Banking\Application\InboundMailbox;
-use Foresi\Banking\Application\MailboxItem;
+use Foresi\Mail\Application\InboundMailbox;
+use Foresi\Mail\Application\MailboxItem;
 
 /**
  * The operator mailbox in memory: an inbox and the three folders handled mail

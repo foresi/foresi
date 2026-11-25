@@ -25,6 +25,8 @@ The public link page of a paid or overpaid invoice says "Paid" and shows no acco
 
 ## How bank mail reaches Foresi
 
+The Mail module receives the mail and keeps it; Banking reads what a bank account's address receives. The two routes, the addresses, the raw store and the settings are described in [mail.md](mail.md); this section tells what they mean for bank mail.
+
 ```
 bank ──mail──▶ bank inbox (bank+<token>@example.com) ──IMAP poll or webhook──▶ Foresi
 ```
@@ -37,10 +39,10 @@ bank ──mail──▶ bank inbox (bank+<token>@example.com) ──IMAP poll o
 
 ### The inbound address
 
-The server's address template is `BANK_INBOX_ADDRESS`, with `{token}` where the token goes:
+The server's address template is `MAIL_INBOUND_ADDRESS`, with `{token}` where the token goes:
 
 ```
-BANK_INBOX_ADDRESS=bank+{token}@example.com
+MAIL_INBOUND_ADDRESS=bank+{token}@example.com
 ```
 
 The mailbox must deliver every plus-addressed variant, `bank+<anything>@example.com`, into the one inbox, or a catch-all must do the same for a template such as `{token}@bank.example.com`. Check this with your mail provider before handing out addresses: some providers drop or reject plus addressing unless it is turned on.
@@ -49,30 +51,30 @@ The mailbox must deliver every plus-addressed variant, `bank+<anything>@example.
 - A token has 128 random bits, written as 26 characters of lowercase base32. The database keeps only its SHA-256 hash, for the lookup, and a copy sealed with `MAIL_SECRET_KEYS` (see [sending.md](sending.md#passwords-mail_secret_keys)), so the address can be shown again. Without a key no address can be generated. A copy of the database alone does not reveal any address.
 - "Generate a new one" replaces the token. The old address stops working at once: mail sent to it is treated as for an unknown address. Enter the new address in the bank, or in the forwarding rule, straight away.
 - The address is the only secret. Whoever knows it can send mail to it; what such mail can do is limited by the [trust rule](#what-foresi-believes) and the [account check](#the-account-check).
-- Without `BANK_INBOX_ADDRESS` the Pairing tab says that bank mail is not set up on this server, and no address can be generated.
+- Without `MAIL_INBOUND_ADDRESS` the Pairing tab says that bank mail is not set up on this server, and no address can be generated.
 
 Foresi finds the token in the first header, in this order, that holds an address made from the template: `X-Foresi-Recipient` (webhook only), `Delivered-To`, `X-Original-To`, `Envelope-To`, `X-Envelope-To`, `X-Forwarded-To`, `To`, `Cc`. Where the mail was delivered comes first, as a forward keeps the original `To`.
 
 ### Polling the inbox over IMAP
 
 ```
-BANK_INBOX_HOST=imap.example.com
-BANK_INBOX_PORT=993
-BANK_INBOX_ENCRYPTION=ssl
-BANK_INBOX_USER=bank@example.com
-BANK_INBOX_PASSWORD=
-BANK_INBOX_FOLDER=INBOX
+MAIL_INBOUND_HOST=imap.example.com
+MAIL_INBOUND_PORT=993
+MAIL_INBOUND_ENCRYPTION=ssl
+MAIL_INBOUND_USER=bank@example.com
+MAIL_INBOUND_PASSWORD=
+MAIL_INBOUND_FOLDER=INBOX
 ```
 
 | Setting | Meaning |
 |---|---|
-| `BANK_INBOX_HOST` | The IMAP server. Empty turns polling off |
-| `BANK_INBOX_PORT` | 993 for `ssl`, usually 143 for `starttls` |
-| `BANK_INBOX_ENCRYPTION` | `ssl` or `starttls`. There is no unencrypted mode, and the certificate is always checked |
-| `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD` | The login. Set the password outside committed files, for example in `.env.local` or the service environment |
-| `BANK_INBOX_FOLDER` | The folder read, `INBOX` by default |
+| `MAIL_INBOUND_HOST` | The IMAP server. Empty turns polling off |
+| `MAIL_INBOUND_PORT` | 993 for `ssl`, usually 143 for `starttls` |
+| `MAIL_INBOUND_ENCRYPTION` | `ssl` or `starttls`. There is no unencrypted mode, and the certificate is always checked |
+| `MAIL_INBOUND_USER`, `MAIL_INBOUND_PASSWORD` | The login. Set the password outside committed files, for example in `.env.local` or the service environment |
+| `MAIL_INBOUND_FOLDER` | The folder read, `INBOX` by default |
 
-The task `bank-inbox` runs every five minutes on the existing schedule, under a lock, so two workers never poll at once. Each run opens a new session, takes the 50 oldest messages that are not marked deleted, reads them without marking them read, and then **moves** each one:
+The task `mail-inbox` (Mail module) runs every five minutes on the existing schedule, under a lock, so two workers never poll at once. Each run opens a new session, takes the 50 oldest messages that are not marked deleted, reads them without marking them read, and then **moves** each one:
 
 | Folder | What lands there |
 |---|---|
@@ -138,7 +140,7 @@ export default {
 
 Store the secret as a secret of the worker (`FORESI_INBOUND_SECRET` here), never in its code. A failed post throws, so the relay's own handling of a failed delivery applies; check your service's documentation for what it does then.
 
-**Trust for the webhook is set apart from the inbox.** Mail posted to the webhook is believed only on the word of the relay's own receiving server, listed in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`, never on the servers of `BANK_INBOX_TRUSTED_AUTHSERV`: the two are different paths, and a relay that trusted the inbox's id would believe any sender who wrote it. Empty, the default, verifies no webhook mail, so none pays by itself; it is still recorded, unverified, for a person to pair after checking it in the bank.
+**Trust for the webhook is set apart from the inbox.** Mail posted to the webhook is believed only on the word of the relay's own receiving server, listed in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`, never on the servers of `MAIL_INBOUND_TRUSTED_AUTHSERV`: the two are different paths, and a relay that trusted the inbox's id would believe any sender who wrote it. Empty, the default, verifies no webhook mail, so none pays by itself; it is still recorded, unverified, for a person to pair after checking it in the bank.
 
 The relay must stamp its **own** `Authentication-Results` at the **top** of every message it posts, above every header the message arrived with, as the result of its own SPF, DKIM and DMARC checks. A relay that only passes on what the message carried proves nothing: those headers may be the sender's. For a relay whose receiving server writes the header itself, the raw message as the relay receives it starts like this:
 
@@ -170,11 +172,11 @@ Anyone can send a mail that looks like the bank's, and anyone can write an `Auth
 A message is **verified** only when:
 
 - its `From` names exactly one address, in a domain of the bank (for Komerční banka `kb.cz` and `kbinfo.cz`, and their subdomains);
-- the **topmost** `Authentication-Results` header carries an authserv-id trusted for the channel the message came by: listed in `BANK_INBOX_TRUSTED_AUTHSERV` for mail polled over IMAP, in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` for mail posted to the webhook;
+- the **topmost** `Authentication-Results` header carries an authserv-id trusted for the channel the message came by: listed in `MAIL_INBOUND_TRUSTED_AUTHSERV` for mail polled over IMAP, in `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` for mail posted to the webhook;
 - that header holds exactly one DMARC result, and it is `dmarc=pass` for a `header.from` the sender's domain aligns with, which is itself a domain of the bank;
 - no `Authentication-Results` header below the topmost one carries a trusted authserv-id.
 
-Or, by the strict ARC rescue, when the topmost trusted header says `arc=pass`, the newest ARC set (the highest `i=`) is sealed by a domain listed in `BANK_INBOX_TRUSTED_ARC`, and that set's `ARC-Authentication-Results` shows an aligned `dkim=pass` for the bank. The rescue overrides a DKIM signature that a forwarder broke on the way; it never overrides a `dmarc=fail`.
+Or, by the strict ARC rescue, when the topmost trusted header says `arc=pass`, the newest ARC set (the highest `i=`) is sealed by a domain listed in `MAIL_INBOUND_TRUSTED_ARC`, and that set's `ARC-Authentication-Results` shows an aligned `dkim=pass` for the bank. The rescue overrides a DKIM signature that a forwarder broke on the way; it never overrides a `dmarc=fail`.
 
 A claim of failure counts **from any `Authentication-Results` header**, whether its authserv-id is trusted or not: claiming a fail can only make the verdict stricter, so nobody gains by forging one. A message is **failed** when:
 
@@ -196,7 +198,7 @@ Why so strict: a receiving server copies text the sender chose, such as the HELO
 ### What the operator must do
 
 1. **Your receiving server must add its own `Authentication-Results` at the top of every message** it delivers into the bank inbox, with SPF, DKIM and DMARC results. Most hosted mail services do; a self-run Postfix needs a milter such as OpenDKIM with OpenDMARC, or rspamd, configured to add the header. Without it no message is ever verified.
-2. **List its authserv-id in `BANK_INBOX_TRUSTED_AUTHSERV`.** The authserv-id is the first word of the header, before the first `;`. Open the raw source of any message in the bank inbox and read the topmost header:
+2. **List its authserv-id in `MAIL_INBOUND_TRUSTED_AUTHSERV`.** The authserv-id is the first word of the header, before the first `;`. Open the raw source of any message in the bank inbox and read the topmost header:
 
    ```
    Authentication-Results: mx.example.com;
@@ -208,21 +210,21 @@ Why so strict: a receiving server copies text the sender chose, such as the HELO
    Here it is `mx.example.com`:
 
    ```
-   BANK_INBOX_TRUSTED_AUTHSERV=mx.example.com
+   MAIL_INBOUND_TRUSTED_AUTHSERV=mx.example.com
    ```
 
    List only your own receiving server. A list of several is comma-separated, for a provider that writes different ids from different hosts. Empty verifies no bank message, so nothing pairs by itself.
-3. **List ARC sealers in `BANK_INBOX_TRUSTED_ARC`**, by the signing domain (`d=`) of their `ARC-Seal`, only for forwarders you trust to have checked the bank's signature, such as the mailbox the owner forwards from:
+3. **List ARC sealers in `MAIL_INBOUND_TRUSTED_ARC`**, by the signing domain (`d=`) of their `ARC-Seal`, only for forwarders you trust to have checked the bank's signature, such as the mailbox the owner forwards from:
 
    ```
-   BANK_INBOX_TRUSTED_ARC=forwarder.example.com
+   MAIL_INBOUND_TRUSTED_ARC=forwarder.example.com
    ```
 
 4. **If your inbox provider seals with ARC on receipt, list it too.** The newest ARC set is then the provider's own, so without it in the list no ARC rescue ever applies.
 
 ### Checking the setup
 
-The owner's **Firm › Bank › Pairing** tab shows, under each account's address, a check of the last e-mail that account received: the channel it came by (IMAP or webhook), the authserv-id of its topmost `Authentication-Results`, whether that server is trusted for the channel, and the verdict, such as "Verified sender (dmarc)" or "Sender not verified (no-results)". Nothing else of the mail is shown there. An id that is yours but shown as not trusted belongs in `BANK_INBOX_TRUSTED_AUTHSERV` (IMAP) or `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` (webhook); an id that is not your server's means your server added no header of its own, and nothing from that path will ever verify.
+The owner's **Firm › Bank › Pairing** tab shows, under each account's address, a check of the last e-mail that account received: the channel it came by (IMAP or webhook), the authserv-id of its topmost `Authentication-Results`, whether that server is trusted for the channel, and the verdict, such as "Verified sender (dmarc)" or "Sender not verified (no-results)". Nothing else of the mail is shown there. An id that is yours but shown as not trusted belongs in `MAIL_INBOUND_TRUSTED_AUTHSERV` (IMAP) or `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` (webhook); an id that is not your server's means your server added no header of its own, and nothing from that path will ever verify.
 
 When notifications arrive but stay unverified, open one under **Bank › Messages › Show**: the verification line says why. Compare its raw headers with the rule above.
 
@@ -242,7 +244,7 @@ KB mails payment notifications once in Czech and once in English, from `kb.cz` o
 1. In Settings, Notifications, turn on "By e-mail" for incoming payments.
 2. In your own mailbox, add a rule that forwards these mails to the account's inbound address.
 
-The forward keeps the bank's DKIM signature when the forwarder does not change the message. If the forwarder breaks it, the message is verified only by the ARC rescue, when the forwarder seals with ARC and is listed in `BANK_INBOX_TRUSTED_ARC`.
+The forward keeps the bank's DKIM signature when the forwarder does not change the message. If the forwarder breaks it, the message is verified only by the ARC rescue, when the forwarder seals with ARC and is listed in `MAIL_INBOUND_TRUSTED_ARC`.
 
 Most mail services ask the forwarding address to confirm before they forward to it; Gmail, for example, mails a confirmation code. That mail reaches Foresi like any other: it shows under **Bank › Messages** as "Not bank mail". Open it with Show, take the code or the link, and then Dismiss it.
 
@@ -382,6 +384,7 @@ Raw bank messages hold the names and account numbers of payers, the amounts, and
 - Run `bin/console doctrine:migrations:migrate`. The new tables hold payments and their allocations, the firms' bank accounts, inbound addresses, pairing settings, inbound messages and bank movements.
 - **Firm bank accounts became records.** The migration copies each firm's list in order and makes the first account the primary one. The list held no currency, so the migration guesses it from the firm's country: CZK in Czechia, EUR in a euro-area country, USD in the United States, and CZK elsewhere. Check each account under **Firm › Bank › Accounts** and correct the currency of an account kept in another one. The currency locks once the account has a movement.
 - **Country modules:** the interface `InvoicingCountry` has a new method, `settlementLimit(Currency $currency): ?int`, the most minor units a firm of the country may write off on an invoice in the currency, or null for none. A third-party country module must implement it; return null to keep small differences unsettled.
-- **New environment variables**, all empty by default, so bank mail stays off until set: `BANK_INBOX_ADDRESS`, `BANK_INBOX_TRUSTED_AUTHSERV`, `BANK_INBOX_TRUSTED_ARC`, `BANK_INBOX_HOST`, `BANK_INBOX_PORT` (993), `BANK_INBOX_ENCRYPTION` (`ssl`), `BANK_INBOX_USER`, `BANK_INBOX_PASSWORD`, `BANK_INBOX_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
+- **New environment variables**, all empty by default, so bank mail stays off until set (they were called `BANK_INBOX_*` until the Mail module took them over, see [mail.md](mail.md#settings)): `MAIL_INBOUND_ADDRESS`, `MAIL_INBOUND_TRUSTED_AUTHSERV`, `MAIL_INBOUND_TRUSTED_ARC`, `MAIL_INBOUND_HOST`, `MAIL_INBOUND_PORT` (993), `MAIL_INBOUND_ENCRYPTION` (`ssl`), `MAIL_INBOUND_USER`, `MAIL_INBOUND_PASSWORD`, `MAIL_INBOUND_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
+- **The settings were renamed** from `BANK_INBOX_*` to `MAIL_INBOUND_*`, one for one. The old names still work for one more release and log a deprecation warning; rename them in `.env.local` or the service environment. `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` keep their names. The operator task `bank-inbox` is now `mail-inbox`.
 - Include `inbound-mail` in backups.
 - The worker command is unchanged.

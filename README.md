@@ -23,6 +23,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Sending and reminders | Invoices sent by e-mail through your own mail server, automatic reminders of overdue invoices | [sending.md](docs/sending.md), [reminders.md](docs/reminders.md) |
 | Recurring invoices | Templates that issue invoices on a schedule | [recurring.md](docs/recurring.md) |
 | Payments | Payments recorded by hand or paired from the bank's payment e-mails | [bank-pairing.md](docs/bank-pairing.md) |
+| Mail | Inbound mail: the operator mailbox and the webhook, who sent a message, and the raw files it is kept in | [mail.md](docs/mail.md) |
 | Received documents | Supplier invoices, receipts and credit notes beside the original file, with VAT treatments and foreign currencies | [purchasing.md](docs/purchasing.md) |
 | Catalog | Products with their unit, price and a one-off or recurring way of billing | [catalog.md](docs/catalog.md) |
 | Sales | Deals with stages, lines copied from the catalog, a value per currency, won or lost with a reason, and follow-up deals, on the client's page | [sales.md](docs/sales.md) |

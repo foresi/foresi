@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Contract;
 
+use Foresi\Mail\Contract\InboundMail;
+
 /**
  * Reads the notification mails of one bank. A country module implements it;
  * the tag app.bank_message_parser gathers the implementations.

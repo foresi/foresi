@@ -2,6 +2,7 @@
 
 * Status: accepted
 * Date: 2026-11-02
+* Amended by: [ADR 0043](0043-mail-module.md): the generic intake (mailbox, webhook, addresses, raw files, sender verdict) moved from Banking to the Mail module, the settings `BANK_INBOX_*` are now `MAIL_INBOUND_*` and the poller task is `mail-inbox`. The rules below hold as written; read the old names as the new ones.
 
 ## Context and problem statement
 

@@ -27,6 +27,7 @@ use Foresi\Import\Application\Message\RunImportChunk;
 use Foresi\Import\Application\Message\UndoImportChunk;
 use Foresi\Import\ImportBundle;
 use Foresi\Instance\InstanceBundle;
+use Foresi\Mail\MailBundle;
 use Foresi\Party\Application\RecheckRegistry;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Party\PartyBundle;
@@ -182,6 +183,7 @@ final class ModuleBundleTest extends KernelTestCase
         yield 'attachment' => [AttachmentBundle::class, 'prod', ['Attachment'], []];
         yield 'ui' => [UiBundle::class, 'prod', [], []];
         yield 'banking' => [BankingBundle::class, 'prod', ['Banking'], [ProcessInboundMessage::class => 'async']];
+        yield 'mail' => [MailBundle::class, 'prod', ['Mail'], []];
         yield 'cash flow' => [CashFlowBundle::class, 'prod', ['CashFlow'], []];
         yield 'country' => [CountryBundle::class, 'prod', [], []];
         yield 'exchange rate' => [ExchangeRateBundle::class, 'prod', ['ExchangeRate'], []];

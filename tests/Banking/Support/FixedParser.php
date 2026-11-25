@@ -9,11 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Tests\Banking\Support;
 
 use Foresi\Banking\Contract\BankMessageParser;
-use Foresi\Banking\Contract\InboundMail;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Contract\ParseResult;
+use Foresi\Mail\Contract\InboundMail;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 

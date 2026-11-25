@@ -17,9 +17,9 @@ export MAIL_SECRET_KEYS="e2e1:ZTJlLW9ubHktbWFpbC1rZXktbmV2ZXItZm9yLXVzZSE="
 # The seeded users have no two-factor sign-in; the browser tests do not enrol them.
 export APP_REQUIRE_2FA=false
 # The inbound address template of bank mail; example.com, so nothing is ever delivered.
-export BANK_INBOX_ADDRESS="bank+{token}@example.com"
+export MAIL_INBOUND_ADDRESS="bank+{token}@example.com"
 # The receiving server whose Authentication-Results the seeded bank mail carries.
-export BANK_INBOX_TRUSTED_AUTHSERV="mx.example.com"
+export MAIL_INBOUND_TRUSTED_AUTHSERV="mx.example.com"
 # The seed posts its bank mail as a relay would, through the webhook's channel.
 export INBOUND_WEBHOOK_TRUSTED_AUTHSERV="mx.example.com"
 # The seeded firms are Czech, so the instance's zone is Prague. A seed that counts its due
