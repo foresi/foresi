@@ -149,11 +149,11 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_calendar_feed` | **Write.** Creates a secret iCal address for your calendar app (`name`); the answer holds the address this once. Not for guests. |
 | `foresi_rename_calendar_feed` | **Write.** Renames one of your calendar feeds (`feed_id`, `name`); the address stays. Not for guests. |
 | `foresi_revoke_calendar_feed` | **Write, destructive.** Revokes one of your calendar feeds (`feed_id`): its address stops working for good. Not for guests. |
-| `foresi_list_mail_addresses` | Your own inbound mail addresses, revoked ones too: purpose, label, masked address, created, last received and revoked, never the token (optional `purpose`). Not for guests. |
-| `foresi_create_mail_address` | **Write.** Creates a secret inbound address of your own for a `purpose` with a `label`; one per purpose, and the answer holds the address this once. Not for guests. |
+| `foresi_list_mail_addresses` | Your own inbound mail addresses, revoked ones too: purpose, label, masked address, created, last received and revoked, never the token (optional `purpose`); `limit_reached_today` and `dropped_today` say whether the daily limit dropped mail today. Not for guests. |
+| `foresi_create_mail_address` | **Write.** Creates a secret inbound address of your own for a `purpose` with a `label`; one per purpose, and the answer holds the address this once: do not log or store it. Not for guests. |
 | `foresi_rename_mail_address` | **Write.** Changes the `label` of one of your inbound addresses (`address_id`, `label`); the address stays. Not for guests. |
 | `foresi_revoke_mail_address` | **Write, destructive.** Revokes one of your inbound addresses (`address_id`): it takes in nothing from now on, and stays listed. Not for guests. |
-| `foresi_replace_mail_address` | **Write.** Revokes one of your inbound addresses (`address_id`) and makes a new one with the same purpose and label in one step; the answer holds the new address this once. Not for guests. |
+| `foresi_replace_mail_address` | **Write.** Revokes one of your inbound addresses (`address_id`) and makes a new one with the same purpose and label in one step; the answer holds the new address this once: do not log or store it. Not for guests. |
 | `foresi_list_documents` | Documents not in the trash, newest first, with their status and type; filters `type_id`, `status`, `linked_kind` with `linked_id`, paged with `limit` and `offset`; `trashed` lists the trash instead. Staff only. |
 | `foresi_get_document` | One document (`document_id`) with its links, signers in signing order, stored files and frozen values. Staff only. |
 | `foresi_list_document_types` | The document types, by name; archived ones with `include_archived`. Staff only. |

@@ -546,14 +546,14 @@ Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses t
 | Method and path | Answer |
 | --- | --- |
 | `GET /api/v1/mail/addresses` | Your addresses, revoked ones too, never their tokens; `purpose` filters them. |
-| `POST /api/v1/mail/addresses` | `201` with the address and, this once, its full `address`; the answer is sent with `Cache-Control: no-store`. Body: `purpose` and `label` (1 to 80 characters). Refused: `purpose_unknown`, `purpose_has_no_owners` (a bank feed is managed on its bank account), `label_required`, `label_too_long` (400), `address_exists` (409, you have an active address for the purpose), `inbound_mail_not_configured` and `inbound_mail_no_key` (503, the operator has to set them up). |
+| `POST /api/v1/mail/addresses` | `201` with the address and, this once, its full `address`; the answer is sent with `Cache-Control: no-store, private`. Body: `purpose` and `label` (1 to 80 characters). Refused: `purpose_unknown`, `purpose_has_no_owners` (a bank feed is managed on its bank account), `label_required`, `label_too_long` (400), `address_exists` (409, you have an active address for the purpose), `inbound_mail_not_configured` and `inbound_mail_no_key` (503, the operator has to set them up). |
 | `PATCH /api/v1/mail/addresses/{addressId}` | The address with its new `label`; the address itself stays. |
 | `DELETE /api/v1/mail/addresses/{addressId}` | The address with `revoked_at`. It takes in nothing from now on and stays listed. Revoking it again is `409 address_revoked`. |
-| `POST /api/v1/mail/addresses/{addressId}/replace` | `201` with a new address of the same purpose and label, its full `address` shown this once (`Cache-Control: no-store`); the old one is revoked in the same step, and kept as it was when the new one cannot be made. |
+| `POST /api/v1/mail/addresses/{addressId}/replace` | `201` with a new address of the same purpose and label, its full `address` shown this once (`Cache-Control: no-store, private`); the old one is revoked in the same step, and kept as it was when the new one cannot be made. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
-  -d '{"purpose": "purchasing", "label": "Receipts"}' "https://app.example.com/api/v1/mail/addresses"
+  -d '{"purpose": "<purpose key>", "label": "Receipts"}' "https://app.example.com/api/v1/mail/addresses"
 ```
 
 ## Catalog
