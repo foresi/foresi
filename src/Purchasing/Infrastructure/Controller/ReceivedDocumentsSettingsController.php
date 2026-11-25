@@ -92,10 +92,7 @@ final class ReceivedDocumentsSettingsController extends AbstractController
     public function rename(string $id, Request $request): Response
     {
         $this->denyUnlessStaff();
-        $address = $this->own->mine(ReceivedDocumentsPurpose::KEY);
-        if (!$address instanceof OwnAddress || $address->id !== $id) {
-            throw $this->createNotFoundException();
-        }
+        $address = $this->captureAddress($id);
 
         return $this->labelForm($request, $address, $address->label);
     }
@@ -104,6 +101,7 @@ final class ReceivedDocumentsSettingsController extends AbstractController
     public function replace(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
+        $this->captureAddress($id);
         $this->checkToken($request);
         $this->act(fn (): mixed => $this->own->replace($id), 'purchasing.capture.flash.replaced');
 
@@ -114,6 +112,7 @@ final class ReceivedDocumentsSettingsController extends AbstractController
     public function revoke(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
+        $this->captureAddress($id);
         $this->checkToken($request);
         $this->act(function () use ($id): null {
             $this->own->revoke($id);
@@ -122,6 +121,20 @@ final class ReceivedDocumentsSettingsController extends AbstractController
         }, 'purchasing.capture.flash.revoked');
 
         return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * The person's own received-documents address when it has this id; any
+     * other id, an address of another purpose or person included, is not found.
+     */
+    private function captureAddress(string $id): OwnAddress
+    {
+        $address = $this->own->mine(ReceivedDocumentsPurpose::KEY);
+        if (!$address instanceof OwnAddress || $address->id !== $id) {
+            throw $this->createNotFoundException();
+        }
+
+        return $address;
     }
 
     /**

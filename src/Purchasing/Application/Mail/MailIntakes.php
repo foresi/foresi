@@ -31,12 +31,6 @@ interface MailIntakes
     public function verdictOf(string $messageId): ?string;
 
     /**
-     * How many drafts the mail made so far, the trashed ones included; what a
-     * run that starts again goes on from.
-     */
-    public function draftsOf(string $messageId): int;
-
-    /**
      * The newest mails of a person, newest first.
      *
      * @return list<MailIntake>

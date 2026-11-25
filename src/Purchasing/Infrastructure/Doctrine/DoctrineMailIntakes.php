@@ -12,7 +12,6 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Purchasing\Application\Mail\MailIntakes;
 use Foresi\Purchasing\Domain\MailIntake;
-use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Shared\Domain\Id;
 
 final readonly class DoctrineMailIntakes implements MailIntakes
@@ -49,13 +48,6 @@ final readonly class DoctrineMailIntakes implements MailIntakes
             ->getSingleColumnResult();
 
         return \is_string($verdicts[0] ?? null) ? $verdicts[0] : null;
-    }
-
-    public function draftsOf(string $messageId): int
-    {
-        return (int) $this->entityManager->createQuery('SELECT COUNT(d.id) FROM '.ReceivedDocument::class.' d WHERE d.sourceMailId = :mail')
-            ->setParameter('mail', $messageId)
-            ->getSingleScalarResult();
     }
 
     public function latestOf(string $ownerUserId, int $limit): array

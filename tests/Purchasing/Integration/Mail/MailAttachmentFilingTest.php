@@ -356,26 +356,26 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
     public function testARunThatStartsAgainAfterACrashGoesOnWhereTheOneBeforeStopped(): void
     {
-        $first = "%PDF-1.4\nFirst\n%%EOF";
-        $messageId = $this->receive([
-            $this->part('first.pdf', 'application/pdf', $first),
-            $this->part('second.pdf', 'application/pdf', "%PDF-1.4\nSecond\n%%EOF"),
-        ]);
-        // The run before made the first draft and died before it wrote the outcome.
-        $path = (string) tempnam(sys_get_temp_dir(), 'crash');
-        file_put_contents($path, $first);
-        try {
-            $made = self::getContainer()->get(UploadReceivedDocuments::class)->uploadFor($this->owner->user()->id(), [new \Foresi\Attachment\Application\AttachmentUpload($path, 'first.pdf', \strlen($first))], DocumentSource::Mail, $messageId);
-        } finally {
-            @unlink($path);
-        }
-        self::assertTrue($made[0]->isDrafted());
+        $messageId = $this->crashAfterTheFirstDraft();
 
         $this->fileMail($messageId);
 
         self::assertSame(2, $this->documentCount(), 'The first attachment is not made again.');
         $intake = $this->intake($messageId);
         self::assertSame([MailIntakeOutcome::Filed, 2], [$intake->outcome(), $intake->drafts()]);
+    }
+
+    public function testADraftDeletedBeforeTheRetryIsNotFiledAgain(): void
+    {
+        $messageId = $this->crashAfterTheFirstDraft();
+        $this->em->getConnection()->executeStatement('DELETE FROM received_document WHERE source_mail_id = ?', [$messageId]);
+
+        $this->fileMail($messageId);
+
+        self::assertSame(1, $this->documentCount(), 'Only the second attachment is filed; the deleted draft stays deleted.');
+        $left = $this->document(Scalars::text($this->em->getConnection()->fetchOne('SELECT id FROM received_document')));
+        self::assertSame('second.pdf', $this->original($left)->fileName());
+        self::assertSame(MailIntakeOutcome::Filed, $this->intake($messageId)->outcome());
     }
 
     public function testAMailTheQueueGaveUpOnIsMarkedFailed(): void
@@ -461,6 +461,97 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
             $tokens->setToken($signedIn);
         }
         $this->em->clear();
+    }
+
+    /**
+     * A mail of two PDFs whose run made the first draft and died on the second,
+     * before it wrote the outcome; the id of the mail.
+     */
+    private function crashAfterTheFirstDraft(): string
+    {
+        $messageId = $this->receive([
+            $this->part('first.pdf', 'application/pdf', "%PDF-1.4\nFirst\n%%EOF"),
+            $this->part('second.pdf', 'application/pdf', "%PDF-1.4\nSecond\n%%EOF"),
+        ]);
+        $container = self::getContainer();
+        $stored = $container->get(Messages::class);
+        $second = $stored->attachments($messageId)[1]->index;
+        // The second attachment is read once to sort it, then the run dies as it reads it for its draft.
+        $dying = new class($stored, $second) implements Messages {
+            private int $reads = 0;
+
+            public function __construct(private readonly Messages $stored, private readonly int $dieOn)
+            {
+            }
+
+            public function find(string $messageId): ?\Foresi\Mail\Contract\MailMessageView
+            {
+                return $this->stored->find($messageId);
+            }
+
+            public function raw(string $messageId): string
+            {
+                return $this->stored->raw($messageId);
+            }
+
+            public function mail(string $messageId): \Foresi\Mail\Contract\InboundMail
+            {
+                return $this->stored->mail($messageId);
+            }
+
+            public function text(string $messageId): ?string
+            {
+                return $this->stored->text($messageId);
+            }
+
+            public function attachments(string $messageId): array
+            {
+                return $this->stored->attachments($messageId);
+            }
+
+            public function attachment(string $messageId, int $index): MailAttachmentContent
+            {
+                if ($index === $this->dieOn && ++$this->reads > 1) {
+                    throw new \RuntimeException('The worker died.');
+                }
+
+                return $this->stored->attachment($messageId, $index);
+            }
+
+            public function authenticationResults(string $messageId): array
+            {
+                return $this->stored->authenticationResults($messageId);
+            }
+
+            public function verdict(string $messageId, array $senderDomains): \Foresi\Mail\Contract\SenderCheck
+            {
+                return $this->stored->verdict($messageId, $senderDomains);
+            }
+        };
+        $tokens = $container->get(TokenStorageInterface::class);
+        $signedIn = $tokens->getToken();
+        $tokens->setToken(null);
+        try {
+            new MailAttachmentFiling(
+                $container->get(MailIntakes::class),
+                $dying,
+                $container->get(StaffCheck::class),
+                $container->get(UploadReceivedDocuments::class),
+                $container->get(PurchasingUnit::class),
+                $container->get(MessageRetention::class),
+                $container->get(ClockInterface::class),
+            )->file($messageId);
+            self::fail('The run did not die.');
+        } catch (\RuntimeException $died) {
+            self::assertSame('The worker died.', $died->getMessage());
+        } finally {
+            $tokens->setToken($signedIn);
+        }
+        $this->em->clear();
+        self::assertSame(1, $this->documentCount(), 'The run before made the first draft.');
+        self::assertSame(MailIntakeOutcome::Queued, $this->intake($messageId)->outcome());
+
+        return $messageId;
     }
 
     private function addresses(): OwnAddresses

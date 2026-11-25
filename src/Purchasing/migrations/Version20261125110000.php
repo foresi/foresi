@@ -34,6 +34,8 @@ final class Version20261125110000 extends AbstractMigration
         $table->addColumn('verdict', Types::STRING, ['length' => 16]);
         $table->addColumn('outcome', Types::STRING, ['length' => 16]);
         $table->addColumn('drafts', Types::INTEGER);
+        // The indexes of the attachments already made into drafts, so a run that starts again files each once.
+        $table->addColumn('filed', Types::JSON);
         $table->addColumn('skipped', Types::JSON);
         $table->addColumn('skipped_count', Types::INTEGER);
         $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);

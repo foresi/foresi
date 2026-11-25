@@ -15,6 +15,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Mail\Contract\IssuedAddress;
 use Foresi\Mail\Contract\Messages;
+use Foresi\Purchasing\Application\Mail\ReceivedDocumentsPurpose;
 use Foresi\Purchasing\Domain\MailIntake;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Purchasing\Support\StoredMessages;
@@ -29,6 +30,7 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
 {
     private const string URL = '/settings/received-documents';
     private const string MAIL = '5f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b11';
+    private const string OTHER_PERSON = '7a1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d';
 
     private KernelBrowser $client;
     private User $user;
@@ -95,6 +97,27 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
         self::assertCount(1, $page->filter('[data-capture-create]'));
     }
 
+    public function testAnotherPersonsAddressIsNotFound(): void
+    {
+        $this->signIn(Role::Member);
+        $this->create('Supplier invoices');
+        $token = (string) $this->client->request('GET', self::URL)->filter('form[data-capture-replace] input[name="_token"]')->attr('value');
+        $issuer = self::getContainer()->get(AddressIssuer::class);
+        $other = $issuer->issue(ReceivedDocumentsPurpose::KEY, self::OTHER_PERSON, 'Not yours');
+        $base = '/settings/received-documents/capture-address/'.$other->id;
+
+        $this->client->request('GET', $base.'/rename');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', $base.'/rename', ['label' => 'Taken', '_token' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', $base.'/replace', ['_token' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', $base.'/revoke', ['_token' => $token]);
+        self::assertResponseStatusCodeSame(404);
+
+        self::assertSame($other->address, $issuer->reveal($other->id), 'The other address is as it was.');
+    }
+
     public function testAnEmptyLabelIsRefusedInTheDialog(): void
     {
         $this->signIn(Role::Member);
@@ -124,6 +147,27 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
         self::assertStringContainsString('Invoice <b>11/2026</b>', (string) $text);
         self::assertStringContainsString('<i>notes</i>.txt (not a document); logo.png (image in the mail)', (string) $text);
         self::assertCount(0, $recent->filter('b, i'), 'The sender\'s text is shown as text, never as markup.');
+    }
+
+    public function testMarkupInTheSenderSubjectAndFileNamesIsShownAsText(): void
+    {
+        $this->signIn(Role::Member);
+        self::getContainer()->set(Messages::class, new StoredMessages(self::MAIL, '<script>alert(1)</script> <b>Pat</b> <pat@supplier.example.com>', '<img src=x onerror=alert(2)> <i>Invoice</i>', new \DateTimeImmutable('2026-11-20 09:00:00 UTC')));
+        $intake = new MailIntake(self::MAIL, $this->user->id(), '6f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b12', 'unknown', new \DateTimeImmutable('2026-11-20 09:01:00 UTC'));
+        $intake->finish(0, [['name' => '<a href="https://evil.example.com">invoice</a>.exe', 'reason' => 'unsupported_type']], new \DateTimeImmutable('2026-11-20 09:02:00 UTC'));
+        $this->em()->persist($intake);
+        $this->em()->flush();
+
+        $page = $this->client->request('GET', self::URL);
+
+        self::assertResponseIsSuccessful();
+        $recent = $page->filter('[data-capture-recent]');
+        $text = (string) preg_replace('/\s+/', ' ', $recent->text());
+        self::assertStringContainsString('<script>alert(1)</script> <b>Pat</b>', $text);
+        self::assertStringContainsString('<img src=x onerror=alert(2)> <i>Invoice</i>', $text);
+        self::assertStringContainsString('<a href="https://evil.example.com">invoice</a>.exe', $text);
+        self::assertCount(0, $recent->filter('script, b, i, img, a[href="https://evil.example.com"]'), 'Never as markup.');
+        self::assertStringNotContainsString('<script>alert(1)', (string) $this->client->getResponse()->getContent());
     }
 
     public function testTheUnavailableReasonLinksToTheMailDocs(): void

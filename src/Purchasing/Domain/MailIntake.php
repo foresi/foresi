@@ -14,9 +14,10 @@ use Doctrine\ORM\Mapping as ORM;
  * One mail taken in by a capture address, and what came of it: the log of this
  * purpose. It has the id of the Mail message, which is what keeps one message
  * from being taken in twice, and the row the job locks while it files the mail.
- * It holds the sender's verdict as Mail judged it on arrival, the number of
- * drafts and, for each attachment left out, its name and the reason. Never a
- * sender's address or the text of a mail.
+ * It holds the sender's verdict as Mail judged it on arrival, the attachments
+ * already made into drafts (by their index in the mail), the number of drafts
+ * and, for each attachment left out, its name and the reason. Never a sender's
+ * address or the text of a mail.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'purchasing_mail_intake')]
@@ -32,6 +33,10 @@ class MailIntake
 
     #[ORM\Column(type: 'integer')]
     private int $drafts = 0;
+
+    /** @var list<int> the indexes in the mail of the attachments made into drafts */
+    #[ORM\Column(type: 'json')]
+    private array $filed = [];
 
     /** @var list<array{name: string, reason: string}> */
     #[ORM\Column(type: 'json')]
@@ -65,6 +70,22 @@ class MailIntake
     public function isQueued(): bool
     {
         return MailIntakeOutcome::Queued === $this->outcome;
+    }
+
+    public function hasFiled(int $attachmentIndex): bool
+    {
+        return \in_array($attachmentIndex, $this->filed, true);
+    }
+
+    /**
+     * The attachment at this index of the mail is now a draft; stored in the
+     * same transaction as the draft, so it is never made twice.
+     */
+    public function markFiled(int $attachmentIndex): void
+    {
+        if (!$this->hasFiled($attachmentIndex)) {
+            $this->filed[] = $attachmentIndex;
+        }
     }
 
     /**

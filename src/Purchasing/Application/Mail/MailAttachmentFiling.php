@@ -34,10 +34,13 @@ use Psr\Clock\ClockInterface;
  * listed on the intake row with its reason. A file already on another document
  * is no reason to refuse: the draft warns about it.
  *
- * Each draft is stored on its own, and the drafts made so far are counted from
- * the drafts themselves, so a run that starts again after a crash goes on
- * where the one before stopped and no attachment becomes two drafts. The intake
- * row is locked when the outcome is written, so a second run finds it written.
+ * Each draft is stored in its own transaction, which locks the intake row
+ * (SELECT … FOR UPDATE) and marks the attachment's index on it as filed. A run
+ * that starts again after a crash skips what the one before filed, even when
+ * a draft was deleted since, and a second run of the same mail at the same
+ * time waits on the lock and then finds the attachment filed: no attachment
+ * becomes two drafts. The outcome is written under the same lock, so a second
+ * run finds it written and stops.
  *
  * Once the outcome is written, the drafts hold their files in Attachment and
  * the mail is released to Mail's purge, which removes it after KEEP_MAIL: until
@@ -84,8 +87,15 @@ final readonly class MailAttachmentFiling
             return;
         }
         [$counted, $skipped] = $this->sort($messageId);
-        foreach (\array_slice($counted, $this->intakes->draftsOf($messageId)) as $part) {
-            $this->draft($owner, $messageId, $part);
+        foreach ($counted as $part) {
+            $this->unit->run(function () use ($owner, $messageId, $part): void {
+                $intake = $this->intakes->lock($messageId);
+                if (!$intake instanceof MailIntake || !$intake->isQueued() || $intake->hasFiled($part->index)) {
+                    return;
+                }
+                $this->draft($owner, $messageId, $part);
+                $intake->markFiled($part->index);
+            });
         }
         $this->finish($messageId, \count($counted), $skipped);
     }
@@ -152,7 +162,7 @@ final readonly class MailAttachmentFiling
             @unlink($path);
         }
         if (!$made->isDrafted()) {
-            // The attachment store failed; the queue tries again, from this attachment on.
+            // The attachment store failed: nothing of this draft is kept, and the queue tries again from this attachment on.
             throw new \RuntimeException(\sprintf('A mail attachment was not stored (%s).', $made->refusal ?? 'unknown'));
         }
     }
