@@ -76,7 +76,7 @@ Other modules reach Mail only through `Foresi\Mail\Contract`:
 |---|---|
 | `InboundPurpose` | A module's consumer of its addresses, described above |
 | `AddressIssuer` | Issue, rotate, reveal (only for a purpose that shows its address again) and revoke an address; `unavailable()` says why no address can be issued |
-| `Messages` | Read a stored message: the view, the raw bytes, the plain text, the attachments, the parsed mail, the authentication results in header order and the sender verdict |
+| `Messages` | Read a stored message: the view, the raw bytes, the plain text, the attachments (each says whether the sender embedded it inline, and its `Content-ID`), the parsed mail, the authentication results in header order and the sender verdict |
 | `MailMessageView` | The id, address, purpose, channel, headers, sender, subject, dates, verdict, SHA-256 and size of one message |
 | `InboundMail` | The parsed message that parsers read |
 | `CrossPurposeDuplicates` | `of($messageId)` lists, oldest first, the other stored messages with the same `Message-ID` and the same bytes that arrived under an address of another purpose, each as message id and purpose key. They are not merged: a consumer may tell the person the mail came twice |
