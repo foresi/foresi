@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Shared\Domain\Event;
+namespace Foresi\Shared\Contract\Event;
 
 /**
  * The thing a contract event is about, such as an invoice and its id. The type

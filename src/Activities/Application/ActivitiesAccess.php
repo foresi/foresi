@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Activities\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 
 /**
  * Activities are for the owners and members of the organisation only; guests

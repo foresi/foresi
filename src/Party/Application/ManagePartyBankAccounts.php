@@ -12,7 +12,7 @@ use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\Event\ContactUpdated;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyBankAccount;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * The bank accounts of a contact, as its Bank accounts tab changes them. The

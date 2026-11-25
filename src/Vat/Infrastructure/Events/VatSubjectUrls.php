@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Vat\Infrastructure\Events;
 
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Vat\Infrastructure\Api\VatApiController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

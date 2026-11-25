@@ -18,7 +18,7 @@ use Foresi\Events\Infrastructure\Api\EventView;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Shared\Domain\Id;
 use Foresi\Webhooks\Application\AttemptTrigger;
 use Foresi\Webhooks\Application\SendWebhook;

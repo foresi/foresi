@@ -29,7 +29,7 @@ use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Banking\Infrastructure\Column\MovementColumns;
 use Foresi\Banking\Infrastructure\View\BankMovementViews;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\PaymentRefused;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Events\Infrastructure\Catalogue;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
@@ -185,7 +185,12 @@ final class EventCatalogue
             return;
         }
         $reflection = new \ReflectionClass($class);
-        $attributes = $reflection->getAttributes(DomainEvent::class);
+        // An interface, such as DomainEventPayload itself in Shared's contract, is no event.
+        if ($reflection->isInterface()) {
+            return;
+        }
+        // IS_INSTANCEOF, so that a payload written against the deprecated name of the attribute still counts.
+        $attributes = $reflection->getAttributes(DomainEvent::class, \ReflectionAttribute::IS_INSTANCEOF);
         $isPayload = is_a($class, DomainEventPayload::class, true);
         if ([] === $attributes && !$isPayload) {
             return;

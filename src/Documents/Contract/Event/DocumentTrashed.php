@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Documents\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A cancelled document went to the trash; it is kept there with its history. No names or e-mails (ADR 0030).

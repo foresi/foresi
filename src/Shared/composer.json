@@ -65,6 +65,9 @@
         "psr-4": {
             "Foresi\\Shared\\": ""
         },
+        "files": [
+            "deprecated.php"
+        ],
         "exclude-from-classmap": [
             "migrations/"
         ]

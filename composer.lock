@@ -3188,7 +3188,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "804968d1dfea60e4655e4ae8949d69349d322fad"
+                "reference": "ab14e4b7fcc2cf33e4839e6da1ede9172b9e7880"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3274,6 +3274,9 @@
                 "psr-4": {
                     "Foresi\\Shared\\": ""
                 },
+                "files": [
+                    "deprecated.php"
+                ],
                 "exclude-from-classmap": [
                     "migrations/"
                 ]

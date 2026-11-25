@@ -10,7 +10,7 @@ namespace Foresi\Catalog\Infrastructure\Events;
 
 use Foresi\Catalog\Infrastructure\Api\CatalogApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

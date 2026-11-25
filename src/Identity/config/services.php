@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\TokenAuditActor;
+use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck as StaffCheckContract;
 use Foresi\Identity\Infrastructure\Console\McpStdioSignIn;
 use Foresi\Identity\Infrastructure\Idempotency\DbalIdempotencyKeys;
 use Foresi\Identity\Infrastructure\Security\ApiTokenHandler;
@@ -34,6 +36,8 @@ return static function (ContainerConfigurator $container): void {
         ->exclude(['../config/', '../Integration/', '../migrations/', '../IdentityBundle.php']);
 
     // Identity serves the ports of the shared kernel and of Audit: who acts, in which role, through which token.
+    // Other modules ask through Foresi\Identity\Contract\StaffCheck (ADR 0044).
+    $services->alias(StaffCheckContract::class, StaffCheck::class);
     $services->alias(AuditActor::class, SecurityAuditActor::class);
     $services->alias(TokenAuditActor::class, SecurityAuditActor::class);
     $services->alias(ActorRole::class, MembershipActorRole::class);

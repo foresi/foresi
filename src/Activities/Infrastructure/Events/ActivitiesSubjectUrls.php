@@ -10,7 +10,7 @@ namespace Foresi\Activities\Infrastructure\Events;
 
 use Foresi\Activities\Infrastructure\Api\ActivitiesRoutes;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

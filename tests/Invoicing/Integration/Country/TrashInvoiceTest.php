@@ -136,7 +136,7 @@ final class TrashInvoiceTest extends InvoiceTestCase
                 return ActorKind::User;
             }
         };
-        $trash = new TrashInvoice($this->store, $container->get(\Foresi\Invoicing\Application\InvoiceSends::class), $container->get(\Foresi\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\Foresi\Invoicing\Application\BilledWorkRelease::class), $container->get(\Foresi\Shared\Application\Event\EventRecorder::class));
+        $trash = new TrashInvoice($this->store, $container->get(\Foresi\Invoicing\Application\InvoiceSends::class), $container->get(\Foresi\Invoicing\Application\InvoicePayments::class), $container->get(TransactionalWork::class), $container->get(ConflictRetry::class), $actor, new MockClock('2026-11-03'), $this->deductions(), $container->get(\Foresi\Invoicing\Application\BilledWorkRelease::class), $container->get(\Foresi\Shared\Contract\Event\EventRecorder::class));
 
         $trash->trash($invoice->id(), 'Wrong customer');
 

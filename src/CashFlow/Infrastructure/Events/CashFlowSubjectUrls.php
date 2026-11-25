@@ -10,7 +10,7 @@ namespace Foresi\CashFlow\Infrastructure\Events;
 
 use Foresi\CashFlow\Infrastructure\Api\CashFlowApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
