@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 This file ends at 0.5.0. Since then every merged change that users notice is released on its own, and its notes are on the [GitHub releases](https://github.com/foresi/foresi/releases) and at [foresi.app](https://foresi.app/).
 
+## [Unreleased]
+
+### Added
+
+- An optional AI reader module, `foresi/ai-reader` ([docs/ai-reader.md](docs/ai-reader.md)): with your own Claude API key, received documents without structured data are read on arrival. It reads only the files the structured readers left without a total, an issue date or a supplier's registration number or VAT ID, and any file a person asks it to read again. Set `AI_READER_PROVIDER=claude` and `AI_READER_API_KEY`; `AI_READER_MODEL` and `AI_READER_TRIGGER` (`arrival` or `click`) are optional. No key ships with Foresi, and a document read this way is sent to the provider.
+- Settings → Received documents (`/settings/received-documents`) says whether reading by AI is set up, with which provider, model and trigger, and never shows the key. With the trigger `click`, the menu of a draft offers **Read with AI**.
+- Purchasing publishes two slots for modules, `purchasing.settings_sections` and `purchasing.document_actions` (`Foresi\Purchasing\Contract\PurchasingSlots`).
+
 ## [0.5.0] - 2026-11-18
 
 The first release with invoices.

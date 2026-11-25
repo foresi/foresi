@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+ai_reader:
+  settings:
+    title: "Reading by AI"
+    not_set_up: "Reading by AI is not set up"
+    not_set_up_text: "With your own API key, files the other readers cannot read are read by an AI model. The operator sets it up in the environment of the instance."
+    docs: "How to set it up"
+    configured_arrival: "Reading by AI: {provider}, model {model}, runs on arrival"
+    configured_click: "Reading by AI: {provider}, model {model}, runs only when you click Read with AI"
+    sent: "A document read by AI is sent to the provider, outside this instance. Nothing is sent when the reader is not set up."
+  document:
+    read: "Read with AI"

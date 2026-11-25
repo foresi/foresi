@@ -426,12 +426,15 @@ deptrac:
       - purchasing_contract
       - shared
       - shared_contract
+      - ui
+      - ui_contract
     ai_reader_contract:
       - instance
       - instance_contract
       - purchasing_contract
       - shared
       - shared_contract
+      - ui_contract
     attachment:
       - attachment_contract
       - audit
