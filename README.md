@@ -53,6 +53,7 @@ The interface is in Czech and English. Tax rules are subject to professional tax
 
 - Run it on your machine: [docs/development.md](docs/development.md)
 - Run it on a server: [docs/operations.md](docs/operations.md)
+- Write a module of your own: [docs/modules.md](docs/modules.md)
 
 ## Community
 
