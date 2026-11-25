@@ -10,7 +10,8 @@ declare(strict_types=1);
  *
  *   bin/test-shard config INDEX COUNT
  *       Writes phpunit.shard.xml: phpunit.dist.xml with one test suite that holds the test
- *       files of shard INDEX (1 to COUNT). The files are every *Test.php under tests/, spread
+ *       files of shard INDEX (1 to COUNT). The files are every *Test.php under tests/ (but the
+ *       modules of tests/Fixtures/modules, which phpunit.dist.xml leaves out too), spread
  *       over the shards by size so that the shards take about as long. Every file is in
  *       exactly one shard, so the shards together run the whole suite.
  *
@@ -51,8 +52,9 @@ function config(string $root, array $arguments): int
     $sizes = [];
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/tests', FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) {
-        if ($file->isFile() && str_ends_with($file->getFilename(), 'Test.php')) {
-            $sizes[substr($file->getPathname(), strlen($root) + 1)] = $file->getSize();
+        $path = substr($file->getPathname(), strlen($root) + 1);
+        if ($file->isFile() && str_ends_with($file->getFilename(), 'Test.php') && !str_starts_with($path, 'tests/Fixtures/modules/')) {
+            $sizes[$path] = $file->getSize();
         }
     }
     if ([] === $sizes) {
