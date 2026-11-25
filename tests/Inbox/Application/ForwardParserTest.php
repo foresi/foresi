@@ -115,7 +115,9 @@ final class ForwardParserTest extends TestCase
         $parser = new ForwardParser();
         $address = static fn (int $length): string => str_repeat('a', $length - \strlen('@client-a.example.com')).'@client-a.example.com';
 
-        self::assertSame(320, \strlen($parser->parse(InboxMail::gmailForward($address(320)))?->address ?? ''));
+        $longest = $parser->parse(InboxMail::gmailForward($address(320)));
+        self::assertInstanceOf(ForwardedSender::class, $longest);
+        self::assertSame(320, \strlen($longest->address));
         self::assertNull($parser->parse(InboxMail::gmailForward($address(321))));
     }
 }

@@ -51,13 +51,13 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         self::assertEqualsCanonicalizing(['contact:'.$this->contactId, 'deal:'.$dealId], $this->linkNames($id));
         $events = $this->eventData('activities.activity.updated');
         self::assertCount(1, $events);
-        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId], json_decode($events[0], true, flags: \JSON_THROW_ON_ERROR)['links'], 'The event names the records the activity has now: the old ones, then the new.');
+        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId], $this->linksOf($events[0]), 'The event names the records the activity has now: the old ones, then the new.');
 
         $otherDealId = Id::generate();
         $this->deals->add($otherDealId, 'Other deal');
         $this->recorder()->link($id, 'deal', $otherDealId);
         $events = $this->eventData('activities.activity.updated');
-        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId, 'deal:'.$otherDealId], json_decode($events[1], true, flags: \JSON_THROW_ON_ERROR)['links']);
+        self::assertSame(['contact:'.$this->contactId, 'deal:'.$dealId, 'deal:'.$otherDealId], $this->linksOf($events[1]));
     }
 
     public function testLinkingARecordTwiceChangesNothing(): void
@@ -103,6 +103,17 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->signIn($guest);
         $this->assertReason('forbidden', fn (): string => $this->recorder()->record($this->email('Re: Offer')));
         $this->assertReason('forbidden', fn () => $this->recorder()->link($recorded, 'contact', $this->contactId));
+    }
+
+    /**
+     * @return mixed the records an updated event names
+     */
+    private function linksOf(string $data): mixed
+    {
+        $decoded = json_decode($data, true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+
+        return $decoded['links'] ?? null;
     }
 
     private function recorder(): ActivityRecorder

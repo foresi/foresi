@@ -43,7 +43,7 @@ final class EmailActivityLinksTest extends TestCase
 
         self::assertSame(
             [['kind' => 'contact', 'id' => $person], ['kind' => 'contact', 'id' => $company]],
-            $this->recorded?->links,
+            $this->recorded()->links,
             'The person is the output as well, and is linked once.',
         );
     }
@@ -57,7 +57,7 @@ final class EmailActivityLinksTest extends TestCase
 
         $this->activity($item, $this->message())->link($item, 'task', $record);
 
-        self::assertSame([['kind' => 'contact', 'id' => $person], ['kind' => 'task', 'id' => $record]], $this->recorded?->links);
+        self::assertSame([['kind' => 'contact', 'id' => $person], ['kind' => 'task', 'id' => $record]], $this->recorded()->links);
     }
 
     public function testARecordNoModuleOffersIsLeftOut(): void
@@ -67,7 +67,7 @@ final class EmailActivityLinksTest extends TestCase
 
         $this->activity($item, $this->message(), linkable: false)->link($item, 'task', $record);
 
-        self::assertSame([], $this->recorded?->links);
+        self::assertSame([], $this->recorded()->links);
     }
 
     public function testAMailMailRemovedStillGivesAnActivityNamedAfterNothing(): void
@@ -76,8 +76,8 @@ final class EmailActivityLinksTest extends TestCase
 
         $this->activity($item, null)->link($item, 'task', Id::generate());
 
-        self::assertSame('E-mail', $this->recorded?->subject);
-        self::assertSame("From: \nDate: 2026-11-25 11:00\n\n", $this->recorded?->body);
+        self::assertSame('E-mail', $this->recorded()->subject);
+        self::assertSame("From: \nDate: 2026-11-25 11:00\n\n", $this->recorded()->body);
     }
 
     public function testAMailWithoutTextGivesAnActivityWithoutText(): void
@@ -86,8 +86,15 @@ final class EmailActivityLinksTest extends TestCase
 
         $this->activity($item, $this->message(), text: null)->link($item, 'task', Id::generate());
 
-        self::assertSame('Offer', $this->recorded?->subject);
-        self::assertSame("From: client\\.a\\@client\\-a\\.example\\.com\nDate: 2026-11-25 11:00\n\n", $this->recorded?->body);
+        self::assertSame('Offer', $this->recorded()->subject);
+        self::assertSame("From: client\\.a\\@client\\-a\\.example\\.com\nDate: 2026-11-25 11:00\n\n", $this->recorded()->body);
+    }
+
+    private function recorded(): RecordedActivity
+    {
+        self::assertInstanceOf(RecordedActivity::class, $this->recorded);
+
+        return $this->recorded;
     }
 
     private function item(): InboxItem
@@ -104,12 +111,12 @@ final class EmailActivityLinksTest extends TestCase
 
     private function activity(InboxItem $item, ?MailMessageView $message, bool $linkable = true, ?string $text = 'Hello'): EmailActivity
     {
-        $records = $this->createStub(LinkableRecords::class);
+        $records = self::createStub(LinkableRecords::class);
         $records->method('canLink')->willReturn($linkable);
-        $messages = $this->createStub(Messages::class);
+        $messages = self::createStub(Messages::class);
         $messages->method('find')->willReturn($message);
         $messages->method('text')->willReturn($text);
-        $recorder = $this->createStub(ActivityRecorder::class);
+        $recorder = self::createStub(ActivityRecorder::class);
         $recorder->method('record')->willReturnCallback(function (RecordedActivity $activity): string {
             $this->recorded = $activity;
 

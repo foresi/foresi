@@ -16,10 +16,10 @@ use Foresi\Mail\Application\MailMessages;
 use Foresi\Mail\Application\MailParts;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Application\StoredMessages;
 use Foresi\Mail\Application\TrustSettings;
-use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AuthenticationResult;
 use Foresi\Mail\Contract\MailAttachment;
@@ -94,7 +94,7 @@ final class MessagesTest extends KernelTestCase
     {
         $container = self::getContainer();
         $asked = [];
-        $store = $this->createStub(MailMessages::class);
+        $store = self::createStub(MailMessages::class);
         $store->method('findMany')->willReturnCallback(static function (array $ids) use (&$asked): array {
             $asked[] = $ids;
 

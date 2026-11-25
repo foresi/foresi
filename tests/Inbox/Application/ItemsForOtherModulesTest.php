@@ -29,7 +29,7 @@ final class ItemsForOtherModulesTest extends InboxTestCase
 {
     public function testTheOwnerSeesTheMailItsAttachmentsAndItsConversation(): void
     {
-        $root = $this->receive(InboxMail::plain($this->address, messageId: 'root@client-a.example.com', subject: 'Offer'));
+        $root = $this->receive(InboxMail::plain($this->address, subject: 'Offer', messageId: 'root@client-a.example.com'));
         $itemId = $this->receive($this->withAttachment());
 
         $view = $this->items()->find($itemId);
@@ -38,7 +38,7 @@ final class ItemsForOtherModulesTest extends InboxTestCase
         self::assertSame(self::CLIENT, $view->sender);
         self::assertSame('Offer with a file', $view->subject);
         self::assertSame(SenderCheck::VERIFIED, $view->verdict);
-        self::assertSame("Hello, the offer is attached.", $view->text);
+        self::assertSame('Hello, the offer is attached.', $view->text);
         self::assertEquals([new InboxAttachment(0, 'offer.pdf', 'application/pdf', 5)], $view->attachments);
         self::assertSame([$root], $view->threadItemIds);
     }
@@ -72,8 +72,8 @@ final class ItemsForOtherModulesTest extends InboxTestCase
         $deals->add($unseen, 'Secret deal');
         $deals->add($seen, 'Example deal');
         self::getContainer()->set(ActivityTargets::class, new ActivityTargets([$deals]));
-        $this->receive(InboxMail::plain($this->address, messageId: 'root@client-a.example.com', subject: 'Offer'));
-        $itemId = $this->receive(InboxMail::plain($this->address, messageId: 'reply@client-a.example.com', subject: 'Re: Offer', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
+        $this->receive(InboxMail::plain($this->address, subject: 'Offer', messageId: 'root@client-a.example.com'));
+        $itemId = $this->receive(InboxMail::plain($this->address, subject: 'Re: Offer', messageId: 'reply@client-a.example.com', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
         $this->writes()->link(new LinkItemInput($itemId, 'deal', $unseen));
         $this->writes()->link(new LinkItemInput($itemId, 'deal', $seen));
         $deals->hide($unseen);
@@ -84,7 +84,7 @@ final class ItemsForOtherModulesTest extends InboxTestCase
         self::assertInstanceOf(InboxItemView::class, $view);
         self::assertSame([], $view->threadItemIds);
         self::assertSame([$seen], array_map(static fn (InboxOutput $output): string => $output->recordId, $view->outputs));
-        self::assertTrue(array_is_list($view->outputs));
+        self::assertSame([0], array_keys($view->outputs));
     }
 
     private function items(): InboxItems

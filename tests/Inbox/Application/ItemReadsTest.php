@@ -23,7 +23,7 @@ final class ItemReadsTest extends InboxTestCase
     public function testAPageHoldsAtLeastOneItemWhateverTheLimitAsksFor(): void
     {
         $this->receive(InboxMail::plain($this->address, messageId: 'a-1@client-a.example.com'));
-        $this->receive(InboxMail::plain($this->address, messageId: 'a-2@client-a.example.com', subject: 'Second'));
+        $this->receive(InboxMail::plain($this->address, subject: 'Second', messageId: 'a-2@client-a.example.com'));
 
         $slice = $this->reads()->list(null, false, null, 0);
 
@@ -35,7 +35,7 @@ final class ItemReadsTest extends InboxTestCase
     public function testThereIsNoMoreAfterThePageThatHoldsTheLastItem(): void
     {
         $this->receive(InboxMail::plain($this->address, messageId: 'a-1@client-a.example.com'));
-        $this->receive(InboxMail::plain($this->address, messageId: 'a-2@client-a.example.com', subject: 'Second'));
+        $this->receive(InboxMail::plain($this->address, subject: 'Second', messageId: 'a-2@client-a.example.com'));
 
         $exact = $this->reads()->list(null, false, null, 2);
         $short = $this->reads()->list(null, false, null, 1);
@@ -52,10 +52,10 @@ final class ItemReadsTest extends InboxTestCase
 
     public function testARowCountsTheOtherItemsOfItsConversationAndItsOutputs(): void
     {
-        $alone = $this->receive(InboxMail::plain($this->address, messageId: 'alone@client-a.example.com', subject: 'Alone'));
-        $root = $this->receive(InboxMail::plain($this->address, messageId: 'root@client-a.example.com', subject: 'Offer'));
-        $reply = $this->receive(InboxMail::plain($this->address, messageId: 'reply@client-a.example.com', subject: 'Re: Offer', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
-        $third = $this->receive(InboxMail::plain($this->address, messageId: 'third@client-a.example.com', subject: 'Re: Re: Offer', inReplyTo: 'reply@client-a.example.com', references: ['root@client-a.example.com', 'reply@client-a.example.com']));
+        $alone = $this->receive(InboxMail::plain($this->address, subject: 'Alone', messageId: 'alone@client-a.example.com'));
+        $root = $this->receive(InboxMail::plain($this->address, subject: 'Offer', messageId: 'root@client-a.example.com'));
+        $reply = $this->receive(InboxMail::plain($this->address, subject: 'Re: Offer', messageId: 'reply@client-a.example.com', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
+        $third = $this->receive(InboxMail::plain($this->address, subject: 'Re: Re: Offer', messageId: 'third@client-a.example.com', inReplyTo: 'reply@client-a.example.com', references: ['root@client-a.example.com', 'reply@client-a.example.com']));
         $this->writes()->link(new LinkItemInput($root, 'contact', $this->contact('person', 'Client C', 'client.c@client-c.example.com')));
         $this->writes()->link(new LinkItemInput($root, 'contact', $this->contact('person', 'Client D', 'client.d@client-d.example.com')));
 
@@ -72,13 +72,13 @@ final class ItemReadsTest extends InboxTestCase
 
     public function testAnItemIsReadWithTheOtherMailsOfItsConversation(): void
     {
-        $root = $this->receive(InboxMail::plain($this->address, messageId: 'root@client-a.example.com', subject: 'Offer'));
-        $reply = $this->receive(InboxMail::plain($this->address, messageId: 'reply@client-a.example.com', subject: 'Re: Offer', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
-        $this->receive(InboxMail::plain($this->address, messageId: 'other@client-a.example.com', subject: 'Other'));
+        $root = $this->receive(InboxMail::plain($this->address, subject: 'Offer', messageId: 'root@client-a.example.com'));
+        $reply = $this->receive(InboxMail::plain($this->address, subject: 'Re: Offer', messageId: 'reply@client-a.example.com', inReplyTo: 'root@client-a.example.com', references: ['root@client-a.example.com']));
+        $this->receive(InboxMail::plain($this->address, subject: 'Other', messageId: 'other@client-a.example.com'));
 
         $detail = $this->reads()->get($reply);
 
-        self::assertSame([$root], array_map(static fn ($item): string => $item->id(), $detail->thread));
+        self::assertSame([$root], array_map(static fn (\Foresi\Inbox\Domain\InboxItem $item): string => $item->id(), $detail->thread));
         self::assertSame('Re: Offer', $detail->message?->subject);
     }
 

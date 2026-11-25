@@ -63,24 +63,24 @@ final class ReceiveItemOwnerTest extends TestCase
     {
         $owner = new User($ownerEmail, 'hash', 'Example Owner');
         $message = null === $from ? null : new MailMessageView(Id::generate(), Id::generate(), 'inbox', $owner->id(), 'webhook', 'm@example.com', null, [], $from, 'Offer', null, new \DateTimeImmutable(), 'unknown', str_repeat('a', 64), 100);
-        $messages = $this->createStub(Messages::class);
+        $messages = self::createStub(Messages::class);
         $messages->method('find')->willReturn($message);
         $messages->method('text')->willReturn($text);
-        $users = $this->createStub(UserRepository::class);
+        $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturn($owner);
-        $staff = $this->createStub(StaffCheck::class);
+        $staff = self::createStub(StaffCheck::class);
         $staff->method('isStaffMember')->willReturn(true);
-        $duplicates = $this->createStub(CrossPurposeDuplicates::class);
+        $duplicates = self::createStub(CrossPurposeDuplicates::class);
         $duplicates->method('of')->willReturn([]);
-        $store = $this->createStub(ItemStore::class);
+        $store = self::createStub(ItemStore::class);
         $store->method('add')->willReturnCallback(function (InboxItem|\Foresi\Inbox\Domain\ItemOutput $record): void {
             if ($record instanceof InboxItem) {
                 $this->added[] = $record;
             }
         });
-        $transaction = $this->createStub(InboxTransaction::class);
+        $transaction = self::createStub(InboxTransaction::class);
         $transaction->method('run')->willReturnCallback(static fn (callable $work): mixed => $work());
 
-        return new ReceiveItem($messages, $duplicates, $users, $staff, new ForwardParser(), new SenderMatching(new FakeContactsByEmail()), $store, $transaction, $this->createStub(EventRecorder::class));
+        return new ReceiveItem($messages, $duplicates, $users, $staff, new ForwardParser(), new SenderMatching(new FakeContactsByEmail()), $store, $transaction, self::createStub(EventRecorder::class));
     }
 }

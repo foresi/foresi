@@ -39,7 +39,8 @@ final class ItemWritesMatchingTest extends InboxTestCase
 
         $person = $this->contact('person', 'New Person', 'new.person@client-a.example.com');
         $this->writes()->matchAgain(new MatchItemAgainInput($itemId));
-        self::assertSame([$person, MatchBasis::Address], [$this->item($itemId)->contactId(), $this->item($itemId)->matchBasis()]);
+        $matched = $this->item($itemId);
+        self::assertSame([$person, MatchBasis::Address], [$matched->contactId(), $matched->matchBasis()]);
     }
 
     public function testAVerifiedSenderIsMatchedAgainByItsDomainAndAnUnverifiedOneIsNot(): void
