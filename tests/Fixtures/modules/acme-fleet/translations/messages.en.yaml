@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+acme_fleet:
+    nav:
+        vehicles: Vehicles
+    vehicles:
+        title: Vehicles
+        name: Name
+        plate: Plate
+        empty: The fleet has no vehicles yet.

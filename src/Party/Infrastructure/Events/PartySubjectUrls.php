@@ -11,7 +11,7 @@ namespace Foresi\Party\Infrastructure\Events;
 use Foresi\Party\Infrastructure\Api\ContactApiController;
 use Foresi\Party\Infrastructure\Api\FirmApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

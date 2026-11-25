@@ -12,7 +12,7 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A message that arrived for a person's own address is seen by that person only,

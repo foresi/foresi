@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Events;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Application\InvoicingAccess;
 use Foresi\Invoicing\Application\InvoicingNotAllowed;
 use Foresi\Invoicing\Application\Query\PaymentAccess;

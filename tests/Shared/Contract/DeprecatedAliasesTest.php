@@ -39,6 +39,10 @@ final class DeprecatedAliasesTest extends TestCase
         \Foresi\Shared\Application\RefusalKind::class => \Foresi\Shared\Contract\RefusalKind::class,
         \Foresi\Shared\Application\Event\DomainEventListener::class => \Foresi\Shared\Contract\Event\DomainEventListener::class,
         'Foresi\\Shared\\Application\\Event\\RecordedEvent' => \Foresi\Shared\Contract\Event\RecordedEvent::class,
+        \Foresi\Shared\Application\Event\EventRecorder::class => \Foresi\Shared\Contract\Event\EventRecorder::class,
+        'Foresi\\Shared\\Domain\\Event\\DomainEvent' => \Foresi\Shared\Contract\Event\DomainEvent::class,
+        \Foresi\Shared\Domain\Event\DomainEventPayload::class => \Foresi\Shared\Contract\Event\DomainEventPayload::class,
+        'Foresi\\Shared\\Domain\\Event\\EventSubject' => \Foresi\Shared\Contract\Event\EventSubject::class,
         \Foresi\Instance\Application\Schedule\ScheduledJob::class => \Foresi\Instance\Contract\ScheduledJob::class,
     ];
 

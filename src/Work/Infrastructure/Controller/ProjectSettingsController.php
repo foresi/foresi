@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OwnerCheck;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;

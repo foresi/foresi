@@ -14,7 +14,7 @@ use Foresi\Purchasing\Domain\PaymentMethod;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 

@@ -12,7 +12,7 @@ use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\UploadAttachment;
 use Foresi\Audit\Application\AuditCorrelation;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Purchasing\Application\Reading\DocumentReadings;

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Mail;
 
 use Foresi\Attachment\Application\AttachmentUpload;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;

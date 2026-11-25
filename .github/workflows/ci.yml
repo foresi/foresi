@@ -290,7 +290,7 @@ jobs:
   # Mutation testing, on the coverage above, with no initial test run. A pull request
   # mutates only the lines it adds or modifies, and must reach the minimum scores on them
   # (shard 0). The merge queue does not repeat that: the lines are the same. A push to main
-  # does not either: the full run of ten shards after every merge held the runners that pull
+  # does not either: the full run of all shards after every merge held the runners that pull
   # requests wait for, so it runs every night instead. Every night on main and when started by
   # hand the whole code is mutated in parallel shards: Infection has no sharding of its own, so a
   # shard is a set of source files (bin/infection-shard), balanced by size, and the quality
@@ -309,9 +309,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
+        # Sixteen shards: with ten, a shard of about 3,000 mutants took 60 to 115 minutes and some
+        # ran into the job timeout as the code grew (November 2026).
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]') }}
     env:
-      SHARD_COUNT: '10'
+      SHARD_COUNT: '16'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -326,7 +328,11 @@ jobs:
           extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
           coverage: none
           tools: composer:v2
-          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
+          # The PHPUnit process of each mutant gets this php.ini, not the -d options below, and
+          # setup-php leaves memory unlimited. A mutant that makes a loop grow without end then
+          # took all the runner's memory and the runner was shut down; with a limit, the mutant
+          # fails on it and counts as killed. Four threads of 2G fit the runner's 16G.
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0, memory_limit=2G
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -600,14 +606,19 @@ jobs:
   # The PostgreSQL and PHP 8.5 legs run after each merge to main, every night and when
   # started by hand, not on a pull request. A failure on main is fixed by the next pull
   # request. On a pull request they are skipped, and a skipped job counts as passed for
-  # the required check.
-  postgres:
-    name: Tests (postgres)
+  # the required check. Each leg runs in two shards (bin/test-shard): in one job the suite
+  # alone took about 30 minutes on PostgreSQL and ran into the 45-minute timeout (November 2026).
+  postgres-shards:
+    name: Tests (postgres, shard ${{ matrix.shard }})
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:17
@@ -624,6 +635,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app?serverVersion=17&charset=utf8
+      TEST_SHARD_COUNT: '2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -734,24 +746,52 @@ jobs:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
           REQUIRE_POPPLER: '1'
-        run: composer phpunit
+          SHARD: ${{ matrix.shard }}
+        run: |
+          php bin/test-shard config "${SHARD}" "${TEST_SHARD_COUNT}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.shard.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"
 
       # Real worker processes claiming one period at once, left out of the suite
       # for their run time. In this job they race on a file SQLite database and
       # on this PostgreSQL, so both databases are covered by one run.
       - name: Claim race (SQLite and PostgreSQL)
+        if: ${{ matrix.shard == 1 }}
         run: vendor/bin/phpunit --group claim-race
+
+  # "Tests (postgres)" is a required check of main, so one job of that name reports the
+  # result of the shards. On a pull request the shards are skipped and it passes.
+  postgres:
+    name: Tests (postgres)
+    needs: postgres-shards
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: The shards passed
+        env:
+          SHARDS: ${{ needs.postgres-shards.result }}
+        run: |
+          echo "PostgreSQL shards: ${SHARDS}"
+          [ "${SHARDS}" = success ] || [ "${SHARDS}" = skipped ]
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
   # runs on it too, on the in-memory SQLite database of the test environment.
-  # Skipped on a pull request like the PostgreSQL leg above.
+  # Skipped on a pull request and sharded like the PostgreSQL leg above.
   php85:
-    name: Tests (php 8.5, sqlite)
+    name: Tests (php 8.5, sqlite, shard ${{ matrix.shard }})
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      TEST_SHARD_COUNT: '2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -797,4 +837,9 @@ jobs:
         run: composer isdoc:schema
 
       - name: Tests
-        run: composer phpunit
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          php bin/test-shard config "${SHARD}" "${TEST_SHARD_COUNT}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.shard.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"

@@ -15,7 +15,7 @@ use Foresi\Catalog\Contract\Event\ProductRestored;
 use Foresi\Catalog\Contract\Event\ProductUpdated;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 
 /**

@@ -11,7 +11,7 @@ namespace Foresi\Banking\Infrastructure\Navigation;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\InboundMessages;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Ui\Contract\Notice\ShellNotice;
 use Foresi\Ui\Contract\Notice\ShellNoticeProvider;
 use Psr\Clock\ClockInterface;

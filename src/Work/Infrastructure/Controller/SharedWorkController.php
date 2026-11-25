@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OpenToGuest;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Work\Application\SharedProject;

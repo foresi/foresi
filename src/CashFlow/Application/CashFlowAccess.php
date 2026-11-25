@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;

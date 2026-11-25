@@ -24,7 +24,7 @@ use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -11,7 +11,7 @@ namespace Foresi\Sales\Infrastructure\Events;
 use Foresi\Sales\Contract\SalesRecords;
 use Foresi\Sales\Infrastructure\Api\SalesApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

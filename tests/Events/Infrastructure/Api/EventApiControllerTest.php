@@ -16,7 +16,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Events\Support\RecordedEvents;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;

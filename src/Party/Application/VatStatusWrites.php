@@ -17,7 +17,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Adds and removes the VAT statuses of the firm, for its owner only, as the

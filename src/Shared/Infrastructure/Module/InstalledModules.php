@@ -9,16 +9,18 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\Module;
 
 use Composer\InstalledVersions;
+use Foresi\Shared\Contract\ModuleApi;
 use Foresi\Shared\Domain\Module\InvalidManifest;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Domain\Module\ModuleKind;
 use Foresi\Shared\Domain\Module\ModuleManifest;
+use Foresi\Shared\Domain\Module\ModuleNamespace;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * The modules of this application: every package of type "foresi-module"
- * Composer installed. Being installed is being enabled; there is no other
+ * Composer installed, of any vendor. Being installed is being enabled; there is no other
  * switch. Each module's manifest is its composer.json: hard dependencies in
  * "require", the rest in "extra.foresi", its API resources in "scopes" and
  * its Symfony bundle in "bundle". A resource a guest may hold is written as
@@ -28,6 +30,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final readonly class InstalledModules
 {
     public const string TYPE = 'foresi-module';
+
+    /** A Composer package name. */
+    private const string PACKAGE = '{^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$}';
 
     public function __construct(
         #[Autowire(param: 'kernel.project_dir')]
@@ -43,17 +48,23 @@ final readonly class InstalledModules
                 ?? throw new InvalidManifest(\sprintf('Package %s has no install path.', $package));
             $composers[$package] = $this->read($path.'/composer.json');
         }
-        $packages = array_keys($composers);
+        $ids = [];
+        foreach ($composers as $package => $composer) {
+            $id = self::at($composer, 'extra', 'foresi', 'module');
+            if (\is_string($id)) {
+                $ids[$package] = $id;
+            }
+        }
 
         return new ModuleGraph(array_values(array_map(
-            static fn (array $composer): ModuleManifest => self::manifestFrom($composer, $packages),
+            static fn (array $composer): ModuleManifest => self::manifestFrom($composer, $ids),
             $composers,
         )));
     }
 
     /**
      * The directory of an installed module's package, as Composer installed it:
-     * vendor/foresi/<package> from Packagist, or the target of a path repository.
+     * vendor/<vendor>/<package> from Packagist, or the target of a path repository.
      * Nothing assumes the module sits in src/ of the application.
      *
      * @throws InvalidManifest when the module's package is not installed
@@ -81,49 +92,89 @@ final readonly class InstalledModules
     }
 
     /**
-     * @param array<mixed> $composer       a decoded composer.json of type foresi-module
-     * @param list<string> $modulePackages the installed module packages; other required packages are not modules
+     * A module of any vendor (ADR 0044): the package is any "vendor/name",
+     * and one of Foresi's own is "foresi/<id>"; the namespace is a PSR-4 prefix
+     * of the package's autoload, "Foresi\<Module>\" for Foresi's own and
+     * "Vendor\Module\" for others, and gives the id and the bundle's class
+     * (ModuleNamespace).
+     *
+     * @param array<mixed>          $composer  a decoded composer.json of type foresi-module
+     * @param array<string, string> $moduleIds the id of each installed module, by its package; other required packages are not modules
      */
-    public static function manifestFrom(array $composer, array $modulePackages): ModuleManifest
+    public static function manifestFrom(array $composer, array $moduleIds): ModuleManifest
     {
         $package = \is_string($composer['name'] ?? null) ? $composer['name'] : '(unnamed)';
+        if (1 !== preg_match(self::PACKAGE, $package)) {
+            throw new InvalidManifest(\sprintf('Package %s has no valid name such as "acme/fleet".', $package));
+        }
         $extra = self::at($composer, 'extra', 'foresi');
         if (!\is_array($extra) || !\is_string($extra['module'] ?? null)) {
             throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.module.', $package));
         }
         $id = ModuleId::of($extra['module']);
-        if ('foresi/'.$id->value !== $package) {
+        $own = str_starts_with($package, ModuleNamespace::OWN_VENDOR.'/');
+        if ($own && ModuleNamespace::OWN_VENDOR.'/'.$id->value !== $package) {
             throw new InvalidManifest(\sprintf('Package %s must be named foresi/%s after its module id.', $package, $id->value));
         }
         $kind = ModuleKind::tryFrom(\is_string($extra['kind'] ?? null) ? $extra['kind'] : '')
             ?? throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.kind (core, module or ui).', $package));
-        $namespace = $extra['namespace'] ?? null;
-        if (!\is_string($namespace) || 1 !== preg_match('/^Foresi\\\\[A-Z][A-Za-z0-9]*\\\\$/', $namespace)) {
-            throw new InvalidManifest(\sprintf('Package %s has no valid extra.foresi.namespace such as "Foresi\\\\Timesheet\\\\".', $package));
+        $namespace = self::namespace($composer, $extra['namespace'] ?? null, $package, $own);
+        if (!$namespace->id()->equals($id)) {
+            throw new InvalidManifest(\sprintf('Package %s declares the module id "%s", but its namespace %s gives the id "%s".', $package, $id->value, $namespace->value, $namespace->id()->value));
         }
         $optional = self::strings($extra['optional'] ?? [], \sprintf('Package %s: extra.foresi.optional must be a list of module ids.', $package));
         [$scopes, $guestScopes] = self::scopes($extra['scopes'] ?? [], $package);
         $bundle = $extra['bundle'] ?? null;
-        if (!\is_string($bundle)) {
-            throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.bundle, the class of its bundle such as "Foresi\\\\Timesheet\\\\TimesheetBundle".', $package));
+        if ($namespace->bundle() !== $bundle) {
+            throw new InvalidManifest(\sprintf('Package %s must name its bundle in extra.foresi.bundle, the class "%s".', $package, str_replace('\\', '\\\\', $namespace->bundle())));
         }
-        $require = \is_array($composer['require'] ?? null) ? array_keys($composer['require']) : [];
-        $requires = array_values(array_filter(
-            array_map(strval(...), $require),
-            static fn (string $name): bool => \in_array($name, $modulePackages, true),
-        ));
+        $require = \is_array($composer['require'] ?? null) ? $composer['require'] : [];
+        $requires = [];
+        foreach (array_keys($require) as $name) {
+            if (isset($moduleIds[$name])) {
+                $requires[] = ModuleId::of($moduleIds[$name]);
+            }
+        }
+        $api = $require[ModuleApi::PACKAGE] ?? null;
+        if (null !== $api && !\is_string($api)) {
+            throw new InvalidManifest(\sprintf('Package %s requires %s without a version range such as "^1.0".', $package, ModuleApi::PACKAGE));
+        }
 
         return new ModuleManifest(
             $id,
             $kind,
             $package,
-            $namespace,
-            array_map(static fn (string $name): ModuleId => ModuleId::of(substr($name, \strlen('foresi/'))), $requires),
+            $namespace->value,
+            $requires,
             array_map(ModuleId::of(...), $optional),
             $scopes,
             $bundle,
             $guestScopes,
+            $api,
         );
+    }
+
+    /**
+     * The namespace of extra.foresi.namespace, which must be a PSR-4 prefix of
+     * the package's autoload.
+     *
+     * @param array<mixed> $composer
+     */
+    private static function namespace(array $composer, mixed $value, string $package, bool $own): ModuleNamespace
+    {
+        if (!\is_string($value)) {
+            throw new InvalidManifest(\sprintf('Package %s has no extra.foresi.namespace such as "Acme\\\\Fleet\\\\".', $package));
+        }
+        $namespace = ModuleNamespace::of($value);
+        if ($own !== $namespace->own() || ($own && !$namespace->ofOwnPackage())) {
+            throw new InvalidManifest($own ? \sprintf('Package %s is one of Foresi\'s own, so its namespace is "Foresi\\\\<Module>\\\\", such as "Foresi\\\\Timesheet\\\\".', $package) : \sprintf('Package %s is not one of Foresi\'s own, so its namespace cannot start with "Foresi\\\\".', $package));
+        }
+        $psr4 = self::at($composer, 'autoload', 'psr-4');
+        if (!\is_array($psr4) || !\array_key_exists($value, $psr4)) {
+            throw new InvalidManifest(\sprintf('Package %s declares the namespace %s, which its autoload.psr-4 does not.', $package, $value));
+        }
+
+        return $namespace;
     }
 
     /**

@@ -13,7 +13,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Domain\Task;

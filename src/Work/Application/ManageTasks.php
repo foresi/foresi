@@ -11,7 +11,7 @@ namespace Foresi\Work\Application;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Work\Contract\Event\TaskCompleted;
 use Foresi\Work\Contract\Event\TaskCreated;
 use Foresi\Work\Contract\Event\TaskTrashed;

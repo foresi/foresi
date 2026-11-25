@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 
 /**
  * Who works with the catalog: the owners and members of the organisation,

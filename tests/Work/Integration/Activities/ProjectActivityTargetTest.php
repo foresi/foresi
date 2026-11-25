@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Work\Integration\Activities;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Tests\Work\Application\WorkTestCase;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Contract\ProjectSlots;

@@ -61,6 +61,7 @@ abstract class SendWorker extends KernelTestCase
 {
     private const string IBAN = 'CZ6508000000192000145399';
     private const float SLOT = 0.6;
+    private const float SPIN = 0.05;
     private const int SERVER_TALKS = 400_000;
 
     /**
@@ -121,7 +122,7 @@ abstract class SendWorker extends KernelTestCase
         $began = [];
         $ended = [];
         foreach ($ids['invoices'] as $slot => $invoice) {
-            usleep(max(0, (int) (($startAt + $slot * self::SLOT - microtime(true)) * 1_000_000)));
+            self::waitUntil($startAt + $slot * self::SLOT);
             $began[] = microtime(true);
             try {
                 $results[] = match ($job) {
@@ -166,6 +167,22 @@ abstract class SendWorker extends KernelTestCase
         }
 
         return $found;
+    }
+
+    /**
+     * Sleeps until shortly before the moment, then spins to it. A trash takes a few
+     * milliseconds, less than a sleep may oversleep on a busy runner, so workers that
+     * only slept could start a slot too far apart to meet in it.
+     */
+    private static function waitUntil(float $moment): void
+    {
+        $sleep = $moment - self::SPIN - microtime(true);
+        if ($sleep > 0) {
+            usleep((int) ($sleep * 1_000_000));
+        }
+        while (microtime(true) < $moment) {
+            // Spinning: the start of the slot, to the microsecond.
+        }
     }
 
     private static function deliver(MessageBusInterface $bus, RecordingMailGateway $gateway, string $send): string

@@ -192,8 +192,15 @@ final class MigrationRebaseTest extends KernelTestCase
             }
             $this->db->executeStatement(\sprintf('ALTER TABLE %s DROP COLUMN %s', $table, $column));
         }
+        // Their foreign keys go first: PostgreSQL refuses to drop a table that another one still references.
+        $manager = $this->db->createSchemaManager();
         foreach ($dropTables as $table) {
-            $this->db->createSchemaManager()->dropTable($table);
+            foreach ($manager->listTableForeignKeys($table) as $foreignKey) {
+                $manager->dropForeignKey($foreignKey->getName(), $table);
+            }
+        }
+        foreach ($dropTables as $table) {
+            $manager->dropTable($table);
         }
         $platform = $this->db->getDatabasePlatform();
         foreach ($restoreColumns as [$table, $name, $column]) {

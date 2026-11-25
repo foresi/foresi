@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\Event;
 
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**

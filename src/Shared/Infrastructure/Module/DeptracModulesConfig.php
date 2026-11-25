@@ -17,8 +17,8 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  * module has three kinds of layer:
  *
  * - "<id>": the module's own code, everything but Contract and Integration;
- * - "<id>_contract": Foresi\<Module>\Contract\, what other modules may use;
- * - "<id>_integration_<other>": Foresi\<Module>\Integration\<Other>\, the code
+ * - "<id>_contract": <namespace>Contract\, what other modules may use;
+ * - "<id>_integration_<other>": <namespace>Integration\<Other>\, the code
  *   for one optional dependency, loaded only when <other> is installed.
  *
  * A module may use the modules it requires, whole, as before contracts
@@ -31,7 +31,8 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  * narrows that to the module's domain, such as the payload of an event in
  * Shared's contract (ADR 0044).
  *
- * Ids and namespaces are validated, so they are written unquoted. A layer is
+ * <namespace> is the module's own, from its manifest, whichever vendor it
+ * belongs to. Ids and namespaces are validated, so they are written unquoted. A layer is
  * named by the module id with "_" for "-", as Deptrac reads the ruleset
  * through Symfony Config, which normalizes "-" in keys to "_".
  */
@@ -109,7 +110,7 @@ final readonly class DeptracModulesConfig
     }
 
     /**
-     * "Foresi\Invoicing\" as the start of a pattern, "^Foresi\\Invoicing\\".
+     * A module's namespace as the start of a pattern, "Acme\Fleet\" as "^Acme\\Fleet\\".
      */
     private function pattern(string $namespace): string
     {

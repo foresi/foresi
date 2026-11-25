@@ -22,7 +22,7 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Events\Support\ReadsEventLog;

@@ -19,7 +19,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Mail\Infrastructure\Events\MailEventAccess;
 use Foresi\Mail\Infrastructure\Events\MailEventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Support\Mail\MailKit;

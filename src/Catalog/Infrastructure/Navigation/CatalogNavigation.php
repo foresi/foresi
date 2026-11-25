@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Infrastructure\Navigation;
 
 use Foresi\Catalog\Infrastructure\Controller\ProductController;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;

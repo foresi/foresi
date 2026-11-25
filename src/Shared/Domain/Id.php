@@ -30,4 +30,18 @@ final readonly class Id
             && Uuid::isValid($value)
             && Uuid::fromString($value) instanceof UuidV7;
     }
+
+    /**
+     * The values that are UUIDs of any version, in their order. A value that is not
+     * a UUID names no row, and PostgreSQL refuses it in a uuid column, so a lookup
+     * by ids passes them through this first.
+     *
+     * @param list<string> $values
+     *
+     * @return list<string>
+     */
+    public static function onlyUuids(array $values): array
+    {
+        return array_values(array_filter($values, Uuid::isValid(...)));
+    }
 }

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Mail;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Mail\Contract\AddressOwners;
 use Foresi\Mail\Contract\InboundPurpose;
 use Foresi\Mail\Contract\Messages;
