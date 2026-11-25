@@ -44,7 +44,7 @@ final readonly class DoctrineSalesWork implements SalesWork
         } catch (\Throwable $failure) {
             $this->outbox->rolledBack();
             $this->registry->resetManager();
-            if ($failure instanceof UniqueConstraintViolationException && self::isProjectIndex($failure)) {
+            if ($failure instanceof UniqueConstraintViolationException && $this->isProjectIndex($failure)) {
                 throw SalesRefused::conflict('project_already_linked', 'The project was just linked to another line; a project serves one hourly line. Unlink it there first.', 'projectId');
             }
 
@@ -55,14 +55,8 @@ final readonly class DoctrineSalesWork implements SalesWork
         return $result;
     }
 
-    private static function isProjectIndex(UniqueConstraintViolationException $failure): bool
+    private function isProjectIndex(UniqueConstraintViolationException $failure): bool
     {
-        foreach (self::PROJECT_INDEX as $name) {
-            if (str_contains($failure->getMessage(), $name)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(self::PROJECT_INDEX, fn (string $name): bool => str_contains($failure->getMessage(), $name));
     }
 }

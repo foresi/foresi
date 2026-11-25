@@ -25,7 +25,6 @@ use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
 use Foresi\Sales\Integration\Timesheet\DealLineRates;
 use Foresi\Sales\Integration\Work\DealProjectFacts;
-use Foresi\Work\Contract\ProjectSlots;
 use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -34,6 +33,7 @@ use Foresi\Timesheet\Application\RateResolver;
 use Foresi\Timesheet\Domain\RateSource;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTime;
+use Foresi\Work\Contract\ProjectSlots;
 use Foresi\Work\Domain\Project;
 
 /**
@@ -134,10 +134,14 @@ final class DealLineProjectTest extends SalesTestCase
     {
         $line = $this->hourly($this->deal('DUD'), $this->dud->id());
         $rates = self::getContainer()->get(DealLineRates::class);
-        self::assertTrue($rates->rateFor($this->dud->id())?->equals(Money::of('1200', Currency::CZK)) ?? false);
+        $first = $rates->rateFor($this->dud->id());
 
         $this->lines()->update(new UpdateDealLineInput($line->dealId(), $line->id(), unitPrice: '1300.00'));
-        self::assertTrue($rates->rateFor($this->dud->id())?->equals(Money::of('1200', Currency::CZK)) ?? false, 'kept for the request');
+        $again = $rates->rateFor($this->dud->id());
+
+        self::assertNotNull($first);
+        self::assertTrue($first->equals(Money::of('1200', Currency::CZK)));
+        self::assertSame($first, $again, 'kept for the request');
 
         $this->assertRate('1300', RateSource::DealLine);
     }
