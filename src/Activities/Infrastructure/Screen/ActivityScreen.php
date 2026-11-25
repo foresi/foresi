@@ -37,6 +37,12 @@ final readonly class ActivityScreen
     /** The icon of each timing, from Lucide. */
     private const array ICONS = ['timed' => 'calendar', 'date' => 'square-check-big', 'none' => 'text-quote'];
 
+    /** The seeded e-mail type, whose activity is an e-mail recorded with its sender as the first line of its body. */
+    private const string EMAIL = 'email';
+
+    /** How the body of an e-mail activity opens: "From: Client A <a@example.com>". */
+    private const string SENDER_PREFIX = 'From: ';
+
     public function __construct(
         private ActivitiesStore $store,
         private ActivityReads $reads,
@@ -68,7 +74,8 @@ final readonly class ActivityScreen
             'id' => $activity->id(),
             'url' => $this->urls->generate(ActivityController::SHOW_ROUTE, ['id' => $activity->id()]),
             'type' => $this->names->of($type),
-            'icon' => self::ICONS[$type->timing()->value],
+            'icon' => self::EMAIL === $type->key() ? 'mail' : self::ICONS[$type->timing()->value],
+            'sender' => self::EMAIL === $type->key() ? $this->sender($activity->body()) : null,
             'subject' => $activity->subject(),
             'body' => $activity->body(),
             'done' => $activity->isDone(),
@@ -89,6 +96,16 @@ final readonly class ActivityScreen
                 'url' => $this->urls->generate(AttachmentController::ROUTE, ['id' => $file->id()]),
             ], $this->attachments->of(Activity::ATTACHMENT_KIND, $activity->id())),
         ];
+    }
+
+    /**
+     * The sender line an e-mail activity's body opens with, or null when it opens with something else.
+     */
+    private function sender(string $body): ?string
+    {
+        $line = trim(explode("\n", $body, 2)[0]);
+
+        return str_starts_with($line, self::SENDER_PREFIX) && '' !== trim(substr($line, \strlen(self::SENDER_PREFIX))) ? $line : null;
     }
 
     /**

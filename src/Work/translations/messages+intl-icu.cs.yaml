@@ -565,6 +565,7 @@ work:
     tab:
       list: Seznam
       board: Nástěnka
+      activities: Aktivity
     field:
       name: Název
       client: Klient

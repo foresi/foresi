@@ -79,6 +79,18 @@ final class ModulesDeptracCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $this->command()($this->io(new BufferedOutput()), check: true));
     }
 
+    public function testWorksActivitiesIntegrationUsesOnlyTheActivitiesContract(): void
+    {
+        $config = (string) file_get_contents(\dirname(__DIR__, 4).'/deptrac.modules.yaml');
+        self::assertStringContainsString("    - name: work_integration_activities\n      collectors:\n        - type: classLike\n          value: ^Foresi\\\\Work\\\\Integration\\\\Activities\\\\.*\n", $config);
+        self::assertSame(1, preg_match('/^    work_integration_activities:\n((?:      - [a-z_]+\n)+)/m', $config, $rule));
+        $uses = array_map(static fn (string $line): string => substr($line, 8), explode("\n", trim($rule[1], "\n")));
+
+        self::assertContains('activities_contract', $uses);
+        self::assertNotContains('activities', $uses, 'of Activities, the integration uses the contract only');
+        self::assertContains('work', $uses);
+    }
+
     private function command(): ModulesDeptracCommand
     {
         $projectDir = \dirname(__DIR__, 4);

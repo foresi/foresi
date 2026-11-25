@@ -12,6 +12,7 @@ activities:
         call: Hovor
         note: Poznámka
         task: Úkol
+        email: E-mail
     timing:
         timed: 'V čase, s délkou'
         date: 'Na den'

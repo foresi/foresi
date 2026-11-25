@@ -56,6 +56,7 @@ use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectColumns;
 use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
 use Foresi\Work\Infrastructure\Column\ProjectTaskColumns;
+use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
 use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Foresi\Work\Infrastructure\View\ProjectTaskViews;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -119,6 +120,7 @@ final class ProjectController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly ProjectPageSlots $pageSlots,
     ) {
     }
 
@@ -272,6 +274,8 @@ final class ProjectController extends AbstractController
 
         return $this->render('@Work/projects/show.html.twig', [
             'project' => $list->project,
+            // The sections other modules add follow List and Board; ?tab= shows one in place of the tasks.
+            ...$this->pageSlots->of($list->project, $input->getString('tab')),
             'sections' => $sections,
             'text' => $text,
             'filtered' => '' !== $text || [] !== $shown->conditions,
@@ -336,6 +340,7 @@ final class ProjectController extends AbstractController
 
         return $this->render('@Work/projects/board.html.twig', [
             'project' => $board->project,
+            ...$this->pageSlots->of($board->project),
             'query' => ['responsible' => $query['responsible'], 'due' => $query['due']] + ('' === $text ? [] : ['q' => $text]),
             'text' => $text,
             'pinned' => $pins->pinned,

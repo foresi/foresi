@@ -16,9 +16,11 @@ A **type** is a kind of activity with a **timing**:
 | --- | --- | --- |
 | `timed` | at a time, with a duration (the type's default when left out) | Meeting (60 min), Call (15 min) |
 | `date` | on a day | Task |
-| `none` | never: it is done when it is written | Note |
+| `none` | never: it is done when it is written | Note, E-mail |
 
-The migration seeds Meeting, Call, Note and Task (keys `meeting`, `call`, `note`, `task`). A seeded type has no name of its own: it shows under its key's name in the person's language until someone renames it. A type's key never changes, so events and integrations can name it. Types are kept under **Settings → Activities**, and archived, never deleted; an archived type is no longer offered, and the activities of that type keep it.
+The migrations seed Meeting, Call, Note, Task and E-mail (keys `meeting`, `call`, `note`, `task`, `email`); an existing instance gets E-mail when it migrates. A seeded type has no name of its own: it shows under its key's name in the person's language until someone renames it. A type's key never changes, so events and integrations can name it. Types are kept under **Settings → Activities**, and archived, never deleted; an archived type is no longer offered, and the activities of that type keep it. The seeded types follow the same rule as the others: any of them, E-mail included, can be renamed and archived.
+
+An **E-mail** activity is an e-mail kept as the source of a record: its subject, its text as the body and the time it was received, linked to the client and the records it led to, such as a deal or a project. Its body opens with the sender line, `From: Client A <client.a@example.com>`, which the timeline shows under the subject with an envelope icon. Like all e-mail text it is shown as plain text, never as HTML.
 
 ## Activities
 
@@ -57,4 +59,4 @@ The REST endpoints are in [api.md](api.md#activities) and the tools in [mcp.md](
 
 ## For integrators
 
-A module that wants activities on its records implements `Foresi\Activities\Contract\ActivityTarget` in `Integration/Activities/` (kinds, `canSee`, `canLink`, `label`, `url`) and links its screen to `RecordActivities::ROUTE` with `kind`, `id` and `return`, the address of its own screen that the dialogs go back to. To log or plan an activity on several records at once, it opens `/activities/new` with `mode` (`log` or `plan`), `link_kind` and `link_id` for its record, `links[]=kind:id`, repeated, for the others (a deal, its client and its contact persons) and `return`; a malformed or repeated link is left out. The address book does this for contacts (`src/Party/Integration/Activities`): an archived contact counts as gone.
+A module that wants activities on its records implements `Foresi\Activities\Contract\ActivityTarget` in `Integration/Activities/` (kinds, `canSee`, `canLink`, `label`, `url`) and links its screen to `RecordActivities::ROUTE` with `kind`, `id` and `return`, the address of its own screen that the dialogs go back to. To log or plan an activity on several records at once, it opens `/activities/new` with `mode` (`log` or `plan`), `link_kind` and `link_id` for its record, `links[]=kind:id`, repeated, for the others (a deal, its client and its contact persons) and `return`; a malformed or repeated link is left out. The address book does this for contacts (`src/Party/Integration/Activities`): an archived contact counts as gone. Sales does it for deals (kind `deal`), where a trashed deal counts as gone, and Work for projects (kind `project`, `src/Work/Integration/Activities`): whoever sees a project sees its activities, and an archived project keeps them but takes no new one.

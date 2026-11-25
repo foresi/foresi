@@ -565,6 +565,7 @@ work:
     tab:
       list: List
       board: Board
+      activities: Activities
     field:
       name: Name
       client: Client
