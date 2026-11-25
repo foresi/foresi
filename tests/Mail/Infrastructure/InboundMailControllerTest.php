@@ -14,6 +14,7 @@ use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Support\Mail\MailKit;
+use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -99,6 +100,34 @@ final class InboundMailControllerTest extends WebTestCase
         self::assertSame('webhook', $this->connection()->fetchOne('SELECT channel FROM mail_message'));
     }
 
+    public function testUnknownRevokedAndOverLimitMailAnswer202LikeStoredMail(): void
+    {
+        $this->changeEnv('MAIL_INBOUND_DAILY_LIMIT', '1');
+        $issuer = self::getContainer()->get(AddressIssuer::class);
+        $revoked = $issuer->issue(RecordingPurpose::KEY, null, 'Revoked');
+        $issuer->revoke($revoked->id);
+
+        $answers = [];
+        $mails = [
+            'stored' => MailKit::mail($this->kit->address, 'one@mail.example.com'),
+            'unknown' => MailKit::mail($this->kit->unknownAddress(), 'two@mail.example.com'),
+            'revoked' => MailKit::mail($revoked->address, 'three@mail.example.com'),
+            'over the limit' => MailKit::mail($this->kit->address, 'four@mail.example.com'),
+        ];
+        foreach ($mails as $raw) {
+            $this->post($raw);
+            self::assertResponseStatusCodeSame(202);
+            $response = $this->client->getResponse();
+            $headers = $response->headers->all();
+            unset($headers['date']);
+            ksort($headers);
+            $answers[] = json_encode([$response->getStatusCode(), $response->getContent(), $headers, $response->headers->getCookies()], \JSON_THROW_ON_ERROR);
+        }
+
+        self::assertCount(1, array_unique($answers), implode("\n", $answers));
+        self::assertSame(1, $this->rowCount(), 'Only the first mail is kept.');
+    }
+
     public function testTheRecipientHeaderRoutesTheMessage(): void
     {
         $this->post(MailKit::mail('accounts@firm.example.com'), recipient: $this->kit->address);
@@ -148,7 +177,7 @@ final class InboundMailControllerTest extends WebTestCase
         self::assertSame(120, self::getContainer()->get('test.inbound_mail_limiter')->create('127.0.0.1')->consume(0)->getRemainingTokens());
     }
 
-    public function testWebhookAbove10MiBIs413(): void
+    public function testWebhookAbove25MiBIs413(): void
     {
         $this->post(str_repeat('a', ReceiveMail::MAX_BYTES + 1));
         self::assertResponseStatusCodeSame(413);

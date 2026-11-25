@@ -8,12 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Mail\Application;
 
+use Foresi\Mail\Contract\Event\MailMessageReceived;
 use Foresi\Mail\Contract\InboundMail;
 use Foresi\Mail\Contract\InboundPurpose;
 use Foresi\Mail\Contract\NotAccepted;
 use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Mail\Domain\MailMessage;
+use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 use Psr\Clock\ClockInterface;
 
@@ -30,8 +32,13 @@ use Psr\Clock\ClockInterface;
  * copy with a Message-ID stored already but other bytes is a row of its own, so
  * junk that took the ID of a notice never keeps the notice out.
  *
+ * Once the purpose has accepted a mail, the thin event mail.message.received is
+ * recorded in the same transaction: a mail that is refused, fails or is a duplicate
+ * records none.
+ *
  * Nothing is kept of a mail for no known address, for an address whose purpose
- * no installed module registered, or one its purpose refuses. Never log the
+ * no installed module registered, or one its purpose refuses, or for an address
+ * that already took its daily limit of mail (see DailyLimit). Never log the
  * address.
  *
  * Call it outside any open transaction, as the poller and the webhook do: inside
@@ -40,8 +47,11 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class ReceiveMail
 {
-    /** Notifications are a few kilobytes; anything above this is refused unread. */
-    public const int MAX_BYTES = 10 * 1024 * 1024;
+    /**
+     * Notifications are a few kilobytes, but documents arrive as PDF attachments, so
+     * the limit is Cloudflare's own 25 MiB for mail; anything above it is refused unread.
+     */
+    public const int MAX_BYTES = 25 * 1024 * 1024;
 
     /**
      * The header fields that may name the inbound address, in the order they
@@ -63,6 +73,9 @@ final readonly class ReceiveMail
         private SenderVerdict $verdict,
         private MailTransaction $transaction,
         private ClockInterface $clock,
+        private DailyLimit $limit,
+        private NotifyOverLimit $overLimit,
+        private EventRecorder $events,
     ) {
     }
 
@@ -90,6 +103,12 @@ final readonly class ReceiveMail
             return ReceiveOutcome::UnknownRecipient;
         }
 
+        if ($this->limit->reached($address->id())) {
+            $this->overLimit->notify($address->id());
+
+            return ReceiveOutcome::OverLimit;
+        }
+
         return $this->keep($mail, $raw, $channel, $address, $purpose);
     }
 
@@ -102,7 +121,7 @@ final readonly class ReceiveMail
         }
 
         $id = Id::generate();
-        $now = \DateTimeImmutable::createFromInterface($this->clock->now());
+        $now = \DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone(new \DateTimeZone('UTC'));
         $verdict = $this->verdict->judge($mail, $channel);
         $key = $this->files->store($id, $raw);
         try {
@@ -111,11 +130,12 @@ final readonly class ReceiveMail
                 $mail->messageId(), $this->inReplyTo($mail), $this->references($mail), $mail->from(), $mail->subject(), $mail->date(),
                 $now, $verdict->result, $verdict->basis,
             );
-            $stored = $this->transaction->run(function () use ($message, $purpose, $id, $addressId): bool {
+            $stored = $this->transaction->run(function () use ($message, $purpose, $id, $address, $addressId): bool {
                 if (!$this->messages->add($message)) {
                     return false;
                 }
                 $purpose->accept($id, $addressId);
+                $this->events->record(new MailMessageReceived($id, $address->purpose()));
 
                 return true;
             });

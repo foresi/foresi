@@ -80,7 +80,7 @@ The task `mail-inbox` (Mail module) runs every five minutes on the existing sche
 |---|---|
 | `Foresi/Done` | Stored, or stored before (a duplicate) |
 | `Foresi/Unknown` | For no known address, or an address that was replaced |
-| `Foresi/Rejected` | Above 10 MiB, or not readable as mail, or its handling failed five times |
+| `Foresi/Rejected` | Above 25 MiB, or not readable as mail, or its handling failed five times |
 
 A message whose handling failed stays in the inbox and is taken again on the next run. After five failures it is moved to `Foresi/Rejected`, and the log says so. One the server will not even move there stays in the inbox for the operator and is left out of every later run, so bad messages at the head of the inbox never keep the good ones behind them from being read. The counts are kept in the application cache for a week; a lost count only starts over. The folders are created on the first run, under the server's personal namespace when it names one (below `INBOX.` on Courier and Cyrus, for example) and with the server's own hierarchy delimiter.
 
@@ -112,7 +112,7 @@ php -r 'echo bin2hex(random_bytes(32)), "\n";'
 | 400 | The body is not readable as mail |
 | 401 | The bearer token is missing or wrong (the scheme `Bearer` is matched without case, the secret exactly) |
 | 404 | `INBOUND_WEBHOOK_SECRET` is empty: the webhook is off |
-| 413 | The body is above 10 MiB, by its stated length or, for a chunked body, after reading one byte past the limit; the rest is never read |
+| 413 | The body is above 25 MiB, by its stated length or, for a chunked body, after reading one byte past the limit; the rest is never read |
 | 429 | More than 120 requests a minute with a wrong or missing secret from one client IP address, or more than 600 a minute with the secret |
 
 The secret is checked first, in constant time. Failed checks have a budget of their own per client IP, which keeps guessing slow; requests with the secret count against a separate, higher budget, so a flood of bad bearers from a shared address, such as other workers of the same provider, never locks the real relay out. A secret of 256 random bits cannot be guessed anyway. Both limits count the client IP that Symfony gives, so behind a reverse proxy set `trusted_proxies` as described in [sending.md](sending.md#the-public-link). The route keeps no session and needs no sign-in.
@@ -364,7 +364,7 @@ The hourly job `bank-reparse` reads again, by itself, the failed messages whose 
 | Trusted authentication results | Only your own receiving server's topmost header counts, only a single aligned `dmarc=pass` or the strict ARC rescue verifies, and anything unclear verifies nothing |
 | The account check | A notice about an account that is not the firm's is rejected and cannot be recorded |
 | The gate | An unverified message is recorded and suggested, never paid by itself; a person pairs it only after confirming it in the bank, and only the owner records a failed one anyway |
-| The webhook secret and limit | Bearer token compared in constant time first, 120 failed attempts a minute per IP, a separate 600 a minute for the relay, 10 MiB at most, and the same answer whether an address exists |
+| The webhook secret and limit | Bearer token compared in constant time first, 120 failed attempts a minute per IP, a separate 600 a minute for the relay, 25 MiB at most, and the same answer whether an address exists |
 | Undo | Every pairing, automatic or by hand, can be undone, and the movement then waits for a person |
 
 Every write goes through one application path and is staff only, except `POST /inbound/mail`. The raw file is checked against its SHA-256 before it is read. Logs name the message, never the address.

@@ -25,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * token. Without a secret the route does not exist. The optional header
  * X-Foresi-Recipient names the recipient the relay saw.
  *
- * Stored, duplicate and unknown recipient all answer 202, so the answer tells
+ * Stored, duplicate, unknown recipient and over-limit all answer 202, so the answer tells
  * nothing about which addresses exist. The secret is checked first, in constant
  * time. A failed check is counted per client address and answered 429 once the
  * budget is spent, which keeps guessing slow; it is never what stops the real
@@ -81,7 +81,7 @@ final readonly class InboundMailController
         $recipient = $request->headers->get(self::RECIPIENT_HEADER);
 
         return match ($this->receive->receive($raw, InboundChannel::Webhook, null === $recipient || '' === trim($recipient) ? null : $recipient)) {
-            ReceiveOutcome::Stored, ReceiveOutcome::Duplicate, ReceiveOutcome::UnknownRecipient => new Response('', Response::HTTP_ACCEPTED),
+            ReceiveOutcome::Stored, ReceiveOutcome::Duplicate, ReceiveOutcome::UnknownRecipient, ReceiveOutcome::OverLimit => new Response('', Response::HTTP_ACCEPTED),
             ReceiveOutcome::TooLarge => new Response('', Response::HTTP_REQUEST_ENTITY_TOO_LARGE),
             ReceiveOutcome::Unreadable => new Response('', Response::HTTP_BAD_REQUEST),
         };

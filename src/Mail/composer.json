@@ -15,6 +15,7 @@
         "doctrine/orm": "^3.7.5",
         "doctrine/persistence": "^4.2",
         "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
         "foresi/instance": "self.version",
         "foresi/shared": "self.version",
         "psr/cache": "^3.0",
@@ -22,11 +23,13 @@
         "psr/log": "^3.0",
         "symfony/cache": "7.4.*",
         "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
         "symfony/rate-limiter": "7.4.*",
         "symfony/routing": "^7.4",
-        "zbateson/mail-mime-parser": "^4.0.8"
+        "zbateson/mail-mime-parser": "^4.0.8",
+        "zircote/swagger-php": "^7.5"
     },
     "autoload": {
         "psr-4": {
@@ -42,7 +45,10 @@
             "kind": "module",
             "namespace": "Foresi\\Mail\\",
             "bundle": "Foresi\\Mail\\MailBundle",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                "mail_addresses"
+            ]
         }
     }
 }

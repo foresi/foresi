@@ -67,6 +67,16 @@ final readonly class InboundAddresses
     }
 
     /**
+     * The template with the token left out, as "inbox+…@example.com": all a list of
+     * addresses can show, as only the hash of a token is stored. Empty when inbound
+     * mail is not set up here.
+     */
+    public function maskedTemplate(): string
+    {
+        return $this->isConfigured() ? str_replace(self::PLACEHOLDER, "\u{2026}", $this->template) : '';
+    }
+
+    /**
      * A pattern for the part of the template as written plainly or URL-encoded,
      * character by character.
      */

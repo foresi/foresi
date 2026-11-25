@@ -1405,6 +1405,28 @@ nelmio_api_doc:
                           properties:
                               address: { type: string, format: uri, example: 'https://foresi.example.com/calendar/feed/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCd.ics' }
                               webcal: { type: string, example: 'webcal://foresi.example.com/calendar/feed/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCd.ics', description: 'The same address with the webcal scheme, which opens the calendar app to subscribe.' }
+                MailAddress:
+                    type: object
+                    description: One of your inbound mail addresses. The full address is shown only once, when it is created or replaced.
+                    required: [id, purpose, label, masked_address, created_at, revoked_at, last_received_at, limit_reached_today, dropped_today]
+                    properties:
+                        id: { type: string, format: uuid }
+                        purpose: { type: string, example: purchasing, description: 'What the address is for, the key a module registered.' }
+                        label: { type: string, example: 'Receipts to the accountant' }
+                        masked_address: { type: string, example: 'inbox+…@example.com', description: 'The address with its secret part left out.' }
+                        created_at: { type: string, format: date-time }
+                        revoked_at: { type: string, format: date-time, nullable: true }
+                        last_received_at: { type: string, format: date-time, nullable: true, description: 'When mail last reached it.' }
+                        limit_reached_today: { type: boolean, description: 'Whether the address took its daily limit of e-mails today, so mail to it is dropped until tomorrow (the instance day).' }
+                        dropped_today: { type: integer, minimum: 0, description: 'How many e-mails the daily limit dropped today; 0 unless limit_reached_today.' }
+                MailAddressCreated:
+                    description: A new inbound address with its full text, shown this once; only its hash is kept.
+                    allOf:
+                        - $ref: '#/components/schemas/MailAddress'
+                        - type: object
+                          required: [address]
+                          properties:
+                              address: { type: string, format: email, example: 'inbox+abcdefghijklmnopqrstuvwxyz@example.com' }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.

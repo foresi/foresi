@@ -872,6 +872,8 @@ deptrac:
     mail:
       - audit
       - audit_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
       - mail_contract
@@ -880,6 +882,8 @@ deptrac:
     mail_contract:
       - audit
       - audit_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
       - shared

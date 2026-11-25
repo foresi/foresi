@@ -20,12 +20,13 @@ final class RecordingPurpose implements InboundPurpose
 {
     public const string KEY = 'test';
     public const string RESHOWABLE_KEY = 'test_reshowable';
+    public const string OWNED_KEY = 'test_owned';
 
     /** @var list<array{string, string}> message id and address id, in order */
     private static array $accepted = [];
     private static ?\Throwable $failure = null;
 
-    public function __construct(private readonly string $key, private readonly bool $reshowable)
+    public function __construct(private readonly string $key, private readonly bool $reshowable, private readonly bool $ownerRequired = false)
     {
     }
 
@@ -63,7 +64,7 @@ final class RecordingPurpose implements InboundPurpose
 
     public function ownerRequired(): bool
     {
-        return false;
+        return $this->ownerRequired;
     }
 
     public function reshowable(): bool

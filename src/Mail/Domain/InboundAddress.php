@@ -20,11 +20,15 @@ use Foresi\Shared\Domain\Id;
  * only for a purpose that shows its addresses again, opens it for the owner.
  * Neither goes to the audit log, nor does the time of the last message. Rotating
  * replaces both at once, so the old address stops being found the moment the new
- * one is stored; a revoked address takes in nothing.
+ * one is stored; a revoked address takes in nothing. A person has at most one
+ * address that is not revoked for a purpose: the owner is kept a second time in
+ * active_owner_user_id, set only while the address is live, under a plain unique
+ * index (NULLs are distinct), not a partial one (ADR 0019, ADR 0026).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_inbound_address')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_token', columns: ['token_hash'])]
+#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['active_owner_user_id', 'purpose'])]
 #[ORM\Index(name: 'idx_mail_inbound_address_owner', columns: ['owner_user_id'])]
 class InboundAddress implements Audited
 {
@@ -52,10 +56,24 @@ class InboundAddress implements Audited
     #[ORM\Column(name: 'revoked_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $revokedAt = null;
 
+    /** The owner while the address is live, NULL once it is revoked or has no owner: what the unique index holds. */
+    #[ORM\Column(name: 'active_owner_user_id', type: 'guid', nullable: true)]
+    private ?string $activeOwnerUserId;
+
     /** Written by plain SQL as mail arrives; see InboundAddressStore::touch(). */
     #[AuditExcluded]
     #[ORM\Column(name: 'last_received_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastReceivedAt = null;
+
+    /** The last instance day the daily limit was reached; written by plain SQL, see InboundAddressStore::recordDrop(). */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'limit_reached_on', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $limitReachedOn = null;
+
+    /** How many mails were dropped on that day. */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'dropped_on_limit', type: 'integer', options: ['default' => 0])]
+    private int $droppedOnLimit = 0;
 
     /**
      * @param string      $tokenHash   the lowercase hex SHA-256 of the token
@@ -79,6 +97,7 @@ class InboundAddress implements Audited
             throw new \DomainException('An owner is named by an id.');
         }
         $this->id = Id::generate();
+        $this->activeOwnerUserId = $ownerUserId;
         $this->purpose = $purpose;
         $this->label = mb_substr(trim($label), 0, self::MAX_LABEL);
         $this->tokenHash = $this->checkedHash($tokenHash);
@@ -99,9 +118,22 @@ class InboundAddress implements Audited
         $this->lastReceivedAt = null;
     }
 
+    /**
+     * @throws \DomainException when the label is empty or longer than MAX_LABEL
+     */
+    public function rename(string $label): void
+    {
+        $label = trim($label);
+        if ('' === $label || mb_strlen($label) > self::MAX_LABEL) {
+            throw new \DomainException(\sprintf('A label is 1 to %d characters.', self::MAX_LABEL));
+        }
+        $this->label = $label;
+    }
+
     public function revoke(\DateTimeImmutable $at): void
     {
         $this->revokedAt ??= $at;
+        $this->activeOwnerUserId = null;
     }
 
     public function id(): string
@@ -152,6 +184,15 @@ class InboundAddress implements Audited
     public function lastReceivedAt(): ?\DateTimeImmutable
     {
         return $this->lastReceivedAt;
+    }
+
+    /**
+     * How many mails the daily limit dropped on the instance day, which is the
+     * date part of $day, or 0 when it was not reached that day.
+     */
+    public function droppedOn(\DateTimeImmutable $day): int
+    {
+        return $this->limitReachedOn instanceof \DateTimeImmutable && $this->limitReachedOn->format('Y-m-d') === $day->format('Y-m-d') ? $this->droppedOnLimit : 0;
     }
 
     private function checkedHash(string $hash): string
