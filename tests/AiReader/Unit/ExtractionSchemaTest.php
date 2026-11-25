@@ -14,6 +14,12 @@ use PHPUnit\Framework\TestCase;
 
 final class ExtractionSchemaTest extends TestCase
 {
+    public function testTheSchemaIsTheOneTheModelIsToldAbout(): void
+    {
+        // Every word reaches the model, so a change to the schema shows up here and in review.
+        self::assertJsonStringEqualsJsonFile(__DIR__.'/extraction-schema.json', (string) json_encode(ExtractionSchema::fields()));
+    }
+
     public function testKindsAreTheKindsOfAReceivedDocument(): void
     {
         self::assertSame(

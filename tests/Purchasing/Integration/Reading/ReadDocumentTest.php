@@ -34,6 +34,7 @@ use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Foresi\Tests\Support\IsdocFixtures;
 use Foresi\Tests\Support\Purchasing\StubFallbackReader;
 use Psr\Clock\ClockInterface;
+use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\Envelope;
@@ -142,9 +143,14 @@ final class ReadDocumentTest extends PurchasingTestCase
 
                 return null;
             }, fallback: true),
+            $this->stub('later', static function () use ($asked): ?Reading {
+                $asked[] = 'later';
+
+                return null;
+            }),
         )->read($message);
 
-        self::assertSame([], $asked->getArrayCopy(), 'The total, the issue date and the supplier are there, so the fallback reader stays out.');
+        self::assertSame(['later'], $asked->getArrayCopy(), 'The total, the issue date and the supplier are there, so the fallback reader stays out, and the readers after it still run.');
     }
 
     public function testFallbackReaderRunsWhenAKeyFieldIsMissing(): void
@@ -200,6 +206,16 @@ final class ReadDocumentTest extends PurchasingTestCase
     public function testAiFailureKeepsStructuredValues(): void
     {
         $message = $this->uploaded();
+        $logger = new class extends AbstractLogger {
+            /** @var list<array{mixed, array<mixed>}> */
+            public array $records = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->records[] = [$level, $context];
+            }
+        };
+        $this->logger = $logger;
 
         $this->readDocument(
             $this->stub('isdoc', static fn (): Reading => new Reading([
@@ -208,6 +224,7 @@ final class ReadDocumentTest extends PurchasingTestCase
             ])),
             $this->stub('ai', static fn (): never => throw new ReaderFailed('provider_unavailable'), fallback: true),
         )->read($message);
+        self::assertSame([['warning', ['reader' => 'ai', 'code' => 'provider_unavailable']]], $logger->records, 'The failure is logged with its reader and its code only.');
 
         $reading = $this->reading($message->documentId);
         self::assertSame(ReadingState::Read, $reading->state());
@@ -553,6 +570,8 @@ final class ReadDocumentTest extends PurchasingTestCase
     /**
      * The job with these readers in place of the installed ones.
      */
+    private ?LoggerInterface $logger = null;
+
     private function readDocument(DocumentReader ...$readers): ReadDocument
     {
         $container = self::getContainer();
@@ -568,7 +587,7 @@ final class ReadDocumentTest extends PurchasingTestCase
             $container->get(PurchasingUnit::class),
             $container->get(AuditCorrelation::class),
             $container->get(ClockInterface::class),
-            $container->get(LoggerInterface::class),
+            $this->logger ?? $container->get(LoggerInterface::class),
         );
     }
 
