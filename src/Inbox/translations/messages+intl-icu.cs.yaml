@@ -115,6 +115,7 @@ inbox:
       kind_unknown: Záznam tohoto druhu nelze propojit.
       record_not_linkable: Tento záznam neexistuje nebo k němu nesmíte propojovat.
       already_linked: Tento záznam už je propojen.
+      type_unknown: Typ aktivity E-mail je archivovaný. Obnovte ho v Nastavení, Aktivity, a propojte znovu.
   create_contact:
     title: Vytvořit kontakt
     intro: Jméno a e-mail se berou z odesílatele. Doplňte fakturační adresu; nový kontakt se přiřadí k této položce.

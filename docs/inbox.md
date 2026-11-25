@@ -8,7 +8,7 @@ The module is optional. It requires Shared, Instance, Identity, Audit, Mail, Par
 
 An inbox is **private to its owner**. Every item belongs to the person whose address received it, and only that person reads or changes it, on the screens, over the API and with the MCP tools. Someone else's item is `not_found`, also for an owner of the organisation; the list shows only your own. Guests have no inbox.
 
-A colleague sees a mail only through a record you linked it to: the item has one **e-mail activity**, and whoever may see the record sees that activity on its timeline (see [below](#the-e-mail-activity)), never the item, its attachments or its other mails. Your address is yours, shown in full once when it is made, and what arrives there is never shared with the organisation. Events about an item reach its owner only.
+A colleague sees a mail only through a record you linked it to: the item has one **e-mail activity**, and whoever may see the record sees that activity on its timeline (see [below](#the-e-mail-activity)). On the screens and over the API they never see the item, its attachments or its other mails; a module that shows the mail behind a record they see may read its text and attachments through `InboxItems` (see [integrators](#for-integrators)). Your address is yours, shown in full once when it is made, and what arrives there is never shared with the organisation. Events about an item reach its owner only.
 
 Nothing in a mail is ever followed or rendered. The text is shown as plain text, an address in it is not a link, a web address is followed by its domain in brackets so you can see where it leads, and attachments are only offered for download, never opened in the browser. Over MCP the mail is marked as other people's words, to be read as data and never as instructions.
 
@@ -62,7 +62,7 @@ Replies to a mail share one thread, found from the mail's headers. The list show
 
 ### Linking and outputs
 
-**Link** attaches the item to a record made elsewhere, such as a deal or a project: you choose the kind (the installed modules offer theirs, so the list depends on what is installed) and give the record's id, which is in its address. The record becomes an **output** of the item. A record you cannot see or link to is refused (`record_not_linkable`), an unknown kind too (`kind_unknown`, which lists the kinds), and the same record twice is `already_linked`. A discarded item that is linked keeps its mail, as something came of it. Modules may also suggest the record an item most likely leads to; none does yet.
+**Link** attaches the item to a record made elsewhere, such as a deal or a project: you choose the kind (the installed modules offer theirs, so the list depends on what is installed) and give the record's id, which is in its address. The record becomes an **output** of the item. A record you cannot see or link to is refused (`record_not_linkable`), an unknown kind too (`kind_unknown`, which lists the kinds), and the same record twice is `already_linked`. While the activity type E-mail is archived under **Settings → Activities**, the first link of an item is refused with Activities' `type_unknown`, as no e-mail activity can be made; restore the type and link again. A discarded item that is linked keeps its mail, as something came of it. Modules may also suggest the record an item most likely leads to; none does yet.
 
 ## The e-mail activity
 
@@ -71,7 +71,7 @@ The first time you link an item, Inbox writes one **e-mail activity** (see [acti
 - The **subject** is the mail's subject on one line, cut to 200 characters; with none, the sender's address, or else "E-mail".
 - The **body** is the sender line, the time received in the instance's time zone and the text of the mail, cut to 20,000 characters with the closing line `Full e-mail in the inbox item`.
 - The mail is shown **as written**. Activities renders a body as Markdown, so Inbox escapes the punctuation of the mail text and of the sender line with a backslash: no heading, emphasis, list or link of the mail takes effect, and an address or web address in it is not turned into a link. The cost is that the backslashes are visible in the body when you read the activity over the API.
-- Changing the matched contact later does not move the activity.
+- Matching a contact after the first link adds that contact and its company to the activity; matching another contact or none later adds or keeps, it never removes a link.
 - The activity is the only way a colleague sees the mail. If the item is removed, the activity stays and its closing line points to an item that is gone.
 
 ## Retention
@@ -102,7 +102,7 @@ Every action of the screens is an operation with an idempotency key ([ADR 0032](
 | `inbox.items.link` | Links a record as an output |
 | `inbox.items.trash` (destructive), `.restore` | Puts the item in the trash, or brings it back |
 
-The refusals never quote the mail: `not_found`, `forbidden`, `contact_unknown`, `contact_archived`, `already_new`, `already_done`, `already_discarded`, `kind_unknown`, `record_not_linkable`, `already_linked` and `insufficient_scope`.
+The refusals never quote the mail: `not_found`, `forbidden`, `contact_unknown`, `contact_archived`, `already_new`, `already_done`, `already_discarded`, `kind_unknown`, `record_not_linkable`, `already_linked`, `type_unknown` (from Activities, while the E-mail type is archived) and `insufficient_scope`.
 
 ## Events
 

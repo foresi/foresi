@@ -115,6 +115,7 @@ inbox:
       kind_unknown: No record of this kind can be linked.
       record_not_linkable: This record does not exist or you may not link to it.
       already_linked: This record is linked already.
+      type_unknown: The activity type E-mail is archived. Restore it under Settings, Activities, then link again.
   create_contact:
     title: Create a contact
     intro: Name and e-mail come from the sender. Fill in the billing address; the new contact is matched to this item.
