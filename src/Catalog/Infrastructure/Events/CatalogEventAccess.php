@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Infrastructure\Events;
 
 use Foresi\Catalog\Application\CatalogAccess;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**

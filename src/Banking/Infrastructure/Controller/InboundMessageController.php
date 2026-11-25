@@ -22,7 +22,7 @@ use Foresi\Banking\Contract\NotificationLines;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MessageTrust;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;

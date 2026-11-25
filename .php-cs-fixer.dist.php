@@ -9,7 +9,9 @@ use PhpCsFixer\Finder;
 $finder = (new Finder())
     ->in([__DIR__.'/src', __DIR__.'/tests', __DIR__.'/config'])
     ->notPath('reference.php')
-    ->exclude('e2e/node_modules');
+    ->exclude('e2e/node_modules')
+    // A module of another vendor, not installed here (the External module workflow installs it).
+    ->exclude('Fixtures/modules');
 
 return (new Config())
     ->setRiskyAllowed(true)

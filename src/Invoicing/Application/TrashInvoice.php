@@ -14,7 +14,7 @@ use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Events\Fixtures\Facts\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 #[DomainEvent('invoicing.fact.float_fact')]
 final readonly class FloatFact implements DomainEventPayload

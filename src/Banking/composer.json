@@ -17,6 +17,7 @@
         "foresi/instance": "self.version",
         "foresi/invoicing": "self.version",
         "foresi/mail": "self.version",
+        "foresi/module-api": "^1.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",

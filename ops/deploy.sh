@@ -116,6 +116,11 @@ console() { "$PHP" bin/console --env=prod --no-interaction "$@"; }
 log "installing dependencies"
 "$COMPOSER" install --no-dev --optimize-autoloader --classmap-authoritative --no-progress
 
+# Every installed module must be written for this release's module API (ADR 0044), before
+# anything builds on it or touches the database; the command names each one that is not.
+log "checking the modules against the module API"
+console app:modules:check
+
 log "building assets"
 console importmap:install
 console tailwind:build --minify

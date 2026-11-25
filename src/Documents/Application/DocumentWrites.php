@@ -39,7 +39,7 @@ use Foresi\Documents\Domain\DocumentType;
 use Foresi\Documents\Domain\Signer;
 use Foresi\Documents\Domain\SignerSide;
 use Foresi\Documents\Domain\SignerStatus;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Psr\Clock\ClockInterface;
 

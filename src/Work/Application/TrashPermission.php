@@ -10,7 +10,7 @@ namespace Foresi\Work\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OwnerCheck;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Work\Domain\Task;
 
 /**

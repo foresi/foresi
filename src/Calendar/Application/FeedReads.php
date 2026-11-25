@@ -10,7 +10,7 @@ namespace Foresi\Calendar\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Calendar\Domain\CalendarFeed;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 
 /**
  * The person's own calendar feeds, never their addresses.

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Margin\Infrastructure\Navigation;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Margin\Infrastructure\Controller\MarginPageController;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationItem;

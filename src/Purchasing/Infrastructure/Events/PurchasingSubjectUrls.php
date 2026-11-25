@@ -10,7 +10,7 @@ namespace Foresi\Purchasing\Infrastructure\Events;
 
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

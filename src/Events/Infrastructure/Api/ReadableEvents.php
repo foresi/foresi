@@ -14,7 +14,7 @@ use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Catalogue\EventType;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Shared\Infrastructure\Api\InvalidParameter;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

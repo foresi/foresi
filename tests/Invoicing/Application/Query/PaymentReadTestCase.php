@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Application\Query;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;

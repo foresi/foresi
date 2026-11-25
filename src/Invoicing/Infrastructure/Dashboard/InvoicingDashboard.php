@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Dashboard;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Application\Debtor;
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\InvoicingOverview;

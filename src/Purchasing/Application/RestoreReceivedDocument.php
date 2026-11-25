@@ -11,7 +11,7 @@ namespace Foresi\Purchasing\Application;
 use Foresi\Purchasing\Contract\Event\ReceivedDocumentRestored;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Brings a received document back from the trash as it was, with its number.

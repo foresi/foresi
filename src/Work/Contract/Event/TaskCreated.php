@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A task was added to a project, by a person or a client of the API. Titles
