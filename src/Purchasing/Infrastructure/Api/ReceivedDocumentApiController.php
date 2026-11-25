@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Infrastructure\Api;
 
 use Foresi\Party\Application\InstanceFirm;
+use Foresi\Purchasing\Application\Mail\MailSources;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\View\ReceivedDocumentLists;
 use Foresi\Shared\Application\Api\ScopeGuard;
@@ -38,7 +39,7 @@ final readonly class ReceivedDocumentApiController
     public const string SHOW = 'api_v1_received_document';
     public const string PAYMENTS = 'api_v1_received_document_payments';
 
-    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json, private InstanceFirm $firm, private TranslatorInterface $translator)
+    public function __construct(private ReceivedDocumentLists $receivedLists, private ScopeGuard $scope, private ReceivedDocumentBalances $balances, private SavedViews $views, private ViewJson $json, private InstanceFirm $firm, private TranslatorInterface $translator, private MailSources $mailSources)
     {
     }
 
@@ -75,7 +76,9 @@ final readonly class ReceivedDocumentApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => ReceivedDocumentJson::detail($this->balances->of($documentId), $this->firm->get(), $this->translator)]);
+        $paid = $this->balances->of($documentId);
+
+        return new JsonResponse(['data' => ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator, $this->mailSources->of($paid->document))]);
     }
 
     #[Route('/api/v1/received-documents/{documentId}/payments', name: self::PAYMENTS, methods: ['GET'])]

@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Tests\Purchasing\Functional\Api;
 
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Mail\Contract\Messages;
 use Foresi\Purchasing\Contract\Reading\ReadField;
 use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Tests\Purchasing\Support\ReceivedDocumentApiTestCase;
+use Foresi\Tests\Purchasing\Support\StoredMessages;
 
 /**
  * The reading of a received document over REST: where the draft came from, what the readers
@@ -41,6 +43,31 @@ final class ReceivedDocumentReadingApiTest extends ReceivedDocumentApiTestCase
         self::assertNotNull($this->at('data', 'reading', 'finished_at'));
         self::assertSame([], $this->at('data', 'reading', 'warnings'));
         self::assertNull($this->at('data', 'reading', 'failure'));
+    }
+
+    public function testApiDetailHasSourceMail(): void
+    {
+        $mail = '5f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b11';
+        self::getContainer()->set(Messages::class, new StoredMessages($mail, 'Pat Supplier <pat@supplier.example.com>', 'Invoice 11/2026', new \DateTimeImmutable('2026-11-20 09:00:00 UTC'), 'failed'));
+        $filed = $this->draft(DocumentSource::Mail, mail: $mail);
+        $uploaded = $this->draft();
+
+        $this->get('/api/v1/received-documents/'.$filed, secret: $this->writer);
+        self::assertSame('mail', $this->at('data', 'source'));
+        self::assertSame(['from' => 'Pat Supplier <pat@supplier.example.com>', 'subject' => 'Invoice 11/2026', 'sent_at' => '2026-11-20T09:00:00+00:00', 'verdict' => 'failed'], $this->at('data', 'source_mail'));
+
+        $this->get('/api/v1/received-documents/'.$uploaded, secret: $this->writer);
+        self::assertNull($this->at('data', 'source_mail'));
+    }
+
+    public function testListFiltersByMailSource(): void
+    {
+        $mail = $this->draft(DocumentSource::Mail, mail: '5f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b11');
+        $this->draft();
+
+        $this->get('/api/v1/received-documents', ['source' => 'mail'], $this->writer);
+
+        self::assertSame([$mail], $this->ids());
     }
 
     public function testADocumentNeverReadHasNoReading(): void

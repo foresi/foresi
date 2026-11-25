@@ -78,6 +78,7 @@ purchasing:
     confirm_text: "Koncept i jeho soubor zmizí. V historii zůstane záznam."
   detail:
     draft_title: "Koncept z {date}"
+    from_mail: "Z e-mailu"
     original: "Originál dokladu"
     no_preview: "Tento soubor nejde zobrazit v prohlížeči, stáhněte si ho."
     trashed: "Doklad je v koši: {reason}"

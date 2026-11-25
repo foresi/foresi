@@ -78,6 +78,7 @@ purchasing:
     confirm_text: "The draft and its file go; the history keeps a record."
   detail:
     draft_title: "Draft of {date}"
+    from_mail: "From e-mail"
     original: "Original document"
     no_preview: "This file cannot be shown in the browser; download it."
     trashed: "The document is in the trash: {reason}"
@@ -178,7 +179,7 @@ purchasing:
     manual: "Manual"
     upload: "Upload"
     api: "API"
-    mail: "Mail"
+    mail: "E-mail"
   reading_state:
     reading: "Reading"
     read: "Read"
