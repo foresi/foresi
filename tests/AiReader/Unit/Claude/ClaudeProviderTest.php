@@ -119,6 +119,7 @@ final class ClaudeProviderTest extends TestCase
     {
         yield '401' => [401, 'provider_auth'];
         yield '403' => [403, 'provider_auth'];
+        yield '413' => [413, 'too_large'];
         yield '429' => [429, 'provider_busy'];
         yield '529' => [529, 'provider_busy'];
         yield '500' => [500, 'provider_unavailable'];

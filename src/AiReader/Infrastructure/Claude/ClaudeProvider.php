@@ -109,6 +109,7 @@ final readonly class ClaudeProvider implements AiProvider
     {
         return match (true) {
             401 === $status, 403 === $status => 'provider_auth',
+            413 === $status => 'too_large',
             429 === $status, 529 === $status => 'provider_busy',
             default => 'provider_unavailable',
         };

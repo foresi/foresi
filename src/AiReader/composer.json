@@ -13,6 +13,7 @@
         "foresi/purchasing": "self.version",
         "foresi/shared": "self.version",
         "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/http-client": "^7.4.23",
         "symfony/http-client-contracts": "^3.7"
     },
     "autoload": {
@@ -26,7 +27,10 @@
             "kind": "module",
             "namespace": "Foresi\\AiReader\\",
             "bundle": "Foresi\\AiReader\\AiReaderBundle",
-            "optional": []
+            "optional": [],
+            "config-requires": [
+                "symfony/http-client"
+            ]
         }
     }
 }

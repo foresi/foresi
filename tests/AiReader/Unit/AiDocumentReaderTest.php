@@ -172,7 +172,7 @@ final class AiDocumentReaderTest extends TestCase
         $this->reader($provider)->read($this->pdf());
     }
 
-    public function testAFileOver32MbIsRefusedBeforeItIsSent(): void
+    public function testAFileOver24MbIsRefusedBeforeItIsSent(): void
     {
         $provider = $this->provider($this->answer());
 

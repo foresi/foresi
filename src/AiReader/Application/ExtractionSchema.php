@@ -31,35 +31,46 @@ final class ExtractionSchema
      */
     public static function fields(): array
     {
-        $text = static fn (): array => ['anyOf' => [['type' => 'string'], ['type' => 'null']]];
-        $date = static fn (): array => ['anyOf' => [['type' => 'string', 'format' => 'date'], ['type' => 'null']]];
+        $amount = 'a decimal string with a point and at most two decimals, positive, without a currency sign or a thousands separator (for example "1210.50")';
+        $text = static fn (string $description): array => ['anyOf' => [['type' => 'string'], ['type' => 'null']], 'description' => $description];
+        $date = static fn (string $description): array => ['anyOf' => [['type' => 'string', 'format' => 'date'], ['type' => 'null']], 'description' => $description.' as YYYY-MM-DD.'];
 
         $properties = [
-            'kind' => ['anyOf' => [['type' => 'string', 'enum' => self::KINDS], ['type' => 'null']]],
-            'supplier_name' => $text(),
-            'supplier_registration_number' => $text(),
-            'supplier_vat_id' => $text(),
-            'supplier_country' => $text(),
-            'supplier_number' => $text(),
-            'variable_symbol' => $text(),
-            'issue_date' => $date(),
-            'tax_point_date' => $date(),
-            'due_date' => $date(),
-            'currency' => $text(),
-            'total' => $text(),
-            'vat_recap' => ['anyOf' => [
-                [
-                    'type' => 'array',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => ['rate' => ['type' => 'string'], 'base' => ['type' => 'string'], 'vat' => ['type' => 'string']],
-                        'required' => ['rate', 'base', 'vat'],
-                        'additionalProperties' => false,
+            'kind' => [
+                'anyOf' => [['type' => 'string', 'enum' => self::KINDS], ['type' => 'null']],
+                'description' => 'What the document is. A credit note subtracts, but its amounts stay positive.',
+            ],
+            'supplier_name' => $text('The name of the supplier: the party that issued the document, not the one it is addressed to.'),
+            'supplier_registration_number' => $text('The company registration number of the supplier, as printed.'),
+            'supplier_vat_id' => $text('The VAT identification number of the supplier, as printed, with its country prefix.'),
+            'supplier_country' => $text('The country of the supplier as two capital letters (ISO 3166-1 alpha-2, for example "DE").'),
+            'supplier_number' => $text('The number of the document as the supplier issued it.'),
+            'variable_symbol' => $text('The variable symbol or payment reference printed on the document.'),
+            'issue_date' => $date('The date the document was issued'),
+            'tax_point_date' => $date('The date of the taxable supply'),
+            'due_date' => $date('The date the payment is due'),
+            'currency' => $text('The currency of the amounts as three capital letters (ISO 4217, for example "EUR").'),
+            'total' => $text('The total amount to pay including VAT, as '.$amount.'.'),
+            'vat_recap' => [
+                'anyOf' => [
+                    [
+                        'type' => 'array',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'rate' => ['type' => 'string', 'description' => 'The VAT rate as a percent number without a percent sign (for example "21" or "0").'],
+                                'base' => ['type' => 'string', 'description' => 'The taxable base of this rate, as '.$amount.'.'],
+                                'vat' => ['type' => 'string', 'description' => 'The VAT amount of this rate, as '.$amount.'.'],
+                            ],
+                            'required' => ['rate', 'base', 'vat'],
+                            'additionalProperties' => false,
+                        ],
                     ],
+                    ['type' => 'null'],
                 ],
-                ['type' => 'null'],
-            ]],
-            'bank_account' => $text(),
+                'description' => 'The VAT summary: one row per VAT rate. Null when the document prints none.',
+            ],
+            'bank_account' => $text('The bank account the supplier asks to be paid to: an IBAN, or a domestic number in the form prefix-number/bank code.'),
         ];
 
         return [

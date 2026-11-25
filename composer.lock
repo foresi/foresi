@@ -1834,13 +1834,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/AiReader",
-                "reference": "6dd2cf28f19199e70b3ed99d7a7ca3123cf0c6a2"
+                "reference": "b788269967389735ee59853a934a70361d72d195"
             },
             "require": {
                 "foresi/instance": "self.version",
                 "foresi/purchasing": "self.version",
                 "foresi/shared": "self.version",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-client": "^7.4.23",
                 "symfony/http-client-contracts": "^3.7"
             },
             "type": "foresi-module",
@@ -1850,7 +1851,10 @@
                     "kind": "module",
                     "namespace": "Foresi\\AiReader\\",
                     "bundle": "Foresi\\AiReader\\AiReaderBundle",
-                    "optional": []
+                    "optional": [],
+                    "config-requires": [
+                        "symfony/http-client"
+                    ]
                 }
             },
             "autoload": {

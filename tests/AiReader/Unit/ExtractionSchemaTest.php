@@ -39,6 +39,26 @@ final class ExtractionSchemaTest extends TestCase
         self::assertContains(['type' => 'string', 'format' => 'date'], $this->at($this->at($properties, 'issue_date'), 'anyOf'));
     }
 
+    public function testEveryPropertyTellsTheModelWhatToPut(): void
+    {
+        $properties = $this->at(ExtractionSchema::fields(), 'properties');
+        foreach ($properties as $name => $property) {
+            self::assertIsArray($property);
+            self::assertIsString($property['description'] ?? null, $name.' has a description');
+            self::assertNotSame('', trim($property['description']));
+        }
+        $rows = $this->at($this->at($this->at($this->at($properties, 'vat_recap'), 'anyOf'), 0), 'items');
+        foreach ($this->at($rows, 'properties') as $name => $property) {
+            self::assertIsArray($property);
+            self::assertIsString($property['description'] ?? null, 'vat_recap.'.$name.' has a description');
+        }
+        self::assertStringContainsString('including VAT', $this->describe($properties, 'total'));
+        self::assertStringContainsString('not the one it is addressed to', $this->describe($properties, 'supplier_name'));
+        self::assertStringContainsString('ISO 3166-1', $this->describe($properties, 'supplier_country'));
+        self::assertStringContainsString('ISO 4217', $this->describe($properties, 'currency'));
+        self::assertStringContainsString('YYYY-MM-DD', $this->describe($properties, 'issue_date'));
+    }
+
     public function testNoObjectTakesAnotherPropertyAndNoConstraintIsUsedThatTheServiceRefuses(): void
     {
         $schema = ExtractionSchema::fields();
@@ -69,5 +89,16 @@ final class ExtractionSchemaTest extends TestCase
         self::assertIsArray($value);
 
         return $value;
+    }
+
+    /**
+     * @param array<array-key, mixed> $properties
+     */
+    private function describe(array $properties, string $name): string
+    {
+        $description = $this->at($properties, $name)['description'] ?? null;
+        self::assertIsString($description);
+
+        return $description;
     }
 }
