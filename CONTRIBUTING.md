@@ -125,6 +125,8 @@ What other modules, including those of other vendors, may rely on is the extensi
   * The pull request's Release notes say what changed for module authors.
 * Never deprecate code in the same change that adds it, and never remove code that no release has shipped as deprecated.
 * A renamed class keeps its old name as an alias, and a renamed tag keeps its old name in the map of old tags in Shared, until the next major version.
+* Every module, Foresi's own and others', requires a range of the module API in its `composer.json`, such as `"foresi/module-api": "^1.0"`. The container is not built with a module whose range the version in `Foresi\Shared\Contract\ModuleApi::VERSION` does not satisfy, or that requires none. `bin/console app:modules:check --api=2.0` tells before an upgrade which modules a version would leave behind; the deployment runs `app:modules:check` before the migrations.
+* A module of another vendor is any package of type `foresi-module`: its namespace, such as `Acme\Fleet\`, gives its id (`acme-fleet`), its bundle (`Acme\Fleet\AcmeFleetBundle`) and the prefix of its MCP tools (`acme_fleet_`). `tests/Fixtures/modules/acme-fleet` is such a module, built on the contract only; the External module workflow installs it and runs its tests, so a change that breaks it fails there.
 
 ### A new module
 
