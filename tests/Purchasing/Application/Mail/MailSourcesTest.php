@@ -25,7 +25,7 @@ final class MailSourcesTest extends TestCase
 
     public function testTheSenderAndTheSubjectAreMasked(): void
     {
-        $issuer = $this->createStub(AddressIssuer::class);
+        $issuer = self::createStub(AddressIssuer::class);
         $issuer->method('masked')->willReturnCallback(static fn (string $text): string => str_replace('secret-token', '[address]', $text));
         $sources = new MailSources(new StoredMessages(self::MAIL, '"docs+secret-token@example.com" <pat@supplier.example.com>', 'Re: docs+secret-token', new \DateTimeImmutable('2026-11-20 09:00:00'), 'failed'), $issuer);
 
@@ -39,7 +39,7 @@ final class MailSourcesTest extends TestCase
 
     public function testNothingForADocumentWithoutAMailOrWithAMailMailNoLongerHolds(): void
     {
-        $sources = new MailSources(new StoredMessages(self::MAIL, null, 'Invoice', null), $this->createStub(AddressIssuer::class));
+        $sources = new MailSources(new StoredMessages(self::MAIL, null, 'Invoice', null), self::createStub(AddressIssuer::class));
 
         self::assertNull($sources->of($this->document(null)));
         self::assertNull($sources->of($this->document('7a0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b99')));
