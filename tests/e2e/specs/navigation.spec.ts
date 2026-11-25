@@ -76,7 +76,7 @@ test.describe('navigation', () => {
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
-      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
+      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Kurzy měn', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);
