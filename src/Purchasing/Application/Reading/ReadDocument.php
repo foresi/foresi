@@ -32,11 +32,12 @@ use Psr\Clock\ClockInterface;
  * person runs it: it runs in the worker, within the correlation of the step
  * that asked for it, so the history shows the filled values with the upload.
  *
- * Every reader that supports the file runs, in reader order (a reader that
- * only runs on request only when a person asked; a fallback reader, when the
- * file arrives, only when the readers before it left the total, the issue date
- * or the identity of the supplier empty); one that cannot read the file is
- * noted and the next one runs, and the merge decides between their values. The file is read outside the transaction. The values are applied in
+ * Every reader that supports the file runs, in reader order. A reader that
+ * only runs on request runs only when a person asked. A fallback reader runs,
+ * when the file arrives, only when the readers before it left the total, the
+ * issue date or the identity of the supplier empty. A reader that cannot read
+ * the file is noted and the next one runs, and the merge decides between their
+ * values. The file is read outside the transaction. The values are applied in
  * one unit with the document locked, its version checked again there, so a
  * person who saved the draft meanwhile keeps what they typed.
  *

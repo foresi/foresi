@@ -65,6 +65,13 @@ final class AiReaderSettingsTest extends TestCase
         }
     }
 
+    public function testAnUnknownTriggerNeverBreaksAnInstanceWithoutAKey(): void
+    {
+        self::assertFalse(new AiReaderSettings('', '', '', 'sometimes')->isConfigured());
+        self::assertFalse(new AiReaderSettings('claude', '', '', 'sometimes')->isConfigured());
+        self::assertFalse(new AiReaderSettings('other', self::KEY, '', 'sometimes')->isConfigured());
+    }
+
     /**
      * @return iterable<string, array{callable(AiReaderSettings): string}>
      */

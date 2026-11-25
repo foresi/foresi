@@ -36,16 +36,17 @@ final readonly class AiReaderSettings
      * @param string $model    empty for the default model
      * @param string $trigger  `arrival` (or empty): the reader runs when a file arrives; `click`: only when a person asks
      *
-     * @throws \InvalidArgumentException for any other trigger
+     * @throws \InvalidArgumentException for any other trigger, but only when a provider and a key are set, so an
+     *                                   instance that does not use the reader never fails on it
      */
     public function __construct(string $provider, #[\SensitiveParameter] string $apiKey, string $model, string $trigger)
     {
         $trigger = strtolower(trim($trigger));
-        if (!\in_array($trigger, ['', self::ARRIVAL, self::CLICK], true)) {
-            throw new \InvalidArgumentException('AI_READER_TRIGGER must be "arrival" or "click", or empty.');
-        }
         $key = trim($apiKey);
         $this->provider = strtolower(trim($provider));
+        if (self::CLAUDE === $this->provider && '' !== $key && !\in_array($trigger, ['', self::ARRIVAL, self::CLICK], true)) {
+            throw new \InvalidArgumentException('AI_READER_TRIGGER must be "arrival" or "click", or empty.');
+        }
         $this->model = '' === trim($model) ? self::DEFAULT_MODEL : trim($model);
         $this->automatic = self::CLICK !== $trigger;
         $this->pad = random_bytes(max(1, \strlen($key)));

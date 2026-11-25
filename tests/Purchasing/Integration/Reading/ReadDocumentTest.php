@@ -196,6 +196,26 @@ final class ReadDocumentTest extends PurchasingTestCase
         self::assertSame(['ai'], $asked->getArrayCopy());
     }
 
+    public function testAiFailureKeepsStructuredValues(): void
+    {
+        $message = $this->uploaded();
+
+        $this->readDocument(
+            $this->stub('isdoc', static fn (): Reading => new Reading([
+                new ReadValue(ReadField::SupplierNumber, 'FV-2026-77', 'isdoc'),
+                new ReadValue(ReadField::Total, 12_100, 'isdoc'),
+            ])),
+            $this->stub('ai', static fn (): never => throw new ReaderFailed('provider_unavailable'), fallback: true),
+        )->read($message);
+
+        $reading = $this->reading($message->documentId);
+        self::assertSame(ReadingState::Read, $reading->state());
+        self::assertNull($reading->failure());
+        $document = $this->document($message->documentId);
+        self::assertSame('FV-2026-77', $document->supplierNumber());
+        self::assertSame(12_100, $document->total()?->minor());
+    }
+
     public function testRunningTwiceAppliesOnce(): void
     {
         $message = $this->uploaded();

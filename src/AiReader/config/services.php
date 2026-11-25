@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
-use Foresi\AiReader\Infrastructure\UnconfiguredProvider;
+use Foresi\AiReader\Infrastructure\Claude\ClaudeProvider;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
@@ -33,6 +33,6 @@ return static function (ContainerConfigurator $container): void {
         env('AI_READER_TRIGGER'),
     ]);
 
-    // The provider the settings name; a provider adapter replaces this binding.
-    $services->alias(AiProvider::class, UnconfiguredProvider::class);
+    // Claude is the only provider; it refuses with not_configured until the settings have a key.
+    $services->alias(AiProvider::class, ClaudeProvider::class);
 };

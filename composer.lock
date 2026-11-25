@@ -1834,13 +1834,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/AiReader",
-                "reference": "e2fe3230d9eb5309122d3722d0343e15f1fb739e"
+                "reference": "6dd2cf28f19199e70b3ed99d7a7ca3123cf0c6a2"
             },
             "require": {
                 "foresi/instance": "self.version",
                 "foresi/purchasing": "self.version",
                 "foresi/shared": "self.version",
-                "symfony/dependency-injection": "^7.4 || ^8.0"
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/http-client-contracts": "^3.7"
             },
             "type": "foresi-module",
             "extra": {
