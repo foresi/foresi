@@ -326,6 +326,11 @@ final class ItemWritesTest extends InboxTestCase
                 return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit);
             }
 
+            public function countInState(string $ownerUserId, ItemState $state, int $limit): int
+            {
+                return $this->store->countInState($ownerUserId, $state, $limit);
+            }
+
             public function threadSizes(string $ownerUserId, array $threadKeys): array
             {
                 return $this->store->threadSizes($ownerUserId, $threadKeys);

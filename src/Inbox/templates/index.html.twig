@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The person's inbox: the mail they forwarded to their inbox address, one row per conversation with the
+    latest mail and how many others it has. Its saved views are the tabs as on every list: New, Done,
+    Discarded and Unmatched. The list has no search: the mail's words are Mail's, not the item's.
+    Variables: the list's view bar and filter sheet, tabs, columns, rows, picker, olderUrl, emptyState.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% block title %}{{ 'inbox.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="inbox-actions">
+        <twig:Ui:MenuItem :href="path('app_account_inbox')" icon="settings" data-inbox-addresses>{{ 'inbox.addresses_link'|trans }}</twig:Ui:MenuItem>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-4">
+        {% for tone in ['success', 'error'] %}
+            {% for message in app.flashes(tone) %}
+                <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
+            {% endfor %}
+        {% endfor %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {manageViews: manageViews, viewBar: viewBar, toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'inbox.views'|trans, toolsFilter: 'inbox-filters', toolsSearch: null, toolsColumns: {id: 'inbox-columns', action: path('app_inbox')}}) }}
+        <twig:Ui:FilterBar id="inbox-filters" :search="null" :action="path('app_inbox')" :keep="{view: view != '' ? view : null, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty" data-inbox-filter>
+        </twig:Ui:FilterBar>
+
+        <twig:Ui:DataTable :caption="'inbox.title'|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Inbox\\Infrastructure\\Controller\\InboxController::TOKEN'))" data-inbox-list data-turbo-prefetch="false">
+            <twig:block name="empty">
+                {% if filtered %}
+                    <twig:Ui:EmptyState icon="search" :title="emptyState.title" :text="'inbox.empty.filtered'|trans" data-inbox-empty>
+                        <twig:Ui:Button :href="path('app_inbox', view != '' ? {view: view} : {})">{{ 'inbox.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="mail" :title="emptyState.title" :text="emptyState.text" data-inbox-empty />
+                {% endif %}
+            </twig:block>
+            <twig:block name="footer">
+                {%- if olderUrl -%}
+                    <span></span>
+                    <twig:Ui:Button :href="olderUrl" data-inbox-older>{{ 'inbox.older'|trans }}</twig:Ui:Button>
+                {%- endif -%}
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
+{% endblock %}

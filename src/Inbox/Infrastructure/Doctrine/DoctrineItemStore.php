@@ -59,6 +59,24 @@ final readonly class DoctrineItemStore implements ItemStore
         return $query->getQuery()->getResult();
     }
 
+    public function countInState(string $ownerUserId, ItemState $state, int $limit): int
+    {
+        // At most $limit ids are read, so a very full inbox costs no more than the cap of its badge.
+        $ids = $this->em->createQueryBuilder()
+            ->select('i.id')
+            ->from(InboxItem::class, 'i')
+            ->where('i.ownerUserId = :owner')
+            ->andWhere('i.trashedAt IS NULL')
+            ->andWhere('i.state = :state')
+            ->setParameter('owner', $ownerUserId)
+            ->setParameter('state', $state)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return \count($ids);
+    }
+
     public function threadSizes(string $ownerUserId, array $threadKeys): array
     {
         if ([] === $threadKeys) {

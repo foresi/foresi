@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    How to forward mail to the inbox address, one block per mail program with the provider's own help page.
+    Variables: help (gmail, outlook, apple: the provider's URL).
+#}
+<section class="grid gap-3" aria-labelledby="inbox-forwarding-title" data-inbox-forwarding>
+    <h2 id="inbox-forwarding-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.forwarding.title'|trans }}</h2>
+    <p class="m-0 text-text">{{ 'inbox.forwarding.intro'|trans }}</p>
+    {% for provider in ['gmail', 'outlook', 'apple'] %}
+        <twig:Ui:Card :title="('inbox.forwarding.' ~ provider ~ '.title')|trans" icon="mail" data-inbox-forwarding-provider="{{ provider }}">
+            <p class="m-0 mb-2 text-text">{{ ('inbox.forwarding.' ~ provider ~ '.steps')|trans }}</p>
+            <a href="{{ help[provider] }}" target="_blank" rel="noopener noreferrer" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'inbox.forwarding.help'|trans }}</a>
+        </twig:Ui:Card>
+    {% endfor %}
+</section>

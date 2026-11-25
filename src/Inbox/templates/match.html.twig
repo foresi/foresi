@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Match an inbox item to a contact of the address book, picked by its name. A dialog over the item; the
+    same URL is a page of its own.
+    Variables: id, values (contactId, contactQuery), error, token.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'inbox.match.title'|trans %}
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-match-form" action="{{ path('app_inbox_item_match', {id: id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        <p class="m-0 text-text">{{ 'inbox.match.intro'|trans }}</p>
+        <twig:Ui:Combobox name="contactId" id="contact" textName="contactQuery" width="long" :label="'inbox.match.contact'|trans" :placeholder="'inbox.match.placeholder'|trans" :value="values.contactId" :text="values.contactQuery" :url="path('app_inbox_contacts')" :emptyText="'inbox.match.empty'|trans" :error="error" required />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-match-form" variant="primary">{{ 'inbox.match.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="user" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-match-form" variant="primary">{{ 'inbox.match.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

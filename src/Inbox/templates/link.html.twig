@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Link an inbox item to a record made elsewhere, such as a deal: the kind (the modules offer them to
+    activities) and the record's id. A dialog over the item; the same URL is a page of its own.
+    Variables: id, values (kind, recordId), error, kinds, token.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'inbox.link.title'|trans %}
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-link-form" action="{{ path('app_inbox_item_link', {id: id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        <p class="m-0 text-text">{{ 'inbox.link.intro'|trans }}</p>
+        <twig:Ui:Select name="kind" id="kind" :label="'inbox.link.kind'|trans" :options="kinds" :value="values.kind" required />
+        <twig:Ui:TextInput name="recordId" id="recordId" :label="'inbox.link.record_id'|trans" :help="'inbox.link.record_id_help'|trans" :value="values.recordId" :error="error" maxlength="64" required autocomplete="off" spellcheck="false" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-link-form" variant="primary">{{ 'inbox.link.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="link-2" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-link-form" variant="primary">{{ 'inbox.link.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

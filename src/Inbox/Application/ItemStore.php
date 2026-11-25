@@ -37,6 +37,11 @@ interface ItemStore
     public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array;
 
     /**
+     * How many items outside the trash an owner has in a state, counted up to a limit.
+     */
+    public function countInState(string $ownerUserId, ItemState $state, int $limit): int;
+
+    /**
      * How many items outside the trash an owner has of each thread.
      *
      * @param list<string> $threadKeys

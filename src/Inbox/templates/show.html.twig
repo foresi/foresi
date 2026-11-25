@@ -1,0 +1,159 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One inbox item, a record (docs/design/overlays.md): who sent the mail and to which contact it is
+    matched, what to be careful about, the mail as plain text, its attachments as downloads, the other
+    mails of the conversation and what came of it. Done, Discard and Reopen are in the header; Link,
+    Create contact and Match contact open dialogs.
+    Everything of the mail (sender, subject, text, file names) is the sender's own words: it is printed
+    escaped, never as markup, never as a link, and no remote content is loaded.
+    Variables: id, state, title, from, originalFrom, verdict, received, contact, matched, matchBasis,
+    warnings, duplicateOf, text, mailRemoved, attachments, thread, outputs, token.
+#}
+{% extends '@Ui/layout/record.html.twig' %}
+
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set csrf = csrf_token(token) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="inbox-item-actions">
+        <twig:block name="primary">
+            {% if state == 'new' %}
+                <form method="post" action="{{ path('app_inbox_item_done', {id: id}) }}" data-inbox-done>
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <twig:Ui:Button :size="record_action_size" type="submit" icon="check" variant="primary">{{ 'inbox.action.done'|trans }}</twig:Ui:Button>
+                </form>
+            {% else %}
+                <form method="post" action="{{ path('app_inbox_item_reopen', {id: id}) }}" data-inbox-reopen>
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <twig:Ui:Button :size="record_action_size" type="submit" icon="inbox" variant="primary">{{ 'inbox.action.reopen'|trans }}</twig:Ui:Button>
+                </form>
+            {% endif %}
+        </twig:block>
+        <twig:block name="buttons">
+            <twig:Ui:Button :size="record_action_size" icon="link-2" :href="path('app_inbox_item_link', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-link>{{ 'inbox.action.link'|trans }}</twig:Ui:Button>
+            {% if matched %}
+                <twig:Ui:Button :size="record_action_size" icon="user" :href="path('app_inbox_item_match', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-match>{{ 'inbox.action.match_other'|trans }}</twig:Ui:Button>
+            {% else %}
+                <twig:Ui:Button :size="record_action_size" icon="user-plus" :href="path('app_inbox_item_contact_new', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-create-contact>{{ 'inbox.action.create_contact'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button :size="record_action_size" icon="user" :href="path('app_inbox_item_match', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-match>{{ 'inbox.action.match'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </twig:block>
+        <twig:block name="phone">
+            <twig:Ui:MenuItem icon="link-2" :href="path('app_inbox_item_link', {id: id})" data-dialog aria-haspopup="dialog">{{ 'inbox.action.link'|trans }}</twig:Ui:MenuItem>
+            {% if not matched %}
+                <twig:Ui:MenuItem icon="user-plus" :href="path('app_inbox_item_contact_new', {id: id})" data-dialog aria-haspopup="dialog">{{ 'inbox.action.create_contact'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
+            <twig:Ui:MenuItem icon="user" :href="path('app_inbox_item_match', {id: id})" data-dialog aria-haspopup="dialog">{{ (matched ? 'inbox.action.match_other' : 'inbox.action.match')|trans }}</twig:Ui:MenuItem>
+        </twig:block>
+        <twig:block name="last">
+            <form method="post" action="{{ path('app_inbox_item_match_again', {id: id}) }}" role="none" data-inbox-match-again>
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'inbox.action.match_again'|trans }}</twig:Ui:MenuItem>
+            </form>
+            {% if matched %}
+                <form method="post" action="{{ path('app_inbox_item_unmatch', {id: id}) }}" role="none" data-inbox-unmatch>
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <twig:Ui:MenuItem type="submit" icon="x">{{ 'inbox.action.unmatch'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+            {% if state != 'discarded' %}
+                <form method="post" action="{{ path('app_inbox_item_discard', {id: id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    data-confirm-title="{{ 'inbox.discard.confirm_title'|trans }}" data-confirm-text="{{ 'inbox.discard.confirm_text'|trans }}"
+                    data-confirm-accept="{{ 'inbox.action.discard'|trans }}" data-confirm-cancel="{{ 'inbox.cancel'|trans }}" data-confirm-tone="danger" data-inbox-discard>
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <twig:Ui:MenuItem type="submit" tone="danger" icon="trash-2">{{ 'inbox.action.discard'|trans }}</twig:Ui:MenuItem>
+                </form>
+            {% endif %}
+        </twig:block>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    <div class="grid gap-4">
+        {% for tone in ['success', 'error'] %}
+            {% for message in app.flashes(tone) %}
+                <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
+            {% endfor %}
+        {% endfor %}
+
+        <div class="flex flex-wrap items-center gap-2">
+            <twig:Ui:Badge :tone="state == 'new' ? 'amber' : (state == 'done' ? 'green' : 'gray')" data-inbox-state>{{ ('inbox.state.' ~ state)|trans }}</twig:Ui:Badge>
+        </div>
+
+        {% for warning in warnings %}
+            <twig:Ui:Alert tone="warning" data-inbox-warning="{{ warning }}">
+                {% if warning == 'duplicate' %}{{ 'inbox.warning.duplicate'|trans({purpose: duplicateOf}) }}{% else %}{{ ('inbox.warning.' ~ warning)|trans }}{% endif %}
+            </twig:Ui:Alert>
+        {% endfor %}
+        {% if mailRemoved %}
+            <twig:Ui:Alert tone="info" data-inbox-mail-removed>{{ 'inbox.item.mail_removed'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        <twig:Ui:Card :title="'inbox.item.details'|trans" icon="mail">
+            <twig:Ui:DescriptionList :items="[
+                {label: 'inbox.item.from'|trans, value: from},
+                {label: 'inbox.item.original_from'|trans, value: originalFrom, note: originalFrom ? 'inbox.item.original_from_note'|trans : null},
+                {label: 'inbox.item.received'|trans, value: received},
+                {label: 'inbox.item.contact'|trans, value: contact ? {links: [{text: contact.name, href: contact.href, opens: 'page'}]} : null, empty: 'inbox.item.no_contact'|trans, note: matchBasis ? ('inbox.item.basis.' ~ matchBasis)|trans : null},
+            ]" />
+        </twig:Ui:Card>
+
+        {% if text is not null %}
+            <section class="grid gap-2" aria-labelledby="inbox-text-title">
+                <h2 id="inbox-text-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.item.text'|trans }}</h2>
+                <pre class="m-0 whitespace-pre-wrap break-words rounded-panel border border-container bg-white p-4 font-sans text-body text-ink" data-inbox-text>{{ text }}</pre>
+            </section>
+        {% endif %}
+
+        <section class="grid gap-2" aria-labelledby="inbox-files-title" data-inbox-attachments>
+            <h2 id="inbox-files-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.item.attachments'|trans }} <span class="num font-normal text-muted">({{ attachments|length }})</span></h2>
+            {% if attachments is empty %}
+                <p class="m-0 text-muted">{{ 'inbox.item.no_attachments'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for file in attachments %}
+                        <li><a href="{{ file.href }}" download data-turbo="false" class="inline-flex items-center gap-1 text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ ux_icon('lucide:paperclip', {class: 'size-4', 'aria-hidden': 'true'}) }}{{ file.name }}</a> <span class="text-caption text-muted">{{ file.size }}</span></li>
+                    {% endfor %}
+                </ul>
+                <p class="m-0 text-caption text-muted">{{ 'inbox.item.attachments_note'|trans }}</p>
+            {% endif %}
+        </section>
+
+        <section class="grid gap-2" aria-labelledby="inbox-outputs-title" data-inbox-outputs>
+            <h2 id="inbox-outputs-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.item.outputs'|trans }}</h2>
+            {% if outputs is empty %}
+                <p class="m-0 text-muted">{{ 'inbox.item.no_outputs'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for output in outputs %}
+                        <li>
+                            {% if output.available %}
+                                <span class="text-muted">{{ output.kind|replace({'_': ' '})|capitalize }}:</span>
+                                <a href="{{ output.url }}" class="font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ output.label }}</a>
+                            {% else %}
+                                <span class="text-muted" data-inbox-output-unavailable>{{ 'inbox.item.output_unavailable'|trans }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+
+        {% if thread is not empty %}
+            <section class="grid gap-2" aria-labelledby="inbox-thread-title" data-inbox-thread>
+                <h2 id="inbox-thread-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.item.thread'|trans }} <span class="num font-normal text-muted">({{ thread|length }})</span></h2>
+                <ul class="m-0 grid list-none gap-1 p-0">
+                    {% for entry in thread %}
+                        <li>
+                            <a href="{{ entry.href }}" class="font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ entry.subject }}</a>
+                            <span class="text-caption text-muted">{{ entry.from }} · {{ entry.received }} · {{ entry.state }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

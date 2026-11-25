@@ -1,0 +1,2 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% if shell.organisation and shell.organisation.role.isStaff() %}<twig:Ui:MenuItem :href="path('app_account_inbox')" icon="mail" data-user-menu-inbox>{{ 'inbox.user_menu'|trans }}</twig:Ui:MenuItem>{% endif %}

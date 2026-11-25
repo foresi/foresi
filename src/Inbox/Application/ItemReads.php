@@ -60,6 +60,16 @@ final readonly class ItemReads
     }
 
     /**
+     * How many new items the person has, counted up to the limit (the badge of the navigation).
+     *
+     * @throws InboxRefused forbidden
+     */
+    public function newCount(int $limit): int
+    {
+        return $this->store->countInState($this->access->me(), ItemState::New, $limit);
+    }
+
+    /**
      * @throws InboxRefused not_found, forbidden
      */
     public function get(string $itemId): ItemDetail
