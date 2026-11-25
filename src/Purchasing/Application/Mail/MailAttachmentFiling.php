@@ -11,6 +11,7 @@ namespace Foresi\Purchasing\Application\Mail;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Mail\Contract\MailAttachment;
+use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Purchasing\Application\PurchasingUnit;
 use Foresi\Purchasing\Application\ReceivedFileTypes;
@@ -37,10 +38,17 @@ use Psr\Clock\ClockInterface;
  * the drafts themselves, so a run that starts again after a crash goes on
  * where the one before stopped and no attachment becomes two drafts. The intake
  * row is locked when the outcome is written, so a second run finds it written.
+ *
+ * Once the outcome is written, the drafts hold their files in Attachment and
+ * the mail is released to Mail's purge, which removes it after KEEP_MAIL: until
+ * then the document page and the recent e-mails still show its sender and
+ * subject. A mail that failed is kept, as it may be the only copy of a document.
  */
 final readonly class MailAttachmentFiling
 {
     public const int MAX_DRAFTS = 50;
+    /** How long Mail keeps a mail after it was filed, for its sender and subject. */
+    public const string KEEP_MAIL = '+30 days';
 
     /** An image shown inside the mail: a signature or a logo. */
     public const string INLINE_IMAGE = 'inline_image';
@@ -58,6 +66,7 @@ final readonly class MailAttachmentFiling
         private StaffCheck $staff,
         private UploadReceivedDocuments $uploads,
         private PurchasingUnit $unit,
+        private MessageRetention $retention,
         private ClockInterface $clock,
     ) {
     }
@@ -154,7 +163,12 @@ final readonly class MailAttachmentFiling
     private function finish(string $messageId, int $drafts, array $skipped): void
     {
         $this->unit->run(function () use ($messageId, $drafts, $skipped): void {
-            $this->intakes->lock($messageId)?->finish($drafts, $skipped, $this->now());
+            $intake = $this->intakes->lock($messageId);
+            if (!$intake instanceof MailIntake || !$intake->isQueued()) {
+                return;
+            }
+            $intake->finish($drafts, $skipped, $this->now());
+            $this->retention->release($messageId, $this->now()->modify(self::KEEP_MAIL));
         });
     }
 

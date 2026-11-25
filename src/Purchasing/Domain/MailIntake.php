@@ -20,6 +20,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'purchasing_mail_intake')]
+#[ORM\Index(name: 'idx_purchasing_mail_intake_owner', columns: ['owner_user_id', 'created_at'])]
 class MailIntake
 {
     /** Attachments are listed up to this many; the rest are only counted. */
@@ -51,8 +52,9 @@ class MailIntake
         private string $id,
         #[ORM\Column(name: 'owner_user_id', type: 'guid')]
         private string $ownerUserId,
-        #[ORM\Column(name: 'capture_address_id', type: 'guid')]
-        private string $captureAddressId,
+        /** The inbound address of Mail the mail came to. */
+        #[ORM\Column(name: 'mail_address_id', type: 'guid')]
+        private string $mailAddressId,
         #[ORM\Column(type: 'string', length: 16)]
         private string $verdict,
         #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
@@ -104,9 +106,9 @@ class MailIntake
         return $this->ownerUserId;
     }
 
-    public function captureAddressId(): string
+    public function mailAddressId(): string
     {
-        return $this->captureAddressId;
+        return $this->mailAddressId;
     }
 
     public function verdict(): string

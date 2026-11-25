@@ -13,7 +13,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * The mails taken in by the capture addresses, one row each with what came of
+ * The mails taken in by the capture addresses (Mail's inbound addresses of the
+ * purpose received_documents), one row each with what came of
  * it, and the mail a draft was filed from. One firm per instance (ADR 0039), so
  * no firm id.
  */
@@ -29,7 +30,7 @@ final class Version20261125110000 extends AbstractMigration
         $table = $schema->createTable('purchasing_mail_intake');
         $table->addColumn('id', Types::GUID);
         $table->addColumn('owner_user_id', Types::GUID);
-        $table->addColumn('capture_address_id', Types::GUID);
+        $table->addColumn('mail_address_id', Types::GUID);
         $table->addColumn('verdict', Types::STRING, ['length' => 16]);
         $table->addColumn('outcome', Types::STRING, ['length' => 16]);
         $table->addColumn('drafts', Types::INTEGER);
@@ -38,6 +39,8 @@ final class Version20261125110000 extends AbstractMigration
         $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
         $table->addColumn('finished_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $table->setPrimaryKey(['id']);
+        // The recent mails of a person, newest first, on the settings page.
+        $table->addIndex(['owner_user_id', 'created_at'], 'idx_purchasing_mail_intake_owner');
 
         $document = $schema->getTable('received_document');
         $document->addColumn('source_mail_id', Types::GUID, ['notnull' => false]);

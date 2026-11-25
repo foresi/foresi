@@ -6,14 +6,11 @@
 
 declare(strict_types=1);
 
-use Foresi\Purchasing\Application\Mail\CaptureAddressBook;
-use Foresi\Purchasing\Application\Mail\CaptureAddresses;
 use Foresi\Purchasing\Application\Mail\MailFilingQueue;
 use Foresi\Purchasing\Application\Mail\MailIntakes;
 use Foresi\Purchasing\Application\Reading\ReadDocument;
 use Foresi\Purchasing\Application\RecordReceivedDocument;
 use Foresi\Purchasing\Contract\Reading\DocumentReader;
-use Foresi\Purchasing\Infrastructure\Doctrine\DoctrineCaptureAddressBook;
 use Foresi\Purchasing\Infrastructure\Doctrine\DoctrineMailIntakes;
 use Foresi\Purchasing\Infrastructure\Messenger\MessengerMailFilingQueue;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -35,15 +32,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $builder->registerForAutoconfiguration(DocumentReader::class)->addTag(DocumentReader::TAG);
     $services->set(ReadDocument::class)->arg('$readers', tagged_iterator(DocumentReader::TAG));
 
-    $services->alias(CaptureAddressBook::class, DoctrineCaptureAddressBook::class);
     $services->alias(MailIntakes::class, DoctrineMailIntakes::class);
     $services->alias(MailFilingQueue::class, MessengerMailFilingQueue::class);
-
-    if ('test' === $container->env()) {
-        // Public for the tests of the capture addresses, which no screen drives yet.
-        $services->set(CaptureAddresses::class)->public();
-        $services->alias(CaptureAddressBook::class, DoctrineCaptureAddressBook::class)->public();
-    }
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.

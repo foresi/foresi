@@ -13,14 +13,15 @@ use Foresi\Attachment\Domain\Attachment;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Contract\AddressOwners;
 use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\MailAttachmentContent;
+use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\NotAccepted;
+use Foresi\Mail\Contract\OwnAddresses;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Purchasing\Application\DocumentWarnings;
-use Foresi\Purchasing\Application\Mail\CaptureAddressBook;
-use Foresi\Purchasing\Application\Mail\CaptureAddresses;
 use Foresi\Purchasing\Application\Mail\FileMailAttachments;
 use Foresi\Purchasing\Application\Mail\MailAttachmentFiling;
 use Foresi\Purchasing\Application\Mail\MailFilingQueue;
@@ -31,7 +32,6 @@ use Foresi\Purchasing\Application\PurchasingUnit;
 use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\UploadReceivedDocuments;
-use Foresi\Purchasing\Domain\CaptureAddress;
 use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\MailIntake;
@@ -60,11 +60,14 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
     private const string FAILED = 'Authentication-Results: mx.example.com; dmarc=fail header.from=supplier.example.com';
 
     private string $address;
+    private string $addressId;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->address = $this->addresses()->create('Documents')->address;
+        $issued = $this->addresses()->create(ReceivedDocumentsPurpose::KEY, 'Documents');
+        $this->address = $issued->address;
+        $this->addressId = $issued->id;
     }
 
     public function testEachPdfBecomesADraftWithSourceMail(): void
@@ -98,9 +101,8 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
         $intake = $this->intake($messageId);
         self::assertSame([MailIntakeOutcome::Filed, 2, []], [$intake->outcome(), $intake->drafts(), $intake->skipped()]);
         self::assertNotNull($intake->finishedAt());
-        $mine = $this->addresses()->mine();
-        self::assertNotNull($mine);
-        self::assertEquals(new \DateTimeImmutable('2026-11-10 09:00:00'), $mine->lastReceivedAt);
+        self::assertSame($this->addressId, $intake->mailAddressId());
+        self::assertSame('2026-12-10 09:00:00', $this->purgeAfter($messageId), 'Released to Mail once the files are in Attachment, kept for a while for its sender and subject.');
     }
 
     public function testInlineLogoIsSkippedInlinePdfIsKept(): void
@@ -150,6 +152,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
         self::assertSame(MailIntakeOutcome::NothingAccepted, $this->intake($messageId)->outcome());
         self::assertSame(0, $this->documentCount());
+        self::assertNotNull($this->purgeAfter($messageId), 'Nothing to keep it for.');
     }
 
     public function testAnAttachmentOverTheLimitAndThoseBeyondTheDraftLimitAreLeftOut(): void
@@ -211,6 +214,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
             $container->get(StaffCheck::class),
             $container->get(UploadReceivedDocuments::class),
             $container->get(PurchasingUnit::class),
+            $container->get(MessageRetention::class),
             $container->get(ClockInterface::class),
         )->file($messageId);
 
@@ -286,7 +290,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
     public function testOwnerWhoLeftIsNotAccepted(): void
     {
         $this->signIn($this->member);
-        $address = $this->addresses()->create('Marek')->address;
+        $address = $this->addresses()->create(ReceivedDocumentsPurpose::KEY, 'Marek')->address;
         $this->member->deactivate(new \DateTimeImmutable('2026-11-10 08:00:00'));
         $this->em->flush();
 
@@ -301,7 +305,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
     public function testOwnerWhoLeftAfterTheMailWasTakenInGetsNoDraft(): void
     {
         $this->signIn($this->member);
-        $address = $this->addresses()->create('Marek')->address;
+        $address = $this->addresses()->create(ReceivedDocumentsPurpose::KEY, 'Marek')->address;
         $messageId = $this->receive([$this->part('invoice.pdf', 'application/pdf', "%PDF-1.4\nLate\n%%EOF")], address: $address);
         $this->member->deactivate(new \DateTimeImmutable('2026-11-10 08:30:00'));
         $this->em->flush();
@@ -316,19 +320,15 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
     public function testRevokedAddressIsNotAccepted(): void
     {
-        $captured = $this->addresses()->mine();
-        self::assertNotNull($captured);
-        $book = self::getContainer()->get(CaptureAddressBook::class);
-        $row = $book->activeOf($this->owner->user()->id());
-        self::assertInstanceOf(CaptureAddress::class, $row);
         $messageId = $this->receive([$this->part('invoice.pdf', 'application/pdf', "%PDF-1.4\nSent\n%%EOF")]);
-        $this->addresses()->revoke($captured->id);
+        $this->addresses()->revoke($this->addressId);
 
         // The same mail again to the revoked address is not routed at all.
         $outcome = self::getContainer()->get(ReceiveMail::class)->receive($this->raw($this->address, [], 'revoked@mail.example.com'), InboundChannel::Webhook);
         self::assertSame(ReceiveOutcome::UnknownRecipient, $outcome);
-        // And the purpose itself turns away an address that is revoked or not a capture address.
-        foreach ([$row->mailAddressId(), '11111111-1111-4111-8111-111111111111'] as $mailAddressId) {
+        // And the purpose itself turns away an address that is revoked, unknown or of nobody.
+        $feed = self::getContainer()->get(\Foresi\Mail\Contract\AddressIssuer::class)->issue('bank_feed', null, 'Bank feed');
+        foreach ([$this->addressId, '11111111-1111-4111-8111-111111111111', $feed->id] as $mailAddressId) {
             try {
                 $this->purpose()->accept($messageId, $mailAddressId);
                 self::fail('The mail was accepted.');
@@ -387,6 +387,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
         self::assertSame(MailIntakeOutcome::Failed, $this->intake($messageId)->outcome());
         self::assertSame(0, $this->documentCount(), 'A mail that failed is not filed afterwards.');
+        self::assertNull($this->purgeAfter($messageId), 'A mail that failed is kept: it may be the only copy of a document.');
     }
 
     public function testAJobForAMailThatIsNotThereDoesNothing(): void
@@ -462,9 +463,16 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
         $this->em->clear();
     }
 
-    private function addresses(): CaptureAddresses
+    private function addresses(): OwnAddresses
     {
-        return self::getContainer()->get(CaptureAddresses::class);
+        return self::getContainer()->get(OwnAddresses::class);
+    }
+
+    private function purgeAfter(string $messageId): ?string
+    {
+        $after = $this->em->getConnection()->fetchOne('SELECT purge_after FROM mail_message WHERE id = ?', [$messageId]);
+
+        return \is_string($after) ? substr($after, 0, 19) : null;
     }
 
     private function purpose(): ReceivedDocumentsPurpose
@@ -472,7 +480,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
         $container = self::getContainer();
 
         return new ReceivedDocumentsPurpose(
-            $container->get(CaptureAddressBook::class),
+            $container->get(AddressOwners::class),
             $container->get(StaffCheck::class),
             $container->get(Messages::class),
             $container->get(MailIntakes::class),
