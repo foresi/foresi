@@ -45,7 +45,7 @@ final readonly class AiReaderSettings
         $trigger = strtolower(trim($trigger));
         $key = trim($apiKey);
         $this->provider = strtolower(trim($provider));
-        $this->triggerIsValid = !(self::CLAUDE === $this->provider && '' !== $key) || \in_array($trigger, ['', self::ARRIVAL, self::CLICK], true);
+        $this->triggerIsValid = self::CLAUDE !== $this->provider || '' === $key || \in_array($trigger, ['', self::ARRIVAL, self::CLICK], true);
         $this->model = '' === trim($model) ? self::DEFAULT_MODEL : trim($model);
         $this->automatic = self::CLICK !== $trigger;
         $this->pad = random_bytes(max(1, \strlen($key)));
