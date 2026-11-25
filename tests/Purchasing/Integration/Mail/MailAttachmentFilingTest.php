@@ -10,7 +10,7 @@ namespace Foresi\Tests\Purchasing\Integration\Mail;
 
 use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Domain\Attachment;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressOwners;
