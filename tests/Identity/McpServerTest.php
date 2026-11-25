@@ -40,7 +40,7 @@ final class McpServerTest extends ApiTestCase
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year', 'foresi_tax_amounts', 'foresi_tax_estimate'],
         'vat' => ['foresi_assign_vat_payment', 'foresi_clear_vat_return_amount', 'foresi_get_vat_period', 'foresi_reopen_vat_period', 'foresi_reset_vat_payment', 'foresi_set_vat_return_amount', 'foresi_set_vat_settings', 'foresi_settle_vat_period', 'foresi_vat_periods'],
-        'work' => ['foresi_add_task_comment', 'foresi_archive_project', 'foresi_create_project', 'foresi_create_task', 'foresi_get_project', 'foresi_get_task', 'foresi_list_labels', 'foresi_list_project_people', 'foresi_list_task_comments', 'foresi_log_time', 'foresi_restore_project', 'foresi_restore_task', 'foresi_search_projects', 'foresi_search_tasks', 'foresi_search_time_entries', 'foresi_start_timer', 'foresi_stop_timer', 'foresi_trash_task', 'foresi_trash_task_comment', 'foresi_update_project', 'foresi_update_task', 'foresi_update_task_comment'],
+        'work' => ['foresi_add_project_budget_change', 'foresi_add_task_comment', 'foresi_archive_project', 'foresi_create_project', 'foresi_create_task', 'foresi_get_project', 'foresi_get_project_budget', 'foresi_get_task', 'foresi_list_labels', 'foresi_list_project_people', 'foresi_list_task_comments', 'foresi_log_time', 'foresi_remove_project_budget_change', 'foresi_restore_project', 'foresi_restore_task', 'foresi_search_projects', 'foresi_search_tasks', 'foresi_search_time_entries', 'foresi_set_project_budget_counting', 'foresi_start_timer', 'foresi_stop_timer', 'foresi_trash_task', 'foresi_trash_task_comment', 'foresi_update_project', 'foresi_update_task', 'foresi_update_task_comment'],
         'webhooks' => ['foresi_create_webhook_endpoint', 'foresi_delete_webhook_endpoint', 'foresi_list_webhook_deliveries', 'foresi_list_webhook_endpoints', 'foresi_redeliver_webhook', 'foresi_rotate_webhook_secret', 'foresi_update_webhook_endpoint'],
     ];
 
@@ -51,6 +51,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_add_document_signer' => false,
         'foresi_add_firm_vat_status' => false,
         'foresi_add_received_document_payment' => false,
+        'foresi_add_project_budget_change' => false,
         'foresi_add_task_comment' => false,
         'foresi_add_tax_status' => false,
         'foresi_archive_activity_type' => true,
@@ -115,6 +116,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_remove_deal_link' => false,
         'foresi_remove_document_signer' => true,
         'foresi_remove_firm_vat_status' => true,
+        'foresi_remove_project_budget_change' => true,
         'foresi_remove_received_document_payment' => true,
         'foresi_remove_tax_status' => true,
         'foresi_rename_calendar_feed' => false,
@@ -144,6 +146,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_set_line_allocation' => false,
         'foresi_set_minimum_balance' => false,
         'foresi_set_planned_item_allocation' => false,
+        'foresi_set_project_budget_counting' => false,
         'foresi_set_rebill_link' => false,
         'foresi_set_received_document_lines' => false,
         'foresi_set_supplier_default_recipient' => false,
