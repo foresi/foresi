@@ -87,8 +87,14 @@ final readonly class DoctrineInboundAddresses implements InboundAddressStore
     {
         try {
             $this->em->flush();
-        } catch (UniqueConstraintViolationException) {
-            throw new AddressAlreadyActive('The person has an active address for this purpose.');
+        } catch (UniqueConstraintViolationException $violation) {
+            // PostgreSQL names the index; SQLite names the columns. Any other unique key is not this case.
+            $message = $violation->getMessage();
+            if (!str_contains($message, 'uniq_mail_inbound_address_owner_purpose') && (!str_contains($message, 'owner_user_id') || !str_contains($message, 'purpose'))) {
+                throw $violation;
+            }
+
+            throw new AddressAlreadyActive('The person has an active address for this purpose.', $violation->getCode(), $violation);
         }
     }
 

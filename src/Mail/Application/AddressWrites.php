@@ -130,6 +130,11 @@ final readonly class AddressWrites
             throw $this->unavailable($refused->reason);
         } catch (AddressAlreadyActive) {
             // Two requests at once; the partial unique index let one of them in.
+            if ($replaced instanceof InboundAddress) {
+                // The other request replaced this address first.
+                throw MailRefused::conflict('address_revoked', 'This address is revoked already. Create a new one with foresi_create_mail_address.');
+            }
+
             throw MailRefused::conflict('address_exists', 'You already have an inbound address for this purpose. Replace it with foresi_replace_mail_address, or revoke it first.');
         }
         [$created, $address] = $issued;

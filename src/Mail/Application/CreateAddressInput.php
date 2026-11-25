@@ -18,7 +18,7 @@ use Foresi\Shared\Application\Api\Operation;
     tool: 'foresi_create_mail_address',
     scope: 'mail_addresses:write',
     title: 'Create an inbound mail address',
-    description: 'Creates a secret e-mail address of your own for one purpose, so that mail sent to it reaches the module that takes that purpose. You have one address per purpose; replace it with foresi_replace_mail_address. The answer holds the full address once, as address; Foresi keeps only its hash, so it cannot be shown again. Bank feeds are not yours to create: the bank account has its own address.',
+    description: 'Creates a secret e-mail address of your own for one purpose, so that mail sent to it reaches the module that takes that purpose. You have one address per purpose; replace it with foresi_replace_mail_address. The answer holds the full address once, as address; Foresi keeps only its hash, so it cannot be shown again; do not log or store it. Bank feeds are not yours to create: the bank account has its own address.',
     status: 201,
     response: 'MailAddressCreated',
     staffOnly: true,

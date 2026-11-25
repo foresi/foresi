@@ -10,13 +10,14 @@ namespace Foresi\Mail\Migrations;
 
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
  * The daily limit per address (the day it was reached and how many mails it
  * dropped), the indexes the count and the duplicate check by bytes read by, and
- * the time after which a raw file may be purged. Plain SQL, in this order, as the
- * partial index needs its column and both PostgreSQL and SQLite know it.
+ * the time after which a raw file may be purged. The condition of the partial index
+ * is written in postUp() on SQLite.
  */
 final class Version20261125110000 extends AbstractMigration
 {
@@ -27,13 +28,28 @@ final class Version20261125110000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $timestamp = $this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform ? 'TIMESTAMP(0) WITHOUT TIME ZONE' : 'DATETIME';
-        $this->addSql('ALTER TABLE mail_inbound_address ADD limit_reached_on DATE DEFAULT NULL');
-        $this->addSql('ALTER TABLE mail_inbound_address ADD dropped_on_limit INT DEFAULT 0 NOT NULL');
-        $this->addSql('ALTER TABLE mail_message ADD purge_after '.$timestamp.' DEFAULT NULL');
-        $this->addSql('CREATE INDEX idx_mail_message_address_received ON mail_message (address_id, received_at)');
-        $this->addSql('CREATE INDEX idx_mail_message_id_bytes ON mail_message (message_id_header, raw_sha256)');
-        $this->addSql('CREATE INDEX idx_mail_message_purge_after ON mail_message (purge_after) WHERE purge_after IS NOT NULL');
+        $address = $schema->getTable('mail_inbound_address');
+        $address->addColumn('limit_reached_on', Types::DATE_IMMUTABLE, ['notnull' => false]);
+        $address->addColumn('dropped_on_limit', Types::INTEGER, ['default' => 0]);
+
+        $message = $schema->getTable('mail_message');
+        $message->addColumn('purge_after', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
+        $message->addIndex(['address_id', 'received_at'], 'idx_mail_message_address_received');
+        $message->addIndex(['message_id_header', 'raw_sha256'], 'idx_mail_message_id_bytes');
+        $message->addIndex(['purge_after'], 'idx_mail_message_purge_after', [], ['where' => '(purge_after IS NOT NULL)']);
+    }
+
+    /**
+     * DBAL writes the condition of a partial index on PostgreSQL only; SQLite knows
+     * the same index, so it is written again there with its condition.
+     */
+    public function postUp(Schema $schema): void
+    {
+        if ($this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform) {
+            return;
+        }
+        $this->connection->executeStatement('DROP INDEX idx_mail_message_purge_after');
+        $this->connection->executeStatement('CREATE INDEX idx_mail_message_purge_after ON mail_message (purge_after) WHERE purge_after IS NOT NULL');
     }
 
     public function down(Schema $schema): void

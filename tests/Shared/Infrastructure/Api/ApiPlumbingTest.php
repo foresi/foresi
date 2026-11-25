@@ -178,6 +178,11 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/recurring-invoices/{recurringInvoiceId}/resume' => ['post' => '200'],
                 '/api/v1/recurring-invoices/{recurringInvoiceId}/end' => ['post' => '200'],
             ],
+            'mail' => [
+                '/api/v1/mail/addresses' => ['get' => '200', 'post' => '201'],
+                '/api/v1/mail/addresses/{addressId}' => ['delete' => '200', 'patch' => '200'],
+                '/api/v1/mail/addresses/{addressId}/replace' => ['post' => '201'],
+            ],
             'margin' => [
                 '/api/v1/margin' => ['get' => '200'],
                 '/api/v1/margin/cell' => ['get' => '200'],
