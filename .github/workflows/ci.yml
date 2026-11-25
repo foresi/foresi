@@ -279,6 +279,27 @@ jobs:
           php -d memory_limit=-1 vendor/bin/phpcov merge --xml var/coverage/coverage-xml var/coverage-shard
           php bin/test-shard junit var/coverage/junit.xml "${TEST_SHARD_COUNT}" var/coverage-shard/junit-*.xml
 
+      # The seconds the mutants of each file took in the last full run, which the mutation
+      # shards are split by (bin/infection-shard). They travel with the coverage, so that every
+      # shard of a run splits by the same times. Without a cache, the times measured when the
+      # split by time was introduced stand in (.github/mutation-times.json).
+      - name: Restore the times of the last full run
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/mutation-times/
+          key: mutation-times-${{ github.run_id }}
+          restore-keys: mutation-times-
+
+      - name: Times of the mutants
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ -f var/mutation-times/times.json ]; then
+            cp var/mutation-times/times.json var/coverage/mutation-times.json
+          else
+            cp .github/mutation-times.json var/coverage/mutation-times.json
+          fi
+
       - name: Upload the coverage
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -293,8 +314,8 @@ jobs:
   # does not either: the full run of all shards after every merge held the runners that pull
   # requests wait for, so it runs every night instead. Every night on main and when started by
   # hand the whole code is mutated in parallel shards: Infection has no sharding of its own, so a
-  # shard is a set of source files (bin/infection-shard), balanced by size, and the quality
-  # gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
+  # shard is a set of source files (bin/infection-shard), balanced by the time their mutants
+  # took in the last full run, and the quality gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
   # that is missing fails the gate.
   mutation:
     name: ${{ matrix.shard == 0 && 'Mutation testing (changed lines)' || format('Mutation testing (shard {0})', matrix.shard) }}
@@ -302,7 +323,8 @@ jobs:
     if: ${{ github.event_name != 'merge_group' && github.event_name != 'push' }}
     runs-on: ubuntu-latest
     # Generous on purpose: a mutant may wait up to 30 minutes for slow covering tests
-    # (infection.json5), and no shard may be cut short.
+    # (infection.json5), and no shard may be cut short. A full shard stops Infection itself
+    # at 105 minutes, so that the times of what it did measure are kept for the next split.
     timeout-minutes: 120
     permissions:
       contents: read
@@ -314,6 +336,7 @@ jobs:
         shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]') }}
     env:
       SHARD_COUNT: '16'
+      INFECTION_SHARD_TIMES: var/coverage/mutation-times.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -440,14 +463,20 @@ jobs:
           INFECTION_SHARD_MANIFEST="var/shard/shard-${SHARD}.files.json" php bin/infection-shard files "$SHARD" "$SHARD_COUNT" > "var/shard/files-${SHARD}.txt"
           mapfile -t files < "var/shard/files-${SHARD}.txt"
           echo "Shard ${SHARD} of ${SHARD_COUNT}: ${#files[@]} files"
-          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
+          # --teamcity prints each mutant with its duration; the times of the files are taken
+          # from that output, also when the time limit stops the shard.
+          status=0
+          timeout 105m php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
             --coverage=var/coverage --skip-initial-tests \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
             --only-covering-test-cases \
             --min-msi=0 --min-covered-msi=0 \
             --logger-summary-json="var/shard/shard-${SHARD}.json" \
-            --show-mutations --no-progress \
-            "${files[@]}"
+            --teamcity \
+            "${files[@]}" | tee var/shard/teamcity.log || status=$?
+          php bin/infection-shard times var/shard/teamcity.log "var/shard/files-${SHARD}.txt" "${INFECTION_SHARD_TIMES}" > "var/shard/times-${SHARD}.json"
+          [ "${status}" != 124 ] || echo "The shard did not finish in 105 minutes; the next split takes the time it measured."
+          exit "${status}"
 
       - name: Upload the result of the shard
         if: ${{ !cancelled() && matrix.shard != 0 }}
@@ -576,27 +605,42 @@ jobs:
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         with:
           persist-credentials: false
 
       - name: Set up PHP
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
 
       - name: Download the results of the shards
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: infection-shard-*
           path: var/shards/
           merge-multiple: true
 
+      # The times of this run split the shards of the next one (see the coverage job), also
+      # when a shard failed or ran out of time: that is when the split needs them most.
+      - name: Times of the mutants
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        run: |
+          mkdir -p var/mutation-times
+          php bin/infection-shard collect var/shards > var/mutation-times/times.json
+
+      - name: Keep the times for the next full run
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/mutation-times/
+          key: mutation-times-${{ github.run_id }}
+
       - name: Mutation score of all shards
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         run: php bin/infection-shard merge var/shards
 
   # PostgreSQL leg. Static analysis does not depend on the database, so only
