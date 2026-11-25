@@ -10,16 +10,11 @@ namespace Foresi\Inbox\Infrastructure\Controller;
 
 use Foresi\Inbox\Application\InboxPurpose;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Mail\Application\AddressReads;
-use Foresi\Mail\Application\AddressView;
-use Foresi\Mail\Application\AddressWrites;
-use Foresi\Mail\Application\CreateAddressInput;
-use Foresi\Mail\Application\IssuedMailAddress;
-use Foresi\Mail\Application\MailRefused;
-use Foresi\Mail\Application\RenameAddressInput;
-use Foresi\Mail\Application\ReplaceAddressInput;
-use Foresi\Mail\Application\RevokeAddressInput;
+use Foresi\Mail\Contract\IssuedPersonalAddress;
+use Foresi\Mail\Contract\PersonalAddress;
+use Foresi\Mail\Contract\PersonalAddresses;
 use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,7 +30,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (the pattern of /account/calendar): the list by label with when it was made
  * and how many mails were dropped today, a new address in a dialog whose answer
  * shows the full address once, and Rename, Replace and Revoke in each row's
- * menu. They call Mail's use cases, the ones behind the API and MCP tools. The
+ * menu. They go through Mail's PersonalAddresses contract, the same use cases as the API and MCP tools. The
  * page also tells how to forward mail from Gmail, Outlook and Apple Mail, with
  * the providers' own help pages. The staff only.
  */
@@ -55,8 +50,7 @@ final class AccountInboxController extends AbstractController
     ];
 
     public function __construct(
-        private readonly AddressReads $reads,
-        private readonly AddressWrites $writes,
+        private readonly PersonalAddresses $addresses,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -66,7 +60,7 @@ final class AccountInboxController extends AbstractController
     public function index(): Response
     {
         $addresses = $this->mine();
-        $active = array_filter($addresses, static fn (AddressView $address): bool => !$address->revokedAt instanceof \DateTimeImmutable);
+        $active = array_filter($addresses, static fn (PersonalAddress $address): bool => !$address->isRevoked());
 
         return $this->render('@Inbox/account/index.html.twig', [
             'columns' => [
@@ -94,8 +88,8 @@ final class AccountInboxController extends AbstractController
             $this->checkToken($request);
             $label = $request->request->getString('label');
             try {
-                return $this->issued($this->writes->create(new CreateAddressInput(InboxPurpose::KEY, $label)));
-            } catch (MailRefused $refused) {
+                return $this->issued($this->addresses->create(InboxPurpose::KEY, $label));
+            } catch (Refused $refused) {
                 $error = $this->formError($refused);
             }
         }
@@ -113,11 +107,11 @@ final class AccountInboxController extends AbstractController
             $this->checkToken($request);
             $label = $request->request->getString('label');
             try {
-                $this->writes->rename(new RenameAddressInput($id, $label));
+                $this->addresses->rename($id, $label);
                 $this->addFlash('success', $this->translator->trans('inbox.account.flash.renamed'));
 
                 return $this->redirectToRoute(self::ROUTE);
-            } catch (MailRefused $refused) {
+            } catch (Refused $refused) {
                 $error = $this->formError($refused);
             }
         }
@@ -136,8 +130,8 @@ final class AccountInboxController extends AbstractController
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             try {
-                return $this->issued($this->writes->replace(new ReplaceAddressInput($id)));
-            } catch (MailRefused $refused) {
+                return $this->issued($this->addresses->replace($id));
+            } catch (Refused $refused) {
                 $error = $this->formError($refused);
             }
         }
@@ -153,7 +147,7 @@ final class AccountInboxController extends AbstractController
     public function revoke(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $address = $this->refused(fn (): AddressView => $this->writes->revoke(new RevokeAddressInput($id)));
+        $address = $this->refused(fn (): PersonalAddress => $this->addresses->revoke($id));
         $this->addFlash('success', $this->translator->trans('inbox.account.flash.revoked', ['label' => $address->label]));
 
         return $this->redirectToRoute(self::ROUTE);
@@ -162,7 +156,7 @@ final class AccountInboxController extends AbstractController
     /**
      * The one answer that shows the full address: never a redirect, never cached.
      */
-    private function issued(IssuedMailAddress $issued): Response
+    private function issued(IssuedPersonalAddress $issued): Response
     {
         $response = $this->render('@Inbox/account/created.html.twig', [
             'label' => $issued->view->label,
@@ -185,20 +179,20 @@ final class AccountInboxController extends AbstractController
     }
 
     /**
-     * @return list<AddressView> the person's inbox addresses, the newest first
+     * @return list<PersonalAddress> the person's inbox addresses, the newest first
      */
     private function mine(): array
     {
-        $addresses = $this->refused(fn (): array => $this->reads->mine(InboxPurpose::KEY));
-        usort($addresses, static fn (AddressView $a, AddressView $b): int => $b->createdAt <=> $a->createdAt);
+        $addresses = $this->refused(fn (): array => $this->addresses->mine(InboxPurpose::KEY));
+        usort($addresses, static fn (PersonalAddress $a, PersonalAddress $b): int => $b->createdAt <=> $a->createdAt);
 
         return $addresses;
     }
 
-    private function active(string $id): AddressView
+    private function active(string $id): PersonalAddress
     {
         foreach ($this->mine() as $address) {
-            if ($address->id === $id && null === $address->revokedAt) {
+            if ($address->id === $id && !$address->isRevoked()) {
                 return $address;
             }
         }
@@ -209,11 +203,11 @@ final class AccountInboxController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(AddressView $address): array
+    private function row(PersonalAddress $address): array
     {
         $zone = $this->clock->timezone();
         $created = $address->createdAt->setTimezone($zone)->format($this->translator->trans('format.datetime'));
-        $revoked = $address->revokedAt instanceof \DateTimeImmutable;
+        $revoked = $address->isRevoked();
 
         return [
             'id' => $address->id,
@@ -238,7 +232,7 @@ final class AccountInboxController extends AbstractController
         ];
     }
 
-    private function formError(MailRefused $refused): string
+    private function formError(Refused $refused): string
     {
         if (!\in_array($refused->kind(), [RefusalKind::Invalid, RefusalKind::Conflict, RefusalKind::Unavailable], true)) {
             throw $this->httpError($refused);
@@ -267,12 +261,12 @@ final class AccountInboxController extends AbstractController
     {
         try {
             return $action();
-        } catch (MailRefused $refused) {
+        } catch (Refused $refused) {
             throw $this->httpError($refused);
         }
     }
 
-    private function httpError(MailRefused $refused): \Throwable
+    private function httpError(Refused $refused): \Throwable
     {
         return RefusalKind::NotFound === $refused->kind()
             ? new NotFoundHttpException($refused->getMessage(), $refused)
