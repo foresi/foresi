@@ -12,6 +12,7 @@ activities:
         call: Call
         note: Note
         task: Task
+        email: E-mail
     timing:
         timed: 'At a time, with a duration'
         date: 'On a day'

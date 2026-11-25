@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The facts under a project's header: its client, then the short facts other modules add through
+    ProjectSlots::HEADER_FACTS, each its own template with its data. Variables: project, headerFacts, focus.
+#}
+{% if project.clientId or headerFacts is not empty %}
+    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small text-muted" data-project-facts>
+        {% if project.clientId %}
+            <p class="m-0" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
+        {% endif %}
+        {% for fact in headerFacts %}
+            <div data-project-fact>{{ include(fact.template, fact.data) }}</div>
+        {% endfor %}
+    </div>
+{% endif %}

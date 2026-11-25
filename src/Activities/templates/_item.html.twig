@@ -1,6 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    One activity on a timeline: its type's icon, its subject opening it in the side sheet, its type and
+    One activity on a timeline: its type's icon, its subject opening it in the side sheet, an e-mail's sender
+    line (plain text, as all e-mail text is untrusted), its type and
     time (in red once a planned one is overdue), its duration and owner; a done one with its outcome
     and its files; the other records it is about. A planned one has "Done" that opens "Done and plan
     next". Variables: item, return, focus.
@@ -9,6 +10,9 @@
     {{ ux_icon('lucide:' ~ item.icon, {class: 'mt-0.5 size-5 text-green', 'aria-hidden': 'true'}) }}
     <div class="grid min-w-0 gap-1">
         <a href="{{ item.url }}" data-sheet class="min-w-0 font-medium text-ink no-underline hover:underline [overflow-wrap:anywhere] {{ focus }}" data-activity-subject>{{ item.subject }}</a>
+        {% if item.sender %}
+            <p class="m-0 text-small text-muted [overflow-wrap:anywhere]" data-activity-sender>{{ item.sender }}</p>
+        {% endif %}
         <p class="m-0 flex flex-wrap gap-x-2 text-small text-muted">
             <span data-activity-type>{{ item.type }}</span>
             {% if item.when %}<time datetime="{{ item.datetime }}" class="num {{ item.overdue ? 'font-medium text-badge-red-text' : '' }}" data-activity-when>{{ item.when }}{% if item.overdue %} · {{ 'activities.overdue'|trans }}{% endif %}</time>{% endif %}

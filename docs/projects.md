@@ -34,6 +34,17 @@ The **Board** tab shows one column per status, in workflow order, and the top-le
 
 The order of a card is the order of the task in its status; the list shows the same tasks in the same relative order.
 
+## Activities
+
+With the Activities module installed, a project's page has an **Activities** tab after List and Board, which stay the default: the project's timeline of meetings, calls, notes and e-mails, with **Log activity** and **Plan activity** (see [activities](activities.md)). An activity is linked to a project with the kind `project`, on the screens, over REST (`activities.create`) and over MCP (`foresi_create_activity` with `links: [{kind: "project", id}]`). Whoever sees the project sees its activities. An archived project keeps them and takes no new one, as it takes no new tasks. Activities is for the owners and team members, so a guest a project is shared with gets no tab.
+
+### For other modules
+
+The project's page has two slots, `Foresi\Work\Contract\ProjectSlots`, the way the deal's page has `SalesSlots`. Both get the context `projectId`, `clientId` (or null) and `return`, the address of the page as shown, with its tab.
+
+- `ProjectSlots::SECTIONS` (`work.project.sections`): tabs after List and Board, by weight. An item's data holds `key` (lowercase letters, digits and dashes), `label` and either `href`, a local address of a fragment loaded into `<turbo-frame id="project-section-<key>">`, or the item's template. `?tab=<key>` shows the section in place of the tasks. Activities is one, at weight 10.
+- `ProjectSlots::HEADER_FACTS` (`work.project.header_facts`): short facts under the header, next to the client line, such as a time budget. The item's template is included with its data and the context.
+
 ## The task page
 
 Opening a task shows its title and description, its subtasks, its **attachments**, and the **discussion and history** (below). The panel beside it (under it on a phone) holds the properties. Each property saves as soon as you choose a value; a **Save** button appears for a browser without JavaScript. **Responsible** is a button with the person's avatar and name that opens the list of people, each with their avatar, and **Nobody** first; choosing one saves it. People appear as round avatars with their initials everywhere in Work: in the list, on the board, among the watchers, beside comments and in the sharing dialog. The title and the description change where you read them: click the title in the header and it becomes a text field (**Enter** saves, **Escape** cancels, and leaving it changed saves); click the description and its editor opens in place with **Save** and **Cancel**, and it stays open when you click elsewhere, so a long text is not lost. The pencil button beside each is the way for the keyboard and screen readers; without JavaScript it opens the same form on the page. The page comes back with the change without reloading. **New subtask**, in the header, opens a dialog for the title; the subtask goes into the section of its task and the page comes back at the subtasks. A subtask has no **New subtask**, and neither does a task of an archived project.

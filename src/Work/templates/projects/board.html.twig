@@ -31,12 +31,10 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4">
-        {% if project.clientId %}
-            <p class="m-0 text-small text-muted" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>
-        {% endif %}
+        {{ include('@Work/projects/_facts.html.twig') }}
 
         {% set search = {name: 'q', value: text ?? '', label: 'work.tasks.search_label'|trans} %}
-        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: [{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}], toolbarLabel: 'work.project.views'|trans, toolsFilter: 'board-filters', toolsSearch: search, toolsColumns: {id: 'board-display', action: path('app_project_board', {id: project.id})}}) }}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: [{label: 'work.project.tab.list'|trans, href: path('app_project', {id: project.id})}, {label: 'work.project.tab.board'|trans, href: path('app_project_board', {id: project.id}), active: true}]|merge(sectionTabs), toolbarLabel: 'work.project.views'|trans, toolsFilter: 'board-filters', toolsSearch: search, toolsColumns: {id: 'board-display', action: path('app_project_board', {id: project.id})}}) }}
         <twig:Ui:FilterBar id="board-filters" :search="search" :action="path('app_project_board', {id: project.id})" :keep="pinsQuery" :pinned="pinned" data-task-filters
             :filters="[
                 {name: 'responsible', label: 'work.filter.responsible'|trans, options: responsibles, value: query.responsible},
