@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Which time of a project uses its time budget: all of it, or the billable time only (Harvest's budget
+    setting). A dialog over the Budget tab it goes back to; the same URL is a page of its own.
+    Variables: project, counting, options, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set back = path('app_project', {id: project.id, tab: 'budget'}) %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: back}, {label: 'work.budget.counting.title'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ 'work.budget.counting.title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="budget-counting-form" action="{{ path('app_project_budget_counting', {id: project.id}) }}" class="grid gap-4" novalidate data-budget-counting-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectBudgetController::TOKEN')) }}">
+        {{ include('@Work/_form_errors.html.twig', {prefix: 'budget-counting-'}) }}
+        <twig:Ui:RadioCards name="counting" id="budget-counting-counting" :legend="'work.budget.counting.legend'|trans" :options="options" :value="counting" :error="errors.counting|default(null)" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="budget-counting-form" variant="primary">{{ 'work.budget.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.budget.counting.title'|trans" icon="settings" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="budget-counting-form" variant="primary">{{ 'work.budget.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

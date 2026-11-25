@@ -407,7 +407,7 @@ nelmio_api_doc:
                     allOf:
                         - $ref: '#/components/schemas/Project'
                         - type: object
-                          required: [description, billable_by_default, statuses, sections]
+                          required: [description, billable_by_default, statuses, sections, budget]
                           properties:
                               description: { type: string, description: Markdown. }
                               billable_by_default: { type: boolean, nullable: true, description: Null for a guest. }
@@ -429,6 +429,51 @@ nelmio_api_doc:
                                           id: { type: string, format: uuid }
                                           name: { type: string }
                                           position: { type: integer }
+                              budget:
+                                  type: object
+                                  nullable: true
+                                  description: 'The time budget in hours; null for a project without one.'
+                                  properties:
+                                      hours: { type: number }
+                                      used_hours: { type: number }
+                                      left_hours: { type: number, description: Negative over budget. }
+                                      counting: { type: string, enum: [all, billable], description: Which time uses the budget. }
+                                      estimate_hours: { type: number, description: The sum of the estimates of the tasks not in the trash. }
+                ProjectBudget:
+                    type: object
+                    required: [project_id, hours, used_hours, left_hours, counting, estimate_hours, minutes, used_minutes, left_minutes, over_budget, estimate_minutes, changes]
+                    properties:
+                        project_id: { type: string, format: uuid }
+                        hours: { type: number, nullable: true, description: 'The budget, the sum of the changes; null without any.' }
+                        used_hours: { type: number, description: 'Time logged on the project by anyone, not in the trash and not on a task in the trash; billable only when counting is billable.' }
+                        left_hours: { type: number, nullable: true, description: Negative over budget. }
+                        counting: { type: string, enum: [all, billable] }
+                        estimate_hours: { type: number }
+                        minutes: { type: integer, nullable: true }
+                        used_minutes: { type: integer }
+                        left_minutes: { type: integer, nullable: true }
+                        over_budget: { type: boolean }
+                        estimate_minutes: { type: integer }
+                        changes:
+                            type: array
+                            nullable: true
+                            description: 'The latest first; null for a guest.'
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    effective_on: { type: string, format: date }
+                                    hours: { type: number }
+                                    minutes: { type: integer }
+                                    note: { type: string }
+                                    source_activity_id: { type: string, format: uuid, nullable: true }
+                                    created_by:
+                                        type: object
+                                        description: 'Who entered it; the name is null for a person no longer known.'
+                                        properties:
+                                            id: { type: string, format: uuid }
+                                            name: { type: string, nullable: true }
+                                    created_at: { type: string, format: date-time }
                 ProjectPage:
                     type: object
                     required: [data, next_cursor]
