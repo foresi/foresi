@@ -178,6 +178,7 @@ purchasing:
     manual: "Manual"
     upload: "Upload"
     api: "API"
+    mail: "Mail"
   reading_state:
     reading: "Reading"
     read: "Read"
@@ -285,3 +286,4 @@ purchasing:
     reading_partly_applied: "Some values read from the file do not fit the document; they wait as suggestions."
     supplier_ambiguous: "More than one contact has the supplier's registration or VAT number, so no supplier was set."
     supplier_not_found: "No contact has the supplier's registration or VAT number."
+    sender_unverified: "The mail this came with did not pass the check of its sender; make sure it is from who it says before you rely on it."

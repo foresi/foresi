@@ -20,5 +20,10 @@ interface CaptureAddressBook
      */
     public function activeOf(string $ownerUserId): ?CaptureAddress;
 
+    /**
+     * The address Mail knows by this id, revoked or not; null when it is not a capture address.
+     */
+    public function ofMailAddress(string $mailAddressId): ?CaptureAddress;
+
     public function add(CaptureAddress $address): void;
 }

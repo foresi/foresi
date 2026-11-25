@@ -38,6 +38,24 @@ final class AttachmentPermissions
         return $access instanceof AttachmentAccess && $access->canSee($ownerKind, $ownerId) && $access->canAttach($ownerKind, $ownerId);
     }
 
+    /**
+     * Whether a given person, signed in or not, sees the record; a kind whose
+     * module answers only for the signed-in person is denied.
+     */
+    public function canSeeAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        $access = $this->of($ownerKind);
+
+        return $access instanceof UserAttachmentAccess && $access->canSeeAs($userId, $ownerKind, $ownerId);
+    }
+
+    public function canAttachAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        $access = $this->of($ownerKind);
+
+        return $access instanceof UserAttachmentAccess && $access->canSeeAs($userId, $ownerKind, $ownerId) && $access->canAttachAs($userId, $ownerKind, $ownerId);
+    }
+
     public function canDelete(Attachment $attachment): bool
     {
         return $this->of($attachment->ownerKind())?->canDelete($attachment) ?? false;

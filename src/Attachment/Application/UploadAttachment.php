@@ -47,6 +47,31 @@ final readonly class UploadAttachment
         if (null === $userId || !$this->permissions->canAttach($ownerKind, $ownerId)) {
             throw new AttachmentRefused(AttachmentRefused::NOT_ALLOWED);
         }
+
+        return $this->keep($userId, $ownerKind, $ownerId, $file);
+    }
+
+    /**
+     * The same upload for a job that runs with nobody signed in, on behalf of a
+     * person: the file is theirs, and the module of the record is asked whether
+     * that person may attach to it. The audit actor stays the system.
+     *
+     * @throws AttachmentRefused
+     */
+    public function uploadFor(string $userId, string $ownerKind, string $ownerId, AttachmentUpload $file): Attachment
+    {
+        if (!Id::isValid($ownerId) || !$this->permissions->canSeeAs($userId, $ownerKind, $ownerId)) {
+            throw new AttachmentRefused(AttachmentRefused::UNKNOWN);
+        }
+        if (!$this->permissions->canAttachAs($userId, $ownerKind, $ownerId)) {
+            throw new AttachmentRefused(AttachmentRefused::NOT_ALLOWED);
+        }
+
+        return $this->keep($userId, $ownerKind, $ownerId, $file);
+    }
+
+    private function keep(string $userId, string $ownerKind, string $ownerId, AttachmentUpload $file): Attachment
+    {
         if ($file->tooBig || $file->size > $this->maxBytes) {
             throw new AttachmentRefused(AttachmentRefused::TOO_BIG);
         }

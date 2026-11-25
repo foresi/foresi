@@ -178,6 +178,7 @@ purchasing:
     manual: "Ručně"
     upload: "Nahráno"
     api: "API"
+    mail: "E-mail"
   reading_state:
     reading: "Načítá se"
     read: "Načteno"
@@ -285,3 +286,4 @@ purchasing:
     reading_partly_applied: "Některé hodnoty načtené ze souboru k dokladu nesedí; čekají jako návrhy."
     supplier_ambiguous: "IČO nebo DIČ dodavatele má víc kontaktů, proto dodavatel nebyl nastaven."
     supplier_not_found: "IČO ani DIČ dodavatele nemá žádný kontakt."
+    sender_unverified: "E-mail, se kterým doklad přišel, neprošel kontrolou odesílatele; než se na něj spolehnete, ověřte, že je od toho, od koho má být."

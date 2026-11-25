@@ -16,6 +16,7 @@ use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\DeleteAttachment;
 use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Attachment\Application\UserAttachmentAccess;
 use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Audit\Application\AuditActor;
@@ -242,6 +243,53 @@ final class UploadAttachmentTest extends TestCase
         self::assertSame([], $this->files->stored);
     }
 
+    public function testAFileIsKeptOnBehalfOfAPersonWhileNobodyIsSignedIn(): void
+    {
+        $this->actor = null;
+        $for = Id::generate();
+        $this->access->onlyFor = $for;
+
+        $attachment = $this->upload()->uploadFor($for, 'task', $this->owner, new AttachmentUpload($this->file('hello'), 'a.txt', 5));
+
+        self::assertSame($for, $attachment->uploadedBy());
+        self::assertSame([$attachment], $this->attachments->items);
+        self::assertSame(['attachment:'.$attachment->id()], $this->attachments->flushedUnder);
+        // The signed-in way still refuses without a person.
+        $this->assertRefused(AttachmentRefused::NOT_ALLOWED, new AttachmentUpload($this->file('x'), 'a.txt', 1));
+    }
+
+    public function testAnUploadOnBehalfOfStillAsksTheModuleAboutThatPerson(): void
+    {
+        $this->actor = null;
+        $this->access->onlyFor = Id::generate();
+        $other = Id::generate();
+        $file = new AttachmentUpload($this->file('x'), 'a.txt', 1);
+
+        foreach ([
+            [AttachmentRefused::UNKNOWN, fn (): Attachment => $this->upload()->uploadFor($other, 'task', $this->owner, $file)],
+            [AttachmentRefused::UNKNOWN, fn (): Attachment => $this->upload()->uploadFor($this->user, 'invoice', $this->owner, $file)],
+            [AttachmentRefused::UNKNOWN, fn (): Attachment => $this->upload()->uploadFor($this->user, 'task', 'not-an-id', $file)],
+            // A module that answers for the signed-in person only takes no upload on behalf of anyone.
+            [AttachmentRefused::UNKNOWN, fn (): Attachment => $this->upload(access: new PlainAccess())->uploadFor($this->user, 'plain', $this->owner, $file)],
+        ] as [$reason, $attempt]) {
+            try {
+                $attempt();
+                self::fail('Not refused: '.$reason);
+            } catch (AttachmentRefused $refused) {
+                self::assertSame($reason, $refused->reason);
+            }
+        }
+        $this->access->onlyFor = null;
+        $this->access->attach = false;
+        try {
+            $this->upload()->uploadFor($this->user, 'task', $this->owner, $file);
+            self::fail('Attached to a record the module closed.');
+        } catch (AttachmentRefused $refused) {
+            self::assertSame(AttachmentRefused::NOT_ALLOWED, $refused->reason);
+        }
+        self::assertSame([], $this->files->stored);
+    }
+
     public function testTheUploaderOrWhomTheModuleLetsDeletes(): void
     {
         $attachment = $this->upload()->upload('task', $this->owner, new AttachmentUpload($this->file('x'), 'a.txt', 1));
@@ -368,9 +416,9 @@ final class UploadAttachmentTest extends TestCase
         }
     }
 
-    private function upload(int $limit = UploadAttachment::MAX_BYTES): UploadAttachment
+    private function upload(int $limit = UploadAttachment::MAX_BYTES, ?AttachmentAccess $access = null): UploadAttachment
     {
-        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$this->access]), $this->actor(), $this->correlation, new MockClock(), $limit);
+        return new UploadAttachment($this->attachments, $this->files, new AttachmentPermissions([$access ?? $this->access]), $this->actor(), $this->correlation, new MockClock(), $limit);
     }
 
     private function delete(): DeleteAttachment
@@ -419,11 +467,46 @@ final class UploadAttachmentTest extends TestCase
     }
 }
 
-final class FakeAccess implements AttachmentAccess
+final class PlainAccess implements AttachmentAccess
+{
+    public function kinds(): array
+    {
+        return ['plain'];
+    }
+
+    public function canSee(string $ownerKind, string $ownerId): bool
+    {
+        return true;
+    }
+
+    public function canAttach(string $ownerKind, string $ownerId): bool
+    {
+        return true;
+    }
+
+    public function canDelete(Attachment $attachment): bool
+    {
+        return false;
+    }
+}
+
+final class FakeAccess implements UserAttachmentAccess
 {
     public bool $see = true;
     public bool $attach = true;
     public bool $delete = false;
+    /** The one person who sees and attaches on behalf of; any person when null. */
+    public ?string $onlyFor = null;
+
+    public function canSeeAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        return $this->see && (null === $this->onlyFor || $this->onlyFor === $userId);
+    }
+
+    public function canAttachAs(string $userId, string $ownerKind, string $ownerId): bool
+    {
+        return $this->attach;
+    }
 
     public function kinds(): array
     {

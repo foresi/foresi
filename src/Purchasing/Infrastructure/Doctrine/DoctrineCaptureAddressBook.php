@@ -27,6 +27,15 @@ final readonly class DoctrineCaptureAddressBook implements CaptureAddressBook
         return $address instanceof CaptureAddress ? $address : null;
     }
 
+    public function ofMailAddress(string $mailAddressId): ?CaptureAddress
+    {
+        $address = $this->entityManager->createQuery('SELECT a FROM '.CaptureAddress::class.' a WHERE a.mailAddressId = :id')
+            ->setParameter('id', $mailAddressId)
+            ->getOneOrNullResult();
+
+        return $address instanceof CaptureAddress ? $address : null;
+    }
+
     public function add(CaptureAddress $address): void
     {
         $this->entityManager->persist($address);

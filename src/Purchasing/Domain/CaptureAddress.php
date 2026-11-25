@@ -93,6 +93,19 @@ class CaptureAddress implements Audited
         $this->activeOwnerUserId = null;
     }
 
+    /**
+     * Mail for the address was taken in.
+     */
+    public function received(\DateTimeImmutable $at): void
+    {
+        $this->lastReceivedAt = $at;
+    }
+
+    public function isRevoked(): bool
+    {
+        return $this->revokedAt instanceof \DateTimeImmutable;
+    }
+
     public function id(): string
     {
         return $this->id;
