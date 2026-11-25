@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\TaxesAndContributions\Infrastructure\Events;
 
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\TaxesAndContributions\Infrastructure\Api\TaxesApiController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 

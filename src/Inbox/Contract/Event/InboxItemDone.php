@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * Its owner marked an inbox item done: dealt with. Thin on purpose (ADR 0030):

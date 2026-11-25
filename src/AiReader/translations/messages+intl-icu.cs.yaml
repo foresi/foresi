@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+ai_reader:
+  settings:
+    title: "Čtení pomocí AI"
+    not_set_up: "Čtení pomocí AI není nastavené"
+    not_set_up_text: "S vlastním API klíčem čte soubory, které ostatní čtečky nepřečtou, model umělé inteligence. Nastavuje ho provozovatel v prostředí instance."
+    docs: "Jak ho nastavit"
+    configured_arrival: "Čtení pomocí AI: {provider}, model {model}, spouští se při příchodu souboru, když ostatní čtečky nenajdou celkovou částku, datum vystavení nebo dodavatele"
+    configured_click: "Čtení pomocí AI: {provider}, model {model}, spouští se jen po kliknutí na Načíst pomocí AI"
+    trigger_invalid: "AI_READER_TRIGGER není platný: použijte arrival nebo click"
+    sent: "Doklad čtený pomocí AI se posílá poskytovateli mimo tuto instanci. Dokud čtečka není nastavená, neposílá se nic."
+  document:
+    read: "Načíst pomocí AI"

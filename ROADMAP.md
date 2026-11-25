@@ -4,12 +4,11 @@ Where Foresi is heading, without dates. The order can change; changes are announ
 
 ## Now
 
-- **0.5.0, the first release with invoices**: invoicing, sending, reminders, recurring invoices, payments and bank pairing, received documents, projects and tasks, cash flow, and the move from iDoklad, released on 2026-11-18. From then on every merged change is its own release.
+- **0.10.x, the current line** (latest: [0.10.31](https://github.com/foresi/foresi/releases/tag/v0.10.31)): every merged change is its own release. 0.5.0 (2026-11-18) was the first release with invoices; since then have come cash flow, the VAT and taxes and contributions modules, the margin and mail modules, one baseline migration per module (0.9.0) and every module as its own package.
 - **One instance per customer**: each firm runs its own Foresi instance ([ADR 0035](docs/adr/0035-one-instance-per-customer.md)).
 
 ## Next
 
-- **Modules as Composer packages**: the core and each module published as packages, so an installation picks the modules it needs and adds its own ([ADR 0034](docs/adr/0034-module-packages.md)).
 - **More of the API and MCP**: writes beyond contacts, so scripts and assistants can do what the screens do.
 - **Documentation site** on [foresi.app](https://foresi.app), built from the docs in this repository.
 

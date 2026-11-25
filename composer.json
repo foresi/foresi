@@ -22,6 +22,7 @@
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
         "foresi/activities": "dev-main",
+        "foresi/ai-reader": "dev-main",
         "foresi/attachment": "dev-main",
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
@@ -117,7 +118,10 @@
     "autoload-dev": {
         "psr-4": {
             "Foresi\\Tests\\": "tests/"
-        }
+        },
+        "exclude-from-classmap": [
+            "tests/Fixtures/modules/"
+        ]
     },
     "replace": {
         "symfony/polyfill-ctype": "*",
@@ -228,6 +232,7 @@
                 "symlink": true,
                 "versions": {
                     "foresi/activities": "dev-main",
+                    "foresi/ai-reader": "dev-main",
                     "foresi/attachment": "dev-main",
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",

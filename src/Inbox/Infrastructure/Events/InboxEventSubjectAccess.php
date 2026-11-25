@@ -13,7 +13,7 @@ use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Contract\Event\InboxItemReceived;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * An inbox item is seen by its owner alone, so one person's mail never reaches

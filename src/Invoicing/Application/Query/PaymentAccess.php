@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application\Query;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 
 /**
  * Who reads the payments: the owners and the members of the organisation, never

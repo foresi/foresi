@@ -12,7 +12,7 @@ use Foresi\Purchasing\Contract\Event\ReceivedDocumentChanged;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentLineInput;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Sets the lines of a draft or a recorded document on their own: they split

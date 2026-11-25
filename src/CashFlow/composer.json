@@ -16,6 +16,7 @@
         "foresi/exchange-rate": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
+        "foresi/module-api": "^1.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",

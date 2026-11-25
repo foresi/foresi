@@ -20,7 +20,7 @@ use Foresi\Mail\Application\MailTransaction;
 use Foresi\Mail\Application\NotifyOverLimit;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\SenderVerdict;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 use Psr\Log\AbstractLogger;
 

@@ -1,0 +1,122 @@
+name: External module
+
+# A module of another vendor installed into the application, the way an author of one
+# installs theirs (ADR 0044): tests/Fixtures/modules/acme-fleet is the package acme/fleet,
+# namespace Acme\Fleet\, built on the module API only. A change to Foresi that breaks a
+# module outside this repository fails here, without anything under src/ knowing it.
+#
+# The job adds the package from a path repository, checks it against the module API (and
+# against 2.0, which it must not suit), migrates an empty PostgreSQL database with its
+# migration among Foresi's, and runs the package's own tests: its screen, REST, MCP, its
+# event, its listener of a Party event and its setting.
+#
+# Not a required check: one job, on pull requests and on main.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  external-module:
+    name: External module
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      MODULE_DIR: tests/Fixtures/modules/acme-fleet
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: assets/vendor
+          key: importmap-${{ hashFiles('importmap.php') }}
+
+      - name: Install the application
+        run: composer install --no-interaction --prefer-dist --no-progress --no-scripts
+
+      # The way a module author installs theirs: a path repository, then composer require.
+      # Composer itself refuses a module whose foresi/module-api range Foresi does not provide.
+      - name: Install acme/fleet
+        run: |
+          composer config repositories.acme-fleet path "${MODULE_DIR}"
+          composer require acme/fleet:@dev --no-interaction --prefer-dist --no-progress --no-scripts
+          bin/console cache:clear
+          bin/console importmap:install
+
+      - name: Module API
+        run: |
+          bin/console app:modules:check
+          # Module API 2.0 would leave every module behind, acme/fleet too: the check must fail.
+          if bin/console app:modules:check --api=2.0 > api-2.0.log 2>&1; then
+            cat api-2.0.log
+            echo "app:modules:check --api=2.0 passed, but no installed module is written for 2.0."
+            exit 1
+          fi
+          grep -F 'acme-fleet (acme/fleet) requires foresi/module-api ^1.0.' api-2.0.log
+
+      - name: Container and routes
+        run: |
+          bin/console lint:container
+          bin/console debug:router | grep -F '/acme-fleet/vehicles'
+
+      # In the dev environment, like the migration checks of ci.yml: the test environment
+      # also maps entities that exist only for tests and has no migrations.
+      - name: Migrations on an empty PostgreSQL 17
+        env:
+          APP_ENV: dev
+          DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app?serverVersion=17&charset=utf8
+        run: |
+          bin/console doctrine:migrations:migrate --no-interaction
+          bin/console doctrine:schema:validate
+          bin/console app:migrations:owners
+          bin/console app:migrations:owners --list | grep -E '^\s*acme_fleet_vehicle\s+acme-fleet\s*$'
+
+      # On the in-memory SQLite database of the test environment (.env.test).
+      - name: Tests of acme/fleet
+        run: vendor/bin/phpunit -c "${MODULE_DIR}/phpunit.xml.dist"

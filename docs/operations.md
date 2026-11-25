@@ -367,7 +367,8 @@ sudo -u www-data /srv/foresi/current/ops/deploy.sh v0.5.0
 
 It fetches the ref into a mirror, exports it into `releases/<timestamp>`, links
 the shared files, runs `composer install --no-dev --optimize-autoloader`,
-`importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
+checks that every installed module is written for this release's module API
+(`app:modules:check`, which names each one that is not), `importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
 warms the prod cache, dumps the database with `ops/backup.sh --tag pre-migrate`
 when migrations are pending, migrates (unless the database is still on the
 global migration history, see [the module baselines](#the-module-baselines)),

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Application;
 
-use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\User;
 use Foresi\Inbox\Contract\Event\InboxItemReceived;
 use Foresi\Inbox\Domain\ForwardedSender;
@@ -21,7 +21,7 @@ use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\NotAccepted;
 use Foresi\Mail\Contract\SenderCheck;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
 
 /**

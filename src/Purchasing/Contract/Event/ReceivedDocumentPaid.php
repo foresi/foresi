@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Contract\Event;
 
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A recorded received document became paid in full: the payment named, on the day it names (YYYY-MM-DD), left nothing to pay. A partial payment records no event.

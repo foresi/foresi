@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;

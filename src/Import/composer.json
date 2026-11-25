@@ -16,6 +16,7 @@
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
+        "foresi/module-api": "^1.0",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "openspout/openspout": "^5.12",

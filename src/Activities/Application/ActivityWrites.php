@@ -22,7 +22,7 @@ use Foresi\Activities\Domain\Activity;
 use Foresi\Activities\Domain\ActivityLink;
 use Foresi\Activities\Domain\ActivitySchedule;
 use Foresi\Activities\Domain\ActivityType;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 
 /**

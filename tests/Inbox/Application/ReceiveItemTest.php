@@ -28,7 +28,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\NewContact;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

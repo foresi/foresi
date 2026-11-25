@@ -63,6 +63,16 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MarginTableTest extends KernelTestCase
 {
+    private const string DOC_1 = '0197a1de-0000-7000-8000-0000000000d1';
+    private const string DOC_2 = '0197a1de-0000-7000-8000-0000000000d2';
+    private const string DOC_3 = '0197a1de-0000-7000-8000-0000000000d3';
+    private const string DOC_4 = '0197a1de-0000-7000-8000-0000000000d4';
+    private const string DOC_5 = '0197a1de-0000-7000-8000-0000000000d5';
+    private const string VOICE = '0197a1de-0000-7000-8000-0000000000c1';
+    private const string CLOUD = '0197a1de-0000-7000-8000-0000000000c2';
+    private const string GONE = '0197a1de-0000-7000-8000-0000000000c3';
+    private const string LOST = '0197a1de-0000-7000-8000-0000000000c4';
+
     private EntityManagerInterface $em;
     private FixedRevenueSource $revenue;
     private FixedCostSource $costSource;
@@ -119,9 +129,9 @@ final class MarginTableTest extends KernelTestCase
         $this->invoice('i1', $this->clientA, '2026-11-10', 3_000_000);
         $this->invoice('i2', $this->clientA, '2026-11-28', 981_500);
         // Voice API (22 USD at 23.10 CZK) goes whole to Client A, Cloud Host 30 % of 739.20 to Client A and the rest to the firm.
-        $this->share('voice', '2026-11', $this->clientA, 50_820);
-        $this->share('cloud', '2026-11', $this->clientA, 22_176);
-        $this->share('cloud', '2026-11', 'own', 51_744);
+        $this->share(self::VOICE, '2026-11', $this->clientA, 50_820);
+        $this->share(self::CLOUD, '2026-11', $this->clientA, 22_176);
+        $this->share(self::CLOUD, '2026-11', 'own', 51_744);
 
         $view = $this->table->of('2026-11', '2026-11');
 
@@ -134,12 +144,12 @@ final class MarginTableTest extends KernelTestCase
 
     public function testTheUnassignedRowHoldsEveryUnmappedLine(): void
     {
-        $this->share('d1', '2026-10', null, 10_000);
-        $this->share('d2', '2026-11', null, 20_000);
-        $this->share('d3', '2026-11', $this->clientA, 30_000);
-        $this->share('d4', '2026-11', 'own', 5_000);
-        $this->share('d5', '2026-09', null, 99_999);
-        $this->share('d1', '2026-11', null, 1_000);
+        $this->share(self::DOC_1, '2026-10', null, 10_000);
+        $this->share(self::DOC_2, '2026-11', null, 20_000);
+        $this->share(self::DOC_3, '2026-11', $this->clientA, 30_000);
+        $this->share(self::DOC_4, '2026-11', 'own', 5_000);
+        $this->share(self::DOC_5, '2026-09', null, 99_999);
+        $this->share(self::DOC_1, '2026-11', null, 1_000);
 
         $view = $this->table->of('2026-10', '2026-12');
 
@@ -157,7 +167,7 @@ final class MarginTableTest extends KernelTestCase
         $this->invoice('i1', $this->clientB, '2026-11-02', 100_000);
         $this->invoice('i2', $this->clientC, '2026-11-03', 100_000);
         $this->invoice('i3', $this->clientA, '2026-11-04', 50_000);
-        $this->share('d1', '2026-11', $this->contact('Client D'), 1_000);
+        $this->share(self::DOC_1, '2026-11', $this->contact('Client D'), 1_000);
 
         $view = $this->table->of('2026-11', '2026-11');
 
@@ -181,7 +191,7 @@ final class MarginTableTest extends KernelTestCase
 
     public function testAClientWithCostsButNoRevenueHasARow(): void
     {
-        $this->share('d1', '2026-11', $this->clientB, 12_000);
+        $this->share(self::DOC_1, '2026-11', $this->clientB, 12_000);
 
         $view = $this->table->of('2026-11', '2026-11');
 
@@ -229,7 +239,7 @@ final class MarginTableTest extends KernelTestCase
 
     public function testWithoutARevenueSourceTheTableHasCostsOnly(): void
     {
-        $this->share('d1', '2026-11', $this->clientA, 5_000);
+        $this->share(self::DOC_1, '2026-11', $this->clientA, 5_000);
         $table = new MarginTable(self::getContainer()->get(MarginAccess::class), new MarginRanges(self::getContainer()->get(InstanceClock::class)), new RevenueSources([]), new CostShareReads($this->em), $this->calculation(), new CostSources([]), new KnownGaps(new CostSources([])), self::getContainer()->get(PartyDirectory::class), new Unrebilled(self::getContainer()->get(MarginAccess::class), new MarginRanges(self::getContainer()->get(InstanceClock::class)), new RevenueSources([]), new CostPairings(), new MappingVersions($this->em), $this->em));
 
         $view = $table->of('2026-11', '2026-11');
@@ -280,8 +290,8 @@ final class MarginTableTest extends KernelTestCase
     public function testTheJsonOfTheTableAndOfACellCarriesRevenueCostsAndMargin(): void
     {
         $this->invoice('i1', $this->clientA, '2026-11-10', 3_000_000);
-        $this->share('voice', '2026-11', $this->clientA, 50_820);
-        $this->share('lost', '2026-12', null, 10_000);
+        $this->share(self::VOICE, '2026-11', $this->clientA, 50_820);
+        $this->share(self::LOST, '2026-12', null, 10_000);
 
         $table = MarginJson::table($this->table->of('2026-11', '2026-12'));
         $cell = MarginJson::cellDetail($this->cell->of('client:'.$this->clientA, '2026-11'));
@@ -321,12 +331,12 @@ final class MarginTableTest extends KernelTestCase
         $this->invoice('i2', $this->clientA, '2026-11-02', 981_500);
         $this->invoice('i3', $this->clientB, '2026-11-02', 1_000);
         $this->invoice('i4', $this->clientA, '2026-12-02', 5_000);
-        $this->costSource->documents['voice'] = $this->costDocument('voice', '2026-11-05', [new CostLine('line-1', 'Voice API usage', Money::ofMinor(50_820, Currency::CZK))]);
-        $this->costSource->documents['cloud'] = $this->costDocument('cloud', '2026-11-06', [new CostLine('line-1', 'Hosting', Money::ofMinor(73_920, Currency::CZK))]);
-        $this->share('voice', '2026-11', $this->clientA, 50_820, CostShareSource::Document);
-        $this->share('cloud', '2026-11', $this->clientA, 22_176, CostShareSource::Line);
-        $this->share('cloud', '2026-11', 'own', 51_744, CostShareSource::Line);
-        $this->share('gone', '2026-11', $this->clientA, 100, CostShareSource::Supplier);
+        $this->costSource->documents[self::VOICE] = $this->costDocument(self::VOICE, '2026-11-05', [new CostLine('line-1', 'Voice API usage', Money::ofMinor(50_820, Currency::CZK))]);
+        $this->costSource->documents[self::CLOUD] = $this->costDocument(self::CLOUD, '2026-11-06', [new CostLine('line-1', 'Hosting', Money::ofMinor(73_920, Currency::CZK))]);
+        $this->share(self::VOICE, '2026-11', $this->clientA, 50_820, CostShareSource::Document);
+        $this->share(self::CLOUD, '2026-11', $this->clientA, 22_176, CostShareSource::Line);
+        $this->share(self::CLOUD, '2026-11', 'own', 51_744, CostShareSource::Line);
+        $this->share(self::GONE, '2026-11', $this->clientA, 100, CostShareSource::Supplier);
 
         $cell = $this->cell->of('client:'.$this->clientA, '2026-11');
 
@@ -334,11 +344,11 @@ final class MarginTableTest extends KernelTestCase
         self::assertSame(3_908_404, $cell->figures->margin->minor());
         self::assertSame([['EN-i2', 981_500, 'revenue', 'invoice', '/invoices/i2'], ['EN-i1', 3_000_000, 'revenue', 'invoice', '/invoices/i1']], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->amountCzk->minor(), $item->source, $item->kind, $item->url], $cell->revenue), 'By tax point.');
         self::assertSame([
-            ['EN-voice', 'Voice API usage', 50_820, 'document', '/purchasing/voice'],
-            ['EN-cloud', 'Hosting', 22_176, 'line', '/purchasing/cloud'],
-            ['gone', null, 100, 'supplier', null],
+            ['EN-'.self::VOICE, 'Voice API usage', 50_820, 'document', '/purchasing/'.self::VOICE],
+            ['EN-'.self::CLOUD, 'Hosting', 22_176, 'line', '/purchasing/'.self::CLOUD],
+            [self::GONE, null, 100, 'supplier', null],
         ], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->text, $item->amountCzk->minor(), $item->source, $item->url], $cell->costs));
-        self::assertSame(['voice', 'cloud', 'gone'], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): string => $item->documentId, $cell->costs));
+        self::assertSame([self::VOICE, self::CLOUD, self::GONE], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): string => $item->documentId, $cell->costs));
 
         $own = $this->cell->of('own', '2026-11');
         self::assertSame([[], 51_744, -51_744, null], [$own->revenue, $own->figures->costs->minor(), $own->figures->margin->minor(), $own->name]);
@@ -346,8 +356,8 @@ final class MarginTableTest extends KernelTestCase
 
     public function testTheUnassignedCellHoldsTheSharesNobodyClaimed(): void
     {
-        $this->share('d1', '2026-11', null, 7_000, CostShareSource::Unassigned);
-        $this->share('d2', '2026-12', null, 9_000, CostShareSource::Unassigned);
+        $this->share(self::DOC_1, '2026-11', null, 7_000, CostShareSource::Unassigned);
+        $this->share(self::DOC_2, '2026-12', null, 9_000, CostShareSource::Unassigned);
 
         $cell = $this->cell->of('unassigned', '2026-11');
 

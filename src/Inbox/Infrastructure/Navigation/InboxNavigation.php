@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Infrastructure\Navigation;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Inbox\Infrastructure\Controller\InboxController;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationItem;

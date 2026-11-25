@@ -10,7 +10,7 @@ namespace Foresi\Vat\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Vat\Contract\Event\VatPeriodChanged;

@@ -38,7 +38,7 @@ use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
 use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Shared\Application\Event\EventOutbox;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookPersistenceTest extends KernelTestCase

@@ -36,9 +36,9 @@ use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\NewContact;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Refused;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
 use Foresi\Shared\Domain\Id;
 
 /**

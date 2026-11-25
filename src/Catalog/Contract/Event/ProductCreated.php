@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Contract\Event;
 
 use Foresi\Catalog\Contract\BillingKind;
-use Foresi\Shared\Domain\Event\DomainEvent;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\DomainEvent;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A product was added to the catalog. The payload is thin (ADR 0030): read the
