@@ -33,7 +33,7 @@ test.describe('the inbox', () => {
     await signIn(page, OWNER);
   });
 
-  test('a forwarded mail waits under New, is matched to a contact, linked to a deal and marked done', async ({ page }) => {
+  test('a forwarded mail waits under New, is matched to a contact, linked to a deal, marked done and shown on the deal\'s timeline', async ({ page }) => {
     // The address: made in its dialog, shown once in full.
     await page.goto('/account/inbox');
     await page.locator('#inbox-address-new').click();
@@ -90,5 +90,12 @@ test.describe('the inbox', () => {
     await expect(page.locator('[data-inbox-list]')).not.toContainText('Roof audit for the warehouse');
     await page.goto('/inbox?view=done');
     await expect(page.locator('[data-inbox-list]')).toContainText('Roof audit for the warehouse');
+
+    // The deal's timeline shows the mail as its e-mail activity, linked to the matched client too.
+    await page.goto(deal);
+    const email = page.locator('[data-deal-tabs] [data-activities-done] [data-activity]').filter({ hasText: 'Roof audit for the warehouse' });
+    await expect(email).toHaveCount(1);
+    await expect(email.locator('[data-activity-subject]')).toHaveText('Roof audit for the warehouse');
+    await expect(email.locator('[data-activity-links]')).toContainText(CLIENT);
   });
 });
