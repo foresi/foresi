@@ -46,23 +46,21 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $container->parameters()->set('app.import_files_dir', '%kernel.project_dir%/var/imports');
 
     // Modules plug into the import by implementing its target contract...
-    $builder->registerForAutoconfiguration(ImportTarget::class)->addTag('app.import_target');
     // ...and contribute presets of the known sources they can read.
-    $builder->registerForAutoconfiguration(SourcePreset::class)->addTag('app.import_preset');
 
     $services->set(LocalImportFiles::class)
         ->arg('$root', param('app.import_files_dir'));
     $services->set(TargetRegistry::class)
-        ->arg('$targets', tagged_iterator('app.import_target'));
+        ->arg('$targets', tagged_iterator(ImportTarget::TAG));
     $services->set(PresetRegistry::class)
-        ->arg('$presets', tagged_iterator('app.import_preset'));
+        ->arg('$presets', tagged_iterator(SourcePreset::TAG));
 
     if ('test' === $container->env()) {
         // Lets a test make the gate's lock fail once.
         $services->set(FlakyImportLock::class)->decorate(ImportLock::class);
 
         // A target living in memory, for the pipeline tests.
-        $services->set(FakeTarget::class)->public()->tag('app.import_target');
+        $services->set(FakeTarget::class)->public()->tag(ImportTarget::TAG);
 
         // The tests drive the import services directly, not only through the screens.
         foreach ([StartImport::class, ExportRecords::class, ConfigureImport::class, CheckImport::class, RunImport::class, UndoImport::class, CancelImport::class, ImportErrorFile::class] as $service) {

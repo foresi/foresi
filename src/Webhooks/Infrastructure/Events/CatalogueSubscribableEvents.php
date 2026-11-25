@@ -24,7 +24,7 @@ final readonly class CatalogueSubscribableEvents implements SubscribableEvents
      */
     public function __construct(
         private EventCatalogue $catalogue,
-        #[AutowireIterator('app.event_read_access')]
+        #[AutowireIterator(EventReadAccess::READ_ACCESS_TAG)]
         private iterable $access,
     ) {
     }

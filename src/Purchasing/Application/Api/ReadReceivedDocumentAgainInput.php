@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Api;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Asks for the file of a draft to be read again over the API and MCP.

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Margin\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Who bears the costs of a supplier by default, from a month on.

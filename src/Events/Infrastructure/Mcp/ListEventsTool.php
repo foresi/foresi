@@ -10,11 +10,12 @@ namespace Foresi\Events\Infrastructure\Mcp;
 
 use Foresi\Events\Infrastructure\Api\EventListQuery;
 use Foresi\Events\Infrastructure\Api\ReadableEvents;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Api\InvalidParameter;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -56,7 +57,7 @@ final readonly class ListEventsTool implements ReadTool
             'type' => 'object',
             'properties' => [
                 'types' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Event names or "module.*" for every event of a module, such as ["invoicing.invoice.paid", "invoicing.invoice.trashed"]. Leave it out for every event you may read.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -73,8 +74,8 @@ final readonly class ListEventsTool implements ReadTool
         }
         $query = new EventListQuery(
             [] === $types ? null : implode(',', $types),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         try {

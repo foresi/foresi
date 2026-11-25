@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface VatPlanSource
 {
-    public const string TAG = 'app.vat_plan_source';
+    public const string TAG = 'foresi.vat.plan_source';
 
     /**
      * A stable key, such as "cash-flow.planned_vat".

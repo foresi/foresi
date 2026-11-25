@@ -11,8 +11,8 @@ namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 use Foresi\CashFlow\Application\BalanceWrites;
 use Foresi\CashFlow\Application\ClearExpectedDateInput;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class ClearExpectedDateHandler implements OperationHandler
 {

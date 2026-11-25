@@ -8,21 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\Event;
 
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" interface is deprecated, use "%s" instead.', DomainEventListener::class, \Foresi\Shared\Contract\Event\DomainEventListener::class);
 
-/**
- * An asynchronous listener of one named contract event, in another module or
- * the same one. Delivery is at least once and unordered, so it is idempotent on
- * the event id. A synchronous listener is not this interface: it is a Symfony
- * event listener on the payload class and runs in the publisher's transaction.
- */
-#[AutoconfigureTag('app.domain_event_listener')]
-interface DomainEventListener
-{
+class_alias(\Foresi\Shared\Contract\Event\DomainEventListener::class, DomainEventListener::class);
+
+if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * The event name this listener reacts to.
+     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Event\DomainEventListener instead
      */
-    public function listensTo(): string;
-
-    public function __invoke(RecordedEvent $event): void;
+    interface DomainEventListener extends \Foresi\Shared\Contract\Event\DomainEventListener
+    {
+    }
 }

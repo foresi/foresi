@@ -50,7 +50,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $container->parameters()->set('app.idoklad_files_dir', '%kernel.share_dir%/idoklad-documents');
 
     // The stages of an iDoklad import; each one orders itself.
-    $builder->registerForAutoconfiguration(ImportStage::class)->addTag('app.idoklad_import_stage');
+    $builder->registerForAutoconfiguration(ImportStage::class)->addTag(ImportStage::TAG);
 
     // The importer reads iDoklad accounts; only GET of read-only paths, see ReadOnlyPaths.
     $services->alias(IdokladClient::class, HttpIdokladClient::class);
@@ -66,7 +66,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(ImportTransaction::class, DoctrineImportTransaction::class);
     $services->alias(ContactNames::class, DoctrineContactNames::class);
     $services->set(RunIdokladImport::class)
-        ->arg('$stages', tagged_iterator('app.idoklad_import_stage'));
+        ->arg('$stages', tagged_iterator(ImportStage::TAG));
 
     // Declared here (private) so PHPStan, which reads the dev container, knows the
     // id used by the tests; it is made public in the test env below.

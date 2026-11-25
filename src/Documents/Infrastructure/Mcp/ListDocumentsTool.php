@@ -13,11 +13,11 @@ use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
 use Foresi\Documents\Domain\DocumentStatus;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The documents, as GET /api/v1/documents writes them.
@@ -60,10 +60,10 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
         return [
             'type' => 'object',
             'properties' => [
-                'type_id' => ToolArguments::idSchema('Only the documents of this type, from foresi_list_document_types.'),
-                'status' => ToolArguments::choiceSchema(array_column(DocumentStatus::cases(), 'value'), 'Only the documents in this status.'),
+                'type_id' => ToolSchema::idSchema('Only the documents of this type, from foresi_list_document_types.'),
+                'status' => ToolSchema::choiceSchema(array_column(DocumentStatus::cases(), 'value'), 'Only the documents in this status.'),
                 'linked_kind' => ['type' => 'string', 'description' => 'With linked_id: the kind of the record the documents are linked to, such as contact.'],
-                'linked_id' => ToolArguments::idSchema('With linked_kind: the id of the record.'),
+                'linked_id' => ToolSchema::idSchema('With linked_kind: the id of the record.'),
                 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => DocumentFilter::MAX_LIMIT, 'default' => 50, 'description' => 'How many to return at most.'],
                 'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0, 'description' => 'How many of the newest to skip.'],
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True lists the documents in the trash instead of the others.'],
@@ -76,13 +76,13 @@ final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
     {
         try {
             $documents = $this->reads->documents(
-                ToolArguments::text($arguments, 'type_id'),
-                ToolArguments::text($arguments, 'status'),
-                ToolArguments::text($arguments, 'linked_kind'),
-                ToolArguments::text($arguments, 'linked_id'),
+                ToolSchema::text($arguments, 'type_id'),
+                ToolSchema::text($arguments, 'status'),
+                ToolSchema::text($arguments, 'linked_kind'),
+                ToolSchema::text($arguments, 'linked_id'),
                 $this->number($arguments, 'limit'),
                 $this->number($arguments, 'offset'),
-                ToolArguments::flag($arguments, 'trashed'),
+                ToolSchema::flag($arguments, 'trashed'),
             );
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);

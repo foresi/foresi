@@ -11,7 +11,7 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * The answer of a write to a lost reason: the reason and a summary.

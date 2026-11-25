@@ -10,8 +10,8 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\Contact\ContactWrites;
 use Foresi\Party\Application\Contact\LinkContactPersonInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * contacts.link_person: the company with its contact persons.

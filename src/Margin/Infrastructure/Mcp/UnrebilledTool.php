@@ -11,10 +11,10 @@ namespace Foresi\Margin\Infrastructure\Mcp;
 use Foresi\Margin\Application\Unrebilled;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The costs paid and not rebilled, as GET /api/v1/margin/unrebilled writes them.
@@ -62,7 +62,7 @@ final readonly class UnrebilledTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $found = $this->unrebilled->between(ToolArguments::text($arguments, 'from'), ToolArguments::text($arguments, 'to'));
+            $found = $this->unrebilled->between(ToolSchema::text($arguments, 'from'), ToolSchema::text($arguments, 'to'));
         } catch (MarginRefused $refused) {
             throw ToolRefusal::of($refused);
         }

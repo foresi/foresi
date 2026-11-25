@@ -21,10 +21,11 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
@@ -69,16 +70,16 @@ final readonly class SearchInvoicesTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'kind' => ToolArguments::choiceSchema(array_column(DocumentKind::cases(), 'value'), 'Only documents of this kind.'),
-                'customer_id' => ToolArguments::idSchema('Only documents issued to this contact.'),
-                'state' => ToolArguments::choiceSchema(InvoiceSliceFilter::STATES, 'Only documents in this payment state: unpaid (overdue ones too), overdue (unpaid after the due date) or paid. Ignored with trashed.'),
+                'kind' => ToolSchema::choiceSchema(array_column(DocumentKind::cases(), 'value'), 'Only documents of this kind.'),
+                'customer_id' => ToolSchema::idSchema('Only documents issued to this contact.'),
+                'state' => ToolSchema::choiceSchema(InvoiceSliceFilter::STATES, 'Only documents in this payment state: unpaid (overdue ones too), overdue (unpaid after the due date) or paid. Ignored with trashed.'),
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash, false only those that are not.'],
-                'issued_from' => ToolArguments::dateSchema('Only documents issued on this day or later.'),
-                'issued_to' => ToolArguments::dateSchema('Only documents issued on this day or earlier.'),
+                'issued_from' => ToolSchema::dateSchema('Only documents issued on this day or later.'),
+                'issued_to' => ToolSchema::dateSchema('Only documents issued on this day or earlier.'),
                 'query' => ['type' => 'string', 'description' => 'Text looked for in the number, the customer name, the variable symbol and the description.'],
                 'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "invoicing.invoices.overdue". Without kind, the kind of the view\'s list.'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list of kind (of the invoices without one); its fields and operators are in foresi_list_lists.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -86,19 +87,19 @@ final readonly class SearchInvoicesTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new InvoiceListQuery(
-            ToolArguments::text($arguments, 'kind'),
-            ToolArguments::text($arguments, 'customer_id'),
-            ToolArguments::text($arguments, 'state'),
-            ToolArguments::flag($arguments, 'trashed'),
-            ToolArguments::text($arguments, 'issued_from'),
-            ToolArguments::text($arguments, 'issued_to'),
-            ToolArguments::text($arguments, 'query') ?? '',
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'kind'),
+            ToolSchema::text($arguments, 'customer_id'),
+            ToolSchema::text($arguments, 'state'),
+            ToolSchema::flag($arguments, 'trashed'),
+            ToolSchema::text($arguments, 'issued_from'),
+            ToolSchema::text($arguments, 'issued_to'),
+            ToolSchema::text($arguments, 'query') ?? '',
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
-        $viewId = ToolArguments::text($arguments, 'view_id');
+        $viewId = ToolSchema::text($arguments, 'view_id');
         if (null !== $viewId && !$this->scope->allows(InvoiceViewFilter::VIEWS_SCOPE)) {
             throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', InvoiceViewFilter::VIEWS_SCOPE));
         }

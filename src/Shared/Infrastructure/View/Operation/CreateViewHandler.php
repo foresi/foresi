@@ -10,8 +10,8 @@ namespace Foresi\Shared\Infrastructure\View\Operation;
 
 use Foresi\Shared\Application\View\CreateViewInput;
 use Foresi\Shared\Application\View\SavedViews;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Shared\Infrastructure\View\Api\ViewApiController;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;

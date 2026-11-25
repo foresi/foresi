@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\View;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * The views a module ships on a list back to what it declares: renamed, edited

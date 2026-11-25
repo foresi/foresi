@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Where the firm pays its VAT, so its payments are matched to the periods.

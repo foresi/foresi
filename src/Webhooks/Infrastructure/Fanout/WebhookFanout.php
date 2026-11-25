@@ -65,11 +65,11 @@ final class WebhookFanout implements EventSink, ResetInterface
         private readonly EventView $view,
         private readonly MessageBusInterface $bus,
         private readonly ClockInterface $clock,
-        #[AutowireIterator('app.event_read_access')]
+        #[AutowireIterator(EventReadAccess::READ_ACCESS_TAG)]
         private readonly iterable $access,
         private readonly EndpointDisabledMailer $mailer,
         private readonly LoggerInterface $logger,
-        #[AutowireIterator('app.event_subject_access')]
+        #[AutowireIterator(EventSubjectAccess::SUBJECT_ACCESS_TAG)]
         private readonly iterable $subjects = [],
     ) {
     }

@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ActualAmountSource
 {
-    public const string TAG = 'app.taxes_actual_source';
+    public const string TAG = 'foresi.taxes_and_contributions.actual_source';
 
     /**
      * A stable key, such as "invoicing.payments".

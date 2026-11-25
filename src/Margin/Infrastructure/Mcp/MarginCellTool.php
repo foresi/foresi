@@ -11,10 +11,10 @@ namespace Foresi\Margin\Infrastructure\Mcp;
 use Foresi\Margin\Application\MarginCell;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * What stands behind one cell of the margin table, as GET /api/v1/margin/cell writes it.
@@ -62,7 +62,7 @@ final readonly class MarginCellTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $view = $this->cell->of(ToolArguments::text($arguments, 'row') ?? '', ToolArguments::text($arguments, 'month') ?? '');
+            $view = $this->cell->of(ToolSchema::text($arguments, 'row') ?? '', ToolSchema::text($arguments, 'month') ?? '');
         } catch (MarginRefused $refused) {
             throw ToolRefusal::of($refused);
         }

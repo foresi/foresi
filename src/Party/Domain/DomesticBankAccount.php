@@ -11,10 +11,12 @@ namespace Foresi\Party\Domain;
 /**
  * Country-specific rules for domestic bank account numbers, which other
  * programs export as a number and a bank code instead of an IBAN.
- * Implementations are registered through the container tag "app.domestic_bank_account".
+ * Implementations are registered through the container tag "foresi.party.domestic_bank_account".
  */
 interface DomesticBankAccount
 {
+    public const string TAG = 'foresi.party.domestic_bank_account';
+
     /**
      * @param string $countryCode ISO 3166-1 alpha-2, upper case
      */

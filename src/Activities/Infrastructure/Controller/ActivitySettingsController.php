@@ -18,7 +18,7 @@ use Foresi\Activities\Application\Api\UpdateActivityTypeInput;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
 use Foresi\Activities\Infrastructure\Screen\ActivityScreen;
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Ui\Contract\Opens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Infrastructure\Api\WorkJson;
@@ -48,7 +48,7 @@ final readonly class GetTaskTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['task_id' => ToolArguments::idSchema('The id of the task, as foresi_search_tasks returns it.')],
+            'properties' => ['task_id' => ToolSchema::idSchema('The id of the task, as foresi_search_tasks returns it.')],
             'required' => ['task_id'],
             'additionalProperties' => false,
         ];
@@ -56,7 +56,7 @@ final readonly class GetTaskTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $task = $this->pages->read(fn (): \Foresi\Work\Application\TaskDetail => $this->queries->task(ToolArguments::text($arguments, 'task_id') ?? '') ?? throw new WorkRefused('unknown'));
+        $task = $this->pages->read(fn (): \Foresi\Work\Application\TaskDetail => $this->queries->task(ToolSchema::text($arguments, 'task_id') ?? '') ?? throw new WorkRefused('unknown'));
 
         return new ToolOutput($this->json->taskDetail($task), 'The task with its description, watchers and subtasks.');
     }

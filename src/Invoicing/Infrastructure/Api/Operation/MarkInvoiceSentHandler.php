@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Api\Operation;
 
 use Foresi\Invoicing\Application\Api\InvoiceWrites;
 use Foresi\Invoicing\Application\Api\MarkInvoiceSentInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * invoices.mark_sent: the invoice as marked.

@@ -26,7 +26,7 @@ use Foresi\CashFlow\Contract\PairingView;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\CashFlow\Domain\PlannedItem;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

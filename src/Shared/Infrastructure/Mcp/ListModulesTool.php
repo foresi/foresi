@@ -9,6 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\Mcp;
 
 use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
 use Foresi\Shared\Infrastructure\Module\ModulesView;

@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Webhooks\Application\Query\WebhookEndpointList;
 use Foresi\Webhooks\Infrastructure\Api\EndpointView;
 use Foresi\Webhooks\Infrastructure\Api\WebhookListQuery;
@@ -49,12 +50,12 @@ final readonly class ListWebhookEndpointsTool implements ReadTool
 
     public function inputSchema(): array
     {
-        return ['type' => 'object', 'properties' => ToolArguments::pagingSchema(), 'additionalProperties' => false];
+        return ['type' => 'object', 'properties' => ToolSchema::pagingSchema(), 'additionalProperties' => false];
     }
 
     public function call(array $arguments): ToolOutput
     {
-        $query = new WebhookListQuery(ToolArguments::limit($arguments), ToolArguments::text($arguments, 'cursor'));
+        $query = new WebhookListQuery(ToolSchema::limit($arguments), ToolSchema::text($arguments, 'cursor'));
         $this->arguments->validate($query);
         $slice = $this->list->slice(ToolArguments::afterId($query->cursor), $query->limit);
 

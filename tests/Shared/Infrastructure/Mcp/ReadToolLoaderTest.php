@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolLoader;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Mcp\Capability\Registry;
 use Mcp\Schema\Request\CallToolRequest;
 use Mcp\Schema\Request\PingRequest;

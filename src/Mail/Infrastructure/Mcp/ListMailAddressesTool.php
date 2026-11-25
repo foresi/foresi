@@ -13,10 +13,10 @@ use Foresi\Mail\Application\AddressReads;
 use Foresi\Mail\Application\AddressView;
 use Foresi\Mail\Application\MailRefused;
 use Foresi\Mail\Infrastructure\Api\MailJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 final readonly class ListMailAddressesTool implements ReadTool, StaffOnlyTool
 {

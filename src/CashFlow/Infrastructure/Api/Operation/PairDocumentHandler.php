@@ -11,8 +11,8 @@ namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 use Foresi\CashFlow\Application\PairDocumentInput;
 use Foresi\CashFlow\Application\PairingWrites;
 use Foresi\CashFlow\Infrastructure\Api\PairingAnswers;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class PairDocumentHandler implements OperationHandler
 {

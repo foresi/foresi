@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Activities\Application\Api;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
     name: 'activities.types.archive',

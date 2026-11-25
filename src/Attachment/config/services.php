@@ -31,9 +31,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         : '%kernel.share_dir%/attachments');
 
     // The module that owns a kind of record decides who reaches its attachments.
-    $builder->registerForAutoconfiguration(AttachmentAccess::class)->addTag('app.attachment_access');
+    $builder->registerForAutoconfiguration(AttachmentAccess::class)->addTag(AttachmentAccess::TAG);
     $services->set(AttachmentPermissions::class)
-        ->arg('$accesses', tagged_iterator('app.attachment_access'));
+        ->arg('$accesses', tagged_iterator(AttachmentAccess::TAG));
     $services->set(DiskAttachmentFiles::class)
         ->arg('$root', param('app.attachments_dir'));
 

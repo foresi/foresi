@@ -8,22 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\Event;
 
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" class is deprecated, use "%s" instead.', 'Foresi\\Shared\\Application\\Event\\RecordedEvent', \Foresi\Shared\Contract\Event\RecordedEvent::class);
 
-/**
- * A contract event as it was stored: its id, name and version, when it
- * happened, the correlation it belongs to and its facts. What a listener
- * receives.
- */
-final readonly class RecordedEvent
-{
-    public function __construct(
-        public string $id,
-        public string $name,
-        public int $version,
-        public \DateTimeImmutable $occurredAt,
-        public ?string $correlationId,
-        public DomainEventPayload $payload,
-    ) {
-    }
-}
+class_alias(\Foresi\Shared\Contract\Event\RecordedEvent::class, 'Foresi\\Shared\\Application\\Event\\RecordedEvent');
+
+// A final class cannot be extended, so the old name has no declaration of its own for IDEs and static analysis.

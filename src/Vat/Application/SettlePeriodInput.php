@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A period marked settled by a person, such as one paid from an account the

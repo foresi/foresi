@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Application\Api;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * One deal linked to another of the same client over the API and MCP (ADR 0032).

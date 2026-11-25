@@ -10,7 +10,7 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\Schedule\DailyPeriod;
-use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Contract\ScheduledJob;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Psr\Clock\ClockInterface;

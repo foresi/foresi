@@ -12,7 +12,7 @@ use Foresi\Invoicing\Application\Api\InvoicingRefused;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Tests\Invoicing\Application\Query\InvoicingReadTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 

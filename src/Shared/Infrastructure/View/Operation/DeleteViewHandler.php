@@ -10,8 +10,8 @@ namespace Foresi\Shared\Infrastructure\View\Operation;
 
 use Foresi\Shared\Application\View\DeleteViewInput;
 use Foresi\Shared\Application\View\SavedViews;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class DeleteViewHandler implements OperationHandler
 {

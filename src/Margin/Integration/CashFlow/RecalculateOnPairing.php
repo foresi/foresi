@@ -10,8 +10,8 @@ namespace Foresi\Margin\Integration\CashFlow;
 
 use Foresi\CashFlow\Contract\Event\DocumentPairingChanged;
 use Foresi\Margin\Application\CostShareCalculation;
-use Foresi\Shared\Application\Event\DomainEventListener;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 
 /**
  * Counts the shares of a received document again when its pairing with a

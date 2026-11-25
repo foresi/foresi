@@ -10,8 +10,8 @@ namespace Foresi\Margin\Integration\Invoicing;
 
 use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
 use Foresi\Margin\Application\DropRebillOnTrash;
-use Foresi\Shared\Application\Event\DomainEventListener;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 
 /**
  * An invoice in the trash rebills nothing: its rebill pairings are removed. An

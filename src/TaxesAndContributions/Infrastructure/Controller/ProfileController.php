@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Infrastructure\Controller;
 
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\ProfileReads;

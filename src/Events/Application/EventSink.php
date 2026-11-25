@@ -19,5 +19,7 @@ use Foresi\Events\Application\Query\EventRow;
  */
 interface EventSink
 {
+    public const string TAG = 'foresi.events.sink';
+
     public function accept(EventRow $row): void;
 }

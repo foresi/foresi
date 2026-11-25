@@ -13,10 +13,10 @@ use Foresi\Invoicing\Application\Query\PaymentsNotAllowed;
 use Foresi\Invoicing\Application\UnknownPayment;
 use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One payment of the organisation, as GET /api/v1/payments/{id} writes it.
@@ -53,7 +53,7 @@ final readonly class GetPaymentTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the payment, as foresi_search_payments returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the payment, as foresi_search_payments returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -62,7 +62,7 @@ final readonly class GetPaymentTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $payment = $this->details->of(ToolArguments::text($arguments, 'id') ?? '');
+            $payment = $this->details->of(ToolSchema::text($arguments, 'id') ?? '');
         } catch (PaymentsNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its payments.');
         } catch (UnknownPayment) {

@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Infrastructure\Api\WorkJson;
@@ -48,7 +48,7 @@ final readonly class GetProjectTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['project_id' => ToolArguments::idSchema('The id of the project, as foresi_search_projects returns it.')],
+            'properties' => ['project_id' => ToolSchema::idSchema('The id of the project, as foresi_search_projects returns it.')],
             'required' => ['project_id'],
             'additionalProperties' => false,
         ];
@@ -56,7 +56,7 @@ final readonly class GetProjectTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $project = $this->pages->read(fn (): \Foresi\Work\Application\ProjectDetail => $this->queries->project(ToolArguments::text($arguments, 'project_id') ?? '') ?? throw new WorkRefused('unknown'));
+        $project = $this->pages->read(fn (): \Foresi\Work\Application\ProjectDetail => $this->queries->project(ToolSchema::text($arguments, 'project_id') ?? '') ?? throw new WorkRefused('unknown'));
 
         return new ToolOutput($this->json->projectDetail($project), 'The project with its statuses and sections.');
     }

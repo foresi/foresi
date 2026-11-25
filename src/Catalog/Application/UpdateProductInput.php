@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Application;
 
 use Foresi\Catalog\Domain\Product;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A product changed over the API and MCP (ADR 0032): the fields given change,

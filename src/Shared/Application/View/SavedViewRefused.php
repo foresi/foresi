@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\View;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the writes of saved views refuse (ADR 0032), with a stable reason, the

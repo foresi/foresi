@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Instance\Support;
 
-use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Contract\ScheduledJob;
 
 /**
  * A daily job that remembers each run: the last period it was given, and the zone

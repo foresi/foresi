@@ -11,10 +11,10 @@ namespace Foresi\Activities\Infrastructure\Mcp;
 use Foresi\Activities\Application\ActivitiesRefused;
 use Foresi\Activities\Application\ActivityReads;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 final readonly class ListActivityTypesTool implements ReadTool, StaffOnlyTool
 {

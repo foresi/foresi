@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Margin\Domain;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the margin refuses (ADR 0032), with a stable reason, the kind that

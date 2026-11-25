@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Infrastructure\Mcp;
 
 use Foresi\CashFlow\Application\CashFlowRefused;
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\Operation\OperationField;
 
 /**

@@ -10,10 +10,10 @@ namespace Foresi\Shared\Infrastructure\View\Mcp;
 
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
@@ -58,7 +58,7 @@ final readonly class GetViewTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $view = $this->views->get(ToolArguments::text($arguments, 'view_id') ?? '');
+            $view = $this->views->get(ToolSchema::text($arguments, 'view_id') ?? '');
         } catch (SavedViewRefused $refused) {
             throw ToolRefusal::of($refused);
         }

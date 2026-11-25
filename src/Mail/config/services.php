@@ -56,9 +56,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../MailBundle.php']);
 
     // A module takes the mail of its own addresses by registering a purpose.
-    $builder->registerForAutoconfiguration(InboundPurpose::class)->addTag('app.mail_inbound_purpose');
+    $builder->registerForAutoconfiguration(InboundPurpose::class)->addTag(InboundPurpose::TAG);
     $services->set(InboundPurposes::class)
-        ->arg('$purposes', tagged_iterator('app.mail_inbound_purpose'));
+        ->arg('$purposes', tagged_iterator(InboundPurpose::TAG));
 
     $services->alias(MailMessages::class, DoctrineMailMessages::class);
     $services->alias(InboundAddressStore::class, DoctrineInboundAddresses::class);

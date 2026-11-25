@@ -11,9 +11,9 @@ namespace Foresi\Work\Infrastructure\Mcp;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\AppliedView;
 use Foresi\Shared\Application\View\SavedViewRefused;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Infrastructure\Api\WorkPage;
 

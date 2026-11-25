@@ -12,14 +12,14 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Implemented by modules that show something on the start page. Every
- * implementation is picked up automatically (tag "app.dashboard_section").
+ * implementation is picked up automatically (tag "foresi.ui.dashboard_section").
  * Providers are asked only for a signed-in person with an active membership; one with nothing to show
  * gives no section.
  */
 #[AutoconfigureTag(self::TAG)]
 interface DashboardSectionProvider
 {
-    public const string TAG = 'app.dashboard_section';
+    public const string TAG = 'foresi.ui.dashboard_section';
 
     /**
      * @return iterable<DashboardSection>

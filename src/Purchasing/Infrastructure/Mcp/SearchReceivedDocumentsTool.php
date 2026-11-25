@@ -18,11 +18,12 @@ use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\AppliedView;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Domain\View\SavedView;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
@@ -67,16 +68,16 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'supplier_id' => ToolArguments::idSchema('Only documents of this supplier, a contact.'),
-                'state' => ToolArguments::choiceSchema(['draft', 'recorded'], 'Only drafts waiting to be completed, or only recorded documents.'),
+                'supplier_id' => ToolSchema::idSchema('Only documents of this supplier, a contact.'),
+                'state' => ToolSchema::choiceSchema(['draft', 'recorded'], 'Only drafts waiting to be completed, or only recorded documents.'),
                 'unpaid' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only recorded documents with something left to pay.'],
-                'due_before' => ToolArguments::dateSchema('Only documents due before this day, not on it.'),
+                'due_before' => ToolSchema::dateSchema('Only documents due before this day, not on it.'),
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash.'],
-                'reading' => ToolArguments::choiceSchema(['reading', 'read', 'nothing_found', 'failed'], 'Only documents whose file is being read, was read with values found, was read with nothing found, or could not be read.'),
-                'source' => ToolArguments::choiceSchema(['manual', 'upload', 'api'], 'Only documents typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP.'),
+                'reading' => ToolSchema::choiceSchema(['reading', 'read', 'nothing_found', 'failed'], 'Only documents whose file is being read, was read with values found, was read with nothing found, or could not be read.'),
+                'source' => ToolSchema::choiceSchema(['manual', 'upload', 'api'], 'Only documents typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP.'),
                 'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list purchasing.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "purchasing.received.drafts" or "purchasing.received.to_review" (drafts whose file was read, found nothing or failed).'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list purchasing.received; its fields and operators are in foresi_list_lists.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -84,19 +85,19 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new ReceivedDocumentListQuery(
-            ToolArguments::text($arguments, 'supplier_id'),
-            ToolArguments::text($arguments, 'state'),
-            ToolArguments::flag($arguments, 'unpaid'),
-            ToolArguments::text($arguments, 'due_before'),
-            ToolArguments::flag($arguments, 'trashed'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
-            reading: ToolArguments::text($arguments, 'reading'),
-            source: ToolArguments::text($arguments, 'source'),
+            ToolSchema::text($arguments, 'supplier_id'),
+            ToolSchema::text($arguments, 'state'),
+            ToolSchema::flag($arguments, 'unpaid'),
+            ToolSchema::text($arguments, 'due_before'),
+            ToolSchema::flag($arguments, 'trashed'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
+            reading: ToolSchema::text($arguments, 'reading'),
+            source: ToolSchema::text($arguments, 'source'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
-        $viewId = ToolArguments::text($arguments, 'view_id');
+        $viewId = ToolSchema::text($arguments, 'view_id');
         if (null !== $viewId && !$this->scope->allows(AppliedView::VIEWS_SCOPE)) {
             throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', AppliedView::VIEWS_SCOPE));
         }

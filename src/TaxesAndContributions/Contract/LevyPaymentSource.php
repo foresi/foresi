@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface LevyPaymentSource
 {
-    public const string TAG = 'app.taxes_levy_payment_source';
+    public const string TAG = 'foresi.taxes_and_contributions.levy_payment_source';
 
     /**
      * The movements booked between the two days, both included, that meet

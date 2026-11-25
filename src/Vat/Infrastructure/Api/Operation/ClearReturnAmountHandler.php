@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Infrastructure\Api\Operation;
 
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Vat\Application\ClearReturnAmountInput;
 use Foresi\Vat\Application\PeriodWrites;
 use Foresi\Vat\Infrastructure\Api\VatJson;

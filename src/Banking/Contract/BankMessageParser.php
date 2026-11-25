@@ -9,15 +9,19 @@ declare(strict_types=1);
 namespace Foresi\Banking\Contract;
 
 use Foresi\Mail\Contract\InboundMail;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Reads the notification mails of one bank. A country module implements it;
- * the tag app.bank_message_parser gathers the implementations.
+ * the tag foresi.banking.message_parser gathers the implementations.
  *
  * Raising the version marks earlier failures of this parser for another try.
  */
+#[AutoconfigureTag(self::TAG)]
 interface BankMessageParser
 {
+    public const string TAG = 'foresi.banking.message_parser';
+
     /**
      * A stable identifier, stored with every message the parser read.
      */

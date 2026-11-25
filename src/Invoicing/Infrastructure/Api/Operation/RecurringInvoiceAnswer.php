@@ -14,7 +14,7 @@ use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\RecurringRefused;
 use Foresi\Invoicing\Infrastructure\Api\RecurringInvoiceApiController;
 use Foresi\Invoicing\Infrastructure\Api\RecurringInvoiceJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

@@ -15,7 +15,7 @@ use Foresi\Margin\Application\SetSupplierDefaultInput;
 use Foresi\Margin\Application\SupplierDefaultsView;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Party\Contract\ContactTabs;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

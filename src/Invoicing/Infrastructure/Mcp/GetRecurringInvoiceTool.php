@@ -11,10 +11,10 @@ namespace Foresi\Invoicing\Infrastructure\Mcp;
 use Foresi\Invoicing\Application\Api\InvoicingRefused;
 use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Infrastructure\Api\RecurringInvoiceJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * foresi_get_recurring_invoice: one template with its lines and next issues.
@@ -52,7 +52,7 @@ final readonly class GetRecurringInvoiceTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the recurring invoice, as foresi_list_recurring_invoices returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the recurring invoice, as foresi_list_recurring_invoices returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -61,7 +61,7 @@ final readonly class GetRecurringInvoiceTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $template = $this->writes->template(ToolArguments::text($arguments, 'id') ?? '');
+            $template = $this->writes->template(ToolSchema::text($arguments, 'id') ?? '');
         } catch (InvoicingRefused $refused) {
             throw ToolRefusal::of($refused);
         }

@@ -12,10 +12,10 @@ use Foresi\Invoicing\Application\Api\InvoicingRefused;
 use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Infrastructure\Api\RecurringInvoiceJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * foresi_list_recurring_invoices: the recurring templates as the list shows them.
@@ -53,7 +53,7 @@ final readonly class ListRecurringInvoicesTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'state' => ToolArguments::choiceSchema(['active', 'paused', 'ended'], 'Only the recurring invoices in this state.'),
+                'state' => ToolSchema::choiceSchema(['active', 'paused', 'ended'], 'Only the recurring invoices in this state.'),
                 'page' => ['type' => 'integer', 'minimum' => 1, 'description' => 'The page, from 1.'],
             ],
             'additionalProperties' => false,
@@ -62,7 +62,7 @@ final readonly class ListRecurringInvoicesTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $state = ToolArguments::text($arguments, 'state');
+        $state = ToolSchema::text($arguments, 'state');
         $page = $arguments['page'] ?? 1;
         if (!\is_int($page) || $page < 1) {
             throw ToolRefusal::invalidArgument('page must be a whole number from 1.');

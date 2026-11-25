@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
+use Foresi\Shared\Contract\Operation\OperationHandler;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**

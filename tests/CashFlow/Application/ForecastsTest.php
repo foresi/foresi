@@ -33,7 +33,7 @@ use Foresi\ExchangeRate\Application\ExchangeRates;
 use Foresi\ExchangeRate\Domain\ExchangeRate;
 use Foresi\ExchangeRate\Domain\RateNotAvailable;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;

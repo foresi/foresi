@@ -11,7 +11,7 @@ namespace Foresi\Catalog\Infrastructure\Api\Operation;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Catalog\Infrastructure\Api\CatalogApiController;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

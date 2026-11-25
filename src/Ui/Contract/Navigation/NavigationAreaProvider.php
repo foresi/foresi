@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Implemented by modules that bring a business area of their own. Every
- * implementation is picked up automatically (tag "app.navigation_area").
+ * implementation is picked up automatically (tag "foresi.ui.navigation_area").
  */
 #[AutoconfigureTag(NavigationArea::TAG)]
 interface NavigationAreaProvider

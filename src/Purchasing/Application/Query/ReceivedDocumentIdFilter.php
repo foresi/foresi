@@ -14,7 +14,7 @@ namespace Foresi\Purchasing\Application\Query;
  */
 interface ReceivedDocumentIdFilter
 {
-    public const string ID_FILTER_TAG = 'app.purchasing_received_document_id_filter';
+    public const string ID_FILTER_TAG = 'foresi.purchasing.received_document_id_filter';
 
     /**
      * The key of the list field this decides.

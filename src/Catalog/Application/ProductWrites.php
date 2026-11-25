@@ -15,8 +15,8 @@ use Foresi\Catalog\Contract\Event\ProductRestored;
 use Foresi\Catalog\Contract\Event\ProductUpdated;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\Api\Omitted;
 use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
  * The writes of the catalog, from its screens, the API and MCP alike (ADR 0032).

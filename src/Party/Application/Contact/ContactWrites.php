@@ -27,7 +27,7 @@ use Foresi\Party\Application\UpdateParty;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
  * The contact writes of the API and MCP (ADR 0032): each input goes through the

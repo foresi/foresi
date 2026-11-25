@@ -12,9 +12,9 @@ use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyNotAllowed;
 use Foresi\Party\Application\Query\FirmDetails;
 use Foresi\Party\Infrastructure\Api\FirmJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 /**
  * The one firm of the instance (ADR 0039), as GET /api/v1/firm writes it.

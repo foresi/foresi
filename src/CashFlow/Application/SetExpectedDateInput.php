@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Domain\ExpectedDate;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * When a document is really expected to be paid.

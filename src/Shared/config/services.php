@@ -31,7 +31,15 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services = $container->services()->defaults()->autowire()->autoconfigure();
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Shared\\', '../')
-        ->exclude(['../config/', '../Integration/', '../migrations/', '../SharedBundle.php']);
+        ->exclude([
+            '../config/', '../Integration/', '../migrations/', '../SharedBundle.php',
+            // The deprecated names of what moved into Contract (ADR 0044): loading one reports a deprecation.
+            '../Application/{Refused,RefusalKind}.php',
+            '../Application/Api/{Operation,Field,Omitted}.php',
+            '../Application/Event/{DomainEventListener,RecordedEvent}.php',
+            '../Infrastructure/Mcp/{ReadTool,WriteTool,ToolOutput,ToolRefusal,StaffOnlyTool}.php',
+            '../Infrastructure/Operation/{OperationHandler,OperationOutput}.php',
+        ]);
 
     $container->parameters()
         // Error mails to the operator; both empty sends none (docs/logging.md).

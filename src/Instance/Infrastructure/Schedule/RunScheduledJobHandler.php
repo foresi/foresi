@@ -10,8 +10,8 @@ namespace Foresi\Instance\Infrastructure\Schedule;
 
 use Foresi\Instance\Application\Schedule\Claim;
 use Foresi\Instance\Application\Schedule\RunScheduledJob;
-use Foresi\Instance\Application\Schedule\ScheduledJob;
 use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Instance\Contract\ScheduledJob;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -33,7 +33,7 @@ final readonly class RunScheduledJobHandler
     public function __construct(
         private ScheduledJobRuns $runs,
         private LoggerInterface $logger,
-        #[AutowireIterator('app.scheduled_job')]
+        #[AutowireIterator(ScheduledJob::TAG)]
         private iterable $jobs,
     ) {
     }

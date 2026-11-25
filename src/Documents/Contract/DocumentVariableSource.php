@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface DocumentVariableSource
 {
-    public const string TAG = 'app.document_variable_source';
+    public const string TAG = 'foresi.documents.variable_source';
 
     /** The first part of every variable of this source, such as "firm", "client" or "deal". */
     public function prefix(): string;

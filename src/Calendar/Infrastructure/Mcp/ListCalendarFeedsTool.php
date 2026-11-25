@@ -13,10 +13,10 @@ use Foresi\Calendar\Application\FeedReads;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Infrastructure\Api\CalendarJson;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 final readonly class ListCalendarFeedsTool implements ReadTool, StaffOnlyTool
 {

@@ -13,12 +13,12 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * Where rates come from, such as the ČNB. The source answers for a date with its
  * last publication on or before it. A country module offers one (tag
- * "app.exchange_rate_source"); without one, there are no rates to fetch.
+ * "foresi.exchange_rate.source"); without one, there are no rates to fetch.
  */
 #[AutoconfigureTag(self::TAG)]
 interface RateSource
 {
-    public const string TAG = 'app.exchange_rate_source';
+    public const string TAG = 'foresi.exchange_rate.source';
 
     /**
      * A stable name, stored with the rates.

@@ -12,6 +12,9 @@ use Foresi\CashFlow\Application\Pairing;
 use Foresi\CashFlow\Application\PairingReads;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Application\RuleMovements;
+use Foresi\CashFlow\Contract\ActualFlowSource;
+use Foresi\CashFlow\Contract\BalanceSource;
+use Foresi\CashFlow\Contract\CashFlowSource;
 use Foresi\CashFlow\Contract\DocumentPairer;
 use Foresi\CashFlow\Contract\DocumentPairings;
 use Foresi\CashFlow\Contract\ForecastReader;
@@ -38,17 +41,17 @@ return static function (ContainerConfigurator $container): void {
 
     // Modules that expect, hold or record money plug in through the contracts of Foresi\CashFlow\Contract.
     $services->set(Forecasts::class)
-        ->arg('$sources', tagged_iterator('app.cash_flow_source'))
-        ->arg('$balanceSources', tagged_iterator('app.cash_flow_balance_source'))
-        ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+        ->arg('$sources', tagged_iterator(CashFlowSource::TAG))
+        ->arg('$balanceSources', tagged_iterator(BalanceSource::TAG))
+        ->arg('$actualSources', tagged_iterator(ActualFlowSource::ACTUAL_TAG));
     // Other modules read the forecast's flows through Foresi\CashFlow\Contract\ForecastReader, asked the same way.
     $services->set(ForecastReads::class)
-        ->arg('$sources', tagged_iterator('app.cash_flow_source'))
-        ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+        ->arg('$sources', tagged_iterator(CashFlowSource::TAG))
+        ->arg('$actualSources', tagged_iterator(ActualFlowSource::ACTUAL_TAG));
     $services->alias(ForecastReader::class, ForecastReads::class)->public();
     // Other modules find the bank movements that meet their match rules through Foresi\CashFlow\Contract\MovementFinder.
     $services->set(RuleMovements::class)
-        ->arg('$actualSources', tagged_iterator('app.cash_flow_actual_source'));
+        ->arg('$actualSources', tagged_iterator(ActualFlowSource::ACTUAL_TAG));
     $services->alias(MovementFinder::class, RuleMovements::class)->public();
     // Other modules hand documents to Cash flow to pair with planned occurrences, read the pairings and look planned items up.
     $services->set(Pairing::class)

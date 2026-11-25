@@ -27,7 +27,9 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  * module that dependency requires and the module lists as optional too (Country
  * reads Banking's parser contract, which hands it Mail's InboundMail). A
  * contract may use the contracts of the required modules and the core it
- * requires.
+ * requires, and the contract of a core module its own module: deptrac.yaml
+ * narrows that to the module's domain, such as the payload of an event in
+ * Shared's contract (ADR 0044).
  *
  * Ids and namespaces are validated, so they are written unquoted. A layer is
  * named by the module id with "_" for "-", as Deptrac reads the ruleset
@@ -60,7 +62,7 @@ final readonly class DeptracModulesConfig
                 $requiredContracts[] = $this->layer($id).'_contract';
             }
             $rules[$own] = [$contract, ...$requiredLayers];
-            $rules[$contract] = $requiredContracts;
+            $rules[$contract] = ModuleKind::Core === $module->kind ? [$own, ...$requiredContracts] : $requiredContracts;
 
             $optional = $module->optional;
             usort($optional, static fn (ModuleId $a, ModuleId $b): int => $a->value <=> $b->value);

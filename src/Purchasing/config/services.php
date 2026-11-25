@@ -25,8 +25,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // Readers of received documents plug in from any module (Country, an optional one) through
     // this tag, in reader order by tag priority (set per reader).
-    $builder->registerForAutoconfiguration(DocumentReader::class)->addTag('foresi.purchasing.document_reader');
-    $services->set(ReadDocument::class)->arg('$readers', tagged_iterator('foresi.purchasing.document_reader'));
+    $builder->registerForAutoconfiguration(DocumentReader::class)->addTag(DocumentReader::TAG);
+    $services->set(ReadDocument::class)->arg('$readers', tagged_iterator(DocumentReader::TAG));
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.

@@ -11,7 +11,7 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 use Foresi\Sales\Application\DealReads;
 use Foresi\Sales\Infrastructure\Api\SalesApiController;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface PlannedLevySource
 {
-    public const string TAG = 'app.taxes_planned_levy_source';
+    public const string TAG = 'foresi.taxes_and_contributions.planned_levy_source';
 
     /**
      * The active planned items in the categories taxes and insurance.

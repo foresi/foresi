@@ -8,19 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
-/**
- * What a read tool answers: the data, which the client gets as structured
- * content and as JSON text, and a one-line summary of it, such as
- * "3 invoices, newest first".
- */
-final readonly class ToolOutput
-{
-    /**
-     * @param array<mixed> $data plain values only, as they are encoded to JSON
-     */
-    public function __construct(
-        public array $data,
-        public string $summary,
-    ) {
-    }
-}
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" class is deprecated, use "%s" instead.', 'Foresi\\Shared\\Infrastructure\\Mcp\\ToolOutput', \Foresi\Shared\Contract\Mcp\ToolOutput::class);
+
+class_alias(\Foresi\Shared\Contract\Mcp\ToolOutput::class, 'Foresi\\Shared\\Infrastructure\\Mcp\\ToolOutput');
+
+// A final class cannot be extended, so the old name has no declaration of its own for IDEs and static analysis.

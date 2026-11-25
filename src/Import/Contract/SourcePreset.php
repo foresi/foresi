@@ -8,9 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Contract;
 
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+
 /** Knows the export of one known program: which header means which field of which target. */
+#[AutoconfigureTag(self::TAG)]
 interface SourcePreset
 {
+    public const string TAG = 'foresi.import.preset';
+
     public function key(): string;
 
     /** Translation key of the name shown to the user. */

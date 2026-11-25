@@ -15,10 +15,11 @@ use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Infrastructure\Api\PaymentJson;
 use Foresi\Invoicing\Infrastructure\Api\PaymentListQuery;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * The payments of the organisation's invoices, narrowed and paged as GET
@@ -60,12 +61,12 @@ final readonly class SearchPaymentsTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'invoice_id' => ToolArguments::idSchema('Only payments allocated to this document, paying or refunding it.'),
-                'direction' => ToolArguments::choiceSchema(array_column(PaymentDirection::cases(), 'value'), 'Only money received (incoming) or paid back (refund).'),
-                'received_from' => ToolArguments::dateSchema('Only payments received on this day or later.'),
-                'received_to' => ToolArguments::dateSchema('Only payments received on this day or earlier.'),
+                'invoice_id' => ToolSchema::idSchema('Only payments allocated to this document, paying or refunding it.'),
+                'direction' => ToolSchema::choiceSchema(array_column(PaymentDirection::cases(), 'value'), 'Only money received (incoming) or paid back (refund).'),
+                'received_from' => ToolSchema::dateSchema('Only payments received on this day or later.'),
+                'received_to' => ToolSchema::dateSchema('Only payments received on this day or earlier.'),
                 'include_cancelled' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns the cancelled payments too.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -73,13 +74,13 @@ final readonly class SearchPaymentsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new PaymentListQuery(
-            ToolArguments::text($arguments, 'invoice_id'),
-            ToolArguments::text($arguments, 'direction'),
-            ToolArguments::text($arguments, 'received_from'),
-            ToolArguments::text($arguments, 'received_to'),
-            ToolArguments::flag($arguments, 'include_cancelled'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'invoice_id'),
+            ToolSchema::text($arguments, 'direction'),
+            ToolSchema::text($arguments, 'received_from'),
+            ToolSchema::text($arguments, 'received_to'),
+            ToolSchema::flag($arguments, 'include_cancelled'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);

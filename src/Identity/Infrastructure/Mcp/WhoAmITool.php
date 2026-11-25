@@ -12,9 +12,9 @@ use Foresi\Identity\Application\InsufficientScope;
 use Foresi\Identity\Application\Query\CurrentApiIdentity;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Application\Api\ScopeGuard;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 /**
  * Who the MCP client acts as: the person and the token,

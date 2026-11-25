@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * The balance the firm of the instance wants to keep.

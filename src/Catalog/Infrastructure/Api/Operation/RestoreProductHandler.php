@@ -10,8 +10,8 @@ namespace Foresi\Catalog\Infrastructure\Api\Operation;
 
 use Foresi\Catalog\Application\ProductWrites;
 use Foresi\Catalog\Application\RestoreProductInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class RestoreProductHandler implements OperationHandler
 {

@@ -10,8 +10,8 @@ namespace Foresi\Events\Infrastructure\Mcp;
 
 use Foresi\Events\Infrastructure\Api\ReadableEvents;
 use Foresi\Events\Infrastructure\Catalogue\EventType;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 
 /**
  * The kinds of event the organisation's feed can hold, and the facts each one

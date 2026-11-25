@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+
 /**
  * Makes sure, before every tool call, that whoever signed the MCP client in
  * may still act. Over HTTP the firewall has just checked the token of the

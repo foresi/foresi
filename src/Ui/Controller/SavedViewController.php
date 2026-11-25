@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Ui\Controller;
 
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Application\View\CreateViewInput;
 use Foresi\Shared\Application\View\DeleteViewInput;
 use Foresi\Shared\Application\View\ListViews;
@@ -20,6 +18,8 @@ use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewUserStates;
 use Foresi\Shared\Application\View\UpdateViewInput;
 use Foresi\Shared\Application\View\WorkingFilter;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;

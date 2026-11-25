@@ -48,7 +48,7 @@ final readonly class EventRelay
         private LockFactory $locks,
         private EventListeners $listeners,
         private MessageBusInterface $bus,
-        #[AutowireIterator('app.event_sink')]
+        #[AutowireIterator(EventSink::TAG)]
         private iterable $sinks = [],
     ) {
     }

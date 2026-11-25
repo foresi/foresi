@@ -11,8 +11,8 @@ namespace Foresi\Invoicing\Application\Api;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\RecurringRefused;
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the invoice writes refuse over the API and MCP (ADR 0032). A refusal of

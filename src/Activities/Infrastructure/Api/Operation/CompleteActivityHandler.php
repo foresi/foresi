@@ -13,8 +13,8 @@ use Foresi\Activities\Application\Api\CompleteActivityInput;
 use Foresi\Activities\Domain\Activity;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
 use Foresi\Activities\Infrastructure\Api\ActivitiesRoutes;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
