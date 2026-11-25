@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Mail\Infrastructure\Events;
 
 use Foresi\Audit\Application\AuditActor;
+use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
 use Foresi\Shared\Domain\Event\EventSubject;
@@ -46,7 +47,7 @@ final readonly class MailEventSubjectAccess implements EventSubjectAccess
             return false;
         }
         $message = $this->messages->find($subject->id);
-        if (!$message instanceof \Foresi\Mail\Contract\MailMessageView) {
+        if (!$message instanceof MailMessageView) {
             return false;
         }
 
