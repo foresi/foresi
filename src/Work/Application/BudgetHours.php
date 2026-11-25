@@ -28,9 +28,16 @@ final class BudgetHours
         if (1 !== preg_match(self::PATTERN, trim($hours), $match)) {
             return null;
         }
-        $hundredths = (int) $match[2] * 100 + (int) str_pad($match[3] ?? '', 2, '0');
-        $minutes = (int) round($hundredths * 60 / 100);
+        $minutes = self::rounded((int) ($match[2].str_pad($match[3] ?? '', 2, '0')));
 
         return '-' === $match[1] ? -$minutes : $minutes;
+    }
+
+    /**
+     * Hundredths of an hour to the nearest minute.
+     */
+    private static function rounded(int $hundredths): int
+    {
+        return (int) round($hundredths * 60 / 100);
     }
 }

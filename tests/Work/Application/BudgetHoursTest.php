@@ -25,6 +25,8 @@ final class BudgetHoursTest extends TestCase
         yield 'a comma' => ['1,25', 75];
         yield 'one decimal place' => ['0.1', 6];
         yield 'a hundredth to the nearest minute' => ['0.01', 1];
+        yield 'two hundredths round down' => ['0.02', 1];
+        yield 'hours and hundredths' => ['12.34', 740];
         yield 'spaces around' => [' 3 ', 180];
         yield 'three decimal places' => ['1.234', null];
         yield 'a word' => ['eight', null];

@@ -52,7 +52,7 @@ final readonly class BudgetWrites
      */
     public function count(SetProjectBudgetCountingInput $input): void
     {
-        $this->budgets->count($input->projectId, BudgetCounting::tryFrom($input->counting) ?? throw new WorkRefused('budget_counting'));
+        $this->budgets->count($input->projectId, BudgetCounting::from($input->counting));
     }
 
     private function day(?string $value): ?\DateTimeImmutable
@@ -61,7 +61,7 @@ final readonly class BudgetWrites
             return null;
         }
         $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $value || (int) $day->format('Y') < 1900) {
+        if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $value || $day < new \DateTimeImmutable('1900-01-01')) {
             throw new WorkRefused('date', 'effectiveOn');
         }
 

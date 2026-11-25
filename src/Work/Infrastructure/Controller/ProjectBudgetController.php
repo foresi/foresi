@@ -64,7 +64,7 @@ final class ProjectBudgetController extends AbstractController
             ];
             $minutes = BudgetHours::minutes($values['hours']);
             $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $values['effectiveOn']);
-            if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $values['effectiveOn'] || (int) $day->format('Y') < 1900) {
+            if (!$day instanceof \DateTimeImmutable || $day->format('Y-m-d') !== $values['effectiveOn'] || $day < new \DateTimeImmutable('1900-01-01')) {
                 $errors['effectiveOn'] = $this->translator->trans('work.refused.date');
                 $day = null;
             }

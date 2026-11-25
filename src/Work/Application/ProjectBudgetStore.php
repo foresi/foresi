@@ -31,9 +31,10 @@ interface ProjectBudgetStore
 
     /**
      * Holds the project until the end of the transaction, so that two changes
-     * at once each see the other's sum.
+     * at once each see the other's sum, and answers the sum of its changes in
+     * minutes, 0 without any.
      */
-    public function lock(Project $project): void;
+    public function lockedMinutes(Project $project): int;
 
     /**
      * The minutes logged on the project, by anyone: not in the trash, not on a

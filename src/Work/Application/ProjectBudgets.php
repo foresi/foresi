@@ -45,8 +45,8 @@ final readonly class ProjectBudgets
      */
     public function add(string $projectId, int $minutes, ?\DateTimeImmutable $effectiveOn = null, string $note = '', ?string $sourceActivityId = null): ProjectBudgetChange
     {
-        $project = $this->editable($projectId);
         $userId = $this->actor->userId() ?? throw new WorkRefused('not_allowed');
+        $project = $this->editable($projectId);
         if (0 === $minutes) {
             throw new WorkRefused('hours_zero');
         }
@@ -64,8 +64,7 @@ final readonly class ProjectBudgets
         $change = new ProjectBudgetChange($project, $effectiveOn ?? $this->instanceClock->today(), $minutes, $note, $sourceActivityId, $userId, $this->clock->now());
 
         return $this->unit->run(function () use ($project, $change): ProjectBudgetChange {
-            $this->budgets->lock($project);
-            if (($this->budgets->budgetMinutes($project) ?? 0) + $change->minutes() < 0) {
+            if ($this->budgets->lockedMinutes($project) + $change->minutes() < 0) {
                 throw new WorkRefused('budget_below_zero');
             }
             $this->budgets->add($change);
@@ -88,12 +87,12 @@ final readonly class ProjectBudgets
             throw new WorkRefused('unknown');
         }
         $this->unit->run(function () use ($project, $change, $changeId): void {
-            $this->budgets->lock($project);
+            $minutes = $this->budgets->lockedMinutes($project);
             // Removed meanwhile by someone else, who held the lock first.
             if (!$this->budgets->change($changeId) instanceof ProjectBudgetChange) {
                 throw new WorkRefused('unknown');
             }
-            if (($this->budgets->budgetMinutes($project) ?? 0) - $change->minutes() < 0) {
+            if ($minutes - $change->minutes() < 0) {
                 throw new WorkRefused('budget_below_zero');
             }
             $this->events->record(new ProjectBudgetChanged($project->id(), $change->id(), ProjectBudgetChanged::REMOVED));

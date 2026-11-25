@@ -38,7 +38,7 @@ final readonly class ProjectBudgetReads
         $changes = null;
         if ($this->visibility->canSeeInternal()) {
             $rows = $this->budgets->changes($project);
-            $names = $this->users->namesOf(array_values(array_unique(array_map(static fn (ProjectBudgetChange $change): string => $change->createdBy(), $rows))));
+            $names = $this->users->namesOf(array_map(static fn (ProjectBudgetChange $change): string => $change->createdBy(), $rows));
             $changes = array_map(static fn (ProjectBudgetChange $change): BudgetChangeRow => new BudgetChangeRow(
                 $change->id(),
                 $change->effectiveOn(),

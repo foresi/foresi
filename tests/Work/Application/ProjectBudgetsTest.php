@@ -18,6 +18,7 @@ use Foresi\Work\Application\ProjectBudgets;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\BudgetCounting;
 use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectBudgetChange;
 
 /**
  * A project's time budget (spec of the e-mail inbox, 4b–4d): the sum of its
@@ -30,7 +31,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testTheDudCaseEightApprovedHoursThenTwoAndAHalfLogged(): void
     {
         $dud = $this->project('DUD');
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($dud->id(), 480, note: 'Approved by e-mail'));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($dud->id(), 480, note: 'Approved by e-mail'));
 
         $this->assertBudget([480, 0, 480], $dud);
 
@@ -42,13 +43,13 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testAMinusChangeLowersTheBudgetButNeverBelowZero(): void
     {
         $project = $this->project();
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 600));
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), -120, note: 'Two hours moved to the next phase'));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 600));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), -120, note: 'Two hours moved to the next phase'));
         $this->assertBudget([480, 0, 480], $project);
 
-        self::assertSame('budget_below_zero', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), -481)));
-        self::assertSame('hours_zero', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 0)));
-        self::assertSame('hours_invalid', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 1_000_000)));
+        self::assertSame('budget_below_zero', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), -481)));
+        self::assertSame('hours_zero', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 0)));
+        self::assertSame('hours_invalid', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 1_000_000)));
         $this->assertBudget([480, 0, 480], $project);
     }
 
@@ -56,7 +57,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     {
         $project = $this->project();
         $plus = $this->as(fn (): string => $this->budgets()->add($project->id(), 600)->id());
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), -120));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), -120));
 
         self::assertSame('budget_below_zero', $this->refused(fn () => $this->budgets()->remove($project->id(), $plus)));
         self::assertSame('unknown', $this->refused(fn () => $this->budgets()->remove($this->project('Other')->id(), $plus)));
@@ -65,7 +66,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testOverBudgetShowsANegativeLeftAndTimeIsStillLogged(): void
     {
         $project = $this->project();
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 60));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60));
         $this->logged($project, null, 90);
         $this->logged($project, null, 30);
 
@@ -76,7 +77,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testTheSarahCaseCountsBillableOnly(): void
     {
         $sarah = $this->project('SARAH');
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($sarah->id(), 600));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($sarah->id(), 600));
         $this->as(fn () => $this->budgets()->count($sarah->id(), BudgetCounting::Billable));
         $this->as(fn (): \Foresi\Work\Domain\TimeEntry => $this->time()->log($sarah->id(), null, new \DateTimeImmutable('2026-11-18'), 240, note: 'Flat-fee operation', billable: false));
         $this->as(fn (): \Foresi\Work\Domain\TimeEntry => $this->time()->log($sarah->id(), null, new \DateTimeImmutable('2026-11-18'), 90, note: 'Changes', billable: true));
@@ -90,7 +91,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testTrashedEntriesDoNotCount(): void
     {
         $project = $this->project();
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 600));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 600));
         $task = $this->task($project, 'Homepage');
         $this->logged($project, null, 30);
         $trashed = $this->logged($project, null, 45);
@@ -107,7 +108,7 @@ final class ProjectBudgetsTest extends WorkApiTestCase
         // Until Activities says which activities are linked to a project (the "Add to project budget" follow-up), every source is refused (NoBudgetSourceCheck).
         $project = $this->project();
 
-        self::assertSame('source_not_on_project', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 480, sourceActivityId: Id::generate())));
+        self::assertSame('source_not_on_project', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 480, sourceActivityId: Id::generate())));
         self::assertNull($this->budget($project)->budgetMinutes);
     }
 
@@ -116,14 +117,14 @@ final class ProjectBudgetsTest extends WorkApiTestCase
         $project = $this->project();
         $this->as(fn () => $this->projects()->archive($project->id()));
 
-        self::assertSame('archived', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 60)));
+        self::assertSame('archived', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60)));
     }
 
     public function testTheChangesComeLatestFirstWithTheirAuthorAndTheTaskEstimates(): void
     {
         $project = $this->project();
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 480, new \DateTimeImmutable('2026-11-01'), 'First phase'));
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 120, new \DateTimeImmutable('2026-11-20'), 'Extra'));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 480, new \DateTimeImmutable('2026-11-01'), 'First phase'));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 120, new \DateTimeImmutable('2026-11-20'), 'Extra'));
         $task = $this->task($project, 'Design');
         $this->as(fn () => $this->time()->setEstimate($task, 90));
 
@@ -137,14 +138,14 @@ final class ProjectBudgetsTest extends WorkApiTestCase
     public function testAGuestSeesTheBudgetButNotTheChanges(): void
     {
         $project = $this->project();
-        $this->as(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 480, note: 'Rate agreed with the client'));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 480, note: 'Rate agreed with the client'));
         $guest = $this->guest();
         $this->as(fn () => $this->service(\Foresi\Work\Application\ManageSharing::class)->shareProject($project->id(), $this->membershipOf($guest)->id()));
 
         $budget = $this->as(fn (): ProjectBudget => $this->service(ProjectBudgetReads::class)->budget($project->id()), $guest);
         self::assertSame(480, $budget->budgetMinutes);
         self::assertNull($budget->changes);
-        self::assertSame('not_allowed', $this->refused(fn (): \Foresi\Work\Domain\ProjectBudgetChange => $this->budgets()->add($project->id(), 60), $guest));
+        self::assertSame('not_allowed', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60), $guest));
     }
 
     public function testEachChangeRecordsAThinEvent(): void
@@ -194,6 +195,76 @@ final class ProjectBudgetsTest extends WorkApiTestCase
         self::assertCount(2, (array) self::in($budget, 'changes'));
         self::assertEquals(['hours' => 7.5, 'used_hours' => 0.0, 'left_hours' => 7.5, 'counting' => 'billable', 'estimate_hours' => 0.0], self::in($this->rest('/api/v1/projects/'.$project->id()), 'budget'));
         self::assertEquals(7.5, self::in($this->mcpTool('foresi_get_project_budget', ['project_id' => $project->id()]), 'structuredContent', 'data', 'hours'));
+    }
+
+    public function testTheLimitsOfAChangeAndOfItsNote(): void
+    {
+        $project = $this->project();
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), ProjectBudgetChange::MAX_MINUTES, note: '  '.str_repeat('č', 500).'  '));
+        self::assertSame(str_repeat('č', 500), ($this->budget($project)->changes ?? [])[0]->note);
+
+        self::assertSame('hours_invalid', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), -(ProjectBudgetChange::MAX_MINUTES + 1))));
+        self::assertSame('budget_note', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60, note: str_repeat('a', 501))));
+        $this->assertBudget([ProjectBudgetChange::MAX_MINUTES, 0, ProjectBudgetChange::MAX_MINUTES], $project);
+    }
+
+    public function testABudgetMayComeDownToZeroButAnEmptyOneTakesNoMinus(): void
+    {
+        $project = $this->project();
+        self::assertSame('budget_below_zero', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), -1)));
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60));
+        $minus = $this->as(fn (): string => $this->budgets()->add($project->id(), -60)->id());
+
+        $budget = $this->budget($project);
+        self::assertSame([0, false], [$budget->budgetMinutes, $budget->isOver()]);
+        $this->as(fn () => $this->budgets()->remove($project->id(), $minus));
+        $this->assertBudget([60, 0, 60], $project);
+    }
+
+    public function testTimeExactlyAtTheBudgetIsNotOver(): void
+    {
+        $project = $this->project();
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 60));
+        $this->logged($project, null, 60);
+
+        self::assertFalse($this->budget($project)->isOver());
+    }
+
+    public function testAChangeIsRemovedOnlyFromItsOwnProject(): void
+    {
+        $project = $this->project();
+        $other = $this->project('Other');
+        $change = $this->as(fn (): string => $this->budgets()->add($project->id(), 60)->id());
+        $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($other->id(), 600));
+
+        self::assertSame('unknown', $this->refused(fn () => $this->budgets()->remove($other->id(), $change)));
+        self::assertSame('unknown', $this->refused(fn () => $this->budgets()->remove($project->id(), Id::generate())));
+        $this->assertBudget([60, 0, 60], $project);
+    }
+
+    public function testNobodySignedInChangesNothing(): void
+    {
+        $project = $this->project();
+
+        try {
+            $this->budgets()->add($project->id(), 60);
+            self::fail('Not refused.');
+        } catch (WorkRefused $refused) {
+            self::assertSame('not_allowed', $refused->reason);
+        }
+    }
+
+    public function testTheDateOfAChangeOverTheApi(): void
+    {
+        $project = $this->project();
+        $url = '/api/v1/projects/'.$project->id().'/budget-changes';
+        foreach (['1899-12-31', '2026-02-30', 'not a date'] as $day) {
+            $this->send('POST', $url, ['hours' => '1', 'effective_on' => $day]);
+            $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'effective_on', 'reason' => 'date']);
+        }
+        $this->send('POST', $url, ['hours' => '1', 'effective_on' => '1900-01-01']);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('1900-01-01', $this->at('data', 'changes', 0, 'effective_on'));
     }
 
     public function testAProjectWithoutABudgetHasNoneOverMcp(): void

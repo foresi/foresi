@@ -48,9 +48,11 @@ final readonly class DoctrineProjectBudgets implements ProjectBudgetStore
         return null === $minutes ? null : (int) $minutes;
     }
 
-    public function lock(Project $project): void
+    public function lockedMinutes(Project $project): int
     {
         $this->entityManager->lock($project, LockMode::PESSIMISTIC_WRITE);
+
+        return $this->budgetMinutes($project) ?? 0;
     }
 
     public function usedMinutes(Project $project, bool $billableOnly): int
