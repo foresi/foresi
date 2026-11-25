@@ -94,9 +94,9 @@ A module's settings are its bundle's configuration: `AbstractBundle::configure()
 
 ### Proof
 
-`tests/fixtures/modules/acme-fleet/` is a Composer package `acme/fleet` with the namespace `Acme\Fleet\`, outside `src/`, so that the development application never loads it by itself. It brings an entity with its migration, a screen with a navigation item, a write operation over REST and MCP, a read tool, a scope, an event of its own, a listener of a core event, a setting and its own tests. A CI job installs it with Composer from a path repository, runs `app:modules:check`, migrates an empty PostgreSQL database and runs its tests. A change that breaks it breaks the contract.
+[`tests/Fixtures/modules/acme-fleet/`](../../tests/Fixtures/modules/acme-fleet) is a Composer package `acme/fleet` with the namespace `Acme\Fleet\`, outside `src/`, so that the development application never loads it by itself. It brings an entity with its migration, a screen with a navigation item, a write operation over REST and MCP, a read tool, a scope, an event of its own, a listener of a core event, a setting and its own tests. A CI job installs it with Composer from a path repository, runs `app:modules:check`, migrates an empty PostgreSQL database and runs its tests. A change that breaks it breaks the contract.
 
-`docs/modules.md` is the guide for module authors: a tutorial that builds the example module, and a reference of every extension point with the module API version it first appeared in. The ADRs keep the reasons.
+[`docs/modules.md`](../modules.md) is the guide for module authors: a tutorial that builds the example module, and a reference of every extension point with the module API version it first appeared in. The ADRs keep the reasons.
 
 ### Consequences
 
