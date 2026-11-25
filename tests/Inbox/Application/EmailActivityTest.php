@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * The text of the e-mail activity: the sender, the date and the mail, within
- * the 20,000 characters an activity holds (call P8).
+ * the 20,000 characters an activity holds.
  */
 final class EmailActivityTest extends TestCase
 {

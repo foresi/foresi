@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Proposes the record an inbox item is likely about, from its matched contact
- * (spec 2b, the Pipedrive rule): Sales the one open deal of the client, Work its
+ * (the Pipedrive rule): Sales the one open deal of the client, Work its
  * one active project. A module implements it in Integration/Inbox. It proposes
  * only what it is sure of, and only what the person signed in may see.
  */

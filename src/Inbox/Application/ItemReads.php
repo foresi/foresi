@@ -20,7 +20,7 @@ use Foresi\Shared\Domain\Id;
 /**
  * The person's own inbox: a page of their items outside the trash, the newest
  * first, and one item with its mail. Nobody else's items are listed, and
- * another person's item is not_found (spec 2a); a record's viewers see the mail
+ * another person's item is not_found; a record's viewers see the mail
  * through its e-mail activity instead.
  */
 final readonly class ItemReads

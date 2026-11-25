@@ -13,8 +13,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * The items of Inbox (plan 35.4): one per mail that arrived at a person's inbox
- * address, and the records that came of each.
+ * The items of Inbox: one per mail that arrived at a person's inbox address,
+ * and the records that came of each.
  */
 final class Version20261125120000 extends AbstractMigration
 {

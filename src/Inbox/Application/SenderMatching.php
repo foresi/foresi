@@ -13,7 +13,7 @@ use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 
 /**
- * Finds the contact of a sender in the address book, without guessing (spec 2b):
+ * Finds the contact of a sender in the address book, without guessing:
  *
  * 1. exactly one contact has the sender's address: that contact, by address; for
  *    a person linked to exactly one company or sole trader, that one too;

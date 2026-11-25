@@ -13,7 +13,7 @@ use Foresi\Mail\Contract\MessageRetention;
 
 /**
  * Removes for good, with their outputs, the inbox items that have been in the
- * trash for more than 30 days, as tasks and time are (spec 6d). The mail goes
+ * trash for more than 30 days, as tasks and time are. The mail goes
  * with the item unless a record still uses its e-mail activity as a source:
  * then Mail keeps it. The audit log keeps what the item was.
  */

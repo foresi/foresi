@@ -13,7 +13,7 @@ use Foresi\Identity\Application\StaffCheck;
 use Foresi\Inbox\Domain\InboxItem;
 
 /**
- * The one place an item is read for the person acting (spec 2a): an owner or
+ * The one place an item is read for the person acting: an owner or
  * member of the organisation, and only their own items. Another person's item,
  * an unknown one and one in the trash are alike not_found; the trash and its
  * restore alone reach an item there.

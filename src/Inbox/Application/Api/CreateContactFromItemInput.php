@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * The fields of the address book's create (a contact has a billing address),
- * with the e-mail taken from the sender when left out (ruling R4).
+ * with the e-mail taken from the sender when left out.
  */
 #[Operation(
     name: 'inbox.items.create_contact',

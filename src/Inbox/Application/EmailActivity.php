@@ -18,16 +18,16 @@ use Foresi\Mail\Contract\Messages;
 use Foresi\Shared\Contract\Refused;
 
 /**
- * The one e-mail activity of an inbox item (spec 2d, calls P8 and P14): made on
- * the item's first output, never on receive, and extended by every later one.
+ * The one e-mail activity of an inbox item: made on the item's first output,
+ * never on receive, and extended by every later one.
  *
  * It is an activity of the type email, done when the mail arrived and owned by
  * the item's owner. Its subject is the mail's, cut to 200 characters; its body
  * the sender, the date and the plain text, escaped so the activity's Markdown
- * shows them literally (no links of the mail, spec 6a), cut to the 20,000
- * characters an activity holds with a closing line that points to the item. It is linked to
- * the matched contact, the contact's company and each output whose kind a module
- * offers to activities. The raw mail stays the source.
+ * shows them literally (no links of the mail), cut to the 20,000 characters an
+ * activity holds with a closing line that points to the item. It is linked to
+ * the matched contact, the contact's company (also when matched later) and each
+ * output whose kind a module offers to activities. The raw mail stays the source.
  */
 final readonly class EmailActivity
 {
@@ -142,7 +142,7 @@ final readonly class EmailActivity
 
     /**
      * The text with every ASCII punctuation character backslash-escaped, so the
-     * Markdown of the activity screens shows it as written (spec 6a): no link,
+     * Markdown of the activity screens shows it as written: no link,
      * heading, list, emphasis or HTML of the mail, and no address or URL made a
      * link, since an escaped "." "@" or ":" breaks what the autolinks look for.
      */

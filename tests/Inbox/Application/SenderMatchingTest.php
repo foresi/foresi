@@ -15,7 +15,7 @@ use Foresi\Tests\Inbox\Support\FakeContactsByEmail;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The three steps of matching a sender to the address book (spec 2b), and
+ * The three steps of matching a sender to the address book, and
  * that it never guesses.
  */
 final class SenderMatchingTest extends TestCase

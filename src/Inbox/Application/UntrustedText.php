@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Inbox\Application;
 
 /**
- * Mail text as a screen may show it (spec 6a): the text itself, with every web
+ * Mail text as a screen may show it: the text itself, with every web
  * address followed by its domain in brackets so the person sees where it leads,
  * and never a link. The result is still the sender's text: a template prints it
  * escaped, in a block that keeps its line breaks.
