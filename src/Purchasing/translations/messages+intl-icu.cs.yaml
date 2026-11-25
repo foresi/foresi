@@ -183,6 +183,10 @@ purchasing:
     read: "Načteno"
     nothing_found: "Nic nenalezeno"
     failed: "Nenačteno"
+  settings:
+    title: "Přijaté doklady"
+    empty_title: "Zatím není co nastavovat"
+    empty_text: "Nastavení přijatých dokladů se tu objeví, když ho přidá nějaký modul."
   reading:
     reading: "Načítám soubor…"
     read: "Načteno: {sources}"
@@ -285,3 +289,6 @@ purchasing:
     reading_partly_applied: "Některé hodnoty načtené ze souboru k dokladu nesedí; čekají jako návrhy."
     supplier_ambiguous: "IČO nebo DIČ dodavatele má víc kontaktů, proto dodavatel nebyl nastaven."
     supplier_not_found: "IČO ani DIČ dodavatele nemá žádný kontakt."
+nav:
+  item:
+    purchasing_settings: "Přijaté doklady"

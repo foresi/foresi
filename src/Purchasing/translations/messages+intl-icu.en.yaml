@@ -183,6 +183,10 @@ purchasing:
     read: "Read"
     nothing_found: "Nothing found"
     failed: "Reading failed"
+  settings:
+    title: "Received documents"
+    empty_title: "Nothing to set up yet"
+    empty_text: "The settings of received documents appear here when a module adds one."
   reading:
     reading: "Reading the file…"
     read: "Read from {sources}"
@@ -285,3 +289,6 @@ purchasing:
     reading_partly_applied: "Some values read from the file do not fit the document; they wait as suggestions."
     supplier_ambiguous: "More than one contact has the supplier's registration or VAT number, so no supplier was set."
     supplier_not_found: "No contact has the supplier's registration or VAT number."
+nav:
+  item:
+    purchasing_settings: "Received documents"
