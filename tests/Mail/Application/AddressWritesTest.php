@@ -41,7 +41,6 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Support\Mail\MailKit;
-use Foresi\Tests\Support\Mail\PartialAddressIndex;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -65,7 +64,6 @@ final class AddressWritesTest extends KernelTestCase
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->fixtures = new IdentityFixtures($this->em);
         $this->fixtures->rebuildSchema();
-        PartialAddressIndex::apply($this->connection());
         RecordingPurpose::reset();
         $this->me = $this->fixtures->user();
         $this->fixtures->join($this->me, Role::Member);

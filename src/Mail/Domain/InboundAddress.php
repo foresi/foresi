@@ -21,13 +21,14 @@ use Foresi\Shared\Domain\Id;
  * Neither goes to the audit log, nor does the time of the last message. Rotating
  * replaces both at once, so the old address stops being found the moment the new
  * one is stored; a revoked address takes in nothing. A person has at most one
- * address that is not revoked for a purpose (a partial unique index).
+ * address that is not revoked for a purpose: the owner is kept a second time in
+ * active_owner_user_id, set only while the address is live, under a plain unique
+ * index (NULLs are distinct), not a partial one (ADR 0019, ADR 0026).
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'mail_inbound_address')]
 #[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_token', columns: ['token_hash'])]
-// One active address per person and purpose: partial on PostgreSQL, see InboundAddressSchema.
-#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['owner_user_id', 'purpose'])]
+#[ORM\UniqueConstraint(name: 'uniq_mail_inbound_address_owner_purpose', columns: ['active_owner_user_id', 'purpose'])]
 #[ORM\Index(name: 'idx_mail_inbound_address_owner', columns: ['owner_user_id'])]
 class InboundAddress implements Audited
 {
@@ -54,6 +55,10 @@ class InboundAddress implements Audited
 
     #[ORM\Column(name: 'revoked_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $revokedAt = null;
+
+    /** The owner while the address is live, NULL once it is revoked or has no owner: what the unique index holds. */
+    #[ORM\Column(name: 'active_owner_user_id', type: 'guid', nullable: true)]
+    private ?string $activeOwnerUserId;
 
     /** Written by plain SQL as mail arrives; see InboundAddressStore::touch(). */
     #[AuditExcluded]
@@ -92,6 +97,7 @@ class InboundAddress implements Audited
             throw new \DomainException('An owner is named by an id.');
         }
         $this->id = Id::generate();
+        $this->activeOwnerUserId = $ownerUserId;
         $this->purpose = $purpose;
         $this->label = mb_substr(trim($label), 0, self::MAX_LABEL);
         $this->tokenHash = $this->checkedHash($tokenHash);
@@ -127,6 +133,7 @@ class InboundAddress implements Audited
     public function revoke(\DateTimeImmutable $at): void
     {
         $this->revokedAt ??= $at;
+        $this->activeOwnerUserId = null;
     }
 
     public function id(): string

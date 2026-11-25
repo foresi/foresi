@@ -56,7 +56,7 @@ The mailbox must deliver every plus-addressed variant into the one inbox, or a c
 
 A purpose whose `ownerRequired()` is true has addresses that belong to one person, and each person manages their own over REST and MCP (scope `mail_addresses`, see [api.md](api.md#mail-addresses)): create, rename, revoke, replace and list. The rules:
 
-- One address per person and purpose that is not revoked, enforced by a partial unique index (`uniq_mail_inbound_address_owner_purpose`), so two requests at once cannot make two. A second `create` is `address_exists`; a revoked address does not count.
+- One address per person and purpose that is not revoked, enforced by a plain unique index (`uniq_mail_inbound_address_owner_purpose`) on the owner kept in `active_owner_user_id` while the address is live (ADR 0026), so two requests at once cannot make two. A second `create` is `address_exists`; a revoked address does not count.
 - The full address is in the answer that creates or replaces it, once, with `Cache-Control: no-store`. A list shows `masked_address` only (the template with the token cut out), as the database holds only the hash of the token.
 - **Replace** revokes the old address and issues a new one with the same purpose and label in one transaction, so the old one stays active when the new one cannot be made.
 - A purpose that has no owners (`bank_feed`) is not managed here: its addresses are as unknown to these calls as another person's, and Banking manages them on the bank account. Guests have no addresses.

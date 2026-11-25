@@ -21,7 +21,6 @@ use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Foresi\Tests\Support\Mail\LimitedReceive;
 use Foresi\Tests\Support\Mail\MailKit;
-use Foresi\Tests\Support\Mail\PartialAddressIndex;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
@@ -40,7 +39,6 @@ final class MailAddressesApiTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        PartialAddressIndex::apply($this->em()->getConnection());
         Clock::set(new MockClock('2026-11-25 10:00:00', 'UTC'));
         InstanceZone::set(self::getContainer());
         $this->writer = $this->issued([ApiScope::from('mail_addresses:write'), ApiScope::from('mail_addresses:read')]);

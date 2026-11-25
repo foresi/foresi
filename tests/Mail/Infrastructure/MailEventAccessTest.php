@@ -23,7 +23,6 @@ use Foresi\Shared\Domain\Event\EventSubject;
 use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Support\Mail\MailKit;
-use Foresi\Tests\Support\Mail\PartialAddressIndex;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -48,7 +47,6 @@ final class MailEventAccessTest extends KernelTestCase
         $em = $container->get(EntityManagerInterface::class);
         $fixtures = new IdentityFixtures($em);
         $fixtures->rebuildSchema();
-        PartialAddressIndex::apply($container->get(Connection::class));
         RecordingPurpose::reset();
         $this->owner = $fixtures->user();
         $fixtures->join($this->owner, Role::Member);
