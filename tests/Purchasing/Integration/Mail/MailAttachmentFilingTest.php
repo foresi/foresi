@@ -172,6 +172,11 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
                 throw new \LogicException('Not used.');
             }
 
+            public function findMany(array $messageIds): never
+            {
+                throw new \LogicException('Not used.');
+            }
+
             public function raw(string $messageId): never
             {
                 throw new \LogicException('Not used.');
@@ -487,6 +492,11 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
             public function find(string $messageId): ?\Foresi\Mail\Contract\MailMessageView
             {
                 return $this->stored->find($messageId);
+            }
+
+            public function findMany(array $messageIds): array
+            {
+                return $this->stored->findMany($messageIds);
             }
 
             public function raw(string $messageId): string
