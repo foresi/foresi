@@ -80,10 +80,11 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_recurring_invoices', 'api_v1_recurring_invoice', 'api_v1_recurring_invoice_preview',
         'api_v1_operation_recurring-invoices.create', 'api_v1_operation_recurring-invoices.update', 'api_v1_operation_recurring-invoices.pause', 'api_v1_operation_recurring-invoices.resume', 'api_v1_operation_recurring-invoices.end',
         'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
-        'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
+        'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_project_budget', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',
         'api_v1_operation_projects.create', 'api_v1_operation_projects.update', 'api_v1_operation_projects.archive', 'api_v1_operation_projects.restore',
+        'api_v1_operation_work.project_budget.add_change', 'api_v1_operation_work.project_budget.remove_change', 'api_v1_operation_work.project_budget.set_counting',
         'api_v1_operation_time_entries.log', 'api_v1_operation_time_entries.start_timer', 'api_v1_operation_time_entries.stop_timer',
         'api_v1_operation_views.create', 'api_v1_operation_views.update', 'api_v1_operation_views.delete', 'api_v1_operation_views.restore_defaults',
         // The OpenAPI document, which describes the API and holds no data.
