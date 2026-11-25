@@ -182,7 +182,7 @@ sales:
             cycles: Kolikrát
             cycles_help: Nechte prázdné, když nekončí.
             project: Projekt
-            project_help: Jeho fakturovatelný čas se vyfakturuje za sazbu této položky.
+            project_help: Fakturovatelný čas projektu se účtuje sazbou položky.
         unit_of_time:
             day: Dny
             week: Týdny
