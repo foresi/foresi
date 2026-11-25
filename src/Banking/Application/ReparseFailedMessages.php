@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
-use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Contract\ScheduledJob;
 use Psr\Log\LoggerInterface;
 
 /**

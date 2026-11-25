@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A test input with one field that is a single JSON object (Field::ONE_OBJECT), such as a mapping of kind and shares.

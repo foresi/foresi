@@ -16,9 +16,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * the subject types, so the feed links each event to its record without
  * knowing the routes of any module.
  */
-#[AutoconfigureTag('app.event_subject_url')]
+#[AutoconfigureTag(self::SUBJECT_URL_TAG)]
 interface EventSubjectUrl
 {
+    public const string SUBJECT_URL_TAG = 'foresi.shared.event_subject_url';
+
     /**
      * The id of the module whose subjects this links.
      */

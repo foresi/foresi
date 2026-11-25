@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Refused;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
-use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\WriteTool;
+use Foresi\Shared\Contract\Refused;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 /**

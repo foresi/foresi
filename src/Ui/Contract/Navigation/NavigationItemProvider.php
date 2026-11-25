@@ -12,12 +12,12 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * Implemented by modules and plugins to put items into the sidebar. Every
- * implementation is picked up automatically (tag "app.navigation_item").
+ * implementation is picked up automatically (tag "foresi.ui.navigation_item").
  */
 #[AutoconfigureTag(self::TAG)]
 interface NavigationItemProvider
 {
-    public const string TAG = 'app.navigation_item';
+    public const string TAG = 'foresi.ui.navigation_item';
 
     /**
      * @return iterable<NavigationItem>

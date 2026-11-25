@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Instance\Application\Schedule;
 
+use Foresi\Instance\Contract\ScheduledJob;
+
 /**
  * Timed work of the installation itself, such as
  * polling the operator's inbox. The schedule sends it at its own pace; a run
@@ -16,10 +18,12 @@ namespace Foresi\Instance\Application\Schedule;
  * must leave nothing half done that the next run cannot pick up.
  *
  * Unlike a ScheduledJob, there are no periods and no record of runs.
- * Implementations are tagged app.operator_task.
+ * Implementations are tagged foresi.instance.operator_task.
  */
 interface OperatorTask
 {
+    public const string TAG = 'foresi.instance.operator_task';
+
     /**
      * A stable name: the lock and the log name it.
      */

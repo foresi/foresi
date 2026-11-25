@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface DataSource
 {
-    public const string TAG = 'app.data_source';
+    public const string TAG = 'foresi.ui.data_source';
 
     /**
      * @return iterable<Attribute> nothing for a list the source does not fill

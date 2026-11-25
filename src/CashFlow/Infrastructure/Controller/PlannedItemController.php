@@ -21,7 +21,7 @@ use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Screen\PlannedItemScreen;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

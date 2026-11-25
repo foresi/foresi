@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Infrastructure\Api\WorkJson;
@@ -49,8 +49,8 @@ final readonly class ListProjectPeopleTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'project_id' => ToolArguments::idSchema('The id of the project, as foresi_search_projects returns it.'),
-                'task_id' => ToolArguments::idSchema('A task of the project, to list only who sees it.'),
+                'project_id' => ToolSchema::idSchema('The id of the project, as foresi_search_projects returns it.'),
+                'task_id' => ToolSchema::idSchema('A task of the project, to list only who sees it.'),
             ],
             'required' => ['project_id'],
             'additionalProperties' => false,
@@ -59,7 +59,7 @@ final readonly class ListProjectPeopleTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $people = $this->pages->read(fn (): array => $this->queries->projectPeople(ToolArguments::text($arguments, 'project_id') ?? '', ToolArguments::text($arguments, 'task_id')) ?? throw new WorkRefused('unknown'));
+        $people = $this->pages->read(fn (): array => $this->queries->projectPeople(ToolSchema::text($arguments, 'project_id') ?? '', ToolSchema::text($arguments, 'task_id')) ?? throw new WorkRefused('unknown'));
         $count = \count($people);
 
         return new ToolOutput(['items' => array_map(WorkJson::person(...), $people)], 1 === $count ? '1 person.' : \sprintf('%d people.', $count));

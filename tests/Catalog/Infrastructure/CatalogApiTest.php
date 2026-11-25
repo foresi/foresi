@@ -18,8 +18,8 @@ use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Role;
-use Foresi\Shared\Application\Api\Operation;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Operation\Operation;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**

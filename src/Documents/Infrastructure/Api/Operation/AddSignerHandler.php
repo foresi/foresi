@@ -11,8 +11,8 @@ namespace Foresi\Documents\Infrastructure\Api\Operation;
 use Foresi\Documents\Application\Api\AddSignerInput;
 use Foresi\Documents\Application\DocumentWrites;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class AddSignerHandler implements OperationHandler
 {

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Events\Infrastructure\Relay;
 
-use Foresi\Shared\Application\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\DomainEventListener;
 use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
 use Symfony\Contracts\Service\ServiceProviderInterface;
 
@@ -25,7 +25,7 @@ final class EventListeners
      * @param ServiceProviderInterface<DomainEventListener> $listeners
      */
     public function __construct(
-        #[AutowireLocator('app.domain_event_listener')]
+        #[AutowireLocator(DomainEventListener::TAG)]
         private readonly ServiceProviderInterface $listeners,
     ) {
     }

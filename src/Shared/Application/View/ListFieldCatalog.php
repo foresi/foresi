@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ListFieldCatalog
 {
-    public const string TAG = 'app.list_field_catalog';
+    public const string TAG = 'foresi.shared.list_field_catalog';
 
     /**
      * @return list<Field> in the order of the list's columns

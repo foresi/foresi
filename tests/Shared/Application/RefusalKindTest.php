@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Application;
 
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use PHPUnit\Framework\TestCase;
 
 /**

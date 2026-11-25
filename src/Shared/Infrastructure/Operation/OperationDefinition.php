@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\Operation\Operation;
+use Foresi\Shared\Contract\Operation\OperationHandler;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 /**
@@ -42,7 +43,8 @@ final readonly class OperationDefinition
     {
         $input = $handler::input();
         $class = new \ReflectionClass($input);
-        $attributes = $class->getAttributes(Operation::class);
+        // IS_INSTANCEOF, so that an input written against a deprecated alias of the attribute still counts.
+        $attributes = $class->getAttributes(Operation::class, \ReflectionAttribute::IS_INSTANCEOF);
         if ([] === $attributes) {
             throw new \LogicException(\sprintf('%s is the input of %s but carries no #[Operation].', $input, $handler::class));
         }
@@ -90,11 +92,13 @@ final readonly class OperationDefinition
         if (true === $type?->allowsNull() && !\in_array('null', $names, true)) {
             $names[] = 'null';
         }
+        // A type written against the deprecated alias of Omitted is the same class under another name.
+        $names = array_map(static fn (string $name): string => 'null' !== $name && !\in_array($name, OperationField::TYPES, true) && is_a($name, Omitted::class, true) ? Omitted::class : $name, $names);
         $base = array_values(array_diff($names, ['null', Omitted::class]));
         if (1 !== \count($base) || !\in_array($base[0], OperationField::TYPES, true)) {
             throw new \LogicException(\sprintf('The field %s of %s must be a string, int, bool or array, optionally null or Omitted.', $parameter->getName(), $operation->name));
         }
-        $describe = ($parameter->getAttributes(Field::class)[0] ?? null)?->newInstance();
+        $describe = ($parameter->getAttributes(Field::class, \ReflectionAttribute::IS_INSTANCEOF)[0] ?? null)?->newInstance();
         if ('array' === $base[0] && null === $describe?->items) {
             throw new \LogicException(\sprintf('The list %s of %s needs #[Field(items: ...)].', $parameter->getName(), $operation->name));
         }

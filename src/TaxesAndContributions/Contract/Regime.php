@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface Regime
 {
-    public const string TAG = 'app.taxes_regime';
+    public const string TAG = 'foresi.taxes_and_contributions.regime';
 
     /**
      * A stable key, such as "cz.sole_trader".

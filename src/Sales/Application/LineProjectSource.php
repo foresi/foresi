@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface LineProjectSource
 {
-    public const string TAG = 'app.sales_line_project_source';
+    public const string TAG = 'foresi.sales.line_project_source';
 
     /** A project the person signed in sees, archived ones too; null for none. */
     public function find(string $projectId): ?LineProject;

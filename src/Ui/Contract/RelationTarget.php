@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::ROOT_TAG)]
 interface RelationTarget
 {
-    public const string ROOT_TAG = 'app.relation_target';
+    public const string ROOT_TAG = 'foresi.ui.relation_target';
 
     /**
      * The row of the list, such as "Foresi\Party\Domain\Party p"; null for a list the source does not fill.

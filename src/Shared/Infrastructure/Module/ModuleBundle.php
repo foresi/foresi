@@ -34,6 +34,8 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  * namespace (@<Module>), so a screen keeps its template names wherever it
  * lives, the translations in the messages domain, and the controllers like
  * the module's own (ADR 0038).
+ *
+ * @api part of the module API (ADR 0044): every module extends it, and it and its protected hooks change only as the module API allows
  */
 abstract class ModuleBundle extends AbstractBundle
 {

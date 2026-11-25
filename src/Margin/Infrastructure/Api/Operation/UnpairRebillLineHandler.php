@@ -10,8 +10,8 @@ namespace Foresi\Margin\Infrastructure\Api\Operation;
 
 use Foresi\Margin\Application\RebillPairings;
 use Foresi\Margin\Application\UnpairRebillLineInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * margin.rebill_pairings.unpair: an invoice line that rebills nothing.

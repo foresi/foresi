@@ -11,8 +11,8 @@ namespace Foresi\Tests\Margin\Domain;
 use Foresi\Margin\Domain\Allocation;
 use Foresi\Margin\Domain\AllocationKind;
 use Foresi\Margin\Domain\MarginRefused;
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 

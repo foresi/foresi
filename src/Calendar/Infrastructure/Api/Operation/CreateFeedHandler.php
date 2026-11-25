@@ -13,8 +13,8 @@ use Foresi\Calendar\Application\FeedWrites;
 use Foresi\Calendar\Infrastructure\Api\CalendarJson;
 use Foresi\Calendar\Infrastructure\Api\FeedAddresses;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * The one answer that holds the address of a feed.

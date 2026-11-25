@@ -22,7 +22,7 @@ final readonly class SubjectUrls
      * @param iterable<EventSubjectUrl> $providers
      */
     public function __construct(
-        #[AutowireIterator('app.event_subject_url')]
+        #[AutowireIterator(EventSubjectUrl::SUBJECT_URL_TAG)]
         private iterable $providers,
     ) {
     }

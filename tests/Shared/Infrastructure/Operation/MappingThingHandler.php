@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * The handler of MappingThingInput, for its definition only.

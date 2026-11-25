@@ -14,8 +14,8 @@ use Foresi\Events\Application\DeliverEvent;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Events\Infrastructure\Payload\EventPayloads;
-use Foresi\Shared\Application\Event\DomainEventListener;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 

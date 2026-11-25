@@ -11,10 +11,10 @@ namespace Foresi\Margin\Infrastructure\Mcp;
 use Foresi\Margin\Application\AllocationReads;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The versions of a planned item's mapping, as GET /api/v1/margin/planned-items/{plannedItemId}/allocation writes them.
@@ -50,7 +50,7 @@ final readonly class PlannedItemAllocationTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['planned_item_id' => ToolArguments::idSchema('The id of the planned item, as foresi_list_planned_items returns it.')],
+            'properties' => ['planned_item_id' => ToolSchema::idSchema('The id of the planned item, as foresi_list_planned_items returns it.')],
             'required' => ['planned_item_id'],
             'additionalProperties' => false,
         ];
@@ -59,7 +59,7 @@ final readonly class PlannedItemAllocationTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $view = $this->reads->planned(ToolArguments::text($arguments, 'planned_item_id') ?? '');
+            $view = $this->reads->planned(ToolSchema::text($arguments, 'planned_item_id') ?? '');
         } catch (MarginRefused $refused) {
             throw ToolRefusal::of($refused);
         }

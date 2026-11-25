@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface MarginCostSource
 {
-    public const string TAG = 'app.margin_cost_source';
+    public const string TAG = 'foresi.margin.cost_source';
 
     /**
      * The cost document with this id, or null when this source has none.

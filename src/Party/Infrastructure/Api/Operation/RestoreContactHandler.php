@@ -10,8 +10,8 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\Contact\ContactWrites;
 use Foresi\Party\Application\Contact\RestoreContactInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * contacts.restore: the restored contact.

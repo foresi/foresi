@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\WriteTool;
 
 /**
  * A write tool that answers what it is given and remembers its arguments.

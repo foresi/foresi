@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Application;
 
 use Foresi\Catalog\Domain\Product;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A new product over the API and MCP (ADR 0032).

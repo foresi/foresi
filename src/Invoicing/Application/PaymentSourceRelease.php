@@ -21,7 +21,7 @@ use Foresi\Invoicing\Domain\Payment;
  */
 interface PaymentSourceRelease
 {
-    public const string TAG = 'app.payment_source_release';
+    public const string TAG = 'foresi.invoicing.payment_source_release';
 
     /**
      * Takes the row of where the payment came from for this transaction, before any

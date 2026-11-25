@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;

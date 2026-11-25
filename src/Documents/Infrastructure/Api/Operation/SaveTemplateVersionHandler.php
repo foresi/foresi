@@ -12,8 +12,8 @@ use Foresi\Documents\Application\Api\SaveTemplateVersionInput;
 use Foresi\Documents\Application\DocumentsStore;
 use Foresi\Documents\Application\TemplateWrites;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class SaveTemplateVersionHandler implements OperationHandler
 {

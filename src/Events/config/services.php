@@ -23,7 +23,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../EventsBundle.php']);
 
     // Takes each event the relay numbers, in its transaction, such as the webhooks.
-    $builder->registerForAutoconfiguration(EventSink::class)->addTag('app.event_sink');
+    $builder->registerForAutoconfiguration(EventSink::class)->addTag(EventSink::TAG);
     // Events serves the outbox of the shared kernel: modules record events, the relay numbers them.
     $services->alias(EventRecorder::class, DbalEventRecorder::class);
     $services->alias(EventOutbox::class, DbalEventRecorder::class);

@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\WriteTool;
 use Foresi\Shared\Infrastructure\Api\Idempotency;
 use Foresi\Shared\Infrastructure\Operation\OperationRunner;
 use Foresi\Shared\Infrastructure\Operation\Operations;

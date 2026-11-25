@@ -11,11 +11,11 @@ namespace Foresi\Sales\Infrastructure\Mcp;
 use Foresi\Sales\Application\DealReads;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The stages of a deal and the reasons it is lost for, as
@@ -67,7 +67,7 @@ final readonly class ListDealStagesTool implements ReadTool, StaffOnlyTool
 
     public function call(array $arguments): ToolOutput
     {
-        $archived = ToolArguments::flag($arguments, 'include_archived');
+        $archived = ToolSchema::flag($arguments, 'include_archived');
         try {
             $stages = $this->reads->stages($archived);
             $reasons = $this->reads->lostReasons($archived);

@@ -34,7 +34,7 @@ final readonly class RunOperatorTaskHandler
     public function __construct(
         private LockFactory $locks,
         private LoggerInterface $logger,
-        #[AutowireIterator('app.operator_task')]
+        #[AutowireIterator(OperatorTask::TAG)]
         private iterable $tasks,
     ) {
     }

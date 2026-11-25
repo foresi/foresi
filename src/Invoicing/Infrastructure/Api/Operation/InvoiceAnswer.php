@@ -15,7 +15,7 @@ use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

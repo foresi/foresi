@@ -42,10 +42,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../BankingBundle.php']);
 
     // A country module plugs into banking with the parsers of its banks' mail.
-    $builder->registerForAutoconfiguration(BankMessageParser::class)->addTag('app.bank_message_parser');
 
     $services->set(BankMessageParsers::class)
-        ->arg('$parsers', tagged_iterator('app.bank_message_parser'));
+        ->arg('$parsers', tagged_iterator(BankMessageParser::TAG));
 
     // A firm's stored switches, or the defaults while it has none.
     $services->alias(FirmPairingRules::class, DoctrineFirmPairings::class);

@@ -28,7 +28,7 @@ use Foresi\Documents\Domain\SignatureLevel;
 use Foresi\Documents\Domain\TemplateVersion;
 use Foresi\Documents\Infrastructure\Screen\DocumentScreen;
 use Foresi\Documents\Infrastructure\Screen\TemplatePreview;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Ui\Contract\Opens;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;

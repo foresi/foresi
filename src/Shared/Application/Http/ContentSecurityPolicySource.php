@@ -23,7 +23,7 @@ namespace Foresi\Shared\Application\Http;
  */
 interface ContentSecurityPolicySource
 {
-    public const string TAG = 'foresi.content_security_policy_source';
+    public const string TAG = 'foresi.shared.content_security_policy_source';
 
     /**
      * @return array<string, list<string>> sources by directive name

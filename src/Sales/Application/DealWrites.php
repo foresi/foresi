@@ -37,8 +37,8 @@ use Foresi\Sales\Domain\DealLink;
 use Foresi\Sales\Domain\DealLinkType;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
-use Foresi\Shared\Application\Api\Omitted;
 use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
  * The writes of a deal itself, from its screens, the API and MCP alike (ADR

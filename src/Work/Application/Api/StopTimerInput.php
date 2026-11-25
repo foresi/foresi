@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Stops the timer of the signed-in person over the API and MCP.

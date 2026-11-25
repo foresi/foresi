@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(name: 'things.change', method: 'PATCH', path: '/api/v1/things/{thingId}', tool: 'foresi_change_thing', scope: 'things:write', title: 'Change a thing', description: 'Changes a thing.', response: 'Thing')]
 final readonly class ThingInput

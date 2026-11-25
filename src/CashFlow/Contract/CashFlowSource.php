@@ -22,7 +22,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface CashFlowSource
 {
-    public const string TAG = 'app.cash_flow_source';
+    public const string TAG = 'foresi.cash_flow.source';
 
     /**
      * A stable key, such as "invoicing.invoices", lower case with dots.

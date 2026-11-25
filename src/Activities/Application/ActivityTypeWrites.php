@@ -13,7 +13,7 @@ use Foresi\Activities\Application\Api\CreateActivityTypeInput;
 use Foresi\Activities\Application\Api\UpdateActivityTypeInput;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
  * The kinds of activity the organisation keeps, under Settings → Activities.

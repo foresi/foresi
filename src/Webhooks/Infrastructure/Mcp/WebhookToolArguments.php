@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * Reading the arguments the webhook tools share. The SDK has checked them
@@ -25,7 +25,7 @@ final class WebhookToolArguments
      */
     public static function required(array $arguments, string $name): string
     {
-        return ToolArguments::text($arguments, $name) ?? throw ToolRefusal::invalidArgument(\sprintf('The argument "%s" is required.', $name));
+        return ToolSchema::text($arguments, $name) ?? throw ToolRefusal::invalidArgument(\sprintf('The argument "%s" is required.', $name));
     }
 
     /**

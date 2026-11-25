@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ListRecordCounter
 {
-    public const string TAG = 'app.list_record_counter';
+    public const string TAG = 'foresi.shared.list_record_counter';
 
     /**
      * @return list<string> the keys of the lists it counts, such as "invoicing.invoices"

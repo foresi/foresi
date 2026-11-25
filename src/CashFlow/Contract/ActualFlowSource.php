@@ -21,7 +21,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::ACTUAL_TAG)]
 interface ActualFlowSource
 {
-    public const string ACTUAL_TAG = 'app.cash_flow_actual_source';
+    public const string ACTUAL_TAG = 'foresi.cash_flow.actual_source';
 
     /**
      * A stable key, such as "invoicing.invoices", lower case with dots. A class

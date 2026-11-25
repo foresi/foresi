@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Application;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * Why the catalog refused a read or a write, as every surface answers it

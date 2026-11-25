@@ -15,7 +15,7 @@ use Foresi\Margin\Application\RebillPairings;
 use Foresi\Margin\Application\RevenueSources;
 use Foresi\Margin\Contract\RevenueDocument;
 use Foresi\Margin\Domain\MarginRefused;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

@@ -74,7 +74,8 @@ final class DeptracModulesConfigTest extends TestCase
               - shared_contract
             shared:
               - shared_contract
-            shared_contract: []
+            shared_contract:
+              - shared
             timesheet:
               - timesheet_contract
               - work

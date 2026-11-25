@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Application;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the address book refuses to write, as a reason from a closed list and

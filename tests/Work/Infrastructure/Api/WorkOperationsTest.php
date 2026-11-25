@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Work\Infrastructure\Api;
 
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Infrastructure\Operation\InputMapper;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;
 use Foresi\Shared\Infrastructure\Operation\Operations;

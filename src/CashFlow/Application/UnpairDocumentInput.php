@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Domain\DocumentPairing;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A document that does not belong to the occurrence it is paired or proposed with.

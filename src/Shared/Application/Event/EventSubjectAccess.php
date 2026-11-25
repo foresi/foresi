@@ -18,9 +18,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * seen, and a webhook does not send it. A module without one shows every event
  * to whom EventReadAccess lets read them.
  */
-#[AutoconfigureTag('app.event_subject_access')]
+#[AutoconfigureTag(self::SUBJECT_ACCESS_TAG)]
 interface EventSubjectAccess
 {
+    public const string SUBJECT_ACCESS_TAG = 'foresi.shared.event_subject_access';
+
     /**
      * The id of the module whose events this decides on.
      */

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\Mcp\ToolCaller;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 
 /**
  * A caller that is confirmed, refused or fails, as the test sets it.

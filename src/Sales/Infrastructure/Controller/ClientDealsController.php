@@ -16,7 +16,7 @@ use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Application\SalesStore;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Infrastructure\Screen\DealScreen;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Purchasing\Application\Api;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A file of a received document sent over the API and MCP as base64: it becomes a draft

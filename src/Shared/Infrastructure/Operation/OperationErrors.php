@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 use Foresi\Shared\Infrastructure\Api\ApiErrors;
 use Foresi\Shared\Infrastructure\Api\ProblemResponse;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;

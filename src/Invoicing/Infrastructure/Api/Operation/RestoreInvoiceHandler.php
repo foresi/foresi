@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Api\Operation;
 
 use Foresi\Invoicing\Application\Api\InvoiceWrites;
 use Foresi\Invoicing\Application\Api\RestoreInvoiceInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * invoices.restore: the invoice as restored.

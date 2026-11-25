@@ -12,8 +12,8 @@ use Foresi\Margin\Application\RebillLinks;
 use Foresi\Margin\Application\RebillLinkView;
 use Foresi\Margin\Application\SetRebillLinkInput;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * margin.rebill_links.set: the planned cost a template line rebills.

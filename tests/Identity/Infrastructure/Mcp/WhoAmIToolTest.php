@@ -15,7 +15,7 @@ use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Mcp\WhoAmITool;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use PHPUnit\Framework\TestCase;
 
 /**

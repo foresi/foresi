@@ -12,7 +12,7 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

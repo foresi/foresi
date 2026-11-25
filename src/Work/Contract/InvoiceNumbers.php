@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface InvoiceNumbers
 {
-    public const string TAG = 'app.invoice_numbers';
+    public const string TAG = 'foresi.work.invoice_numbers';
 
     /**
      * @param list<string> $invoiceIds

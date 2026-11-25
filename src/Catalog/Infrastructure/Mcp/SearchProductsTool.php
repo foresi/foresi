@@ -11,11 +11,11 @@ namespace Foresi\Catalog\Infrastructure\Mcp;
 use Foresi\Catalog\Application\CatalogRefused;
 use Foresi\Catalog\Application\ProductReads;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The products of the catalog found by text, as GET /api/v1/catalog/products writes them.
@@ -70,7 +70,7 @@ final readonly class SearchProductsTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $products = $this->products->search(ToolArguments::text($arguments, 'query') ?? '', ToolArguments::flag($arguments, 'archived'));
+            $products = $this->products->search(ToolSchema::text($arguments, 'query') ?? '', ToolSchema::flag($arguments, 'archived'));
         } catch (CatalogRefused $refused) {
             throw ToolRefusal::of($refused);
         }

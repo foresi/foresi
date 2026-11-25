@@ -20,7 +20,7 @@ use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Console\Application;

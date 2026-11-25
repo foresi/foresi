@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Work\Application\Comments;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageProjects;

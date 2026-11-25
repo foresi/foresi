@@ -10,8 +10,8 @@ namespace Foresi\Margin\Integration\Invoicing;
 
 use Foresi\Invoicing\Contract\Event\InvoiceIssued;
 use Foresi\Margin\Application\PairRebillOnIssue;
-use Foresi\Shared\Application\Event\DomainEventListener;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 
 /**
  * Pairs the lines of an issued invoice with the planned occurrences they

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\CashFlow\Application;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the cash-flow use cases refuse (ADR 0032), with a stable reason, the

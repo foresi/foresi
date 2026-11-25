@@ -7,6 +7,7 @@
 declare(strict_types=1);
 
 use Foresi\Calendar\Application\CalendarFeedReader;
+use Foresi\Calendar\Contract\CalendarEntrySource;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -22,5 +23,5 @@ return static function (ContainerConfigurator $container): void {
 
     // Modules that plan things in time plug in through Foresi\Calendar\Contract\CalendarEntrySource.
     $services->set(CalendarFeedReader::class)
-        ->arg('$sources', tagged_iterator('app.calendar_entry_source'));
+        ->arg('$sources', tagged_iterator(CalendarEntrySource::TAG));
 };

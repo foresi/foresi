@@ -10,7 +10,9 @@ namespace Foresi\Shared;
 
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Infrastructure\Doctrine\CastTextFunction;
+use Foresi\Shared\Infrastructure\Kernel\DeprecatedTagsPass;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -20,6 +22,13 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
  */
 final class SharedBundle extends ModuleBundle
 {
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        // After autoconfiguration has tagged the services (priority 100), before anything collects them.
+        $container->addCompilerPass(new DeprecatedTagsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 50);
+    }
+
     protected function messageRouting(): array
     {
         return [

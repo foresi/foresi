@@ -35,7 +35,7 @@ use Foresi\Documents\Domain\Signer;
 use Foresi\Documents\Domain\SignerSide;
 use Foresi\Documents\Infrastructure\Screen\DocumentScreen;
 use Foresi\Documents\Infrastructure\Screen\TemplatePreview;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Id;
 use Foresi\Ui\View\QuickPins;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

@@ -19,8 +19,8 @@ use Foresi\Sales\Contract\Event\DealUpdated;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Domain\DealLineTerms;
-use Foresi\Shared\Application\Api\Omitted;
 use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\Money;
 
 /**

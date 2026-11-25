@@ -8,12 +8,17 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Contract;
 
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+
 /**
  * Something the import can fill with records. A module implements this to be
  * importable; the import knows nothing else about it.
  */
+#[AutoconfigureTag(self::TAG)]
 interface ImportTarget
 {
+    public const string TAG = 'foresi.import.target';
+
     /** The stable key of the target, for example "party". */
     public function key(): string;
 

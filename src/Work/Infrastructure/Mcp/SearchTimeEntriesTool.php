@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Work\Infrastructure\Api\TimeEntryListQuery;
 use Foresi\Work\Infrastructure\Api\WorkLists;
 
@@ -50,12 +51,12 @@ final readonly class SearchTimeEntriesTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'project_id' => ToolArguments::idSchema('Only the time of this project.'),
-                'task_id' => ToolArguments::idSchema('Only the time of this task.'),
+                'project_id' => ToolSchema::idSchema('Only the time of this project.'),
+                'task_id' => ToolSchema::idSchema('Only the time of this task.'),
                 'person' => ['type' => 'string', 'description' => 'Only the time of this person: "me", or their id as foresi_list_project_people gives it.'],
-                'from' => ToolArguments::dateSchema('Only the time worked on this day or later.'),
-                'until' => ToolArguments::dateSchema('Only the time worked on this day or earlier.'),
-            ] + ToolArguments::pagingSchema(),
+                'from' => ToolSchema::dateSchema('Only the time worked on this day or later.'),
+                'until' => ToolSchema::dateSchema('Only the time worked on this day or earlier.'),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -63,13 +64,13 @@ final readonly class SearchTimeEntriesTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new TimeEntryListQuery(
-            ToolArguments::text($arguments, 'project_id'),
-            ToolArguments::text($arguments, 'task_id'),
-            ToolArguments::text($arguments, 'person'),
-            ToolArguments::text($arguments, 'from'),
-            ToolArguments::text($arguments, 'until'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'project_id'),
+            ToolSchema::text($arguments, 'task_id'),
+            ToolSchema::text($arguments, 'person'),
+            ToolSchema::text($arguments, 'from'),
+            ToolSchema::text($arguments, 'until'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);

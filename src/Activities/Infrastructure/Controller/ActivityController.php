@@ -28,7 +28,7 @@ use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\UploadAttachment;
 use Foresi\Attachment\Infrastructure\Controller\AttachmentController;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Id;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;

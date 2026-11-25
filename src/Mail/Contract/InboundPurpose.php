@@ -11,11 +11,13 @@ namespace Foresi\Mail\Contract;
 /**
  * What an inbound address is for, such as the payment notices of a bank feed:
  * the consumer a stored message is handed to. A module registers one by
- * implementing this interface (tagged app.mail_inbound_purpose); an address
+ * implementing this interface (tagged foresi.mail.inbound_purpose); an address
  * whose purpose nobody registered takes in nothing.
  */
 interface InboundPurpose
 {
+    public const string TAG = 'foresi.mail.inbound_purpose';
+
     /** The stable key stored on every address of the purpose, at most 40 characters. */
     public function key(): string;
 

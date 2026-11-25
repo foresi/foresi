@@ -421,6 +421,7 @@ deptrac:
       - shared
       - shared_contract
     attachment_contract:
+      - attachment
       - audit
       - audit_contract
       - identity
@@ -436,6 +437,7 @@ deptrac:
       - shared
       - shared_contract
     audit_contract:
+      - audit
       - instance
       - instance_contract
       - shared
@@ -692,6 +694,7 @@ deptrac:
     events_contract:
       - audit
       - audit_contract
+      - events
       - instance
       - instance_contract
       - shared
@@ -722,6 +725,7 @@ deptrac:
     identity_contract:
       - audit
       - audit_contract
+      - identity
       - instance
       - instance_contract
       - party
@@ -785,6 +789,7 @@ deptrac:
       - shared
       - shared_contract
     instance_contract:
+      - instance
       - shared
       - shared_contract
     invoicing:
@@ -985,6 +990,7 @@ deptrac:
       - audit_contract
       - instance
       - instance_contract
+      - party
       - shared
       - shared_contract
       - ui_contract
@@ -1241,7 +1247,8 @@ deptrac:
       - work_contract
     shared:
       - shared_contract
-    shared_contract: []
+    shared_contract:
+      - shared
     taxes_and_contributions:
       - audit
       - audit_contract
@@ -1473,6 +1480,7 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
+      - webhooks
     work:
       - attachment
       - attachment_contract

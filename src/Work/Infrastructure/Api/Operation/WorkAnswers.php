@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Api\Operation;
 
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;

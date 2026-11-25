@@ -11,11 +11,11 @@ namespace Foresi\Activities\Infrastructure\Mcp;
 use Foresi\Activities\Application\ActivitiesRefused;
 use Foresi\Activities\Application\ActivityReads;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 final readonly class ListActivitiesTool implements ReadTool, StaffOnlyTool
 {
@@ -52,7 +52,7 @@ final readonly class ListActivitiesTool implements ReadTool, StaffOnlyTool
     {
         return [
             'type' => 'object',
-            'properties' => ['linked_kind' => ['type' => 'string', 'description' => 'The kind of the record, such as "contact".'], 'linked_id' => ToolArguments::idSchema('The id of the record.')],
+            'properties' => ['linked_kind' => ['type' => 'string', 'description' => 'The kind of the record, such as "contact".'], 'linked_id' => ToolSchema::idSchema('The id of the record.')],
             'required' => ['linked_kind', 'linked_id'],
             'additionalProperties' => false,
         ];
@@ -61,7 +61,7 @@ final readonly class ListActivitiesTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $activities = $this->reads->timeline((string) ToolArguments::text($arguments, 'linked_kind'), (string) ToolArguments::text($arguments, 'linked_id'));
+            $activities = $this->reads->timeline((string) ToolSchema::text($arguments, 'linked_kind'), (string) ToolSchema::text($arguments, 'linked_id'));
 
             return new ToolOutput(['items' => array_map($this->json->activity(...), $activities)], \sprintf('%d activities.', \count($activities)));
         } catch (ActivitiesRefused $refused) {

@@ -57,21 +57,21 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $container->parameters()->set('app.firm_image_dir', '%kernel.share_dir%/firm-images');
 
     // Country modules plug into the core through tagged interfaces.
-    $builder->registerForAutoconfiguration(RegistrationNumberValidator::class)->addTag('app.registration_number_validator');
-    $builder->registerForAutoconfiguration(DomesticBankAccount::class)->addTag('app.domestic_bank_account');
+    $builder->registerForAutoconfiguration(RegistrationNumberValidator::class)->addTag(RegistrationNumberValidator::TAG);
+    $builder->registerForAutoconfiguration(DomesticBankAccount::class)->addTag(DomesticBankAccount::TAG);
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    $builder->registerForAutoconfiguration(CompanyRegistry::class)->addTag('app.company_registry');
-    $builder->registerForAutoconfiguration(VatPayerReliability::class)->addTag('app.vat_payer_reliability');
+    $builder->registerForAutoconfiguration(CompanyRegistry::class)->addTag(CompanyRegistry::TAG);
+    $builder->registerForAutoconfiguration(VatPayerReliability::class)->addTag(VatPayerReliability::TAG);
     $builder->registerForAutoconfiguration(ContactImports::class)->addTag(ContactImports::TAG);
 
     $services->set(RegistrationNumberFactory::class)
-        ->arg('$validators', tagged_iterator('app.registration_number_validator'));
+        ->arg('$validators', tagged_iterator(RegistrationNumberValidator::TAG));
     $services->set(ImportPartyValues::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     $services->set(ManageFirmBankAccounts::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     $services->set(AccountNumbers::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     // Modules that record movements, such as Banking, fix an account's currency.
     $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class);
     // Country modules offer their registers; without one, lookups come back empty.

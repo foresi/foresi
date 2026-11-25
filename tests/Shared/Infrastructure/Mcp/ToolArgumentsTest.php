@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validation;
@@ -26,14 +27,14 @@ final class ToolArgumentsTest extends TestCase
     {
         $arguments = ['text' => 'Alpha', 'flag' => true, 'limit' => 7, 'none' => null];
 
-        self::assertSame('Alpha', ToolArguments::text($arguments, 'text'));
-        self::assertNull(ToolArguments::text($arguments, 'missing'));
-        self::assertNull(ToolArguments::text($arguments, 'none'));
-        self::assertTrue(ToolArguments::flag($arguments, 'flag'));
-        self::assertFalse(ToolArguments::flag(['flag' => false], 'flag'));
-        self::assertFalse(ToolArguments::flag($arguments, 'missing'));
-        self::assertSame(7, ToolArguments::limit($arguments));
-        self::assertSame(25, ToolArguments::limit([]));
+        self::assertSame('Alpha', ToolSchema::text($arguments, 'text'));
+        self::assertNull(ToolSchema::text($arguments, 'missing'));
+        self::assertNull(ToolSchema::text($arguments, 'none'));
+        self::assertTrue(ToolSchema::flag($arguments, 'flag'));
+        self::assertFalse(ToolSchema::flag(['flag' => false], 'flag'));
+        self::assertFalse(ToolSchema::flag($arguments, 'missing'));
+        self::assertSame(7, ToolSchema::limit($arguments));
+        self::assertSame(25, ToolSchema::limit([]));
     }
 
     public function testTheCursorIsReadBackAsTheIdItWasMadeOf(): void
@@ -70,10 +71,10 @@ final class ToolArgumentsTest extends TestCase
 
     public function testTheSchemasOfTheCommonArguments(): void
     {
-        self::assertSame(['type' => 'string', 'format' => 'uuid', 'description' => 'The firm.'], ToolArguments::idSchema('The firm.'));
-        self::assertSame(['type' => 'string', 'format' => 'date', 'description' => 'From. As YYYY-MM-DD, the day included.'], ToolArguments::dateSchema('From.'));
-        self::assertSame(['type' => 'string', 'enum' => ['a', 'b'], 'description' => 'One.'], ToolArguments::choiceSchema(['a', 'b'], 'One.'));
-        $paging = ToolArguments::pagingSchema();
+        self::assertSame(['type' => 'string', 'format' => 'uuid', 'description' => 'The firm.'], ToolSchema::idSchema('The firm.'));
+        self::assertSame(['type' => 'string', 'format' => 'date', 'description' => 'From. As YYYY-MM-DD, the day included.'], ToolSchema::dateSchema('From.'));
+        self::assertSame(['type' => 'string', 'enum' => ['a', 'b'], 'description' => 'One.'], ToolSchema::choiceSchema(['a', 'b'], 'One.'));
+        $paging = ToolSchema::pagingSchema();
         self::assertSame(['limit', 'cursor'], array_keys($paging));
         self::assertSame(['type' => 'integer', 'minimum' => 1, 'maximum' => 100, 'default' => 25, 'description' => 'How many to return at most.'], $paging['limit']);
         self::assertSame('string', $paging['cursor']['type']);

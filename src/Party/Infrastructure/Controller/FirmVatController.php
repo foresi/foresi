@@ -21,7 +21,7 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Infrastructure\View\VatStretchLabel;
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

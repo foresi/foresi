@@ -17,7 +17,7 @@ use Foresi\Calendar\Application\RevokeFeedInput;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Infrastructure\Api\FeedAddresses;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

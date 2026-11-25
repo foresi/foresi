@@ -11,11 +11,11 @@ namespace Foresi\Documents\Infrastructure\Mcp;
 use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One document template, as GET /api/v1/document-templates/{templateId} writes it.
@@ -56,7 +56,7 @@ final readonly class GetDocumentTemplateTool implements ReadTool, StaffOnlyTool
     {
         return [
             'type' => 'object',
-            'properties' => ['template_id' => ToolArguments::idSchema('The id of the template, from foresi_list_document_templates.')],
+            'properties' => ['template_id' => ToolSchema::idSchema('The id of the template, from foresi_list_document_templates.')],
             'required' => ['template_id'],
             'additionalProperties' => false,
         ];
@@ -65,7 +65,7 @@ final readonly class GetDocumentTemplateTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $template = $this->reads->template((string) ToolArguments::text($arguments, 'template_id'));
+            $template = $this->reads->template((string) ToolSchema::text($arguments, 'template_id'));
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);
         }

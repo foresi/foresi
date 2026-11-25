@@ -10,8 +10,8 @@ namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
 use Foresi\Purchasing\Application\Api\ReceivedDocumentWrites;
 use Foresi\Purchasing\Application\Api\RemoveReceivedDocumentPaymentInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * received_documents.remove_payment: the received document with its payments.

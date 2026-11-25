@@ -26,6 +26,8 @@ use Symfony\Component\HttpKernel\Bundle\BundleInterface;
  * It registers the bundle of every installed module and the integration code
  * of every installed optional dependency, on top of the MicroKernelTrait's
  * config/ of the application.
+ *
+ * @api part of the module API (ADR 0044): an application uses it, and it changes only as the module API allows
  */
 trait ForesiKernel
 {

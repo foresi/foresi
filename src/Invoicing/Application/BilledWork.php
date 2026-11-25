@@ -18,7 +18,7 @@ namespace Foresi\Invoicing\Application;
  */
 interface BilledWork
 {
-    public const string TAG = 'app.billed_work';
+    public const string TAG = 'foresi.invoicing.billed_work';
 
     /**
      * What a new invoice opens with; null when the reference no longer holds.

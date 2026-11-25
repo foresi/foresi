@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Contract\ScheduledJob;
 use Psr\Clock\ClockInterface;
 
 /**

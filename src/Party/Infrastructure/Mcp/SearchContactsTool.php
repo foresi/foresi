@@ -18,11 +18,12 @@ use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Application\View\AppliedView;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Domain\View\SavedView;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**
@@ -66,13 +67,13 @@ final readonly class SearchContactsTool implements ReadTool
             'type' => 'object',
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'Text looked for in the name, the registration number, the VAT id and the e-mail addresses.'],
-                'role' => ToolArguments::choiceSchema(array_column(PartyRole::cases(), 'value'), 'Only contacts with this role.'),
+                'role' => ToolSchema::choiceSchema(array_column(PartyRole::cases(), 'value'), 'Only contacts with this role.'),
                 'archived' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the archived contacts, false only those that are not.'],
                 'registration_number' => ['type' => 'string', 'description' => 'Only the contact with this company registration number; spaces and punctuation are ignored.'],
                 'vat_id' => ['type' => 'string', 'description' => 'Only the contact with this VAT id, such as CZ12345678; spaces and case are ignored.'],
                 'view_id' => ['type' => 'string', 'description' => 'Only the contacts a saved view of the list party.contacts holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "party.contacts.customers".'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all contacts meet, {"conditions": [{"field", "op", "value"}]}, checked against the list party.contacts; its fields and operators are in foresi_list_lists.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -80,17 +81,17 @@ final readonly class SearchContactsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new ContactListQuery(
-            ToolArguments::text($arguments, 'query') ?? '',
-            ToolArguments::text($arguments, 'role'),
-            ToolArguments::flag($arguments, 'archived'),
-            ToolArguments::text($arguments, 'registration_number'),
-            ToolArguments::text($arguments, 'vat_id'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'query') ?? '',
+            ToolSchema::text($arguments, 'role'),
+            ToolSchema::flag($arguments, 'archived'),
+            ToolSchema::text($arguments, 'registration_number'),
+            ToolSchema::text($arguments, 'vat_id'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
-        $viewId = ToolArguments::text($arguments, 'view_id');
+        $viewId = ToolSchema::text($arguments, 'view_id');
         if (null !== $viewId && !$this->scope->allows(AppliedView::VIEWS_SCOPE)) {
             throw new ToolRefusal(ToolRefusal::INSUFFICIENT_SCOPE, \sprintf('The token does not have the "%s" scope a saved view needs.', AppliedView::VIEWS_SCOPE));
         }

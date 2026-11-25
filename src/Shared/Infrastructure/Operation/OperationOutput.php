@@ -8,19 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-/**
- * What an operation answers: the data, a one-line summary for MCP, and for a
- * created record the path it is read at (REST Location).
- */
-final readonly class OperationOutput
-{
-    /**
-     * @param array<mixed> $data plain values only, as they are encoded to JSON
-     */
-    public function __construct(
-        public array $data,
-        public string $summary,
-        public ?string $location = null,
-    ) {
-    }
-}
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" class is deprecated, use "%s" instead.', 'Foresi\\Shared\\Infrastructure\\Operation\\OperationOutput', \Foresi\Shared\Contract\Operation\OperationOutput::class);
+
+class_alias(\Foresi\Shared\Contract\Operation\OperationOutput::class, 'Foresi\\Shared\\Infrastructure\\Operation\\OperationOutput');
+
+// A final class cannot be extended, so the old name has no declaration of its own for IDEs and static analysis.

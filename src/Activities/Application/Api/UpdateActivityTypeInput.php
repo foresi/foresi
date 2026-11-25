@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Activities\Application\Api;
 
 use Foresi\Activities\Domain\ActivityType;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
     name: 'activities.types.update',

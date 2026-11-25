@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Party\Application\Contact;
 
 use Foresi\Party\Application\PartyRules;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A new contact over the API and MCP (ADR 0032). A contact always has a

@@ -12,8 +12,8 @@ use Foresi\Calendar\Application\FeedWrites;
 use Foresi\Calendar\Application\RevokeFeedInput;
 use Foresi\Calendar\Infrastructure\Api\CalendarJson;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class RevokeFeedHandler implements OperationHandler
 {

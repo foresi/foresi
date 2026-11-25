@@ -10,8 +10,8 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 
 use Foresi\Sales\Application\Api\CreateDealInput;
 use Foresi\Sales\Application\DealWrites;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class CreateDealHandler implements OperationHandler
 {

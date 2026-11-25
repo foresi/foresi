@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\Operation\ConfirmationRequired;
 use Foresi\Shared\Infrastructure\Operation\InputMapper;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;

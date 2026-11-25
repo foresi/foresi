@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * Why a change to projects, tasks, labels, comments or time is not made; the

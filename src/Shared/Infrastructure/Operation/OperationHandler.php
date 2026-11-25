@@ -8,29 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" interface is deprecated, use "%s" instead.', OperationHandler::class, \Foresi\Shared\Contract\Operation\OperationHandler::class);
 
-/**
- * Runs one declared operation (ADR 0032): it names the input class that
- * carries #[Operation], calls the module's use case with it and answers the
- * view the read endpoints answer. It checks nothing itself; the use case
- * decides what the token's person may do, and the scope, the confirmation
- * flag and the input are checked before it is called.
- */
-#[AutoconfigureTag(self::TAG)]
-interface OperationHandler
-{
-    public const string TAG = 'app.operation_handler';
+class_alias(\Foresi\Shared\Contract\Operation\OperationHandler::class, OperationHandler::class);
 
+if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @return class-string the input class carrying #[Operation]
+     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Operation\OperationHandler instead
      */
-    public static function input(): string;
-
-    /**
-     * @param object $input an instance of input()
-     *
-     * @throws \Foresi\Shared\Application\Refused when the use case refuses
-     */
-    public function handle(object $input): OperationOutput;
+    interface OperationHandler extends \Foresi\Shared\Contract\Operation\OperationHandler
+    {
+    }
 }

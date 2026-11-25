@@ -11,11 +11,11 @@ namespace Foresi\Sales\Infrastructure\Mcp;
 use Foresi\Sales\Application\DealReads;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The deals found by text and narrowed by status, stage, owner and client, as
@@ -62,10 +62,10 @@ final readonly class SearchDealsTool implements ReadTool, StaffOnlyTool
             'type' => 'object',
             'properties' => [
                 'query' => ['type' => 'string', 'maxLength' => DealReads::MAX_TEXT, 'description' => 'The text the title holds, without regard to case; left out for every deal.'],
-                'status' => ToolArguments::choiceSchema(['open', 'won', 'lost'], 'Only the deals of this status.'),
-                'stage_id' => ToolArguments::idSchema('Only the deals at this stage.'),
-                'owner_user_id' => ToolArguments::idSchema('Only the deals this owner or member works on.'),
-                'client_party_id' => ToolArguments::idSchema('Only the deals of this client.'),
+                'status' => ToolSchema::choiceSchema(['open', 'won', 'lost'], 'Only the deals of this status.'),
+                'stage_id' => ToolSchema::idSchema('Only the deals at this stage.'),
+                'owner_user_id' => ToolSchema::idSchema('Only the deals this owner or member works on.'),
+                'client_party_id' => ToolSchema::idSchema('Only the deals of this client.'),
             ],
             'additionalProperties' => false,
         ];
@@ -75,11 +75,11 @@ final readonly class SearchDealsTool implements ReadTool, StaffOnlyTool
     {
         try {
             $deals = $this->reads->deals(
-                ToolArguments::text($arguments, 'status'),
-                ToolArguments::text($arguments, 'stage_id'),
-                ToolArguments::text($arguments, 'owner_user_id'),
-                ToolArguments::text($arguments, 'client_party_id'),
-                ToolArguments::text($arguments, 'query'),
+                ToolSchema::text($arguments, 'status'),
+                ToolSchema::text($arguments, 'stage_id'),
+                ToolSchema::text($arguments, 'owner_user_id'),
+                ToolSchema::text($arguments, 'client_party_id'),
+                ToolSchema::text($arguments, 'query'),
             );
         } catch (SalesRefused $refused) {
             throw ToolRefusal::of($refused);

@@ -26,7 +26,7 @@ Each entry is a `VEVENT` with only `UID`, `DTSTAMP` (when the thing last changed
 
 ## Feeding the calendar
 
-A module implements `Foresi\Calendar\Contract\CalendarEntrySource` in its `Integration/Calendar/` and is tagged `app.calendar_entry_source` by autoconfiguration:
+A module implements `Foresi\Calendar\Contract\CalendarEntrySource` in its `Integration/Calendar/` and is tagged `foresi.calendar.entry_source` by autoconfiguration:
 
 ```php
 public function key(): string; // "activities.planned"

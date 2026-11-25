@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Calendar\Application;
 
 use Foresi\Calendar\Domain\CalendarFeed;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
     name: 'calendar.feeds.create',

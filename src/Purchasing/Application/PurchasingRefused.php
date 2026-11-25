@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application;
 
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What the received documents refuse over the API and MCP (ADR 0032): the

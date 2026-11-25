@@ -11,8 +11,8 @@ namespace Foresi\Instance\Infrastructure\Schedule;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\Schedule\Heartbeats;
 use Foresi\Instance\Application\Schedule\RunScheduledJob;
-use Foresi\Instance\Application\Schedule\ScheduledJob;
 use Foresi\Instance\Application\Schedule\ScheduledJobRuns;
+use Foresi\Instance\Contract\ScheduledJob;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -36,7 +36,7 @@ final readonly class ScheduleTickHandler
         private MessageBusInterface $bus,
         private ClockInterface $clock,
         private Heartbeats $heartbeats,
-        #[AutowireIterator('app.scheduled_job')]
+        #[AutowireIterator(ScheduledJob::TAG)]
         private iterable $jobs,
     ) {
     }

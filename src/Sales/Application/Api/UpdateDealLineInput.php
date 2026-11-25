@@ -10,9 +10,9 @@ namespace Foresi\Sales\Application\Api;
 
 use Foresi\Sales\Application\DealLineRules;
 use Foresi\Sales\Domain\DealLine;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Omitted;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A line of a deal changed over the API and MCP (ADR 0032): the fields given

@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface VatPaymentSource
 {
-    public const string TAG = 'app.vat_payment_source';
+    public const string TAG = 'foresi.vat.payment_source';
 
     /**
      * The movements booked between the two days, both included, that go to or

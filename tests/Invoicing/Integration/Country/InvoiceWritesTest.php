@@ -29,7 +29,7 @@ use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Invoicing\Application\Query\InvoicingReadTestCase;

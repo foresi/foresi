@@ -10,8 +10,8 @@ namespace Foresi\Purchasing\Infrastructure\Api\Operation;
 
 use Foresi\Purchasing\Application\Api\ReceivedDocumentWrites;
 use Foresi\Purchasing\Application\Api\TrashReceivedDocumentInput;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * received_documents.trash: the received document with its payments.

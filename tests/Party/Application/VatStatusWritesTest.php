@@ -13,7 +13,7 @@ use Foresi\Party\Contract\VatRegistration;
 use Foresi\Party\Contract\VatStretch;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Tests\Party\Support\VatStatusTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 

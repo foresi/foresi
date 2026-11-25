@@ -34,9 +34,9 @@ final readonly class ReadableEvents
         private EventFeed $feed,
         private EventCatalogue $catalogue,
         private EventView $view,
-        #[AutowireIterator('app.event_read_access')]
+        #[AutowireIterator(EventReadAccess::READ_ACCESS_TAG)]
         private iterable $access,
-        #[AutowireIterator('app.event_subject_access')]
+        #[AutowireIterator(EventSubjectAccess::SUBJECT_ACCESS_TAG)]
         private iterable $subjects = [],
     ) {
     }
