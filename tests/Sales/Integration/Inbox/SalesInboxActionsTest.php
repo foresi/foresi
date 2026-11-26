@@ -94,6 +94,9 @@ final class SalesInboxActionsTest extends ApiTestCase
         self::assertIsArray($deal);
         self::assertSame('Create deal', $deal['label']);
         self::assertSame(['inbox_item_id' => $itemId, 'title' => str_repeat('s', 200), 'mark_done' => true, 'client_party_id' => $this->customerId], $deal['prefill']);
+        $clients = $deal['choices']['client_party_id'] ?? null;
+        self::assertIsArray($clients);
+        self::assertSame([$this->customerId], array_keys($clients), 'The client is picked by name.');
     }
 
     public function testARefusedCreateLeavesNoOutputAndTheItemNew(): void
@@ -228,7 +231,7 @@ final class SalesInboxActionsTest extends ApiTestCase
     }
 
     /**
-     * @return array<string, array{label: string, prefill: array<mixed>}> by operation
+     * @return array<string, array{label: string, prefill: array<mixed>, choices: array<mixed>}> by operation
      */
     private function actions(string $itemId): array
     {
@@ -240,7 +243,9 @@ final class SalesInboxActionsTest extends ApiTestCase
             self::assertIsString($action['operation']);
             self::assertIsString($action['label']);
             self::assertIsArray($action['prefill']);
-            $actions[$action['operation']] = ['label' => $action['label'], 'prefill' => $action['prefill']];
+            $choices = $action['choices'] ?? [];
+            self::assertIsArray($choices);
+            $actions[$action['operation']] = ['label' => $action['label'], 'prefill' => $action['prefill'], 'choices' => $choices];
         }
 
         return $actions;
