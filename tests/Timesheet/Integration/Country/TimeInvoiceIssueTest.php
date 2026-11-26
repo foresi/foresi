@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Timesheet\Integration\Country;
 
-use Foresi\Invoicing\Application\BilledLine;
 use Foresi\Invoicing\Application\BilledWork;
-use Foresi\Invoicing\Application\BilledWorkDraft;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Contract\BilledLine;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
 use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
@@ -40,13 +40,13 @@ use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
 use Foresi\Timesheet\Application\ManageTime;
 use Foresi\Timesheet\Application\ProjectTimeSettings;
-use Foresi\Timesheet\Application\TimeInvoicing;
-use Foresi\Timesheet\Application\TimeInvoicingRefused;
 use Foresi\Timesheet\Application\TimeRefused;
-use Foresi\Timesheet\Application\TimeScope;
-use Foresi\Timesheet\Domain\LineGrouping;
 use Foresi\Timesheet\Domain\TimeEntry;
-use Foresi\Timesheet\Domain\TimeRounding;
+use Foresi\Timesheet\Integration\Invoicing\LineGrouping;
+use Foresi\Timesheet\Integration\Invoicing\TimeInvoicing;
+use Foresi\Timesheet\Integration\Invoicing\TimeInvoicingRefused;
+use Foresi\Timesheet\Integration\Invoicing\TimeRounding;
+use Foresi\Timesheet\Integration\Invoicing\TimeScope;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
@@ -138,7 +138,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
                 self::assertSame('time_invoiced', $refused->reason);
             }
         }
-        self::assertSame([$planning], array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())));
+        self::assertSame([$planning], array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())));
     }
 
     public function testTheFirstOfTwoCopiesOfARowBillsItsTime(): void
@@ -206,7 +206,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
         $refusal = function (): string {
             try {
-                $this->invoicing->lines($this->scope(), array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())), LineGrouping::Task, TimeRounding::None);
+                $this->invoicing->lines($this->scope(), array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope())), LineGrouping::Task, TimeRounding::None);
             } catch (TimeInvoicingRefused $refused) {
                 return $refused->reason;
             }
@@ -226,7 +226,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         $this->time->log($other->id(), null, new \DateTimeImmutable('2026-10-08'), 30, billable: true);
         $mixed = new TimeScope($this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
         try {
-            $this->invoicing->lines($mixed, array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($mixed)), LineGrouping::Task, TimeRounding::None);
+            $this->invoicing->lines($mixed, array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($mixed)), LineGrouping::Task, TimeRounding::None);
             self::fail('A mix of currencies is refused.');
         } catch (TimeInvoicingRefused $refused) {
             self::assertSame('currencies', $refused->reason);
@@ -245,7 +245,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
     private function chosen(TimeRounding $rounding): BilledWorkDraft
     {
         $scope = $this->scope();
-        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
+        $ids = array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
         $reference = $this->invoicing->select($scope, $this->invoicing->lines($scope, $ids, LineGrouping::Task, $rounding), 'hod', 'j. n. Y');
 
         return $this->billed->draft($reference) ?? throw new \LogicException('The time chosen waits.');

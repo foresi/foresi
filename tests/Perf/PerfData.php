@@ -62,6 +62,7 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Domain\ProjectTimeFields;
 use Foresi\Timesheet\Domain\TimeEntry;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
@@ -416,7 +417,10 @@ final class PerfData
         $membershipId = $membership->id();
         $billable = [];
         foreach ($this->em->getRepository(Project::class)->findAll() as $one) {
-            $billable[$one->id()] = $one->billsTimeByDefault();
+            $billable[$one->id()] = false;
+        }
+        foreach ($this->em->getRepository(ProjectTimeFields::class)->findAll() as $fields) {
+            $billable[$fields->projectId()] = $fields->billsByDefault();
         }
         $this->em->clear();
         $entries = [];

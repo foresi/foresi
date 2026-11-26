@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * Port: the numbers of the invoices that billed time, which a line of time
  * names instead of its edit and delete actions, and where it links them. The
  * time screens ask it and know nothing of invoices; the billing of time
- * (DoctrineInvoiceNumbers) answers it.
+ * (Integration/Invoicing/InvoicingInvoiceNumbers) answers it.
  */
 #[AutoconfigureTag(self::TAG)]
 interface InvoiceNumbers

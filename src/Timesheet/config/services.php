@@ -11,17 +11,13 @@ use Foresi\Timesheet\Application\ProjectBudgetReads;
 use Foresi\Timesheet\Application\ProjectBudgets;
 use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Timesheet\Application\PurgeTrashedTime;
-use Foresi\Timesheet\Application\RateResolver;
 use Foresi\Timesheet\Application\TimeQueries;
-use Foresi\Timesheet\Contract\ProjectRateSource;
 use Foresi\Timesheet\Contract\TimeTotals;
 use Foresi\Timesheet\Infrastructure\CollectedInvoiceNumbers;
 use Foresi\Timesheet\Infrastructure\Directory\LoggedTimeTotals;
 use Foresi\Timesheet\Infrastructure\Doctrine\DoctrineTimeQueries;
 use Foresi\Timesheet\Infrastructure\InvoiceNumbers;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /*
  * The services of the Timesheet module, loaded by Foresi\Timesheet\TimesheetBundle.
@@ -32,10 +28,8 @@ return static function (ContainerConfigurator $container): void {
     $services->load('Foresi\\Timesheet\\', '../')
         ->exclude(['../config/', '../Integration/', '../migrations/', '../TimesheetBundle.php']);
 
-    // A line of invoiced time names its invoice.
+    // A line of invoiced time names its invoice, when the billing of time (Integration/Invoicing/) is loaded.
     $services->alias(InvoiceNumbers::class, CollectedInvoiceNumbers::class);
-    // The rates other modules set for a project, asked before the project's own (Sales: an hourly deal line).
-    $services->set(RateResolver::class)->arg('$sources', tagged_iterator(ProjectRateSource::TAG));
 
     if ('test' === $container->env()) {
         // The tests drive the time services directly.

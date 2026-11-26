@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Timesheet\Integration\Country;
 
-use Foresi\Invoicing\Application\BilledLine;
 use Foresi\Invoicing\Application\BilledWork;
-use Foresi\Invoicing\Application\BilledWorkDraft;
 use Foresi\Invoicing\Application\EditInvoice;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Contract\BilledLine;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
 use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
@@ -39,11 +39,11 @@ use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
 use Foresi\Timesheet\Application\ManageTime;
 use Foresi\Timesheet\Application\ProjectTimeSettings;
-use Foresi\Timesheet\Application\TimeInvoicing;
-use Foresi\Timesheet\Application\TimeScope;
-use Foresi\Timesheet\Domain\LineGrouping;
 use Foresi\Timesheet\Domain\TimeEntry;
-use Foresi\Timesheet\Domain\TimeRounding;
+use Foresi\Timesheet\Integration\Invoicing\LineGrouping;
+use Foresi\Timesheet\Integration\Invoicing\TimeInvoicing;
+use Foresi\Timesheet\Integration\Invoicing\TimeRounding;
+use Foresi\Timesheet\Integration\Invoicing\TimeScope;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
 use Symfony\Component\HttpFoundation\Request;
@@ -248,7 +248,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
      */
     private function candidateIds(): array
     {
-        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope()));
+        $ids = array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope()));
         sort($ids);
 
         return $ids;
@@ -265,7 +265,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
     private function chosen(): BilledWorkDraft
     {
         $scope = $this->scope();
-        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
+        $ids = array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
         $reference = $this->invoicing->select($scope, $this->invoicing->lines($scope, $ids, LineGrouping::Task, TimeRounding::None), 'hod', 'j. n. Y');
 
         return $this->billed->draft($reference) ?? throw new \LogicException('The time chosen waits.');

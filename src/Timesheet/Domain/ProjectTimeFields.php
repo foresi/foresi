@@ -18,7 +18,9 @@ use Foresi\Work\Contract\Field\ProjectExtension;
  * custom fields are: its settings, its list, the REST API and MCP as
  * timesheet_billable_by_default. Time logged on the project is billable unless
  * said otherwise when the field is set (Kimai, Toggl); each entry may differ
- * from it. Its id is the project's id.
+ * from it. A new project bills by default when it has a client (Harvest),
+ * unless it is created with the field (ProjectTimeFieldDefaults). Its id is the
+ * project's id.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project_time_field')]
@@ -32,7 +34,9 @@ class ProjectTimeFields implements ProjectExtension
         #[ORM\Id]
         #[ORM\Column(type: 'guid')]
         private readonly string $id,
+        ?bool $billableByDefault = null,
     ) {
+        $this->billableByDefault = $billableByDefault;
     }
 
     public function projectId(): string

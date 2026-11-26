@@ -363,6 +363,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Timesheet\\Integration\\Inbox\\.*
+    - name: timesheet_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Timesheet\\Integration\\Invoicing\\.*
     - name: ui
       collectors:
         - type: classLike
@@ -862,7 +866,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing_contract
       - party
       - party_contract
       - shared
@@ -1539,8 +1542,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing
-      - invoicing_contract
       - party
       - party_contract
       - shared
@@ -1557,7 +1558,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing_contract
       - party
       - party_contract
       - shared
@@ -1572,8 +1572,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing
-      - invoicing_contract
       - party
       - party_contract
       - shared
@@ -1593,7 +1591,23 @@ deptrac:
       - inbox_contract
       - instance
       - instance_contract
-      - invoicing
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - timesheet
+      - timesheet_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
+    timesheet_integration_invoicing:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - party
       - party_contract

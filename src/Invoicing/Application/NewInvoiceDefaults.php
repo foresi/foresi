@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\BilledLine;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\InvoicingDefaults;

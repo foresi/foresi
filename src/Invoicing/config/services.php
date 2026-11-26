@@ -60,6 +60,7 @@ use Foresi\Invoicing\Application\SentFiles;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
+use Foresi\Invoicing\Contract\InvoiceNumbers;
 use Foresi\Invoicing\Contract\InvoicingCountry;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWork;
@@ -67,6 +68,7 @@ use Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease;
 use Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceNumbers;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore;
@@ -126,8 +128,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // A country module plugs into invoicing with its rules.
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    $builder->registerForAutoconfiguration(BilledWork::class)->addTag(BilledWork::TAG);
-    $builder->registerForAutoconfiguration(BilledWorkRelease::class)->addTag(BilledWorkRelease::TAG);
+    // Foresi\Invoicing\Contract\BilledWork and BilledWorkRelease are tagged by their own attribute.
     $builder->registerForAutoconfiguration(PaymentSourceRelease::class)->addTag(PaymentSourceRelease::TAG);
 
     $services->set(InvoicingCountries::class)
@@ -138,6 +139,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // Mail goes out through the firm's own server. Named here so the test and e2e
     // environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
     $services->alias(PartyInvoicingDefaults::class, DoctrinePartyInvoicingDefaults::class);
+    $services->alias(InvoiceNumbers::class, DoctrineInvoiceNumbers::class);
     $services->alias(MailGateway::class, SymfonyMailGateway::class);
     $services->alias(MailServers::class, DoctrineMailServers::class);
     $services->alias(MailSecrets::class, SodiumMailSecrets::class);

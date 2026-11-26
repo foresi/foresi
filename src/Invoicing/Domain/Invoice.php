@@ -11,6 +11,7 @@ namespace Foresi\Invoicing\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
@@ -67,7 +68,7 @@ class Invoice implements Audited
 {
     /** The longest format of a series with the longest sequence it can hold. */
     public const int MAX_NUMBER_LENGTH = 80;
-    public const int MAX_LINES = 100;
+    public const int MAX_LINES = BilledWorkDraft::MAX_LINES;
     /** Twelve digits before the decimal point, which is what a printed document has room for. */
     public const int MAX_AMOUNT_MINOR = 99_999_999_999_999;
     public const int MAX_ORDER_NUMBER_LENGTH = 64;
