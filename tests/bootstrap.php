@@ -30,3 +30,8 @@ if (false !== $token && '' !== $token && \is_string($url) && !str_starts_with($u
 if (true === (bool) ($_SERVER['APP_DEBUG'] ?? false)) {
     umask(0000);
 }
+
+// Doctrine ORM 3.8 deprecates building the schema without the DBAL schema editor API. Turning
+// the editor on (doctrine.orm.use_schema_editor_api) changes what the schema tool finds to
+// update, which the migration rebase relies on, so the switch waits for its own change.
+Doctrine\Deprecations\Deprecation::ignoreDeprecations('https://github.com/doctrine/orm/pull/12780');
