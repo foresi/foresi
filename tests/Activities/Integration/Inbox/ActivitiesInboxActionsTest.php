@@ -19,6 +19,7 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\McpToolCalls;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
@@ -27,6 +28,8 @@ use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
  */
 final class ActivitiesInboxActionsTest extends ApiTestCase
 {
+    use McpToolCalls;
+
     private string $address;
     private string $agent;
     private string $callTypeId;
@@ -68,6 +71,22 @@ final class ActivitiesInboxActionsTest extends ApiTestCase
         self::assertEqualsCanonicalizing([['contact', $this->customerId], ['activity', $activityId]], $outputs);
         self::assertSame($this->linksOf($emailActivityId), $this->linksOf($activityId));
         self::assertSame([['contact', $this->customerId]], $this->linksOf($activityId));
+    }
+
+    public function testLogActivityRunsOverMcp(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $call = $this->callTool($this->agent, 'foresi_log_activity_from_email', ['inbox_item_id' => $itemId, 'type_id' => $this->callTypeId, 'subject' => 'Call about the offer', 'done' => true]);
+
+        self::assertFalse($call['isError'] ?? null);
+        $activityId = ((array) ((array) ($call['structuredContent'] ?? []))['data'])['id'] ?? null;
+        self::assertIsString($activityId);
+        self::assertSame([['contact', $this->customerId]], $this->linksOf($activityId));
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertContains(['activity', $activityId], array_map(static fn (mixed $output): array => \is_array($output) ? [$output['kind'], $output['id']] : [], (array) $this->at('data', 'outputs')));
     }
 
     public function testMarkDoneCanBeUntickedAndTheContactOfTheItemIsLinked(): void

@@ -24,6 +24,7 @@ use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\Party;
 use Foresi\Sales\Integration\Inbox\OpenDealSuggester;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\McpToolCalls;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
@@ -35,6 +36,8 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 final class SalesInboxActionsTest extends ApiTestCase
 {
+    use McpToolCalls;
+
     private string $address;
     private string $agent;
     private string $stageId;
@@ -71,6 +74,21 @@ final class SalesInboxActionsTest extends ApiTestCase
         $activityId = $this->at('data', 'email_activity_id');
         self::assertIsString($activityId);
         self::assertEqualsCanonicalizing([['contact', $this->customerId], ['deal', $dealId]], $this->linksOf($activityId));
+    }
+
+    public function testCreateDealRunsOverMcp(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $call = $this->callTool($this->agent, 'foresi_create_deal_from_email', ['inbox_item_id' => $itemId, 'title' => 'Office offer', 'client_party_id' => $this->customerId]);
+
+        self::assertFalse($call['isError'] ?? null);
+        $dealId = ((array) ((array) ($call['structuredContent'] ?? []))['data'])['id'] ?? null;
+        self::assertIsString($dealId);
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertSame([['deal', $dealId]], array_map(static fn (mixed $output): array => \is_array($output) ? [$output['kind'], $output['id']] : [], (array) $this->at('data', 'outputs')));
     }
 
     public function testCreateDealIsNotOfferedForAnUnmatchedItem(): void
