@@ -171,6 +171,15 @@ final class DataTable
      * The width of a truncating column: an even share of what the columns that keep their
      * width leave. With no width of its own it could not be narrower than its text.
      */
+    /**
+     * The class of a cell edited in the row: its trigger (InlineEdit::TRIGGER, or a compact
+     * PersonPicker's) is pulled out by its padding and border, so its value starts where its header does.
+     */
+    public function editInset(): string
+    {
+        return '[&_[data-inline-edit-trigger]]:-mx-[7px] [&_[data-person-picker-trigger]]:-mx-[7px]';
+    }
+
     /** The height class of a body row. */
     public function rowHeight(): string
     {
