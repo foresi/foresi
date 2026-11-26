@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\Field\FieldRecords;
+use Foresi\Shared\Application\Field\VisibleFields;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Shared\Domain\View\SavedView;
@@ -24,7 +26,9 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  * - anyone of the staff may make a view, private or shared;
  * - a shared view is changed or deleted by its creator or an owner;
  * - a view a module ships is changed or hidden by owners only and never deleted;
- *   "restore defaults" brings it back to what the module declares.
+ *   "restore defaults" brings it back to what the module declares;
+ * - a view whose filter names a custom field the person does not see, such as one
+ *   with api: false through an API token, is no view of theirs (ADR 0045).
  *
  * A view a module ships that app:views:sync has not stored yet is stored here
  * the first time its list is read, so it has an id to be named by. Every write
@@ -40,6 +44,8 @@ final readonly class SavedViews
         /** @var iterable<ListColumnCatalog> */
         #[AutowireIterator(ListColumnCatalog::TAG)]
         private iterable $catalogs = [],
+        private ?FieldRecords $records = null,
+        private ?VisibleFields $visible = null,
     ) {
     }
 
@@ -344,7 +350,22 @@ final readonly class SavedViews
 
     private function sees(SavedView $view, string $user): bool
     {
-        return Visibility::Shared === $view->visibility() || $view->ownerId() === $user;
+        return (Visibility::Shared === $view->visibility() || $view->ownerId() === $user) && !$this->namesHidden($view);
+    }
+
+    /**
+     * Whether the view filters by a custom field the current actor does not see.
+     */
+    private function namesHidden(SavedView $view): bool
+    {
+        $found = $this->records?->ofList($view->listKey());
+        $hidden = null === $found ? [] : ($this->visible?->hidden($found[0]->record()) ?? []);
+        if ([] === $hidden) {
+            return false;
+        }
+        $conditions = $view->filters()['conditions'] ?? [];
+
+        return array_any(\is_array($conditions) ? $conditions : [], static fn (mixed $condition): bool => \is_array($condition) && \in_array($condition['field'] ?? null, $hidden, true));
     }
 
     private function shipped(string $systemKey): ?SavedView

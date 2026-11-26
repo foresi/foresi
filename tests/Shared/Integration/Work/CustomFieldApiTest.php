@@ -18,13 +18,18 @@ use Foresi\Identity\Domain\ApiTokenSecret;
 use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
+use Foresi\Party\Application\View\ContactLists;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Party;
 use Foresi\Sales\Contract\Field\DealExtension;
+use Foresi\Shared\Application\View\CreateViewInput;
+use Foresi\Shared\Application\View\ListDefinitions;
+use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageSharing;
+use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
 use Psr\Clock\ClockInterface;
@@ -35,7 +40,8 @@ use Psr\Clock\ClockInterface;
  * carries custom_fields by key, a create sets them, an update changes the keys it
  * sends, and a refusal names custom_fields.<key> with its reason. A field off the API
  * is left out and refused, a guest sees only the fields open to guests, and the
- * definitions are listed and described in the schemas.
+ * definitions are listed and described in the schemas. A field hidden from the actor
+ * is no filter of theirs either: not of a list, a search tool or a saved view.
  */
 final class CustomFieldApiTest extends WorkApiTestCase
 {
@@ -363,6 +369,70 @@ final class CustomFieldApiTest extends WorkApiTestCase
         $refused = $this->mcpRequest('tools/call', ['name' => 'foresi_update_task', 'arguments' => ['task_id' => $task, 'custom_fields' => ['test_fields_code' => 'G-1']]]);
         self::assertStringContainsString('test_fields_code', $this->text($refused, 'error', 'message'));
         self::assertSame(['test_fields_size'], array_column($this->listAt($this->mcpTool('foresi_list_fields', ['record' => 'task']), 'structuredContent', 'data', 'items'), 'key'));
+    }
+
+    public function testAFieldOffTheApiIsNoFilterOfTheListsTheSearchToolsOrTheViews(): void
+    {
+        $this->lend(ContactExtension::RECORD, offApi: ['test_fields_code']);
+        $code = ['field' => 'test_fields_code', 'op' => 'is', 'value' => 'A-1'];
+        $size = ['field' => 'test_fields_size', 'op' => 'is', 'value' => 'large'];
+        // On the screens the staff filter by it, and the list built for them in this kernel keeps it.
+        $view = $this->as(fn (): string => $this->service(SavedViews::class)->create(new CreateViewInput(ContactLists::KEY, 'Code A-1', 'shared', [$code]))->id());
+        self::assertArrayHasKey('test_fields_code', $this->as(fn (): array => $this->service(ContactLists::class)->list()->fields));
+        $this->writer = $this->issued([ApiScope::from('contacts:read'), ApiScope::from('views:write')]);
+
+        $this->get('/api/v1/contacts', ['filter' => json_encode(['conditions' => [$code]], \JSON_THROW_ON_ERROR)], $this->writer);
+        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'filter.conditions[0].field']);
+        $this->get('/api/v1/contacts', ['filter' => json_encode(['conditions' => [$size]], \JSON_THROW_ON_ERROR)], $this->writer);
+        self::assertResponseIsSuccessful();
+        $refused = $this->mcpTool('foresi_search_contacts', ['filter' => ['conditions' => [$code]]]);
+        self::assertTrue($refused['isError'] ?? false);
+        self::assertStringContainsString('filter.conditions[0].field', json_encode($refused, \JSON_THROW_ON_ERROR));
+        self::assertFalse($this->mcpTool('foresi_search_contacts', ['filter' => ['conditions' => [$size]]])['isError'] ?? false);
+        $fields = array_column($this->listAt($this->mcpTool('foresi_list_lists', []), 'structuredContent', 'data', 'lists'), 'fields', 'key')[ContactLists::KEY] ?? null;
+        self::assertIsArray($fields);
+        self::assertNotContains('test_fields_code', array_column($fields, 'key'));
+        self::assertContains('test_fields_size', array_column($fields, 'key'));
+
+        // The staff's view that filters by it is no view of the token's.
+        $views = $this->mcpTool('foresi_list_views', ['list' => ContactLists::KEY]);
+        self::assertNotContains($view, array_column($this->listAt($views, 'structuredContent', 'data', 'views'), 'id'));
+        self::assertTrue($this->mcpTool('foresi_search_contacts', ['view_id' => $view])['isError'] ?? false);
+        // Nor does the token save a view by it, new or changed.
+        $created = $this->mcpTool('foresi_create_view', ['list_key' => ContactLists::KEY, 'name' => 'Code A-1', 'conditions' => [$code]]);
+        self::assertTrue($created['isError'] ?? false);
+        self::assertStringContainsString('test_fields_code', json_encode($created, \JSON_THROW_ON_ERROR));
+        $own = $this->mcpTool('foresi_create_view', ['list_key' => ContactLists::KEY, 'name' => 'Large', 'conditions' => [$size]]);
+        self::assertFalse($own['isError'] ?? false, json_encode($own, \JSON_THROW_ON_ERROR));
+        $changed = $this->mcpTool('foresi_update_view', ['view_id' => self::in($own, 'structuredContent', 'data', 'id'), 'conditions' => [$code]]);
+        self::assertTrue($changed['isError'] ?? false);
+        self::assertStringContainsString('test_fields_code', json_encode($changed, \JSON_THROW_ON_ERROR));
+
+        // The staff still filter by it after the token's requests in this kernel.
+        self::assertArrayHasKey('test_fields_code', $this->as(fn (): array => $this->service(ListDefinitions::class)->get(ContactLists::KEY)->fields));
+    }
+
+    public function testAGuestFiltersOnlyByTheFieldsOpenToGuests(): void
+    {
+        $this->lend(TaskExtension::RECORD);
+        $guest = $this->fixtures->user('guest@example.com');
+        $this->fixtures->join($guest, Role::Guest);
+        $keys = fn (): array => array_keys($this->service(ListDefinitions::class)->get(ProjectTaskLists::KEY)->fields);
+        $own = fn (): array => array_keys($this->service(ProjectTaskLists::class)->list()->fields);
+
+        $staff = $this->as($keys);
+        self::assertContains('test_fields_code', $staff);
+        self::assertContains('test_fields_size', $staff);
+        // The guest's filter sheet, built from the same list in the same kernel, has only the field open to guests.
+        foreach ([$this->as($keys, $guest), $this->as($own, $guest)] as $guests) {
+            self::assertContains('test_fields_size', $guests);
+            self::assertNotContains('test_fields_code', $guests);
+            self::assertNotContains('test_fields_tags', $guests);
+        }
+        self::assertSame($staff, $this->as($keys), 'The staff keep every field after a guest.');
+        // A task's sort over the API is one of the list's own, never a custom field.
+        $sorted = $this->mcpRequest('tools/call', ['name' => 'foresi_search_tasks', 'arguments' => ['sort' => 'test_fields_code']]);
+        self::assertSame('/sort', self::in($sorted, 'error', 'data', 'validation_errors', 0, 'pointer'));
     }
 
     /**

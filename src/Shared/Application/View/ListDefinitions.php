@@ -8,15 +8,17 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\View;
 
+use Foresi\Shared\Application\Field\VisibleFields;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
- * Every list the installed modules declare, by key.
+ * Every list the installed modules declare, by key. A list holds the custom fields the
+ * current actor sees, so they are kept by the actor's audience (VisibleFields).
  */
 final class ListDefinitions
 {
-    /** @var array<string, ListDefinition>|null */
-    private ?array $lists = null;
+    /** @var array<string, array<string, ListDefinition>> by audience, then by key */
+    private array $lists = [];
 
     /**
      * @param iterable<ListDefinitionSource> $sources
@@ -24,6 +26,7 @@ final class ListDefinitions
     public function __construct(
         #[AutowireIterator(ListDefinitionSource::TAG)]
         private readonly iterable $sources,
+        private readonly ?VisibleFields $visible = null,
     ) {
     }
 
@@ -32,19 +35,21 @@ final class ListDefinitions
      */
     public function all(): array
     {
-        if (null === $this->lists) {
-            $this->lists = [];
+        $audience = $this->visible?->audience() ?? '';
+        if (!isset($this->lists[$audience])) {
+            $lists = [];
             foreach ($this->sources as $source) {
                 foreach ($source->lists() as $list) {
-                    if (isset($this->lists[$list->key])) {
+                    if (isset($lists[$list->key])) {
                         throw new \LogicException(\sprintf('Two modules declare the list "%s".', $list->key));
                     }
-                    $this->lists[$list->key] = $list;
+                    $lists[$list->key] = $list;
                 }
             }
+            $this->lists[$audience] = $lists;
         }
 
-        return $this->lists;
+        return $this->lists[$audience];
     }
 
     public function get(string $key): ListDefinition
