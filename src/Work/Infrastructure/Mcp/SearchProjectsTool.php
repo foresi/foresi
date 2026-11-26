@@ -43,7 +43,7 @@ final readonly class SearchProjectsTool implements ReadTool
     {
         return 'Searches the projects the person sees, newest first; archived ones are left out unless archived is true. '
             .'view_id lists what a saved view of the list work.projects holds (it needs the views:read scope), and filter adds conditions in the format of foresi_list_lists. '
-            .'Returns {items, next_cursor, applied_view}: each project has its id, name, client {id, name}, visibility, workflow, open_tasks, nearest_due_on and whether it is archived. '
+            .'Returns {items, next_cursor, applied_view}: each project has its id, name, client {id, name}, visibility, workflow, open_tasks, nearest_due_on, whether it is archived, and custom_fields by key; a filterable custom field is a field of filter by its key (see foresi_list_fields). '
             .'When next_cursor is not null, more projects match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_get_project for its statuses and sections, which a new or changed task needs.';
     }

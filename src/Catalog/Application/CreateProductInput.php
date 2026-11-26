@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Application;
 
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Domain\Product;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
 
 /**
@@ -29,6 +32,9 @@ use Foresi\Shared\Contract\Operation\Operation;
 )]
 final readonly class CreateProductInput
 {
+    /**
+     * @param array<string, mixed>|Omitted $customFields
+     */
     public function __construct(
         #[Field('What the product is, such as "Roof audit".', maxLength: Product::MAX_NAME)]
         public string $name,
@@ -48,6 +54,9 @@ final readonly class CreateProductInput
         public ?int $cycles = null,
         #[Field('What the product holds, for the people who sell it.', maxLength: Product::MAX_DESCRIPTION)]
         public string $description = '',
+        #[Field('The custom fields by key, as foresi_list_fields lists them for products; required ones need a value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ProductExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

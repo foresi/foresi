@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Task;
 
 /**
@@ -33,7 +35,8 @@ use Foresi\Work\Domain\Task;
 final readonly class UpdateTaskInput
 {
     /**
-     * @param list<string>|Omitted $labelIds
+     * @param list<string>|Omitted         $labelIds
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('The id of the task.', format: 'uuid')]
@@ -54,6 +57,9 @@ final readonly class UpdateTaskInput
         public string|Omitted|null $sectionId = new Omitted(),
         #[Field('The labels of the task, by id; replaces those it has.', items: 'string')]
         public array|Omitted $labelIds = new Omitted(),
+        #[Field('The custom fields to change, by key, as foresi_list_fields lists them for tasks; null clears one, a field left out keeps its value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(TaskExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

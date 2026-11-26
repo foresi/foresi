@@ -10,12 +10,14 @@ namespace Foresi\Catalog\Infrastructure\Api\Operation;
 
 use Foresi\Catalog\Application\ProductWrites;
 use Foresi\Catalog\Application\UpdateProductInput;
+use Foresi\Catalog\Contract\Field\ProductExtension;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class UpdateProductHandler implements OperationHandler
 {
-    public function __construct(private ProductWrites $writes, private ProductAnswer $answer)
+    public function __construct(private ProductWrites $writes, private ProductAnswer $answer, private CustomFieldPayload $customFields)
     {
     }
 
@@ -28,6 +30,6 @@ final readonly class UpdateProductHandler implements OperationHandler
     {
         \assert($input instanceof UpdateProductInput);
 
-        return $this->answer->of($this->writes->update($input), 'Updated the product %s.');
+        return $this->answer->of($this->writes->update($input, $this->customFields->read(ProductExtension::RECORD, $input->customFields, false)), 'Updated the product %s.');
     }
 }

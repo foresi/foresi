@@ -42,7 +42,7 @@ final readonly class GetProjectTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns one project the person sees by its id, an archived one too: what foresi_search_projects returns for it, with its description, whether new time on it is billable, its statuses [{id, name, type, position}] in order and the sections [{id, name, position}] the person sees, and its time budget {hours, used_hours, left_hours, counting, estimate_hours} in hours, or null without one; left_hours is negative over budget, and counting says whether all time or only billable time uses it (foresi_get_project_budget has the changes). A task changes status by the id of one of these statuses: one of type done or closed completes it.';
+        return 'Returns one project the person sees by its id, an archived one too: what foresi_search_projects returns for it, with its description, whether new time on it is billable, its statuses [{id, name, type, position}] in order and the sections [{id, name, position}] the person sees, and its time budget {hours, used_hours, left_hours, counting, estimate_hours} in hours, or null without one; left_hours is negative over budget, and counting says whether all time or only billable time uses it (foresi_get_project_budget has the changes), and its custom_fields by key (see foresi_list_fields). A task changes status by the id of one of these statuses: one of type done or closed completes it.';
     }
 
     public function inputSchema(): array

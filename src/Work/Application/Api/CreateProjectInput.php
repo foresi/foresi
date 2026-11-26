@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
+use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\WorkflowTemplate;
 
@@ -29,6 +32,9 @@ use Foresi\Work\Domain\WorkflowTemplate;
 )]
 final readonly class CreateProjectInput
 {
+    /**
+     * @param array<string, mixed>|Omitted $customFields
+     */
     public function __construct(
         #[Field('The name of the project.', maxLength: Project::MAX_NAME_LENGTH)]
         public string $name,
@@ -38,6 +44,9 @@ final readonly class CreateProjectInput
         public string $workflow = WorkflowTemplate::Simple->value,
         #[Field('What it is about, in Markdown.')]
         public string $description = '',
+        #[Field('The custom fields by key, as foresi_list_fields lists them for projects; required ones need a value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ProjectExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

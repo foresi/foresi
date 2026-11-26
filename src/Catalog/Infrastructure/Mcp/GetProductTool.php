@@ -10,7 +10,9 @@ namespace Foresi\Catalog\Infrastructure\Mcp;
 
 use Foresi\Catalog\Application\CatalogRefused;
 use Foresi\Catalog\Application\ProductReads;
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Mcp\ReadTool;
 use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
 use Foresi\Shared\Contract\Mcp\ToolOutput;
@@ -22,7 +24,7 @@ use Foresi\Shared\Contract\Mcp\ToolSchema;
  */
 final readonly class GetProductTool implements ReadTool, StaffOnlyTool
 {
-    public function __construct(private ProductReads $products)
+    public function __construct(private ProductReads $products, private CustomFieldPayload $customFields)
     {
     }
 
@@ -43,7 +45,7 @@ final readonly class GetProductTool implements ReadTool, StaffOnlyTool
 
     public function description(): string
     {
-        return 'Returns one product of the catalog with its unit, unit_price (null when the price is agreed each time), billing_kind, the period of a recurring one (every interval recurrence_unit, cycles times or with no end when cycles is null) and whether it is archived. Find ids with foresi_search_products.';
+        return 'Returns one product of the catalog with its unit, unit_price (null when the price is agreed each time), billing_kind, the period of a recurring one (every interval recurrence_unit, cycles times or with no end when cycles is null) whether it is archived, and its custom_fields by key (see foresi_list_fields). Find ids with foresi_search_products.';
     }
 
     /**
@@ -72,6 +74,6 @@ final readonly class GetProductTool implements ReadTool, StaffOnlyTool
             throw ToolRefusal::of($refused);
         }
 
-        return new ToolOutput(CatalogJson::product($product), \sprintf('The product %s.', $product->name()));
+        return new ToolOutput($this->customFields->attachOne(ProductExtension::RECORD, CatalogJson::product($product)), \sprintf('The product %s.', $product->name()));
     }
 }

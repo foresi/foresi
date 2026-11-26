@@ -11,7 +11,9 @@ namespace Foresi\Party\Infrastructure\Api;
 use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Application\Query\ContactList;
 use Foresi\Party\Application\View\ContactLists;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Application\View\AppliedView;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Domain\View\SavedView;
@@ -35,7 +37,7 @@ final readonly class ContactApiController
     public const string LIST = 'api_v1_contacts';
     public const string SHOW = 'api_v1_contact';
 
-    public function __construct(private ScopeGuard $scope, private ContactList $list, private ContactDetails $details, private SavedViews $views, private ViewJson $json, private ContactLists $lists)
+    public function __construct(private ScopeGuard $scope, private ContactList $list, private ContactDetails $details, private SavedViews $views, private ViewJson $json, private ContactLists $lists, private CustomFieldPayload $customFields)
     {
     }
 
@@ -55,7 +57,7 @@ final readonly class ContactApiController
         $slice = $this->list->slice($query->filter($applied->filter), Cursor::decode($query->cursor), $query->limit);
 
         return new JsonResponse([
-            'data' => array_map(ContactJson::row(...), $slice->rows),
+            'data' => $this->customFields->attach(ContactExtension::RECORD, array_map(ContactJson::row(...), $slice->rows)),
             'next_cursor' => Cursor::next($slice->hasMore ? $slice->lastId() : null),
             'applied_view' => $applied->view instanceof SavedView ? $this->json->view($applied->view) : null,
         ]);
@@ -72,6 +74,6 @@ final readonly class ContactApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => ContactJson::detail($this->details->of($contactId))]);
+        return new JsonResponse(['data' => $this->customFields->attachOne(ContactExtension::RECORD, ContactJson::detail($this->details->of($contactId)))]);
     }
 }

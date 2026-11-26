@@ -33,8 +33,23 @@ final readonly class CustomFieldDocs implements DescriberInterface
             $schema = $this->schema->of($record, false);
             if ($schema['properties'] instanceof \stdClass) {
                 unset($schema['properties']);
+            } elseif (\is_array($schema['properties'])) {
+                $schema['properties'] = array_map(self::nullable(...), $schema['properties']);
             }
             Util::merge(Util::getSchema($api, CustomFieldSchema::component($record)), $schema, true);
         }
+    }
+
+    /**
+     * A property whose type is a list with null, as OpenAPI 3.0 writes it: its one type and nullable.
+     */
+    private static function nullable(mixed $property): mixed
+    {
+        if (!\is_array($property) || !\is_array($property['type'] ?? null) || !\in_array('null', $property['type'], true)) {
+            return $property;
+        }
+        $types = array_values(array_filter($property['type'], static fn (mixed $type): bool => 'null' !== $type));
+
+        return ['type' => 1 === \count($types) ? $types[0] : $types, 'nullable' => true] + $property;
     }
 }

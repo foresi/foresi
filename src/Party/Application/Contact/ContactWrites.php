@@ -27,6 +27,7 @@ use Foresi\Party\Application\UpdateParty;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
@@ -52,10 +53,13 @@ final readonly class ContactWrites
     }
 
     /**
+     * @param array<string, mixed>|null $customFields by key, as CustomFieldPayload::read() gives them; null when the caller offers none
+     *
      * @throws PartyNotAllowed
      * @throws PartyRefused
+     * @throws FieldRefused    nothing is stored
      */
-    public function create(CreateContactInput $input): string
+    public function create(CreateContactInput $input, ?array $customFields = null): string
     {
         // Asked first, so a guest learns nothing from a refusal of the rules or a duplicate.
         $this->access->denyUnlessMayChange();
@@ -78,15 +82,18 @@ final readonly class ContactWrites
         ))->orRefuse();
         $this->refuseDuplicates($parsed, null);
 
-        return $this->create->createFrom($parsed)->id();
+        return $this->create->createFrom(null === $customFields ? $parsed : $parsed->withCustomFields($customFields))->id();
     }
 
     /**
+     * @param array<string, mixed>|null $customFields the custom fields to change by key, as CustomFieldPayload::read() gives them; null to keep them
+     *
      * @throws PartyNotAllowed
      * @throws UnknownParty
      * @throws PartyRefused
+     * @throws FieldRefused    nothing is stored
      */
-    public function update(UpdateContactInput $input): string
+    public function update(UpdateContactInput $input, ?array $customFields = null): string
     {
         $party = $this->contacts->party($input->contactId);
         $address = $this->details->billingAddress($party)?->address();
@@ -120,7 +127,7 @@ final readonly class ContactWrites
         if (!$this->sameIdentifiers($party, $parsed)) {
             $this->refuseDuplicates($parsed, $party->id());
         }
-        $this->update->update($party, $parsed);
+        $this->update->update($party, null === $customFields ? $parsed : $parsed->withCustomFields($customFields));
 
         return $party->id();
     }
