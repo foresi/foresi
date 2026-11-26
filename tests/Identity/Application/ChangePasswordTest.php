@@ -126,6 +126,11 @@ final class ChangePasswordTest extends TestCase
                 return null;
             }
 
+            public function findByPendingEmailToken(string $tokenHash): ?User
+            {
+                return null;
+            }
+
             public function findById(string $id): ?User
             {
                 return $this->test->user($id);
