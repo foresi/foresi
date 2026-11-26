@@ -11,6 +11,7 @@ namespace Foresi\Identity\Infrastructure\Controller;
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Infrastructure\Security\RecoveryCodes;
+use Foresi\Identity\Infrastructure\Security\RequiresReauthentication;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Identity\Infrastructure\Security\TotpQrCode;
 use Foresi\Shared\Application\Sealer;
@@ -29,6 +30,8 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
  * Enrolment in two-factor sign-in: scan the QR code (or type the key) into an
  * authenticator app, confirm with one code, then note the recovery codes, shown
  * this once. The secret waits sealed in the session until the code confirms it.
+ * Both steps ask the person to confirm it is them first, unless they have just
+ * signed in: whoever finds a signed-in browser must not tie the account to their phone.
  */
 #[OpenToGuest]
 final class TwoFactorSetupController extends AbstractController
@@ -50,6 +53,7 @@ final class TwoFactorSetupController extends AbstractController
     }
 
     #[Route('/account/two-factor', name: self::SETUP_ROUTE, methods: ['GET', 'POST'])]
+    #[RequiresReauthentication(RequiresReauthentication::TWO_FACTOR)]
     public function setup(Request $request, #[CurrentUser] SecurityUser $securityUser): Response
     {
         if ($securityUser->hasTwoFactor()) {
@@ -91,6 +95,7 @@ final class TwoFactorSetupController extends AbstractController
      * The codes, once: the session forgets them as soon as they are shown.
      */
     #[Route('/account/two-factor/recovery-codes', name: self::RECOVERY_CODES_ROUTE, methods: ['GET'])]
+    #[RequiresReauthentication(RequiresReauthentication::TWO_FACTOR)]
     public function recoveryCodes(Request $request): Response
     {
         $codes = $request->getSession()->remove(self::NEW_RECOVERY_CODES);
