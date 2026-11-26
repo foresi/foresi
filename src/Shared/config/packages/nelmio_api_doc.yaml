@@ -475,6 +475,7 @@ nelmio_api_doc:
                     type: object
                     required: [project_id, hours, used_hours, left_hours, counting, estimate_hours, minutes, used_minutes, left_minutes, over_budget, estimate_minutes, changes]
                     properties:
+                        id: { type: string, format: uuid, description: 'The change made; only in the answer of an inbox action that adds one.' }
                         project_id: { type: string, format: uuid }
                         hours: { type: number, nullable: true, description: 'The budget, the sum of the changes; null without any.' }
                         used_hours: { type: number, description: 'Time logged on the project by anyone, not in the trash and not on a task in the trash; billable only when counting is billable.' }

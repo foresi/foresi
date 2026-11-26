@@ -11,6 +11,9 @@ namespace Foresi\Tests\Inbox\Application;
 use Foresi\Activities\Application\ActivityTargets;
 use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\Api\LinkItemInput;
+use Foresi\Inbox\Application\Api\MatchItemInput;
+use Foresi\Inbox\Application\Api\TrashItemInput;
+use Foresi\Inbox\Application\InboxRefused;
 use Foresi\Inbox\Contract\InboxAttachment;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
@@ -85,6 +88,64 @@ final class ItemsForOtherModulesTest extends InboxTestCase
         self::assertSame([], $view->threadItemIds);
         self::assertSame([$seen], array_map(static fn (InboxOutput $output): string => $output->recordId, $view->outputs));
         self::assertSame([0], array_keys($view->outputs));
+    }
+
+    public function testTheEmailActivityIsMadeOnceAndTheSameIdComesBack(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        self::assertNull($this->item($itemId)->emailActivityId());
+
+        $first = $this->items()->emailActivity($itemId);
+        $second = $this->items()->emailActivity($itemId);
+
+        self::assertSame($first, $second);
+        self::assertSame($first, $this->item($itemId)->emailActivityId());
+        self::assertEquals(1, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM activities_activity'));
+    }
+
+    public function testTheEmailActivityIsLinkedToTheMatchedContact(): void
+    {
+        $contactId = $this->contact('person', 'Client A', self::CLIENT);
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->writes()->match(new MatchItemInput($itemId, $contactId));
+
+        $activityId = $this->items()->emailActivity($itemId);
+
+        self::assertSame([['contact', $contactId]], array_map(static fn (array $link): array => [$link['kind'], $link['target_id']], $this->em->getConnection()->fetchAllAssociative('SELECT kind, target_id FROM activities_activity_link WHERE activity_id = ?', [$activityId])));
+    }
+
+    public function testAnotherPersonsItemHasNoEmailActivityToAsk(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->signIn($this->person('member@example.com', Role::Member));
+
+        try {
+            $this->items()->emailActivity($itemId);
+            self::fail('The item is not the member\'s.');
+        } catch (InboxRefused $refused) {
+            self::assertSame('not_found', $refused->reason());
+        }
+        self::assertNull($this->item($itemId)->emailActivityId());
+    }
+
+    public function testATrashedItemAndAnArchivedEmailTypeRefuseTheEmailActivity(): void
+    {
+        $trashed = $this->receive(InboxMail::plain($this->address, messageId: 'trashed@client-a.example.com'));
+        $this->writes()->trash(new TrashItemInput($trashed));
+        $plain = $this->receive(InboxMail::plain($this->address, messageId: 'plain@client-a.example.com'));
+        $this->em->getConnection()->executeStatement('UPDATE activities_type SET archived_at = ? WHERE type_key = ?', ['2026-11-24 10:00:00', 'email']);
+        $this->em->clear();
+
+        $reasons = [];
+        foreach ([$trashed, $plain] as $itemId) {
+            try {
+                $this->items()->emailActivity($itemId);
+            } catch (InboxRefused $refused) {
+                $reasons[] = $refused->reason();
+            }
+        }
+
+        self::assertSame(['item_trashed', 'email_activity_unavailable'], $reasons);
     }
 
     private function items(): InboxItems

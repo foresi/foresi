@@ -57,6 +57,15 @@ final readonly class DoctrineActivitiesStore implements ActivitiesStore
             ->getQuery()->getResult();
     }
 
+    public function hasLink(string $activityId, string $kind, string $id): bool
+    {
+        return (int) $this->em->createQueryBuilder()->select('COUNT(l.kind)')->from(ActivityLink::class, 'l')
+            ->join('l.activity', 'a')
+            ->where('a.id = :activity')->andWhere('a.trashedAt IS NULL')->andWhere('l.kind = :kind')->andWhere('l.targetId = :target')
+            ->setParameter('activity', $activityId)->setParameter('kind', $kind)->setParameter('target', $id)
+            ->getQuery()->getSingleScalarResult() > 0;
+    }
+
     public function plannedOf(string $ownerUserId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
         /* @var list<Activity> */
