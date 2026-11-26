@@ -15,6 +15,7 @@ use Foresi\Identity\Application\PasswordHashing;
 use Foresi\Identity\Application\PasswordRefused;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\User;
+use Foresi\Shared\Contract\RefusalKind;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
@@ -55,6 +56,7 @@ final class ChangePasswordTest extends TestCase
         yield 'wrong current password' => ['not-the-password', 'a long new passphrase', PasswordRefused::CURRENT_WRONG, PasswordRefused::CURRENT_FIELD];
         yield 'empty current password' => ['', 'a long new passphrase', PasswordRefused::CURRENT_WRONG, PasswordRefused::CURRENT_FIELD];
         yield 'too short' => [self::CURRENT, str_repeat('a', User::MIN_PASSWORD_LENGTH - 1), PasswordRefused::TOO_SHORT, PasswordRefused::NEW_FIELD];
+        yield 'too short in characters though long in bytes' => [self::CURRENT, str_repeat('é', User::MIN_PASSWORD_LENGTH - 1), PasswordRefused::TOO_SHORT, PasswordRefused::NEW_FIELD];
         yield 'too long' => [self::CURRENT, str_repeat('a', ChangePassword::MAX_LENGTH + 1), PasswordRefused::TOO_LONG, PasswordRefused::NEW_FIELD];
         yield 'compromised' => [self::CURRENT, 'password1234', PasswordRefused::COMPROMISED, PasswordRefused::NEW_FIELD];
     }
@@ -84,6 +86,31 @@ final class ChangePasswordTest extends TestCase
         $this->service()->change($this->user->id(), str_repeat('é', User::MIN_PASSWORD_LENGTH), str_repeat('a', ChangePassword::MAX_LENGTH));
 
         self::assertSame(2, $this->saved);
+    }
+
+    public function testAnUnknownPersonIsRefusedAsNotFound(): void
+    {
+        try {
+            $this->service()->change('no-such-id', self::CURRENT, 'a long new passphrase');
+            self::fail('The password was changed.');
+        } catch (PasswordRefused $refused) {
+            self::assertSame(RefusalKind::NotFound, $refused->kind());
+            self::assertNull($refused->field());
+            self::assertSame('The person does not exist.', $refused->getMessage());
+        }
+
+        self::assertSame(0, $this->saved);
+    }
+
+    public function testARefusalCarriesAMessageForThePerson(): void
+    {
+        try {
+            $this->service()->change($this->user->id(), 'not-the-password', 'a long new passphrase');
+            self::fail('The password was changed.');
+        } catch (PasswordRefused $refused) {
+            self::assertSame('The current password is not right.', $refused->getMessage());
+            self::assertSame(RefusalKind::Invalid, $refused->kind());
+        }
     }
 
     private function service(): ChangePassword
