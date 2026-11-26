@@ -102,7 +102,8 @@
             "symfony/flex": true,
             "symfony/runtime": true,
             "infection/extension-installer": true,
-            "phpstan/extension-installer": true
+            "phpstan/extension-installer": true,
+            "cyclonedx/cyclonedx-php-composer": true
         },
         "bump-after-update": true,
         "sort-packages": true
@@ -199,6 +200,7 @@
     },
     "require-dev": {
         "brianium/paratest": "^7.29",
+        "cyclonedx/cyclonedx-php-composer": "^6.2",
         "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "infection/infection": "^0.35.8",

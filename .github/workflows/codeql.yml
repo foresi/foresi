@@ -1,0 +1,52 @@
+name: CodeQL
+
+# Code scanning with CodeQL for the languages it supports here: the GitHub
+# Actions workflows and the JavaScript and TypeScript (Stimulus controllers,
+# end-to-end tests). CodeQL has no PHP support. Alerts appear under Security,
+# Code scanning; the job fails only when the analysis itself fails, and it is
+# not a required check. This replaces the default setup, which must stay off.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '41 4 * * 2'
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          # Third-party code checked in or installed is not ours to scan.
+          config: |
+            paths-ignore:
+              - vendor
+              - src/Ui/assets/icons
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          category: /language:${{ matrix.language }}

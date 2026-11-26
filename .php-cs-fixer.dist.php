@@ -20,7 +20,9 @@ return (new Config())
         '@Symfony' => true,
         'declare_strict_types' => true,
         'header_comment' => [
+            // REUSE-IgnoreStart
             'header' => 'SPDX-License-Identifier: AGPL-3.0-only',
+            // REUSE-IgnoreEnd
             'comment_type' => 'comment',
             'location' => 'after_open',
             'separate' => 'bottom',

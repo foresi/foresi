@@ -1,0 +1,112 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Writes the software bill of materials of a release, in CycloneDX 1.6 JSON.
+ *
+ *   bin/release-sbom SOURCE VERSION OUTPUT
+ *       SOURCE is a directory that holds the release's files (git archive of its tag),
+ *       VERSION its version without "v", OUTPUT the file to write (foresi-VERSION.cdx.json).
+ *
+ * The PHP part comes from SOURCE/composer.lock through cyclonedx/cyclonedx-php-composer, a
+ * development requirement of this checkout, without the development requirements of the
+ * release. Composer does not know the JavaScript that AssetMapper downloads, so the packages
+ * of SOURCE/importmap.php that name a version (they come from the npm registry through
+ * jsDelivr) are added as npm components. Entries with a path point into Composer packages,
+ * which the PHP part lists already.
+ */
+
+if (4 !== $argc) {
+    fwrite(STDERR, "Usage: bin/release-sbom SOURCE VERSION OUTPUT\n");
+    exit(2);
+}
+[, $source, $version, $output] = $argv;
+$source = rtrim($source, '/');
+if (!is_file($source.'/composer.lock') || !is_file($source.'/importmap.php')) {
+    fwrite(STDERR, "$source holds no composer.lock and importmap.php.\n");
+    exit(2);
+}
+if (1 !== preg_match('/^\d+\.\d+\.\d+$/', $version)) {
+    fwrite(STDERR, "The version must look like 1.2.3, not $version.\n");
+    exit(2);
+}
+
+$composer = getenv('COMPOSER_BINARY') ?: 'composer';
+$command = [
+    $composer, 'CycloneDX:make-sbom', '--no-interaction',
+    '--working-dir='.dirname(__DIR__),
+    '--output-format=JSON', '--spec-version=1.6', '--omit=dev', '--omit=plugin',
+    '--output-reproducible', '--validate', '--mc-version='.$version, '--output-file=-',
+    $source.'/composer.json',
+];
+$process = proc_open($command, [1 => ['pipe', 'w'], 2 => STDERR], $pipes);
+if (!is_resource($process)) {
+    fwrite(STDERR, "Could not start Composer.\n");
+    exit(1);
+}
+$json = stream_get_contents($pipes[1]);
+fclose($pipes[1]);
+if (0 !== proc_close($process) || false === $json) {
+    fwrite(STDERR, "CycloneDX:make-sbom failed.\n");
+    exit(1);
+}
+
+/** @var array{components?: list<array<string, mixed>>, dependencies?: list<array{ref: string, dependsOn?: list<string>}>, metadata: array{component: array{'bom-ref': string}}} $bom */
+$bom = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+/** @var array<string, array{version?: string, path?: string}> $importmap */
+$importmap = require $source.'/importmap.php';
+$added = [];
+foreach ($importmap as $name => $entry) {
+    if (!isset($entry['version'])) {
+        continue;
+    }
+    $purl = 'pkg:npm/'.str_replace('@', '%40', $name).'@'.rawurlencode($entry['version']);
+    $component = [
+        'bom-ref' => $purl,
+        'type' => 'library',
+        'name' => $name,
+        'version' => $entry['version'],
+        'purl' => $purl,
+        'description' => 'JavaScript module of the importmap (Symfony AssetMapper), downloaded from jsDelivr.',
+    ];
+    if (str_starts_with($name, '@')) {
+        [$group, $short] = explode('/', $name, 2);
+        $component['group'] = $group;
+        $component['name'] = $short;
+    }
+    $bom['components'][] = $component;
+    $added[] = $purl;
+}
+
+// The application depends directly on every importmap package.
+$root = $bom['metadata']['component']['bom-ref'];
+$found = false;
+foreach ($bom['dependencies'] ?? [] as $i => $dependency) {
+    if ($dependency['ref'] === $root) {
+        $bom['dependencies'][$i]['dependsOn'] = [...$dependency['dependsOn'] ?? [], ...$added];
+        $found = true;
+    }
+}
+if (!$found) {
+    $bom['dependencies'][] = ['ref' => $root, 'dependsOn' => $added];
+}
+foreach ($added as $purl) {
+    $bom['dependencies'][] = ['ref' => $purl];
+}
+
+$json = json_encode($bom, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)."\n";
+
+// The added components must keep the document valid against the CycloneDX 1.6 schema.
+require dirname(__DIR__).'/vendor/autoload.php';
+$error = new CycloneDX\Core\Validation\Validators\JsonStrictValidator(CycloneDX\Core\Spec\Version::v1dot6)->validateString($json);
+if (null !== $error) {
+    fwrite(STDERR, 'The SBOM is not valid CycloneDX 1.6: '.$error->getMessage()."\n");
+    exit(1);
+}
+
+file_put_contents($output, $json);
+fwrite(STDERR, sprintf("Wrote %s: %d components, %d of them from the importmap.\n", $output, count($bom['components'] ?? []), count($added)));
