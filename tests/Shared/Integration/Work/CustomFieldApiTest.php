@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Shared\Infrastructure\Field;
+namespace Foresi\Tests\Shared\Integration\Work;
 
 use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;

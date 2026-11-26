@@ -28,7 +28,7 @@ final readonly class DiskInboundFiles implements InboundFiles
     {
         $key = $this->key($messageId);
         $directory = $this->root;
-        if (!is_dir($directory) && !mkdir($directory, 0o700, true) && !is_dir($directory)) {
+        if (!is_dir($directory) && !@mkdir($directory, 0o700, true) && !is_dir($directory)) {
             throw new \RuntimeException('The directory of inbound mail cannot be created.');
         }
         // A directory that already exists may have been created with wider permissions. Best effort, as
