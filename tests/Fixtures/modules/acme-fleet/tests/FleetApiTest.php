@@ -10,8 +10,11 @@ namespace Acme\Fleet\Tests;
 
 use Acme\Fleet\Domain\Vehicle;
 use Doctrine\DBAL\Connection;
+use Foresi\Events\Application\RelayEvents;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * The operation over REST and MCP, the read tool, the event and the setting of
@@ -36,6 +39,20 @@ final class FleetApiTest extends ApiTestCase
         self::assertSame(['Delivery van', '1AB 2345', $this->customerId], [$this->at('data', 'name'), $this->at('data', 'plate'), $this->at('data', 'driver_contact_id')]);
         $recorded = self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM event_log WHERE name = ? AND subject_id = ?', ['acme-fleet.vehicle.added', $this->at('data', 'id')]);
         self::assertSame(1, (int) $recorded);
+        $relay = self::getContainer()->get('messenger.transport.events');
+        self::assertInstanceOf(InMemoryTransport::class, $relay);
+        self::assertContainsOnlyInstancesOf(RelayEvents::class, array_map(static fn (Envelope $sent): object => $sent->getMessage(), $relay->getSent()));
+        self::assertNotEmpty($relay->getSent(), 'The unit of work hands the event to the relay at once, without waiting for the sweep.');
+    }
+
+    public function testARefusedAddLeavesTheEntityManagerUsable(): void
+    {
+        $this->send('POST', '/api/v1/acme-fleet/vehicles', ['name' => 'Delivery van', 'plate' => '1AB 2345']);
+        $this->send('POST', '/api/v1/acme-fleet/vehicles', ['name' => 'Another van', 'plate' => '1AB 2345']);
+
+        $this->assertProblem(409, 'plate_taken');
+        self::assertTrue($this->em()->isOpen());
+        self::assertCount(1, $this->em()->getRepository(Vehicle::class)->findAll());
     }
 
     public function testTheToolsAreNamedAfterTheModule(): void

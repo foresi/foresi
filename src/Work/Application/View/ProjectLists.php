@@ -27,7 +27,8 @@ use Foresi\Work\Domain\ProjectVisibility;
  * list's All, and shows the projects the Active tab showed, so ?tab=active opens it.
  *
  * The name is a filterable attribute of the list's data source (DS1); the archive, the
- * client, the visibility and billable are the module's own fields.
+ * client, the visibility and billable are the module's own fields, and so are the task
+ * counts and the next due date, read from the unfinished tasks the person sees.
  */
 final class ProjectLists implements ListDefinitionSource
 {
@@ -36,6 +37,13 @@ final class ProjectLists implements ListDefinitionSource
     public const string CLIENT = 'client';
     public const string VISIBILITY = 'visibility';
     public const string BILLABLE = 'billable';
+    public const string OPEN_TASKS = 'open_tasks';
+    public const string OVERDUE_TASKS = 'overdue_tasks';
+    public const string UNASSIGNED_TASKS = 'unassigned_tasks';
+    public const string NEXT_DUE = 'next_due';
+
+    /** A count is never empty: it compares alone. */
+    private const array COUNT_OPERATORS = ['eq', 'ne', 'lt', 'le', 'gt', 'ge', 'between'];
 
     /** What a client reference points to: the builder picks one with the contact picker. */
     public const string CONTACT = 'contact';
@@ -68,6 +76,10 @@ final class ProjectLists implements ListDefinitionSource
             new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT),
             new Field(self::VISIBILITY, FieldType::Enum, 'work.projects.field.visibility', options: $visibilities, optionLabels: array_combine($visibilities, array_map(static fn (string $value): string => 'work.sharing.visibility.'.$value, $visibilities))),
             new Field(self::BILLABLE, FieldType::Boolean, 'work.projects.field.billable'),
+            new Field(self::OPEN_TASKS, FieldType::Number, 'work.projects.field.open_tasks', self::COUNT_OPERATORS),
+            new Field(self::OVERDUE_TASKS, FieldType::Number, 'work.projects.field.overdue_tasks', self::COUNT_OPERATORS),
+            new Field(self::UNASSIGNED_TASKS, FieldType::Number, 'work.projects.field.unassigned_tasks', self::COUNT_OPERATORS),
+            new Field(self::NEXT_DUE, FieldType::Date, 'work.projects.field.next_due'),
         ];
     }
 

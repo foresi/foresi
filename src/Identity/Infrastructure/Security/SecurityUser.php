@@ -13,6 +13,7 @@ use Scheb\TwoFactorBundle\Model\Totp\TotpConfiguration;
 use Scheb\TwoFactorBundle\Model\Totp\TotpConfigurationInterface;
 use Scheb\TwoFactorBundle\Model\Totp\TwoFactorInterface;
 use Scheb\TwoFactorBundle\Model\TrustedDeviceInterface;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -20,8 +21,11 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * The signed-in identity as the Symfony firewall sees it. Roles are
  * membership data; every authenticated user only has ROLE_USER here. The
  * opened TOTP secret lives only for the request: the session never holds it.
+ *
+ * A session keeps the user's session version from when it began; once the user
+ * raises it (a new sign-in address), the session no longer matches and ends.
  */
-final readonly class SecurityUser implements UserInterface, PasswordAuthenticatedUserInterface, TwoFactorInterface, TrustedDeviceInterface
+final readonly class SecurityUser implements UserInterface, PasswordAuthenticatedUserInterface, TwoFactorInterface, TrustedDeviceInterface, EquatableInterface
 {
     public const int TOTP_DIGITS = 6;
     public const int TOTP_PERIOD = 30;
@@ -32,12 +36,13 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         private string $passwordHash,
         #[\SensitiveParameter] private ?string $totpSecret = null,
         private int $trustedDeviceVersion = 0,
+        private int $sessionVersion = 0,
     ) {
     }
 
     public static function fromUser(User $user, #[\SensitiveParameter] ?string $totpSecret = null): self
     {
-        return new self($user->id(), $user->email(), $user->passwordHash(), $totpSecret, $user->trustedDeviceVersion());
+        return new self($user->id(), $user->email(), $user->passwordHash(), $totpSecret, $user->trustedDeviceVersion(), $user->sessionVersion());
     }
 
     /**
@@ -45,7 +50,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
      */
     public function withTotpSecret(#[\SensitiveParameter] string $totpSecret): self
     {
-        return new self($this->id, $this->email, $this->passwordHash, $totpSecret, $this->trustedDeviceVersion);
+        return new self($this->id, $this->email, $this->passwordHash, $totpSecret, $this->trustedDeviceVersion, $this->sessionVersion);
     }
 
     public function hasTwoFactor(): bool
@@ -108,7 +113,21 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
     {
         // The session never holds the real hash; Symfony compares the crc32c.
         // Nor the TOTP secret: the firewall loads the user afresh on every request.
-        return ['id' => $this->id, 'email' => $this->email, 'passwordHash' => hash('crc32c', $this->passwordHash)];
+        return ['id' => $this->id, 'email' => $this->email, 'passwordHash' => hash('crc32c', $this->passwordHash), 'sessionVersion' => $this->sessionVersion];
+    }
+
+    /**
+     * Whether the session's user is still the user loaded now. It replaces the
+     * firewall's own comparison, so it repeats it (the same address, the password
+     * hash or the checksum the session keeps of it) and adds the session version.
+     */
+    public function isEqualTo(UserInterface $user): bool
+    {
+        if (!$user instanceof self || $this->email !== $user->email || $this->sessionVersion !== $user->sessionVersion) {
+            return false;
+        }
+
+        return $this->passwordHash === $user->passwordHash || hash_equals($this->passwordHash, hash('crc32c', $user->passwordHash));
     }
 
     /**
@@ -123,7 +142,9 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         $id = $data['id'] ?? '';
         $email = $data['email'] ?? '';
         $hash = $data['passwordHash'] ?? '';
-        if (!\is_string($email) || !\is_string($hash) || !\is_string($id) && !\is_int($id)) {
+        // A session from before session versions began with version 0, as every user did.
+        $sessionVersion = $data['sessionVersion'] ?? 0;
+        if (!\is_string($email) || !\is_string($hash) || !\is_string($id) && !\is_int($id) || !\is_int($sessionVersion)) {
             throw new \UnexpectedValueException('The session does not hold a user.');
         }
         $this->id = (string) $id;
@@ -131,5 +152,6 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         $this->passwordHash = $hash;
         $this->totpSecret = null;
         $this->trustedDeviceVersion = 0;
+        $this->sessionVersion = $sessionVersion;
     }
 }

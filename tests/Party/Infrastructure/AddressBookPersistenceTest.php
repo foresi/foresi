@@ -40,6 +40,7 @@ use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Application\Field\CustomFieldWrites;
 use Foresi\Shared\Contract\Event\EventRecorder;
+use Foresi\Shared\Infrastructure\Doctrine\DoctrineUnitOfWork;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookPersistenceTest extends KernelTestCase
@@ -545,6 +546,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
             }
         };
 
-        return new DoctrineTransactionalWork($this->em, self::getContainer()->get('doctrine'), $outbox);
+        return new DoctrineTransactionalWork(new DoctrineUnitOfWork($this->em, self::getContainer()->get('doctrine'), $outbox));
     }
 }

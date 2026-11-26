@@ -132,7 +132,7 @@
                                             {{ component('Ui:InlineEdit', cell.edit|merge({id: 'edit-' ~ row.id ~ '-' ~ cell.key, text: cell.edit.kind|default('menu') == 'person' ? null : cell.text, tone: cell.tone})) }}
                                         {%- elseif cell.links -%}
                                             {#- Each record the row refers to is a chip of its own that opens it, apart from the row's link (Atlassian Tag: interactive metadata). -#}
-                                            <span class="flex min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}items-center gap-1 overflow-hidden"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
+                                            <span class="flex min-w-0 {{ cell.truncate ? '' : 'max-w-[32ch] ' }}items-center gap-1 overflow-hidden{{ cell.align == 'right' ? ' justify-end' : '' }}"{% if cell.title %} title="{{ cell.title }}"{% endif %} data-links>
                                                 {%- for link in cell.links -%}
                                                     <a href="{{ link.href }}"{% if cell.plain %} data-turbo="false"{% elseif link.opens != 'page' %} data-{{ link.opens }} aria-haspopup="dialog"{% endif %} data-chip class="inline-flex h-6 min-w-0 max-w-full items-center rounded-sm border border-container bg-white px-2 text-caption font-medium text-ink no-underline transition-colors hover:border-control-line hover:bg-head {{ focus }}"><span class="truncate">{{ link.text }}</span></a>
                                                 {%- endfor -%}

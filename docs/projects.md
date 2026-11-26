@@ -15,7 +15,7 @@ Work of the organisation, kept in projects. This page says what the screens do a
 
 ## Projects
 
-**Work, Projects** lists the active projects with their client, the number of unfinished tasks and the nearest due date; the **Archived** tab lists the rest. **New project** opens a dialog for the name, the client and the description. Every project starts with the Simple workflow, as a Linear team starts with a default workflow customised later; change it in the project settings.
+**Work, Projects** lists the active projects with their client and the state of their work: the unfinished tasks (**Open tasks**), those past their due date (**Overdue**), those with no one responsible (**Unassigned**) and the next due date. Each count counts the tasks and subtasks you see, and a count above zero opens them in **Tasks**, narrowed to the project (Open tasks in All, Overdue and Unassigned in their tabs). Sort by any of these columns from its header; the filter sheet and saved views filter on them too, such as "Overdue tasks greater than 0". The **Archived** tab lists the rest; their counts open nothing, as Tasks leaves archived projects out. **New project** opens a dialog for the name, the client and the description. Every project starts with the Simple workflow, as a Linear team starts with a default workflow customised later; change it in the project settings.
 
 ## The list
 

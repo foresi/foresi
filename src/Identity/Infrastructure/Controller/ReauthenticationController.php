@@ -90,6 +90,7 @@ final class ReauthenticationController extends AbstractController
             'cancel' => $this->generateUrl(match ($reason) {
                 RequiresReauthentication::TWO_FACTOR => ProfileController::ROUTE,
                 RequiresReauthentication::API_TOKEN => ApiTokenController::ROUTE,
+                RequiresReauthentication::EMAIL => EmailController::ROUTE,
                 default => self::FALLBACK,
             }),
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));

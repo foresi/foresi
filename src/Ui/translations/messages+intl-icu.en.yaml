@@ -70,6 +70,7 @@ nav:
     people: People
     profile: Profile
     password: Password
+    email: Sign-in e-mail
     two_factor: Two-factor sign-in
     api: API and MCP
     connected_apps: Connected apps

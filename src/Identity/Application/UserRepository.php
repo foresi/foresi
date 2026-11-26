@@ -17,6 +17,11 @@ interface UserRepository
     public function findById(string $id): ?User;
 
     /**
+     * The person whose e-mail change waits for the link with this SHA-256.
+     */
+    public function findByPendingEmailToken(string $tokenHash): ?User;
+
+    /**
      * @param list<string> $ids
      *
      * @return array<string, string> display name by id; an id without a user is left out

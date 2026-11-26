@@ -559,10 +559,16 @@ work:
       archived: Archivovaný
       visibility: Kdo projekt vidí
       billable: Fakturovat čas
+      open_tasks: Otevřené úkoly
+      overdue_tasks: Úkoly po termínu
+      unassigned_tasks: Úkoly bez řešitele
+      next_due: Nejbližší termín
     column:
       name: Název
       client: Klient
       open: Otevřené úkoly
+      overdue: Po termínu
+      unassigned: Bez řešitele
       due: Nejbližší termín
     empty:
       title: Zatím žádné projekty

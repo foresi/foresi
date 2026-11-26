@@ -263,6 +263,11 @@ final class InvoiceHistoryTest extends InvoiceTestCase
                 return null;
             }
 
+            public function findByPendingEmailToken(string $tokenHash): ?User
+            {
+                return null;
+            }
+
             public function findById(string $id): ?User
             {
                 return null;

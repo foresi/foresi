@@ -8,9 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Doctrine;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
-use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Contract\UnitOfWork;
 use Foresi\Webhooks\Application\WebhookWork;
 
 /**
@@ -23,27 +21,12 @@ use Foresi\Webhooks\Application\WebhookWork;
 final readonly class DoctrineWebhookWork implements WebhookWork
 {
     public function __construct(
-        private EntityManagerInterface $em,
-        private ManagerRegistry $registry,
-        private EventOutbox $outbox,
+        private UnitOfWork $work,
     ) {
     }
 
     public function run(callable $work): mixed
     {
-        if ($this->em->getConnection()->isTransactionActive()) {
-            return $work();
-        }
-        try {
-            $result = $this->em->wrapInTransaction($work);
-        } catch (\Throwable $failure) {
-            $this->outbox->rolledBack();
-            $this->registry->resetManager();
-
-            throw $failure;
-        }
-        $this->outbox->committed();
-
-        return $result;
+        return $this->work->run($work);
     }
 }

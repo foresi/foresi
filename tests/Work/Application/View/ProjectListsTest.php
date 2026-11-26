@@ -40,7 +40,7 @@ final class ProjectListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['archived', 'client', 'visibility', 'billable', 'name'], array_keys($fields));
+        self::assertSame(['archived', 'client', 'visibility', 'billable', 'open_tasks', 'overdue_tasks', 'unassigned_tasks', 'next_due', 'name'], array_keys($fields));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
         self::assertSame(FieldType::Reference, $fields['client']->type);
@@ -52,6 +52,14 @@ final class ProjectListsTest extends KernelTestCase
         self::assertSame('work.projects.field.visibility', $fields['visibility']->label);
         self::assertSame(FieldType::Boolean, $fields['billable']->type);
         self::assertSame('work.projects.field.billable', $fields['billable']->label);
+        foreach (['open_tasks', 'overdue_tasks', 'unassigned_tasks'] as $count) {
+            self::assertSame(FieldType::Number, $fields[$count]->type);
+            self::assertSame('work.projects.field.'.$count, $fields[$count]->label);
+            self::assertSame(['eq', 'ne', 'lt', 'le', 'gt', 'ge', 'between'], $fields[$count]->operators, 'A count is never empty.');
+        }
+        self::assertSame(FieldType::Date, $fields['next_due']->type);
+        self::assertSame('work.projects.field.next_due', $fields['next_due']->label);
+        self::assertContains('is_empty', $fields['next_due']->operators);
     }
 
     public function testTheListIsBuiltOnce(): void

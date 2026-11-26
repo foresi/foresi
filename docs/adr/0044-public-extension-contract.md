@@ -3,6 +3,7 @@
 * Status: accepted
 * Date: 2026-11-25
 * Amends: [ADR 0029](0029-module-registry.md) (manifest: any vendor, the module API range), [ADR 0033](0033-module-contracts-and-integrations.md) (the core's own contract), [ADR 0034](0034-module-packages.md) (namespace of third-party modules)
+* Amended by: [ADR 0048](0048-unit-of-work-in-the-module-contract.md) (the unit of work of a module, module API 1.10)
 
 ## Context and problem statement
 

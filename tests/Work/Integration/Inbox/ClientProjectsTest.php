@@ -10,6 +10,7 @@ namespace Foresi\Tests\Work\Integration\Inbox;
 
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Domain\ProjectVisibility;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Integration\Inbox\ClientProjects;
 use PHPUnit\Framework\TestCase;
@@ -70,6 +71,6 @@ final class ClientProjectsTest extends TestCase
 
     private function row(string $id, string $name, ?string $clientId): ProjectRow
     {
-        return new ProjectRow($id, $name, $clientId, null, WorkflowTemplate::Simple, 0, null, false);
+        return new ProjectRow($id, $name, $clientId, null, WorkflowTemplate::Simple, 0, null, false, ProjectVisibility::Organisation, 0, 0);
     }
 }

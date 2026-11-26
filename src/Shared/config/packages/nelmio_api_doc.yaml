@@ -426,7 +426,7 @@ nelmio_api_doc:
                         applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
                 Project:
                     type: object
-                    required: [id, name, client, visibility, workflow, open_tasks, nearest_due_on, archived, custom_fields]
+                    required: [id, name, client, visibility, workflow, open_tasks, overdue_tasks, unassigned_tasks, nearest_due_on, archived, custom_fields]
                     properties:
                         custom_fields: { $ref: '#/components/schemas/ProjectCustomFields' }
                         id: { type: string, format: uuid }
@@ -435,7 +435,9 @@ nelmio_api_doc:
                         visibility: { type: string, enum: [organisation, chosen], description: 'Open to the whole organisation, or to the people it is shared with.' }
                         workflow: { type: string, enum: [simple, development] }
                         open_tasks: { type: integer, description: 'Tasks and subtasks the person sees that are not finished.' }
-                        nearest_due_on: { type: string, format: date, nullable: true }
+                        overdue_tasks: { type: integer, description: 'Those of the open tasks whose due date is before today.' }
+                        unassigned_tasks: { type: integer, description: 'Those of the open tasks with no one responsible.' }
+                        nearest_due_on: { type: string, format: date, nullable: true, description: 'The earliest due date of the open tasks, in the past when one is overdue.' }
                         archived: { type: boolean }
                 ProjectDetail:
                     allOf:
