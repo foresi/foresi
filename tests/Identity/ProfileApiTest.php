@@ -14,7 +14,7 @@ use Foresi\Identity\Domain\User;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
- * A person's own name and language over REST and MCP, and what /api/v1/me tells about them.
+ * A person's own name, language and appearance over REST and MCP, and what /api/v1/me tells about them.
  */
 final class ProfileApiTest extends ApiTestCase
 {
@@ -32,7 +32,8 @@ final class ProfileApiTest extends ApiTestCase
         $this->get('/api/v1/me', secret: $this->secret);
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['id', 'email', 'display_name', 'language', 'photo_url'], array_keys((array) $this->at('user')));
+        self::assertSame(['id', 'email', 'display_name', 'language', 'text_size', 'density', 'photo_url'], array_keys((array) $this->at('user')));
+        self::assertSame(['standard', 'normal'], [$this->at('user', 'text_size'), $this->at('user', 'density')], 'Everyone starts on the standard text and the normal density.');
         self::assertSame($this->user->displayName(), $this->at('user', 'display_name'));
         self::assertSame($this->user->locale(), $this->at('user', 'language'));
         self::assertNull($this->at('user', 'photo_url'));
@@ -62,6 +63,31 @@ final class ProfileApiTest extends ApiTestCase
         $this->send('PATCH', '/api/v1/me', ['language' => 'de']);
         self::assertResponseStatusCodeSame(400);
         self::assertSame('cs', $this->stored()->locale());
+    }
+
+    public function testTheAppearanceChangesAloneAndKeepsTheRest(): void
+    {
+        $name = $this->user->displayName();
+
+        $this->send('PATCH', '/api/v1/me', ['text_size' => 'large', 'density' => 'compact']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['large', 'compact', $name], [$this->at('data', 'text_size'), $this->at('data', 'density'), $this->at('data', 'display_name')]);
+        self::assertSame(['large', 'compact'], [$this->stored()->textSize(), $this->stored()->density()]);
+
+        $this->send('PATCH', '/api/v1/me', ['density' => 'spacious']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['large', 'spacious'], [$this->stored()->textSize(), $this->stored()->density()]);
+    }
+
+    public function testAnUnknownTextSizeOrDensityIsRefused(): void
+    {
+        $this->send('PATCH', '/api/v1/me', ['text_size' => 'huge']);
+        self::assertResponseStatusCodeSame(400);
+        $this->send('PATCH', '/api/v1/me', ['density' => 'comfortable']);
+        self::assertResponseStatusCodeSame(400);
+
+        self::assertSame(['standard', 'normal'], [$this->stored()->textSize(), $this->stored()->density()]);
     }
 
     public function testABlankNameIsRefused(): void
@@ -102,6 +128,10 @@ final class ProfileApiTest extends ApiTestCase
         $user = $data['user'] ?? null;
         self::assertIsArray($user);
         self::assertSame('Jane Example', $user['display_name'] ?? null);
+
+        $result = $this->tool('foresi_update_profile', ['text_size' => 'small', 'density' => 'spacious']);
+        self::assertFalse($result['isError'] ?? false);
+        self::assertSame(['small', 'spacious', 'Jane Example'], [$this->stored()->textSize(), $this->stored()->density(), $this->stored()->displayName()]);
     }
 
     private function stored(): User

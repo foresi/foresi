@@ -261,7 +261,7 @@ final class McpServerTest extends ApiTestCase
         $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null], $this->in($call, 'structuredContent', 'data', 'user'));
+        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'text_size' => 'standard', 'density' => 'normal', 'photo_url' => null], $this->in($call, 'structuredContent', 'data', 'user'));
         self::assertSame('Reporting', $this->in($call, 'structuredContent', 'data', 'token', 'name'));
         self::assertSame(['read', 'write'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
         $text = $this->text($call, 'content', '0', 'text');

@@ -27,6 +27,21 @@ class User
     /** The longest name a person can give themselves, the length of its column. */
     public const int MAX_DISPLAY_NAME_LENGTH = 255;
 
+    /*
+     * The person's appearance, on every device they sign in on and for the whole app (ABRA Flexi,
+     * "Vzhled webového rozhraní": a size of the rows and a size of the text, per user). The text
+     * size scales every text of the theme; the density sets the height of table rows and, with a
+     * mouse, of fields and buttons.
+     */
+    public const string TEXT_SMALL = 'small';
+    public const string TEXT_STANDARD = 'standard';
+    public const string TEXT_LARGE = 'large';
+    public const array TEXT_SIZES = [self::TEXT_SMALL, self::TEXT_STANDARD, self::TEXT_LARGE];
+    public const string DENSITY_COMPACT = 'compact';
+    public const string DENSITY_NORMAL = 'normal';
+    public const string DENSITY_SPACIOUS = 'spacious';
+    public const array DENSITIES = [self::DENSITY_COMPACT, self::DENSITY_NORMAL, self::DENSITY_SPACIOUS];
+
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
@@ -55,6 +70,12 @@ class User
     /** Changes with every new photo, so its address changes too; null without a photo. */
     #[ORM\Column(name: 'photo_version', type: 'string', length: 32, nullable: true)]
     private ?string $photoVersion = null;
+
+    #[ORM\Column(name: 'text_size', type: 'string', length: 16, options: ['default' => self::TEXT_STANDARD])]
+    private string $textSize = self::TEXT_STANDARD;
+
+    #[ORM\Column(type: 'string', length: 16, options: ['default' => self::DENSITY_NORMAL])]
+    private string $density = self::DENSITY_NORMAL;
 
     public function __construct(
         string $email,
@@ -113,6 +134,38 @@ class User
     {
         $this->assertSupported($locale);
         $this->locale = $locale;
+    }
+
+    /**
+     * @throws \InvalidArgumentException when it is none of TEXT_SIZES
+     */
+    public function changeTextSize(string $textSize): void
+    {
+        if (!\in_array($textSize, self::TEXT_SIZES, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported text size "%s".', $textSize));
+        }
+        $this->textSize = $textSize;
+    }
+
+    /**
+     * @throws \InvalidArgumentException when it is none of DENSITIES
+     */
+    public function changeDensity(string $density): void
+    {
+        if (!\in_array($density, self::DENSITIES, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported density "%s".', $density));
+        }
+        $this->density = $density;
+    }
+
+    public function textSize(): string
+    {
+        return $this->textSize;
+    }
+
+    public function density(): string
+    {
+        return $this->density;
     }
 
     /**

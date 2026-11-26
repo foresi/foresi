@@ -1416,8 +1416,8 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices?view=unpaid&q=Consulting&sort=number&f='.$this->unpaidAndDue());
 
-        self::assertSame('/invoices?view=unpaid&q=Consulting&density=&widths=', $crawler->filter('[data-view-reset]')->attr('href'));
-        $crawler = $this->client->request('GET', '/invoices?view=unpaid&q=Consulting&density=');
+        self::assertSame('/invoices?view=unpaid&q=Consulting&widths=', $crawler->filter('[data-view-reset]')->attr('href'));
+        $crawler = $this->client->request('GET', '/invoices?view=unpaid&q=Consulting&widths=');
         self::assertCount(0, $crawler->filter('[data-tab-modified], [data-view-actions]'));
     }
 
@@ -1594,12 +1594,14 @@ final class InvoiceListControllerTest extends WebTestCase
         $this->signedIn();
         $this->issue('2026-10-01', '2026-11-10');
 
-        $this->client->request('GET', '/invoices?view=overdue&density=dense&cols=number,customer');
+        $this->client->request('GET', '/invoices?view=overdue&cols=number,customer');
         $crawler = $this->client->request('GET', '/invoices?view=overdue');
         self::assertSame(['Number', 'Customer'], array_slice($this->headers($crawler), 0, 2));
 
         self::assertSame('Overdue, unsaved changes 1', $this->tabs($crawler)[3]);
-        self::assertStringContainsString('"density":"dense"', (string) $crawler->filter('[data-view-save-as-form] input[name="display"]')->attr('value'));
+        $display = (string) $crawler->filter('[data-view-save-as-form] input[name="display"]')->attr('value');
+        self::assertStringContainsString('"key":"customer"', $display);
+        self::assertStringNotContainsString('density', $display, 'A list keeps no density of its own.');
         self::assertCount(1, $crawler->filter('[data-view-save-as-form] input[name="displayChanged"]'));
         // Another view opens with its own display.
         self::assertCount(0, $this->client->request('GET', '/invoices?view=paid')->filter('[data-tab-modified]'));

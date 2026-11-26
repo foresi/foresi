@@ -8,9 +8,9 @@
     - Quick filters: every filter field of the list, a checked one a chip under the tabs, in the
       order of the list, at most four, stored with the view (display.pinned);
     - Group by, on a list that groups its rows (Linear's and Notion's grouping, kept with the view);
-    - Columns, each with its checkbox and movable, and the row density.
+    - Columns, each with its checkbox and movable.
     "Reset to default" and one Apply: Apply saves the order of the views and which are tabs (an
-    owner's, spec D7), then sends the quick filters, the columns and the density to the list.
+    owner's, spec D7), then sends the quick filters and the columns to the list.
 #}
 {% set picker = this %}
 {% set sheetId = id ~ '-sheet' %}
@@ -101,22 +101,6 @@
                         </ul>
                     </fieldset>
                 {% endif %}
-                {% endif %}
-                {% if density %}
-                <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0" data-column-picker-density>
-                    <legend class="mb-2 p-0 text-small font-medium text-muted">{{ 'ui.column_picker.density'|trans }}</legend>
-                    <div class="grid grid-cols-2 gap-2">
-                        {% for value in ['comfortable', 'dense'] %}
-                            <label class="flex min-h-touch cursor-pointer items-center gap-2 rounded-control border px-3 has-checked:border-green has-checked:bg-green-tint has-checked:text-green has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-green border-control-line">
-                                <input type="radio" name="{{ picker.name('density') }}" value="{{ value }}"{% if density == value %} checked{% endif %} class="size-4 shrink-0 accent-green">
-                                <span class="grid">
-                                    <span class="font-medium">{{ ('ui.column_picker.density_' ~ value)|trans }}</span>
-                                    <span class="text-small text-muted">{{ ('ui.column_picker.density_' ~ value ~ '_hint')|trans }}</span>
-                                </span>
-                            </label>
-                        {% endfor %}
-                    </div>
-                </fieldset>
                 {% endif %}
             </form>
             <p class="sr-only" role="status" aria-live="polite" data-column-picker-target="status"></p>

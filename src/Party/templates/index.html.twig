@@ -43,7 +43,7 @@
             {% set bulkActions = slot_items(constant('Foresi\\Party\\Contract\\ContactListActions::BULK'), {view: archived ? 'archived' : view}) %}
             <form method="post" action="{{ path('app_contacts_archive') }}" data-turbo="false">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Party\\Infrastructure\\Controller\\PartyController::ACTION_TOKEN')) }}">
-                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" :selectable="not archived or bulkActions is not empty" selectionName="ids[]">
+                <twig:Ui:DataTable :caption="'party.title'|trans" :columns="columns" :resizable="true" :rows="rows" :selectable="not archived or bulkActions is not empty" selectionName="ids[]">
                     <twig:block name="empty">
                         <twig:Ui:EmptyState icon="search" :title="'party.empty_filtered.title'|trans" :text="'party.empty_filtered.text'|trans">
                             <twig:Ui:Button :href="path('app_contacts')">{{ 'party.empty_filtered.reset'|trans }}</twig:Ui:Button>

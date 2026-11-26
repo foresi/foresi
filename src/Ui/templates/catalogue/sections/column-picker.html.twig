@@ -3,7 +3,7 @@
     The Settings sheet of a list (Ui:ColumnPicker), "Nastavení seznamu", behind the Settings icon at the end
     of the tabs: its views (shown in tabs, order, "⋯" with Přejmenovat, Zobrazit počet v záložce, Duplikovat
     and Skrýt or Smazat, "+ Nový pohled"), its quick filters (every filter field, checked ones are chips under
-    the tabs, at most four), its columns and the row density, with "Obnovit výchozí" and "Použít". A list
+    the tabs, at most four), and its columns, with "Obnovit výchozí" and "Použít". A list
     without views or columns shows the rest only.
 #}
 {% set columns = [
@@ -31,12 +31,12 @@
 } %}
 <div class="grid gap-5">
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'default'} %}{% block sample %}
-<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns" action="/_catalogue" :keep="{}" :columns="columns" :quick="quick" :manage="manage" density="comfortable" resetHref="/_catalogue" /></div>
+<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns" action="/_catalogue" :keep="{}" :columns="columns" :quick="quick" :manage="manage" resetHref="/_catalogue" /></div>
 {% endblock %}{% endembed %}
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'modified'} %}{% block sample %}
-<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns-modified" action="/_catalogue" :keep="{}" :columns="columns" :quick="quick" density="dense" resetHref="/_catalogue" :modified="true" /></div>
+<div class="flex"><twig:Ui:ColumnPicker id="catalogue-columns-modified" action="/_catalogue" :keep="{}" :columns="columns" :quick="quick" resetHref="/_catalogue" :modified="true" /></div>
 {% endblock %}{% endembed %}
 {% embed '@Ui/catalogue/_state.html.twig' with {state: 'quick_only'} %}{% block sample %}
-<div class="flex"><twig:Ui:ColumnPicker id="catalogue-display-quick" action="/_catalogue" :keep="{}" :quick="[{key: 'responsible', label: 'Řešitel', pinned: true}, {key: 'due', label: 'Termín', pinned: true}]" :density="null" resetHref="/_catalogue" /></div>
+<div class="flex"><twig:Ui:ColumnPicker id="catalogue-display-quick" action="/_catalogue" :keep="{}" :quick="[{key: 'responsible', label: 'Řešitel', pinned: true}, {key: 'due', label: 'Termín', pinned: true}]" resetHref="/_catalogue" /></div>
 {% endblock %}{% endembed %}
 </div>

@@ -63,7 +63,7 @@ final class NotificationController extends AbstractController
     private const string ORDER = '-at';
     private const int MAX_SEARCH = 100;
     /** The parts of the inbox's address an action carries back to it. */
-    private const array LIST_QUERY = ['view', 'tab', 'q', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    private const array LIST_QUERY = ['view', 'tab', 'q', 'filter', WorkingFilter::PARAM, 'page', WorkingDisplay::COLUMNS];
 
     public function __construct(private readonly NotificationLists $notificationLists,
         private readonly NotificationQueries $queries,
@@ -95,7 +95,7 @@ final class NotificationController extends AbstractController
         $text = trim(mb_substr($request->query->getString('q'), 0, self::MAX_SEARCH));
         $inbox = $this->queries->inbox($me, $shown, $page, $text);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // Columns and density are kept for staff with the view; a guest has no saved views, only the address.
+        // Columns are kept for staff with the view; a guest has no saved views, only the address.
         $working = $this->actor->isStaff()
             ? $this->rememberedDisplay->read(NotificationColumns::LIST, [], $list->key, $view, $request->query->all(), filters: $list)
             : $this->workingDisplay->read(NotificationColumns::LIST, [], $view->display, $request->query->all(), pins: RememberedDisplay::pinsOf($list));
@@ -123,7 +123,6 @@ final class NotificationController extends AbstractController
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
             'rows' => array_map(fn (NotificationRow $row): array => $this->row($row, $working, $back), $inbox->rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'page' => $inbox->page,
             'pages' => $inbox->page + ($inbox->hasNext ? 1 : 0),
@@ -236,9 +235,8 @@ final class NotificationController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

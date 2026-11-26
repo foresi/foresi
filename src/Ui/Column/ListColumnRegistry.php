@@ -22,7 +22,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * how one list shows them: the registry's defaults, or a view's display payload read leniently,
  * as a stored view may name a column a disabled module took away.
  *
- * The payload is {columns: [{key, width?}], density?, group_by?}. Its order is the column order
+ * The payload is {columns: [{key, width?}], group_by?}. Its order is the column order
  * and presence means visible; a width is in px and an absent one sizes the column to its content.
  * Reading it resolves an alias to its key (DS2), drops unknown and repeated keys and the columns
  * the context makes unavailable, and re-adds the locked columns it leaves out, first, in their
@@ -128,13 +128,11 @@ final class ListColumnRegistry
             $columns = [...$locked, ...array_values($columns)];
         }
 
-        $density = $display['density'] ?? null;
         $groupBy = $display['group_by'] ?? null;
 
         return new ListDisplay(
             $columns,
             $context,
-            \is_string($density) && \in_array($density, ListDisplay::DENSITIES, true) ? $density : null,
             \is_string($groupBy) && '' !== $groupBy ? $groupBy : null,
         );
     }

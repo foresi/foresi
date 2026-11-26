@@ -138,7 +138,7 @@ final class ApiTokenSignInTest extends WebTestCase
         self::assertSame([], $this->client->getResponse()->headers->getCookies());
         $token = $this->token();
         self::assertSame([
-            'user' => ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null],
+            'user' => ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'text_size' => 'standard', 'density' => 'normal', 'photo_url' => null],
             'token' => ['id' => $token->id(), 'name' => 'Reporting', 'scopes' => ['read'], 'expires_at' => $token->expiresAt()->format(\DATE_ATOM)],
         ], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
         self::assertNotNull($token->lastUsedAt());
@@ -154,7 +154,7 @@ final class ApiTokenSignInTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null],
+            ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'text_size' => 'standard', 'density' => 'normal', 'photo_url' => null],
             $this->json()['user'],
         );
     }

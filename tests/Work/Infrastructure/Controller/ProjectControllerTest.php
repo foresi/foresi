@@ -410,7 +410,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['Brief', 'Launch'], $this->titles($crawler));
         self::assertSame('All, unsaved changes', $this->tabs($crawler)[0]);
         self::assertStringContainsString('Responsible: empty', $crawler->filter('main')->text());
-        self::assertCount(1, $crawler->filter('[data-view-actions] [data-view-reset][href="/projects/'.$id.'?density=&widths="]'));
+        self::assertCount(1, $crawler->filter('[data-view-actions] [data-view-reset][href="/projects/'.$id.'?widths="]'));
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Nobody\'s']));
         $crawler = $this->client->followRedirect();
         self::assertSame(['Brief', 'Launch'], $this->titles($crawler));
@@ -500,7 +500,7 @@ final class ProjectControllerTest extends WebTestCase
         $this->signIn();
         $id = $this->seedList();
         $dialog = ['HTTP_'.str_replace('-', '_', strtoupper(DialogRequest::HEADER)) => '1'];
-        $from = '/projects/'.$id.'?view=mine&f=abc&cols=title&density=&page=2&status=open&due=today';
+        $from = '/projects/'.$id.'?view=mine&f=abc&cols=title&widths=&page=2&status=open&due=today';
 
         $crawler = $this->client->request('GET', '/projects/'.$id.'/tasks/new?return='.rawurlencode($from), server: $dialog);
 

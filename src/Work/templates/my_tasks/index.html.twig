@@ -30,7 +30,7 @@
         {% for group in groups %}
             <section class="grid gap-2" aria-labelledby="group-{{ group.key }}-title" data-task-group="{{ group.key }}">
                 <h2 id="group-{{ group.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ group.name }} <span class="num font-normal text-muted">({{ group.count }})</span></h2>
-                <twig:Ui:DataTable :caption="group.name" :columns="columns" :resizable="true" :rows="group.rows" :density="density" />
+                <twig:Ui:DataTable :caption="group.name" :columns="columns" :resizable="true" :rows="group.rows" />
             </section>
         {% else %}
             {% if empty == 'filtered' %}

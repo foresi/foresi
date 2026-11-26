@@ -30,10 +30,9 @@ test.describe('list columns', () => {
     await expect(columns.getByRole('button', { name: 'Posunout Stav nahoru' })).toBeFocused();
     await expect(sheet.getByRole('status')).toHaveText('Stav je teď na pozici 5 z 7.');
 
-    await sheet.getByRole('radio', { name: /Kompaktní/ }).check();
     await sheet.getByRole('button', { name: 'Použít' }).click();
 
-    await expect(page).toHaveURL(/cols=name%2Ckind%2Cregistration_number%2Cstatus%2Cvat_id%2Cemail&density=dense/);
+    await expect(page).toHaveURL(/cols=name%2Ckind%2Cregistration_number%2Cstatus%2Cvat_id%2Cemail/);
     await expect(page.locator('thead th')).toHaveText(['', 'Název', 'Druh', 'IČO', 'Stav', 'DIČ', 'E-mail']);
     await expect(page.getByRole('link', { name: /Všechny.*neuložené změny/ })).toBeVisible();
 

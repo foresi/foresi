@@ -9,20 +9,16 @@ declare(strict_types=1);
 namespace Foresi\Ui\Contract;
 
 /**
- * How one list shows: its columns in order with their widths, the row density and the field it
- * groups by (reserved, not rendered yet). A null density keeps the list's own default.
+ * How one list shows: its columns in order with their widths and the field it groups by. How
+ * tall its rows are is the person's density (Profile, Appearance), the same on every list.
  */
 final readonly class ListDisplay
 {
-    public const string COMFORTABLE = 'comfortable';
-    public const string DENSE = 'dense';
-    public const array DENSITIES = [self::COMFORTABLE, self::DENSE];
-
     /**
      * @param list<ResolvedColumn> $columns
      * @param array<string, mixed> $context the list's context, which the cells are rendered in
      */
-    public function __construct(public array $columns, public array $context = [], public ?string $density = null, public ?string $groupBy = null)
+    public function __construct(public array $columns, public array $context = [], public ?string $groupBy = null)
     {
     }
 

@@ -11,7 +11,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | Tool | What it does |
 | --- | --- |
 | `foresi_whoami` | The person of the connection, and the name, scopes and expiry of its token. Use it first to check the set-up. |
-| `foresi_update_profile` | Changes the person's own name or language. Needs `profile:write`. |
+| `foresi_update_profile` | Changes the person's own name, language, text size (`small`, `standard`, `large`) or density (`compact`, `normal`, `spacious`). Needs `profile:write`. |
 | `foresi_get_firm` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today, its VAT statuses over time (`vat_statuses`), register entry and address. An instance holds one firm ([ADR 0039](adr/0039-one-firm-per-instance.md)), so no other tool takes a firm. |
 | `foresi_search_invoices` | Searches sales documents, newest first, with filters such as state, customer and issue dates, through a saved view (`view_id`) or conditions (`filter`). |
 | `foresi_get_invoice` | One document with its lines, payments, corrections and balances. |

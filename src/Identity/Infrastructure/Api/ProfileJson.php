@@ -23,7 +23,7 @@ final readonly class ProfileJson
     }
 
     /**
-     * @return array{id: string, email: string, display_name: string, language: string, photo_url: string|null}
+     * @return array{id: string, email: string, display_name: string, language: string, text_size: string, density: string, photo_url: string|null}
      */
     public function of(User $user): array
     {
@@ -34,6 +34,8 @@ final readonly class ProfileJson
             'email' => $user->email(),
             'display_name' => $user->displayName(),
             'language' => $user->locale(),
+            'text_size' => $user->textSize(),
+            'density' => $user->density(),
             'photo_url' => null === $version ? null : $this->urls->generate(ProfileController::PHOTO_ROUTE, ['id' => $user->id(), 'v' => $version], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
     }

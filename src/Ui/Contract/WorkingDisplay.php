@@ -11,7 +11,7 @@ namespace Foresi\Ui\Contract;
 /**
  * The display a person works with on a list before anything is saved (spec D10, D-display-3):
  * the list's address carries it next to the view, as cols=number,customer,due_date (the visible
- * columns in order) and density=comfortable|dense, and on a list that groups its rows,
+ * columns in order), and on a list that groups its rows,
  * group=<one of its groupings>, and on a list with quick filters, pins=<field keys in order> (empty
  * for none), and widths=<key>:<px>,… (the widths a person dragged the columns to; empty for the
  * view's own). With none, the list shows its view's stored display, or the
@@ -26,7 +26,6 @@ namespace Foresi\Ui\Contract;
 interface WorkingDisplay
 {
     public const string COLUMNS = 'cols';
-    public const string DENSITY = 'density';
     /** What the list groups by, kept in the payload as group_by (D-display-2). */
     public const string GROUP = 'group';
     /** The quick filters pinned under the tabs, kept in the payload as pinned. */
@@ -34,7 +33,7 @@ interface WorkingDisplay
     /** The widths of the columns as key:px pairs, kept in the payload's columns; empty names the view's own. */
     public const string WIDTHS = 'widths';
     /** The query keys of the working state, which a link to another view leaves out. */
-    public const array KEYS = [self::COLUMNS, self::DENSITY, self::GROUP, self::PINNED, self::WIDTHS];
+    public const array KEYS = [self::COLUMNS, self::GROUP, self::PINNED, self::WIDTHS];
     /** No column is dragged wider than this many px. */
     public const int MAX_WIDTH = 1200;
     /** At most this many quick filters stand under the tabs (ListDefinition::MAX_PINNED). */
@@ -43,10 +42,9 @@ interface WorkingDisplay
     /**
      * @param array<string, mixed>                                    $context the list's context, as the registry of the list's columns takes it
      * @param array<array-key, mixed>|null                            $saved   the view's stored display payload; null for the registry's defaults
-     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it) and density
-     * @param string                                                  $density the density the list shows by default
+     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
      * @param list<string>                                            $groups  what the list can group by, its default first; none for a list that does not group
      * @param array{fields: list<string>, default: list<string>}|null $pins    the fields a quick filter can be pinned for and those pinned by default; null for a list without quick filters
      */
-    public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = [], ?array $pins = null): WorkingState;
+    public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState;
 }

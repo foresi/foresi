@@ -57,7 +57,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $view = $this->views->get($input->getString('ref'));
-            [$columns, $density, $groupBy, $pinned] = $this->display($input);
+            [$columns, $groupBy, $pinned] = $this->display($input);
             // The display goes with it only when it was changed, so a view keeps its own otherwise.
             $changed = $input->getBoolean('displayChanged');
             $this->views->update(new UpdateViewInput(
@@ -65,7 +65,6 @@ final class SavedViewController extends AbstractController
                 conditions: $this->conditions($input, $view->listKey()),
                 sort: $this->sort($input),
                 columns: $changed ? $columns : new Omitted(),
-                density: $changed ? $density : new Omitted(),
                 groupBy: $changed ? $groupBy : new Omitted(),
                 pinned: $changed ? $pinned : new Omitted(),
             ));
@@ -82,7 +81,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $list = $input->getString('list');
-            [$columns, $density, $groupBy, $pinned] = $this->display($input);
+            [$columns, $groupBy, $pinned] = $this->display($input);
             $view = $this->views->create(new CreateViewInput(
                 $list,
                 $input->getString('name'),
@@ -90,7 +89,6 @@ final class SavedViewController extends AbstractController
                 $this->conditions($input, $list),
                 $this->sort($input),
                 $columns,
-                $density,
                 $input->getBoolean('showCount'),
                 $this->placement($list, Placement::Primary->value),
                 $groupBy,
@@ -149,7 +147,6 @@ final class SavedViewController extends AbstractController
             $from = $this->views->get($input->getString('ref'));
             $display = $from->display() ?? [];
             $columns = $display['columns'] ?? null;
-            $density = $display['density'] ?? null;
             $groupBy = $display['group_by'] ?? null;
             $pinned = $display['pinned'] ?? null;
             $name = $this->translator->trans('saved_view.copy_name', ['name' => $input->getString('name', $from->name())]);
@@ -161,7 +158,6 @@ final class SavedViewController extends AbstractController
                 \is_array($conditions) ? array_values($conditions) : [],
                 $from->sort(),
                 \is_array($columns) ? array_values($columns) : null,
-                \is_string($density) ? $density : null,
                 $from->showCount(),
                 $this->placement($from->listKey(), Placement::Primary->value),
                 \is_string($groupBy) ? $groupBy : null,
@@ -293,25 +289,24 @@ final class SavedViewController extends AbstractController
     }
 
     /**
-     * The display payload the list shows, as columns, density, what it groups by and the quick
+     * The display payload the list shows, as columns, what it groups by and the quick
      * filters it pins.
      *
      * @param InputBag<string> $input
      *
-     * @return array{list<mixed>|null, string|null, string|null, list<mixed>|null}
+     * @return array{list<mixed>|null, string|null, list<mixed>|null}
      */
     private function display(InputBag $input): array
     {
         $display = json_decode($input->getString('display'), true);
         if (!\is_array($display)) {
-            return [null, null, null, null];
+            return [null, null, null];
         }
         $columns = $display['columns'] ?? null;
-        $density = $display['density'] ?? null;
         $groupBy = $display['group_by'] ?? null;
         $pinned = $display['pinned'] ?? null;
 
-        return [\is_array($columns) ? array_values($columns) : null, \is_string($density) ? $density : null, \is_string($groupBy) ? $groupBy : null, \is_array($pinned) ? array_values($pinned) : null];
+        return [\is_array($columns) ? array_values($columns) : null, \is_string($groupBy) ? $groupBy : null, \is_array($pinned) ? array_values($pinned) : null];
     }
 
     /**

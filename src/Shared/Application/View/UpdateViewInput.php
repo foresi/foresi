@@ -15,7 +15,7 @@ use Foresi\Shared\Domain\View\SavedView;
 
 /**
  * A partial change of a saved view: a field left out keeps its value, columns
- * and density sent as null go back to the list's defaults.
+ * sent as null go back to the list's defaults.
  */
 #[Operation(
     name: 'views.update',
@@ -48,8 +48,6 @@ final readonly class UpdateViewInput
         public array|Omitted $sort = new Omitted(),
         #[Field('The columns shown, in order: column keys, or {key, width}; null shows the list\'s default columns.', items: Field::OBJECTS_OR_STRINGS)]
         public array|Omitted|null $columns = new Omitted(),
-        #[Field('How tight the rows are; null for the list\'s default.', enum: ViewRules::DENSITIES)]
-        public string|Omitted|null $density = new Omitted(),
         #[Field('Whether its tab shows how many rows it holds.')]
         public bool|Omitted $showCount = new Omitted(),
         #[Field('primary: a tab of the list; overflow: not a tab, listed in the Settings sheet of the list.', enum: ['primary', 'overflow'])]

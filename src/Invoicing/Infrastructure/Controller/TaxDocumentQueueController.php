@@ -111,7 +111,7 @@ final class TaxDocumentQueueController extends AbstractController
         $searched = TaxDocumentQueues::searched($this->queues->rows($list->key, $today), $text);
         $rows = $this->sorted(TaxDocumentQueues::matching($searched, $list->key, $shown, $today), $sort);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read($list->key, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::DEFAULT_SORT, $working, $route, '' === $text ? [] : ['q' => $text]);
@@ -128,7 +128,6 @@ final class TaxDocumentQueueController extends AbstractController
             ...$this->tabs($views, $view, $query, $route, $kind, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
             'rows' => array_map(fn (MissingTaxDocument|UncorrectedTaxDocument $row): array => $this->row($row, $working), $rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query, $route),
             'workingQuery' => $working->query,
             'filtered' => '' !== $text || null !== $filterParam,
@@ -267,9 +266,8 @@ final class TaxDocumentQueueController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

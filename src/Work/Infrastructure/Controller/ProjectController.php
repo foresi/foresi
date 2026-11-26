@@ -157,7 +157,7 @@ final class ProjectController extends AbstractController
         $sort = $input->getString('sort', $viewSort);
         $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, self::SORT_NAME, $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
@@ -173,7 +173,6 @@ final class ProjectController extends AbstractController
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
             'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'), $text)),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'text' => $text,
@@ -270,7 +269,7 @@ final class ProjectController extends AbstractController
             ProjectTaskColumns::SEEDS => $this->seeds(),
             ProjectTaskColumns::EDITS => $this->editsOf($list->project, array_merge(...array_map(static fn (SectionTasks $section): array => self::withSubtasks($section->tasks), $list->sections)), $request),
         ];
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProjectTaskColumns::LIST, $context, $definition->key, $view, $input->all(), filters: $definition);
         $query += $working->query;
         $bar = $this->viewBar->of($definition, $views, $view, $shown, '', '', $working, self::PROJECT_ROUTE, ['id' => $id] + ('' === $text ? [] : ['q' => $text]));
@@ -299,7 +298,6 @@ final class ProjectController extends AbstractController
             ...$bar,
             ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified'], $text),
             'columns' => $working->display->table(),
-            'density' => $working->tableDensity(),
             'picker' => $this->taskPicker($id, $working, $query),
             'trashCount' => $this->queries->trashCount($id) + $this->time->trashCount($id),
             'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
@@ -859,9 +857,8 @@ final class ProjectController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id] + $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id] + $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }
@@ -1027,9 +1024,8 @@ final class ProjectController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

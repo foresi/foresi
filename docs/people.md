@@ -18,6 +18,15 @@ Every person, guests included, has a **Profile** behind the avatar menu. It gath
 
 The name and the language are edited in a dialog. A photo is a JPEG, PNG or WebP of at most 5 MB, cropped to a square in the browser; the server draws it anew as a 512 px JPEG, which drops all metadata such as the location. A new photo replaces the old one and Remove photo deletes it. The photo is shown only to people signed in, at `/people/{id}/photo`, wherever the person appears with an avatar: the avatar menu, the people list, who is responsible for a task, its watchers and comments, board cards and sharing. Contacts who are not users keep their initials. The name and the language can also be changed with `PATCH /api/v1/me` or the MCP tool `foresi_update_profile` (see [the API](api.md)).
 
+### Appearance
+
+**Appearance** on the profile sets how the whole app looks for the person, on every device they sign in on, as ABRA Flexi's per-user appearance does. It is edited in a dialog of its own:
+
+- **Text size**: Smaller, Standard or Larger, 13, 14 or 16 px body text. Every text of the app scales with it; a text field on a phone stays at 16 px, so iOS does not zoom in.
+- **Density**: Compact, Normal or Spacious. It sets the height of table rows everywhere, 44, 56 or 64 px for a list and 36, 44 or 52 px for line tables such as invoice lines, bank movements and the time report; with a mouse it also sets the height of fields and buttons, 32, 40 or 44 px. On a touch screen fields and buttons keep their size, so they stay easy to tap.
+
+The lists have no density of their own any more: the profile's density is the one every list shows. Both settings can also be changed with `PATCH /api/v1/me` (`text_size`, `density`) or `foresi_update_profile`.
+
 ### Password
 
 **Profile > Password** changes the password in a dialog: the current password, then the new one once, with **Show passwords** to check what was typed. Pasting works, so a password manager can fill both. A password has at least 12 characters and no rules about symbols or numbers; one that appears in a known data breach is refused (`APP_PASSWORD_BREACH_CHECK`, see [operations](operations.md)). Five wrong current passwords in five minutes block further attempts for a while.

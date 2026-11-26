@@ -13,16 +13,15 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewUserStates;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 
 /**
  * The working display of a view with what the person last used on it (spec D-display-3):
- * columns, their widths or a density they change are kept on the server for them alone, and come back
+ * the columns or their widths they change are kept on the server for them alone, and come back
  * when they open the view again without any in the address. The address wins for what it
- * names, the rest stays as remembered; naming the view's own (as Reset does with an empty
- * density=) forgets them.
+ * names, the rest stays as remembered; naming the view's own (as Reset does with empty
+ * widths=) forgets them.
  */
 final readonly class RememberedDisplay
 {
@@ -42,23 +41,23 @@ final readonly class RememberedDisplay
      * @param list<string>            $groups  what the list can group by, its default first (WorkingDisplay::read())
      * @param ListDefinition|null     $filters the list's filter fields, whose quick filters the view pins; null for a list without
      */
-    public function read(string $columns, array $context, string $list, ListView $view, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = [], ?ListDefinition $filters = null): WorkingState
+    public function read(string $columns, array $context, string $list, ListView $view, array $query, array $groups = [], ?ListDefinition $filters = null): WorkingState
     {
         $pins = $filters instanceof ListDefinition ? self::pinsOf($filters) : null;
         $user = $this->actor->userId();
         $named = [] !== array_intersect_key($query, array_flip(WorkingDisplay::KEYS));
         if (null === $user) {
-            return $this->display->read($columns, $context, $view->display, $query, $density, $groups, $pins);
+            return $this->display->read($columns, $context, $view->display, $query, $groups, $pins);
         }
         $stored = null === $view->id ? null : $this->states->display($view->id, $user);
         $remembered = $named ? null : $stored;
-        if ($named && null !== $stored && '' !== ($query[WorkingDisplay::DENSITY] ?? null)) {
+        if ($named && null !== $stored && '' !== ($query[WorkingDisplay::WIDTHS] ?? null)) {
             // What the address leaves out stays as remembered: the Settings sheet sends no widths, and a
             // dragged column sends its widths alone, which would otherwise show the columns hidden again.
-            // Reset names the view's own with an empty density, and forgets it all.
+            // Reset names the view's own with empty widths, and forgets it all.
             $query += $this->query($stored);
         }
-        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups, $pins);
+        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $groups, $pins);
         if ($named) {
             if ($working->modified) {
                 // A shipped view nobody stored yet is stored first, so the state has its id.
@@ -84,7 +83,7 @@ final readonly class RememberedDisplay
 
     /**
      * The address of a remembered display payload, which WorkingDisplay wrote: its
-     * columns in order with their widths, its density, what it groups by and the quick filters it pins.
+     * columns in order with their widths, what it groups by and the quick filters it pins.
      *
      * @param array<array-key, mixed> $display
      *
@@ -102,14 +101,12 @@ final readonly class RememberedDisplay
                 }
             }
         }
-        $density = $display['density'] ?? null;
         $group = $display['group_by'] ?? null;
 
-        // An empty density is the view's own.
         $pinned = $display['pinned'] ?? null;
 
         // Empty widths are the view's own.
-        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : '', WorkingDisplay::WIDTHS => RegistryWorkingDisplay::encodeWidths($widths)]
+        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::WIDTHS => RegistryWorkingDisplay::encodeWidths($widths)]
             + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : [])
             + (\is_array($pinned) ? [WorkingDisplay::PINNED => implode(',', array_filter($pinned, \is_string(...)))] : []);
     }

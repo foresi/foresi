@@ -54,44 +54,38 @@ final class ViewRulesTest extends TestCase
         $this->assertInvalid($path, static fn (): array => ViewRules::sort($sort));
     }
 
-    public function testNoColumnsAndNoDensityIsTheListsDefault(): void
+    public function testNoColumnsIsTheListsDefault(): void
     {
-        self::assertNull(ViewRules::display(null, null));
-    }
-
-    public function testADensityAloneIsAllThatIsStored(): void
-    {
-        self::assertSame(['density' => 'dense'], ViewRules::display(null, 'dense'));
-        self::assertSame(['density' => 'comfortable'], ViewRules::display(null, 'comfortable'));
+        self::assertNull(ViewRules::display(null));
     }
 
     public function testColumnsAreKeysOrKeysWithAWidth(): void
     {
-        self::assertSame(['columns' => []], ViewRules::display([], null));
+        self::assertSame(['columns' => []], ViewRules::display([]));
         self::assertSame(
-            ['columns' => [['key' => 'number'], ['key' => 'customer', 'width' => 240], ['key' => 'total']], 'density' => 'dense'],
-            ViewRules::display(['number', ['key' => 'customer', 'width' => 240], ['key' => 'total', 'width' => null]], 'dense'),
+            ['columns' => [['key' => 'number'], ['key' => 'customer', 'width' => 240], ['key' => 'total']]],
+            ViewRules::display(['number', ['key' => 'customer', 'width' => 240], ['key' => 'total', 'width' => null]]),
         );
     }
 
     public function testAWidthIsFromOneToTwoThousandPixels(): void
     {
-        self::assertSame(['columns' => [['key' => 'a', 'width' => 1]]], ViewRules::display([['key' => 'a', 'width' => 1]], null));
-        self::assertSame(['columns' => [['key' => 'a', 'width' => 2000]]], ViewRules::display([['key' => 'a', 'width' => 2000]], null));
+        self::assertSame(['columns' => [['key' => 'a', 'width' => 1]]], ViewRules::display([['key' => 'a', 'width' => 1]]));
+        self::assertSame(['columns' => [['key' => 'a', 'width' => 2000]]], ViewRules::display([['key' => 'a', 'width' => 2000]]));
 
         foreach ([0, -4, 2001, '240', 24.5] as $width) {
-            $this->assertInvalid('columns[0].width', static fn (): ?array => ViewRules::display([['key' => 'a', 'width' => $width]], null));
+            $this->assertInvalid('columns[0].width', static fn (): ?array => ViewRules::display([['key' => 'a', 'width' => $width]]));
         }
     }
 
     public function testAViewShowsAtMostFortyColumns(): void
     {
-        $display = ViewRules::display(array_fill(0, 40, 'number'), null);
+        $display = ViewRules::display(array_fill(0, 40, 'number'));
         self::assertIsArray($display);
         self::assertIsArray($display['columns']);
         self::assertCount(40, $display['columns']);
 
-        $this->assertInvalid('columns', static fn (): ?array => ViewRules::display(array_fill(0, 41, 'number'), null));
+        $this->assertInvalid('columns', static fn (): ?array => ViewRules::display(array_fill(0, 41, 'number')));
     }
 
     /**
@@ -112,36 +106,29 @@ final class ViewRulesTest extends TestCase
     #[DataProvider('badColumns')]
     public function testABadColumnNamesWhatIsWrong(array $columns, string $path): void
     {
-        $this->assertInvalid($path, static fn (): ?array => ViewRules::display($columns, null));
+        $this->assertInvalid($path, static fn (): ?array => ViewRules::display($columns));
     }
 
     public function testAGroupingIsStoredByItsKey(): void
     {
-        self::assertSame(['group_by' => 'person'], ViewRules::display(null, null, 'person'));
-        self::assertSame(['density' => 'dense', 'group_by' => 'person'], ViewRules::display(null, 'dense', 'person'));
-        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'task'], ViewRules::display(['number'], null, 'task'));
-        $this->assertInvalid('group_by', static fn (): ?array => ViewRules::display(null, null, 'Not a key'));
+        self::assertSame(['group_by' => 'person'], ViewRules::display(null, 'person'));
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'task'], ViewRules::display(['number'], 'task'));
+        $this->assertInvalid('group_by', static fn (): ?array => ViewRules::display(null, 'Not a key'));
     }
 
     public function testTheQuickFiltersAreStoredOnceEachInTheirOrderAndAtMostFour(): void
     {
-        self::assertSame(['pinned' => []], ViewRules::display(null, null, pinned: []), 'None pins none.');
-        self::assertSame(['pinned' => ['due_date', 'paid']], ViewRules::display(null, null, pinned: ['due_date', 'due_date', 'paid']));
-        self::assertSame(['pinned' => ['a', 'b', 'c', 'd']], ViewRules::display(null, null, pinned: ['a', 'b', 'c', 'd']));
-        self::assertNull(ViewRules::display(null, null), 'Null keeps the list\'s own.');
-        $this->assertInvalid('pinned', static fn (): ?array => ViewRules::display(null, null, pinned: ['a', 'b', 'c', 'd', 'e']));
+        self::assertSame(['pinned' => []], ViewRules::display(null, pinned: []), 'None pins none.');
+        self::assertSame(['pinned' => ['due_date', 'paid']], ViewRules::display(null, pinned: ['due_date', 'due_date', 'paid']));
+        self::assertSame(['pinned' => ['a', 'b', 'c', 'd']], ViewRules::display(null, pinned: ['a', 'b', 'c', 'd']));
+        self::assertNull(ViewRules::display(null), 'Null keeps the list\'s own.');
+        $this->assertInvalid('pinned', static fn (): ?array => ViewRules::display(null, pinned: ['a', 'b', 'c', 'd', 'e']));
     }
 
     public function testAQuickFilterIsNamedByTheKeyOfItsField(): void
     {
-        $this->assertInvalid('pinned[1]', static fn (): ?array => ViewRules::display(null, null, pinned: ['paid', 'Not a key']));
-        $this->assertInvalid('pinned[0]', static fn (): ?array => ViewRules::display(null, null, pinned: [7]));
-    }
-
-    public function testAnUnknownDensityIsRefused(): void
-    {
-        $this->assertInvalid('density', static fn (): ?array => ViewRules::display(['number'], 'airy'));
-        $this->assertInvalid('density', static fn (): ?array => ViewRules::display(null, 'airy'));
+        $this->assertInvalid('pinned[1]', static fn (): ?array => ViewRules::display(null, pinned: ['paid', 'Not a key']));
+        $this->assertInvalid('pinned[0]', static fn (): ?array => ViewRules::display(null, pinned: [7]));
     }
 
     private function assertInvalid(string $path, \Closure $call): void

@@ -466,7 +466,7 @@ final class DataTableTest extends KernelTestCase
         self::assertCount(4, $html->filter('tbody tr')->first()->filter('td'));
     }
 
-    public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void
+    public function testListRowsAre56PxLineRows44AndTheHeader44OnTheTint(): void
     {
         $list = new Crawler($this->render());
         self::assertStringContainsString('h-row-list', (string) $list->filter('tbody td')->first()->attr('class'));
@@ -475,15 +475,15 @@ final class DataTableTest extends KernelTestCase
             self::assertContains($expected, explode(' ', $header));
         }
 
-        $dense = new Crawler($this->render(['density' => 'dense']));
+        $dense = new Crawler($this->render(['kind' => 'lines']));
         self::assertContains('h-row', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
         self::assertNotContains('h-row-list', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
     }
 
-    public function testUnknownDensityThrows(): void
+    public function testAnUnknownKindOfRowsThrows(): void
     {
-        $this->expectExceptionMessageIsOrContains('Unknown density "roomy", expected one of: list, dense.');
-        $this->render(['density' => 'roomy']);
+        $this->expectExceptionMessageIsOrContains('Unknown kind of rows "roomy", expected one of: list, lines.');
+        $this->render(['kind' => 'roomy']);
     }
 
     public function testTheFooterShowsTheCountAndTheTotalBeforeWhatThePageAdds(): void

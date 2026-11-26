@@ -35,7 +35,7 @@
 
         {% if done %}<p class="m-0 text-small text-muted" data-notifications-kept>{{ 'work.notifications.kept'|trans }}</p>{% endif %}
 
-        <twig:Ui:DataTable :caption="'work.notifications.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\NotificationController::TOKEN'))" data-notifications data-turbo-prefetch="false">
+        <twig:Ui:DataTable :caption="'work.notifications.title'|trans" :columns="columns" :resizable="true" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\NotificationController::TOKEN'))" data-notifications data-turbo-prefetch="false">
             <twig:block name="empty">
                 {% if filtered %}
                     <twig:Ui:EmptyState icon="search" :title="emptyState.title" :text="'work.notifications.empty.filtered'|trans" data-notifications-empty>

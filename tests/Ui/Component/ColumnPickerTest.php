@@ -40,7 +40,6 @@ final class ColumnPickerTest extends KernelTestCase
             ['key' => 'number', 'label' => 'Number', 'visible' => true, 'locked' => true],
             ['key' => 'kind', 'label' => 'Kind', 'visible' => false, 'locked' => false],
         ],
-        'density' => 'comfortable',
         'resetHref' => '/list?view=paid',
     ];
 
@@ -97,12 +96,13 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertStringNotContainsString('data-column-picker-add', $html);
     }
 
-    public function testTheDensityIsARadioGroupWithTheCurrentOneChecked(): void
+    public function testTheSheetHasNoDensityOfItsOwn(): void
     {
-        $html = $this->render(['density' => 'dense']);
+        // How tall the rows are is the person's density on their profile, the same on every list.
+        $html = $this->render();
 
-        self::assertStringContainsString('name="density" value="comfortable" class', $html);
-        self::assertStringContainsString('name="density" value="dense" checked', $html);
+        self::assertStringNotContainsString('name="density"', $html);
+        self::assertStringNotContainsString('data-column-picker-density', $html);
     }
 
     public function testSearchShowsOnlyPastTenColumns(): void
@@ -129,12 +129,6 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertMatchesRegularExpression('/<button[^>]*aria-label="Nastavení seznamu" title="Nastavení seznamu"[^>]*>/', $html);
         self::assertStringContainsString('data-column-picker-open', $html);
         self::assertStringNotContainsString('ml-auto', $html);
-    }
-
-    public function testAnUnknownDensityIsRefused(): void
-    {
-        $this->expectException(\Throwable::class);
-        $this->render(['density' => 'huge']);
     }
 
     /**
@@ -189,7 +183,7 @@ final class ColumnPickerTest extends KernelTestCase
 
     public function testTheFormKeepsTheListsStateButNotItsWorkingDisplayOrPage(): void
     {
-        $picker = $this->mount(['keep' => ['view' => 'paid', 'q' => '', 'archived' => true, 'draft' => false, 'limit' => 5, 'cols' => 'a', 'density' => 'dense', 'page' => '2', 'sort' => null]]);
+        $picker = $this->mount(['keep' => ['view' => 'paid', 'q' => '', 'archived' => true, 'draft' => false, 'limit' => 5, 'cols' => 'a', 'pins' => 'b', 'group' => 'c', 'page' => '2', 'sort' => null]]);
 
         self::assertSame(['view' => 'paid', 'archived' => '1', 'draft' => '0', 'limit' => '5'], $picker->hidden());
     }
@@ -221,9 +215,9 @@ final class ColumnPickerTest extends KernelTestCase
         self::assertCount(0, $crawler->filter('[data-column-picker-quick-add], [data-column-picker-presets]'), 'One list, no "Add quick filter" and no presets.');
         self::assertSame('', $crawler->filter('input[type=hidden][name="pins[]"]')->attr('value'), 'With no box checked the form still says none.');
         self::assertLessThan(
-            (int) strpos($crawler->html(), 'data-column-picker-density'),
+            (int) strpos($crawler->html(), 'name="cols"'),
             (int) strpos($crawler->html(), 'data-column-picker-quick'),
-            'The quick filters come before the columns and the density.',
+            'The quick filters come before the columns.',
         );
     }
 
@@ -246,10 +240,10 @@ final class ColumnPickerTest extends KernelTestCase
 
     public function testAListWithoutColumnsShowsItsQuickFiltersAlone(): void
     {
-        $crawler = new Crawler($this->render(['columns' => [], 'density' => null, 'quick' => [['key' => 'person', 'label' => 'Person', 'pinned' => true]]]));
+        $crawler = new Crawler($this->render(['columns' => [], 'quick' => [['key' => 'person', 'label' => 'Person', 'pinned' => true]]]));
 
         self::assertCount(1, $crawler->filter('[data-column-picker-quick]'));
-        self::assertCount(0, $crawler->filter('input[name="cols[]"], input[name=cols], [data-column-picker-density]'));
+        self::assertCount(0, $crawler->filter('input[name="cols[]"], input[name=cols]'));
         self::assertCount(1, $crawler->filter('[data-column-picker-reset]'));
     }
 

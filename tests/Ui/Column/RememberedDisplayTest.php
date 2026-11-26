@@ -29,28 +29,28 @@ final class RememberedDisplayTest extends TestCase
     {
         $query = $this->queryOf(['columns' => [['key' => 'name'], 'not a column', ['key' => 'email', 'width' => 200]], 'density' => 'dense', 'group_by' => 'kind', 'pinned' => ['city', 7, 'kind']], ['q' => 'example']);
 
-        self::assertSame(['cols' => 'name,email', 'density' => 'dense', 'widths' => 'email:200', 'group' => 'kind', 'pins' => 'city,kind', 'q' => 'example'], $query);
+        self::assertSame(['cols' => 'name,email', 'widths' => 'email:200', 'group' => 'kind', 'pins' => 'city,kind', 'q' => 'example'], $query, 'A density stored before is left out.');
     }
 
     public function testWhatTheDisplayLeavesOutIsTheViewsOwn(): void
     {
-        self::assertSame(['cols' => 'name,kind', 'density' => '', 'widths' => ''], $this->queryOf(['columns' => [['key' => 'name'], ['key' => 'kind', 'width' => 0]], 'pinned' => 'not a list', 'group_by' => 7]), 'A width of no px is none.');
-        self::assertSame(['cols' => '', 'density' => '', 'widths' => '', 'pins' => ''], $this->queryOf(['pinned' => []]), 'A display that pins none pins none.');
+        self::assertSame(['cols' => 'name,kind', 'widths' => ''], $this->queryOf(['columns' => [['key' => 'name'], ['key' => 'kind', 'width' => 0]], 'pinned' => 'not a list', 'group_by' => 7]), 'A width of no px is none.');
+        self::assertSame(['cols' => '', 'widths' => '', 'pins' => ''], $this->queryOf(['pinned' => []]), 'A display that pins none pins none.');
     }
 
     public function testTheSettingsSheetsColumnsKeepTheWidthsDragged(): void
     {
         $remembered = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email', 'width' => 180]]];
 
-        self::assertSame(['cols' => 'name,kind', 'density' => 'dense', 'widths' => 'name:240,email:180'], $this->queryOf($remembered, ['cols' => 'name,kind', 'density' => 'dense'], named: true));
-        self::assertSame(['density' => '', 'widths' => ''], $this->queryOf($remembered, ['density' => '', 'widths' => ''], named: true), 'Reset names the view\'s own widths.');
+        self::assertSame(['cols' => 'name,kind', 'widths' => 'name:240,email:180'], $this->queryOf($remembered, ['cols' => 'name,kind'], named: true));
+        self::assertSame(['widths' => ''], $this->queryOf($remembered, ['widths' => ''], named: true), 'Reset names the view\'s own widths, and forgets the rest too.');
     }
 
     public function testADraggedColumnKeepsTheColumnsHidden(): void
     {
-        $remembered = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email']], 'density' => 'dense', 'pinned' => ['city']];
+        $remembered = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email']], 'pinned' => ['city']];
 
-        self::assertSame(['widths' => 'name:300', 'cols' => 'name,email', 'density' => 'dense', 'pins' => 'city'], $this->queryOf($remembered, ['widths' => 'name:300'], named: true));
+        self::assertSame(['widths' => 'name:300', 'cols' => 'name,email', 'pins' => 'city'], $this->queryOf($remembered, ['widths' => 'name:300'], named: true));
     }
 
     /**
@@ -68,11 +68,11 @@ final class RememberedDisplayTest extends TestCase
             /** @var array<array-key, mixed> */
             public array $query = [];
 
-            public function read(string $list, array $context, ?array $saved, array $query, string $density = ListDisplay::COMFORTABLE, array $groups = [], ?array $pins = null): WorkingState
+            public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState
             {
                 $this->query = $query;
 
-                return new WorkingState(new ListDisplay([]), null, [], $density, false, []);
+                return new WorkingState(new ListDisplay([]), null, [], false, []);
             }
         };
         $states = new readonly class($remembered, $named) implements SavedViewUserStates {

@@ -53,12 +53,12 @@
             {% if section.id is null %}
             {# The table is named after the project: with no heading it still needs a name. #}
             <div class="grid gap-2" data-section="{{ section.key }}">
-                <twig:Ui:DataTable :caption="'work.list.loose_caption'|trans({project: project.name})" :columns="columns" :resizable="true" :rows="section.rows" :density="density" :actionToken="trashToken" />
+                <twig:Ui:DataTable :caption="'work.list.loose_caption'|trans({project: project.name})" :columns="columns" :resizable="true" :rows="section.rows" :actionToken="trashToken" />
             </div>
             {% else %}
             <section class="grid gap-2" aria-labelledby="section-{{ section.key }}-title" data-section="{{ section.key }}">
                 <h2 id="section-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.name }} <span class="num font-normal text-muted">({{ section.count }})</span>{% if section.private %} {{ include('@Work/_private_badge.html.twig') }}{% endif %}</h2>
-                <twig:Ui:DataTable :caption="section.name" :columns="columns" :resizable="true" :rows="section.rows" :density="density" :actionToken="trashToken">
+                <twig:Ui:DataTable :caption="section.name" :columns="columns" :resizable="true" :rows="section.rows" :actionToken="trashToken">
                     <twig:block name="empty">
                         <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ (filtered ? 'work.list.empty_filtered' : 'work.list.empty')|trans }}</p>
                     </twig:block>

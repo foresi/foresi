@@ -43,7 +43,7 @@ final class WhoAmIToolTest extends TestCase
         $output = $this->tool($grant, $user)->call([]);
 
         self::assertSame([
-            'user' => ['id' => $user->id(), 'email' => 'testing@example.com', 'display_name' => 'Testing', 'language' => 'en', 'photo_url' => null],
+            'user' => ['id' => $user->id(), 'email' => 'testing@example.com', 'display_name' => 'Testing', 'language' => 'en', 'text_size' => 'standard', 'density' => 'normal', 'photo_url' => null],
             'token' => ['id' => '019a0000-0000-7000-8000-0000000000aa', 'name' => 'Claude', 'scopes' => ['read', 'write'], 'expires_at' => '2026-12-01T10:00:00+01:00'],
         ], $output->data);
         self::assertSame('The person and API token of this connection.', $output->summary);

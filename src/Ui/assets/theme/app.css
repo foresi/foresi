@@ -105,7 +105,8 @@
     /*
      * Heights: controls (sm, md, lg = touch and the palette field) and table rows. A field, a
      * button and a menu row are 40 px, as in level.io (h-10). A row of a list is 56 px (layout spec,
-     * lists); a dense table (lines, bank movements) and every table header keep 44 px (level.io).
+     * lists); a line table (lines, bank movements) and every table header keep 44 px (level.io).
+     * These are the normal density; a person's own (body[data-density], below) changes them.
      */
     --spacing-control-sm: 28px;
     --spacing-control: 40px;
@@ -178,10 +179,72 @@
     --breakpoint-shell: 900px;
 }
 
+/*
+ * The person's appearance, chosen on their profile and the same on every device (ABRA Flexi,
+ * "Vzhled webového rozhraní": a size of the rows and a size of the text, per user). The base
+ * template puts it on <body> as data-text-size and data-density; the tokens above are the
+ * standard text and the normal density, which anonymous pages keep.
+ *
+ * Text size: one factor scales every text token and its line height, so the body text is 13 px
+ * (small), 14 px (standard) or 16 px (large) and the scale keeps its steps. The tokens are declared
+ * again on <body>, where the factor is set: a custom property is computed where it is declared.
+ * Text fields on touch screens stay at 16 px (below), the touch targets at 44 px.
+ *
+ * Density: the height of the table rows, a list row 44 / 56 / 64 px and a line row (lines, bank
+ * movements, every table header) 36 / 44 / 52 px, so a list row stays a step above a line row.
+ * With a mouse (pointer: fine) fields, buttons and menu rows follow, 32 / 40 / 44 px; on a touch
+ * screen they keep 40 px, which a finger needs.
+ */
 body {
+    --text-scale: 1;
+    --text-micro: calc(11px * var(--text-scale));
+    --text-micro--line-height: calc(14px * var(--text-scale));
+    --text-caption: calc(12px * var(--text-scale));
+    --text-caption--line-height: calc(16px * var(--text-scale));
+    --text-small: calc(13px * var(--text-scale));
+    --text-small--line-height: calc(18px * var(--text-scale));
+    --text-body: calc(14px * var(--text-scale));
+    --text-body--line-height: calc(20px * var(--text-scale));
+    --text-heading: calc(16px * var(--text-scale));
+    --text-heading--line-height: calc(24px * var(--text-scale));
+    --text-title: calc(20px * var(--text-scale));
+    --text-title--line-height: calc(28px * var(--text-scale));
+    --text-figure: calc(24px * var(--text-scale));
+    --text-figure--line-height: calc(32px * var(--text-scale));
+
     background: var(--color-frame);
     color: var(--color-text);
     font: var(--text-body) / var(--text-body--line-height) var(--font-sans);
+}
+
+body[data-text-size="small"] {
+    /* 13 px body text. */
+    --text-scale: calc(13 / 14);
+}
+
+body[data-text-size="large"] {
+    /* 16 px body text. */
+    --text-scale: calc(16 / 14);
+}
+
+body[data-density="compact"] {
+    --spacing-row: 36px;
+    --spacing-row-list: 44px;
+}
+
+body[data-density="spacious"] {
+    --spacing-row: 52px;
+    --spacing-row-list: 64px;
+}
+
+@media (pointer: fine) {
+    body[data-density="compact"] {
+        --spacing-control: 32px;
+    }
+
+    body[data-density="spacious"] {
+        --spacing-control: 44px;
+    }
 }
 
 /*

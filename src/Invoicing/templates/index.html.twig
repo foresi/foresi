@@ -56,7 +56,7 @@
                 </div>
             {% endif %}
 
-            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+            <twig:Ui:DataTable :caption="titleKey|trans" :columns="columns" :resizable="true" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'invoice.list.empty.filtered_title'|trans" :text="'invoice.list.empty.filtered_text'|trans">

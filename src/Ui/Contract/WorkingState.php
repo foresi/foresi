@@ -19,26 +19,17 @@ final readonly class WorkingState
     /**
      * @param array<array-key, mixed>|null $payload the display payload the list shows; null for the registry's defaults
      * @param list<ResolvedColumn>         $columns every column the list's context offers, in the default order
-     * @param array<string, string>        $query   cols, density and pins, only when they differ from the view
+     * @param array<string, string>        $query   cols, group, pins and widths, only when they differ from the view
      * @param list<string>                 $pinned  the keys of the fields pinned as quick filters, in order
      */
     public function __construct(
         public ListDisplay $display,
         public ?array $payload,
         private array $columns,
-        public string $density,
         public bool $modified,
         public array $query,
         public array $pinned = [],
     ) {
-    }
-
-    /**
-     * The Ui:DataTable density of the rows.
-     */
-    public function tableDensity(): string
-    {
-        return ListDisplay::DENSE === $this->density ? 'dense' : 'list';
     }
 
     /**

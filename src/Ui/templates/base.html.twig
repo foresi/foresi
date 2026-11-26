@@ -42,7 +42,13 @@
             {% block importmap %}{{ importmap('app', {nonce: csp_nonce()}) }}{% endblock %}
         {% endblock %}
     </head>
-    <body data-controller="form-errors"{% block body_attributes %}{% endblock %}>
+    {#
+        The person's appearance (Profile, Appearance; ABRA Flexi, Vzhled): data-text-size scales the
+        text tokens, data-density the row and control heights (theme/app.css). On <body>, not <html>:
+        Turbo swaps the body on every visit and keeps <html>, so a change shows on the next page.
+    #}
+    {% set look = appearance() %}
+    <body data-controller="form-errors" data-text-size="{{ look.textSize }}" data-density="{{ look.density }}"{% block body_attributes %}{% endblock %}>
         {% block body %}{% endblock %}
     </body>
 </html>

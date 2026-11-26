@@ -95,7 +95,7 @@ final class InvoiceListController extends AbstractController
     public const string ACTION_TOKEN = 'invoice_action';
     private const int MAX_TEXT = 100;
     /** The parts of the list's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', 'toSend', 'month', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingFilter::PARAM];
+    public const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', 'toSend', 'month', WorkingDisplay::COLUMNS, WorkingFilter::PARAM];
     /** The list of each kind of document, as iDoklad keeps one per kind. */
     public const array ROUTES = ['invoice' => 'app_invoices', 'advance' => 'app_advances', 'payment_tax_document' => 'app_tax_documents', 'correction_document' => 'app_corrections'];
 
@@ -152,7 +152,7 @@ final class InvoiceListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, InvoiceFilter::DEFAULT_SORT);
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, 'toSend' => $toSend ? '1' : null, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $toSendCount = $this->recurring->inReview();
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $list = $this->lists->of($kind);
         $working = $this->workingDisplay->read($this->listKey($kind), ['trash' => InvoiceFilter::TRASH === $tab], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
@@ -185,7 +185,6 @@ final class InvoiceListController extends AbstractController
             ...$this->tabs($views, $view->key, $page, $query, $route, $kind, $modified),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl($route, ['sort' => $next] + $query)),
             'rows' => array_map(fn (InvoiceRow $row): array => $this->row($row, $tab, $names, http_build_query($here), $reminders[$row->id] ?? null, $working->payload), $page->rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query, $route),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl($route, $query),
@@ -619,10 +618,9 @@ final class InvoiceListController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
-            // Its own dot weighs the columns and density only; the tab's weighs the whole view (ViewState).
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::WIDTHS => '']),
+            // Its own dot weighs the columns only; the tab's weighs the whole view (ViewState).
             'modified' => $working->modified,
         ];
     }

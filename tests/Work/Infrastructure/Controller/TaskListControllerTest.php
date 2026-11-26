@@ -105,8 +105,8 @@ final class TaskListControllerTest extends WebTestCase
         $sync = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:views:sync'));
         $hidden = static fn (Crawler $crawler): bool => 0 === $crawler->filter('col[data-column="responsible"]')->count() && $crawler->filter('col[data-column="project"]')->count() > 0;
 
-        // Hidden in the Settings sheet, which sends every column shown and the density.
-        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels&density=comfortable')));
+        // Hidden in the Settings sheet, which sends every column shown.
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels')));
         $sync->execute([]);
         // Opened again, then a column dragged wider, which writes widths= alone to the address.
         self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine')));
@@ -115,13 +115,13 @@ final class TaskListControllerTest extends WebTestCase
         self::assertSame('320px', $this->width($this->client->getCrawler(), 'title'), 'And the width dragged.');
 
         // Saved with the view, the same through a deploy, a drag and a reload.
-        $crawler = $this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels&density=comfortable');
+        $crawler = $this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels');
         $this->client->submit($crawler->filter('form[action="/views/save"]')->form());
         self::assertResponseRedirects();
         $sync->execute([]);
         self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&widths=project:200')));
         self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine')));
-        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&density=&widths=')), 'Reset goes back to the view as saved.');
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&widths=')), 'Reset goes back to the view as saved.');
     }
 
     public function testTheListGroupsAndSortsAsTheAddressSays(): void

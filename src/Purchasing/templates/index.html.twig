@@ -41,7 +41,7 @@
                 :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty" data-purchasing-filter>
             </twig:Ui:FilterBar>
 
-            <twig:Ui:DataTable :caption="'purchasing.list.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density">
+            <twig:Ui:DataTable :caption="'purchasing.list.title'|trans" :columns="columns" :resizable="true" :rows="rows">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'purchasing.list.empty.filtered_title'|trans" :text="'purchasing.list.empty.filtered_text'|trans">
