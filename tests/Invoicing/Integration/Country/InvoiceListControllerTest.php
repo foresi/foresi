@@ -1416,7 +1416,7 @@ final class InvoiceListControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/invoices?view=unpaid&q=Consulting&sort=number&f='.$this->unpaidAndDue());
 
-        self::assertSame('/invoices?view=unpaid&q=Consulting&density=', $crawler->filter('[data-view-reset]')->attr('href'));
+        self::assertSame('/invoices?view=unpaid&q=Consulting&density=&widths=', $crawler->filter('[data-view-reset]')->attr('href'));
         $crawler = $this->client->request('GET', '/invoices?view=unpaid&q=Consulting&density=');
         self::assertCount(0, $crawler->filter('[data-tab-modified], [data-view-actions]'));
     }

@@ -13,8 +13,11 @@ use Foresi\Catalog\Contract\Event\ProductArchived;
 use Foresi\Catalog\Contract\Event\ProductCreated;
 use Foresi\Catalog\Contract\Event\ProductRestored;
 use Foresi\Catalog\Contract\Event\ProductUpdated;
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\Field\CustomFieldWrites;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 
@@ -22,7 +25,10 @@ use Foresi\Shared\Contract\Operation\Omitted;
  * The writes of the catalog, from its screens, the API and MCP alike (ADR 0032).
  * Each runs in one unit of work with its catalog.product event, and only the
  * owners and members of the organisation write. Archiving an archived product,
- * or restoring one that is not, changes nothing and records nothing.
+ * or restoring one that is not, changes nothing and records nothing. The custom
+ * fields of a product (ADR 0045) come from its screens beside the input, which the
+ * API does not carry yet: they are written in the same unit of work, and
+ * catalog.product.updated names the keys that changed.
  */
 final readonly class ProductWrites
 {
@@ -33,20 +39,27 @@ final readonly class ProductWrites
         private CatalogWork $work,
         private EventRecorder $events,
         private InstanceClock $clock,
+        private CustomFieldWrites $customFields,
     ) {
     }
 
     /**
+     * @param array<string, mixed>|null $customFields the custom fields by key, each required one with a value; null when the caller offers none
+     *
      * @throws CatalogRefused
+     * @throws FieldRefused   nothing is stored
      */
-    public function create(CreateProductInput $input): Product
+    public function create(CreateProductInput $input, ?array $customFields = null): Product
     {
         $this->access->denyUnlessStaff();
         $terms = $this->rules->terms(new ProductDraft($input->name, $input->description, $input->unit, $input->unitPrice, $input->currency, $input->billingKind, $input->recurrenceUnit, $input->interval, $input->cycles));
 
-        return $this->work->run(function () use ($terms): Product {
+        return $this->work->run(function () use ($terms, $customFields): Product {
             $product = new Product($terms, $this->now());
             $this->store->add($product);
+            if (null !== $customFields) {
+                $this->customFields->write(ProductExtension::RECORD, $product->id(), $customFields, true);
+            }
             $this->events->record(new ProductCreated($product->id(), $product->billingKind()));
 
             return $product;
@@ -54,11 +67,14 @@ final readonly class ProductWrites
     }
 
     /**
+     * @param array<string, mixed>|null $customFields the custom fields to change by key, null clearing one; null when the caller offers none
+     *
      * @throws CatalogRefused
+     * @throws FieldRefused   nothing is stored
      */
-    public function update(UpdateProductInput $input): Product
+    public function update(UpdateProductInput $input, ?array $customFields = null): Product
     {
-        return $this->work->run(function () use ($input): Product {
+        return $this->work->run(function () use ($input, $customFields): Product {
             $product = $this->product($input->productId);
             $kind = $this->given($input->billingKind, $product->billingKind()->value);
             // A product made one-off or time-based keeps no recurrence, unless the input sends one, which is refused.
@@ -75,7 +91,8 @@ final readonly class ProductWrites
                 $this->given($input->interval, $recurs ? $product->interval() : null),
                 $this->given($input->cycles, $recurs ? $product->cycles() : null),
             )));
-            $this->events->record(new ProductUpdated($product->id(), $product->billingKind()));
+            $changed = null === $customFields ? [] : $this->customFields->write(ProductExtension::RECORD, $product->id(), $customFields, false);
+            $this->events->record(new ProductUpdated($product->id(), $product->billingKind(), $changed));
 
             return $product;
         });

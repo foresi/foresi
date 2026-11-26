@@ -30,6 +30,7 @@ use Foresi\Sales\Contract\Event\DealStageChanged;
 use Foresi\Sales\Contract\Event\DealTrashed;
 use Foresi\Sales\Contract\Event\DealUpdated;
 use Foresi\Sales\Contract\Event\DealWon;
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealContact;
 use Foresi\Sales\Domain\DealLine;
@@ -37,6 +38,8 @@ use Foresi\Sales\Domain\DealLink;
 use Foresi\Sales\Domain\DealLinkType;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
+use Foresi\Shared\Application\Field\CustomFieldWrites;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 
@@ -46,7 +49,10 @@ use Foresi\Shared\Contract\Operation\Omitted;
  * owners and members of the organisation write. The client is a contact of
  * the address book, not archived for a new deal or a deal moved to it; the
  * contact persons are linked to it; the owner is an owner or member. A deal in
- * the trash is not found, except to trash or restore it.
+ * the trash is not found, except to trash or restore it. The custom fields of a
+ * deal (ADR 0045) come from its screens beside the input, which the API does not
+ * carry yet: they are written in the same unit of work, and sales.deal.updated
+ * names the keys that changed.
  */
 final readonly class DealWrites
 {
@@ -59,6 +65,7 @@ final readonly class DealWrites
         private PartyDirectory $parties,
         private ContactPersonWrites $contactPersons,
         private LineProjects $projects,
+        private CustomFieldWrites $customFields,
     ) {
     }
 
@@ -66,14 +73,17 @@ final readonly class DealWrites
      * A new deal; the person of the dialog, when one is given, is added to the client and
      * becomes the last of its contact persons.
      *
+     * @param array<string, mixed>|null $customFields the custom fields by key, each required one with a value; null when the caller offers none
+     *
      * @throws SalesRefused
      * @throws ContactPersonRefused nothing is stored
+     * @throws FieldRefused         nothing is stored
      */
-    public function create(CreateDealInput $input, ?ContactPersonDraft $newPerson = null): Deal
+    public function create(CreateDealInput $input, ?ContactPersonDraft $newPerson = null, ?array $customFields = null): Deal
     {
         $caller = $this->access->denyUnlessStaff();
 
-        return $this->work->run(function () use ($input, $caller, $newPerson): Deal {
+        return $this->work->run(function () use ($input, $caller, $newPerson, $customFields): Deal {
             $client = $this->newDealClient($input->clientPartyId);
             $persons = $this->persons($client->id, $input->contactPersonIds);
             $deal = SalesRefused::unless(fn (): Deal => new Deal(
@@ -89,6 +99,9 @@ final readonly class DealWrites
             }
             $this->store->add($deal);
             $this->replaceContacts($deal, $persons);
+            if (null !== $customFields) {
+                $this->customFields->write(DealExtension::RECORD, $deal->id(), $customFields, true);
+            }
             $this->events->record(new DealCreated($deal->id(), $deal->status()->value, $deal->stageId()));
 
             return $deal;
@@ -102,16 +115,19 @@ final readonly class DealWrites
      * client keeps its client too, as a line links only a project of the deal's client or of
      * no client. The person of the dialog, when one is given, is
      * added to the client (the new one, when it changes) and becomes the last of the deal's
-     * contact persons.
+     * contact persons. The custom fields given are written too.
+     *
+     * @param array<string, mixed>|null $customFields the custom fields to change by key, null clearing one; null when the caller offers none
      *
      * @throws SalesRefused
      * @throws ContactPersonRefused nothing is stored
+     * @throws FieldRefused         nothing is stored
      */
-    public function update(UpdateDealInput $input, ?ContactPersonDraft $newPerson = null): Deal
+    public function update(UpdateDealInput $input, ?ContactPersonDraft $newPerson = null, ?array $customFields = null): Deal
     {
         $this->access->denyUnlessStaff();
 
-        return $this->work->run(function () use ($input, $newPerson): Deal {
+        return $this->work->run(function () use ($input, $newPerson, $customFields): Deal {
             $deal = $this->deal($input->dealId);
             $now = $this->clock->now();
             SalesRefused::unless(static fn () => $deal->describe(
@@ -139,7 +155,7 @@ final readonly class DealWrites
             if (null !== $persons) {
                 $this->replaceContacts($deal, $persons);
             }
-            $this->updated($deal);
+            $this->updated($deal, null === $customFields ? [] : $this->customFields->write(DealExtension::RECORD, $deal->id(), $customFields, false));
 
             return $deal;
         });
@@ -310,9 +326,12 @@ final readonly class DealWrites
         return SalesRefused::notFound('There is no deal with this id. Find it with foresi_search_deals.');
     }
 
-    private function updated(Deal $deal): void
+    /**
+     * @param list<string> $customFields the keys of the custom fields that changed
+     */
+    private function updated(Deal $deal, array $customFields = []): void
     {
-        $this->events->record(new DealUpdated($deal->id(), $deal->status()->value, $deal->stageId()));
+        $this->events->record(new DealUpdated($deal->id(), $deal->status()->value, $deal->stageId(), $customFields));
     }
 
     /**

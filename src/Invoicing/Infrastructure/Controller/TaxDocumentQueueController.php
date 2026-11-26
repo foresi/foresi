@@ -269,7 +269,7 @@ final class TaxDocumentQueueController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

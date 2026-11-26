@@ -19,7 +19,7 @@
     out, "≈" when a monthly value is approximate. Then what other modules add (SalesSlots::DEAL_SECTIONS)
     as link tabs, the first, Activities, by default and only the active one loaded, in its lazy frame
     (NN/g, Tabs, used right: the most used tab first and selected). The side column: the details, the
-    notes and the linked deals.
+    custom fields under "Additional details", the notes and the linked deals.
     Variables: deal, badge, stageName, stages (id, name, current), details, lines, lineProjects (whether a line links a project), totals, links, linkable,
     slotActions, tabs, section, context.
 #}
@@ -172,6 +172,8 @@
                         </div>
                     {% endfor %}
                 </dl>
+
+                <twig:Ui:CustomFields :record="constant('Foresi\\Sales\\Contract\\Field\\DealExtension::RECORD')" mode="detail" :id="deal.id" :card="false" :heading="true" />
 
                 {% if deal.description != '' %}
                     <section class="grid gap-1.5 border-t border-divider pt-3" aria-labelledby="deal-description-title">

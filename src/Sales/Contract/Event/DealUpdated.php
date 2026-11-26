@@ -16,18 +16,21 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A deal changed: its title, description, client, owner or contact persons, a line or
  * a link. The payload is thin (ADR 0030): read the deal itself for its title,
- * client and lines.
+ * client and lines. It names the keys of the custom fields that changed (ADR 0045),
+ * never their values; empty when none did.
  */
 #[DomainEvent('sales.deal.updated', version: 1)]
 final readonly class DealUpdated implements DomainEventPayload
 {
     /**
-     * @param string $status open, won or lost, after the change
+     * @param string       $status       open, won or lost, after the change
+     * @param list<string> $customFields the keys of the custom fields that changed
      */
     public function __construct(
         public string $dealId,
         public string $status,
         public string $stageId,
+        public array $customFields = [],
     ) {
     }
 

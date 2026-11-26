@@ -76,6 +76,9 @@
             <twig:Ui:ChoiceChips name="roles[]" id="roles" :legend="'party.field.roles'|trans" list="party.contacts" attribute="roles" :options="roleOptions" :values="values.roles" :error="errors.roles|default(null)" />
         {% endif %}
 
+        {# The custom fields a new contact needs; the whole form has the others. #}
+        <twig:Ui:CustomFields :record="constant('Foresi\\Party\\Contract\\Field\\ContactExtension::RECORD')" :values="customValues|default(null)" :errors="customErrors|default({})" :requiredOnly="true" :card="false" />
+
         <details data-quick-address class="rounded-control border border-divider px-3 py-2"{% if addressProblem %} open{% endif %}>
             <summary class="cursor-pointer text-small font-medium text-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">
                 {{- 'party.card.billing'|trans }} <span class="font-normal text-muted" data-party-lookup-target="seat">{{ seat }}</span>

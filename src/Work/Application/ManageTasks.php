@@ -11,11 +11,14 @@ namespace Foresi\Work\Application;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Shared\Application\Field\CustomFieldWrites;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Work\Contract\Event\TaskCompleted;
 use Foresi\Work\Contract\Event\TaskCreated;
 use Foresi\Work\Contract\Event\TaskTrashed;
 use Foresi\Work\Contract\Event\TaskUpdated;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -42,6 +45,11 @@ use Psr\Clock\ClockInterface;
  * Each change that changes something records its event in the same unit
  * (ADR 0030): created, updated with the fields changed, completed when the
  * task reaches a finished status, trashed for the task a person deleted.
+ *
+ * The custom fields of a task (ADR 0045) are written in the same unit: a new
+ * task with each required one, and a change one field at a time, as the
+ * sidebar saves it, with its key in work.task.updated. A guest writes only the
+ * fields open to guests.
  */
 final readonly class ManageTasks
 {
@@ -61,6 +69,7 @@ final readonly class ManageTasks
         private TrashPermission $trash,
         private Notifier $notifier,
         private EventRecorder $events,
+        private CustomFieldWrites $customFields,
     ) {
     }
 
@@ -69,7 +78,10 @@ final readonly class ManageTasks
      * open one; a subtask sits under a task of the same project that is not a
      * subtask itself.
      *
+     * @param array<string, mixed>|null $customFields the custom fields by key, each required one with a value; null when the caller offers none
+     *
      * @throws WorkRefused
+     * @throws FieldRefused nothing is stored
      */
     public function create(
         string $projectId,
@@ -80,6 +92,7 @@ final readonly class ManageTasks
         ?string $responsibleId = null,
         ?\DateTimeImmutable $dueOn = null,
         Priority $priority = Priority::None,
+        ?array $customFields = null,
     ): Task {
         // A subtask needs only its task to be seen, not the whole project.
         $parent = null === $parentId ? null : $this->work->task($parentId);
@@ -115,8 +128,11 @@ final readonly class ManageTasks
         $task->dueOn($dueOn);
         $task->prioritise($priority);
 
-        return $this->unit->run(function () use ($task, $userId, $responsible): Task {
+        return $this->unit->run(function () use ($task, $userId, $responsible, $customFields): Task {
             $this->tasks->add($task);
+            if (null !== $customFields) {
+                $this->customFields->write(TaskExtension::RECORD, $task->id(), $customFields, true);
+            }
             $watchers = [];
             $creator = $this->people->membershipOf($userId);
             foreach ([$creator, $responsible] as $membership) {
@@ -190,6 +206,23 @@ final readonly class ManageTasks
             $before = $task->dueDate()?->format('Y-m-d');
             $task->dueOn($dueOn);
             $this->updated($task, $before !== $task->dueDate()?->format('Y-m-d'), TaskUpdated::DUE_ON);
+        });
+    }
+
+    /**
+     * One custom field of the task, null clearing it.
+     *
+     * @throws WorkRefused
+     * @throws FieldRefused for a field the task has not, one hidden from a guest, or a value its kind does not take
+     */
+    public function setCustomField(string $taskId, string $key, mixed $value): void
+    {
+        $task = $this->work->task($taskId);
+        $this->unit->run(function () use ($task, $key, $value): void {
+            $changed = $this->customFields->write(TaskExtension::RECORD, $task->id(), [$key => $value], false);
+            if ([] !== $changed) {
+                $this->events->record(new TaskUpdated($task->id(), $task->project()->id(), [], $changed));
+            }
         });
     }
 

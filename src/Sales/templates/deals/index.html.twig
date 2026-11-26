@@ -34,10 +34,10 @@
                     {{ section.title }}
                     <span class="num font-normal text-muted">{{ section.count }}{% if section.total %} · {{ section.total }}{% endif %}</span>
                 </h2>
-                <twig:Ui:DataTable :caption="section.title" :columns="columns" :rows="section.rows" :density="density" />
+                <twig:Ui:DataTable :caption="section.title" :columns="columns" :resizable="true" :rows="section.rows" :density="density" />
             </section>
         {% else %}
-            <twig:Ui:DataTable :caption="'sales.deals.title'|trans" :columns="columns" :rows="[]" :density="density">
+            <twig:Ui:DataTable :caption="'sales.deals.title'|trans" :columns="columns" :resizable="true" :rows="[]" :density="density">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'sales.deals.empty.filtered_title'|trans">

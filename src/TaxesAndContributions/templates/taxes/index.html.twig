@@ -3,7 +3,8 @@
     The page Money → Taxes and contributions, for the owner only (B7). The years are tabs, places rather
     than saved views (docs/design/list-pages.md, 7). What the owner keeps is one compact table: the
     actual figures to date, and beside them the year end, a forecast kept apart in its own dashed, shaded
-    column under the outline "forecast" badge, or the reason it is empty. Under it, the forecast part by
+    column under the outline "forecast" badge, or the reason it is empty. Next year has the year end
+    only, from the forecast of all its months, and the "to date" column says the year has not started. Under it, the forecast part by
     certainty in a dashed box of the same look. The payments of the year follow, then the expense methods
     side by side and the credits.
     Every number of both columns opens its steps in the side sheet, as a cell of Cash flow opens its items
@@ -68,9 +69,17 @@
                             {% for row in summary.rows %}
                                 <tr data-taxes-row="{{ row.key }}">
                                     <th scope="row" class="h-row whitespace-nowrap border-b border-divider px-4 text-left {{ row.total ? 'font-semibold text-ink' : 'font-normal text-text' }}">{{ row.label }}</th>
-                                    <td class="{{ cell }} {{ row.total ? 'font-semibold text-ink' : 'text-ink' }}">
-                                        <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ row.text }}<span class="sr-only"> {{ 'taxes.page.open_steps'|trans }}</span></a>
-                                    </td>
+                                    {% if row.text is not null %}
+                                        <td class="{{ cell }} {{ row.total ? 'font-semibold text-ink' : 'text-ink' }}">
+                                            <a href="{{ row.href }}" data-sheet aria-haspopup="dialog" class="{{ link }}">{{ row.text }}<span class="sr-only"> {{ 'taxes.page.open_steps'|trans }}</span></a>
+                                        </td>
+                                    {% elseif loop.first %}
+                                        {# Next year has nothing to date yet: one column for all rows, saying why. #}
+                                        <td rowspan="{{ summary.rows|length }}" class="w-2/5 border-b border-divider px-4 py-3 align-top text-small text-muted" data-taxes-to-date-empty="{{ reason }}">
+                                            <span class="mb-1 block font-medium text-text">{{ ('taxes.page.reason.' ~ reason ~ '.title')|trans({year: year}) }}</span>
+                                            {{ ('taxes.page.reason.' ~ reason ~ '.text')|trans({year: year}) }}
+                                        </td>
+                                    {% endif %}
                                     {% if row.yearEnd %}
                                         {# The forecast is not a fact: a dashed, shaded column of its own. #}
                                         <td class="{{ cell }} border-l border-dashed border-l-control-line bg-head {{ row.total ? 'font-semibold text-ink' : 'text-text' }}" data-taxes-year-end-cell="{{ row.key }}">

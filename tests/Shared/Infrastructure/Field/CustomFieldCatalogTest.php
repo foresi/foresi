@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Field;
 
+use Foresi\Shared\Application\Field\FieldReferenceNames;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\QuickPick;
@@ -44,7 +45,8 @@ final class CustomFieldCatalogTest extends KernelTestCase
         self::assertSame(FixtureNoteFields::class.' cf_test_fields_size WHERE cf_test_fields_size.id = n.id', $size->within);
         self::assertSame([], $fields['test_fields_code']->options);
         self::assertSame([], $fields['test_fields_code']->optionLabels);
-        self::assertSame(QuickPick::Sheet, $fields['test_fields_contact']->quickPick, 'A reference compares the id it holds.');
+        self::assertSame(FieldReferenceNames::CONTACT_SOURCE, $fields['test_fields_contact']->source, 'A reference is picked from the contacts.');
+        self::assertSame(QuickPick::Lookup, $fields['test_fields_contact']->quickPick, 'Its quick filter searches the contacts.');
         self::assertSame([], $catalog->fields('fixture.none'));
     }
 }

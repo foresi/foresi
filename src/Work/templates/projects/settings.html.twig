@@ -1,6 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The settings of a project: what it is and for whom, whether its time is billable and, for an owner, its hourly rate,
+    its custom fields under "Additional details",
     with its archiving; its sections in order,
     each renamed, moved or removed by a form of its own, or shared in a dialog, and a header action that adds one in a
     dialog; its statuses in order, each with its name and type, moved, or removed in a dialog that asks where its tasks
@@ -11,7 +12,7 @@
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: project.name, href: path('app_project', {id: project.id})}, {label: 'work.settings.title'|trans}] %}
 {% if project.archivedAt %}{% set badge = {label: 'work.project.archived'|trans, tone: 'gray'} %}{% endif %}
-{% set form_invalid = errors is not empty %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\ProjectSettingsController::TOKEN')) %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% if project.visibility.value == 'chosen' %}{% set badges = [{label: 'work.sharing.chosen_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
@@ -64,6 +65,8 @@
                         <twig:Ui:Select name="rateCurrency" id="rate-currency" :label="'work.project.field.rate_currency'|trans" :options="currencies" :value="rate.rateCurrency" />
                     </div>
                 {% endif %}
+                {# The custom fields (ADR 0045), saved with the rest of the form. #}
+                <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\ProjectExtension::RECORD')" :id="project.id" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
                 <div><twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button></div>
             </form>
         </twig:Ui:Card>
