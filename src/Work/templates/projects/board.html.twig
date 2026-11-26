@@ -113,8 +113,8 @@
                                             </span>
                                         {% endif %}
                                         {% if card.edit.priority %}
-                                            <twig:Ui:InlineEdit :id="'card-priority-' ~ card.id" {{ ...card.edit.priority }} :text="card.priority ?? ''" emptyIcon="chart-column" data-card-priority />
-                                        {% elseif card.priority %}<span data-card-priority><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span>{{ card.priority }}</span>{% endif %}
+                                            <twig:Ui:InlineEdit :id="'card-priority-' ~ card.id" {{ ...card.edit.priority }} :text="card.priority.text ?? ''" :tone="card.priority.tone ?? null" emptyIcon="chart-column" data-card-priority />
+                                        {% elseif card.priority %}<span data-card-priority><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span><twig:Ui:Badge :tone="card.priority.tone">{{ card.priority.text }}</twig:Ui:Badge></span>{% endif %}
                                         {% if card.subtasks %}
                                             <span class="num inline-flex items-center gap-1" data-card-subtasks>{{ ux_icon('lucide:square-check-big', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}<span aria-hidden="true">{{ card.subtasks.done }}/{{ card.subtasks.total }}</span><span class="sr-only">{{ 'work.board.subtasks'|trans({done: card.subtasks.done, total: card.subtasks.total}) }}</span></span>
                                         {% endif %}
