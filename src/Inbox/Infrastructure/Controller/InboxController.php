@@ -16,7 +16,9 @@ use Foresi\Inbox\Application\Api\MarkItemDoneInput;
 use Foresi\Inbox\Application\Api\MatchItemAgainInput;
 use Foresi\Inbox\Application\Api\MatchItemInput;
 use Foresi\Inbox\Application\Api\ReopenItemInput;
+use Foresi\Inbox\Application\DeclaredAction;
 use Foresi\Inbox\Application\ForwardParser;
+use Foresi\Inbox\Application\InboxActions;
 use Foresi\Inbox\Application\InboxRefused;
 use Foresi\Inbox\Application\ItemDetail;
 use Foresi\Inbox\Application\ItemReads;
@@ -76,7 +78,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * a conversation under one row, Pipedrive's Smart Email BCC shows it under the
  * deal). The item opens as a page: the mail as plain text, its attachments as
  * downloads, who sent it and what came of it; Done, Discard and Reopen in the
- * header, Link, Create contact and Match contact in dialogs. Only the owner
+ * header, the actions the modules declare (InboxActionController), Link, Create
+ * contact and Match contact in dialogs. Only the owner
  * reaches an item: any other person gets 404, for the page and the attachment.
  *
  * Mail text is untrusted. It is printed escaped, as text, with each address
@@ -112,6 +115,7 @@ final class InboxController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly InboxActions $actions,
     ) {
     }
 
@@ -197,7 +201,8 @@ final class InboxController extends AbstractController
                 'href' => $this->generateUrl(self::ATTACHMENT_ROUTE, ['id' => $item->id(), 'index' => $attachment->index]),
             ], $detail->attachments),
             'thread' => $this->thread($detail->thread),
-            'outputs' => array_map(static fn (OutputView $output): array => ['kind' => $output->output->kind(), 'available' => $output->available, 'label' => $output->label, 'url' => $output->url], $detail->outputs),
+            'outputs' => $this->outputs($detail->outputs),
+            'actions' => $this->actions($detail),
             'token' => self::TOKEN,
         ]);
     }
@@ -387,6 +392,46 @@ final class InboxController extends AbstractController
             'kinds' => array_combine($kinds, array_map($this->kindLabel(...), $kinds)),
             'token' => self::TOKEN,
         ], $this->status($error));
+    }
+
+    /**
+     * What came of the item. A record of a kind no module offers to activities (a time entry, an
+     * activity) has no page to link: its kind is shown.
+     *
+     * @param list<OutputView> $outputs
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function outputs(array $outputs): array
+    {
+        $kinds = $this->records->kinds();
+
+        return array_map(fn (OutputView $output): array => [
+            'kind' => $this->kindLabel($output->output->kind()),
+            'available' => $output->available,
+            'linkable' => \in_array($output->output->kind(), $kinds, true),
+            'label' => $output->label,
+            'url' => $output->url,
+        ], $outputs);
+    }
+
+    /**
+     * The actions the modules declare that apply to the item, in their order (InboxActions); none on
+     * an item in the trash.
+     *
+     * @return list<array{operation: string, label: string, href: string}>
+     */
+    private function actions(ItemDetail $detail): array
+    {
+        if ($detail->item->isTrashed()) {
+            return [];
+        }
+
+        return array_map(fn (DeclaredAction $action): array => [
+            'operation' => $action->name(),
+            'label' => $this->translator->trans($action->action->label),
+            'href' => $this->generateUrl(InboxActionController::ROUTE, ['id' => $detail->item->id(), 'operation' => $action->name()]),
+        ], $this->actions->available($detail->view(true)));
     }
 
     /**
@@ -661,7 +706,7 @@ final class InboxController extends AbstractController
 
     private function kindLabel(string $kind): string
     {
-        $key = 'inbox.link.kind.'.$kind;
+        $key = 'inbox.output_kind.'.$kind;
         $label = $this->translator->trans($key);
 
         return $label === $key ? ucfirst(str_replace('_', ' ', $kind)) : $label;

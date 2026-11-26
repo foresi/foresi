@@ -2,12 +2,13 @@
 {#
     One inbox item, a record (docs/design/overlays.md): who sent the mail and to which contact it is
     matched, what to be careful about, the mail as plain text, its attachments as downloads, the other
-    mails of the conversation and what came of it. Done, Discard and Reopen are in the header; Link,
-    Create contact and Match contact open dialogs.
+    mails of the conversation and what came of it. Done, Discard and Reopen are in the header; the
+    actions the modules declare (such as Create task), Link, Create contact and Match contact open
+    dialogs.
     Everything of the mail (sender, subject, text, file names) is the sender's own words: it is printed
     escaped, never as markup, never as a link, and no remote content is loaded.
     Variables: id, state, title, from, originalFrom, verdict, received, contact, matched, matchBasis,
-    warnings, duplicateOf, text, mailRemoved, attachments, thread, outputs, token.
+    warnings, duplicateOf, text, mailRemoved, attachments, thread, outputs, actions, token.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -33,6 +34,9 @@
             {% endif %}
         </twig:block>
         <twig:block name="buttons">
+            {% for action in actions %}
+                <twig:Ui:Button :size="record_action_size" icon="plus" :href="action.href" data-dialog aria-haspopup="dialog" data-inbox-action="{{ action.operation }}">{{ action.label }}</twig:Ui:Button>
+            {% endfor %}
             <twig:Ui:Button :size="record_action_size" icon="link-2" :href="path('app_inbox_item_link', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-link>{{ 'inbox.action.link'|trans }}</twig:Ui:Button>
             {% if matched %}
                 <twig:Ui:Button :size="record_action_size" icon="user" :href="path('app_inbox_item_match', {id: id})" data-dialog aria-haspopup="dialog" data-inbox-match>{{ 'inbox.action.match_other'|trans }}</twig:Ui:Button>
@@ -42,6 +46,9 @@
             {% endif %}
         </twig:block>
         <twig:block name="phone">
+            {% for action in actions %}
+                <twig:Ui:MenuItem icon="plus" :href="action.href" data-dialog aria-haspopup="dialog" data-inbox-action-menu="{{ action.operation }}">{{ action.label }}</twig:Ui:MenuItem>
+            {% endfor %}
             <twig:Ui:MenuItem icon="link-2" :href="path('app_inbox_item_link', {id: id})" data-dialog aria-haspopup="dialog">{{ 'inbox.action.link'|trans }}</twig:Ui:MenuItem>
             {% if not matched %}
                 <twig:Ui:MenuItem icon="user-plus" :href="path('app_inbox_item_contact_new', {id: id})" data-dialog aria-haspopup="dialog">{{ 'inbox.action.create_contact'|trans }}</twig:Ui:MenuItem>
@@ -73,7 +80,7 @@
 
 {% block content %}
     <div class="grid gap-4">
-        {% for tone in ['success', 'error'] %}
+        {% for tone in ['success', 'warning', 'error'] %}
             {% for message in app.flashes(tone) %}
                 <twig:Ui:Alert :tone="tone">{{ message }}</twig:Ui:Alert>
             {% endfor %}
@@ -131,8 +138,11 @@
                     {% for output in outputs %}
                         <li>
                             {% if output.available %}
-                                <span class="text-muted">{{ output.kind|replace({'_': ' '})|capitalize }}:</span>
+                                <span class="text-muted">{{ output.kind }}:</span>
                                 <a href="{{ output.url }}" class="font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ output.label }}</a>
+                            {% elseif not output.linkable %}
+                                {# A kind no module offers to activities has no page here: its kind is what is shown. #}
+                                <span class="text-ink" data-inbox-output-kind>{{ output.kind }}</span>
                             {% else %}
                                 <span class="text-muted" data-inbox-output-unavailable>{{ 'inbox.item.output_unavailable'|trans }}</span>
                             {% endif %}

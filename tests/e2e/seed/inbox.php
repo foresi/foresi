@@ -6,17 +6,28 @@
 
 declare(strict_types=1);
 
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\Stage;
+use Foresi\Work\Application\ManageProjects;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 // The world of the inbox spec: a client the spec matches a mail to by hand (its address is not the
-// sender's), and a deal of that client the spec links the mail to. The inbox address and the mail
-// are made by the spec itself.
+// sender's), a deal of that client the spec links the mail to, and the one project of that client,
+// which Create task picks for a mail matched to it. The inbox addresses and the mail are made by the
+// spec itself.
 \assert(isset($owner));
 $inboxClient = $createParty->createFrom($party(PartyKind::Company, 'Client A s.r.o.', [PartyRole::Customer], 'billing@example.com', 8, '12345679', 'CZ12345679'));
 $stages = $entityManager->getRepository(Stage::class)->findBy([], ['position' => 'ASC']);
 $firstStage = $stages[0] ?? throw new LogicException('The migration seeds the stages of a deal.');
 $entityManager->persist(new Deal('Roof audit', '', (string) $inboxClient->id(), (string) $owner->id(), $firstStage->id(), new DateTimeImmutable()));
 $entityManager->flush();
+// The project is made as the owner makes it, signed in for the application services.
+$tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($owner->id(), $owner->email(), 'hash'), 'main', ['ROLE_USER']));
+$manageProjects = $container->get('e2e.manage_projects');
+\assert($manageProjects instanceof ManageProjects);
+$manageProjects->create('Warehouse roof', (string) $inboxClient->id());
+$entityManager->flush();
+$tokenStorage->setToken(null);

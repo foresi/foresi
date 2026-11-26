@@ -157,6 +157,7 @@ final class InboxScreensTest extends InboxScreenTestCase
         yield 'match' => ['match', ['contactId' => '0192f1a4-0000-7000-8000-000000000001']];
         yield 'create a contact' => ['contact/new', ['kind' => 'person', 'displayName' => 'Client B', 'street' => 'Example Street 2', 'city' => 'Example City', 'postalCode' => '110 00', 'countryCode' => 'CZ']];
         yield 'link' => ['link', ['kind' => 'contact', 'recordId' => '0192f1a4-0000-7000-8000-000000000001']];
+        yield 'an action' => ['actions/inbox.actions.fixture_note', ['text' => 'A note', 'noteKind' => 'mail', 'markDone' => '1']];
     }
 
     /**
