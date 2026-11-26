@@ -52,6 +52,8 @@ use Psr\Log\LoggerInterface;
 final readonly class StepRunner
 {
     public const string INTERNAL_ERROR = 'internal_error';
+    /** The reason codes a step stores (SuggestionStep::fail()). */
+    private const string REASON = '/^[a-z][a-z0-9_]{0,63}$/';
 
     public function __construct(
         private SuggestionStore $store,
@@ -174,7 +176,9 @@ final readonly class StepRunner
         $this->transaction->run(function () use ($suggestionId, $position, $reason, $field): void {
             $suggestion = $this->locked($suggestionId);
             if ($suggestion instanceof Suggestion && $suggestion->isOpen() && $suggestion->step($position)->isRunnable()) {
-                $suggestion->step($position)->fail($reason, $field, $this->now());
+                // A module's reason that is no code is stored as internal_error rather than failing here.
+                $code = 1 === preg_match(self::REASON, $reason) ? $reason : self::INTERNAL_ERROR;
+                $suggestion->step($position)->fail($code, $field, $this->now());
             }
         });
     }

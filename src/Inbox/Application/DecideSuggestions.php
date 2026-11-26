@@ -20,6 +20,7 @@ use Foresi\Inbox\Domain\SuggestionStep;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Refused;
+use Psr\Log\LoggerInterface;
 
 /**
  * The owner of an inbox item decides on the suggestions agents proposed on it.
@@ -57,6 +58,7 @@ final readonly class DecideSuggestions
         private AuditCorrelation $correlation,
         private EventRecorder $events,
         private InstanceClock $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -175,6 +177,11 @@ final readonly class DecideSuggestions
             });
         } catch (Refused $refused) {
             return new Decision($id, $this->mine($id), $refused->reason());
+        } catch (\Throwable $failure) {
+            // One suggestion's failure stops none of the others; ids and the class only.
+            $this->logger->error('An inbox suggestion could not be decided.', ['suggestion_id' => $id, 'failure' => $failure::class]);
+
+            return new Decision($id, $this->mine($id), StepRunner::INTERNAL_ERROR);
         }
 
         return new Decision($id, $this->mine($id));

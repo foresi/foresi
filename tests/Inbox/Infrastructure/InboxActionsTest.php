@@ -148,7 +148,7 @@ final class InboxActionsTest extends ApiTestCase
         $schema = $note['input_schema'];
         self::assertIsArray($schema);
         self::assertIsArray($schema['properties']);
-        self::assertSame(['inbox_item_id', 'text', 'note_kind', 'fail', 'mark_done', 'fail_recording', 'about_id'], array_keys($schema['properties']));
+        self::assertSame(['inbox_item_id', 'text', 'note_kind', 'fail', 'mark_done', 'fail_recording', 'about_id', 'fail_after', 'explode'], array_keys($schema['properties']));
 
         $call = $this->tool($this->agent, 'foresi_get_inbox_item', ['item_id' => $itemId]);
         self::assertSame($actions, $this->in($call, 'structuredContent', 'data', 'available_actions'));

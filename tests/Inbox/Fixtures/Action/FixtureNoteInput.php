@@ -16,7 +16,9 @@ use Foresi\Shared\Contract\Operation\Operation;
 /**
  * The action of a module only the tests have: a note from an e-mail, a record
  * of a kind no ActivityTarget offers. It fails on demand, before the note is
- * made (fail) or after it while Inbox records it (failRecording).
+ * made (fail) or after it while Inbox records it (failRecording); or it makes
+ * a real contact in the database and then refuses (failAfter) or throws an
+ * error that is no refusal (explode), to show what a failing step leaves.
  */
 #[Operation(
     name: 'inbox.actions.fixture_note',
@@ -47,6 +49,10 @@ final readonly class FixtureNoteInput implements InboxActionInput
         public bool $failRecording = false,
         #[Field('A record the note is about, such as the task an earlier step of a suggestion made.', format: 'uuid')]
         public ?string $aboutId = null,
+        #[Field('Make a contact, then refuse as fail does.')]
+        public bool $failAfter = false,
+        #[Field('Make a contact, then fail with an error that is no refusal.')]
+        public bool $explode = false,
     ) {
     }
 

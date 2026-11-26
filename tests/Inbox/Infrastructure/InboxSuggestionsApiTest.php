@@ -14,6 +14,7 @@ use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\InboxPurpose;
+use Foresi\Inbox\Application\RecordOutputs;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Mail\Application\ReceiveMail;
@@ -249,6 +250,58 @@ final class InboxSuggestionsApiTest extends ApiTestCase
         self::assertSame(['Call Client A back'], $this->notes(), 'A done step never runs again.');
         $this->send('POST', '/api/v1/inbox/suggestions/accept', ['suggestion_ids' => [$suggestion], 'edits' => [Id::generate() => []]], $this->tokenWith(['inbox:read', 'inbox_decisions:write']));
         $this->assertProblem(400, 'invalid_parameter');
+    }
+
+    public function testADirectActionLeavesTheItemNewWhileSuggestionsWaitAndSaysSo(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $suggestion = $this->proposed($itemId);
+        $runner = $this->tokenWith(['inbox:read', 'views:write']);
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/fixture-notes', ['text' => 'Direct'], $runner);
+        self::assertResponseStatusCodeSame(201);
+        $call = $this->callTool($runner, 'foresi_add_fixture_note_from_email', ['inbox_item_id' => $itemId, 'text' => 'Direct again']);
+        self::assertFalse($call['isError'] ?? true, (string) json_encode($call));
+        self::assertStringContainsString(RecordOutputs::KEPT_NEW, (string) json_encode($call));
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame(['new', 'proposed', 2], [$this->at('data', 'state'), $this->at('data', 'suggestions', 0, 'state'), \count((array) $this->at('data', 'outputs'))]);
+
+        // Deciding the last one marks it done.
+        $this->send('POST', '/api/v1/inbox/suggestions/'.$suggestion.'/reject', null, $this->tokenWith(['inbox:read', 'inbox_decisions:write']));
+        $call = $this->callTool($runner, 'foresi_add_fixture_note_from_email', ['inbox_item_id' => $itemId, 'text' => 'Without suggestions']);
+        self::assertStringNotContainsString(RecordOutputs::KEPT_NEW, (string) json_encode($call));
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+    }
+
+    public function testATokenMissingTheSecondStepsScopeRunsTheFirstAndARetryOnlyTheSecond(): void
+    {
+        $type = $this->flushed(function (): string {
+            $type = new ActivityType('call', null, ActivityTiming::None, null, self::getContainer()->get(ClockInterface::class)->now());
+            $this->em()->persist($type);
+
+            return $type->id();
+        });
+        $itemId = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/suggestions', ['suggestions' => [[
+            'steps' => [
+                ['operation' => self::NOTE, 'input' => ['text' => 'First']],
+                ['operation' => 'inbox.actions.log_activity', 'input' => ['type_id' => $type, 'subject' => 'Call back', 'done' => true]],
+            ],
+            'rationale' => 'The client asks to be called back.',
+            'quote' => 'Please call me back',
+        ]]]);
+        self::assertResponseStatusCodeSame(201);
+        $suggestion = $this->at('data', 'suggestions', 0, 'id');
+        self::assertIsString($suggestion);
+
+        $this->send('POST', '/api/v1/inbox/suggestions/accept', ['suggestion_ids' => [$suggestion]], $this->tokenWith(['inbox:read', 'inbox_decisions:write', 'views:write']));
+        self::assertSame(['proposed', 'done', 'failed', ['reason' => 'insufficient_scope', 'field' => null]], [$this->at('data', 'suggestions', 0, 'state'), $this->at('data', 'suggestions', 0, 'steps', 0, 'state'), $this->at('data', 'suggestions', 0, 'steps', 1, 'state'), $this->at('data', 'suggestions', 0, 'steps', 1, 'refusal')]);
+
+        $this->send('POST', '/api/v1/inbox/suggestions/accept', ['suggestion_ids' => [$suggestion]], $this->tokenWith(['inbox:read', 'inbox_decisions:write', 'views:write', 'activities:write']));
+        self::assertSame(['accepted', 'done', 'done'], [$this->at('data', 'suggestions', 0, 'state'), $this->at('data', 'suggestions', 0, 'steps', 0, 'state'), $this->at('data', 'suggestions', 0, 'steps', 1, 'state')]);
+        self::assertSame(['First'], $this->notes(), 'The retry ran only the second step.');
     }
 
     public function testRejectingOverRestAndMcp(): void

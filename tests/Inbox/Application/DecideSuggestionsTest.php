@@ -271,6 +271,106 @@ final class DecideSuggestionsTest extends InboxTestCase
         $this->assertRefusedAt('invalid_input', 'reason', fn (): Suggestion => $this->decide()->reject($suggestion, "No\0"));
     }
 
+    public function testAStepThatMadeItsRecordAndThenRefusedLeavesNothing(): void
+    {
+        $suggestion = $this->proposed([['operation' => self::NOTE, 'input' => ['text' => 'A note', 'fail_after' => true]]]);
+        $events = $this->eventCount();
+
+        [$decision] = $this->accept([$suggestion]);
+
+        self::assertNull($decision->refused);
+        $step = $this->stored($suggestion)->step(1);
+        self::assertSame([StepState::Failed, ['reason' => 'fixture_failed', 'field' => 'input.failAfter']], [$step->state(), $step->refusal()]);
+        $this->assertNothingRemains($events);
+        // The same contact made outside a step is stored with its event, so the zero above means something.
+        self::getContainer()->get(\Foresi\Party\Contract\ContactCreation::class)->create(new \Foresi\Party\Contract\NewContact('person', \Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteHandler::MADE_BEFORE_FAILING, 'Example Street 2', 'Example City', '110 00', 'CZ', '', email: 'made.before@example.com'));
+        self::assertSame([1, 1], [$this->partiesNamed(), $this->eventsNamedLike('party.contact')]);
+    }
+
+    public function testAStepThatMadeItsRecordAndThenFailedLeavesNothingAndTheNextSuggestionRuns(): void
+    {
+        $exploding = $this->proposed([['operation' => self::NOTE, 'input' => ['text' => 'The secret input', 'explode' => true]]]);
+        $next = $this->proposed([$this->note('Next')]);
+        $events = $this->eventCount();
+
+        $decisions = $this->accept([$exploding, $next]);
+
+        $step = $this->stored($exploding)->step(1);
+        self::assertSame([StepState::Failed, ['reason' => StepRunner::INTERNAL_ERROR, 'field' => null]], [$step->state(), $step->refusal()]);
+        self::assertStringNotContainsString('secret', (string) json_encode($step->refusal()));
+        self::assertSame(['proposed', 'accepted'], array_map(static fn (Decision $decision): ?string => $decision->suggestion?->state()->value, $decisions));
+        self::assertSame(['Next'], $this->notes(), 'The next suggestion still ran.');
+        self::assertSame(0, $this->partiesNamed());
+        // Only the next suggestion's output and events were committed: none of the contact's.
+        self::assertSame(1, (int) $this->scalar('SELECT COUNT(*) FROM inbox_item_output'));
+        self::assertGreaterThan($events, $this->eventCount());
+        self::assertSame(0, $this->eventsNamedLike('party.contact'));
+    }
+
+    public function testAFailedThenRetriedSuggestionRunsItsDoneStepOnce(): void
+    {
+        $suggestion = $this->proposed([$this->note('First'), $this->note('Second', fail: true)]);
+        $this->accept([$suggestion]);
+        self::assertSame([StepState::Done, StepState::Failed], $this->states($this->stored($suggestion)));
+
+        // On an open suggestion the runner itself skips the done step, at the step guard.
+        self::assertSame(StepState::Done, self::getContainer()->get(StepRunner::class)->run($suggestion, 1));
+        $this->accept([$suggestion]);
+        self::assertSame([StepState::Done, StepState::Failed], $this->states($this->stored($suggestion)));
+        $this->accept([$suggestion], [$suggestion => [2 => ['text' => 'Second']]]);
+        [$again] = $this->accept([$suggestion]);
+
+        self::assertSame('not_open', $again->refused);
+        self::assertSame(['First', 'Second'], $this->notes(), 'Step 1 made one note across four accepts.');
+    }
+
+    public function testTheRunnerReadsTheStepAgainOnceItIsLocked(): void
+    {
+        // SQLite ignores FOR UPDATE: this pins the re-read under the lock, not the database lock.
+        $suggestion = $this->proposed([$this->note('First'), $this->note('Second')]);
+        $loaded = self::getContainer()->get(SuggestionStore::class)->find($suggestion);
+        self::assertInstanceOf(Suggestion::class, $loaded);
+        self::assertSame(StepState::Pending, $loaded->step(1)->state());
+        $this->em->getConnection()->executeStatement("UPDATE inbox_suggestion_step SET state = 'done', record_kind = ?, record_id = ? WHERE suggestion_id = ? AND position = 1", [FixtureNotes::KIND, Id::generate(), $suggestion]);
+
+        self::assertSame(StepState::Done, self::getContainer()->get(StepRunner::class)->run($suggestion, 1));
+        self::assertSame([], $this->notes(), 'Done by another accept meanwhile: it does not run again.');
+    }
+
+    public function testADirectActionLeavesTheItemNewWhileSuggestionsWait(): void
+    {
+        $this->proposed([$this->note('Proposed')]);
+        $outputs = self::getContainer()->get(\Foresi\Inbox\Application\RecordOutputs::class);
+        $action = self::getContainer()->get(\Foresi\Inbox\Application\InboxActions::class)->get(self::NOTE);
+        self::assertNotNull($action);
+        $input = \Foresi\Shared\Infrastructure\Operation\InputMapper::map($action->definition, ['inbox_item_id' => $this->itemId, 'text' => 'Direct']);
+        self::assertInstanceOf(\Foresi\Inbox\Contract\InboxActionInput::class, $input);
+
+        $outputs->check($action->action, $input, false);
+        self::assertTrue($outputs->record($action->action, $input, $action->definition->handler->handle($input)));
+
+        self::assertTrue($outputs->keptNew($input));
+        self::assertSame(ItemState::New, $this->item($this->itemId)->state(), 'mark_done waits for the last decision.');
+        self::assertSame([], $this->eventData('inbox.item.done'));
+    }
+
+    public function testCreateDealRunsAsAStep(): void
+    {
+        // The stage the sales migration seeds, which a schema built from the mapping lacks.
+        $this->em->persist(new \Foresi\Sales\Domain\Stage('inquiry', null, 0, $this->clock->now()));
+        $this->em->flush();
+        $client = $this->contact('person', 'Client A', self::CLIENT);
+        // Received after the contact exists, so it is matched and the deal action applies.
+        $itemId = $this->receive(InboxMail::plain($this->address, messageId: 'offer-4@client-a.example.com', body: "Hello,\r\nplease find our offer again.\r\n"));
+        $suggestion = $this->proposeOn($itemId, [['operation' => 'inbox.actions.create_deal', 'input' => ['title' => 'Office move offer', 'client_party_id' => $client]]]);
+
+        $this->accept([$suggestion]);
+
+        $step = $this->stored($suggestion)->step(1);
+        self::assertSame([StepState::Done, null], [$step->state(), $step->refusal()]);
+        self::assertSame('Office move offer', $this->scalar('SELECT title FROM sales_deal WHERE id = ?', [$step->recordId()]));
+    }
+
     public function testAnotherPersonsSuggestionIsNotFound(): void
     {
         $suggestion = $this->proposed([$this->note('First')]);
@@ -412,6 +512,41 @@ final class DecideSuggestionsTest extends InboxTestCase
         self::assertInstanceOf(FixtureNotes::class, $notes);
 
         return $notes;
+    }
+
+    private function assertNothingRemains(int $events): void
+    {
+        self::assertSame(0, $this->partiesNamed(), 'The contact the step made is rolled back with it.');
+        self::assertSame([], $this->notes());
+        self::assertSame(0, (int) $this->scalar('SELECT COUNT(*) FROM inbox_item_output'));
+        self::assertSame($events, $this->eventCount(), 'No event of the failed step is released.');
+        self::assertSame(ItemState::New, $this->item($this->itemId)->state());
+    }
+
+    private function partiesNamed(): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM party WHERE display_name = ?', [\Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteHandler::MADE_BEFORE_FAILING]);
+    }
+
+    private function eventCount(): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM '.\Foresi\Events\Infrastructure\Dbal\EventLogTable::LOG);
+    }
+
+    private function eventsNamedLike(string $part): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM '.\Foresi\Events\Infrastructure\Dbal\EventLogTable::LOG.' WHERE '.\Foresi\Events\Infrastructure\Dbal\EventLogTable::NAME.' LIKE ?', ['%'.$part.'%']);
+    }
+
+    /**
+     * @param list<mixed> $parameters
+     */
+    private function scalar(string $sql, array $parameters = []): string|int|null
+    {
+        $value = $this->em->getConnection()->fetchOne($sql, $parameters);
+        self::assertTrue(\is_string($value) || \is_int($value) || null === $value || false === $value);
+
+        return false === $value ? null : $value;
     }
 
     private function assertRefusedAt(string $reason, ?string $field, callable $work): void

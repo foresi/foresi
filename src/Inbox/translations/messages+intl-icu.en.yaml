@@ -80,6 +80,7 @@ inbox:
     action_done: Saved and added to what came of this mail.
     action_not_linked: The record was made but could not be linked to the e-mail. Use Link… to link it.
     action_not_added: The record was made, but it could not be added to what came of this mail. It is saved in its own section; do not save it again.
+    action_kept_new: The mail stays open because suggestions on it wait for your decision; deciding the last one marks it done.
     open_suggestions: Suggestions on this mail wait for your decision. Accept or reject them first, or say whether to reject or keep them when you mark it done.
   item:
     no_subject: (no subject)
