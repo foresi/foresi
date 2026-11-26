@@ -12,6 +12,7 @@ acme_fleet:
         contract_until: Contract until
         account_code: Account code
         services: Fleet services
+        fleet_manager: Fleet manager
     industry:
         logistics: Logistics
         construction: Construction

@@ -1,0 +1,55 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The custom fields of a record (Foresi\Ui\Component\CustomFields): the inputs of a form, named
+    as Foresi\Ui\Field\CustomFieldForm reads them, or the values of a detail. Without the card a
+    detail stacks each label over its value, as the details of a sidebar do.
+#}
+{% if not this.empty %}
+    {% set body %}
+        {% if mode == 'detail' and card %}
+            <twig:Ui:DescriptionList :items="this.items" data-custom-fields />
+        {% elseif mode == 'detail' %}
+            <dl class="m-0 grid gap-3" data-custom-fields>
+                {% for item in this.items %}
+                    <div class="grid gap-0.5">
+                        <dt class="text-small text-muted">{{ item.label }}</dt>
+                        <dd class="m-0 min-w-0 text-small font-medium text-ink"><twig:Ui:Value :value="item.value" /></dd>
+                    </div>
+                {% endfor %}
+            </dl>
+        {% else %}
+            <div class="grid gap-3{{ only is null ? ' sm:grid-cols-2' : '' }}" data-custom-fields>
+                {% for input in this.inputs %}
+                    <div class="{{ input.wide and only is null ? 'sm:col-span-2' : '' }}" data-custom-field="{{ input.key }}">
+                        {% if input.kind == 'long_text' %}
+                            <twig:Ui:Textarea :name="input.name" :id="input.id" :label="input.label" :value="input.value" :error="input.error" :required="input.required" :rows="3" />
+                        {% elseif input.kind == 'select' %}
+                            <twig:Ui:Select :name="input.name" :id="input.id" :label="input.label" :options="{'': 'ui.custom_fields.choose'|trans} + input.options" :value="input.value" :error="input.error" :required="input.required" />
+                        {% elseif input.kind == 'multi_select' %}
+                            <twig:Ui:ChoiceChips :name="input.name ~ '[]'" :id="input.id" :legend="input.label" :options="input.options" :values="input.values" :error="input.error" />
+                        {% elseif input.kind == 'boolean' %}
+                            <twig:Ui:Checkbox :name="input.name" :id="input.id" :label="input.label" :checked="input.value == '1'" :error="input.error" />
+                        {% elseif input.kind == 'contact' or input.kind == 'user' %}
+                            <twig:Ui:Combobox :name="input.name" :id="input.id" :textName="input.textName" :label="input.label" :value="input.value" :text="input.text" :url="input.url" :minLength="1" :emptyText="'ui.custom_fields.no_match'|trans" :error="input.error" :required="input.required" />
+                        {% elseif input.inputmode %}
+                            <twig:Ui:TextInput :name="input.name" :id="input.id" :type="input.type" :label="input.label" :value="input.value" :error="input.error" :required="input.required" :inputmode="input.inputmode" />
+                        {% else %}
+                            <twig:Ui:TextInput :name="input.name" :id="input.id" :type="input.type" :label="input.label" :value="input.value" :error="input.error" :required="input.required" />
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endset %}
+    {% if card %}
+        <twig:Ui:Card :title="'ui.custom_fields.title'|trans" icon="list">{{ body }}</twig:Ui:Card>
+    {% elseif heading %}
+        {% set titleId = 'custom-fields-' ~ record ~ '-title' %}
+        <section class="grid gap-3 border-t border-divider pt-3" aria-labelledby="{{ titleId }}" data-custom-fields-section>
+            <h3 id="{{ titleId }}" class="m-0 text-small font-medium text-ink">{{ 'ui.custom_fields.title'|trans }}</h3>
+            {{ body }}
+        </section>
+    {% else %}
+        {{ body }}
+    {% endif %}
+{% endif %}

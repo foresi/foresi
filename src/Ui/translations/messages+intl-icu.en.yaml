@@ -246,6 +246,24 @@ ui:
   confirm:
     accept: Confirm
     cancel: Cancel
+  custom_fields:
+    # The card of a record's custom fields (ADR 0045) in its dialogs and on its detail.
+    title: Additional details
+    choose: Choose…
+    no_match: No match
+    # A contact or a person a field points to who is no longer there.
+    unknown: Unknown
+    error:
+      required: Fill this in.
+      number: Enter a number.
+      date: Enter a valid date.
+      url: 'Enter a web address starting with http:// or https://.'
+      option: Choose one of the options.
+      reference: Pick one from the list.
+      ambiguous: Several match; pick one from the list.
+      unknown: This field does not exist.
+      hidden: You cannot change this field.
+      invalid: This value cannot be saved.
   combobox:
     found: 'Found: {count}'
   markdown_editor:

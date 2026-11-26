@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\View;
 
+use Foresi\Shared\Application\Field\FieldReferenceNames;
+use Foresi\Shared\Application\Field\ReferenceNames;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\DateRange;
 use Foresi\Shared\Application\View\Field;
@@ -17,6 +19,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\QuickPick;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -26,7 +29,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * A reference names what it points to through its source: the page gives each
  * source its picker's address and a lookup of names. One no longer there shows as
- * unknown and matches nothing (spec D4).
+ * unknown and matches nothing (spec D4). The contact and the user fields of the
+ * custom fields (FieldReferenceNames::CONTACT_SOURCE, USER_SOURCE) pick from the picker
+ * of the reference fields and are named by their modules, unless the page gives
+ * their sources itself.
  *
  * The pinned fields of the view are its quick filters (Shopify Polaris IndexFilters pins filters to
  * the bar, Linear and Notion keep them with the view): each is a chip under the tabs named by its
@@ -46,8 +52,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class FilterSheet
 {
-    public function __construct(private TranslatorInterface $translator)
-    {
+    public function __construct(
+        private TranslatorInterface $translator,
+        private ?UrlGeneratorInterface $urls = null,
+        private ?ReferenceNames $names = null,
+    ) {
     }
 
     /** The periods a date's quick filter offers, before its months. */
@@ -65,6 +74,7 @@ final readonly class FilterSheet
      */
     public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = [], ?array $pinned = null, array $months = []): array
     {
+        $references += $this->fieldReferences();
         $pinned = $list->pinnedOf($pinned);
         $chips = [];
         $rows = [];
@@ -102,6 +112,32 @@ final readonly class FilterSheet
             // The address parameter of the working filter, which clearing the bar drops.
             'param' => WorkingFilter::PARAM,
         ]];
+    }
+
+    /**
+     * The sources of the custom fields' references: the picker of the reference fields,
+     * and the names of the module of each kind.
+     *
+     * @return array<string, Reference>
+     */
+    private function fieldReferences(): array
+    {
+        if (!$this->urls instanceof UrlGeneratorInterface || !$this->names instanceof ReferenceNames) {
+            return [];
+        }
+        $references = [];
+        foreach ([FieldReferenceNames::CONTACT_SOURCE, FieldReferenceNames::USER_SOURCE] as $source) {
+            $kind = ReferenceNames::kindOfSource($source);
+            $names = $kind instanceof \Foresi\Shared\Contract\Field\FieldKind ? $this->names->of($kind) : null;
+            if ($kind instanceof \Foresi\Shared\Contract\Field\FieldKind && $names instanceof FieldReferenceNames) {
+                $references[$source] = [
+                    'url' => $this->urls->generate(FieldReferenceNames::ROUTE, ['kind' => $kind->value]),
+                    'name' => static fn (string $id): ?string => $names->names([$id])[$id] ?? null,
+                ];
+            }
+        }
+
+        return $references;
     }
 
     /**

@@ -78,6 +78,8 @@
             </div>
         </twig:Ui:Card>
 
+        <twig:Ui:CustomFields :record="constant('Foresi\\Party\\Contract\\Field\\ContactExtension::RECORD')" :id="editing ? party.id : null" :values="customValues|default(null)" :errors="customErrors|default({})" />
+
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="cancel" data-in-place>{{ 'party.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>

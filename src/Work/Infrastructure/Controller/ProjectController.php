@@ -18,6 +18,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
@@ -29,6 +30,8 @@ use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Ui\View\QuickPins;
 use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\DueBucket;
@@ -51,6 +54,8 @@ use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Contract\Field\ProjectExtension;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectColumns;
@@ -121,6 +126,7 @@ final class ProjectController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly ProjectPageSlots $pageSlots,
+        private readonly CustomFieldForm $customFields,
     ) {
     }
 
@@ -183,6 +189,7 @@ final class ProjectController extends AbstractController
         $this->denyUnlessStaff();
         $values = ['name' => '', 'clientId' => '', 'clientQuery' => '', 'description' => ''];
         $errors = [];
+        $custom = null;
         if ($request->isMethod('POST')) {
             $this->checkToken($request, self::TOKEN);
             foreach (array_keys($values) as $field) {
@@ -191,9 +198,10 @@ final class ProjectController extends AbstractController
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             }
-            if ([] === $errors) {
+            $custom = $this->customFields->read(ProjectExtension::RECORD, $request, true);
+            if ([] === $errors && $custom->valid()) {
                 try {
-                    $project = $this->projects->create($values['name'], '' === $values['clientId'] ? null : $values['clientId'], WorkflowTemplate::Simple, $values['description']);
+                    $project = $this->projects->create($values['name'], '' === $values['clientId'] ? null : $values['clientId'], WorkflowTemplate::Simple, $values['description'], $custom->parsed);
 
                     return $this->redirectToRoute(self::PROJECT_ROUTE, ['id' => $project->id()], Response::HTTP_SEE_OTHER);
                 } catch (WorkRefused $refused) {
@@ -202,6 +210,8 @@ final class ProjectController extends AbstractController
                         'client' => 'client',
                         default => 'form',
                     }] = $this->translator->trans('work.refused.'.$refused->reason);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->translator->trans($refused->translationKey));
                 }
             }
         }
@@ -209,7 +219,9 @@ final class ProjectController extends AbstractController
         return $this->render('@Work/projects/new.html.twig', [
             'values' => $values,
             'errors' => $errors,
-        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
+        ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**
@@ -517,6 +529,7 @@ final class ProjectController extends AbstractController
         }
         $values = ['title' => '', 'section' => ($post ? $request->request : $request->query)->getString('section')];
         $errors = [];
+        $custom = null;
         if (!$post && !isset($sections[$values['section']])) {
             $values['section'] = (string) array_key_first($sections);
         }
@@ -529,9 +542,11 @@ final class ProjectController extends AbstractController
             if (!isset($sections[$values['section']])) {
                 $errors['section'] = $this->translator->trans('work.task.error.section');
             }
-            if ([] === $errors) {
+            // The short dialog asks for the required custom fields only; the task's sidebar has the others.
+            $custom = $this->customFields->read(TaskExtension::RECORD, $request, true, true);
+            if ([] === $errors && $custom->valid()) {
                 try {
-                    $this->tasks->create($id, $values['title'], '' === $values['section'] ? null : $values['section']);
+                    $this->tasks->create($id, $values['title'], '' === $values['section'] ? null : $values['section'], customFields: $custom->parsed);
                     $this->addFlash('success', $this->translator->trans('work.task.added', ['title' => $values['title']]));
 
                     return $this->redirect($return, Response::HTTP_SEE_OTHER);
@@ -540,6 +555,8 @@ final class ProjectController extends AbstractController
                         throw new NotFoundHttpException($refused->getMessage(), $refused);
                     }
                     $errors['name' === $refused->reason ? 'title' : 'form'] = $this->translator->trans('work.refused.'.$refused->reason);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->translator->trans($refused->translationKey));
                 }
             }
         }
@@ -548,9 +565,11 @@ final class ProjectController extends AbstractController
             'project' => $list->project,
             'values' => $values,
             'errors' => $errors,
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
             'sections' => $sections,
             'return' => $return,
-        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**

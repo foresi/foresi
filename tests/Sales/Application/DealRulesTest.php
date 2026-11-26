@@ -197,7 +197,7 @@ final class DealRulesTest extends SalesTestCase
         self::assertSame([], $this->reads()->deal($deal->id())->contactPersonIds);
 
         self::assertSame(
-            array_fill(0, 4, ['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id()]),
+            array_fill(0, 4, ['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []]),
             $this->events('sales.deal.updated'),
         );
     }

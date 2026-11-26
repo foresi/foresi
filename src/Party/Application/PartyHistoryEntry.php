@@ -14,15 +14,17 @@ namespace Foresi\Party\Application;
 final readonly class PartyHistoryEntry
 {
     /**
-     * @param string       $subject party, address, email, bank_account, contact or firm_settings
-     * @param string       $action  created, updated or deleted
-     * @param list<string> $fields  names of the fields that changed
+     * @param string       $subject     party, address, email, bank_account, contact or firm_settings
+     * @param string       $action      created, updated or deleted
+     * @param list<string> $fields      names of the fields that changed
+     * @param string|null  $entityClass the class of the entity that changed, such as a record extension whose fields are custom fields
      */
     public function __construct(
         public \DateTimeImmutable $occurredAt,
         public string $subject,
         public string $action,
         public array $fields,
+        public ?string $entityClass = null,
     ) {
     }
 }

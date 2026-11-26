@@ -1,12 +1,12 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A new project: its name, the client it is for and what it is about. It starts with the simple
+    A new project: its name, the client it is for, what it is about and its custom fields. It starts with the simple
     workflow, changed later in its settings. A dialog over the projects; the same URL is a page of its own.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}, {label: 'work.projects.new'|trans}] %}
-{% set form_invalid = errors is not empty %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set dialog_size = 'md' %}
 
 {% block title %}{{ 'work.projects.new'|trans }}{% endblock %}
@@ -35,6 +35,7 @@
         <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
         <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
         <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
+        <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\ProjectExtension::RECORD')" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
     </form>
 {% endblock %}
 

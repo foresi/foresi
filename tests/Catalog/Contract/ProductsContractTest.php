@@ -72,7 +72,7 @@ final class ProductsContractTest extends CatalogTestCase
 
         $payload = ['product_id' => $product->id(), 'billing_kind' => 'one_off'];
         self::assertSame([$payload], $this->events('catalog.product.created'));
-        self::assertSame([['product_id' => $product->id(), 'billing_kind' => 'recurring']], $this->events('catalog.product.updated'));
+        self::assertSame([['product_id' => $product->id(), 'billing_kind' => 'recurring', 'custom_fields' => []]], $this->events('catalog.product.updated'));
         self::assertCount(1, $this->events('catalog.product.archived'));
         self::assertCount(1, $this->events('catalog.product.restored'));
 

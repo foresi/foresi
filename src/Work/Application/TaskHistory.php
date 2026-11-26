@@ -13,6 +13,8 @@ use Foresi\Audit\Domain\AuditAction;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Shared\Application\Field\FieldProperties;
+use Foresi\Shared\Contract\Field\FieldDefinition;
 use Foresi\Work\Domain\CommentMention;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\Priority;
@@ -28,7 +30,8 @@ use Foresi\Work\Domain\WorkShare;
  * The audit log of a task as steps a person recognises: one action is one
  * step, as the commands save it under one correlation. The status, the person
  * responsible, watchers and labels are told by name; the other fields by the
- * translation key of their label. A step that only moved the task among its
+ * translation key of their label, a custom field of a module's extension of the
+ * task (ADR 0045) by the label of its definition. A step that only moved the task among its
  * neighbours shows nothing and is left out. The due date and the priority
  * are told from what they were to what they became. A status or label removed since
  * keeps the last name the log knew. Making the task private or open again,
@@ -50,6 +53,7 @@ final readonly class TaskHistory
         private People $people,
         private Projects $projects,
         private Labels $labels,
+        private FieldProperties $fieldProperties,
     ) {
     }
 
@@ -140,6 +144,13 @@ final readonly class TaskHistory
                 $id = $this->id($changes['label'][$removed ? 0 : 1] ?? null);
                 if (null !== $id) {
                     $tagged[$removed ? 1 : 0][] = $labels[$id] ??= $this->labelName($id);
+                }
+            } else {
+                foreach (array_keys($changes) as $property) {
+                    $definition = $this->fieldProperties->definitionOf($entry->entityClass(), $property);
+                    if ($definition instanceof FieldDefinition) {
+                        $fields[] = $definition->label;
+                    }
                 }
             }
         }

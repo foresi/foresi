@@ -18,6 +18,7 @@ use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RegistryRecord;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
@@ -26,8 +27,11 @@ use Foresi\Party\Infrastructure\Form\PartySubmission;
 use Foresi\Party\Infrastructure\Form\PartySubmissionReader;
 use Foresi\Party\Infrastructure\Registry\RefreshRegistryChecksAfterResponse;
 use Foresi\Party\Infrastructure\Registry\RegistryLookup;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -46,6 +50,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * form, a new customer whose id the page under it picks; over the contact list
  * (?for=contacts), a new contact of any role, whose page opens once it is saved.
  * The same URL without the dialog is the whole form, a page of its own.
+ * The custom fields of a contact (ADR 0045) are in the whole form, and the
+ * required ones in the short form too.
  *
  * Everything that can be wrong with a submission is found before a write
  * service is called, so a mistake is a form error. A write that still fails
@@ -75,6 +81,7 @@ final class PartyFormController extends AbstractController
         private readonly RateLimiterFactory $lookupLimiter,
         private readonly TranslatorInterface $translator,
         private readonly TransactionalWork $transaction,
+        private readonly CustomFieldForm $customFields,
     ) {
     }
 
@@ -82,7 +89,7 @@ final class PartyFormController extends AbstractController
     public function new(Request $request): Response
     {
         if (!$request->isMethod('POST')) {
-            return $this->form($request, null, $this->prefilled($request) + $this->defaults(), [], [], $this->tokens->issue(), Response::HTTP_OK);
+            return $this->form($request, null, $this->prefilled($request) + $this->defaults(), [], [], $this->tokens->issue(), Response::HTTP_OK, null);
         }
 
         $this->checkToken($request);
@@ -106,7 +113,7 @@ final class PartyFormController extends AbstractController
     {
         $party = $this->parties->find($id) ?? throw new NotFoundHttpException();
         if (!$request->isMethod('POST')) {
-            return $this->form($request, $party, $this->valuesOf($party), [], [], '', Response::HTTP_OK);
+            return $this->form($request, $party, $this->valuesOf($party), [], [], '', Response::HTTP_OK, null);
         }
 
         $this->checkToken($request);
@@ -139,13 +146,15 @@ final class PartyFormController extends AbstractController
     private function handle(Request $request, ?Party $party, PartySubmission $submission, string $token): Response
     {
         $input = $submission->input;
-        if (!$submission->valid() || !$input instanceof PartyInput) {
-            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+        $custom = $this->customFields->read(ContactExtension::RECORD, $request, !$party instanceof Party, $this->quick($request, $party));
+        if (!$submission->valid() || !$input instanceof PartyInput || !$custom->valid()) {
+            return $this->form($request, $party, $submission->values, $submission->errors, [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
         }
+        $input = $input->withCustomFields($custom->parsed);
 
         $matches = $this->duplicates->find($input->registrationNumber, $input->vatId, true, $party?->id());
         if ([] !== $matches && !$request->request->getBoolean('confirm_duplicate')) {
-            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($request, $party, $submission->values, [], $matches, $token, Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
         }
 
         try {
@@ -164,8 +173,10 @@ final class PartyFormController extends AbstractController
             if (!$party instanceof Party) {
                 $this->tokens->complete($token, $id);
             }
+        } catch (FieldRefused $refused) {
+            return $this->form($request, $party, $submission->values, [], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $custom->refused($refused->key, $this->translator->trans($refused->translationKey)));
         } catch (\DomainException) {
-            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($request, $party, $submission->values, ['form' => 'party.error.save_failed'], [], $token, Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
         }
 
         if ($changedVat && $input->vatId instanceof \Foresi\Party\Domain\VatId) {
@@ -188,14 +199,15 @@ final class PartyFormController extends AbstractController
      * @param array<string, string|list<string>> $values
      * @param array<string, string>              $errors  field => translation key
      * @param list<DuplicateMatch>               $matches
+     * @param CustomFieldSubmission|null         $custom  the custom fields posted; null shows the contact's own
      */
-    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status): Response
+    private function form(Request $request, ?Party $party, array $values, array $errors, array $matches, string $token, int $status, ?CustomFieldSubmission $custom): Response
     {
         $locale = $request->getLocale();
         $messages = array_map(fn (string $key): string => $this->translator->trans($key), $errors);
 
         // A new contact from a dialog is the short form; the page is the whole one.
-        $template = !$party instanceof Party && DialogRequest::is($request) ? '@Party/quick.html.twig' : '@Party/form.html.twig';
+        $template = $this->quick($request, $party) ? '@Party/quick.html.twig' : '@Party/form.html.twig';
 
         $forContacts = !$party instanceof Party && $this->forContacts($request);
 
@@ -212,12 +224,22 @@ final class PartyFormController extends AbstractController
                 'vat' => $match->sameVatId,
             ], $matches),
             'token' => $token,
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
             'kinds' => $this->kindOptions(),
             'roleOptions' => array_combine(array_map(static fn (PartyRole $role): string => $role->value, PartyRole::cases()), array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), PartyRole::cases())),
             'countries' => CountryOptions::options($locale),
             'action' => $party instanceof Party ? $this->generateUrl('app_contact_edit', ['id' => $party->id()]) : $this->generateUrl('app_contact_new', $forContacts ? ['for' => self::FOR_CONTACTS] : []),
             'cancel' => $party instanceof Party ? $this->generateUrl('app_contact_show', ['id' => $party->id()]) : $this->generateUrl('app_contacts'),
         ], new Response(status: $status));
+    }
+
+    /**
+     * Whether the form is the short one of a new contact in a dialog, which asks only for the required custom fields.
+     */
+    private function quick(Request $request, ?Party $party): bool
+    {
+        return !$party instanceof Party && DialogRequest::is($request);
     }
 
     /**

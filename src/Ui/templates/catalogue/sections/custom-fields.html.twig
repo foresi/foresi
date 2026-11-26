@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# The custom fields of a contact, as the installed modules declare them; nothing shows without such a module. #}
+<div class="grid gap-5">
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'form of a new contact'} %}{% block sample %}
+<div class="max-w-2xl"><twig:Ui:CustomFields record="contact" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'short dialog: the required fields only'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:CustomFields record="contact" :requiredOnly="true" :card="false" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'inside a dialog, under its heading'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:CustomFields record="contact" :card="false" :heading="true" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'side column of a detail'} %}{% block sample %}
+<div class="max-w-xs"><twig:Ui:CustomFields record="contact" mode="detail" id="0192f1a4-0000-7000-8000-000000000001" :card="false" :heading="true" /></div>
+{% endblock %}{% endembed %}
+{% embed '@Ui/catalogue/_state.html.twig' with {state: 'detail'} %}{% block sample %}
+<div class="max-w-md"><twig:Ui:CustomFields record="contact" mode="detail" id="0192f1a4-0000-7000-8000-000000000001" /></div>
+{% endblock %}{% endembed %}
+</div>

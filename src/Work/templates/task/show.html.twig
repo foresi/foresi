@@ -12,7 +12,8 @@
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
     dialog; a private task has its badge next to the title. The people of the organisation see the time
     logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
-    estimate in the panel; a guest sees none of it. A guest finds the way back through what is
+    estimate in the panel; a guest sees none of it. The custom fields follow the properties under "Additional
+    details", each a form of its own; a guest sees only those open to guests. A guest finds the way back through what is
     shared with them, and the project by its name only when they do not see it.
     A row of a list opens the task in the sheet (layout/record.html.twig, docs/design/overlays.md), as
     Linear's peek previews an issue from a list; everything above changes there in place: the
@@ -230,6 +231,20 @@
                     <twig:Ui:Select name="section" id="task-section" :label="'work.task.field.section'|trans" :options="sections" :value="row.sectionId ?? ''" />
                     {{ save }}
                 </form>
+            {% endif %}
+
+            {% if customFieldKeys is not empty %}
+                {# The custom fields (ADR 0045), each a form of its own as the properties above; a picker saves once a contact or a person is picked. #}
+                <section class="grid gap-3 border-t border-divider pt-3" aria-labelledby="task-custom-fields-title" data-task-custom-fields>
+                    <h3 id="task-custom-fields-title" class="m-0 text-small font-medium text-ink">{{ 'ui.custom_fields.title'|trans }}</h3>
+                    {% for key in customFieldKeys %}
+                        <form method="post" action="{{ path('app_task_custom_field', {id: row.id, key: key}) }}" class="grid gap-1.5" data-controller="autosubmit" data-action="change->autosubmit#submit combobox:pick->autosubmit#submit combobox:clear->autosubmit#submit" data-task-property="custom-{{ key }}">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\TaskExtension::RECORD')" :id="row.id" :only="key" :card="false" />
+                            {{ save }}
+                        </form>
+                    {% endfor %}
+                </section>
             {% endif %}
 
             <div class="grid gap-1.5">

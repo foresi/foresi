@@ -10,9 +10,12 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Contract\StaffCheck;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageSections;
@@ -22,6 +25,7 @@ use Foresi\Work\Application\ProjectSettings;
 use Foresi\Work\Application\StatusChoice;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -58,13 +62,15 @@ final class ProjectSettingsController extends AbstractController
         private readonly StaffCheck $staff,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
+        private readonly CustomFieldForm $customFields,
     ) {
     }
 
     /**
      * The page, and the save of its general part: the name, the client, the
      * description, whether new time on it starts as billable and, for an owner,
-     * its hourly rate. Anyone else's form has no rate, and a rate they post is ignored.
+     * its hourly rate, and its custom fields under "Additional details". Anyone else's
+     * form has no rate, and a rate they post is ignored.
      */
     #[Route('/projects/{id}/settings', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function settings(string $id, Request $request): Response
@@ -77,8 +83,10 @@ final class ProjectSettingsController extends AbstractController
         $owner = $this->owner->isOwner();
         $rate = ['rate' => TypedAmount::field($project->hourlyRate, $request->getLocale()), 'rateCurrency' => ($project->hourlyRate?->currency() ?? Currency::CZK)->value];
         $errors = [];
+        $custom = null;
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
+            $custom = $this->customFields->read(ProjectExtension::RECORD, $request, false);
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
@@ -95,9 +103,9 @@ final class ProjectSettingsController extends AbstractController
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             }
-            if ([] === $errors) {
+            if ([] === $errors && $custom->valid()) {
                 try {
-                    $this->projects->edit($id, $values['name'], '' === $values['clientId'] ? null : $values['clientId'], $values['description']);
+                    $this->projects->edit($id, $values['name'], '' === $values['clientId'] ? null : $values['clientId'], $values['description'], $custom->parsed);
                     if ($billable !== $project->billable) {
                         $this->time->setProjectBillableDefault($id, $billable);
                     }
@@ -114,6 +122,8 @@ final class ProjectSettingsController extends AbstractController
                         'client' => 'client',
                         default => 'form',
                     }] = $this->translator->trans('work.refused.'.$refused->reason);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->translator->trans($refused->translationKey));
                 }
             }
         }
@@ -121,6 +131,8 @@ final class ProjectSettingsController extends AbstractController
         return $this->render('@Work/projects/settings.html.twig', [
             'project' => $project,
             'values' => $values,
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
             'billable' => $billable,
             'owner' => $owner,
             'rate' => $rate,
@@ -131,7 +143,7 @@ final class ProjectSettingsController extends AbstractController
             'statuses' => $settings->statuses,
             'types' => $this->types(),
             'trashCount' => $this->queries->trashCount($id),
-        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/projects/{id}/archive', name: 'app_project_archive', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]

@@ -246,6 +246,24 @@ ui:
   confirm:
     accept: Potvrdit
     cancel: Zrušit
+  custom_fields:
+    # Karta vlastních polí záznamu (ADR 0045) v jeho dialozích a na detailu.
+    title: Další údaje
+    choose: Vyberte…
+    no_match: Nic neodpovídá
+    # Kontakt nebo osoba, na které pole ukazuje, a která už neexistuje.
+    unknown: Neznámé
+    error:
+      required: Vyplňte.
+      number: Zadejte číslo.
+      date: Zadejte platné datum.
+      url: 'Zadejte webovou adresu začínající http:// nebo https://.'
+      option: Vyberte jednu z možností.
+      reference: Vyberte ze seznamu.
+      ambiguous: Odpovídá jich víc; vyberte ze seznamu.
+      unknown: Toto pole neexistuje.
+      hidden: Toto pole nemůžete měnit.
+      invalid: Tuto hodnotu nelze uložit.
   combobox:
     found: 'Nalezeno: {count}'
   markdown_editor:

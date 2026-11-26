@@ -52,7 +52,7 @@ final class DealLinksTest extends SalesTestCase
         self::assertSame([[$followUp->id(), false]], array_map(static fn (DealLinkView $view): array => [$view->other->id(), $view->outgoing], $before->links));
         self::assertCount(3, $before->lines, 'The deal before keeps its lines.');
         self::assertSame(['deal_id' => $followUp->id(), 'status' => 'open', 'stage_id' => $this->stages['proposal']->id()], $this->events('sales.deal.created')[1]);
-        self::assertSame(['deal_id' => $audit->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id()], array_reverse($this->events('sales.deal.updated'))[0]);
+        self::assertSame(['deal_id' => $audit->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], array_reverse($this->events('sales.deal.updated'))[0]);
 
         // A deal of another client is never linked.
         $other = $this->deal('Gutter audit', $this->company('Beta Example a.s.'));
