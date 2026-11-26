@@ -1,0 +1,23 @@
+{
+    "_comment": "The pages of the performance baseline (docs/performance.md). k6 (tests/Perf/k6/pages.js) times them and tests/Perf/PageQueryCountTest.php counts their queries. {contact}, {invoice}, {project}, {task}, {deal} and {receivedDocument} are the sample records of the seed.",
+    "pages": [
+        {"name": "dashboard", "path": "/"},
+        {"name": "contacts", "path": "/contacts"},
+        {"name": "contacts search", "path": "/contacts?q=Example%20Company%2000"},
+        {"name": "contact", "path": "/contacts/{contact}"},
+        {"name": "invoices", "path": "/invoices"},
+        {"name": "invoice", "path": "/invoices/{invoice}"},
+        {"name": "received documents", "path": "/purchasing"},
+        {"name": "projects", "path": "/projects"},
+        {"name": "project", "path": "/projects/{project}"},
+        {"name": "tasks", "path": "/tasks"},
+        {"name": "task", "path": "/tasks/{task}"},
+        {"name": "time week", "path": "/time"},
+        {"name": "time report", "path": "/time/report"},
+        {"name": "deals", "path": "/sales/deals"},
+        {"name": "cash flow", "path": "/cash-flow"},
+        {"name": "api contacts", "path": "/api/v1/contacts", "api": true},
+        {"name": "api invoices", "path": "/api/v1/invoices", "api": true},
+        {"name": "api time entries", "path": "/api/v1/time-entries", "api": true}
+    ]
+}

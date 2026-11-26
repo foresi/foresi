@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# The performance baseline (docs/performance.md), on this machine or in the perf workflow:
+#
+#   1. seeds the PostgreSQL database of DATABASE_URL, which must be empty (tests/Perf/seed.php),
+#   2. serves Foresi the way production does: APP_ENV=prod, OPcache, nginx and PHP-FPM,
+#   3. times the pages with k6, one person and then ten at once (tests/Perf/k6/pages.js),
+#   4. runs the PHPUnit groups perf (query counts, PDF) and throughput (the import),
+#   5. writes var/perf/results.json and var/perf/summary.md (tests/Perf/report.php).
+#
+#   DATABASE_URL='postgresql://me@127.0.0.1:5432/foresi_perf?serverVersion=17&charset=utf8' bin/perf --size=small
+#
+# Options: --size=small|large (default small), --skip-seed (the database is seeded already,
+# var/perf/seed.json is kept), --only=pages|phpunit, --previous=FILE (an earlier results.json
+# to compare with). It exits non-zero when a budget is broken, after every step has run.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+size=small
+seed=1
+only=''
+previous=''
+for arg in "$@"; do
+    case "$arg" in
+        --size=*) size="${arg#*=}" ;;
+        --skip-seed) seed=0 ;;
+        --only=*) only="${arg#*=}" ;;
+        --previous=*) previous="${arg#*=}" ;;
+        *) echo "Unknown option $arg" >&2; exit 2 ;;
+    esac
+done
+[[ "${DATABASE_URL:-}" == postgresql://* ]] || { echo 'Set DATABASE_URL to an empty PostgreSQL database.' >&2; exit 2; }
+
+port="${PERF_PORT:-8089}"
+dir="$PWD/var/perf"
+mkdir -p "$dir"
+failed=0
+
+# The secrets of .env.test: the seed runs in the test environment and the server must read
+# what it encrypted. They are test values, never used anywhere real.
+export APP_SECRET='$ecretf0rt3st'
+export MAIL_SECRET_KEYS='test1:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='
+export WEBHOOK_SECRET_KEYS='test1:ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8='
+export PERF_PASSWORD="${PERF_PASSWORD:-perf-password-1}"
+
+if [[ "$seed" == 1 ]]; then
+    APP_ENV=prod php bin/console doctrine:migrations:migrate --no-interaction --quiet
+    php -d memory_limit=-1 tests/Perf/seed.php --size="$size" > /dev/null
+fi
+[[ -f "$dir/seed.json" ]] || { echo "No $dir/seed.json: seed first." >&2; exit 2; }
+
+serve() {
+    # The built assets and a warm cache, as after a deployment.
+    for step in importmap:install 'tailwind:build --minify' asset-map:compile cache:clear cache:warmup; do
+        # shellcheck disable=SC2086
+        APP_ENV=prod APP_DEBUG=0 php bin/console $step --no-interaction --quiet
+    done
+    local fpm nginx
+    fpm="$(command -v php-fpm || command -v "php-fpm$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" || ls /usr/sbin/php-fpm* 2>/dev/null | head -1 || true)"
+    nginx="$(command -v nginx || ls /usr/sbin/nginx 2>/dev/null || true)"
+    [[ -n "$fpm" && -n "$nginx" ]] || { echo 'bin/perf needs nginx and PHP-FPM (docs/performance.md).' >&2; exit 2; }
+    mkdir -p "$dir/server"
+    # Ten workers: one for each of the ten people of the second k6 run.
+    cat > "$dir/server/fpm.conf" <<EOF
+[global]
+error_log = $dir/server/fpm.log
+daemonize = no
+[perf]
+listen = 127.0.0.1:9089
+pm = static
+pm.max_children = 10
+clear_env = no
+catch_workers_output = yes
+php_admin_value[opcache.enable] = 1
+php_admin_value[opcache.validate_timestamps] = 0
+php_admin_value[opcache.memory_consumption] = 256
+php_admin_value[realpath_cache_size] = 4096K
+php_admin_value[memory_limit] = 256M
+EOF
+    cat > "$dir/server/nginx.conf" <<EOF
+daemon off;
+worker_processes 2;
+error_log $dir/server/nginx-error.log;
+pid $dir/server/nginx.pid;
+events { worker_connections 256; }
+http {
+    access_log off;
+    client_body_temp_path $dir/server/body;
+    fastcgi_temp_path $dir/server/fastcgi;
+    proxy_temp_path $dir/server/proxy;
+    uwsgi_temp_path $dir/server/uwsgi;
+    scgi_temp_path $dir/server/scgi;
+    server {
+        listen 127.0.0.1:$port;
+        root $PWD/public;
+        location / { try_files \$uri /index.php\$is_args\$args; }
+        location ~ ^/index\.php(/|\$) {
+            fastcgi_pass 127.0.0.1:9089;
+            fastcgi_split_path_info ^(.+\.php)(/.*)\$;
+            fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+            fastcgi_param DOCUMENT_ROOT \$realpath_root;
+            fastcgi_param QUERY_STRING \$query_string;
+            fastcgi_param REQUEST_METHOD \$request_method;
+            fastcgi_param CONTENT_TYPE \$content_type;
+            fastcgi_param CONTENT_LENGTH \$content_length;
+            fastcgi_param REQUEST_URI \$request_uri;
+            fastcgi_param SERVER_NAME \$server_name;
+            fastcgi_param SERVER_PORT \$server_port;
+            fastcgi_param SERVER_PROTOCOL \$server_protocol;
+            fastcgi_param REMOTE_ADDR \$remote_addr;
+            fastcgi_param HTTP_HOST \$http_host;
+            fastcgi_param HTTPS '';
+            internal;
+        }
+    }
+}
+EOF
+    # Production, except that the owner of the seed signs in with a password alone.
+    APP_ENV=prod APP_DEBUG=0 APP_REQUIRE_2FA=false "$fpm" --nodaemonize --fpm-config "$dir/server/fpm.conf" &
+    fpm_pid=$!
+    "$nginx" -e "$dir/server/nginx-error.log" -c "$dir/server/nginx.conf" -p "$dir/server" &
+    nginx_pid=$!
+    trap 'kill "$fpm_pid" "$nginx_pid" 2>/dev/null || true' EXIT
+    for _ in $(seq 1 50); do
+        curl -fsS -o /dev/null "http://127.0.0.1:$port/login" && return 0
+        sleep 0.2
+    done
+    echo "Foresi did not answer on port $port." >&2
+    cat "$dir/server/"*.log >&2 || true
+    exit 1
+}
+
+if [[ -z "$only" || "$only" == pages ]]; then
+    # A read token of the owner for the API pages, fresh for each run.
+    owner="$(php -r 'echo json_decode((string) file_get_contents($argv[1]), true)["owner"]["email"];' "$dir/seed.json")"
+    api_token="$(APP_ENV=prod APP_DEBUG=0 php bin/console app:api-token:issue "$owner" --name=Perf --scope=read --days=30 --no-ansi | grep -o 'foresi_pat_[A-Za-z0-9_-]*' | head -1)"
+    [[ -n "$api_token" ]] || { echo "Could not issue an API token for $owner." >&2; exit 1; }
+    serve
+    for scenario in one ten; do
+        k6 run --quiet -e BASE_URL="http://127.0.0.1:$port" -e SEED="$dir/seed.json" -e SCENARIO="$scenario" \
+            -e API_TOKEN="$api_token" -e OUT="$dir/pages-$scenario.json" tests/Perf/k6/pages.js || failed=1
+    done
+fi
+
+if [[ -z "$only" || "$only" == phpunit ]]; then
+    # The query counts and the PDF run on the in-memory SQLite database of .env.test, as on a
+    # pull request, so their numbers are the same everywhere.
+    env -u DATABASE_URL vendor/bin/phpunit --group perf tests/Perf || failed=1
+    # The import rebuilds the schema of its database, so it gets one of its own next to the
+    # seeded one: <name>_import, made empty here.
+    import_db="$(php -r '$u = parse_url((string) getenv("DATABASE_URL")); echo ltrim($u["path"] ?? "", "/")."_import";')"
+    import_url="$(php -r '$u = (string) getenv("DATABASE_URL"); echo preg_replace("~/[^/?]+(\\?|$)~", "/".$argv[1]."$1", $u, 1);' "$import_db")"
+    psql "${DATABASE_URL%%\?*}" -qc "DROP DATABASE IF EXISTS $import_db" -c "CREATE DATABASE $import_db" > /dev/null
+    rm -f var/import-throughput.txt
+    DATABASE_URL="$import_url" vendor/bin/phpunit --group throughput tests/Party/Integration/Import/PartyImportThroughputTest.php || failed=1
+fi
+
+php tests/Perf/report.php --size="$size" ${previous:+--previous="$previous"} || failed=1
+exit "$failed"
