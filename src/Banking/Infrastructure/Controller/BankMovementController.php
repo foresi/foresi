@@ -46,7 +46,6 @@ use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ViewBar;
@@ -85,7 +84,7 @@ final class BankMovementController extends AbstractController
 {
     public const string ACTION_TOKEN = 'bank_movement';
     /** The parts of the screen's query an action carries back to it. */
-    public const array LIST_QUERY = ['view', 'tab', 'q', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    public const array LIST_QUERY = ['view', 'tab', 'q', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS];
     /** The screen lists the newest booked first, and takes no other order. */
     private const string SORT = 'date';
     /** The pairing made just now, which the flash may undo. */
@@ -145,8 +144,8 @@ final class BankMovementController extends AbstractController
         $text = $mail ? '' : $text;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $context = [MovementColumns::ACCOUNT_COLUMN => \count($page->accounts) > 1];
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), ListDisplay::DENSE, filters: $list);
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(MovementColumns::LIST, $context, $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
         $bar = $this->viewBar->of($list, $views, $view, $shown, self::SORT, self::SORT, $working, 'app_bank_movements', '' === $text ? [] : ['q' => $text]);
@@ -165,7 +164,6 @@ final class BankMovementController extends AbstractController
             'rows' => $mail
                 ? array_map(fn (MessageRow $row): array => $this->messageRow($row, \count($page->accounts) > 1, $here), $page->messages)
                 : array_map(fn (MovementRow $row): array => $this->row($row, $working, $here), $page->rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_bank_movements', $query),
@@ -655,9 +653,8 @@ final class BankMovementController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl('app_bank_movements', $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl('app_bank_movements', $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

@@ -116,7 +116,7 @@ ui:
     button: Nastavení seznamu
     modified: změněno
     title: Nastavení seznamu
-    description: Pohledy v záložkách, rychlé filtry pod nimi, sloupce a hustota řádků.
+    description: Pohledy v záložkách, rychlé filtry pod nimi a sloupce.
     quick: Rychlé filtry
     quick_hint: 'Zaškrtnuté se ukážou pod záložkami jako tlačítka. Pořadí změníte přetažením.'
     columns: Sloupce
@@ -126,12 +126,7 @@ ui:
     move_up: 'Posunout {label} nahoru'
     move_down: 'Posunout {label} dolů'
     moved: '{label} je teď na pozici {position} z {total}.'
-    density: Hustota řádků
     group: Seskupit podle
-    density_comfortable: Pohodlná
-    density_comfortable_hint: 56 px
-    density_dense: Kompaktní
-    density_dense_hint: 44 px
     reset: Obnovit výchozí
     apply: Použít
     add: Přidat sloupec

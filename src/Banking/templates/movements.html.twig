@@ -52,7 +52,7 @@
             {% set token = mail
                 ? csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\InboundMessageController::ACTION_TOKEN'))
                 : csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\BankMovementController::ACTION_TOKEN')) %}
-            <twig:Ui:DataTable :caption="caption" :columns="columns" :resizable="true" :rows="rows" :actionToken="token" :density="mail ? 'dense' : density">
+            <twig:Ui:DataTable :caption="caption" :columns="columns" :resizable="true" :rows="rows" :actionToken="token" rowStyle="lines">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'bank.movement.empty.filtered_title'|trans" :text="'bank.movement.empty.filtered_text'|trans">

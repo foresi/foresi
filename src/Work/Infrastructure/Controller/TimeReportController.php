@@ -25,7 +25,6 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
@@ -111,8 +110,8 @@ final class TimeReportController extends AbstractController
         $list = TimeReportLists::list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
-        // The columns, the density and the grouping, kept in the address next to the view and for the person (spec D10, D-display-3).
-        $working = $this->rememberedDisplay->read(TimeReportColumns::LIST, [], $list->key, $view, $input->all(), ListDisplay::DENSE, self::GROUPS, filters: $list);
+        // The columns and the grouping, kept in the address next to the view and for the person (spec D10, D-display-3).
+        $working = $this->rememberedDisplay->read(TimeReportColumns::LIST, [], $list->key, $view, $input->all(), self::GROUPS, filters: $list);
         $grouping = TimeGrouping::tryFrom($working->display->groupBy ?? '') ?? TimeGrouping::Project;
         $query = array_filter(['view' => $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value) + $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
@@ -146,7 +145,6 @@ final class TimeReportController extends AbstractController
             ], TimeGrouping::cases()),
             'entryColumns' => $working->display->table(),
             'entryRows' => array_map(fn (TimeEntryRow $entry): array => $this->entryRow($entry, $working), $report->entries),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'entryCount' => $report->entryCount,
@@ -222,7 +220,7 @@ final class TimeReportController extends AbstractController
      * The report's views as its address names them (spec D10): the person's views, the
      * one ?view= names, This month when it names none, and the filter the report shows,
      * the view's own unless f= changed it. Reset of All names no view but the view's own
-     * display (an empty density=), and opens All again.
+     * display (empty widths=), and opens All again.
      *
      * @param InputBag<string> $input
      *
@@ -232,7 +230,7 @@ final class TimeReportController extends AbstractController
     {
         $list = TimeReportLists::list();
         $views = $this->listViews->of($list, $this->actorRole->userId());
-        $key = $input->getString('view', $input->has(WorkingDisplay::DENSITY) ? ListDefinition::ALL : TimeReportLists::THIS_MONTH);
+        $key = $input->getString('view', '' === $input->getString(WorkingDisplay::WIDTHS, '-') ? ListDefinition::ALL : TimeReportLists::THIS_MONTH);
         $view = ListViews::chosen($views, $key);
 
         return [$views, $view, WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter];
@@ -405,14 +403,13 @@ final class TimeReportController extends AbstractController
      */
     private function picker(WorkingState $working, array $query): array
     {
-        $kept = array_diff_key($query, array_flip([WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY]));
+        $kept = array_diff_key($query, array_flip([WorkingDisplay::COLUMNS]));
 
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

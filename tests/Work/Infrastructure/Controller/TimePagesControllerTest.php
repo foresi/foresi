@@ -201,7 +201,7 @@ final class TimePagesControllerTest extends WebTestCase
         self::assertSame('5 h 45 min', $this->kpis($crawler)[0]);
         self::assertSame('All time', trim($crawler->filter('#report-range')->text()));
         // Reset of All names no view, only the view's own display.
-        self::assertSame('5 h 45 min', $this->kpis($this->client->request('GET', '/time/report?density='))[0]);
+        self::assertSame('5 h 45 min', $this->kpis($this->client->request('GET', '/time/report?widths='))[0]);
 
         $crawler = $this->client->request('GET', '/time/report?group=person');
         self::assertSame([['Example Company', '2 h 45 min'], ['Jana Example', '1 h']], $this->totals($crawler));

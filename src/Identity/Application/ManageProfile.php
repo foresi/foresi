@@ -12,7 +12,8 @@ use Foresi\Identity\Domain\User;
 use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
- * What a person changes on their own account: the name, the language and the photo.
+ * What a person changes on their own account: the name, the language, the appearance
+ * (text size and density) and the photo.
  * Each person changes only their own, so the user id is always the signed-in one.
  */
 final readonly class ManageProfile
@@ -42,6 +43,18 @@ final readonly class ManageProfile
                 throw ProfileRefused::invalid(ProfileRefused::UNSUPPORTED_LANGUAGE, 'language', \sprintf('The language is one of: %s.', implode(', ', User::LOCALES)));
             }
             $user->changeLocale($input->language);
+        }
+        if (!$input->textSize instanceof Omitted) {
+            if (!\in_array($input->textSize, User::TEXT_SIZES, true)) {
+                throw ProfileRefused::invalid(ProfileRefused::UNSUPPORTED_TEXT_SIZE, 'textSize', \sprintf('The text size is one of: %s.', implode(', ', User::TEXT_SIZES)));
+            }
+            $user->changeTextSize($input->textSize);
+        }
+        if (!$input->density instanceof Omitted) {
+            if (!\in_array($input->density, User::DENSITIES, true)) {
+                throw ProfileRefused::invalid(ProfileRefused::UNSUPPORTED_DENSITY, 'density', \sprintf('The density is one of: %s.', implode(', ', User::DENSITIES)));
+            }
+            $user->changeDensity($input->density);
         }
         $this->users->save($user);
 

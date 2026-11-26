@@ -5,7 +5,7 @@
     stage in the order of the stages with its count and value, as Odoo's list grouped by stage shows only the
     groups it holds; the won and then the lost deals follow in a table each, whatever stage they were closed in. A row opens the deal's page. A new deal starts in a dialog over the list; without
     JavaScript the same link is a page.
-    Variables: sections (id, title, rows, count, total), columns, density, tabs, moreViews, chips, builder,
+    Variables: sections (id, title, rows, count, total), columns, tabs, moreViews, chips, builder,
     picker, view, working, sortKept, workingQuery, filtered, resetHref, emptyTitle.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -34,10 +34,10 @@
                     {{ section.title }}
                     <span class="num font-normal text-muted">{{ section.count }}{% if section.total %} · {{ section.total }}{% endif %}</span>
                 </h2>
-                <twig:Ui:DataTable :caption="section.title" :columns="columns" :resizable="true" :rows="section.rows" :density="density" />
+                <twig:Ui:DataTable :caption="section.title" :columns="columns" :resizable="true" :rows="section.rows" />
             </section>
         {% else %}
-            <twig:Ui:DataTable :caption="'sales.deals.title'|trans" :columns="columns" :resizable="true" :rows="[]" :density="density">
+            <twig:Ui:DataTable :caption="'sales.deals.title'|trans" :columns="columns" :resizable="true" :rows="[]">
                 <twig:block name="empty">
                     {% if filtered %}
                         <twig:Ui:EmptyState icon="search" :title="'sales.deals.empty.filtered_title'|trans">

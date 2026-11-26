@@ -30,18 +30,16 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * - under "Add column", every other attribute of the list with a checkbox; one checked is added
  *   after the shown ones (spec DS5; Attio "Add column", Airtable, Level);
  * - a search over the columns once there are more than SEARCH_FROM;
- * - the row density, Comfortable (56 px) or Compact (44 px);
  * - "Reset to default", back to the view's own display, and one Apply.
  *
  * Apply first saves the views' order and tabs (an owner's, SavedViewController order), then sends
- * the GET form to the list, which re-renders it with pins, cols (the checked columns in order) and density, the working state of WorkingDisplay. Without JavaScript the checkboxes
+ * the GET form to the list, which re-renders it with pins and cols (the checked columns in order), the working state of WorkingDisplay. Without JavaScript the checkboxes
  * send cols[] in their order, which the list reads the same way.
  */
 #[AsTwigComponent]
 final class ColumnPicker
 {
     public const int SEARCH_FROM = 10;
-    private const array DENSITIES = ['comfortable', 'dense'];
 
     public string $id = '';
     /** The list's URL, the form's action. */
@@ -50,8 +48,6 @@ final class ColumnPicker
     public array $keep = [];
     /** @var list<array<string, mixed>> each with key, label, visible and locked, as WorkingState::picker() gives them */
     public array $columns = [];
-    /** The row density, or null for a list whose rows have none to choose. */
-    public ?string $density = 'comfortable';
     /** @var list<array<string, mixed>> the fields one can pin, each with key, label and pinned, those pinned first in order (FilterSheet's pinnable) */
     public array $quick = [];
     /**
@@ -69,7 +65,7 @@ final class ColumnPicker
     public ?array $viewBar = null;
     /** The list as its view shows it, without the working state. */
     public string $resetHref = '';
-    /** Whether the list shows other columns or density than its view. */
+    /** Whether the list shows other columns than its view. */
     public bool $modified = false;
     /** @var list<array{value: string, label: string}> what the list can group by, as group=; none for a list that does not group */
     public array $groups = [];
@@ -92,9 +88,6 @@ final class ColumnPicker
         }
         Style::href($this->action);
         Style::href($this->resetHref);
-        if (null !== $this->density && !\in_array($this->density, self::DENSITIES, true)) {
-            throw new \InvalidArgumentException(\sprintf('Unknown density "%s", expected one of: %s.', $this->density, implode(', ', self::DENSITIES)));
-        }
         foreach ($this->columns as $column) {
             $key = Style::requireString($column, 'key', 'A column of the picker');
             $this->views[] = [
@@ -166,7 +159,7 @@ final class ColumnPicker
     {
         $hidden = [];
         foreach ($this->keep as $name => $value) {
-            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'density', 'pins', 'group', 'page'], true)) {
+            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'pins', 'group', 'page'], true)) {
                 $hidden[$this->name($name)] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
             }
         }

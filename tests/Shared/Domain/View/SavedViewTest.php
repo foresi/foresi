@@ -64,12 +64,12 @@ final class SavedViewTest extends TestCase
 
     public function testAMadeViewIsItsOwnersAndTouchedByThem(): void
     {
-        $view = SavedView::made('invoicing.invoices', 'user-1', 'Mine', Visibility::Private, self::FILTERS, [], ['density' => 'dense'], true, Placement::Overflow, 4, new \DateTimeImmutable('2026-11-18'));
+        $view = SavedView::made('invoicing.invoices', 'user-1', 'Mine', Visibility::Private, self::FILTERS, [], ['group_by' => 'customer'], true, Placement::Overflow, 4, new \DateTimeImmutable('2026-11-18'));
 
         self::assertSame('user-1', $view->ownerId());
         self::assertSame('user-1', $view->updatedBy());
         self::assertNull($view->systemKey());
-        self::assertSame(['density' => 'dense'], $view->display());
+        self::assertSame(['group_by' => 'customer'], $view->display());
         self::assertSame(4, $view->position());
         self::assertSame(Placement::Overflow, $view->placement());
         self::assertFalse($view->isPristine());
@@ -118,9 +118,9 @@ final class SavedViewTest extends TestCase
         $view = $this->view('Paid');
         $now = new \DateTimeImmutable('2026-11-19');
 
-        $view->redisplay(['density' => 'dense'], 'user-1', $now);
+        $view->redisplay(['group_by' => 'customer'], 'user-1', $now);
 
-        self::assertSame(['density' => 'dense'], $view->display());
+        self::assertSame(['group_by' => 'customer'], $view->display());
         self::assertSame('user-1', $view->updatedBy());
         self::assertSame($now, $view->updatedAt());
         $view->redisplay(null, 'user-1', $now);
@@ -154,7 +154,7 @@ final class SavedViewTest extends TestCase
         $view = $this->view('Paid');
         $now = new \DateTimeImmutable('2026-11-19');
         $view->edit('user-1', $now, name: 'Settled', hidden: true);
-        $view->redisplay(['density' => 'dense'], 'user-1', $now);
+        $view->redisplay(['group_by' => 'customer'], 'user-1', $now);
 
         $view->restore('Paid', self::FILTERS, [], true, Placement::Primary, 1, $now);
 

@@ -8,7 +8,7 @@ test.use({ storageState: OWNER_STATE });
 // Every list has one toolbar row, as Shopify Polaris IndexFilters puts search and filter on the row
 // of view tabs and Linear, Notion and Attio keep a view's display options in one settings menu: the
 // view tabs on the left, then the search field, the Filter icon, which opens the filter sheet at
-// once, and the Settings icon, the sheet of the list's views, quick filters, columns and density.
+// once, and the Settings icon, the sheet of the list's views, quick filters and columns.
 // Under the tabs stand the view's quick filters as solid chips; there is no "+ Filtr" button.
 const LISTS: string[] = [
   '/invoices',
@@ -132,7 +132,7 @@ test.describe('list toolbar @layout', () => {
     await expect(sheet.locator('[data-settings-views]')).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Rychlé filtry' })).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Sloupce' })).toBeVisible();
-    await expect(sheet.getByRole('group', { name: 'Hustota řádků' })).toBeVisible();
+    await expect(sheet.getByRole('group', { name: 'Hustota řádků' })).toHaveCount(0);
     await expect(sheet.getByRole('link', { name: 'Obnovit výchozí' })).toBeVisible();
 
     // Every filter field of the list is in one list, the pinned first: unpin the second default

@@ -49,8 +49,6 @@ final readonly class CreateViewInput
         public array $sort = [],
         #[Field('The columns shown, in order: column keys from foresi_list_lists, or {key, width} with the width in px; null shows the list\'s default columns.', items: Field::OBJECTS_OR_STRINGS)]
         public ?array $columns = null,
-        #[Field('How tight the rows are; null for the list\'s default.', enum: ViewRules::DENSITIES)]
-        public ?string $density = null,
         #[Field('Whether its tab shows how many rows it holds.')]
         public bool $showCount = false,
         #[Field('primary: a tab of the list; overflow: not a tab, listed in the Settings sheet of the list.', enum: ['primary', 'overflow'])]

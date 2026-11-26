@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\InputBag;
  * Where one table of a page keeps its state in the page's address, when a page shows
  * several (docs/design/list-pages.md, rule 8): its view, filter, search, sort and
  * display. The page's first table keeps the bare keys every list has (view=, f=, q=,
- * sort=, cols=, density=, group=, pins=, widths=, c[…]= of the builder), so links to a
+ * sort=, cols=, group=, pins=, widths=, c[…]= of the builder), so links to a
  * page that had one table keep working; every other table keeps the same keys nested
  * under its slot's name, as reasons[cols]=…&reasons[widths]=…. A link or a form of one
  * table carries the others' state unchanged, as Notion keeps the views of each linked
@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\InputBag;
 final readonly class ListSlot
 {
     /** The keys of a list's own state, which no slot may be named after. */
-    private const array RESERVED = ['view', 'tab', 'f', 'q', 'sort', 'page', 'c', 'conditions', 'cols', 'density', 'group', 'pins', 'widths'];
+    private const array RESERVED = ['view', 'tab', 'f', 'q', 'sort', 'page', 'c', 'conditions', 'cols', 'group', 'pins', 'widths'];
 
     /**
      * @param array<array-key, mixed> $page   the page's whole query
@@ -89,7 +89,7 @@ final readonly class ListSlot
 
     /**
      * The page's address with this table's own state replaced, the other tables' kept as
-     * they are. An empty value stays, as it means the view's own (density='' of Reset).
+     * they are. An empty value stays, as it means the view's own (widths='' of Reset).
      *
      * @param array<array-key, mixed> $own the table's state, under the bare keys
      *

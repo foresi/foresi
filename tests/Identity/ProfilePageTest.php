@@ -56,6 +56,9 @@ final class ProfilePageTest extends WebTestCase
         self::assertStringContainsString('English', $profile);
         self::assertSame('/account/profile/edit', $crawler->filter('#profile-edit')->attr('href'));
         self::assertSame('/account/profile/photo', $crawler->filter('#profile-photo')->attr('href'));
+        self::assertSame('/account/profile/appearance', $crawler->filter('#profile-appearance')->attr('href'));
+        self::assertStringContainsString('Standard', $crawler->filter('[data-profile-appearance]')->text());
+        self::assertStringContainsString('Normal', $crawler->filter('[data-profile-appearance]')->text());
         self::assertCount(1, $crawler->filter('[data-nav-area="profile"][data-shown]'));
     }
 
@@ -73,6 +76,51 @@ final class ProfilePageTest extends WebTestCase
         $stored = $this->stored();
         self::assertSame('Jana Example', $stored->displayName());
         self::assertSame('cs', $stored->locale());
+    }
+
+    public function testTheAppearanceChangesInItsDialogAndAppliesToEveryPage(): void
+    {
+        $this->signIn();
+
+        $crawler = $this->client->request('GET', '/account/profile');
+        self::assertSame(['standard', 'normal'], [$crawler->filter('body')->attr('data-text-size'), $crawler->filter('body')->attr('data-density')]);
+
+        $crawler = $this->client->request('GET', '/account/profile/appearance');
+        self::assertResponseIsSuccessful();
+        self::assertCount(3, $crawler->filter('#appearance-form input[type=radio][name=textSize]'));
+        self::assertCount(3, $crawler->filter('#appearance-form input[type=radio][name=density]'));
+        self::assertSame('standard', $crawler->filter('#appearance-form input[name=textSize]:checked')->attr('value'));
+        self::assertSame('normal', $crawler->filter('#appearance-form input[name=density]:checked')->attr('value'));
+        $this->client->submit($crawler->filter('#appearance-form')->form(['textSize' => 'large', 'density' => 'compact']));
+
+        self::assertResponseRedirects('/account/profile');
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('Your appearance is saved.', $crawler->filter('main')->text());
+        self::assertSame(['large', 'compact'], [$this->stored()->textSize(), $this->stored()->density()]);
+        self::assertStringContainsString('Larger', $crawler->filter('[data-profile-appearance]')->text());
+        self::assertStringContainsString('Compact', $crawler->filter('[data-profile-appearance]')->text());
+        // Every page of the person carries it, a list as much as the profile.
+        $crawler = $this->client->request('GET', '/contacts');
+        self::assertSame(['large', 'compact'], [$crawler->filter('body')->attr('data-text-size'), $crawler->filter('body')->attr('data-density')]);
+    }
+
+    public function testAnUnknownAppearanceIsShownAsAnErrorAndNothingChanges(): void
+    {
+        $this->signIn();
+
+        $token = $this->client->request('GET', '/account/profile/appearance')->filter('#appearance-form input[name=_token]')->attr('value');
+        $this->client->request('POST', '/account/profile/appearance', ['_token' => $token, 'textSize' => 'huge', 'density' => 'normal']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#appearance-form', 'Choose one of the text sizes.');
+        self::assertSame('standard', $this->stored()->textSize());
+    }
+
+    public function testASignedOutPageShowsTheStandardAppearance(): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+
+        self::assertSame(['standard', 'normal'], [$crawler->filter('body')->attr('data-text-size'), $crawler->filter('body')->attr('data-density')]);
     }
 
     public function testABlankNameIsShownAsAnErrorAndNothingChanges(): void

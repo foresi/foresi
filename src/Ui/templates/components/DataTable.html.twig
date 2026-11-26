@@ -5,7 +5,7 @@
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {# Columns of long text share the room the others leave and cut their text short; numbers, badges and actions keep their width. #}
 {% set share = this.shareClass %}
-{# A list row is 56 px, a dense one 44 px; the header is 44 px on the tint either way (level.io's tables). #}
+{# A list row is 56 px, a line row 44 px at the normal density; the header is as high as a line row, on the tint (level.io's tables). #}
 {#
     On a phone a checkbox keeps its 16 px box but its label grows to a 44 px target, pulled back by a
     negative margin so the column does not widen, and a sortable header link is 44 px high (Apple

@@ -32,7 +32,7 @@ final class GuestAccessTest extends WebTestCase
         // The sign-in, its code step and signing out.
         'app_login', '2fa_login', '2fa_login_check', 'app_logout',
         // Their account, and their profile: every guest has one (name, photo), and the person's photo is shown wherever they appear.
-        'app_account_profile', 'app_account_profile_edit', 'app_account_profile_photo', 'app_account_profile_photo_remove', 'app_user_photo', 'api_v1_operation_identity.profile.update',
+        'app_account_profile', 'app_account_profile_edit', 'app_account_profile_appearance', 'app_account_profile_photo', 'app_account_profile_photo_remove', 'app_user_photo', 'api_v1_operation_identity.profile.update',
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Their password, and the prompt that confirms it is them before a sensitive page.
         'app_account_password', 'app_account_password_change', 'app_reauthenticate',

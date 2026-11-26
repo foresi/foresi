@@ -20,7 +20,7 @@
                 :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
             </twig:Ui:FilterBar>
 
-            <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" data-send-log>
+            <twig:Ui:DataTable :caption="'invoice.sends.title'|trans" :columns="columns" :resizable="true" :rows="rows" data-send-log>
                 <twig:block name="empty">
                     <twig:Ui:EmptyState icon="search" :title="'invoice.sends.empty.filtered_title'|trans">
                         <twig:Ui:Button :href="resetHref">{{ 'invoice.sends.empty.reset'|trans }}</twig:Ui:Button>

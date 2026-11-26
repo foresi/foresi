@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
 
 /**
- * A person changes their own name or language (ADR 0032): a field left out
+ * A person changes their own name, language or appearance (ADR 0032): a field left out
  * keeps its value. Every role may, guests too; it is always the token's person.
  */
 #[Operation(
@@ -24,7 +24,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     tool: 'foresi_update_profile',
     scope: 'profile:write',
     title: 'Update my profile',
-    description: 'Changes the name or the language of the person this connection acts as and keeps what is not sent. The name is how everyone in the firm sees the person; the language is the one Foresi is shown in. See foresi_whoami for the current values.',
+    description: 'Changes the name, the language or the appearance of the person this connection acts as and keeps what is not sent. The name is how everyone in the firm sees the person; the language is the one Foresi is shown in; the text size and the density are how large the text and how tall the rows are in the whole app, on every device. See foresi_whoami for the current values.',
     response: 'Profile',
 )]
 final readonly class UpdateProfileInput
@@ -34,6 +34,10 @@ final readonly class UpdateProfileInput
         public string|Omitted $displayName = new Omitted(),
         #[Field('The language Foresi is shown in.', enum: User::LOCALES)]
         public string|Omitted $language = new Omitted(),
+        #[Field('How large the text is in the whole app: small (13 px body text), standard (14 px) or large (16 px).', enum: User::TEXT_SIZES)]
+        public string|Omitted $textSize = new Omitted(),
+        #[Field('How tall the table rows are in the whole app, and with a mouse the fields and buttons: compact, normal or spacious.', enum: User::DENSITIES)]
+        public string|Omitted $density = new Omitted(),
     ) {
     }
 }

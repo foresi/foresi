@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The person's own profile, the first section of their account: the photo, the name, the e-mail and
-    the language. Edit profile and Change photo open dialogs from the header (GitHub, Google Account).
+    the language, then the appearance (text size and density, ABRA Flexi's Vzhled). Edit profile, Change
+    photo and Appearance open dialogs from the header (GitHub, Google Account).
     Variables: user (Foresi\Identity\Domain\User).
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -12,6 +13,7 @@
 {% block title %}{{ 'profile.title'|trans }}{% endblock %}
 
 {% block actions %}
+    <twig:Ui:Button icon="sliders-horizontal" :href="path('app_account_profile_appearance')" id="profile-appearance" data-dialog aria-haspopup="dialog">{{ 'profile.appearance'|trans }}</twig:Ui:Button>
     <twig:Ui:Button icon="upload" :href="path('app_account_profile_photo')" id="profile-photo" data-dialog aria-haspopup="dialog">{{ 'profile.change_photo'|trans }}</twig:Ui:Button>
     <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_account_profile_edit')" id="profile-edit" data-dialog aria-haspopup="dialog">{{ 'profile.edit'|trans }}</twig:Ui:Button>
 {% endblock %}
@@ -34,6 +36,12 @@
                     ]" />
                 </div>
             </div>
+        </twig:Ui:Card>
+        <twig:Ui:Card :title="'profile.appearance_title'|trans" icon="sliders-horizontal" data-profile-appearance>
+            <twig:Ui:DescriptionList :items="[
+                {label: 'profile.field.text_size'|trans, value: ('profile.text_size.' ~ user.textSize)|trans},
+                {label: 'profile.field.density'|trans, value: ('profile.density.' ~ user.density)|trans},
+            ]" />
         </twig:Ui:Card>
     </div>
 {% endblock %}

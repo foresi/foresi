@@ -59,7 +59,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * and a rename open in a dialog, Up and Down move a stage and archiving asks
  * first. A stage that still holds open deals is not archived: the refusal says
  * so, where Pipedrive would delete its deals with it. Each of the two tables is a
- * list with views, columns, density and widths of its own (list-pages.md, rule 8):
+ * list with views, columns and widths of its own (list-pages.md, rule 8):
  * the stages on the address's bare keys, the reasons under their list slot.
  */
 final class SalesSettingsController extends AbstractController
@@ -227,7 +227,7 @@ final class SalesSettingsController extends AbstractController
 
     /**
      * One table of the page as every list is (docs/design/list-pages.md): its views, the
-     * filter sheet, the search, its Settings sheet with columns and density, and widths a
+     * filter sheet, the search, its Settings sheet with columns, and widths a
      * person drags, all of it kept in its slot of the address so the other table keeps its own.
      *
      * @template T of Stage|LostReason
@@ -279,14 +279,12 @@ final class SalesSettingsController extends AbstractController
             'moreViews' => array_map($tab, $overflow),
             'columns' => $working->display->table($sort, fn (string $next): string => $url(['sort' => $next] + $query)),
             'rows' => array_map(static fn (Stage|LostReason $record): array => $row($record, $working), $shownRecords),
-            'density' => $working->tableDensity(),
             'widthsParam' => $slot->field(WorkingDisplay::WIDTHS),
             'picker' => [
                 'keep' => $kept,
                 'columns' => $working->picker(),
-                'density' => $working->density,
-                // An empty density and empty widths name the view's own display, which forgets the one remembered (D-display-3).
-                'resetHref' => $url($kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+                // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+                'resetHref' => $url($kept + [WorkingDisplay::WIDTHS => '']),
                 'modified' => $working->modified,
                 'slot' => $slot,
             ],

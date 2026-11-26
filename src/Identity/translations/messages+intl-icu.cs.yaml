@@ -374,6 +374,8 @@ profile:
   edit: Upravit profil
   edit_title: Upravit profil
   change_photo: Změnit fotku
+  appearance: Vzhled
+  appearance_title: Vzhled
   photo_title: Profilová fotka
   photo_preview: Náhled fotky v kruhu avataru
   photo_zoom: Přiblížení
@@ -389,14 +391,33 @@ profile:
     language: Jazyk
     photo: Fotka
     photo_help: JPEG, PNG nebo WebP, nejvýš 5 MB
+    text_size: Velikost textu
+    density: Velikost řádků
+  text_size:
+    small: Menší
+    small_hint: Text 13 px, na obrazovku se vejde víc.
+    standard: Standardní
+    standard_hint: Text 14 px.
+    large: Větší
+    large_hint: Text 16 px, čte se snáz.
+  density:
+    compact: Zhuštěný
+    compact_hint: Nižší řádky, na obrazovku se jich vejde víc.
+    normal: Normální
+    normal_hint: Řádky obvyklé výšky.
+    spacious: Prostorný
+    spacious_hint: Vyšší řádky s víc místa kolem textu.
   flash:
     saved: Profil je uložený.
     photo_saved: Fotka je uložená.
     photo_removed: Fotka je odebraná.
+    appearance_saved: Vzhled je uložený.
   error:
     name_required: Zadejte své jméno.
     name_too_long: Jméno má nejvýš 255 znaků.
     unsupported_language: Vyberte jeden z jazyků.
+    unsupported_text_size: Vyberte jednu z velikostí textu.
+    unsupported_density: Vyberte jednu z velikostí řádků.
     photo_type: Vyberte obrázek JPEG, PNG nebo WebP.
     photo_too_large: Fotka je moc velká. Může mít nejvýš 5 MB.
     photo_dimensions: Fotka je moc velká. Může mít nejvýš 16 milionů pixelů.

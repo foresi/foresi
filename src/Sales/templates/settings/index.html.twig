@@ -4,7 +4,7 @@
     team rename, add and order its stages and keep predefined lost reasons. A new one and a rename open in a
     dialog over the page, Up and Down move a stage, and archiving asks first; a stage that holds open deals
     is not archived and the message says why. Each table is a list with its own views, search, filters,
-    columns, density and widths (docs/design/list-pages.md, rule 8): the stages keep the address's bare
+    columns and widths (docs/design/list-pages.md, rule 8): the stages keep the address's bare
     keys, the reasons theirs under the "reasons" list slot, so one table's links keep the other's state.
     Variables: stages, reasons, each the table SalesSettingsController::table() gives.
 #}
@@ -25,7 +25,7 @@
     <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_sales_settings')" :keep="t.keep"
         :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
     </twig:Ui:FilterBar>
-    <twig:Ui:DataTable :caption="caption" :columns="t.columns" :rows="t.rows" :density="t.density" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token">
+    <twig:Ui:DataTable :caption="caption" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token">
         <twig:block name="empty">
             {% if t.filtered or t.view != '' %}
                 <twig:Ui:EmptyState icon="search" :title="'sales.settings.empty.filtered_title'|trans">

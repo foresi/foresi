@@ -89,7 +89,7 @@ final class TaskListController extends AbstractController
         $viewSort = ViewState::sortParam($view->sort, TaskLists::sortOf($view->slug));
         $sort = TaskLists::sort($input->getString('sort', $viewSort), $viewSort);
         $query = array_filter(['view' => $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns, density and grouping changed in the Settings sheet, kept in the address and for the person (spec D10, D-display-3).
+        // The quick filters, columns and grouping changed in the Settings sheet, kept in the address and for the person (spec D10, D-display-3).
         $context = ['manage' => $this->visibility->canManage()];
         $working = $this->rememberedDisplay->read(TaskColumns::LIST, $context, $list->key, $view, $input->all(), groups: TaskLists::groupsOf($view->slug), filters: $list);
         $query += $working->query;
@@ -111,7 +111,6 @@ final class TaskListController extends AbstractController
             'text' => $text,
             'empty' => $this->emptyOf($view, $shown, '' !== $text),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query, $group, $view),
             'workingQuery' => $working->query,
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->key]),
@@ -306,8 +305,7 @@ final class TaskListController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
             'group' => $group,
             'groups' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.group_by.'.$key)], TaskLists::groupsOf($view->slug)),

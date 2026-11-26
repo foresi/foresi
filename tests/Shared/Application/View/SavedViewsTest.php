@@ -160,7 +160,6 @@ final class SavedViewsTest extends TestCase
         yield 'bad relative rule' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', conditions: [['field' => 'due_date', 'op' => 'is', 'value' => ['relative' => 'next_decade']]]), 'conditions[0].value'];
         yield 'bad sort' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', sort: [['field' => 'due_date', 'dir' => 'sideways']]), 'sort[0].dir'];
         yield 'bad column' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', columns: [['key' => 'number', 'width' => -4]]), 'columns[0].width'];
-        yield 'bad density' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', density: 'airy'), 'density'];
         yield 'bad grouping' => [static fn (): CreateViewInput => new CreateViewInput('test.items', 'Broken', groupBy: 'by what?'), 'group_by'];
         yield 'empty name' => [static fn (): CreateViewInput => new CreateViewInput('test.items', '  '), 'name'];
         yield 'unknown list' => [static fn (): CreateViewInput => new CreateViewInput('test.nothing', 'Broken'), 'listKey'];
@@ -181,13 +180,13 @@ final class SavedViewsTest extends TestCase
         }
     }
 
-    public function testChangingTheDensityKeepsTheColumns(): void
+    public function testChangingTheGroupingKeepsTheColumns(): void
     {
         $view = $this->views->create(new CreateViewInput('test.items', 'Cols', columns: ['number', ['key' => 'customer', 'width' => 240]]));
 
-        $this->views->update(new UpdateViewInput($view->id(), density: 'dense'));
+        $this->views->update(new UpdateViewInput($view->id(), groupBy: 'customer'));
 
-        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'customer', 'width' => 240]], 'density' => 'dense'], $view->display());
+        self::assertSame(['columns' => [['key' => 'number'], ['key' => 'customer', 'width' => 240]], 'group_by' => 'customer'], $view->display());
     }
 
     public function testTheViewsOfAListAreInOrderWithTheOthersPrivateOnesLeftOut(): void
@@ -253,11 +252,11 @@ final class SavedViewsTest extends TestCase
 
     public function testAViewIsMadeWithWhatWasAskedAndFlushedOnce(): void
     {
-        $view = $this->views->create(new CreateViewInput('test.items', 'Full', 'shared', [], [['field' => 'due_date']], ['number'], 'dense', true, 'overflow'));
+        $view = $this->views->create(new CreateViewInput('test.items', 'Full', 'shared', [], [['field' => 'due_date']], ['number'], true, 'overflow'));
 
         self::assertSame(1, $this->store->flushes - 1, 'The shipped views are stored with the first flush, the view with one more.');
         self::assertSame([['field' => 'due_date', 'dir' => 'asc']], $view->sort());
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display());
+        self::assertSame(['columns' => [['key' => 'number']]], $view->display());
         self::assertTrue($view->showCount());
         self::assertSame(Placement::Overflow, $view->placement());
         self::assertSame($view, $this->store->get($view->id()));
@@ -322,15 +321,15 @@ final class SavedViewsTest extends TestCase
 
     public function testTheGroupingIsKeptWithTheDisplay(): void
     {
-        $view = $this->views->create(new CreateViewInput('test.items', 'Grouped', density: 'dense', groupBy: 'customer'));
-        self::assertSame(['density' => 'dense', 'group_by' => 'customer'], $view->display());
+        $view = $this->views->create(new CreateViewInput('test.items', 'Grouped', groupBy: 'customer'));
+        self::assertSame(['group_by' => 'customer'], $view->display());
 
         $this->views->update(new UpdateViewInput($view->id(), columns: ['number']));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'group_by' => 'customer'], $view->display(), 'changing the columns keeps it');
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'customer'], $view->display(), 'changing the columns keeps it');
         $this->views->update(new UpdateViewInput($view->id(), groupBy: 'status'));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'group_by' => 'status'], $view->display());
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'status'], $view->display());
         $this->views->update(new UpdateViewInput($view->id(), groupBy: null));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display());
+        self::assertSame(['columns' => [['key' => 'number']]], $view->display());
     }
 
     public function testAViewKeepsItsQuickFiltersWithItsDisplayUnderTheirKeys(): void
@@ -338,14 +337,14 @@ final class SavedViewsTest extends TestCase
         $view = $this->views->create(new CreateViewInput('test.items', 'Pinned', columns: ['number'], pinned: ['due', 'paid']));
         self::assertSame(['columns' => [['key' => 'number']], 'pinned' => ['due_date', 'paid']], $view->display(), 'An alias is stored as the key it names.');
 
-        $this->views->update(new UpdateViewInput($view->id(), density: 'dense'));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'pinned' => ['due_date', 'paid']], $view->display(), 'Changing the density keeps them.');
+        $this->views->update(new UpdateViewInput($view->id(), groupBy: 'customer'));
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'customer', 'pinned' => ['due_date', 'paid']], $view->display(), 'Changing the grouping keeps them.');
 
         $this->views->update(new UpdateViewInput($view->id(), pinned: []));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense', 'pinned' => []], $view->display(), 'None pins none.');
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'customer', 'pinned' => []], $view->display(), 'None pins none.');
 
         $this->views->update(new UpdateViewInput($view->id(), pinned: null));
-        self::assertSame(['columns' => [['key' => 'number']], 'density' => 'dense'], $view->display(), 'Null goes back to the list\'s own.');
+        self::assertSame(['columns' => [['key' => 'number']], 'group_by' => 'customer'], $view->display(), 'Null goes back to the list\'s own.');
     }
 
     public function testAQuickFilterOnAFieldTheListLacksIsRefused(): void
@@ -359,7 +358,7 @@ final class SavedViewsTest extends TestCase
         $view = $this->views->create(new CreateViewInput('test.items', 'Stored', columns: ['number']));
         $view->redisplay(['pinned' => [3 => 'paid', 5 => 'Not a key']], self::MEMBER, new \DateTimeImmutable('2026-11-18 10:00:00'));
 
-        $this->assertRefusedBy('filter_invalid', 'pinned[1]', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), density: 'dense')));
+        $this->assertRefusedBy('filter_invalid', 'pinned[1]', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), groupBy: 'customer')));
     }
 
     public function testARefusedQuickFilterIsNamedInTheMessage(): void
@@ -386,18 +385,18 @@ final class SavedViewsTest extends TestCase
         self::assertSame(['due_date'], $this->views->list('test.items')->pinnedOf(null));
     }
 
-    public function testUpdatingOnlyTheColumnsKeepsTheDensityAndTheOtherWayRound(): void
+    public function testUpdatingOnlyTheColumnsKeepsTheGroupingAndTheOtherWayRound(): void
     {
-        $view = $this->views->create(new CreateViewInput('test.items', 'Cols', columns: ['number'], density: 'dense'));
+        $view = $this->views->create(new CreateViewInput('test.items', 'Cols', columns: ['number'], groupBy: 'customer'));
 
         $this->views->update(new UpdateViewInput($view->id(), columns: ['customer']));
-        self::assertSame(['columns' => [['key' => 'customer']], 'density' => 'dense'], $view->display());
+        self::assertSame(['columns' => [['key' => 'customer']], 'group_by' => 'customer'], $view->display());
 
-        $this->views->update(new UpdateViewInput($view->id(), density: null));
+        $this->views->update(new UpdateViewInput($view->id(), groupBy: null));
         self::assertSame(['columns' => [['key' => 'customer']]], $view->display());
 
-        $this->views->update(new UpdateViewInput($view->id(), columns: null, density: 'comfortable'));
-        self::assertSame(['density' => 'comfortable'], $view->display());
+        $this->views->update(new UpdateViewInput($view->id(), columns: null, groupBy: 'status'));
+        self::assertSame(['group_by' => 'status'], $view->display());
     }
 
     public function testChangingSomethingElseLeavesTheStoredDisplayAsItIs(): void
@@ -411,12 +410,12 @@ final class SavedViewsTest extends TestCase
         self::assertSame('New', $view->name());
     }
 
-    public function testTheStoredColumnsAreCheckedAsAListWhenTheDensityChanges(): void
+    public function testTheStoredColumnsAreCheckedAsAListWhenTheGroupingChanges(): void
     {
         $view = SavedView::made('test.items', self::MEMBER, 'Old', Visibility::Private, ['match' => 'all', 'conditions' => []], [], ['columns' => [3 => ['key' => 'number'], 9 => ['key' => 'Gone column!']]], false, Placement::Primary, 5, new \DateTimeImmutable('2026-11-17'));
         $this->store->add($view);
 
-        $this->assertRefusedBy('filter_invalid', 'columns[1].key', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), density: 'dense')));
+        $this->assertRefusedBy('filter_invalid', 'columns[1].key', fn (): SavedView => $this->views->update(new UpdateViewInput($view->id(), groupBy: 'customer')));
     }
 
     public function testAnUpdateChangesWhatItIsGivenAndFlushesOnce(): void
@@ -566,7 +565,7 @@ final class SavedViewsTest extends TestCase
         self::assertSame(80, $this->attribute(CreateViewInput::class, 'listKey')->maxLength);
         self::assertSame(80, $this->attribute(RestoreDefaultViewsInput::class, 'listKey')->maxLength);
         self::assertSame(SavedView::NAME_MAX_LENGTH, $this->attribute(CreateViewInput::class, 'name')->maxLength);
-        self::assertFalse(new \ReflectionClass(CreateViewInput::class)->getConstructor()?->getParameters()[7]->getDefaultValue());
+        self::assertFalse(new \ReflectionClass(CreateViewInput::class)->getConstructor()?->getParameters()[6]->getDefaultValue());
     }
 
     /**

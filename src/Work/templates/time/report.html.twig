@@ -56,11 +56,11 @@
                             {% endfor %}
                         </twig:Ui:Menu>
                     </div>
-                    <twig:Ui:DataTable :caption="('work.time.report.totals.' ~ grouping)|trans" :columns="totalColumns" density="dense" :rows="totalRows" :totals="totalSums" />
+                    <twig:Ui:DataTable :caption="('work.time.report.totals.' ~ grouping)|trans" :columns="totalColumns" rowStyle="lines" :rows="totalRows" :totals="totalSums" />
                 </section>
                 <section class="grid gap-2" aria-labelledby="report-entries-title" data-time-report-entries>
                     <h3 id="report-entries-title" class="m-0 text-small font-semibold text-ink">{{ 'work.time.report.entries'|trans }}</h3>
-                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" :resizable="true" :density="density" :rows="entryRows">
+                    <twig:Ui:DataTable :caption="'work.time.report.entries'|trans" :columns="entryColumns" :resizable="true" rowStyle="lines" :rows="entryRows">
                         <twig:block name="footer">
                             {%- if pages > 1 -%}
                                 <span class="num">{{ 'work.time.report.entries_count'|trans({count: entryCount}) }}</span>

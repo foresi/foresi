@@ -18,7 +18,7 @@
         {% for chain in chains %}
             <section class="grid gap-2" aria-labelledby="bank-statements-{{ loop.index }}" data-statement-chain>
                 <h2 id="bank-statements-{{ loop.index }}" class="m-0 text-body font-semibold text-ink">{{ chain.title }} <span class="font-normal text-muted">· {{ chain.source }}</span></h2>
-                <twig:Ui:DataTable :caption="'bank.statement.caption'|trans({account: chain.title, source: chain.source})" :columns="chain.columns" :rows="chain.rows" density="dense" />
+                <twig:Ui:DataTable :caption="'bank.statement.caption'|trans({account: chain.title, source: chain.source})" :columns="chain.columns" :rows="chain.rows" rowStyle="lines" />
             </section>
         {% else %}
             <twig:Ui:EmptyState icon="file-text" :title="'bank.statement.empty_title'|trans" :text="'bank.statement.empty_text'|trans" />

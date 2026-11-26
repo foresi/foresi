@@ -374,6 +374,8 @@ profile:
   edit: Edit profile
   edit_title: Edit profile
   change_photo: Change photo
+  appearance: Appearance
+  appearance_title: Appearance
   photo_title: Profile photo
   photo_preview: Preview of the photo in the circle of the avatar
   photo_zoom: Zoom
@@ -389,14 +391,33 @@ profile:
     language: Language
     photo: Photo
     photo_help: JPEG, PNG or WebP, at most 5 MB
+    text_size: Text size
+    density: Density
+  text_size:
+    small: Smaller
+    small_hint: 13 px text, more fits on the screen.
+    standard: Standard
+    standard_hint: 14 px text.
+    large: Larger
+    large_hint: 16 px text, easier to read.
+  density:
+    compact: Compact
+    compact_hint: Lower rows, more of them on the screen.
+    normal: Normal
+    normal_hint: Rows of the usual height.
+    spacious: Spacious
+    spacious_hint: Taller rows with more room around the text.
   flash:
     saved: Your profile is saved.
     photo_saved: Your photo is saved.
     photo_removed: Your photo is removed.
+    appearance_saved: Your appearance is saved.
   error:
     name_required: Enter your name.
     name_too_long: A name has at most 255 characters.
     unsupported_language: Choose one of the languages.
+    unsupported_text_size: Choose one of the text sizes.
+    unsupported_density: Choose one of the densities.
     photo_type: Choose a JPEG, PNG or WebP image.
     photo_too_large: The photo is too large. It can have at most 5 MB.
     photo_dimensions: The photo is too large. It can have at most 16 million pixels.

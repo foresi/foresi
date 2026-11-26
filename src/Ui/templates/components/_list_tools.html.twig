@@ -6,7 +6,7 @@
       with what the list keeps; on a phone it is an icon that opens the field over the row;
     - Filter (`list-filter`), which opens the list's filter sheet in one click, its green dot saying
       a filter is set;
-    - Settings (`settings`), the sheet of the list's views, quick filters, columns and row density
+    - Settings (`settings`), the sheet of the list's views, quick filters and columns
       (Ui:ColumnPicker).
     Takes:
     - toolsFilter: the id of the list's Ui:FilterBar, or null for a list without one;
@@ -39,6 +39,6 @@
         </span>
     {% endif %}
     {% if columns %}
-        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], density: picker.density ?? null, resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], manage: manageViews ?? null, viewBar: viewBar ?? null, groups: picker.groups ?? [], group: picker.group ?? null, slot: picker.slot ?? null}) }}
+        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], manage: manageViews ?? null, viewBar: viewBar ?? null, groups: picker.groups ?? [], group: picker.group ?? null, slot: picker.slot ?? null}) }}
     {% endif %}
 </div>

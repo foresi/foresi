@@ -81,7 +81,7 @@ final class RecurringListController extends AbstractController
     /** The views the list ships, whose empty state has words of its own. */
     private const array SHIPPED = [ListDefinition::ALL, 'active', 'paused', 'ended', 'failing', RecurringLists::TRASH];
     private const int MAX_SEARCH = 100;
-    private const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    private const array LIST_QUERY = ['view', 'tab', 'q', 'sort', 'page', WorkingFilter::PARAM, WorkingDisplay::COLUMNS];
 
     public function __construct(private readonly RecurringLists $recurringLists,
         private readonly RecurringInvoices $templates,
@@ -130,7 +130,7 @@ final class RecurringListController extends AbstractController
         $amounts = $this->amounts->payable($page->templates, $lines, $today);
 
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(RecurringColumns::LIST, ['trash' => $trash], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
         $here = http_build_query(1 === $page->page ? $query : $query + ['page' => (string) $page->page]);
@@ -153,7 +153,6 @@ final class RecurringListController extends AbstractController
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl('app_recurring', ['sort' => $next, 'page' => null] + $query)),
             'rows' => array_map(fn (RecurringInvoice $template): array => $this->row($template, $page->isFailing($template), $amounts[$template->id()] ?? null, $working, $alertColumn, $here, $today, $names), $page->templates),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl('app_recurring', $query),
@@ -544,9 +543,8 @@ final class RecurringListController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl('app_recurring', $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl('app_recurring', $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

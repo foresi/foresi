@@ -87,12 +87,14 @@ nelmio_api_doc:
                                 expires_at: { type: string, format: date-time }
                 Profile:
                     type: object
-                    required: [id, email, display_name, language, photo_url]
+                    required: [id, email, display_name, language, text_size, density, photo_url]
                     properties:
                         id: { type: string, format: uuid }
                         email: { type: string }
                         display_name: { type: string }
                         language: { type: string, enum: [cs, en] }
+                        text_size: { type: string, enum: [small, standard, large], description: 'How large the text is in the whole app: 13, 14 or 16 px body text.' }
+                        density: { type: string, enum: [compact, normal, spacious], description: 'How tall the table rows are in the whole app, and with a mouse the fields and buttons.' }
                         photo_url: { type: string, format: uri, nullable: true, description: 'Opens only in a signed-in Foresi session; null without a photo.' }
                 InvoiceListItem:
                     type: object

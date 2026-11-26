@@ -10,7 +10,7 @@ namespace Foresi\Shared\Application\View;
 
 /**
  * The one place that decides whether a list shows changes nobody saved into its view
- * (spec D10): its filters (f=), its sort or its display (cols=, density=) differ from
+ * (spec D10): its filters (f=), its sort or its display (cols=, widths=) differ from
  * the view's. The search (q=) never counts, as it is never saved (D8). The view's tab
  * then shows a dot and the bar offers Save, Save as new view and Reset.
  *

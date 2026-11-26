@@ -177,7 +177,6 @@ final class DealController extends AbstractController
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
             'sections' => $sections,
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'text' => $text,
@@ -1282,8 +1281,7 @@ final class DealController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

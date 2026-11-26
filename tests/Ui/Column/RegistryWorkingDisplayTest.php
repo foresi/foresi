@@ -28,18 +28,14 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertFalse($state->modified);
         self::assertSame([], $state->query);
         self::assertNull($state->payload);
-        self::assertSame('comfortable', $state->density);
-        self::assertSame('list', $state->tableDensity());
     }
 
     public function testTheViewsStoredDisplayIsTheBase(): void
     {
-        $saved = ['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 200]], 'density' => 'dense'];
+        $saved = ['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 200]], 'group_by' => 'kind'];
         $state = $this->working()->read(self::LIST, [], $saved, []);
 
         self::assertSame(['name', 'email'], $state->display->keys());
-        self::assertSame('dense', $state->density);
-        self::assertSame('dense', $state->tableDensity());
         self::assertFalse($state->modified);
         self::assertSame($saved, $state->payload);
     }
@@ -158,7 +154,7 @@ final class RegistryWorkingDisplayTest extends TestCase
 
     public function testAnOlderKeyInTheViewsStoredDisplayShowsItsColumn(): void
     {
-        $state = $this->working()->read(self::LIST, ['archived' => true], ['columns' => [['key' => 'name'], ['key' => 'archivedAt', 'width' => 120]]], ['density' => 'dense']);
+        $state = $this->working()->read(self::LIST, ['archived' => true], ['columns' => [['key' => 'name'], ['key' => 'archivedAt', 'width' => 120]]], ['pins' => '']);
 
         self::assertSame(['name', 'archived_at'], $state->display->keys());
         self::assertSame([null, 120], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
@@ -166,36 +162,20 @@ final class RegistryWorkingDisplayTest extends TestCase
 
     public function testAWorkingStateThatShowsTheViewIsNoChangeAndLeavesTheAddress(): void
     {
-        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,kind,email', 'density' => 'comfortable']);
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,kind,email', 'density' => 'dense']);
 
         self::assertFalse($state->modified);
         self::assertSame([], $state->query);
     }
 
-    public function testDensityAloneIsAChange(): void
+    public function testAnOldDensityInTheAddressIsNoChange(): void
     {
         $state = $this->working()->read(self::LIST, [], null, ['density' => 'dense']);
 
         self::assertSame(['name', 'kind', 'email'], $state->display->keys());
-        self::assertTrue($state->modified);
-        self::assertSame(['density' => 'dense'], $state->query);
-        self::assertSame('dense', $state->tableDensity());
-    }
-
-    public function testAnUnknownDensityIsIgnored(): void
-    {
-        $state = $this->working()->read(self::LIST, [], null, ['density' => 'huge']);
-
         self::assertFalse($state->modified);
-        self::assertSame('comfortable', $state->density);
-    }
-
-    public function testTheListsOwnDefaultDensityCounts(): void
-    {
-        $state = $this->working()->read(self::LIST, [], null, ['density' => 'dense'], 'dense');
-
-        self::assertFalse($state->modified);
-        self::assertSame('dense', $state->density);
+        self::assertSame([], $state->query);
+        self::assertNull($state->payload);
     }
 
     public function testAKeptColumnKeepsTheWidthTheViewGivesIt(): void
@@ -204,7 +184,7 @@ final class RegistryWorkingDisplayTest extends TestCase
         $state = $this->working()->read(self::LIST, [], $saved, ['cols' => 'name,kind,email']);
 
         self::assertSame([240, null, 180], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
-        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind'], ['key' => 'email', 'width' => 180]], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind'], ['key' => 'email', 'width' => 180]]], $state->payload);
     }
 
     public function testThePickerListsTheShownColumnsInOrderThenTheHiddenOnes(): void
@@ -234,21 +214,13 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame(['name', 'email'], $state->display->keys());
     }
 
-    public function testTheColumnsAndTheDensityChangeTogether(): void
+    public function testTheColumnsChangeAndAnOldDensityNextToThemIsLeftOut(): void
     {
-        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,phone', 'density' => 'dense']);
+        $state = $this->working()->read(self::LIST, [], ['columns' => [['key' => 'name']], 'density' => 'dense'], ['cols' => 'name,phone', 'density' => 'dense']);
 
         self::assertTrue($state->modified);
-        self::assertSame(['cols' => 'name,phone', 'density' => 'dense'], $state->query);
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone']], 'density' => 'dense'], $state->payload);
-    }
-
-    public function testAnUnknownDensityNextToColumnsKeepsTheViewsDensity(): void
-    {
-        $state = $this->working()->read(self::LIST, [], ['density' => 'dense'], ['cols' => 'name,phone', 'density' => 'huge']);
-
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone']], 'density' => 'dense'], $state->payload);
         self::assertSame(['cols' => 'name,phone'], $state->query);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone']]], $state->payload);
     }
 
     public function testTheLockedColumnLeadsThePayloadAndTheRestKeepTheirOrder(): void
@@ -256,7 +228,7 @@ final class RegistryWorkingDisplayTest extends TestCase
         $state = $this->working()->read(self::LIST, [], null, ['cols' => 'email, name ,,email, kind']);
 
         self::assertSame(['name', 'email', 'kind'], $state->display->keys());
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email'], ['key' => 'kind']], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email'], ['key' => 'kind']]], $state->payload);
     }
 
     public function testAListOfColumnsWithOtherThanTextIsReadLeniently(): void
@@ -264,7 +236,7 @@ final class RegistryWorkingDisplayTest extends TestCase
         $state = $this->working()->read(self::LIST, [], null, ['cols' => ['x' => 'phone', 'y' => ['email'], 'z' => 'kind']]);
 
         self::assertSame(['name', 'phone', 'kind'], $state->display->keys());
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone'], ['key' => 'kind']], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'phone'], ['key' => 'kind']]], $state->payload);
     }
 
     public function testTheAddressNamesAtMostAHundredColumns(): void
@@ -275,15 +247,6 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame(['name'], $state->display->keys());
     }
 
-    public function testADensityChangeKeepsTheViewsColumnsWidthsAndGrouping(): void
-    {
-        $saved = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind']], 'group_by' => 'kind'];
-        $state = $this->working()->read(self::LIST, [], $saved, ['density' => 'dense']);
-
-        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind']], 'density' => 'dense', 'group_by' => 'kind'], $state->payload);
-        self::assertSame(['density' => 'dense'], $state->query);
-    }
-
     public function testAGroupingFromTheAddressIsAChangeKeptInThePayload(): void
     {
         $state = $this->working()->read(self::LIST, [], null, ['group' => 'email'], groups: ['kind', 'email']);
@@ -291,7 +254,7 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertTrue($state->modified);
         self::assertSame('email', $state->display->groupBy);
         self::assertSame(['group' => 'email'], $state->query);
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'kind'], ['key' => 'email']], 'density' => 'comfortable', 'group_by' => 'email'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'kind'], ['key' => 'email']], 'group_by' => 'email'], $state->payload);
     }
 
     public function testTheViewsGroupingOrTheListsDefaultIsNoChange(): void
@@ -331,7 +294,7 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertTrue($state->modified);
         self::assertSame([240, 120, 300], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
         self::assertSame(['widths' => 'name:240,kind:120,email:300'], $state->query);
-        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind', 'width' => 120], ['key' => 'email', 'width' => 300]], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind', 'width' => 120], ['key' => 'email', 'width' => 300]]], $state->payload);
     }
 
     public function testTheViewsOwnWidthsAreNoChangeAndEmptyWidthsAreTheViewsOwn(): void
@@ -357,7 +320,7 @@ final class RegistryWorkingDisplayTest extends TestCase
     {
         $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,phone', 'widths' => 'name:200,phone:150,email:400']);
 
-        self::assertSame(['columns' => [['key' => 'name', 'width' => 200], ['key' => 'phone', 'width' => 150]], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 200], ['key' => 'phone', 'width' => 150]]], $state->payload);
         self::assertSame(['cols' => 'name,phone', 'widths' => 'name:200,phone:150'], $state->query, 'a width of a column not shown is left out');
     }
 
@@ -387,9 +350,9 @@ final class RegistryWorkingDisplayTest extends TestCase
 
     public function testEverythingAskedAtOnceGoesInThePayload(): void
     {
-        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,email', 'density' => 'dense', 'group' => 'email', 'pins' => 'city', 'widths' => 'email:250'], groups: ['kind', 'email'], pins: self::PINS);
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,email', 'group' => 'email', 'pins' => 'city', 'widths' => 'email:250'], groups: ['kind', 'email'], pins: self::PINS);
 
-        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 250]], 'density' => 'dense', 'group_by' => 'email', 'pinned' => ['city']], $state->payload);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 250]], 'group_by' => 'email', 'pinned' => ['city']], $state->payload);
     }
 
     public function working(): RegistryWorkingDisplay

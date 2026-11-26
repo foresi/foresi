@@ -14,7 +14,6 @@ use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\ResolvedColumn;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +26,6 @@ final class ListColumnRegistryTest extends TestCase
         $display = $this->registry()->display(self::LIST);
 
         self::assertSame(['number', 'customer', 'due_date', 'payable'], $display->keys());
-        self::assertNull($display->density);
         self::assertNull($display->groupBy);
     }
 
@@ -79,20 +77,19 @@ final class ListColumnRegistryTest extends TestCase
         self::assertSame([120, null, null, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $display->columns));
     }
 
-    public function testDensityAndGroupingAreReadWhenValid(): void
+    public function testTheGroupingIsReadWhenValidAndAnOldDensityIsLeftAside(): void
     {
         $registry = $this->registry();
 
-        self::assertSame(ListDisplay::DENSE, $registry->display(self::LIST, [], ['columns' => [], 'density' => 'dense', 'group_by' => 'status'])->density);
+        self::assertSame('status', $registry->display(self::LIST, [], ['columns' => [], 'density' => 'dense', 'group_by' => 'status'])->groupBy);
         self::assertSame('status', $registry->display(self::LIST, [], ['columns' => [], 'group_by' => 'status'])->groupBy);
-        self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'density' => 'huge'])->density);
         self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'group_by' => ''])->groupBy);
         self::assertNull($registry->display(self::LIST, [], ['columns' => [], 'group_by' => 5])->groupBy);
     }
 
     public function testADisplayWithoutColumnsKeepsTheDefaultColumns(): void
     {
-        self::assertSame(['number', 'customer', 'due_date', 'payable'], $this->registry()->display(self::LIST, [], ['density' => 'dense'])->keys());
+        self::assertSame(['number', 'customer', 'due_date', 'payable'], $this->registry()->display(self::LIST, [], ['group_by' => 'status'])->keys());
     }
 
     public function testAnotherModuleAddsAColumnToTheList(): void

@@ -52,6 +52,25 @@ final class UserTest extends TestCase
         }
     }
 
+    public function testTheAppearanceStartsStandardAndNormalAndChangesToAKnownSize(): void
+    {
+        $user = new User('testing@example.com', 'hash', 'Example Company');
+        self::assertSame([User::TEXT_STANDARD, User::DENSITY_NORMAL], [$user->textSize(), $user->density()]);
+
+        $user->changeTextSize(User::TEXT_LARGE);
+        $user->changeDensity(User::DENSITY_COMPACT);
+        self::assertSame(['large', 'compact'], [$user->textSize(), $user->density()]);
+
+        foreach ([static fn () => $user->changeTextSize('huge'), static fn () => $user->changeDensity('comfortable')] as $change) {
+            try {
+                $change();
+                self::fail('An unknown size must throw.');
+            } catch (\InvalidArgumentException) {
+                self::assertSame(['large', 'compact'], [$user->textSize(), $user->density()]);
+            }
+        }
+    }
+
     public function testLocaleDefaultsToEnglish(): void
     {
         self::assertSame('en', new User('testing@example.com', 'hash', 'Example Company')->locale());

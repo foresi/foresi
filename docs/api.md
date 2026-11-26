@@ -113,8 +113,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
-| `/api/v1/me` | none | The person (id, e-mail, name, language, photo URL) and the token. |
-| `PATCH /api/v1/me` | `profile:write` | Changes the person's own name or language (`display_name`, `language`). |
+| `/api/v1/me` | none | The person (id, e-mail, name, language, text size, density, photo URL) and the token. |
+| `PATCH /api/v1/me` | `profile:write` | Changes the person's own name, language or appearance (`display_name`, `language`, `text_size`: `small`, `standard` or `large`, `density`: `compact`, `normal` or `spacious`). |
 | `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
 | `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. Each line has its `id` (what the [margin rebill pairing](#margin) takes as `invoice_line_id`) and `source_line_id`, the id of the template line it was issued from, or `null`. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
@@ -347,7 +347,7 @@ A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `share
 
 | Method and path | Body | What it does |
 | --- | --- | --- |
-| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `density`, `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `work.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `work.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
 | `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
 | `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
 | `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |

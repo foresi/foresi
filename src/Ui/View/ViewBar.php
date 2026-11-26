@@ -60,8 +60,8 @@ final readonly class ViewBar
                 'modified' => $modified,
                 // All has no conditions and is no one's to change (D7): its changes become a new view.
                 'canSave' => $modified && !$view->isAll() && $this->mayEdit($view, $list),
-                // Everything but the search (D10); an empty density and empty widths name the view's own display, which forgets the one remembered.
-                'resetHref' => $url($here + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+                // Everything but the search (D10); empty widths name the view's own display, which forgets the one remembered.
+                'resetHref' => $url($here + [WorkingDisplay::WIDTHS => '']),
                 'list' => $list->key,
                 'ref' => $view->ref($list->key),
                 'filter' => WorkingFilter::encode($working),

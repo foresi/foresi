@@ -26,7 +26,7 @@ final class DataTable
     /** Values longer than this get their full text in a title attribute. */
     private const int TITLE_FROM_LENGTH = 24;
     private const array ALIGNS = ['left', 'right', 'center'];
-    private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'dense' => 'h-row'];
+    private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'lines' => 'h-row'];
     /** The narrowest a column is dragged to when it declares no minimum (Attribute::MIN_WIDTH). */
     private const int MIN_WIDTH = 64;
     /** The widest a column is dragged to (WorkingDisplay::MAX_WIDTH). */
@@ -83,10 +83,12 @@ final class DataTable
     public ?string $actionToken = null;
 
     /**
-     * "list" rows are 56 px, as a list of documents or contacts (layout spec, lists); "dense" rows
-     * keep 44 px for a table read line by line, such as invoice lines or bank movements.
+     * The table's own kind of rows, not a person's choice: "list" rows, as a list of documents or
+     * contacts (layout spec, lists), or "lines", rows a step lower for a table read line by line,
+     * such as invoice lines, bank movements or the time report. Their heights are the row tokens
+     * of the person's density (Profile, Appearance): 56 and 44 px at normal.
      */
-    public string $density = 'list';
+    public string $rowStyle = 'list';
 
     /**
      * Whether a person drags the columns to the widths they want, from the sm breakpoint up: a list
@@ -111,8 +113,8 @@ final class DataTable
     #[PostMount]
     public function validate(): void
     {
-        if (!isset(self::ROW_HEIGHTS[$this->density])) {
-            throw new \InvalidArgumentException(\sprintf('Unknown density "%s", expected one of: %s.', $this->density, implode(', ', array_keys(self::ROW_HEIGHTS))));
+        if (!isset(self::ROW_HEIGHTS[$this->rowStyle])) {
+            throw new \InvalidArgumentException(\sprintf('Unknown row style "%s", expected one of: %s.', $this->rowStyle, implode(', ', array_keys(self::ROW_HEIGHTS))));
         }
         foreach ($this->columns as $column) {
             $this->columnViews[] = $this->column($column);
@@ -185,7 +187,7 @@ final class DataTable
     /** The height class of a body row. */
     public function rowHeight(): string
     {
-        return self::ROW_HEIGHTS[$this->density];
+        return self::ROW_HEIGHTS[$this->rowStyle];
     }
 
     public function shareClass(): string

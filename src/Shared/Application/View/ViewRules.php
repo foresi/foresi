@@ -16,8 +16,6 @@ namespace Foresi\Shared\Application\View;
  */
 final class ViewRules
 {
-    /** As the list columns read them (Foresi\Ui\Contract\ListDisplay::DENSITIES). */
-    public const array DENSITIES = ['comfortable', 'dense'];
     public const int MAX_SORT = 3;
     public const int MAX_COLUMNS = 40;
     /** As a list pins them (ListDefinition::MAX_PINNED). */
@@ -56,7 +54,7 @@ final class ViewRules
     }
 
     /**
-     * The display payload {columns: [{key, width?}], density?, group_by?, pinned?}, or null for
+     * The display payload {columns: [{key, width?}], group_by?, pinned?}, or null for
      * the list's defaults. What a list groups by is checked for its shape only; a list
      * that does not group by it shows its own grouping (D-display-2). The pinned fields are
      * the view's quick filters, in their order: none pins none, null keeps the list's own.
@@ -68,7 +66,7 @@ final class ViewRules
      *
      * @throws InvalidFilter
      */
-    public static function display(?array $columns, ?string $density, ?string $groupBy = null, ?array $pinned = null): ?array
+    public static function display(?array $columns, ?string $groupBy = null, ?array $pinned = null): ?array
     {
         if (null !== $pinned) {
             if (\count($pinned) > self::MAX_PINNED) {
@@ -81,13 +79,10 @@ final class ViewRules
             }
             $pinned = array_values(array_unique($pinned));
         }
-        if (null !== $density && !\in_array($density, self::DENSITIES, true)) {
-            throw new InvalidFilter('density', \sprintf('The density is one of %s.', implode(', ', self::DENSITIES)));
-        }
         if (null !== $groupBy && 1 !== preg_match(self::KEY, $groupBy)) {
             throw new InvalidFilter('group_by', 'A grouping is named by its key, such as "person".');
         }
-        $rest = (null === $density ? [] : ['density' => $density]) + (null === $groupBy ? [] : ['group_by' => $groupBy]) + (null === $pinned ? [] : ['pinned' => $pinned]);
+        $rest = (null === $groupBy ? [] : ['group_by' => $groupBy]) + (null === $pinned ? [] : ['pinned' => $pinned]);
         if (null === $columns) {
             return [] === $rest ? null : $rest;
         }

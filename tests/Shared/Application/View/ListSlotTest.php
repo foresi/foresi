@@ -29,8 +29,8 @@ final class ListSlotTest extends TestCase
 
     public function testChangingOneTableKeepsTheOther(): void
     {
-        self::assertSame(['density' => 'dense', 'reasons' => self::PAGE['reasons']], ListSlot::first(self::PAGE, 'reasons')->with(['density' => 'dense']));
-        self::assertSame(['view' => 'mine', 'cols' => 'name,key', 'reasons' => ['density' => '', 'widths' => '']], ListSlot::named('reasons', self::PAGE)->with(['density' => '', 'widths' => '', 'view' => null]));
+        self::assertSame(['group' => 'kind', 'reasons' => self::PAGE['reasons']], ListSlot::first(self::PAGE, 'reasons')->with(['group' => 'kind']));
+        self::assertSame(['view' => 'mine', 'cols' => 'name,key', 'reasons' => ['widths' => '']], ListSlot::named('reasons', self::PAGE)->with(['widths' => '', 'view' => null]));
         self::assertSame(['view' => 'mine', 'cols' => 'name,key'], ListSlot::named('reasons', self::PAGE)->with([]));
     }
 

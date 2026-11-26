@@ -116,7 +116,7 @@ ui:
     button: List settings
     modified: changed
     title: List settings
-    description: The views on the tabs, the quick filters under them, the columns and the row density.
+    description: The views on the tabs, the quick filters under them and the columns.
     quick: Quick filters
     quick_hint: 'The checked ones show as buttons under the tabs. Drag to change their order.'
     columns: Columns
@@ -126,12 +126,7 @@ ui:
     move_up: 'Move {label} up'
     move_down: 'Move {label} down'
     moved: '{label} moved to position {position} of {total}.'
-    density: Row density
     group: Group by
-    density_comfortable: Comfortable
-    density_comfortable_hint: 56 px
-    density_dense: Compact
-    density_dense_hint: 44 px
     reset: Reset to default
     apply: Apply
     add: Add column

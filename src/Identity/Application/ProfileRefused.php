@@ -19,6 +19,8 @@ final class ProfileRefused extends \DomainException implements Refused
     public const string NAME_REQUIRED = 'name_required';
     public const string NAME_TOO_LONG = 'name_too_long';
     public const string UNSUPPORTED_LANGUAGE = 'unsupported_language';
+    public const string UNSUPPORTED_TEXT_SIZE = 'unsupported_text_size';
+    public const string UNSUPPORTED_DENSITY = 'unsupported_density';
     public const string PHOTO_TYPE = 'photo_type';
     public const string PHOTO_TOO_LARGE = 'photo_too_large';
     public const string PHOTO_DIMENSIONS = 'photo_dimensions';

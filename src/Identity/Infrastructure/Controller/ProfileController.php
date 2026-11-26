@@ -35,7 +35,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * dialog from the page header (Google, Pipedrive: plain fields, no check), the
  * photo in a dialog of its own that crops it to a square in the browser
  * (GitHub, Google: upload, crop, save), with Remove as a separate action
- * (GitHub, Linear). Every role has one, guests too. The photo is served to
+ * (GitHub, Linear). The appearance, the size of the text and the density of the rows, is
+ * edited in a dialog of its own (ABRA Flexi, Vzhled: per user, for the whole app).
+ * Every role has one, guests too. The photo is served to
  * anyone signed in, never publicly.
  */
 #[OpenToGuest]
@@ -43,6 +45,7 @@ final class ProfileController extends AbstractController
 {
     public const string ROUTE = 'app_account_profile';
     public const string EDIT_ROUTE = 'app_account_profile_edit';
+    public const string APPEARANCE_ROUTE = 'app_account_profile_appearance';
     public const string PHOTO_EDIT_ROUTE = 'app_account_profile_photo';
     public const string PHOTO_REMOVE_ROUTE = 'app_account_profile_photo_remove';
     public const string PHOTO_ROUTE = 'app_user_photo';
@@ -91,6 +94,39 @@ final class ProfileController extends AbstractController
             'name' => $name,
             'language' => $language,
             'languages' => array_combine(User::LOCALES, array_map(fn (string $locale): string => $this->translator->trans('locale.'.$locale), User::LOCALES)),
+            'errors' => $errors,
+        ], new Response(status: [] === $errors ? 200 : 422));
+    }
+
+    /**
+     * The text size and the density in a dialog; the same URL is a page of its own.
+     */
+    #[Route('/account/profile/appearance', name: self::APPEARANCE_ROUTE, methods: ['GET', 'POST'])]
+    public function appearance(Request $request, #[CurrentUser] SecurityUser $me): Response
+    {
+        $user = $this->user($me);
+        $textSize = $user->textSize();
+        $density = $user->density();
+        $errors = [];
+        if ($request->isMethod('POST')) {
+            $this->checkToken($request);
+            $textSize = $request->request->getString('textSize');
+            $density = $request->request->getString('density');
+            try {
+                $this->profile->update($user->id(), new UpdateProfileInput(textSize: $textSize, density: $density));
+                $this->addFlash('success', $this->translator->trans('profile.flash.appearance_saved'));
+
+                return $this->redirectToRoute(self::ROUTE);
+            } catch (ProfileRefused $refused) {
+                $errors[(string) $refused->field()] = $this->translator->trans('profile.error.'.$refused->reason());
+            }
+        }
+
+        return $this->render('@Identity/profile/appearance.html.twig', [
+            'textSize' => $textSize,
+            'density' => $density,
+            'textSizes' => array_map(fn (string $size): array => ['value' => $size, 'label' => $this->translator->trans('profile.text_size.'.$size), 'text' => $this->translator->trans('profile.text_size.'.$size.'_hint')], User::TEXT_SIZES),
+            'densities' => array_map(fn (string $density): array => ['value' => $density, 'label' => $this->translator->trans('profile.density.'.$density), 'text' => $this->translator->trans('profile.density.'.$density.'_hint')], User::DENSITIES),
             'errors' => $errors,
         ], new Response(status: [] === $errors ? 200 : 422));
     }

@@ -119,7 +119,7 @@ final class ReceivedDocumentListController extends AbstractController
             WorkingFilter::PARAM => $filterParam,
         ], static fn (?string $value): bool => null !== $value);
         $hasFirm = $this->list->hasFirm();
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ReceivedDocumentColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, PurchasingNavigation::ROUTE, '' === $filter->text ? [] : ['q' => $filter->text]);
@@ -136,7 +136,6 @@ final class ReceivedDocumentListController extends AbstractController
             ...$this->tabs($views, $view->key, $page, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
             'rows' => array_map(fn (ReceivedDocumentRow $row): array => $this->row($row, $working), $page->rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl(PurchasingNavigation::ROUTE, $query),
@@ -398,9 +397,8 @@ final class ReceivedDocumentListController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(PurchasingNavigation::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

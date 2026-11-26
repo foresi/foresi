@@ -88,7 +88,7 @@ final class SendLogController extends AbstractController
         $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
         $page = $this->sends->page(new SendLogFilter($shown, max(1, $input->getInt('page', 1)), $text));
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
-        // The quick filters, columns and density changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
+        // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(SendLogColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
         $query += $working->query;
         $bar = $this->viewBar->of($list, $views, $view, $shown, '', '', $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
@@ -103,7 +103,6 @@ final class SendLogController extends AbstractController
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table(),
             'rows' => array_map(fn (SendLogRow $row): array => $this->row($row, $working), $page->rows),
-            'density' => $working->tableDensity(),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'baseUrl' => $this->generateUrl(self::ROUTE, $query),
@@ -202,9 +201,8 @@ final class SendLogController extends AbstractController
         return [
             'keep' => $kept,
             'columns' => $working->picker(),
-            'density' => $working->density,
-            // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+            // Empty widths name the view's own display, which forgets the one remembered (D-display-3).
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }
