@@ -23,13 +23,15 @@
     full height and darkens only under the pointer, and turns green on focus or while dragged
     (Notion's and Airtable's column edges, GitHub Projects' table header), a separator one drags, moves with the arrow keys or double-clicks to size the
     column to its text again (WAI-ARIA APG Window Splitter; Excel, Google Sheets). Once every column
-    has a width the table lays them out at those widths alone, at least as wide as its frame: the
-    actions column, or an empty last column when there is none, takes the room the others leave.
+    has a width the table lays them out at those widths alone, at least as wide as its frame: its last
+    column (stretchKey) has no width of its own on its col and takes the room the others leave, never
+    less than its width, so the text it would cut short shows and its grip is the table's right edge.
+    Its header has no share of the room either, which would give it one in place of that room.
 #}
 {% set resizable = this.resizable %}
 {% set toggleColumns = this.toggleColumns %}
 {% set fixed = this.fixed %}
-{% set filler = resizable and not this.hasActions %}
+{% set stretch = this.stretchKey %}
 {# A header is named by its label alone, never by its grip's label as well. #}
 {% set headerId = resizable ? 'th-' ~ random() : null %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
@@ -56,9 +58,9 @@
                             {%- if selectable %}<col class="w-12">{% endif -%}
                             {%- if reorder %}<col class="w-10">{% endif -%}
                             {%- for column in this.columnViews -%}
-                                <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}"{% if resizable %} data-column-resize-target="col"{% endif %}>
+                                <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width and column.key != stretch ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}"{% if resizable %} data-column-resize-target="col"{% endif %}{% if column.key == stretch %} data-stretch{% endif %}>
                             {%- endfor -%}
-                            {%- if this.hasActions or filler %}<col>{% endif -%}
+                            {%- if this.hasActions %}<col{% if resizable %} class="sm:w-12"{% endif %}>{% endif -%}
                         </colgroup>
                     {% endif %}
                     <thead>
@@ -74,7 +76,7 @@
                                 <th scope="col" class="h-row w-10 border-b border-divider bg-head px-2"><span class="sr-only">{{ 'ui.table.order'|trans }}</span></th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head {{ column.key in toggleColumns ? 'w-10 px-2' : 'px-4' }} text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
+                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head {{ column.key in toggleColumns ? 'w-10 px-2' : 'px-4' }} text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0' ~ (column.key == stretch ? '' : ' ' ~ share) : '' }}{{ resizable ? ' relative' : '' }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}"{% if headerId %} id="{{ headerId }}-{{ loop.index }}"{% endif %} class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
@@ -94,8 +96,6 @@
                             {% endfor %}
                             {% if this.hasActions %}
                                 <th scope="col" class="h-row border-b border-divider bg-head px-2"><span class="sr-only">{{ 'ui.table.actions'|trans }}</span></th>
-                            {% elseif filler %}
-                                <td class="h-row border-b border-divider bg-head p-0 max-sm:hidden" aria-hidden="true" data-column-filler></td>
                             {% endif %}
                         </tr>
                     </thead>
@@ -197,8 +197,6 @@
                                             </twig:Ui:Menu>
                                         </div>
                                     </td>
-                                {% elseif filler %}
-                                    <td class="{{ rowHeight }} border-b border-divider p-0 group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint max-sm:hidden" aria-hidden="true"></td>
                                 {% endif %}
                             </tr>
                         {% endfor %}
@@ -216,7 +214,7 @@
                                             {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                         </td>
                                     {% endfor %}
-                                    {% if this.hasActions %}<td class="h-row bg-head px-2{{ edge }}"></td>{% elseif filler %}<td class="h-row bg-head p-0 max-sm:hidden{{ edge }}" aria-hidden="true"></td>{% endif %}
+                                    {% if this.hasActions %}<td class="h-row bg-head px-2{{ edge }}"></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tfoot>
