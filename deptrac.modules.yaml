@@ -107,10 +107,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\Mail\\.*
-    - name: country_integration_purchasing
+    - name: country_integration_received_documents
       collectors:
         - type: classLike
-          value: ^Foresi\\Country\\Integration\\Purchasing\\.*
+          value: ^Foresi\\Country\\Integration\\ReceivedDocuments\\.*
     - name: country_integration_taxes_and_contributions
       collectors:
         - type: classLike
@@ -119,14 +119,50 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Country\\Integration\\Vat\\.*
-    - name: documents
+    - name: deals
       collectors:
         - type: classLike
-          value: ^Foresi\\Documents\\(?!Contract\\|Integration\\).*
-    - name: documents_contract
+          value: ^Foresi\\Deals\\(?!Contract\\|Integration\\).*
+    - name: deals_contract
       collectors:
         - type: classLike
-          value: ^Foresi\\Documents\\Contract\\.*
+          value: ^Foresi\\Deals\\Contract\\.*
+    - name: deals_integration_activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Activities\\.*
+    - name: deals_integration_cash_flow
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\CashFlow\\.*
+    - name: deals_integration_document_templates
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\DocumentTemplates\\.*
+    - name: deals_integration_inbox
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Inbox\\.*
+    - name: deals_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Invoicing\\.*
+    - name: deals_integration_timesheet
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Timesheet\\.*
+    - name: deals_integration_work
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Work\\.*
+    - name: document_templates
+      collectors:
+        - type: classLike
+          value: ^Foresi\\DocumentTemplates\\(?!Contract\\|Integration\\).*
+    - name: document_templates_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\DocumentTemplates\\Contract\\.*
     - name: events
       collectors:
         - type: classLike
@@ -195,14 +231,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Invoicing\\Integration\\CashFlow\\.*
+    - name: invoicing_integration_deals
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Invoicing\\Integration\\Deals\\.*
     - name: invoicing_integration_margin
       collectors:
         - type: classLike
           value: ^Foresi\\Invoicing\\Integration\\Margin\\.*
-    - name: invoicing_integration_sales
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Invoicing\\Integration\\Sales\\.*
     - name: invoicing_integration_taxes_and_contributions
       collectors:
         - type: classLike
@@ -235,10 +271,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Margin\\Integration\\Invoicing\\.*
-    - name: margin_integration_purchasing
+    - name: margin_integration_received_documents
       collectors:
         - type: classLike
-          value: ^Foresi\\Margin\\Integration\\Purchasing\\.*
+          value: ^Foresi\\Margin\\Integration\\ReceivedDocuments\\.*
     - name: party
       collectors:
         - type: classLike
@@ -251,74 +287,38 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Integration\\Activities\\.*
-    - name: party_integration_documents
+    - name: party_integration_document_templates
       collectors:
         - type: classLike
-          value: ^Foresi\\Party\\Integration\\Documents\\.*
+          value: ^Foresi\\Party\\Integration\\DocumentTemplates\\.*
     - name: party_integration_import
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Integration\\Import\\.*
-    - name: purchasing
+    - name: received_documents
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\(?!Contract\\|Integration\\).*
-    - name: purchasing_contract
+          value: ^Foresi\\ReceivedDocuments\\(?!Contract\\|Integration\\).*
+    - name: received_documents_contract
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\Contract\\.*
-    - name: purchasing_integration_cash_flow
+          value: ^Foresi\\ReceivedDocuments\\Contract\\.*
+    - name: received_documents_integration_cash_flow
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\Integration\\CashFlow\\.*
-    - name: purchasing_integration_margin
+          value: ^Foresi\\ReceivedDocuments\\Integration\\CashFlow\\.*
+    - name: received_documents_integration_margin
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\Integration\\Margin\\.*
-    - name: purchasing_integration_taxes_and_contributions
+          value: ^Foresi\\ReceivedDocuments\\Integration\\Margin\\.*
+    - name: received_documents_integration_taxes_and_contributions
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\Integration\\TaxesAndContributions\\.*
-    - name: purchasing_integration_vat
+          value: ^Foresi\\ReceivedDocuments\\Integration\\TaxesAndContributions\\.*
+    - name: received_documents_integration_vat
       collectors:
         - type: classLike
-          value: ^Foresi\\Purchasing\\Integration\\Vat\\.*
-    - name: sales
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\(?!Contract\\|Integration\\).*
-    - name: sales_contract
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Contract\\.*
-    - name: sales_integration_activities
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Activities\\.*
-    - name: sales_integration_cash_flow
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\CashFlow\\.*
-    - name: sales_integration_documents
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Documents\\.*
-    - name: sales_integration_inbox
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Inbox\\.*
-    - name: sales_integration_invoicing
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Invoicing\\.*
-    - name: sales_integration_timesheet
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Timesheet\\.*
-    - name: sales_integration_work
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Sales\\Integration\\Work\\.*
+          value: ^Foresi\\ReceivedDocuments\\Integration\\Vat\\.*
     - name: shared
       collectors:
         - type: classLike
@@ -343,10 +343,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\TaxesAndContributions\\Integration\\Invoicing\\.*
-    - name: taxes_and_contributions_integration_purchasing
+    - name: taxes_and_contributions_integration_received_documents
       collectors:
         - type: classLike
-          value: ^Foresi\\TaxesAndContributions\\Integration\\Purchasing\\.*
+          value: ^Foresi\\TaxesAndContributions\\Integration\\ReceivedDocuments\\.*
     - name: timesheet
       collectors:
         - type: classLike
@@ -379,10 +379,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Vat\\Integration\\Invoicing\\.*
-    - name: vat_integration_purchasing
+    - name: vat_integration_received_documents
       collectors:
         - type: classLike
-          value: ^Foresi\\Vat\\Integration\\Purchasing\\.*
+          value: ^Foresi\\Vat\\Integration\\ReceivedDocuments\\.*
     - name: webhooks
       collectors:
         - type: classLike
@@ -468,14 +468,14 @@ deptrac:
       - ui_contract
     ai_reader:
       - ai_reader_contract
-      - purchasing
-      - purchasing_contract
+      - received_documents
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
       - ui_contract
     ai_reader_contract:
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
       - ui_contract
@@ -695,14 +695,14 @@ deptrac:
       - party_contract
       - shared
       - shared_contract
-    country_integration_purchasing:
+    country_integration_received_documents:
       - country
       - country_contract
       - exchange_rate_contract
       - mail_contract
       - party
       - party_contract
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
     country_integration_taxes_and_contributions:
@@ -723,12 +723,170 @@ deptrac:
       - shared
       - shared_contract
       - vat_contract
-    documents:
+    deals:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_contract:
+      - audit
+      - audit_contract
+      - catalog_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    deals_integration_activities:
+      - activities_contract
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_cash_flow:
+      - audit
+      - audit_contract
+      - cash_flow_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_document_templates:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - document_templates_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_inbox:
+      - activities_contract
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - inbox_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_invoicing:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_timesheet:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - timesheet_contract
+      - ui
+      - ui_contract
+      - work_contract
+    deals_integration_work:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work_contract
+    document_templates:
       - attachment
       - attachment_contract
       - audit
       - audit_contract
-      - documents_contract
+      - document_templates_contract
       - identity
       - identity_contract
       - instance
@@ -737,7 +895,7 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
-    documents_contract:
+    document_templates_contract:
       - attachment
       - attachment_contract
       - audit
@@ -943,6 +1101,22 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    invoicing_integration_deals:
+      - audit
+      - audit_contract
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     invoicing_integration_margin:
       - audit
       - audit_contract
@@ -955,22 +1129,6 @@ deptrac:
       - margin_contract
       - party
       - party_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    invoicing_integration_sales:
-      - audit
-      - audit_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - invoicing
-      - invoicing_contract
-      - party
-      - party_contract
-      - sales_contract
       - shared
       - shared_contract
       - ui
@@ -1084,7 +1242,7 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
-    margin_integration_purchasing:
+    margin_integration_received_documents:
       - audit
       - audit_contract
       - identity
@@ -1095,7 +1253,7 @@ deptrac:
       - margin_contract
       - party
       - party_contract
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
@@ -1131,10 +1289,10 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
-    party_integration_documents:
+    party_integration_document_templates:
       - audit
       - audit_contract
-      - documents_contract
+      - document_templates_contract
       - instance
       - instance_contract
       - party
@@ -1155,7 +1313,7 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
-    purchasing:
+    received_documents:
       - attachment
       - attachment_contract
       - audit
@@ -1170,12 +1328,12 @@ deptrac:
       - mail_contract
       - party
       - party_contract
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
       - ui_contract
-    purchasing_contract:
+    received_documents_contract:
       - attachment
       - attachment_contract
       - audit
@@ -1191,7 +1349,7 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
-    purchasing_integration_cash_flow:
+    received_documents_integration_cash_flow:
       - attachment
       - attachment_contract
       - audit
@@ -1207,13 +1365,13 @@ deptrac:
       - mail_contract
       - party
       - party_contract
-      - purchasing
-      - purchasing_contract
+      - received_documents
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
       - ui_contract
-    purchasing_integration_margin:
+    received_documents_integration_margin:
       - attachment
       - attachment_contract
       - audit
@@ -1229,13 +1387,13 @@ deptrac:
       - margin_contract
       - party
       - party_contract
-      - purchasing
-      - purchasing_contract
+      - received_documents
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
       - ui_contract
-    purchasing_integration_taxes_and_contributions:
+    received_documents_integration_taxes_and_contributions:
       - attachment
       - attachment_contract
       - audit
@@ -1250,14 +1408,14 @@ deptrac:
       - mail_contract
       - party
       - party_contract
-      - purchasing
-      - purchasing_contract
+      - received_documents
+      - received_documents_contract
       - shared
       - shared_contract
       - taxes_and_contributions_contract
       - ui
       - ui_contract
-    purchasing_integration_vat:
+    received_documents_integration_vat:
       - attachment
       - attachment_contract
       - audit
@@ -1272,171 +1430,13 @@ deptrac:
       - mail_contract
       - party
       - party_contract
-      - purchasing
-      - purchasing_contract
+      - received_documents
+      - received_documents_contract
       - shared
       - shared_contract
       - ui
       - ui_contract
       - vat_contract
-    sales:
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_contract:
-      - audit
-      - audit_contract
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - shared
-      - shared_contract
-      - ui_contract
-    sales_integration_activities:
-      - activities_contract
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_integration_cash_flow:
-      - audit
-      - audit_contract
-      - cash_flow_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_integration_documents:
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - documents_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_integration_inbox:
-      - activities_contract
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - inbox_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_integration_invoicing:
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - invoicing_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    sales_integration_timesheet:
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - invoicing_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - timesheet_contract
-      - ui
-      - ui_contract
-      - work_contract
-    sales_integration_work:
-      - audit
-      - audit_contract
-      - catalog
-      - catalog_contract
-      - identity
-      - identity_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - sales
-      - sales_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-      - work_contract
     shared:
       - shared_contract
     shared_contract:
@@ -1506,7 +1506,7 @@ deptrac:
       - taxes_and_contributions_contract
       - ui
       - ui_contract
-    taxes_and_contributions_integration_purchasing:
+    taxes_and_contributions_integration_received_documents:
       - audit
       - audit_contract
       - exchange_rate
@@ -1517,7 +1517,7 @@ deptrac:
       - instance_contract
       - party
       - party_contract
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
       - taxes_and_contributions
@@ -1624,7 +1624,7 @@ deptrac:
       - ui_contract
       - vat
       - vat_contract
-    vat_integration_purchasing:
+    vat_integration_received_documents:
       - audit
       - audit_contract
       - exchange_rate
@@ -1635,7 +1635,7 @@ deptrac:
       - instance_contract
       - party
       - party_contract
-      - purchasing_contract
+      - received_documents_contract
       - shared
       - shared_contract
       - ui

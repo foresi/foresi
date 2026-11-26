@@ -1,0 +1,36 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\ReceivedDocuments\Infrastructure\Api\Operation;
+
+use Foresi\ReceivedDocuments\Application\Api\ReceivedDocumentWrites;
+use Foresi\ReceivedDocuments\Application\Api\TrashReceivedDocumentInput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
+
+/**
+ * received_documents.trash: the received document with its payments.
+ */
+final readonly class TrashReceivedDocumentHandler implements OperationHandler
+{
+    public function __construct(private ReceivedDocumentWrites $writes, private ReceivedDocumentAnswer $answer)
+    {
+    }
+
+    public static function input(): string
+    {
+        return TrashReceivedDocumentInput::class;
+    }
+
+    public function handle(object $input): OperationOutput
+    {
+        \assert($input instanceof TrashReceivedDocumentInput);
+
+        return $this->answer->of($this->writes->trash($input), 'Moved the received document %s to the trash.');
+    }
+}

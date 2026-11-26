@@ -49,7 +49,7 @@
             "optional": [
                 "cash-flow",
                 "invoicing",
-                "purchasing"
+                "received-documents"
             ],
             "scopes": [
                 "margin"

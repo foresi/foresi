@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Shared\Integration\Work;
 
 use Foresi\Catalog\Contract\Field\ProductExtension;
+use Foresi\Deals\Contract\Field\DealExtension;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Application\ApiTokens;
 use Foresi\Identity\Application\OAuth\OAuthStore;
@@ -20,7 +21,6 @@ use Foresi\Identity\Domain\OAuth\OAuthClientKind;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Party;
-use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;

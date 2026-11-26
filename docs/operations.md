@@ -495,6 +495,19 @@ migrated before moves onto the baselines once, by its version rows alone:
 exit code: 0 for a new database or one on the baselines, 2 for one on the
 global history, 1 otherwise.
 
+### Modules that change their name
+
+A migration is known by its class name, so a module that moves to another
+namespace would run its migrations again. `app:migrations:rename` gives the
+executed versions of such a module the new namespace, by their rows alone: in
+one transaction, with no DDL, and with no effect when nothing is left to
+rename. The map is `MigrationHistoryRename::RENAMES`: `Purchasing` became
+`ReceivedDocuments`, `Sales` became `Deals` and `Documents` became
+`DocumentTemplates`. `ops/deploy.sh` runs it before it looks at the
+migrations. `--check` changes nothing and tells the state by its exit code: 0
+when nothing is left to rename, 2 when a rename is due, 1 when the old and the
+new row of one version both exist (the deploy stops).
+
 ## Monitoring
 
 - **`GET /health`** needs no sign-in and returns JSON with an overall `status`

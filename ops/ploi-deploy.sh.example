@@ -56,6 +56,17 @@ $PHP bin/console asset-map:compile
 $PHP bin/console cache:clear
 $PHP bin/console cache:warmup
 
+# The executed migrations of a module that changed its name get its new namespace
+# (no DDL), before the history is compared with the release's migrations.
+renamed=0
+$PHP bin/console app:migrations:rename --check >/dev/null 2>&1 || renamed=$?
+if [ "$renamed" = 2 ]; then
+    $PHP bin/console app:migrations:rename
+elif [ "$renamed" != 0 ]; then
+    echo "app:migrations:rename --check failed." >&2
+    exit 1
+fi
+
 # A database still on the global migration history (before the module baselines,
 # ADR 0034) is left alone: back it up and run app:migrations:rebase (see the CHANGELOG).
 history=0

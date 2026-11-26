@@ -130,6 +130,18 @@ log "warming the cache"
 console cache:clear
 console cache:warmup
 
+# A module that changed its name (purchasing became received-documents, sales became deals,
+# documents became document-templates) keeps its executed migrations: their version rows get the
+# new namespace, with no DDL, before anything compares the history with the release's migrations.
+renamed=0
+console app:migrations:rename --check >/dev/null 2>&1 || renamed=$?
+if [[ "$renamed" == 2 ]]; then
+    log "renaming the executed migrations of the modules that changed their name"
+    console app:migrations:rename
+elif [[ "$renamed" != 0 ]]; then
+    fail "the migration history of the database has an old and a new row of one version (app:migrations:rename --check)"
+fi
+
 # A database still on the global migration history, before the module baselines
 # (ADR 0034), already has the schema this release expects. It is left alone here; the
 # operator backs it up and runs app:migrations:rebase (see the CHANGELOG).

@@ -1,0 +1,35 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\ReceivedDocuments\Application\Query;
+
+use Foresi\Attachment\Domain\Attachment;
+use Foresi\ReceivedDocuments\Domain\DocumentReading;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocument;
+
+/**
+ * A received document as its page shows it: the document, its original file,
+ * the document a credit note corrects, the documents it could correct and its
+ * history, and the reading of its file.
+ */
+final readonly class ReceivedDocumentDetail
+{
+    /**
+     * @param list<ReceivedDocumentRow>          $correctable the recorded documents a credit note may name, newest first
+     * @param list<ReceivedDocumentHistoryEntry> $history     oldest first
+     */
+    public function __construct(
+        public ReceivedDocument $document,
+        public ?Attachment $original,
+        public ?ReceivedDocumentRow $corrected,
+        public array $correctable,
+        public array $history,
+        public ?DocumentReading $reading = null,
+    ) {
+    }
+}

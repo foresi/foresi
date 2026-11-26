@@ -32,7 +32,7 @@ use Foresi\Mail\MailBundle;
 use Foresi\Party\Application\RecheckRegistry;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Party\PartyBundle;
-use Foresi\Purchasing\PurchasingBundle;
+use Foresi\ReceivedDocuments\ReceivedDocumentsBundle;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Domain\Module\ModuleKind;
@@ -197,9 +197,9 @@ final class ModuleBundleTest extends KernelTestCase
             ArchiveMissing::class => 'async',
             UndoImportChunk::class => 'async',
         ]];
-        yield 'purchasing' => [PurchasingBundle::class, 'prod', ['Purchasing'], [
-            \Foresi\Purchasing\Application\Reading\ReadReceivedDocument::class => 'async',
-            \Foresi\Purchasing\Application\Mail\FileMailAttachments::class => 'async',
+        yield 'received documents' => [ReceivedDocumentsBundle::class, 'prod', ['ReceivedDocuments'], [
+            \Foresi\ReceivedDocuments\Application\Reading\ReadReceivedDocument::class => 'async',
+            \Foresi\ReceivedDocuments\Application\Mail\FileMailAttachments::class => 'async',
         ]];
         yield 'timesheet' => [TimesheetBundle::class, 'prod', ['Timesheet'], []];
         yield 'work' => [WorkBundle::class, 'prod', ['Work'], [SendNotificationMail::class => 'async']];

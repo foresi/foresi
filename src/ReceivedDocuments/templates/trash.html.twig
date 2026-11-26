@@ -1,0 +1,33 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# A page of its own, and from the header of the document a danger dialog over it, as an invoice goes to the trash. #}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: document.id})}] %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'received_documents.trash.title'|trans({number: title}) }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="trash-form" action="{{ path('app_purchasing_trash', {id: document.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\ReceivedDocuments\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
+        <p class="m-0 text-muted">{{ 'received_documents.trash.keeps'|trans }}</p>
+        <twig:Ui:Textarea name="reason" id="trash-reason" :label="'received_documents.trash.reason'|trans" :help="'received_documents.trash.reason_help'|trans" :value="reason" :error="error" :required="true" :rows="3" :maxlength="maxReason" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    {# The safe answer has the focus (APG); a refusal puts it on the reason. #}
+    <twig:Ui:Button data-action="dialog#dismiss" :autofocus="error is null">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'received_documents.trash.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'received_documents.trash.card'|trans" icon="trash-2" class="max-w-2xl">
+        {{ form }}
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <twig:Ui:Button :href="path('app_purchasing_document', {id: document.id})">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="trash-form" variant="danger" icon="trash-2">{{ 'received_documents.trash.submit'|trans }}</twig:Ui:Button>
+        </div>
+    </twig:Ui:Card>
+{% endblock %}

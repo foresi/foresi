@@ -1,8 +1,8 @@
 # Sales
 
-The Sales module (`src/Sales`, id `sales`, scope `sales`) keeps the deals of the firm: what is being sold to a client, how far along it is, what it is worth, and whether it was won or lost. A deal has stages, lines copied from the catalog, links to the deals it follows from, and, when those modules are installed, its documents and activities.
+The Sales module (`src/Deals`, id `deals`, scope `sales`) keeps the deals of the firm: what is being sold to a client, how far along it is, what it is worth, and whether it was won or lost. A deal has stages, lines copied from the catalog, links to the deals it follows from, and, when those modules are installed, its documents and activities.
 
-The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents and Activities are optional, and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Sales\Contract\SalesSlots`.
+The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents and Activities are optional, and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Deals\Contract\SalesSlots`.
 
 ## Staff only
 
@@ -85,7 +85,7 @@ When Sales is installed, the page of a contact has a **Deals** tab: the deals of
 
 ## Documents and Activities
 
-These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same (`Foresi\Sales\Integration\Documents` and `Integration\Activities` are then not registered). A deal in the trash shows neither.
+These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same (`Foresi\Deals\Integration\DocumentTemplates` and `Integration\Activities` are then not registered). A deal in the trash shows neither.
 
 - **Documents:** the deal's header has **New document**, which opens the dialog of Documents with the deal and its client linked, and the deal's page has a **Documents** section listing the documents linked to the deal. A document can link to a deal (record kind `deal`); a deal in the trash shows as unavailable on the document until it is restored. Templates read the deal under `{{ deal.* }}`:
 

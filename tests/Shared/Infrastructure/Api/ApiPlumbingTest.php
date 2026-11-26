@@ -134,7 +134,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
             ],
-            'documents' => [
+            'document-templates' => [
                 '/api/v1/document-types' => ['get' => '200', 'post' => '201'],
                 '/api/v1/document-types/{typeId}' => ['patch' => '200'],
                 '/api/v1/document-types/{typeId}/archive' => ['post' => '200'],
@@ -232,7 +232,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
                 '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
             ],
-            'purchasing' => [
+            'received-documents' => [
                 '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],
                 '/api/v1/received-documents/{documentId}' => ['get' => '200'],
                 '/api/v1/received-documents/{documentId}/payments' => ['get' => '200', 'post' => '201'],
@@ -243,7 +243,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/received-documents/{documentId}/read-again' => ['post' => '202'],
                 '/api/v1/received-documents/upload' => ['post' => '201'],
             ],
-            'sales' => [
+            'deals' => [
                 '/api/v1/sales/deals' => ['get' => '200', 'post' => '201'],
                 '/api/v1/sales/deals/{dealId}' => ['get' => '200', 'patch' => '200'],
                 '/api/v1/sales/deals/{dealId}/billing-plan' => ['post' => '201'],

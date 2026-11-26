@@ -50,7 +50,7 @@
             "bundle": "Foresi\\Party\\PartyBundle",
             "optional": [
                 "activities",
-                "documents",
+                "document-templates",
                 "import"
             ],
             "scopes": [

@@ -32,7 +32,7 @@
                 "exchange-rate",
                 "invoicing",
                 "mail",
-                "purchasing",
+                "received-documents",
                 "taxes-and-contributions",
                 "vat"
             ]

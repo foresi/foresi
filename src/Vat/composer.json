@@ -48,7 +48,7 @@
             "optional": [
                 "cash-flow",
                 "invoicing",
-                "purchasing"
+                "received-documents"
             ],
             "scopes": [
                 "vat"

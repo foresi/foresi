@@ -235,18 +235,18 @@ deptrac:
         - type: directory
           value: src/Attachment/Infrastructure/.*
     # Received documents: the cost side of a firm (ADR 0028).
-    - name: PurchasingDomain
+    - name: ReceivedDocumentsDomain
       collectors:
         - type: directory
-          value: src/Purchasing/Domain/.*
-    - name: PurchasingApplication
+          value: src/ReceivedDocuments/Domain/.*
+    - name: ReceivedDocumentsApplication
       collectors:
         - type: directory
-          value: src/Purchasing/Application/.*
-    - name: PurchasingInfrastructure
+          value: src/ReceivedDocuments/Application/.*
+    - name: ReceivedDocumentsInfrastructure
       collectors:
         - type: directory
-          value: src/Purchasing/Infrastructure/.*
+          value: src/ReceivedDocuments/Infrastructure/.*
     # Cash flow: planned items, balance checkpoints and the forecast (plan 30).
     - name: CashFlowDomain
       collectors:
@@ -987,20 +987,20 @@ deptrac:
       - IdentityApplication
       # The screens: the navigation, the components and how an amount is shown.
       - Ui
-    # Purchasing builds on Party (firms and suppliers), Identity (people), the
+    # Received documents builds on Party (firms and suppliers), Identity (people), the
     # attachment store, which keeps the original files, and the exchange rates;
-    # no module uses Purchasing but the navigation of Ui, and it never uses
+    # no module uses Received documents but the navigation of Ui, and it never uses
     # Invoicing.
-    PurchasingDomain:
+    ReceivedDocumentsDomain:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - InstanceDomain
       - AuditDomain
       - PartyDomain
-    PurchasingApplication:
+    ReceivedDocumentsApplication:
       - Contract
-      - PurchasingDomain
+      - ReceivedDocumentsDomain
       - SharedDomain
       - SharedApplication
       - InstanceDomain
@@ -1016,11 +1016,11 @@ deptrac:
       - ExchangeRateDomain
       - ExchangeRateApplication
       - VendorBrick
-    PurchasingInfrastructure:
+    ReceivedDocumentsInfrastructure:
       - Contract
       - SharedInfrastructure
-      - PurchasingDomain
-      - PurchasingApplication
+      - ReceivedDocumentsDomain
+      - ReceivedDocumentsApplication
       - VendorSymfony
       - VendorOpenApi
       - VendorUid

@@ -50,7 +50,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
         self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            array_values(array_intersect(['activities', 'ai-reader', 'banking', 'calendar', 'cash-flow', 'catalog', 'country', 'documents', 'exchange-rate', 'idoklad', 'import', 'inbox', 'invoicing', 'mail', 'margin', 'purchasing', 'sales', 'taxes-and-contributions', 'timesheet', 'vat', 'work'], $installed)),
+            array_values(array_intersect(['activities', 'ai-reader', 'banking', 'calendar', 'cash-flow', 'catalog', 'country', 'deals', 'document-templates', 'exchange-rate', 'idoklad', 'import', 'inbox', 'invoicing', 'mail', 'margin', 'received-documents', 'taxes-and-contributions', 'timesheet', 'vat', 'work'], $installed)),
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }
@@ -94,7 +94,7 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'document-templates' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'received-documents' => ['received_documents'], 'deals' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());

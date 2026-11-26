@@ -62,7 +62,7 @@
             "optional": [
                 "cash-flow",
                 "margin",
-                "sales",
+                "deals",
                 "taxes-and-contributions",
                 "vat"
             ],

@@ -533,7 +533,7 @@ A module adds custom fields to a record of another module: a contact, a deal, a 
    | Record | Extension interface | Its id accessor | The list that shows the fields |
    | --- | --- | --- | --- |
    | Contact | `Foresi\Party\Contract\Field\ContactExtension` | `contactId()` | The address book, which also sorts by a sortable field |
-   | Deal | `Foresi\Sales\Contract\Field\DealExtension` | `dealId()` | The deals |
+   | Deal | `Foresi\Deals\Contract\Field\DealExtension` | `dealId()` | The deals |
    | Task | `Foresi\Work\Contract\Field\TaskExtension` | `taskId()` | The task list of a project |
    | Project | `Foresi\Work\Contract\Field\ProjectExtension` | `projectId()` | The projects |
    | Product | `Foresi\Catalog\Contract\Field\ProductExtension` | `productId()` | The products |
@@ -750,7 +750,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
 | `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, and a member of `custom_fields` over REST and MCP (since 1.7). |
-| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Sales\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
+| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Deals\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
 | `Fields` (service), `FieldDefinition`, `FieldExpression` | — | The fields of a record kind, their values read once a request and written in the caller's transaction, and the DQL that reads them. |
 | `FieldSource` | `foresi.shared.field_source` | A source of fields of its own, such as fields defined at runtime. The core's source reads the record extensions. |
 

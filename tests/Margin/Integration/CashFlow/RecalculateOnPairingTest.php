@@ -42,7 +42,7 @@ use Foresi\Margin\Domain\Recipient;
 use Foresi\Margin\Domain\ShareSplitter;
 use Foresi\Margin\Integration\CashFlow\CashFlowPairings;
 use Foresi\Margin\Integration\CashFlow\RecalculateOnPairing;
-use Foresi\Purchasing\Integration\CashFlow\ReceivedDocumentPairables;
+use Foresi\ReceivedDocuments\Integration\CashFlow\ReceivedDocumentPairables;
 use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;

@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Links a planned invoice of a won deal to the invoice (a one-off entry) or recurring invoice (a recurring
+    entry) of the client that fulfils it, such as one issued before the plan existed: the forecast then counts
+    that document and no longer the entry, so nothing is counted twice. A dialog over the deal; the same URL
+    is a page.
+    Variables: deal, label, action, type (invoice or recurring_invoice), options (labels by id), values, errors.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'deals.billing.link.title'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set dialog_description = ('deals.billing.link.description_' ~ type)|trans({entry: label}) %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    {% if options is empty %}
+        <p class="m-0 text-small text-muted" data-billing-link-none>{{ ('deals.billing.link.none_' ~ type)|trans }}</p>
+    {% else %}
+        <form method="post" id="billing-link-form" action="{{ action }}" class="grid gap-4" novalidate>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+            <twig:Ui:Select name="documentId" id="documentId" :label="('deals.billing.link.field_' ~ type)|trans" :options="options" :value="values.documentId" :error="errors.documentId|default(null)" />
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+    {% if options is not empty %}<twig:Ui:Button type="submit" form="billing-link-form" variant="primary">{{ 'deals.billing.link.submit'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="link-2" class="max-w-2xl">
+        <p class="mt-0 mb-4 text-small text-muted">{{ dialog_description }}</p>
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            {% if options is not empty %}<twig:Ui:Button type="submit" form="billing-link-form" variant="primary">{{ 'deals.billing.link.submit'|trans }}</twig:Ui:Button>{% endif %}
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

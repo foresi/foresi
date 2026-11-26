@@ -54,14 +54,14 @@ final class TableOwnersTest extends KernelTestCase
         'party_vat_status_period' => 'party',
         'time_entry' => 'work',
         'released_time' => 'timesheet',
-        'documents_document' => 'documents',
+        'documents_document' => 'document-templates',
         'exchange_rate' => 'exchange-rate',
         'exchange_rate_setting' => 'exchange-rate',
         'vat_settings' => 'vat',
         'vat_period_entry' => 'vat',
         'vat_payment_assignment' => 'vat',
         'activities_activity' => 'activities',
-        'sales_deal' => 'sales',
+        'sales_deal' => 'deals',
     ];
 
     public function testEveryTableHasTheModuleThatCreatesIt(): void
