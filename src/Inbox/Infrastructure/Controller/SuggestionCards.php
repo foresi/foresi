@@ -65,8 +65,11 @@ final readonly class SuggestionCards
             'sender' => $detail->item->originalFrom() ?? $detail->message->from ?? '',
             'received' => $this->time($detail->item->receivedAt()),
         ]);
+        // The pre-fill of each action, once per page: it may look up choices such as the projects.
+        /** @var \ArrayObject<string, PreFill> $prefills */
+        $prefills = new \ArrayObject();
         foreach ($detail->suggestions as $suggestion) {
-            $card = $this->card($detail, $suggestion, $shown, $source, !$trashed && $suggestion->isOpen());
+            $card = $this->card($detail, $suggestion, $shown, $source, !$trashed && $suggestion->isOpen(), $prefills);
             if ($suggestion->isOpen()) {
                 $open[] = $card;
             } else {
@@ -78,45 +81,77 @@ final readonly class SuggestionCards
     }
 
     /**
-     * The quote in its excerpt of the shown text: what comes before it, the quote, what comes after.
-     * The quote's offset counts the stored text, while the page adds the domain after a link, so the
-     * quote is found in the shown text; a quote the page does not show as it was stored stands alone.
+     * The quote in its excerpt of the shown text: what comes before it, the quote (marked), what comes
+     * after. The quote is an exact span of the stored text at its offset, but the page shows a link
+     * with its domain after it, so offsets differ: the span is found as the same occurrence of the
+     * quote in the shown text as it is in the stored text (the third "Monday" stays the third). When
+     * the shown text has no such occurrence (the quote spans a link), nothing is marked and the quote
+     * stands alone ($found false).
      *
-     * @return array{before: string, quote: string, after: string}
+     * @param string|null $shown  the text as the page shows it (UntrustedText::shown)
+     * @param string|null $stored the text as stored, which the quote's offset counts in
+     * @param int         $offset the quote's offset in characters, in the stored text with CRLF as LF
+     *
+     * @return array{before: string, quote: string, after: string, found: bool}
      */
-    public static function excerpt(?string $shown, string $quote): array
+    public static function excerpt(?string $shown, ?string $stored, string $quote, int $offset): array
     {
-        $quote = str_replace(["\r\n", "\r"], "\n", $quote);
-        $at = null === $shown || '' === $quote ? false : mb_strpos($shown, $quote);
-        if (null === $shown || false === $at) {
-            return ['before' => '', 'quote' => $quote, 'after' => ''];
+        $quote = str_replace("\r\n", "\n", $quote);
+        $alone = ['before' => '', 'quote' => $quote, 'after' => '', 'found' => false];
+        if (null === $shown || null === $stored || '' === $quote) {
+            return $alone;
+        }
+        // How many occurrences of the quote come before the quoted one in the stored text.
+        $nth = \count(array_filter(self::occurrences(str_replace("\r\n", "\n", $stored), $quote), static fn (int $at): bool => $at < $offset));
+        $at = self::occurrences($shown, $quote)[$nth] ?? null;
+        if (null === $at) {
+            return $alone;
         }
         $start = max(0, $at - self::CONTEXT);
-        $before = mb_substr($shown, $start, $at - $start);
+        $head = mb_substr($shown, $start, $at - $start);
         $end = $at + mb_strlen($quote);
-        $after = mb_substr($shown, $end, self::CONTEXT);
+        $tail = mb_substr($shown, $end, self::CONTEXT);
         if ($start > 0) {
             // From the next word on, so the excerpt does not start inside one.
-            $space = mb_strpos($before, ' ');
-            $before = '…'.(false === $space ? $before : mb_substr($before, $space + 1));
+            $space = mb_strpos($head, ' ');
+            $head = '…'.(false === $space ? $head : mb_substr($head, $space + 1));
         }
         if ($end + self::CONTEXT < mb_strlen($shown)) {
-            $space = mb_strrpos($after, ' ');
-            $after = (false === $space ? $after : mb_substr($after, 0, $space)).'…';
+            $space = mb_strrpos($tail, ' ');
+            $tail = (false === $space ? $tail : mb_substr($tail, 0, $space)).'…';
         }
 
-        return ['before' => $before, 'quote' => $quote, 'after' => $after];
+        return ['before' => $head, 'quote' => $quote, 'after' => $tail, 'found' => true];
     }
 
     /**
+     * Where the quote starts in a text, every occurrence, overlapping ones too, in characters.
+     *
+     * @return list<int>
+     */
+    private static function occurrences(string $text, string $quote): array
+    {
+        $found = [];
+        $from = 0;
+        while (false !== ($at = mb_strpos($text, $quote, $from))) {
+            $found[] = $at;
+            $from = $at + 1;
+        }
+
+        return $found;
+    }
+
+    /**
+     * @param \ArrayObject<string, PreFill> $prefills
+     *
      * @return array<string, mixed>
      */
-    private function card(ItemDetail $detail, Suggestion $suggestion, ?string $shown, string $source, bool $decidable): array
+    private function card(ItemDetail $detail, Suggestion $suggestion, ?string $shown, string $source, bool $decidable, \ArrayObject $prefills): array
     {
         $steps = [];
         $labels = [];
         foreach ($suggestion->steps() as $step) {
-            $steps[] = $shownStep = $this->step($detail, $suggestion, $step, $decidable);
+            $steps[] = $shownStep = $this->step($detail, $suggestion, $step, $decidable, $prefills);
             $labels[] = $shownStep['label'];
         }
         $failed = array_any($suggestion->steps(), static fn (SuggestionStep $step): bool => StepState::Failed === $step->state() && $step->isSelected());
@@ -129,7 +164,7 @@ final readonly class SuggestionCards
             'title' => implode(' + ', $labels),
             'rationale' => $suggestion->rationale(),
             'source' => $source,
-            'excerpt' => self::excerpt($shown, $suggestion->quote()),
+            'excerpt' => self::excerpt($shown, $detail->text, $suggestion->quote(), $suggestion->quoteOffset()),
             'proposed' => $this->translator->trans('inbox.suggestion.proposed_by', ['client' => $suggestion->proposedByClient(), 'time' => $this->time($suggestion->proposedAt())]),
             'decided' => $this->decided($suggestion),
             'rejectReason' => $suggestion->rejectReason(),
@@ -140,9 +175,11 @@ final readonly class SuggestionCards
     }
 
     /**
+     * @param \ArrayObject<string, PreFill> $prefills
+     *
      * @return array<string, mixed>&array{label: string}
      */
-    private function step(ItemDetail $detail, Suggestion $suggestion, SuggestionStep $step, bool $decidable): array
+    private function step(ItemDetail $detail, Suggestion $suggestion, SuggestionStep $step, bool $decidable, \ArrayObject $prefills): array
     {
         $action = $this->actions->get($step->operation());
         $state = $step->state();
@@ -152,7 +189,7 @@ final readonly class SuggestionCards
         return [
             'position' => $step->position(),
             'label' => $action instanceof DeclaredAction ? $this->translator->trans($action->action->label) : $step->operation(),
-            'values' => $this->values($detail, $action, $step->input()),
+            'values' => $this->values($action, $this->prefill($detail, $action, $prefills), $step->input()),
             'state' => $state->value,
             'tickable' => $tickable,
             'refusal' => null === $refusal ? null : $this->refusal($refusal['reason']),
@@ -162,15 +199,31 @@ final readonly class SuggestionCards
     }
 
     /**
+     * @param \ArrayObject<string, PreFill> $prefills
+     */
+    private function prefill(ItemDetail $detail, ?DeclaredAction $action, \ArrayObject $prefills): PreFill
+    {
+        if (!$action instanceof DeclaredAction) {
+            return new PreFill();
+        }
+        $prefill = $prefills[$action->name()] ?? null;
+        if (!$prefill instanceof PreFill) {
+            $prefill = $this->actions->prefill($action, $detail->view(true));
+            $prefills[$action->name()] = $prefill;
+        }
+
+        return $prefill;
+    }
+
+    /**
      * The values of a step as "field: value", in the order the input gives them, empty ones left out.
      *
      * @param array<mixed> $input
      *
      * @return list<array{label: string, value: string}>
      */
-    private function values(ItemDetail $detail, ?DeclaredAction $action, array $input): array
+    private function values(?DeclaredAction $action, PreFill $prefill, array $input): array
     {
-        $prefill = $action instanceof DeclaredAction ? $this->actions->prefill($action, $detail->view(true)) : new PreFill();
         $values = [];
         foreach ($input as $wire => $value) {
             $wire = (string) $wire;

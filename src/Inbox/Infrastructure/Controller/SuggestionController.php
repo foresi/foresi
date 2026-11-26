@@ -57,6 +57,8 @@ final class SuggestionController extends AbstractController
     public const string DONE_ROUTE = 'app_inbox_item_done_ask';
     /** The form of the open cards on the item's page; the header's Accept selected submits it too. */
     public const string FORM = 'inbox-suggestions';
+    /** The ticks of the steps to run in a step's edit dialog. */
+    public const string RUN_STEPS = 'suggestionSteps';
 
     public function __construct(
         private readonly ItemReads $reads,
@@ -144,7 +146,9 @@ final class SuggestionController extends AbstractController
 
     /**
      * A step's action in its own dialog, filled with the step's input; "Save and accept" stores the
-     * edit and accepts the suggestion. A field that names the record of an earlier step is shown,
+     * edit and accepts the suggestion with the steps ticked in the dialog: every step of the
+     * suggestion is listed with its tick, ticked unless it was unticked before, so a step the person
+     * leaves unticked is skipped, not run. A field that names the record of an earlier step is shown,
      * not edited, and kept; so are the fields the dialog has no control for (lists).
      */
     #[Route('/inbox/{id}/suggestions/{suggestionId}/steps/{position}/edit', name: self::EDIT_ROUTE, requirements: ['id' => Requirement::UUID, 'suggestionId' => Requirement::UUID, 'position' => '\d{1,2}'], methods: ['GET', 'POST'])]
@@ -168,15 +172,21 @@ final class SuggestionController extends AbstractController
         $values = $this->form->initial($action, new PreFill($this->byName($action, $input), $prefill->choices));
         $errors = [];
         $summary = null;
+        $runnable = array_values(array_map(static fn (SuggestionStep $one): int => $one->position(), array_filter($suggestion->steps(), static fn (SuggestionStep $one): bool => $one->isRunnable())));
+        $ticked = $runnable;
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
+            $posted = $request->request->all(self::RUN_STEPS);
+            $ticked = array_values(array_intersect($runnable, array_map(intval(...), array_filter($posted, is_numeric(...)))));
             $values = $this->form->posted($action, $request->request);
             [$sent, $errors] = $this->form->sent($action, $id, $values);
             $errors = array_diff_key($errors, $references);
             if ([] === $errors) {
                 $edited = $this->edited($action, $input, $sent, $references);
                 try {
-                    [$decision] = $this->decide->accept([$suggestion->id()], [$suggestion->id() => [$position => $edited]]);
+                    // The step being edited runs; any other runnable step left unticked is skipped.
+                    $unselected = array_values(array_diff($runnable, $ticked, [$position]));
+                    [$decision] = $this->decide->accept([$suggestion->id()], [$suggestion->id() => [$position => $edited]], [] === $unselected ? null : [$suggestion->id() => $unselected]);
                     $this->report([$decision]);
 
                     return $this->back($id);
@@ -217,6 +227,7 @@ final class SuggestionController extends AbstractController
             'formAction' => $this->generateUrl(self::EDIT_ROUTE, ['id' => $id, 'suggestionId' => $suggestion->id(), 'position' => $position]),
             'submitLabel' => $this->translator->trans('inbox.suggestion.save_and_accept'),
             'intro' => $this->translator->trans('inbox.suggestion.edit_intro'),
+            'runSteps' => $this->runSteps($suggestion, $position, $ticked),
         ], new Response(status: [] === $errors && null === $summary ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
@@ -236,6 +247,35 @@ final class SuggestionController extends AbstractController
     }
 
     /**
+     * Every step of the suggestion with its tick, for the edit dialog: the edited step always runs, a
+     * done or skipped step shows its state and cannot be ticked, the others are ticked as given.
+     *
+     * @param list<int> $ticked
+     *
+     * @return list<array{name: string, id: string, value: string, label: string, checked: bool, disabled: bool, state: ?string}>
+     */
+    private function runSteps(Suggestion $suggestion, int $position, array $ticked): array
+    {
+        $steps = [];
+        foreach ($suggestion->steps() as $step) {
+            $action = $this->actions->get($step->operation());
+            $label = \sprintf('%d. %s', $step->position(), $action instanceof DeclaredAction ? $this->translator->trans($action->action->label) : $step->operation());
+            $editing = $step->position() === $position;
+            $steps[] = [
+                'name' => self::RUN_STEPS.'[]',
+                'id' => 'inbox-suggestion-run-'.$step->position(),
+                'value' => (string) $step->position(),
+                'label' => $label,
+                'checked' => $editing || StepState::Done === $step->state() || ($step->isRunnable() && \in_array($step->position(), $ticked, true)),
+                'disabled' => $editing || !$step->isRunnable(),
+                'state' => $editing ? $this->translator->trans('inbox.suggestion.editing') : ($step->isRunnable() ? null : $this->translator->trans('inbox.suggestion.step_state.'.$step->state()->value)),
+            ];
+        }
+
+        return $steps;
+    }
+
+    /**
      * What came of the decisions, as flashes: how many were accepted, which stopped at a step and
      * which were decided already.
      *
@@ -246,10 +286,13 @@ final class SuggestionController extends AbstractController
         $accepted = 0;
         $failed = 0;
         $closed = 0;
+        $other = [];
         foreach ($decisions as $decision) {
             $state = $decision->suggestion?->state();
-            if (null !== $decision->refused) {
+            if ('not_open' === $decision->refused) {
                 ++$closed;
+            } elseif (null !== $decision->refused) {
+                $other[$decision->refused] = $this->stepRefusal($decision->refused);
             } elseif (SuggestionState::Accepted === $state) {
                 ++$accepted;
             } elseif (array_any($decision->suggestion?->steps() ?? [], static fn (SuggestionStep $step): bool => StepState::Failed === $step->state())) {
@@ -264,6 +307,9 @@ final class SuggestionController extends AbstractController
         }
         if ($closed > 0) {
             $this->addFlash('warning', $this->translator->trans('inbox.suggestion.flash.not_open'));
+        }
+        foreach ($other as $text) {
+            $this->addFlash('warning', $text);
         }
     }
 

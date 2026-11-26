@@ -8,18 +8,25 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Inbox\Infrastructure;
 
+use Foresi\Inbox\Application\InboxPurpose;
 use Foresi\Inbox\Application\ProposeSuggestions;
 use Foresi\Inbox\Application\ProposingClient;
 use Foresi\Inbox\Application\SuggestionStore;
+use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemState;
 use Foresi\Inbox\Domain\StepState;
 use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Domain\SuggestionState;
 use Foresi\Inbox\Domain\SuggestionStep;
 use Foresi\Inbox\Infrastructure\Controller\SuggestionCards;
+use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\ReceiveOutcome;
+use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
@@ -70,16 +77,53 @@ final class InboxSuggestionScreensTest extends InboxScreenTestCase
 
     public function testAQuoteAfterALinkIsFoundInTheShownText(): void
     {
+        $stored = "Hello.\r\nSee https://client-a.example.com/plan for you.\r\n";
         $shown = "Hello.\nSee https://client-a.example.com/plan [client-a.example.com] for you.\n";
 
-        self::assertSame(['before' => "Hello.\nSee https://client-a.example.com/plan [client-a.example.com] ", 'quote' => 'for you.', 'after' => "\n"], SuggestionCards::excerpt($shown, 'for you.'));
-        self::assertSame(['before' => '', 'quote' => 'not in it', 'after' => ''], SuggestionCards::excerpt($shown, 'not in it'), 'A quote the page does not show stands alone.');
+        self::assertSame(['before' => "Hello.\nSee https://client-a.example.com/plan [client-a.example.com] ", 'quote' => 'for you.', 'after' => "\n", 'found' => true], SuggestionCards::excerpt($shown, $stored, 'for you.', 42));
+        self::assertSame(['before' => '', 'quote' => 'plan for', 'after' => '', 'found' => false], SuggestionCards::excerpt($shown, $stored, 'plan for', 37), 'A quote across a link is not where the page shows it: shown alone, unmarked.');
+    }
+
+    public function testARepeatedQuoteMarksTheOccurrenceItsOffsetNames(): void
+    {
+        $stored = "Monday: the visit.\r\nSee https://client-a.example.com/Monday then call me on Monday.\r\n";
+        $shown = "Monday: the visit.\nSee https://client-a.example.com/Monday [client-a.example.com] then call me on Monday.\n";
+        $third = mb_strrpos(str_replace("\r\n", "\n", $stored), 'Monday');
+        self::assertIsInt($third);
+
+        $excerpt = SuggestionCards::excerpt($shown, $stored, 'Monday', $third);
+
+        self::assertTrue($excerpt['found']);
+        self::assertSame(' then call me on ', mb_substr($excerpt['before'], -17), 'The third Monday, not the first.');
+        self::assertSame(".\n", $excerpt['after']);
+        self::assertSame('', SuggestionCards::excerpt($shown, $stored, 'Monday', 0)['before'], 'Offset 0 is the first.');
+    }
+
+    public function testTheCardMarksTheQuotedOccurrenceOfARepeatedQuote(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: "Call me on Monday about the plan.\r\nThe visit is on Monday at noon.\r\n"));
+        $item = $this->em->find(InboxItem::class, $id);
+        self::assertInstanceOf(InboxItem::class, $item);
+        // An agent's span: the second "Monday", by its offset in the stored text with CRLF as LF.
+        $offset = mb_strrpos("Call me on Monday about the plan.\nThe visit is on Monday at noon.\n", 'Monday');
+        self::assertIsInt($offset);
+        $suggestion = new Suggestion(Id::generate(), $item, [$this->note('Visit')], 'The visit is on Monday.', 'Monday', $offset, $this->owner->id(), Id::generate(), 'Mail agent', new \DateTimeImmutable('2026-11-25 10:00:00'));
+        $this->em->persist($suggestion);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/inbox/'.$id);
+
+        $html = $crawler->filter('[data-inbox-suggestion="'.$suggestion->id().'"] [data-inbox-suggestion-excerpt]')->html();
+        self::assertSame("Call me on Monday about the plan.\nThe visit is on ", mb_substr($html, 0, (int) mb_strpos($html, '<mark')), 'The second Monday is marked.');
     }
 
     public function testAgentTextIsPrintedEscaped(): void
     {
         $id = $this->receive(InboxMail::plain($this->address, body: "Hello <b>there</b>, please find our offer.\r\n"));
-        $this->propose($id, [$this->note('<script>alert("note")</script>')], '<b>there</b>', '<script>alert("rationale")</script>');
+        $this->propose($id, [$this->note('<script>alert("note")</script>')], '<b>there</b>', '<script>alert("rationale")</script>', new ProposingClient(Id::generate(), '<script>alert("client")</script>'));
+        $rejected = $this->propose($id, [$this->note('Second')], 'please find our offer');
+        $this->stored($rejected)->reject($this->owner->id(), '<script>alert("reason")</script>', new \DateTimeImmutable('2026-11-25 10:00:00'));
+        $this->em->flush();
 
         $this->client->request('GET', '/inbox/'.$id);
 
@@ -88,6 +132,8 @@ final class InboxSuggestionScreensTest extends InboxScreenTestCase
         self::assertStringNotContainsString('<b>there</b>', $html);
         self::assertStringContainsString('&lt;script&gt;alert(&quot;rationale&quot;)&lt;/script&gt;', $html);
         self::assertStringContainsString('&lt;script&gt;alert(&quot;note&quot;)&lt;/script&gt;', $html);
+        self::assertStringContainsString('&lt;script&gt;alert(&quot;client&quot;)&lt;/script&gt;', $html);
+        self::assertStringContainsString('&lt;script&gt;alert(&quot;reason&quot;)&lt;/script&gt;', $html);
         self::assertStringContainsString('<mark class="rounded-sm bg-badge-amber px-0.5 text-ink" data-inbox-suggestion-quote>&lt;b&gt;there&lt;/b&gt;</mark>', $html);
     }
 
@@ -165,6 +211,45 @@ final class InboxSuggestionScreensTest extends InboxScreenTestCase
         $notes = $this->notes();
         self::assertSame(['Answer the offer', 'About the edited answer'], array_values($notes->made));
         self::assertSame([$stored->step(1)->recordId()], array_values($notes->about));
+    }
+
+    public function testTheEditDialogListsEveryStepAndRunsOnlyTheTickedOnes(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $suggestion = $this->propose($id, [$this->note('First'), $this->note('Second'), $this->note('Third')]);
+
+        $crawler = $this->client->request('GET', '/inbox/'.$id.'/suggestions/'.$suggestion.'/steps/1/edit');
+
+        $ticks = $crawler->filter('input[data-inbox-suggestion-run-step]');
+        self::assertSame([['suggestionSteps[]', '1', true, true], ['suggestionSteps[]', '2', true, false], ['suggestionSteps[]', '3', true, false]], $ticks->each(static fn (Crawler $tick): array => [(string) $tick->attr('name'), (string) $tick->attr('value'), null !== $tick->attr('checked'), null !== $tick->attr('disabled')]), 'Every step, ticked; the edited one always runs.');
+
+        // Step 2 unticked in the dialog: "Save and accept" skips it, though the card had it ticked.
+        $form = $crawler->filter('#inbox-action-form')->form();
+        $form['text'] = 'First, edited';
+        $values = $form->getPhpValues();
+        $values['suggestionSteps'] = ['3'];
+        $this->client->request('POST', $form->getUri(), $values);
+
+        self::assertResponseRedirects('/inbox/'.$id);
+        $stored = $this->stored($suggestion);
+        self::assertSame(SuggestionState::Accepted, $stored->state());
+        self::assertSame([StepState::Done, StepState::Skipped, StepState::Done], $this->states($stored));
+        self::assertSame(['First, edited', 'Third'], array_values($this->notes()->made));
+    }
+
+    public function testAStepUntickedBeforeStaysUntickedInTheEditDialog(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $suggestion = $this->propose($id, [$this->note('First', fail: true), $this->note('Second')]);
+        $crawler = $this->client->request('GET', '/inbox/'.$id);
+        // Accepted with step 2 unticked; step 1 fails, so the suggestion stays open with step 2 skipped.
+        $this->client->request('POST', '/inbox/'.$id.'/suggestions/accept', ['_token' => $this->token($crawler), 'accept' => $suggestion, 'steps' => [$suggestion => ['1']]]);
+
+        $crawler = $this->client->request('GET', '/inbox/'.$id.'/suggestions/'.$suggestion.'/steps/1/edit');
+
+        $second = $crawler->filter('input[data-inbox-suggestion-run-step][value="2"]');
+        self::assertSame([false, true], [null !== $second->attr('checked'), null !== $second->attr('disabled')]);
+        self::assertStringContainsString('Skipped', $crawler->filter('[data-inbox-suggestion-run-steps]')->text());
     }
 
     public function testAnInvalidEditShowsOnItsFieldAndRunsNothing(): void
@@ -324,11 +409,97 @@ final class InboxSuggestionScreensTest extends InboxScreenTestCase
     }
 
     /**
+     * Every route of the suggestions, as another person would ask it: 404, nothing decided.
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function routes(): iterable
+    {
+        yield 'accept' => ['POST', '/inbox/{item}/suggestions/accept'];
+        yield 'reject dialog' => ['GET', '/inbox/{item}/suggestions/{suggestion}/reject'];
+        yield 'reject' => ['POST', '/inbox/{item}/suggestions/{suggestion}/reject'];
+        yield 'edit dialog' => ['GET', '/inbox/{item}/suggestions/{suggestion}/steps/1/edit'];
+        yield 'edit' => ['POST', '/inbox/{item}/suggestions/{suggestion}/steps/1/edit'];
+        yield 'done dialog' => ['GET', '/inbox/{item}/done'];
+    }
+
+    #[DataProvider('routes')]
+    public function testAnotherPersonsItemIsNotFound(string $method, string $route): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $suggestion = $this->propose($id, [$this->note('First')]);
+        $colleague = $this->colleague();
+        $address = self::getContainer()->get(AddressIssuer::class)->issue(InboxPurpose::KEY, $colleague->id(), 'Their inbox')->address;
+        // A valid token of the colleague's session, from their own item's page.
+        self::assertSame(ReceiveOutcome::Stored, self::getContainer()->get(ReceiveMail::class)->receive(InboxMail::plain($address, messageId: 'theirs@client-a.example.com'), InboundChannel::Webhook, $address));
+        $theirs = $this->em->getConnection()->fetchOne('SELECT id FROM inbox_item WHERE owner_user_id = ?', [$colleague->id()]);
+        self::assertIsString($theirs);
+        $this->signInAs($colleague);
+        $token = $this->token($this->client->request('GET', '/inbox/'.$theirs), 'form[data-inbox-match-again]');
+        self::assertNotSame('', $token);
+
+        $this->client->request($method, strtr($route, ['{item}' => $id, '{suggestion}' => $suggestion]), 'POST' === $method ? ['_token' => $token, 'accept' => $suggestion, 'steps' => [$suggestion => ['1']], 'text' => 'Mine now', 'reason' => 'No'] : []);
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame(SuggestionState::Proposed, $this->stored($suggestion)->state());
+        self::assertSame([], $this->notes()->made);
+    }
+
+    public function testASuggestionOfAnotherItemIsNotFoundOrIgnored(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $other = $this->receive(InboxMail::plain($this->address, subject: 'Another offer', messageId: 'other@client-a.example.com', body: self::BODY));
+        $suggestion = $this->propose($other, [$this->note('First')]);
+        $crawler = $this->client->request('GET', '/inbox/'.$id);
+        $token = $this->token($crawler, 'form[data-inbox-match-again]');
+
+        $this->client->request('GET', '/inbox/'.$id.'/suggestions/'.$suggestion.'/reject');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', '/inbox/'.$id.'/suggestions/'.$suggestion.'/reject', ['_token' => $token]);
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('GET', '/inbox/'.$id.'/suggestions/'.$suggestion.'/steps/1/edit');
+        self::assertResponseStatusCodeSame(404);
+        $this->client->request('POST', '/inbox/'.$id.'/suggestions/accept', ['_token' => $token, 'accept' => $suggestion, 'steps' => [$suggestion => ['1']]]);
+        self::assertResponseRedirects('/inbox/'.$id, null, 'An id that is no open suggestion of this item is dropped.');
+
+        self::assertSame(SuggestionState::Proposed, $this->stored($suggestion)->state());
+        self::assertSame([], $this->notes()->made);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function writes(): iterable
+    {
+        yield 'accept' => ['/inbox/{item}/suggestions/accept'];
+        yield 'reject' => ['/inbox/{item}/suggestions/{suggestion}/reject'];
+        yield 'edit' => ['/inbox/{item}/suggestions/{suggestion}/steps/1/edit'];
+    }
+
+    #[DataProvider('writes')]
+    public function testAWriteWithoutAValidTokenIsRefused(string $route): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $suggestion = $this->propose($id, [$this->note('First')]);
+        $this->client->request('GET', '/inbox/'.$id);
+        $url = strtr($route, ['{item}' => $id, '{suggestion}' => $suggestion]);
+        $sent = ['accept' => $suggestion, 'steps' => [$suggestion => ['1']], 'suggestionSteps' => ['1'], 'text' => 'Edited', 'reason' => 'No'];
+
+        $this->client->request('POST', $url, $sent);
+        self::assertResponseStatusCodeSame(403);
+        $this->client->request('POST', $url, ['_token' => 'not-the-token'] + $sent);
+        self::assertResponseStatusCodeSame(403);
+
+        self::assertSame(SuggestionState::Proposed, $this->stored($suggestion)->state());
+        self::assertSame([], $this->notes()->made);
+    }
+
+    /**
      * @param list<array<string, mixed>> $steps
      */
-    private function propose(string $itemId, array $steps, string $quote = 'please find our offer', string $rationale = 'The client asks for it.'): string
+    private function propose(string $itemId, array $steps, string $quote = 'please find our offer', string $rationale = 'The client asks for it.', ?ProposingClient $agent = null): string
     {
-        [$suggestion] = self::getContainer()->get(ProposeSuggestions::class)->propose($itemId, [['steps' => $steps, 'rationale' => $rationale, 'quote' => $quote]], $this->agent);
+        [$suggestion] = self::getContainer()->get(ProposeSuggestions::class)->propose($itemId, [['steps' => $steps, 'rationale' => $rationale, 'quote' => $quote]], $agent ?? $this->agent);
 
         return $suggestion->id();
     }
@@ -341,9 +512,9 @@ final class InboxSuggestionScreensTest extends InboxScreenTestCase
         return ['operation' => self::NOTE, 'input' => ['text' => $text, 'note_kind' => $kind] + ($fail ? ['fail' => true] : [])];
     }
 
-    private function token(Crawler $page): string
+    private function token(Crawler $page, string $form = '#inbox-suggestions'): string
     {
-        return (string) $page->filter('#inbox-suggestions input[name="_token"]')->attr('value');
+        return (string) $page->filter($form.' input[name="_token"]')->attr('value');
     }
 
     private function stored(string $id): Suggestion

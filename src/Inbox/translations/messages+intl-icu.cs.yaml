@@ -178,12 +178,14 @@ inbox:
   suggestion:
     title: Návrhy
     steps: Kroky
-    select: Zahrnout do Přijmout vybrané
+    select: Vybrat
     accept: Přijmout
     retry: Zkusit znovu
     accept_selected: Přijmout vybrané
     edit: Upravit
     save_and_accept: Uložit a přijmout
+    run_steps: Kroky, které se provedou
+    editing: Právě upravujete
     edit_intro: Uložením se změny zapíšou a přijme se celý návrh.
     source: 'Zdroj: e-mail od {sender}, {received}'
     proposed_by: 'Navrhl {client}, {time}'
@@ -219,7 +221,7 @@ inbox:
       keep: Ponechat je
     flash:
       accepted: '{count, plural, one {Návrh přijat.} few {Přijaty # návrhy.} other {Přijato # návrhů.}}'
-      failed: '{count, plural, one {Krok se nepodařilo provést. Karta říká proč; upravte ho nebo to zkuste znovu.} other {Kroky # návrhů se nepodařilo provést. Karty říkají proč; upravte je nebo to zkuste znovu.}}'
+      failed: '{count, plural, one {Krok se nepodařilo provést. Karta říká proč; upravte ho nebo to zkuste znovu.} few {U # návrhů se krok nepodařilo provést. Karty říkají proč; upravte je nebo to zkuste znovu.} other {U # návrhů se krok nepodařilo provést. Karty říkají proč; upravte je nebo to zkuste znovu.}}'
       rejected: Návrh odmítnut.
       not_open: O tomto návrhu už bylo rozhodnuto, nic se neprovedlo.
       none_selected: Zaškrtněte návrhy, které chcete přijmout.

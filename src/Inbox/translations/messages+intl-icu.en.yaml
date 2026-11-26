@@ -184,6 +184,8 @@ inbox:
     accept_selected: Accept selected
     edit: Edit
     save_and_accept: Save and accept
+    run_steps: Steps to run
+    editing: Being edited
     edit_intro: Saving stores your changes and accepts the whole suggestion.
     source: 'Source: e-mail from {sender}, {received}'
     proposed_by: 'Proposed by {client}, {time}'
