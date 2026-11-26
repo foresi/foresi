@@ -56,8 +56,6 @@ final readonly class ManageTaskStars
             if (!$star instanceof TaskStar) {
                 $star = new TaskStar($task, $me, [] === $all ? 0 : max(array_map(static fn (TaskStar $one): int => $one->position(), $all)) + 1, $this->clock->now());
                 $this->stars->add($star);
-            } elseif (null === $beforeTaskId) {
-                return;
             }
             if (null !== $beforeTaskId) {
                 $this->place($all, $star, $beforeTaskId);
@@ -116,11 +114,11 @@ final readonly class ManageTaskStars
                     $listed[$star->task()->id()] = $star;
                 }
             }
-            $given = array_values(array_unique($taskIds));
+            $given = array_unique($taskIds);
             if (\count($given) !== \count($taskIds) || \count($given) !== \count($listed) || [] !== array_diff($given, array_keys($listed))) {
                 throw new WorkRefused('star_order');
             }
-            $hidden = array_values(array_filter($all, fn (TaskStar $star): bool => !$this->listed($star)));
+            $hidden = array_filter($all, fn (TaskStar $star): bool => !$this->listed($star));
             Positions::renumber([...array_map(static fn (string $id): TaskStar => $listed[$id], $given), ...$hidden]);
         });
     }

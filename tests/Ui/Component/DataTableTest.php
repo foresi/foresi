@@ -334,6 +334,60 @@ final class DataTableTest extends KernelTestCase
         self::assertCount(0, $crawler->filter('thead th')->eq(0)->filter('.sr-only'));
     }
 
+    public function testEachColumnOfTogglesIsNarrowAndATableWithoutRowsHasNone(): void
+    {
+        $star = ['toggle' => ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star']];
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'star', 'label' => 'Starred'], ['key' => 'pin', 'label' => 'Pinned']];
+        $table = $this->mountTwigComponent('Ui:DataTable', ['columns' => $columns, 'rows' => [['id' => 'a1', 'cells' => ['name' => 'Write the brief', 'star' => $star, 'pin' => $star]]]]);
+        self::assertInstanceOf(DataTable::class, $table);
+        self::assertSame(['star', 'pin'], $table->toggleColumns());
+
+        $empty = $this->mountTwigComponent('Ui:DataTable', ['columns' => $columns, 'rows' => []]);
+        self::assertInstanceOf(DataTable::class, $empty);
+        self::assertSame([], $empty->toggleColumns());
+    }
+
+    public function testAToggleIsNotPressedUnlessItSaysSoAndSendsItsTextFields(): void
+    {
+        $toggle = ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star', 'fields' => ['before' => 'b2', 0 => 'x', 'count' => 5]];
+        $form = new Crawler($this->render([
+            'columns' => [['key' => 'star', 'label' => 'Starred']],
+            'rows' => [['id' => 'a1', 'cells' => ['star' => ['toggle' => $toggle]]]],
+        ]))->filter('form[data-cell-toggle]');
+
+        self::assertSame('false', $form->filter('button')->attr('aria-pressed'));
+        self::assertSame(['_token', 'before'], $form->filter('input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')));
+        self::assertSame('b2', $form->filter('input[name="before"]')->attr('value'));
+    }
+
+    /**
+     * @return iterable<string, array{mixed, string}>
+     */
+    public static function invalidToggles(): iterable
+    {
+        $toggle = ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star'];
+
+        yield 'not an array' => [new \ArrayObject($toggle), 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no action' => [['token' => 'tok', 'label' => 'Star'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no token' => [['action' => '/tasks/a1/star', 'label' => 'Star'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no label' => [['action' => '/tasks/a1/star', 'token' => 'tok'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'an action not a string' => [['action' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'a token not a string' => [['token' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'a label not a string' => [['label' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'an unsafe action' => [['action' => 'javascript:alert(1)'] + $toggle, 'Unsupported URL in href.'];
+        yield 'an icon not a string' => [['icon' => 5] + $toggle, 'A toggle icon must be a string.'];
+        yield 'an icon out of the set' => [['icon' => 'not-an-icon'] + $toggle, 'Icon "not-an-icon" is not in the locked icon set.'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidToggles')]
+    public function testRefusesAToggleWithoutWhatItNeeds(mixed $toggle, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains($message);
+
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => [['key' => 'star', 'label' => 'Starred']], 'rows' => [['id' => 'a1', 'cells' => ['star' => ['toggle' => $toggle]]]]]);
+    }
+
     public function testWithoutWidthsTheTableHasNoColgroup(): void
     {
         self::assertCount(0, new Crawler($this->render())->filter('colgroup'));

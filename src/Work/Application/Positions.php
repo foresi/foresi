@@ -26,7 +26,7 @@ final class Positions
      */
     public static function place(array $items, ProjectStatus|Section|Task|TaskStar $item, int $index): void
     {
-        $others = array_values(array_filter($items, static fn (ProjectStatus|Section|Task|TaskStar $other): bool => $other->id() !== $item->id()));
+        $others = array_filter($items, static fn (ProjectStatus|Section|Task|TaskStar $other): bool => $other->id() !== $item->id());
         array_splice($others, max(0, min($index, \count($others))), 0, [$item]);
         self::renumber($others);
     }
