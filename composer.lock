@@ -2539,7 +2539,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "9e546f30ba9d06f6a8e7e01401d1cb731cab2690"
+                "reference": "6b1f95f5080aa200f28c3717facd44cc0de8e942"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2583,7 +2583,13 @@
                     "kind": "core",
                     "namespace": "Foresi\\Identity\\",
                     "bundle": "Foresi\\Identity\\IdentityBundle",
-                    "optional": []
+                    "optional": [],
+                    "scopes": [
+                        {
+                            "resource": "profile",
+                            "guest": "write"
+                        }
+                    ]
                 }
             },
             "autoload": {
