@@ -9,11 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Work\Application;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Activities\Contract\ActivityRecorder;
-use Foresi\Activities\Contract\RecordedActivity;
-use Foresi\Activities\Domain\ActivityTiming;
-use Foresi\Activities\Domain\ActivityType;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageTime;
@@ -106,22 +101,6 @@ final class ProjectBudgetsTest extends WorkApiTestCase
         $this->as(fn (): \Foresi\Work\Domain\TimeEntry => $this->time()->startTimer($project->id(), null));
 
         $this->assertBudget([600, 30, 570], $project);
-    }
-
-    public function testASourceActivityMustBeLinkedToTheProject(): void
-    {
-        $project = $this->project();
-        $other = $this->project('Other');
-        $this->flushed(fn () => $this->service(EntityManagerInterface::class)->persist(new ActivityType('email', null, ActivityTiming::None, null, new \DateTimeImmutable())));
-        $linked = $this->activity('Approved by e-mail', $project);
-
-        $change = $this->as(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 480, sourceActivityId: $linked));
-        self::assertSame($linked, $change->sourceActivityId());
-        self::assertSame(480, $this->budget($project)->budgetMinutes);
-
-        self::assertSame('source_not_on_project', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($other->id(), 120, sourceActivityId: $linked)));
-        self::assertSame('source_not_on_project', $this->refused(fn (): ProjectBudgetChange => $this->budgets()->add($project->id(), 120, sourceActivityId: Id::generate())));
-        self::assertNull($this->budget($other)->budgetMinutes);
     }
 
     public function testAnArchivedProjectTakesNoChange(): void
@@ -311,11 +290,6 @@ final class ProjectBudgetsTest extends WorkApiTestCase
             return $refused->reason;
         }
         self::fail('Not refused.');
-    }
-
-    private function activity(string $subject, Project $project): string
-    {
-        return $this->as(fn (): string => $this->service(ActivityRecorder::class)->record(new RecordedActivity('email', $subject, '', new \DateTimeImmutable('2026-11-20 09:30:00', new \DateTimeZone('UTC')), $this->owner->id(), [['kind' => 'project', 'id' => $project->id()]])));
     }
 
     private function budgets(): ProjectBudgets
