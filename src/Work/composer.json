@@ -51,7 +51,8 @@
             "namespace": "Foresi\\Work\\",
             "bundle": "Foresi\\Work\\WorkBundle",
             "optional": [
-                "activities"
+                "activities",
+                "inbox"
             ],
             "scopes": [
                 {

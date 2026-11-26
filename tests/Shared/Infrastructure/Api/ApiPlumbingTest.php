@@ -180,6 +180,9 @@ final class ApiPlumbingTest extends ApiTestCase
                 // The inbox actions of the module only the tests have (tests/Inbox/Fixtures/Action).
                 '/api/v1/inbox/items/{inboxItemId}/fixture-notes' => ['post' => '201'],
                 '/api/v1/inbox/items/{inboxItemId}/fixture-contact-notes' => ['post' => '201'],
+                // The inbox actions of Work.
+                '/api/v1/inbox/items/{inboxItemId}/tasks' => ['post' => '201'],
+                '/api/v1/inbox/items/{inboxItemId}/time-entries' => ['post' => '201'],
             ],
             'invoicing' => [
                 '/api/v1/invoices' => ['get' => '200', 'post' => '201'],

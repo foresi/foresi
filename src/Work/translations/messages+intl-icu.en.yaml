@@ -10,6 +10,9 @@ shared_with_me:
     title: Nothing is shared with you yet
     text: Once the organisation shares work with you, you will find it here.
 work:
+  inbox_action:
+    create_task: Create task
+    log_time: Log time
   relation:
     projects: Projects
   status:
@@ -689,3 +692,24 @@ work:
     subtasks: '{done} of {total} subtasks done'
   tasks:
     search_label: Search tasks
+inbox_action:
+  inbox:
+    actions:
+      create_task:
+        projectId: Project
+        title: Title
+        description: Description
+        responsibleId: Responsible
+        dueOn: Due on
+        copyAttachments: Copy the attachments onto the task
+        markDone: Mark the item done
+      log_time:
+        projectId: Project
+        workedOn: Day worked
+        taskId: Task
+        minutes: Minutes
+        startedAt: Started at
+        endedAt: Ended at
+        note: Note
+        billable: Billable
+        markDone: Mark the item done

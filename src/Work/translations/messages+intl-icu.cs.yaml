@@ -10,6 +10,9 @@ shared_with_me:
     title: Zatím s vámi nikdo nic nesdílí
     text: Až s vámi organizace začne sdílet práci, najdete ji tady.
 work:
+  inbox_action:
+    create_task: Vytvořit úkol
+    log_time: Zapsat čas
   relation:
     projects: Projekty
   status:
@@ -689,3 +692,24 @@ work:
     subtasks: 'Hotové podúkoly: {done} z {total}'
   tasks:
     search_label: Hledat v úkolech
+inbox_action:
+  inbox:
+    actions:
+      create_task:
+        projectId: Projekt
+        title: Název
+        description: Popis
+        responsibleId: Odpovědná osoba
+        dueOn: Termín
+        copyAttachments: Zkopírovat přílohy k úkolu
+        markDone: Označit položku jako hotovou
+      log_time:
+        projectId: Projekt
+        workedOn: Den práce
+        taskId: Úkol
+        minutes: Minuty
+        startedAt: Začátek
+        endedAt: Konec
+        note: Poznámka
+        billable: Fakturovatelné
+        markDone: Označit položku jako hotovou
