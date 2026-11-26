@@ -35,4 +35,45 @@ final class SecurityUserTest extends TestCase
         self::assertInstanceOf(SecurityUser::class, $restored);
         self::assertSame('user@example.com', $restored->getUserIdentifier());
     }
+
+    public function testASessionMatchesTheUserLoadedLaterUntilItsAddressPasswordOrVersionChanges(): void
+    {
+        $id = Id::generate();
+        $session = unserialize(serialize(new SecurityUser($id, 'user@example.com', 'hash', sessionVersion: 1)));
+        self::assertInstanceOf(SecurityUser::class, $session);
+
+        self::assertTrue($session->isEqualTo(new SecurityUser($id, 'user@example.com', 'hash', 'secret', 3, 1)));
+        self::assertTrue(new SecurityUser($id, 'user@example.com', 'hash')->isEqualTo(new SecurityUser($id, 'user@example.com', 'hash')));
+        self::assertFalse($session->isEqualTo(new SecurityUser($id, 'other@example.com', 'hash', sessionVersion: 1)));
+        self::assertFalse($session->isEqualTo(new SecurityUser($id, 'user@example.com', 'new hash', sessionVersion: 1)));
+        // Changed to another address and back: the version tells the old session apart.
+        self::assertFalse($session->isEqualTo(new SecurityUser($id, 'user@example.com', 'hash', sessionVersion: 2)));
+        self::assertFalse($session->isEqualTo($this->createStub(\Symfony\Component\Security\Core\User\UserInterface::class)));
+    }
+
+    public function testASessionFromBeforeSessionVersionsBeganWithVersionZero(): void
+    {
+        $body = 'O:%d:"%s":3:{s:2:"id";s:1:"a";s:5:"email";s:16:"user@example.com";s:12:"passwordHash";s:8:"%s";}';
+
+        $restored = unserialize(\sprintf($body, \strlen(SecurityUser::class), SecurityUser::class, hash('crc32c', 'hash')));
+
+        self::assertInstanceOf(SecurityUser::class, $restored);
+        self::assertTrue($restored->isEqualTo(new SecurityUser('a', 'user@example.com', 'hash')));
+        self::assertFalse($restored->isEqualTo(new SecurityUser('a', 'user@example.com', 'hash', sessionVersion: 1)));
+    }
+
+    public function testASessionWithAnUnreadableVersionDoesNotLoad(): void
+    {
+        $body = 'O:%d:"%s":4:{s:2:"id";s:1:"a";s:5:"email";s:16:"user@example.com";s:12:"passwordHash";s:4:"hash";s:14:"sessionVersion";s:1:"1";}';
+
+        $this->expectException(\UnexpectedValueException::class);
+        unserialize(\sprintf($body, \strlen(SecurityUser::class), SecurityUser::class));
+    }
+
+    public function testTheVersionSurvivesAnEnrolmentCheck(): void
+    {
+        $user = new SecurityUser('a', 'user@example.com', 'hash', sessionVersion: 4);
+
+        self::assertTrue($user->withTotpSecret('secret')->isEqualTo($user));
+    }
 }
