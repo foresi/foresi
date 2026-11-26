@@ -104,7 +104,7 @@ class User
         string $locale = 'en',
     ) {
         $this->id = Id::generate();
-        $email = self::usableEmail($email);
+        $email = $this->usableEmail($email);
         if ('' === $passwordHash) {
             throw new \InvalidArgumentException('A user needs a password hash.');
         }
@@ -242,7 +242,7 @@ class User
      */
     public function requestEmailChange(string $newEmail, string $tokenHash, \DateTimeImmutable $expiresAt): void
     {
-        $newEmail = self::usableEmail($newEmail);
+        $newEmail = $this->usableEmail($newEmail);
         if ($newEmail === $this->email) {
             throw new \InvalidArgumentException('The new address is the current one.');
         }
@@ -266,7 +266,7 @@ class User
      */
     public function pendingEmail(\DateTimeImmutable $now): ?string
     {
-        return null !== $this->pendingEmailExpiresAt && $now < $this->pendingEmailExpiresAt ? $this->pendingEmail : null;
+        return $this->pendingEmailExpiresAt instanceof \DateTimeImmutable && $now < $this->pendingEmailExpiresAt ? $this->pendingEmail : null;
     }
 
     public function pendingEmailExpiresAt(): ?\DateTimeImmutable
@@ -369,7 +369,7 @@ class User
         return $this->locale;
     }
 
-    private static function usableEmail(string $email): string
+    private function usableEmail(string $email): string
     {
         $email = strtolower(trim($email));
         if (false === filter_var($email, \FILTER_VALIDATE_EMAIL)) {

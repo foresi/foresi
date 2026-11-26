@@ -76,7 +76,7 @@ final class EmailController extends AbstractController
         return $this->render('@Identity/email/index.html.twig', [
             'email' => $user->email(),
             'pending' => $pending,
-            'expiresAt' => null === $pending || null === $expiresAt ? null : new \IntlDateFormatter($request->getLocale(), \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT, $this->instanceClock->timezone())->format($expiresAt),
+            'expiresAt' => null === $pending || !$expiresAt instanceof \DateTimeImmutable ? null : new \IntlDateFormatter($request->getLocale(), \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT, $this->instanceClock->timezone())->format($expiresAt),
         ]);
     }
 
@@ -118,7 +118,7 @@ final class EmailController extends AbstractController
     }
 
     #[Route('/account/email/cancel', name: self::CANCEL_ROUTE, methods: ['POST'])]
-    public function cancel(Request $request, #[CurrentUser] SecurityUser $me): Response
+    public function cancel(Request $request, #[CurrentUser] SecurityUser $me): \Symfony\Component\HttpFoundation\RedirectResponse
     {
         if (!$this->isCsrfTokenValid(self::TOKEN, $request->request->getString('_token'))) {
             throw new AccessDeniedHttpException('Invalid CSRF token.');

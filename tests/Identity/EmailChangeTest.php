@@ -152,7 +152,7 @@ final class EmailChangeTest extends WebTestCase
         self::assertSame('Confirm your new Foresi e-mail', $mail->subject);
         self::assertStringContainsString('Example Company asked to sign in to Foresi with new@example.com instead of testing@example.com.', $mail->text);
         self::assertStringContainsString('The link works for 24 hours.', $mail->text);
-        self::assertStringContainsString('href="http://localhost'.$this->link($mail).'"', $mail->html);
+        self::assertStringContainsString('href="http://localhost'.$this->link($mail).'"', (string) $mail->html);
 
         // The old address still signs in.
         $this->client->getCookieJar()->clear();
@@ -325,8 +325,8 @@ final class EmailChangeTest extends WebTestCase
         $em = $this->browser->em();
         $user = new User($email, 'hash', $name);
         $em->persist($user);
-        if (null !== $role) {
-            $em->persist(new Membership($user, $role, null));
+        if ($role instanceof Role) {
+            $em->persist(new Membership($user, $role));
         }
         $em->flush();
     }

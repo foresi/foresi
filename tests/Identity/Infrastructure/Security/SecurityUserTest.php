@@ -11,6 +11,7 @@ namespace Foresi\Tests\Identity\Infrastructure\Security;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 final class SecurityUserTest extends TestCase
 {
@@ -48,7 +49,7 @@ final class SecurityUserTest extends TestCase
         self::assertFalse($session->isEqualTo(new SecurityUser($id, 'user@example.com', 'new hash', sessionVersion: 1)));
         // Changed to another address and back: the version tells the old session apart.
         self::assertFalse($session->isEqualTo(new SecurityUser($id, 'user@example.com', 'hash', sessionVersion: 2)));
-        self::assertFalse($session->isEqualTo($this->createStub(\Symfony\Component\Security\Core\User\UserInterface::class)));
+        self::assertFalse($session->isEqualTo(self::createStub(UserInterface::class)));
     }
 
     public function testASessionFromBeforeSessionVersionsBeganWithVersionZero(): void

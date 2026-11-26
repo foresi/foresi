@@ -80,7 +80,7 @@ final readonly class ChangeEmail
         }
         $user = $this->users->findByPendingEmailToken(EmailChangeToken::hash($token));
 
-        return null !== $user && null !== $user->pendingEmail($this->clock->now()) ? $user : null;
+        return $user instanceof User && null !== $user->pendingEmail($this->clock->now()) ? $user : null;
     }
 
     /**
@@ -106,7 +106,7 @@ final readonly class ChangeEmail
     private function assertFree(string $email, User $user): void
     {
         $holder = $this->users->findByEmail($email);
-        if (null !== $holder && $holder->id() !== $user->id()) {
+        if ($holder instanceof User && $holder->id() !== $user->id()) {
             throw new EmailChangeRefused(EmailChangeRefused::TAKEN);
         }
     }
