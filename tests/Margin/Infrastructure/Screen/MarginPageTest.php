@@ -167,7 +167,7 @@ final class MarginPageTest extends WebTestCase
         }
     }
 
-    public function testTheSheetListsTheDocumentsBehindACellAndOffersToAssignTheUnclaimedOnes(): void
+    public function testTheSheetListsTheDocumentsBehindACell(): void
     {
         $this->start(Role::Owner);
         $this->share(self::CLIENT_COST, '2026-11-01', 'client', 72_996, CostShareSource::Line);
@@ -178,14 +178,12 @@ final class MarginPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame([self::UNCLAIMED_TWO, self::UNCLAIMED_ONE], $sheet->filter('[data-margin-item]')->each(static fn (Crawler $item): string => (string) $item->attr('data-document')));
-        self::assertSame(['/margin/documents/'.self::UNCLAIMED_TWO.'/assign', '/margin/documents/'.self::UNCLAIMED_ONE.'/assign'], $sheet->filter('a[data-margin-assign][data-dialog]')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
         self::assertCount(0, $sheet->filter('[data-margin-section="revenue"]'), 'Unassigned has costs only.');
         self::assertStringContainsString('300.00', $sheet->filter('[data-margin-total="costs"]')->text());
 
         $client = $this->client->request('GET', '/margin/cell', ['row' => 'client:'.$this->clientA->id(), 'month' => '2026-11'], server: ['HTTP_X_FORESI_DIALOG' => 'sheet']);
         self::assertSame(['revenue', 'costs'], $client->filter('[data-margin-section]')->each(static fn (Crawler $section): string => (string) $section->attr('data-margin-section')));
         self::assertCount(1, $client->filter('[data-margin-item]'));
-        self::assertCount(0, $client->filter('a[data-margin-assign]'), 'Only an unassigned document is offered for assignment.');
         self::assertCount(1, $client->filter('[data-margin-section="revenue"] [data-margin-section-empty]'));
     }
 

@@ -25,6 +25,21 @@ use Com\Tecnick\Pdf\Tcpdf;
 final class ReceivedFileFixtures
 {
     /**
+     * A plain PNG of the size given, drawn with GD, for a test that needs any image.
+     */
+    public static function png(int $width, int $height): string
+    {
+        $image = imagecreatetruecolor(max(1, $width), max(1, $height));
+        if (false === $image) {
+            throw new \LogicException('GD cannot make the image.');
+        }
+        ob_start();
+        imagepng($image);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
      * A QR code with a quiet zone, as a PNG.
      */
     public static function qrPng(string $payload, int $scale = 6): string

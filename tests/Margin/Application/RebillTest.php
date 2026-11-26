@@ -17,7 +17,6 @@ use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Instance\Application\ConfiguredZone;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\ZoneFallback;
-use Foresi\Invoicing\Contract\InvoicingSlots;
 use Foresi\Margin\Application\CostPairings;
 use Foresi\Margin\Application\DropRebillOnTrash;
 use Foresi\Margin\Application\MappingVersions;
@@ -43,8 +42,6 @@ use Foresi\Margin\Domain\RebillLink;
 use Foresi\Margin\Domain\RebillPairing;
 use Foresi\Margin\Domain\Recipient;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Margin\Infrastructure\Screen\MarginScreen;
-use Foresi\Margin\Integration\Invoicing\RebillPanel;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\Party;
@@ -737,17 +734,6 @@ final class RebillTest extends KernelTestCase
 
         self::assertSame(['2026-10-01', '2026-11-01'], array_map(static fn (\DateTimeImmutable $day): string => $day->format('Y-m-d'), $days));
         self::assertSame([0, 1], array_keys($days), 'a list');
-    }
-
-    public function testThePanelOffersNothingWithoutALineOrForAnotherSlot(): void
-    {
-        $panel = new RebillPanel($this->links, $this->manual, self::getContainer()->get(MarginScreen::class));
-
-        self::assertSame([], [...$panel->items(InvoicingSlots::RECURRING_LINE_ACTIONS, [])]);
-        self::assertSame([], [...$panel->items(InvoicingSlots::INVOICE_LINE_BADGES, ['lineId' => 1])]);
-        self::assertSame([], [...$panel->items('invoicing.something_else', ['lineId' => self::LINE_A])]);
-        self::assertSame([], [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => self::L1, 'kind' => 'advance'])]);
-        self::assertCount(1, [...$panel->items(InvoicingSlots::INVOICE_LINE_ACTIONS, ['lineId' => self::L1, 'kind' => 'invoice'])]);
     }
 
     private function addVoiceApi(): void

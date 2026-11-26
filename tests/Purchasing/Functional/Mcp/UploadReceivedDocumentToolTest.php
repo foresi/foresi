@@ -10,7 +10,7 @@ namespace Foresi\Tests\Purchasing\Functional\Mcp;
 
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Tests\Purchasing\Support\ReceivedDocumentApiTestCase;
-use Foresi\Tests\Support\IsdocFixtures;
+use Foresi\Tests\Support\ReceivedFileFixtures;
 
 /**
  * foresi_upload_received_document: the file as base64, a draft from the API with its reading queued.
@@ -19,7 +19,7 @@ final class UploadReceivedDocumentToolTest extends ReceivedDocumentApiTestCase
 {
     public function testTheToolMakesADraftAndQueuesTheReading(): void
     {
-        $call = $this->tool('foresi_upload_received_document', ['file_name' => 'invoice.isdoc', 'content_base64' => base64_encode(IsdocFixtures::invoice())]);
+        $call = $this->tool('foresi_upload_received_document', ['file_name' => 'invoice.pdf', 'content_base64' => base64_encode(ReceivedFileFixtures::pdf())]);
 
         self::assertFalse($call['isError'] ?? false, (string) json_encode($call));
         self::assertSame('api', $this->in($call, 'structuredContent', 'data', 'source'));
@@ -45,7 +45,7 @@ final class UploadReceivedDocumentToolTest extends ReceivedDocumentApiTestCase
         self::assertNotContains('foresi_upload_received_document', $this->toolNames($this->issued([ApiScope::from('received_documents:read')])));
         self::assertNotContains('foresi_upload_received_document', $this->toolNames($this->guestSecret()));
 
-        $refused = $this->tool('foresi_upload_received_document', ['file_name' => 'invoice.isdoc', 'content_base64' => base64_encode(IsdocFixtures::invoice())], $this->issued([ApiScope::from('received_documents:read')]));
+        $refused = $this->tool('foresi_upload_received_document', ['file_name' => 'invoice.pdf', 'content_base64' => base64_encode(ReceivedFileFixtures::pdf())], $this->issued([ApiScope::from('received_documents:read')]));
         self::assertSame('insufficient_scope', $this->in($refused, 'structuredContent', 'error', 'code'));
     }
 }

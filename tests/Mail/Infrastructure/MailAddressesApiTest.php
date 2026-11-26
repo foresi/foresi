@@ -185,7 +185,7 @@ final class MailAddressesApiTest extends ApiTestCase
 
     public function testTheRefusalsAreAnswered(): void
     {
-        $this->send('POST', '/api/v1/mail/addresses', ['purpose' => 'bank_feed', 'label' => 'Mine']);
+        $this->send('POST', '/api/v1/mail/addresses', ['purpose' => RecordingPurpose::RESHOWABLE_KEY, 'label' => 'Mine']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'purpose', 'reason' => 'purpose_has_no_owners']);
         $this->send('POST', '/api/v1/mail/addresses', ['purpose' => 'nope', 'label' => 'Mine']);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'purpose', 'reason' => 'purpose_unknown']);
@@ -259,7 +259,7 @@ final class MailAddressesApiTest extends ApiTestCase
         $revoked = $this->tool('foresi_revoke_mail_address', ['address_id' => $newId]);
         self::assertSame('2026-11-25T11:00:00+01:00', $this->in($revoked, 'structuredContent', 'data', 'revoked_at'));
 
-        $refused = $this->tool('foresi_create_mail_address', ['purpose' => 'bank_feed', 'label' => 'Mine']);
+        $refused = $this->tool('foresi_create_mail_address', ['purpose' => RecordingPurpose::RESHOWABLE_KEY, 'label' => 'Mine']);
         self::assertTrue($refused['isError'] ?? false);
     }
 

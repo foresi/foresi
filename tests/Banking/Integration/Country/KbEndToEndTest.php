@@ -30,7 +30,7 @@ use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Tests\Banking\Support\InboundTestCase;
-use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Scalars;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

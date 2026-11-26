@@ -31,8 +31,8 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
-use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Party\Support\FirmAccounts;
+use Foresi\Tests\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 

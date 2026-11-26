@@ -339,8 +339,8 @@ final class ProjectControllerTest extends WebTestCase
         $id = $this->seedList();
 
         $crawler = $this->client->request('GET', '/projects/'.$id);
-        // Then the sections other modules add, such as Activities.
-        self::assertSame(['List', 'Board', 'Activities', 'Budget'], $crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())));
+        // The tabs of Work itself; where Activities adds its section between them is tested with it (Integration/Activities).
+        self::assertSame(['List', 'Board', 'Budget'], array_values(array_diff($crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())), ['Activities'])));
         self::assertSame(['All', 'Mine', 'Finished'], $this->tabs($crawler));
         self::assertSame(['/projects/'.$id, '/projects/'.$id.'?view=mine', '/projects/'.$id.'?view=finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(0)->attr('aria-current'));

@@ -28,10 +28,14 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkTaskIntake;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Contract\InvoiceNumbers;
+use Foresi\Work\Contract\ProjectDirectory;
 use Foresi\Work\Contract\TaskDirectory;
 use Foresi\Work\Contract\TaskIntake;
+use Foresi\Work\Contract\TimeTotals;
 use Foresi\Work\Infrastructure\CollectedInvoiceNumbers;
+use Foresi\Work\Infrastructure\Directory\WorkProjectDirectory;
 use Foresi\Work\Infrastructure\Directory\WorkTaskDirectory;
+use Foresi\Work\Infrastructure\Directory\WorkTimeTotals;
 use Foresi\Work\Infrastructure\Doctrine\DoctrineTimeQueries;
 use Foresi\Work\Infrastructure\Doctrine\DoctrineWorkQueries;
 use Foresi\Work\Infrastructure\Identity\SharedWorkGuestHome;
@@ -66,9 +70,11 @@ return static function (ContainerConfigurator $container): void {
         $services->alias(TimeQueries::class, DoctrineTimeQueries::class)->public();
         $services->alias(WorkVisibility::class, SharedWorkVisibility::class)->public();
         $services->alias(WorkQueries::class, DoctrineWorkQueries::class)->public();
-        // Only modules not installed yet use these; the tests read them as such a module would.
+        // Contracts only other modules use, reached by the Work tests as such a module would.
         $services->alias(TaskIntake::class, WorkTaskIntake::class)->public();
         $services->alias(TaskDirectory::class, WorkTaskDirectory::class)->public();
+        $services->alias(ProjectDirectory::class, WorkProjectDirectory::class)->public();
+        $services->alias(TimeTotals::class, WorkTimeTotals::class)->public();
     }
 
     if ('e2e' === $container->env()) {

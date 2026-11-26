@@ -13,7 +13,7 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Tests\Banking\Support\InboundMailKit;
 use Foresi\Tests\Banking\Support\InboundTestCase;
-use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Scalars;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**

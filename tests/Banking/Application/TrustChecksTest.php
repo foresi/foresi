@@ -14,7 +14,7 @@ use Foresi\Banking\Application\TrustChecks;
 use Foresi\Banking\Domain\InboundMessage;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Tests\Banking\Support\InboundTestCase;
-use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Scalars;
 
 /**
  * The trust check of the last mail of the test feed, as received over the

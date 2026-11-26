@@ -17,6 +17,7 @@ use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\Mail\SyntheticMail;
+use Foresi\Tests\Support\Scalars;
 
 /**
  * A fresh schema with one firm whose account has an inbound address, and

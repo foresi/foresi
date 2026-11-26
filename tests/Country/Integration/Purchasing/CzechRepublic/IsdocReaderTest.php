@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Country\Unit\CzechRepublic;
+namespace Foresi\Tests\Country\Integration\Purchasing\CzechRepublic;
 
 use Foresi\Country\Integration\Purchasing\CzechRepublic\IsdocReader;
 use Foresi\Purchasing\Contract\Reading\DocumentFile;

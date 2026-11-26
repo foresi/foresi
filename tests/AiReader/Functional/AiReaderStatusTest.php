@@ -19,7 +19,6 @@ use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
 use Foresi\Purchasing\Infrastructure\Messenger\ReadReceivedDocumentHandler;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
-use Foresi\Tests\Support\IsdocFixtures;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -167,7 +166,8 @@ final class AiReaderStatusTest extends WebTestCase
         $token = $this->client->getCrawler()->filter('main form[action^="/purchasing"] input[name="_token"]')->first()->attr('value');
         $path = tempnam(sys_get_temp_dir(), 'received');
         self::assertIsString($path);
-        file_put_contents($path, IsdocFixtures::invoice());
+        // An ISDOC file, which the AI reader never takes: whatever a country module reads of it, no AI request is made.
+        file_put_contents($path, '<?xml version="1.0" encoding="UTF-8"?><Invoice/>');
         $this->paths[] = $path;
         $this->client->request('POST', '/purchasing/upload', ['_token' => $token], ['file' => new UploadedFile($path, 'invoice.isdoc', null, null, true)], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame(201);
@@ -179,8 +179,8 @@ final class AiReaderStatusTest extends WebTestCase
     }
 
     /**
-     * Runs the readings the last request queued; an ISDOC file has what the structured reader needs, so
-     * no AI request is ever made by this test.
+     * Runs the readings the last request queued; the AI reader takes no ISDOC file, so no AI request is
+     * ever made by this test.
      */
     private function readQueued(): void
     {

@@ -17,6 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * The pages of the person's own account keep their addresses and show the
  * profile's sidebar, which the rail does not list: the avatar is its way in.
+ * The pages other modules add to it are tested with them (ProfileNavigationTest).
  */
 final class ProfileNavigationTest extends WebTestCase
 {
@@ -36,9 +37,6 @@ final class ProfileNavigationTest extends WebTestCase
     public static function accountPages(): iterable
     {
         yield 'profile' => ['/account/profile', Role::Owner];
-        yield 'notifications' => ['/account/notifications', Role::Owner];
-        yield 'calendar feeds' => ['/account/calendar', Role::Owner];
-        yield 'inbox addresses' => ['/account/inbox', Role::Owner];
         yield 'api' => ['/settings/api', Role::Owner];
         yield 'connected apps' => ['/connected-apps', Role::Guest];
     }
@@ -61,7 +59,7 @@ final class ProfileNavigationTest extends WebTestCase
         $this->browser->seed('en', Role::Owner);
         $this->browser->signIn();
         $links = $this->links('/account/profile');
-        foreach (['/account/profile', '/account/two-factor', '/account/notifications', '/account/calendar', '/account/inbox', '/settings/api'] as $href) {
+        foreach (['/account/profile', '/account/two-factor', '/settings/api'] as $href) {
             self::assertContains($href, $links);
         }
         self::assertNotContains('/connected-apps', $links);

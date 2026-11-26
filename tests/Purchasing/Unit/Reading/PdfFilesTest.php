@@ -43,7 +43,7 @@ final class PdfFilesTest extends TestCase
 
     public function testExtractsAnEmbeddedImageAsPng(): void
     {
-        $png = ReceivedFileFixtures::qrPng('https://example.com/pay');
+        $png = ReceivedFileFixtures::png(120, 90);
         [$width, $height] = $this->dimensions($png);
 
         $images = $this->pdfFiles->pageImages($this->pdf(ReceivedFileFixtures::pdf(1, [1 => $png])), 2);
@@ -69,7 +69,7 @@ final class PdfFilesTest extends TestCase
 
     public function testOnlyTheFirstPagesAreSearched(): void
     {
-        $png = ReceivedFileFixtures::qrPng('https://example.com/pay');
+        $png = ReceivedFileFixtures::png(120, 90);
         $pdf = $this->pdf(ReceivedFileFixtures::pdf(3, [3 => $png]));
 
         self::assertSame([], $this->pdfFiles->pageImages($pdf, 2));
@@ -78,7 +78,7 @@ final class PdfFilesTest extends TestCase
 
     public function testAPdfOf500PagesIsReadQuicklyAndOnlyForItsFirstPages(): void
     {
-        $png = ReceivedFileFixtures::qrPng('https://example.com/pay');
+        $png = ReceivedFileFixtures::png(120, 90);
         $pdf = $this->pdf(ReceivedFileFixtures::pdf(500, [2 => $png, 500 => $png]));
 
         $start = microtime(true);

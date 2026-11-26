@@ -32,17 +32,14 @@ use Foresi\Purchasing\Application\PurchasingUnit;
 use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
 use Foresi\Purchasing\Application\ReceivedDocumentWarning;
 use Foresi\Purchasing\Application\UploadReceivedDocuments;
-use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\MailIntake;
 use Foresi\Purchasing\Domain\MailIntakeOutcome;
-use Foresi\Purchasing\Domain\ReadingState;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Infrastructure\Messenger\FileMailAttachmentsHandler;
-use Foresi\Purchasing\Infrastructure\Messenger\ReadReceivedDocumentHandler;
-use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
-use Foresi\Tests\Support\IsdocFixtures;
+use Foresi\Tests\Support\Mail\RecordingPurpose;
+use Foresi\Tests\Support\Scalars;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -229,23 +226,19 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
         self::assertSame([['name' => 'huge.pdf', 'reason' => 'too_large'], ['name' => 'part'.MailAttachmentFiling::MAX_DRAFTS.'.pdf', 'reason' => 'too_many']], $intake->skipped());
     }
 
-    public function testIsdocAttachmentIsRead(): void
+    /**
+     * An ISDOC attachment becomes a draft queued for reading; what the ISDOC reader of a
+     * country module then reads is tested with that module (Integration/Country).
+     */
+    public function testIsdocAttachmentIsQueuedForReading(): void
     {
-        $messageId = $this->receive([$this->part('invoice.isdoc', 'application/octet-stream', IsdocFixtures::invoice())]);
+        $messageId = $this->receive([$this->part('invoice.isdoc', 'application/octet-stream', '<?xml version="1.0" encoding="UTF-8"?><Invoice/>')]);
 
         $this->fileMail($messageId);
 
         $jobs = $this->readingJobs();
         self::assertCount(1, $jobs);
         self::assertSame(DocumentSource::Mail, $this->document($jobs[0]->documentId)->source());
-        self::getContainer()->get(ReadReceivedDocumentHandler::class)($jobs[0]);
-
-        $this->em->clear();
-        $reading = $this->em->find(DocumentReading::class, $jobs[0]->documentId);
-        self::assertInstanceOf(DocumentReading::class, $reading);
-        self::assertSame(ReadingState::Read, $reading->state());
-        self::assertContains('isdoc', array_map(static fn (\Foresi\Purchasing\Contract\Reading\ReadValue $value): string => $value->source, $reading->reading()->values));
-        self::assertNotSame([], $reading->applied());
     }
 
     public function testSameFileTwiceWarnsDuplicateFile(): void
@@ -332,7 +325,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
         $outcome = self::getContainer()->get(ReceiveMail::class)->receive($this->raw($this->address, [], 'revoked@mail.example.com'), InboundChannel::Webhook);
         self::assertSame(ReceiveOutcome::UnknownRecipient, $outcome);
         // And the purpose itself turns away an address that is revoked, unknown or of nobody.
-        $feed = self::getContainer()->get(\Foresi\Mail\Contract\AddressIssuer::class)->issue('bank_feed', null, 'Bank feed');
+        $feed = self::getContainer()->get(\Foresi\Mail\Contract\AddressIssuer::class)->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
         foreach ([$this->addressId, '11111111-1111-4111-8111-111111111111', $feed->id] as $mailAddressId) {
             try {
                 $this->purpose()->accept($messageId, $mailAddressId);

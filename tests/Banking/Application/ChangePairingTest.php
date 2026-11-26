@@ -20,7 +20,7 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
-use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
