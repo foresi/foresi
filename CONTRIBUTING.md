@@ -73,7 +73,9 @@ A module declares the third-party libraries its own code uses in its `composer.j
 
 ## Rules for code
 
+<!-- REUSE-IgnoreStart -->
 - PHP 8.4 and Symfony 7.4 LTS. Every PHP file starts with `declare(strict_types=1);` and starts with the block header comment `/* SPDX-License-Identifier: AGPL-3.0-only */`, laid out over three lines as `composer cs:fix` writes it (the fixer enforces it).
+<!-- REUSE-IgnoreEnd -->
 - Everything is written in English: identifiers, comments, documentation, commit messages and test names.
 - Country-specific terms get international names in the core. Country-specific rules live in country modules.
 - Money is never a `float`.
@@ -94,6 +96,7 @@ A module declares the third-party libraries its own code uses in its `composer.j
   gh pr merge <number> --auto --squash
   ```
 
+- Every file states its licence for [REUSE](https://reuse.software): PHP files in their SPDX header, other files through `REUSE.toml`. A new third-party file (an icon set, a font) gets an entry there and its licence text in `LICENSES/`; `reuse lint` checks it.
 - Judge a pull request by its required checks only: `Quality gate (sqlite)`, the E2E checks and `Conventional Commits`. Jobs run side by side, so one job can be red while the others and the Quality gate still run. Take a red job as the hint to start fixing, not as the verdict, and let the run finish: it shows every failure of the round at once.
 
   ```bash
@@ -108,7 +111,7 @@ Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
 
 ## Releases
 
-Every merge to `main` that users notice is a release; there is no release branch and no release day. The Release workflow publishes a GitHub release and its tag for each merged pull request whose title is a `feat`, `fix` or `perf` commit, or breaking (`!`), with the pull request's Release notes as the notes. Other types publish nothing.
+Every merge to `main` that users notice is a release; there is no release branch and no release day. The Release workflow publishes a GitHub release and its tag for each merged pull request whose title is a `feat`, `fix` or `perf` commit, or breaking (`!`), with the pull request's Release notes as the notes. Other types publish nothing. Each release carries its source archive, its SBOM (`bin/release-sbom`, CycloneDX) and the signed build provenance of both; [SECURITY.md](SECURITY.md#verifying-a-release) explains how to check them. The repository has release immutability turned on, so a published release's tag and files cannot change.
 
 The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
 

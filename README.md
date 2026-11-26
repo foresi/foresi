@@ -5,6 +5,8 @@
 [![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/foresi/foresi)](https://github.com/foresi/foresi/releases)
 [![CI](https://github.com/foresi/foresi/actions/workflows/ci.yml/badge.svg)](https://github.com/foresi/foresi/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/foresi/foresi/badge)](https://scorecard.dev/viewer/?uri=github.com/foresi/foresi)
+[![REUSE](https://github.com/foresi/foresi/actions/workflows/reuse.yml/badge.svg)](https://github.com/foresi/foresi/actions/workflows/reuse.yml)
 
 Website: [foresi.app](https://foresi.app) · [Releases](https://github.com/foresi/foresi/releases) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/foresi/foresi/discussions)
 

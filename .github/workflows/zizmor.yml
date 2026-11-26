@@ -19,14 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # The findings are also uploaded as code scanning alerts.
+      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # Findings fail the job; they are printed in the log instead of being
-      # uploaded as code scanning alerts, so no extra permission is needed.
+      # Findings are printed in the log and fail the job, and they are uploaded
+      # as code scanning alerts. A pull request from a fork gets a read-only
+      # token, so it only prints them.
       - name: Audit the workflows
         uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           advanced-security: false
+
+      - name: Upload the findings to code scanning
+        if: always() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        with:
+          advanced-security: true

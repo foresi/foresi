@@ -1,0 +1,30 @@
+name: REUSE
+
+# Every file states its licence and copyright, per the REUSE specification 3.3
+# (https://reuse.software/spec-3.3/): PHP files in their SPDX header, the rest
+# in REUSE.toml, the licence texts in LICENSES/. Not a required check.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  reuse:
+    name: REUSE
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: reuse lint
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0

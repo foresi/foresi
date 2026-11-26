@@ -10,6 +10,10 @@ Foresi is a young project with a single lead maintainer. This page says who deci
 
 New maintainers are invited from regular contributors once they have a record of good reviews and pull requests.
 
+## Reviews
+
+Every change reaches `main` through a pull request whose required checks pass: the tests with mutation testing, the static analysis, the end-to-end tests and the Conventional Commits check. No one can push to `main` directly or bypass these rules, the lead maintainer included. With one maintainer there is no second person to approve a pull request, and GitHub does not let authors approve their own, so pull requests need no approval yet. The automated checks stand in for it, together with the workflow audit (zizmor), code scanning, the dependency review and the REUSE check. Required review by a second person, through [CODEOWNERS](.github/CODEOWNERS), starts when there is a second maintainer. Until then the OpenSSF Scorecard checks Code-Review and Branch-Protection stay low, and we say so rather than work around them.
+
 ## How decisions are made
 
 - **Ideas and features** start in [Discussions › Ideas](https://github.com/foresi/foresi/discussions/categories/ideas). An idea becomes an issue once its scope is clear.
