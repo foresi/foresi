@@ -3,6 +3,8 @@ nav:
         deals: Deals
         sales_settings: Sales
 sales:
+    inbox_action:
+        create_deal: Create deal
     cancel: Cancel
     save: Save
     keep: Keep
@@ -322,3 +324,11 @@ sales:
         interval_invalid: Enter a whole number from 1 to 99.
         cycles_invalid: Enter a whole number from 1 to 999, or leave it empty for no end.
         status_unknown: Choose open, won or lost.
+inbox_action:
+    inbox:
+        actions:
+            create_deal:
+                title: Title
+                clientPartyId: Client
+                description: Description
+                markDone: Mark the item done

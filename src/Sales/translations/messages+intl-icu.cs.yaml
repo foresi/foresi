@@ -3,6 +3,8 @@ nav:
         deals: Obchody
         sales_settings: Obchody
 sales:
+    inbox_action:
+        create_deal: Vytvořit obchod
     cancel: Zrušit
     save: Uložit
     keep: Ponechat
@@ -322,3 +324,11 @@ sales:
         interval_invalid: Zadejte celé číslo od 1 do 99.
         cycles_invalid: Zadejte celé číslo od 1 do 999, nebo nechte prázdné, když nekončí.
         status_unknown: Vyberte otevřený, vyhraný nebo prohraný.
+inbox_action:
+    inbox:
+        actions:
+            create_deal:
+                title: Název
+                clientPartyId: Klient
+                description: Popis
+                markDone: Označit položku jako hotovou
