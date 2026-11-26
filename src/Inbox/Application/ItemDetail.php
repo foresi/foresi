@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Application;
 
+use Foresi\Inbox\Contract\InboxAttachment;
+use Foresi\Inbox\Contract\InboxItemView;
+use Foresi\Inbox\Contract\InboxOutput;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\MailMessageView;
@@ -61,5 +64,36 @@ final readonly class ItemDetail
         }
 
         return $warnings;
+    }
+
+    /**
+     * The item as other modules read it (InboxItems::find). Another person than
+     * the owner learns nothing of the owner's mailbox: not the thread, nor the
+     * outputs they do not see.
+     */
+    public function view(bool $owner): InboxItemView
+    {
+        $item = $this->item;
+        $outputs = $owner ? $this->outputs : array_values(array_filter($this->outputs, static fn (OutputView $output): bool => $output->available));
+
+        return new InboxItemView(
+            $item->id(),
+            $item->ownerUserId(),
+            $item->state()->value,
+            $item->receivedAt(),
+            $this->message?->from,
+            $item->originalFrom(),
+            $this->message->verdict ?? SenderCheck::UNKNOWN,
+            $item->isForwarded(),
+            $item->contactId(),
+            $item->companyId(),
+            $this->message->subject ?? '',
+            $this->text,
+            array_map(static fn (MailAttachment $attachment): InboxAttachment => new InboxAttachment($attachment->index, $attachment->name, $attachment->contentType, $attachment->size), $this->attachments),
+            $owner ? array_map(static fn (InboxItem $other): string => $other->id(), $this->thread) : [],
+            array_map(static fn (OutputView $output): InboxOutput => new InboxOutput($output->output->kind(), $output->output->recordId(), $output->output->addedAt()), $outputs),
+            $item->emailActivityId(),
+            $item->duplicateOfPurpose(),
+        );
     }
 }

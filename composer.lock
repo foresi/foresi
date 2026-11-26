@@ -2744,7 +2744,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Inbox",
-                "reference": "fcb745e7a14a7ad104d98f716e2f79c4927787c4"
+                "reference": "3c042de77803c7f33f6244c00cc518570900cf92"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2761,6 +2761,7 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
+                "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
