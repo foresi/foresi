@@ -95,6 +95,8 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_lists', 'api_v1_fields', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
         'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_project_budget', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
+        // Their own My priorities: a star is the person's own, on a task they see (plan 37.2).
+        'api_v1_operation_tasks.star', 'api_v1_operation_tasks.unstar', 'api_v1_operation_tasks.starred.reorder',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',
         'api_v1_operation_projects.create', 'api_v1_operation_projects.update', 'api_v1_operation_projects.archive', 'api_v1_operation_projects.restore',
         'api_v1_operation_work.project_budget.add_change', 'api_v1_operation_work.project_budget.remove_change', 'api_v1_operation_work.project_budget.set_counting',
@@ -116,7 +118,7 @@ final class GuestAccessTest extends WebTestCase
         'app_tasks', 'app_task_list_projects', 'app_task_list_labels', 'app_task_new',
         'app_task', 'app_task_comment_add', 'app_task_comment_edit', 'app_task_comment_delete', 'app_task_comment_restore', 'app_task_mention_candidates',
         'app_task_title', 'app_task_description', 'app_task_status', 'app_task_responsible', 'app_task_due', 'app_task_priority', 'app_task_custom_field',
-        'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_watchers', 'app_task_subtask_new',
+        'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_star', 'app_task_unstar', 'app_task_star_move', 'app_task_watchers', 'app_task_subtask_new',
         'app_markdown_preview', 'app_attachment', 'app_attachment_upload', 'app_attachment_delete', 'app_attachment_restore',
         // Their own inbox, which holds only the tasks they see.
         'app_notifications', 'app_notifications_read_all', 'app_notification_done', 'app_notification_undone',

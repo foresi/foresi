@@ -21,6 +21,7 @@ use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskStar;
 use Foresi\Work\Domain\TaskWatcher;
 
 /**
@@ -30,7 +31,8 @@ use Foresi\Work\Domain\TaskWatcher;
  * through it, so a view holds the same tasks in both.
  *
  * "Me" names the membership of the person looking, bound as :me; one who has none is no
- * one's "me", so a condition on them matches no task. A label in the trash labels nothing.
+ * one's "me", so a condition on them matches no task. Starred and the sort by my order are
+ * about the stars of the person looking, never anyone else's. A label in the trash labels nothing.
  * A finished task is in a due bucket only by its date: overdue is past and not finished.
  */
 final readonly class TaskListDql
@@ -74,10 +76,20 @@ final readonly class TaskListDql
             $parameters[$prefix.'_open'] = [self::unfinished(), ArrayParameterType::STRING];
         }
         if (str_contains($where, ':me')) {
-            $parameters['me'] = [$this->me?->id() ?? self::NO_ONE, null];
+            $parameters += $this->meParameter();
         }
 
         return [$where, $parameters];
+    }
+
+    /**
+     * The parameter that names the person looking, as a condition or the sort by my order reads it.
+     *
+     * @return array<string, array{mixed, null}>
+     */
+    public function meParameter(): array
+    {
+        return ['me' => [$this->me?->id() ?? self::NO_ONE, null]];
     }
 
     /**
@@ -99,6 +111,11 @@ final readonly class TaskListDql
             TaskLists::SORT_UPDATED => [['t.updatedAt', $dir]],
             TaskLists::SORT_PROJECT => [['p.name', $dir]],
             TaskLists::SORT_TITLE => [['t.title', $dir]],
+            // The starred in the person's order, the rest after them whichever way.
+            TaskLists::SORT_MY_ORDER => [
+                [\sprintf('CASE WHEN EXISTS (SELECT so_e.id FROM %s so_e WHERE so_e.task = t AND so_e.membership = :me) THEN 0 ELSE 1 END', TaskStar::class), 'ASC'],
+                [\sprintf('(SELECT so_p.position FROM %s so_p WHERE so_p.task = t AND so_p.membership = :me)', TaskStar::class), $dir],
+            ],
             default => [],
         };
         $ties = [['CASE WHEN t.dueOn IS NULL THEN 1 ELSE 0 END', 'ASC'], ['t.dueOn', 'ASC'], [$priority, 'DESC'], ['t.createdAt', 'DESC'], ['t.id', 'DESC']];
@@ -208,6 +225,7 @@ final readonly class TaskListDql
             TaskLists::DUE => $this->due($condition, $name),
             TaskLists::LABELS => $this->labels($condition->op, $values, $name),
             TaskLists::CREATED_BY => $this->createdBy($condition->op, $values, $name),
+            TaskLists::STARRED => [DqlConditions::derivedBoolean($condition, \sprintf('EXISTS (SELECT st_%1$s.id FROM %2$s st_%1$s WHERE st_%1$s.task = t AND st_%1$s.membership = :me)', $name, TaskStar::class)), []],
             default => throw new \LogicException(\sprintf('The field "%s" of the tasks has no DQL.', $condition->field)),
         };
     }

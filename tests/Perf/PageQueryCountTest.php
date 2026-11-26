@@ -43,9 +43,11 @@ final class PageQueryCountTest extends WebTestCase
         'invoice' => 150,
         'received documents' => 171,
         'projects' => 132,
-        'project' => 213,
-        'tasks' => 193,
-        'task' => 172,
+        'project' => 215,
+        // My priorities is a seventh shipped view of the task list, which a first visit stores
+        // one lookup by system key at a time (SavedViews).
+        'tasks' => 211,
+        'task' => 173,
         'time week' => 122,
         'time report' => 154,
         'deals' => 189,

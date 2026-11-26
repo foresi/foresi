@@ -291,6 +291,7 @@ ui:
   empty_value: Not set
   table:
     caption: Table
+    order: Order
     select_all: Select all rows
     select_row: 'Select row {label}'
     actions: Actions

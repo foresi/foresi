@@ -11,6 +11,7 @@ namespace Foresi\Work\Application;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\StatusType;
+use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Psr\Clock\ClockInterface;
 
@@ -29,6 +30,7 @@ final readonly class ManageWorkflow
         private StatusNames $statusNames,
         private ClockInterface $clock,
         private WorkUnit $unit,
+        private TaskStars $stars,
     ) {
     }
 
@@ -72,7 +74,15 @@ final readonly class ManageWorkflow
             $this->projects->statuses($status->project()),
         );
         $this->assertKept($after);
-        $this->unit->run(static fn () => $status->retype($type));
+        $this->unit->run(function () use ($status, $type): void {
+            // Its tasks become finished: they leave My priorities, as a task finished on its own does.
+            if (!$status->type()->isFinished() && $type->isFinished()) {
+                foreach ($this->tasks->inStatus($status) as $task) {
+                    $this->unstar($task);
+                }
+            }
+            $status->retype($type);
+        });
     }
 
     /**
@@ -101,6 +111,9 @@ final readonly class ManageWorkflow
         $this->unit->run(function () use ($status, $target, $rest): void {
             $now = $this->clock->now();
             foreach ($this->tasks->inStatus($status) as $task) {
+                if (!$status->type()->isFinished() && $target->type()->isFinished()) {
+                    $this->unstar($task);
+                }
                 $task->moveToStatus($target, $now);
             }
             Positions::renumber($rest);
@@ -186,6 +199,13 @@ final readonly class ManageWorkflow
         }
         if (!\in_array(StatusType::Done, $types, true)) {
             throw new WorkRefused('last_done');
+        }
+    }
+
+    private function unstar(Task $task): void
+    {
+        foreach ($this->stars->onTask($task) as $star) {
+            $this->stars->remove($star);
         }
     }
 }

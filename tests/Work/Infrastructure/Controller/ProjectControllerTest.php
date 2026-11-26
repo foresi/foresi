@@ -304,28 +304,30 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame('Logo', trim($design->filter('tbody tr[data-row-child] [data-row-link]')->text()));
         $wireframes = $design->filter('tbody tr')->eq(0)->filter('td');
         self::assertSame('/tasks/'.$this->taskId('Wireframes'), $wireframes->eq(0)->filter('a')->attr('href'));
+        // The star comes right after the title (plan 37.2).
+        self::assertSame('false', $wireframes->eq(1)->filter('button[aria-pressed]')->attr('aria-pressed'));
         // The status, the responsible person, the due date and the priority change in the row.
-        self::assertSame('Status: In progress', $this->shown($wireframes->eq(1)));
-        self::assertCount(1, $wireframes->eq(1)->filter('[data-inline-edit-trigger] .bg-badge-amber'));
-        self::assertSame(['To do', 'In progress', 'Done'], $wireframes->eq(1)->filter('[role=menu] button')->each(static fn (Crawler $item): string => trim($item->text())));
-        self::assertSame('Responsible: Example Company', $this->shown($wireframes->eq(2)));
-        self::assertSame(['Nobody', 'Example Company'], $wireframes->eq(2)->filter('[role=menu] button .truncate')->each(static fn (Crawler $item): string => trim($item->text())));
-        self::assertStringStartsWith('Due date: Overdue ', $this->shown($wireframes->eq(3)));
-        self::assertCount(1, $wireframes->eq(3)->filter('[data-inline-edit-trigger] .bg-badge-red'));
-        self::assertSame('Priority: High', $this->shown($wireframes->eq(4)));
+        self::assertSame('Status: In progress', $this->shown($wireframes->eq(2)));
+        self::assertCount(1, $wireframes->eq(2)->filter('[data-inline-edit-trigger] .bg-badge-amber'));
+        self::assertSame(['To do', 'In progress', 'Done'], $wireframes->eq(2)->filter('[role=menu] button')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertSame('Responsible: Example Company', $this->shown($wireframes->eq(3)));
+        self::assertSame(['Nobody', 'Example Company'], $wireframes->eq(3)->filter('[role=menu] button .truncate')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertStringStartsWith('Due date: Overdue ', $this->shown($wireframes->eq(4)));
+        self::assertCount(1, $wireframes->eq(4)->filter('[data-inline-edit-trigger] .bg-badge-red'));
+        self::assertSame('Priority: High', $this->shown($wireframes->eq(5)));
         // A priority reads as a badge in its tone, as the status does, and its menu shows the tones.
-        self::assertCount(1, $wireframes->eq(4)->filter('[data-inline-edit-trigger] .bg-badge-amber'));
-        self::assertSame(['No priority', 'Low', 'Medium', 'High', 'Urgent'], $wireframes->eq(4)->filter('[role=menu] button')->each(static fn (Crawler $item): string => trim($item->text())));
-        self::assertCount(4, $wireframes->eq(4)->filter('[role=menu] button span.rounded-sm'));
-        self::assertCount(1, $wireframes->eq(4)->filter('[role=menu] button .bg-badge-red-text'));
-        self::assertSame(['/tasks/'.$this->taskId('Wireframes').'/status', '/tasks/'.$this->taskId('Wireframes').'/responsible', '/tasks/'.$this->taskId('Wireframes').'/due', '/tasks/'.$this->taskId('Wireframes').'/priority'], $wireframes->slice(1, 4)->each(static fn (Crawler $cell): string => (string) $cell->filter('form')->attr('action')));
+        self::assertCount(1, $wireframes->eq(5)->filter('[data-inline-edit-trigger] .bg-badge-amber'));
+        self::assertSame(['No priority', 'Low', 'Medium', 'High', 'Urgent'], $wireframes->eq(5)->filter('[role=menu] button')->each(static fn (Crawler $item): string => trim($item->text())));
+        self::assertCount(4, $wireframes->eq(5)->filter('[role=menu] button span.rounded-sm'));
+        self::assertCount(1, $wireframes->eq(5)->filter('[role=menu] button .bg-badge-red-text'));
+        self::assertSame(['/tasks/'.$this->taskId('Wireframes').'/status', '/tasks/'.$this->taskId('Wireframes').'/responsible', '/tasks/'.$this->taskId('Wireframes').'/due', '/tasks/'.$this->taskId('Wireframes').'/priority'], $wireframes->slice(2, 4)->each(static fn (Crawler $cell): string => (string) $cell->filter('form')->attr('action')));
         self::assertSame(['/projects/'.$id], array_values(array_unique($wireframes->filter('input[name="return"]')->each(static fn (Crawler $input): string => (string) $input->attr('value')))));
-        self::assertSame(['Design'], $wireframes->eq(5)->filter('[data-badges] > *')->each(static fn (Crawler $badge): string => trim($badge->text())));
+        self::assertSame(['Design'], $wireframes->eq(6)->filter('[data-badges] > *')->each(static fn (Crawler $badge): string => trim($badge->text())));
         // No priority and no date read as a dash, which a screen reader hears as what it is.
         $logo = $design->filter('tbody tr[data-row-child] td');
-        self::assertSame('Priority: No priority', $this->shown($logo->eq(4)));
-        self::assertSame('Due date: No due date', $this->shown($logo->eq(3)));
-        self::assertSame('Responsible: Nobody', $this->shown($logo->eq(2)));
+        self::assertSame('Priority: No priority', $this->shown($logo->eq(5)));
+        self::assertSame('Due date: No due date', $this->shown($logo->eq(4)));
+        self::assertSame('Responsible: Nobody', $this->shown($logo->eq(3)));
 
         // The finished task is left out until the filter asks for it.
         self::assertStringNotContainsString('Launch', $crawler->filter('main')->text());

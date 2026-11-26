@@ -20,19 +20,19 @@ use Foresi\Shared\Contract\Refused;
  */
 final class WorkRefused extends \DomainException implements Refused
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'estimate', 'date', 'hours_invalid', 'hours_zero', 'budget_below_zero', 'budget_note', 'budget_counting', 'source_not_on_project'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'estimate', 'date', 'hours_invalid', 'hours_zero', 'budget_below_zero', 'budget_note', 'budget_counting', 'source_not_on_project', 'star_finished', 'star_order'];
 
     /** What the person may not do, whatever they send: 403. */
     private const array FORBIDDEN = ['not_allowed', 'comment_not_yours', 'task_not_yours', 'time_not_yours'];
 
     /** What the data does not allow now: 409. */
-    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'budget_below_zero'];
+    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'budget_below_zero', 'star_finished'];
 
     /** The input field a reason is about, where it is always the same one. */
     private const array FIELDS = [
         'client' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body',
         'duration' => 'minutes', 'time_note' => 'note', 'time_task' => 'taskId', 'estimate' => 'estimateMinutes',
-        'hours_invalid' => 'hours', 'hours_zero' => 'hours', 'budget_note' => 'note', 'budget_counting' => 'counting', 'source_not_on_project' => 'sourceActivityId',
+        'hours_invalid' => 'hours', 'hours_zero' => 'hours', 'budget_note' => 'note', 'budget_counting' => 'counting', 'source_not_on_project' => 'sourceActivityId', 'star_order' => 'taskIds',
     ];
 
     /** For people and agents; never quoting what someone wrote. */
@@ -74,6 +74,8 @@ final class WorkRefused extends \DomainException implements Refused
         'budget_note' => 'A note of a budget change has at most 500 characters.',
         'budget_counting' => 'Counting is all or billable.',
         'source_not_on_project' => 'The source must be an activity linked to the project.',
+        'star_finished' => 'The task is finished; a finished task leaves My priorities, so it is not starred.',
+        'star_order' => 'Name every task of My priorities once, in the new order; foresi_search_tasks with starred lists them.',
     ];
 
     public function __construct(public readonly string $reason, private readonly ?string $field = null)

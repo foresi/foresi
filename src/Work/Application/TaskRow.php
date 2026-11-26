@@ -54,6 +54,7 @@ final readonly class TaskRow
         public ?\DateTimeImmutable $createdAt = null,
         public ?\DateTimeImmutable $updatedAt = null,
         public ?string $parentTitle = null,
+        public bool $starred = false,
     ) {
     }
 }

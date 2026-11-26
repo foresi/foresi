@@ -16,7 +16,8 @@ export default class extends Controller {
         if (event.button !== 0 || event.shiftKey || event.altKey || event.defaultPrevented) {
             return;
         }
-        if (event.target.closest(INTERACTIVE) || String(window.getSelection()).length > 0) {
+        // The grip of a row put in order by hand drags it; it never opens the row.
+        if (event.target.closest(INTERACTIVE) || event.target.closest('[data-row-reorder-handle]') || String(window.getSelection()).length > 0) {
             return;
         }
         const row = event.target.closest('tr');

@@ -69,9 +69,11 @@ final readonly class TaskListQuery
         #[SerializedName('updated_to')]
         #[Assert\Regex(pattern: self::DATE, message: 'Use a date, YYYY-MM-DD.')]
         public ?string $updatedTo = null,
-        // One of due, priority, created, updated, project and title; a minus first for backwards. None is the newest first.
-        #[Assert\Regex(pattern: '/^-?(due|priority|created|updated|project|title)$/', message: 'Sort by due, priority, created, updated, project or title, a minus first for backwards.')]
+        // One of due, priority, created, updated, project, title and my_order; a minus first for backwards. None is the newest first.
+        #[Assert\Regex(pattern: '/^-?(due|priority|created|updated|project|title|my_order)$/', message: 'Sort by due, priority, created, updated, project, title or my_order, a minus first for backwards.')]
         public ?string $sort = null,
+        // True for the tasks the person starred for My priorities, false for the others.
+        public ?bool $starred = null,
     ) {
     }
 
@@ -92,6 +94,9 @@ final readonly class TaskListQuery
         }
         if (null !== $this->clientId) {
             $conditions[] = new Condition(TaskLists::CLIENT, 'is', $this->clientId);
+        }
+        if (null !== $this->starred) {
+            $conditions[] = new Condition(TaskLists::STARRED, 'is', $this->starred);
         }
         foreach ([[TaskLists::CREATED, $this->createdFrom, $this->createdTo], [TaskLists::UPDATED, $this->updatedFrom, $this->updatedTo]] as [$field, $from, $to]) {
             if (null !== $from) {

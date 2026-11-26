@@ -175,6 +175,7 @@ final readonly class WorkJson
             'subtask_count' => $task->subtaskCount,
             'done' => $task->done,
             'private' => $task->private,
+            'starred' => $task->starred,
             'url' => $this->urls->generate(TaskController::ROUTE, ['id' => $task->id], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
     }

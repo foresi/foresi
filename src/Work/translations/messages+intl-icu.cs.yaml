@@ -28,6 +28,7 @@ work:
   task:
     field:
       title: Název
+      starred: Hvězdička
       description: Popis
       section: Sekce
       status: Stav
@@ -50,6 +51,8 @@ work:
     create: Přidat úkol
     added: 'Úkol „{title}“ je přidaný.'
     new_subtask: Nový podúkol
+    star: Přidat do Mých priorit
+    unstar: Odebrat z Mých priorit
     create_subtask: Přidat podúkol
     subtask_added: 'Podúkol „{title}“ je přidaný.'
     details: Podrobnosti
@@ -115,6 +118,8 @@ work:
     budget_note: Poznámka může mít nejvýš 500 znaků.
     budget_counting: Vyberte veškerý čas, nebo jen fakturovatelný.
     source_not_on_project: Zdrojem musí být aktivita tohoto projektu.
+    star_finished: Hotový úkol se do priorit nepřidává.
+    star_order: Seřaďte všechny úkoly z Mých priorit, každý jednou.
   time:
     title: Čas
     log: Zapsat čas
@@ -703,6 +708,7 @@ work:
       unassigned: Bez řešitele
       high: Vysoká a urgentní
       no_due: Bez termínu
+      priorities: Moje priority
     field:
       client: Klient
       status_type: Typ stavu
@@ -711,6 +717,7 @@ work:
       created: Vytvořeno
       updated: Změněno
       logged: Odpracováno
+      starred: S hvězdičkou
     group_by:
       none: Neseskupovat
       client: Klient
@@ -719,6 +726,10 @@ work:
       priority: Priorita
       status_type: Typ stavu
       due: Termín
+    reorder:
+      drag: Přetáhněte pro změnu pořadí
+      up: Posunout výš
+      down: Posunout níž
     group:
       no_client: Bez klienta
       no_responsible: Bez řešitele
@@ -735,6 +746,8 @@ work:
       high_text: Tady uvidíte nehotové úkoly s vysokou nebo urgentní prioritou.
       no_due_title: Každý úkol má termín
       no_due_text: Tady uvidíte nehotové úkoly bez termínu.
+      priorities_title: Zatím nemáte žádné priority
+      priorities_text: Označte hvězdičkou úkoly, na kterých chcete pracovat, a seřaďte si je přetažením. Hvězdičku vidíte jen vy.
       filtered_title: Nic tomu neodpovídá
       filtered: Těmto podmínkám neodpovídá žádný úkol.
       reset: Obnovit pohled

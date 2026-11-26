@@ -49,6 +49,8 @@
 {% block actions %}
     {# The timer, the task's main action, comes first on every screen; a new subtask is the secondary button, sharing sits in "⋯", deleting last. #}
     {% set subtaskable = not task.parent and not task.projectArchived %}
+    {# My priorities: the star is the person's own, on and off with one press; a finished task leaves the list, so it offers only taking the star off. #}
+    {% set starrable = row.starred or not row.done %}
     <twig:Ui:MoreActions menuId="task-menu" :menuSize="record_action_size" data-task-menu>
         <twig:block name="primary">
             {% if timerHere %}
@@ -64,8 +66,29 @@
                 </form>
             {% endif %}
         </twig:block>
-        <twig:block name="buttons">{% if subtaskable %}<twig:Ui:Button icon="plus" :size="record_action_size" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif %}</twig:block>
-        <twig:block name="phone">{% if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
+        <twig:block name="buttons">
+            {%- if starrable -%}
+                <form method="post" action="{{ path(row.starred ? 'app_task_unstar' : 'app_task_star', {id: row.id}) }}" data-task-star>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    {#- Pressed while the task is starred, as GitHub's Star button; the label says what a press does. -#}
+                    {%- if row.starred -%}
+                        <twig:Ui:Button type="submit" icon="star" :size="record_action_size" :pressed="true">{{ 'work.task.unstar'|trans }}</twig:Ui:Button>
+                    {%- else -%}
+                        <twig:Ui:Button type="submit" icon="star" :size="record_action_size" aria-pressed="false">{{ 'work.task.star'|trans }}</twig:Ui:Button>
+                    {%- endif -%}
+                </form>
+            {%- endif -%}
+            {%- if subtaskable %}<twig:Ui:Button icon="plus" :size="record_action_size" :href="path('app_task_subtask_new', {id: row.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-subtask-new-open>{{ 'work.task.new_subtask'|trans }}</twig:Ui:Button>{% endif -%}
+        </twig:block>
+        <twig:block name="phone">
+            {%- if starrable -%}
+                <form method="post" action="{{ path(row.starred ? 'app_task_unstar' : 'app_task_star', {id: row.id}) }}" role="none" data-task-menu-star>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:MenuItem type="submit" icon="star">{{ (row.starred ? 'work.task.unstar' : 'work.task.star')|trans }}</twig:Ui:MenuItem>
+                </form>
+            {%- endif -%}
+            {%- if subtaskable %}<twig:Ui:MenuItem :href="path('app_task_subtask_new', {id: row.id})" icon="plus" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-menu-subtask>{{ 'work.task.new_subtask'|trans }}</twig:Ui:MenuItem>{% endif -%}
+        </twig:block>
         {% if task.shareable %}<twig:Ui:MenuItem :href="path('app_sharing', {kind: 'tasks', id: row.id})" icon="share-2" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-task-share>{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
         <twig:block name="last">
             {% if row.deletable %}

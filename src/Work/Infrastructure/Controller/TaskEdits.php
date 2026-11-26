@@ -139,6 +139,28 @@ final readonly class TaskEdits
     }
 
     /**
+     * The star of My priorities: on and off for whoever sees the task, as long as it is not
+     * finished, since a finished task leaves the list (plan 37.2).
+     *
+     * @return array{toggle: array{action: string, token: string, pressed: bool, label: string, icon: string, fields: array<string, string>}}|null
+     */
+    public function star(TaskRow $task): ?array
+    {
+        if ($task->done && !$task->starred) {
+            return null;
+        }
+
+        return ['toggle' => [
+            'action' => $this->urls->generate($task->starred ? 'app_task_unstar' : 'app_task_star', ['id' => $task->id]),
+            'token' => $this->token,
+            'pressed' => $task->starred,
+            'label' => $task->starred ? $this->labels['unstar'] : $this->labels['star'],
+            'icon' => 'star',
+            'fields' => ['return' => $this->return],
+        ]];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function props(TaskRow $task, string $kind, string $route, string $name, string $label, string $value): array

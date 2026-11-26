@@ -92,14 +92,14 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertSame(['Call the client', 'Order the hosting'], $this->titles($crawler, 'today'));
         $overdue = $crawler->filter('[data-task-group="overdue"] tbody tr td');
         // Each property but the project changes in the row.
-        self::assertSame(['Website', 'Status: To do', 'Responsible: Example Company', 'Due date: Overdue 2026-11-18'], $overdue->slice(1, 4)->each(static fn (Crawler $cell): string => self::shown($cell)));
-        self::assertCount(1, $overdue->eq(4)->filter('[data-inline-edit-trigger] .bg-badge-red'));
+        self::assertSame(['Website', 'Status: To do', 'Responsible: Example Company', 'Due date: Overdue 2026-11-18'], $overdue->slice(2, 4)->each(static fn (Crawler $cell): string => self::shown($cell)));
+        self::assertCount(1, $overdue->eq(5)->filter('[data-inline-edit-trigger] .bg-badge-red'));
         self::assertSame('/tasks/'.$this->taskId('Fix the form'), $overdue->eq(0)->filter('a')->attr('href'));
         // The row opens the task in the sheet.
         self::assertNotNull($overdue->eq(0)->filter('a[data-row-link]')->attr('data-sheet'));
-        self::assertSame('/tasks/'.$this->taskId('Fix the form').'/due', $overdue->eq(4)->filter('form')->attr('action'));
-        self::assertSame('/my-tasks?view=assigned', $overdue->eq(4)->filter('input[name="return"]')->attr('value'));
-        self::assertSame('Priority: High', self::shown($crawler->filter('[data-task-group="today"] tbody tr')->eq(0)->filter('td')->eq(5)));
+        self::assertSame('/tasks/'.$this->taskId('Fix the form').'/due', $overdue->eq(5)->filter('form')->attr('action'));
+        self::assertSame('/my-tasks?view=assigned', $overdue->eq(5)->filter('input[name="return"]')->attr('value'));
+        self::assertSame('Priority: High', self::shown($crawler->filter('[data-task-group="today"] tbody tr')->eq(0)->filter('td')->eq(6)));
         self::assertSame(['Write the copy'], $this->titles($crawler, 'upcoming'));
         self::assertSame(['Plan the launch'], $this->titles($crawler, 'later'));
         // Nothing without a date: the group is left out.
