@@ -10,7 +10,7 @@ namespace Foresi\Sales\Contract;
 
 /**
  * What fulfils a planned invoice of a won deal: an issued invoice, or a
- * recurring invoice that issues them. Since module API 1.6.
+ * recurring invoice that issues them. Since module API 1.7.
  */
 enum BillingDocumentType: string
 {

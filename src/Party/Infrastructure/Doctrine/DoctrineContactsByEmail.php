@@ -23,6 +23,10 @@ use Foresi\Party\Infrastructure\Directory\PartySummaryFactory;
  * Finds contacts by e-mail address through the address key of party_email (an index for an
  * address, a suffix match for a domain). It does not ask who is signed in: mail is received with
  * nobody signed in, and it only returns summaries (see the contract).
+ *
+ * A contact with several matching addresses is returned once because the addresses are matched in
+ * a subquery, not by SELECT DISTINCT over the joined rows: PostgreSQL cannot compare the json
+ * columns of a party (its roles) for DISTINCT.
  */
 final readonly class DoctrineContactsByEmail implements ContactsByEmail
 {
@@ -38,7 +42,7 @@ final readonly class DoctrineContactsByEmail implements ContactsByEmail
         }
         /** @var list<Party> $parties */
         $parties = $this->em->createQuery(
-            'SELECT DISTINCT p FROM '.Party::class.' p JOIN '.PartyEmail::class.' e WITH e.party = p WHERE e.addressKey = :key AND p.archivedAt IS NULL ORDER BY p.displayName, p.id',
+            'SELECT p FROM '.Party::class.' p WHERE p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class.' e WHERE e.addressKey = :key) AND p.archivedAt IS NULL ORDER BY p.displayName, p.id',
         )->setParameter('key', $key)->getResult();
 
         return array_map($this->summary(...), $parties);
@@ -54,7 +58,7 @@ final readonly class DoctrineContactsByEmail implements ContactsByEmail
         $suffix = '%@'.addcslashes($domain, '%_\\');
         /** @var list<Party> $parties */
         $parties = $this->em->createQuery(
-            'SELECT DISTINCT p FROM '.Party::class.' p JOIN '.PartyEmail::class." e WITH e.party = p WHERE e.addressKey LIKE :suffix ESCAPE '\\' AND p.kind <> :person AND p.archivedAt IS NULL ORDER BY p.displayName, p.id",
+            'SELECT p FROM '.Party::class.' p WHERE p.id IN (SELECT IDENTITY(e.party) FROM '.PartyEmail::class." e WHERE e.addressKey LIKE :suffix ESCAPE '\\') AND p.kind <> :person AND p.archivedAt IS NULL ORDER BY p.displayName, p.id",
         )->setParameter('suffix', $suffix)->setParameter('person', PartyKind::Person)->getResult();
 
         return array_map($this->summary(...), $parties);

@@ -45,7 +45,7 @@ final readonly class InlineTaskEdits
     public function for(array $tasks, string $return): TaskEdits
     {
         $seeds = array_column(array_map(static fn (Person $person): array => [$person->membershipId, $person->userId], $this->people->all()), 1, 0);
-        $priorities = array_map(fn (Priority $priority): array => ['value' => $priority->value, 'label' => $this->translator->trans('work.priority.'.$priority->value)], Priority::cases());
+        $priorities = array_map(fn (Priority $priority): array => ['value' => $priority->value, 'label' => $this->translator->trans('work.priority.'.$priority->value), 'tone' => TaskEdits::PRIORITY_TONES[$priority->value]], Priority::cases());
 
         return new TaskEdits(
             $this->urls,
@@ -60,6 +60,7 @@ final readonly class InlineTaskEdits
                 'value' => $person->id,
                 'name' => $person->name,
                 'seed' => $seeds[$person->id] ?? $person->id,
+                'user' => $seeds[$person->id] ?? null,
             ], $people), $this->queries->assignable(array_map(static fn (TaskRow $task): string => $task->id, $tasks))),
             $seeds,
             $priorities,

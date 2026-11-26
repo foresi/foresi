@@ -12,7 +12,7 @@
             <twig:block name="trigger">
                 <button type="button" id="{{ buttonId }}" aria-haspopup="menu" aria-expanded="false" aria-controls="{{ menuId }}" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" class="{{ picker.triggerClasses }}" data-person-picker-trigger>
                     <span class="sr-only">{{ label }}: </span>
-                    <twig:Ui:Avatar :name="chosen ? chosen.name : ''" :seed="chosen ? chosen.seed : null" />
+                    <twig:Ui:Avatar :name="chosen ? chosen.name : ''" :seed="chosen ? chosen.seed : null" :user="chosen ? chosen.user : null" />
                     {%- if compact and not chosen -%}
                         <span class="sr-only">{{ noneLabel }}</span>
                     {%- else -%}
@@ -23,7 +23,7 @@
             </twig:block>
             {% for row in picker.rows %}
                 <twig:Ui:MenuItem type="submit" :name="name" :value="row.value" :checked="row.value == value" data-action="dropdown#close" data-person-picker-option="{{ row.value }}">
-                    <twig:Ui:Avatar :name="row.name" :seed="row.seed" />
+                    <twig:Ui:Avatar :name="row.name" :seed="row.seed" :user="row.user" />
                     <span class="min-w-0 truncate">{{ row.value == '' ? noneLabel : row.name }}</span>
                 </twig:Ui:MenuItem>
             {% endfor %}
@@ -32,7 +32,7 @@
     {% if compact %}
         {# Without JavaScript the person reads as plain text. #}
         <span class="hidden min-w-0 items-center gap-1.5 [@media(scripting:none)]:flex">
-            {%- if chosen %}<twig:Ui:Avatar :name="chosen.name" :seed="chosen.seed" /><span class="min-w-0 truncate">{{ chosen.name }}</span>{% else %}<span class="sr-only">{{ label }}: </span><twig:Ui:EmptyValue :label="noneLabel" />{% endif -%}
+            {%- if chosen %}<twig:Ui:Avatar :name="chosen.name" :seed="chosen.seed" :user="chosen.user" /><span class="min-w-0 truncate">{{ chosen.name }}</span>{% else %}<span class="sr-only">{{ label }}: </span><twig:Ui:EmptyValue :label="noneLabel" />{% endif -%}
         </span>
     {% else %}
         <noscript>

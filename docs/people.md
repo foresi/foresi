@@ -16,7 +16,7 @@ A person may belong to several organisations, with a different role in each.
 
 Every person, guests included, has a **Profile** behind the avatar menu. It gathers their own account in one place: the profile itself (photo, name, e-mail and language), security (two-factor sign-in), notifications, and connections (calendar feeds, inbox addresses, API tokens, or a guest's connected apps). The pages keep their addresses; each module adds its own to the profile's sidebar.
 
-The name and the language are edited in a dialog. A photo is a JPEG, PNG or WebP of at most 5 MB, cropped to a square in the browser; the server draws it anew as a 512 px JPEG, which drops all metadata such as the location. A new photo replaces the old one and Remove photo deletes it. The photo is shown only to people signed in, at `/people/{id}/photo`. The name and the language can also be changed with `PATCH /api/v1/me` or the MCP tool `foresi_update_profile` (see [the API](api.md)).
+The name and the language are edited in a dialog. A photo is a JPEG, PNG or WebP of at most 5 MB, cropped to a square in the browser; the server draws it anew as a 512 px JPEG, which drops all metadata such as the location. A new photo replaces the old one and Remove photo deletes it. The photo is shown only to people signed in, at `/people/{id}/photo`, wherever the person appears with an avatar: the avatar menu, the people list, who is responsible for a task, its watchers and comments, board cards and sharing. Contacts who are not users keep their initials. The name and the language can also be changed with `PATCH /api/v1/me` or the MCP tool `foresi_update_profile` (see [the API](api.md)).
 
 ## Invitations
 

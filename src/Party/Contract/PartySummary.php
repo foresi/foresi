@@ -21,7 +21,7 @@ final readonly class PartySummary
      * @param string|null  $email        the general e-mail address
      * @param string|null  $phone        the phone, else the mobile
      * @param list<string> $roles        customer, supplier, partner, authority
-     * @param int          $dueDays      how many days after issue an invoice to the contact is due (since module API 1.6)
+     * @param int          $dueDays      how many days after issue an invoice to the contact is due (since module API 1.7)
      */
     public function __construct(
         public string $id,

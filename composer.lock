@@ -3335,7 +3335,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "b4b18fe49c1f55060bdbfe7d512eb68562791dc8"
+                "reference": "1468c4b1a2647eee5e8f92952c3a0c29014216af"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3390,7 +3390,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.6.0"
+                "foresi/module-api": "1.7.0"
             },
             "type": "foresi-module",
             "extra": {

@@ -10,7 +10,7 @@ namespace Foresi\Sales\Contract;
 
 /**
  * An invoice or recurring invoice as Sales links a planned invoice of a won
- * deal to it. Since module API 1.6.
+ * deal to it. Since module API 1.7.
  */
 final readonly class BillingDocument
 {

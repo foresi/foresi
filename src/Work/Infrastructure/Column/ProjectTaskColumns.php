@@ -107,7 +107,7 @@ final readonly class ProjectTaskColumns implements DataSource
      */
     private function priority(TaskRow $task, array $context): string|array|null
     {
-        return TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $this->edits($context)?->priority($task));
+        return TaskEdits::cell(TaskEdits::priorityBadge($task->priority, $this->translator->trans('work.priority.'.$task->priority->value)), $this->edits($context)?->priority($task));
     }
 
     /**
@@ -120,6 +120,7 @@ final readonly class ProjectTaskColumns implements DataSource
         $seeds = $context[self::SEEDS] ?? [];
         $person = null === $task->responsibleId || null === $task->responsibleName ? null : [
             'avatar' => \is_array($seeds) && \is_string($seeds[$task->responsibleId] ?? null) ? $seeds[$task->responsibleId] : $task->responsibleId,
+            'user' => \is_array($seeds) && \is_string($seeds[$task->responsibleId] ?? null) ? $seeds[$task->responsibleId] : null,
             'text' => $task->responsibleName,
         ];
 

@@ -36,12 +36,12 @@ final class PersonPickerLogicTest extends TestCase
 
     public function testRowsKeepTheSeedOrNullAndNobodyComesFirst(): void
     {
-        $picker = $this->picker([['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1'], ['value' => 'm-2', 'name' => 'Petr']]);
+        $picker = $this->picker([['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1', 'user' => 'u-1'], ['value' => 'm-2', 'name' => 'Petr']]);
 
         self::assertSame([
-            ['value' => '', 'name' => '', 'seed' => null],
-            ['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1'],
-            ['value' => 'm-2', 'name' => 'Petr', 'seed' => null],
+            ['value' => '', 'name' => '', 'seed' => null, 'user' => null],
+            ['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1', 'user' => 'u-1'],
+            ['value' => 'm-2', 'name' => 'Petr', 'seed' => null, 'user' => null],
         ], $picker->rows());
         self::assertSame(['' => 'Nobody', 'm-1' => 'Jana', 'm-2' => 'Petr'], $picker->options());
     }
@@ -51,12 +51,12 @@ final class PersonPickerLogicTest extends TestCase
         $picker = $this->picker([['value' => 'm-1', 'name' => 'Jana']], null);
 
         self::assertSame(['m-1' => 'Jana'], $picker->options());
-        self::assertSame([['value' => 'm-1', 'name' => 'Jana', 'seed' => null]], $picker->rows());
+        self::assertSame([['value' => 'm-1', 'name' => 'Jana', 'seed' => null, 'user' => null]], $picker->rows());
     }
 
     public function testTheChosenPersonIsFoundByValue(): void
     {
-        self::assertSame(['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1'], $this->picker([['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1']], 'Nobody', 'm-1')->chosen());
+        self::assertSame(['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1', 'user' => null], $this->picker([['value' => 'm-1', 'name' => 'Jana', 'seed' => 'u-1']], 'Nobody', 'm-1')->chosen());
         self::assertNull($this->picker([['value' => 'm-1', 'name' => 'Jana']], 'Nobody', '')->chosen());
         self::assertNull($this->picker([['value' => 'm-1', 'name' => 'Jana']], 'Nobody', 'm-9')->chosen());
     }
@@ -87,6 +87,7 @@ final class PersonPickerLogicTest extends TestCase
         yield 'empty value' => [[['value' => '', 'name' => 'Jana']], 'r', 'responsible', 'Responsible'];
         yield 'no person name' => [[['value' => 'm-1']], 'r', 'responsible', 'Responsible'];
         yield 'seed not a string' => [[['value' => 'm-1', 'name' => 'Jana', 'seed' => 5]], 'r', 'responsible', 'Responsible'];
+        yield 'user not a string' => [[['value' => 'm-1', 'name' => 'Jana', 'user' => 5]], 'r', 'responsible', 'Responsible'];
     }
 
     /**

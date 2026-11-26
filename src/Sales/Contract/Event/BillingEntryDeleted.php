@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A planned invoice of a deal was removed from the billing plan of its deal. The payload is thin (ADR 0030):
- * read the deal for its billing plan. The subject is the deal. Since module API 1.6.
+ * read the deal for its billing plan. The subject is the deal. Since module API 1.7.
  */
 #[DomainEvent('sales.billing_entry.deleted', version: 1)]
 final readonly class BillingEntryDeleted implements DomainEventPayload

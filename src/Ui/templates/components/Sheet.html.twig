@@ -24,7 +24,7 @@
     {%- if not remote -%}
         {% if this.isResizable() %}
             {# APG window splitter: a focusable separator with its value; the arrow keys move it. #}
-            <div role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.sheet.resize'|trans }}" aria-controls="{{ id }}" aria-valuemin="420" aria-valuemax="640" aria-valuenow="640" data-sheet-target="grip" data-action="pointerdown->sheet#grab keydown->sheet#key" class="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green max-sm:hidden"></div>
+            <div role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.sheet.resize'|trans }}" aria-controls="{{ id }}" aria-valuemin="420" aria-valuemax="640" aria-valuenow="640" data-sheet-target="grip" data-action="pointerdown->sheet#grab keydown->sheet#key" class="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green max-sm:hidden after:absolute after:top-1/2 after:left-0.5 after:h-8 after:w-0.5 after:-translate-y-1/2 after:rounded-sm after:bg-control-line after:transition-colors hover:after:bg-muted focus-visible:after:bg-transparent"></div>
         {% endif %}
         {{ include('@Ui/components/_overlay_header.html.twig', {id: id, title: title, description: description, page: page, titleEdit: this.titleEditView, actions: actionsSlot, fullscreen: page and this.isResizable()}) }}
         <div data-dialog-target="body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 max-sm:px-4">{{ bodySlot }}</div>

@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
- * A planned invoice of a deal lost the invoice or recurring invoice that fulfilled it, unlinked by hand or because the document went to the trash, ended or was deleted; the forecast counts the entry again. The subject is the deal. Since module API 1.6.
+ * A planned invoice of a deal lost the invoice or recurring invoice that fulfilled it, unlinked by hand or because the document went to the trash, ended or was deleted; the forecast counts the entry again. The subject is the deal. Since module API 1.7.
  */
 #[DomainEvent('sales.billing_entry.unfulfilled', version: 1)]
 final readonly class BillingEntryUnfulfilled implements DomainEventPayload

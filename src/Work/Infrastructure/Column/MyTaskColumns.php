@@ -49,7 +49,7 @@ final readonly class MyTaskColumns implements DataSource
             new Attribute('status', $label('status'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->statusName, defaultVisible: true, defaultPosition: 30, cell: static fn (MyTaskLine $line): mixed => TaskEdits::cell(['text' => $line->task->statusName, 'tone' => self::STATUS_TONES[$line->task->statusType->value]], $line->edits->status($line->task))),
             new Attribute('responsible', $label('responsible'), AttributeType::Reference, static fn (MyTaskLine $line): ?string => $line->task->responsibleName, defaultVisible: true, defaultPosition: 40, cell: $this->responsible(...), phone: false, truncate: true),
             new Attribute('due', $label('due_on'), AttributeType::Date, static fn (MyTaskLine $line): ?\DateTimeImmutable => $line->task->dueOn, defaultVisible: true, defaultPosition: 50, cell: $this->due(...), phone: false),
-            new Attribute('priority', $label('priority'), AttributeType::Enum, static fn (MyTaskLine $line): Priority => $line->task->priority, defaultVisible: true, defaultPosition: 60, options: array_combine(array_map(static fn (Priority $priority): string => $priority->value, Priority::cases()), array_map(static fn (Priority $priority): string => 'work.priority.'.$priority->value, Priority::cases())), cell: fn (MyTaskLine $line): mixed => TaskEdits::cell(Priority::None === $line->task->priority ? null : $this->translator->trans('work.priority.'.$line->task->priority->value), $line->edits->priority($line->task)), phone: false),
+            new Attribute('priority', $label('priority'), AttributeType::Enum, static fn (MyTaskLine $line): Priority => $line->task->priority, defaultVisible: true, defaultPosition: 60, options: array_combine(array_map(static fn (Priority $priority): string => $priority->value, Priority::cases()), array_map(static fn (Priority $priority): string => 'work.priority.'.$priority->value, Priority::cases())), cell: fn (MyTaskLine $line): mixed => TaskEdits::cell(TaskEdits::priorityBadge($line->task->priority, $this->translator->trans('work.priority.'.$line->task->priority->value)), $line->edits->priority($line->task)), phone: false),
         ];
     }
 
@@ -69,7 +69,7 @@ final readonly class MyTaskColumns implements DataSource
     {
         $task = $line->task;
 
-        return TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $line->edits->seed($task->responsibleId), 'text' => $task->responsibleName], $line->edits->responsible($task));
+        return TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $line->edits->seed($task->responsibleId), 'user' => $line->edits->user($task->responsibleId), 'text' => $task->responsibleName], $line->edits->responsible($task));
     }
 
     private function due(MyTaskLine $line): mixed

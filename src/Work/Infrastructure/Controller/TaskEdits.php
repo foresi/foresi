@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Work\Application\TaskRow;
+use Foresi\Work\Domain\Priority;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -21,11 +22,17 @@ final readonly class TaskEdits
     public const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
     /**
-     * @param array<string, list<array{value: string, label: string, tone: string}>> $statuses   by project id
-     * @param array<string, list<array{value: string, name: string, seed: string}>>  $people     who can be responsible, by task id
-     * @param array<string, string>                                                  $seeds      avatar seeds by membership id
-     * @param list<array{value: string, label: string}>                              $priorities
-     * @param array<string, string>                                                  $labels     the names of the properties and of their empty values
+     * The badge of a priority: urgent is red, high amber, the rest gray, as Linear marks
+     * only urgent and ClickUp urgent red and high yellow. No priority has no badge.
+     */
+    public const array PRIORITY_TONES = ['none' => null, 'low' => 'gray', 'medium' => 'gray', 'high' => 'amber', 'urgent' => 'red'];
+
+    /**
+     * @param array<string, list<array{value: string, label: string, tone: string}>>               $statuses   by project id
+     * @param array<string, list<array{value: string, name: string, seed: string, user: ?string}>> $people     who can be responsible, by task id
+     * @param array<string, string>                                                                $seeds      avatar seeds by membership id
+     * @param list<array{value: string, label: string, tone: ?string}>                             $priorities
+     * @param array<string, string>                                                                $labels     the names of the properties and of their empty values
      */
     public function __construct(
         private UrlGeneratorInterface $urls,
@@ -45,6 +52,26 @@ final readonly class TaskEdits
     public function seed(string $membershipId): string
     {
         return $this->seeds[$membershipId] ?? $membershipId;
+    }
+
+    /**
+     * The user id of a person, whose photo their avatar shows; null for someone who is no user any more.
+     */
+    public function user(string $membershipId): ?string
+    {
+        return $this->seeds[$membershipId] ?? null;
+    }
+
+    /**
+     * A priority as a row, a card and the task page show it: a badge in its tone, none for no priority.
+     *
+     * @return array{text: string, tone: string}|null
+     */
+    public static function priorityBadge(Priority $priority, string $label): ?array
+    {
+        $tone = self::PRIORITY_TONES[$priority->value];
+
+        return null === $tone ? null : ['text' => $label, 'tone' => $tone];
     }
 
     /**
@@ -89,7 +116,7 @@ final readonly class TaskEdits
         }
         // Someone no longer active stays shown as long as the task is theirs, as on the task page.
         if (null !== $task->responsibleId && !\in_array($task->responsibleId, array_column($people, 'value'), true)) {
-            $people[] = ['value' => $task->responsibleId, 'name' => $task->responsibleName ?? '', 'seed' => $this->seeds[$task->responsibleId] ?? $task->responsibleId];
+            $people[] = ['value' => $task->responsibleId, 'name' => $task->responsibleName ?? '', 'seed' => $this->seeds[$task->responsibleId] ?? $task->responsibleId, 'user' => $this->seeds[$task->responsibleId] ?? null];
         }
 
         return $this->props($task, 'person', 'app_task_responsible', 'responsible', $this->labels['responsible'], $task->responsibleId ?? '') + ['people' => $people, 'noneLabel' => $this->labels['nobody']];

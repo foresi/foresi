@@ -672,7 +672,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.6.0), and `"provide": {"foresi/module-api": "1.6.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.7.0), and `"provide": {"foresi/module-api": "1.7.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -685,12 +685,13 @@ What each minor version added:
 | 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
 | 1.4 | Custom fields on the records' dialogs and details, with `required` and `guests` enforced; `customFields`, the keys of the custom fields that changed, in `party.contact.updated`, `sales.deal.updated`, `catalog.product.updated` and `work.task.updated`; the event `work.project.updated` (`projectId`, `customFields`), recorded on every save of a project's name, client, description or custom fields. A module that reads them requires `^1.4`. |
 | 1.5 | `Foresi\Shared\Contract\Operation\OperationObserver` (`foresi.shared.operation_observer`), told before and after every operation the runner runs; and Inbox's actions (`Foresi\Inbox\Contract\InboxAction`, `InboxActionInput`, `InboxActionCondition` with `foresi.inbox.action_condition`, `InboxPreFill` with `foresi.inbox.prefill`, and `PreFill`), see [Adding an action](inbox.md#adding-an-action). A module that uses them requires `^1.4`. |
-| 1.6 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.sales.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `sales.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.6`. |
+| 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
+| 1.7 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.sales.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `sales.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.7`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.6.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.7.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -793,7 +794,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Activities | `ActivityTarget` (`foresi.activities.target`) |
 | Banking | `BankMessageParser` (`foresi.banking.message_parser`); `StatementFormat` (`foresi.banking.statement_format`, since 1.2) and the `StatementIntake` service (since 1.2), see [bank pairing](bank-pairing.md#statements-and-other-channels) |
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
-| Cash flow | `CashFlowSource` (`foresi.cash_flow.source`) and its extension `UndatedFlowSource` (since 1.6), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
+| Cash flow | `CashFlowSource` (`foresi.cash_flow.source`) and its extension `UndatedFlowSource` (since 1.7), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
@@ -804,10 +805,10 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Party | `BankAccountUsage` (`foresi.party.bank_account_usage`) |
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
-| Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.6) |
+| Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.7) |
 | Timesheet | `ProjectRateSource` (`foresi.timesheet.project_rate_source`) |
 | VAT | `VatCountryRules`, `VatDocumentSource`, `VatPaymentSource`, `VatPlanSource`, `PlannedVatSource`, `VatScheduleSource` (`foresi.vat.*`) |
-| Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`) |
+| Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`); the services `ProjectDirectory`, `TaskIntake` and `TaskDirectory` (since 1.6), and the slots of `ProjectSlots` and `TaskSlots` (since 1.6) |
 
 Each interface carries its tag as the constant `TAG` with `#[AutoconfigureTag]`, so an implementation never writes the tag. A tag of an interface outside a `Contract\` namespace, such as `foresi.idoklad.import_stage`, is internal.
 
