@@ -27,8 +27,8 @@
         "symfony/framework-bundle": "7.4.*",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
-        "symfony/lock": "^7.4.23",
-        "symfony/messenger": "^7.4.23",
+        "symfony/lock": "^7.4.24",
+        "symfony/messenger": "^7.4.24",
         "symfony/routing": "^7.4",
         "symfony/translation-contracts": "^3.8",
         "symfony/uid": "7.4.*"
