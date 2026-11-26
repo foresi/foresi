@@ -23,7 +23,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     method: 'POST',
     path: '/api/v1/inbox/items/{inboxItemId}/fixture-notes',
     tool: 'foresi_add_fixture_note_from_email',
-    scope: 'activities:write',
+    scope: 'views:write',
     title: 'Add a note from an e-mail (tests only)',
     description: 'Adds a note made from one of your inbox items; a module of the tests only.',
     status: 201,

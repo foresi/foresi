@@ -24,7 +24,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     method: 'POST',
     path: '/api/v1/inbox/items/{inboxItemId}/fixture-contact-notes',
     tool: 'foresi_add_fixture_contact_note_from_email',
-    scope: 'activities:write',
+    scope: 'views:write',
     title: 'Add a contact note from an e-mail (tests only)',
     description: 'Adds a note on the matched contact of one of your inbox items; a module of the tests only.',
     status: 201,
