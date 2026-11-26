@@ -21,7 +21,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * installed get theirs. Idempotent: the shares of a document are replaced by what its mapping says now, so a second
  * run changes nothing.
  */
-#[AsCommand(name: 'margin:recalculate', description: 'Count the cost shares of every recorded document again')]
+#[AsCommand(
+    name: 'margin:recalculate',
+    description: 'Count the cost shares of every recorded document again',
+    help: <<<'HELP'
+    Counts the cost shares of every document the cost sources know about, so the documents recorded
+    before Margin was installed get theirs. Run it once after installing Margin next to existing
+    documents, or to rebuild the shares after a mapping changed. It replaces the shares of each document
+    with what its mapping says now and prints the number of documents and shares. It is idempotent: a
+    second run changes nothing.
+    HELP,
+)]
 final readonly class RecalculateCommand
 {
     private const int BATCH = 100;

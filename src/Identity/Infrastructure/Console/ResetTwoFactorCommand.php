@@ -16,7 +16,18 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(name: 'app:user:reset-2fa', description: 'Turn off the two-factor sign-in of a user, who sets it up again on the next sign-in')]
+#[AsCommand(
+    name: 'app:user:reset-2fa',
+    description: 'Turn off the two-factor sign-in of a user, who sets it up again on the next sign-in',
+    help: <<<'HELP'
+    Turns off the two-factor sign-in of a user and forgets their trusted browsers. Run it by hand when
+    the person lost their authenticator and recovery codes. They set up two-factor sign-in again on the
+    next sign-in. The reset is written to the log. It is safe to repeat. It exits with 1 when no user
+    has the e-mail address.
+
+      bin/console app:user:reset-2fa owner@example.com
+    HELP,
+)]
 final readonly class ResetTwoFactorCommand
 {
     public function __construct(

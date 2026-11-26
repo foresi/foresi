@@ -19,7 +19,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * The operator revokes any token.
  */
-#[AsCommand(name: 'app:api-token:revoke', description: 'Revoke a personal API token')]
+#[AsCommand(
+    name: 'app:api-token:revoke',
+    description: 'Revoke a personal API token',
+    help: <<<'HELP'
+    Revokes a personal API token of any user, so it stops working at once. Run it by hand when a token
+    leaked or is no longer needed; app:api-token:list shows the ids. It changes the one token and
+    nothing else. Revoking a token again is harmless. It exits with 1 when no token has the id.
+    HELP,
+)]
 final readonly class RevokeApiTokenCommand
 {
     public function __construct(private ManageApiTokens $manage)

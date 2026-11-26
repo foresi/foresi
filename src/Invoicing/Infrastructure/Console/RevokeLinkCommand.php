@@ -23,7 +23,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * cannot go to the trash, so a link sent to a wrong address is ended here. The
  * change goes through the send, so the audit log records it.
  */
-#[AsCommand(name: 'app:invoice:revoke-link', description: 'End the links of a sent document for good')]
+#[AsCommand(
+    name: 'app:invoice:revoke-link',
+    description: 'End the links of a sent document for good',
+    help: <<<'HELP'
+    Ends both links of one send of a document for good. Run it by hand when a link went to a wrong
+    address, because a delivered invoice cannot go to the trash. The change goes through the send, so
+    the audit log records it. Sending the document again gives a new link. It is safe to repeat. It
+    exits with 1 when no send has the id.
+
+      bin/console app:invoice:revoke-link <send-id>
+    HELP,
+)]
 final readonly class RevokeLinkCommand
 {
     public function __construct(

@@ -18,7 +18,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * their mailbox. The time makes each run a distinct message, which the hourly
  * deduplication of error mails lets through.
  */
-#[AsCommand(name: 'app:ops:test-alert', description: 'Log one error to check the error mail to the operator')]
+#[AsCommand(
+    name: 'app:ops:test-alert',
+    description: 'Log one error to check the error mail to the operator',
+    help: <<<'HELP'
+    Logs one error, to check that it reaches the log file and the operator's mailbox. Run it after
+    setting OPERATOR_EMAIL and OPERATOR_MAILER_DSN. The message carries the time, so every run is a
+    distinct message and passes the hourly deduplication of error mails. It writes only a log line, and
+    it always exits with 0; check the mailbox for the result.
+    HELP,
+)]
 final readonly class TestAlertCommand
 {
     public function __construct(

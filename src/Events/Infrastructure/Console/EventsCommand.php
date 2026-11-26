@@ -19,7 +19,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * The contract events of the installed modules. With --check it prints what is
  * wrong with them and exits non-zero, for the static checks of the build.
  */
-#[AsCommand(name: 'app:events', description: 'List the contract events of the installed modules, or check them')]
+#[AsCommand(
+    name: 'app:events',
+    description: 'List the contract events of the installed modules, or check them',
+    help: <<<'HELP'
+    Lists the contract events of the installed modules with their version, module and facts. Run it
+    by hand to see which events a module publishes. With --check it prints what is wrong with the events
+    and exits with 1; CI runs it (composer events:check). It is read-only and safe to repeat. Use
+    --format=json for scripts.
+    HELP,
+)]
 final readonly class EventsCommand
 {
     public function __construct(
