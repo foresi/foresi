@@ -31,11 +31,13 @@ interface OperationObserver
     public function before(Operation $operation, object $input): void;
 
     /**
-     * After a successful handle(). The handler has committed its record; a
-     * failure here must not undo it (the observer catches and logs its own
-     * failures).
+     * After a successful handle(), with the answer so far. The handler has
+     * committed its record; a failure here must not undo it. The observer
+     * answers the output to send: the same one, or one that says what it could
+     * not do, such as a longer summary. The runner logs a \Throwable thrown
+     * here and sends the output it had.
      *
      * @param object $input an instance of the operation's input class
      */
-    public function after(Operation $operation, object $input, OperationOutput $output): void;
+    public function after(Operation $operation, object $input, OperationOutput $output): OperationOutput;
 }

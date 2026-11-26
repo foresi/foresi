@@ -14,6 +14,7 @@ use Foresi\Shared\Infrastructure\Operation\OperationDefinition;
 use Foresi\Shared\Infrastructure\Operation\OperationRunner;
 use Foresi\Tests\Shared\Infrastructure\Mcp\FakeScopes;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
 
 /**
  * The observers of the runner: told before the handler with the checked input
@@ -29,10 +30,11 @@ final class OperationObserverTest extends TestCase
 
         $output = new OperationRunner(new FakeScopes(), [$first, $second])->run(OperationDefinition::of($handler), ['thing_id' => 't', 'name' => 'Lamp']);
 
-        self::assertSame('Changed.', $output->summary);
+        self::assertSame('Changed. Seen. Seen.', $output->summary, 'Each observer gets the answer the one before gave.');
+        self::assertSame(['ok' => true], $output->data);
         self::assertInstanceOf(ThingInput::class, $handler->input);
         self::assertSame(['before things.change '.ThingInput::class, 'after things.change Changed.'], $first->seen);
-        self::assertSame($first->seen, $second->seen);
+        self::assertSame(['before things.change '.ThingInput::class, 'after things.change Changed. Seen.'], $second->seen);
     }
 
     public function testARefusalBeforeTheHandlerStopsTheOperation(): void
@@ -70,5 +72,25 @@ final class OperationObserverTest extends TestCase
         } catch (ThingRefused) {
         }
         self::assertSame(['before things.change '.ThingInput::class], $observer->seen, 'Nothing after a handler that refused.');
+    }
+
+    public function testAnObserverThatFailsAfterTheHandlerIsLoggedAndTheAnswerKept(): void
+    {
+        $logger = new class extends AbstractLogger {
+            /** @var list<array<mixed>> */
+            public array $logged = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->logged[] = [$level, (string) $message, $context];
+            }
+        };
+        $later = new RecordingObserver();
+
+        $output = new OperationRunner(new FakeScopes(), [new RecordingObserver(afterFailure: new \RuntimeException('Secret words of a mail.')), $later], $logger)->run(OperationDefinition::of(new ThingHandler()), ['thing_id' => 't', 'name' => 'Lamp']);
+
+        self::assertSame('Changed. Seen.', $output->summary, 'The handler committed: its answer is sent, and later observers still see it.');
+        self::assertSame(['before things.change '.ThingInput::class, 'after things.change Changed.'], $later->seen);
+        self::assertSame([['error', 'An observer failed after the operation had succeeded.', ['operation' => 'things.change', 'observer' => RecordingObserver::class, 'failure' => \RuntimeException::class]]], $logger->logged);
     }
 }
