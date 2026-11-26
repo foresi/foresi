@@ -9,6 +9,9 @@
 {# A customer reads these pages: the title names the issuer the page gives, not the product. #}
 {% block document_title %}{{ block('title')|striptags|html_decode|trim }}{% endblock %}
 
+{# Nor does the browser icon: the Foresi mark is not the issuer's, and the page's policy allows no data: image. #}
+{% block icon %}{% endblock %}
+
 {% block head %}
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
