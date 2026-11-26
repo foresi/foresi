@@ -42,14 +42,16 @@ final class PageQueryCountTest extends WebTestCase
         'invoices' => 198,
         'invoice' => 158,
         'received documents' => 179,
-        'projects' => 140,
-        'project' => 223,
+        // The project rows count overdue tasks, so the pages that list projects read the
+        // firm's timezone for today once (InstanceClock).
+        'projects' => 141,
+        'project' => 224,
         // My priorities is a seventh shipped view of the task list, which a first visit stores
         // one lookup by system key at a time (SavedViews).
-        'tasks' => 219,
+        'tasks' => 220,
         'task' => 181,
         'time week' => 130,
-        'time report' => 162,
+        'time report' => 163,
         'deals' => 197,
         'cash flow' => 160,
         'api contacts' => 10,

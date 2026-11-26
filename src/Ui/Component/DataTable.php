@@ -185,16 +185,14 @@ final class DataTable
     }
 
     /**
-     * The width of a truncating column: an even share of what the columns that keep their
-     * width leave. With no width of its own it could not be narrower than its text.
-     */
-    /**
      * The class of a cell edited in the row: its trigger (InlineEdit::TRIGGER, or a compact
      * PersonPicker's) is pulled out by its padding and border, so its value starts where its header does.
+     * What holds the trigger is as wide as the trigger less those 14 px, so the trigger may be 14 px
+     * wider than it: capped at 100 % it would cut its own text short however wide the column is.
      */
     public function editInset(): string
     {
-        return '[&_[data-inline-edit-trigger]]:-mx-[7px] [&_[data-person-picker-trigger]]:-mx-[7px]';
+        return '[&_[data-inline-edit-trigger]]:-mx-[7px] [&_[data-inline-edit-trigger]]:max-w-[calc(100%+14px)] [&_[data-person-picker-trigger]]:-mx-[7px] [&_[data-person-picker-trigger]]:max-w-[calc(100%+14px)]';
     }
 
     /** The height class of a body row. */
@@ -203,6 +201,10 @@ final class DataTable
         return self::ROW_HEIGHTS[$this->rowStyle];
     }
 
+    /**
+     * The width of a truncating column: an even share of what the columns that keep their
+     * width leave. With no width of its own it could not be narrower than its text.
+     */
     public function shareClass(): string
     {
         $count = \count(array_filter($this->columnViews, static fn (array $column): bool => $column['truncate']));
@@ -301,6 +303,25 @@ final class DataTable
     public function fixed(): bool
     {
         return $this->resizable && [] !== $this->columnViews && !array_any($this->columnViews, static fn (array $column): bool => null === $column['width']);
+    }
+
+    /**
+     * The column of a resizable table that takes the room its frame has beyond the widths, as a
+     * spreadsheet's last column does: the last one shown at every width from the sm breakpoint up
+     * (a wide column hides below xl) that is not a column of toggles (a star keeps its 40 px), or
+     * the last of all when there is none. It is never narrower
+     * than its own width; the others keep theirs exactly, so a dragged edge follows the pointer.
+     */
+    public function stretchKey(): ?string
+    {
+        if (!$this->resizable || [] === $this->columnViews) {
+            return null;
+        }
+        $toggles = $this->toggleColumns();
+        $shown = array_values(array_filter($this->columnViews, static fn (array $column): bool => !$column['wide'] && !in_array($column['key'], $toggles, true)));
+        $columns = [] === $shown ? $this->columnViews : $shown;
+
+        return $columns[\count($columns) - 1]['key'];
     }
 
     /**

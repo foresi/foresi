@@ -69,6 +69,8 @@ final readonly class WorkJson
             'visibility' => $project->visibility->value,
             'workflow' => $project->template->value,
             'open_tasks' => $project->openTasks,
+            'overdue_tasks' => $project->overdueTasks,
+            'unassigned_tasks' => $project->unassignedTasks,
             'nearest_due_on' => JsonValues::date($project->nearestDue),
             'archived' => $project->archived,
         ];
