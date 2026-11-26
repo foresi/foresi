@@ -71,14 +71,16 @@ final readonly class LogActivityFromEmailHandler implements OperationHandler
         }
         $records = [];
         foreach ([$item->contactId, $item->companyId] as $contactId) {
-            if (null !== $contactId) {
+            if (null !== $contactId && $this->records->canLink(self::CONTACT, $contactId)) {
                 $records[] = ['kind' => self::CONTACT, 'id' => $contactId];
             }
         }
         foreach ($item->outputs as $output) {
-            $records[] = ['kind' => $output->kind, 'id' => $output->recordId];
+            if ($this->records->canLink($output->kind, $output->recordId)) {
+                $records[] = ['kind' => $output->kind, 'id' => $output->recordId];
+            }
         }
 
-        return array_values(array_filter($records, fn (array $record): bool => $this->records->canLink($record['kind'], $record['id'])));
+        return $records;
     }
 }

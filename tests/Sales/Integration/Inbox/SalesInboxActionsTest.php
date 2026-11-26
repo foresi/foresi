@@ -64,6 +64,7 @@ final class SalesInboxActionsTest extends ApiTestCase
         $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/deals', ['title' => 'Office offer', 'client_party_id' => $this->customerId], $this->agent);
         self::assertResponseStatusCodeSame(201);
         $dealId = $this->idOfAnswer();
+        self::assertSame('/api/v1/sales/deals/'.$dealId, $this->client->getResponse()->headers->get('Location'));
         self::assertSame([$this->customerId, $this->stageId], [$this->at('data', 'client', 'id'), $this->at('data', 'stage', 'id')]);
 
         $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
@@ -172,6 +173,27 @@ final class SalesInboxActionsTest extends ApiTestCase
         $this->match($itemId);
 
         self::assertNull($this->asUser(fn () => self::getContainer()->get(InboxItems::class)->suggestedRecord($itemId, 'deal')));
+    }
+
+    public function testTheOpenDealOfTheCompanyIsProposedBeforeThatOfThePerson(): void
+    {
+        $company = $this->flushed(function (): string {
+            $party = new Party(\Foresi\Party\Domain\PartyKind::Company, 'Client A Ltd', new \Foresi\Party\Domain\RegistrationNumber('CZ', '87654320'), null, '');
+            $this->em()->persist($party);
+
+            return $party->id();
+        });
+        $personal = $this->deal('Personal offer');
+        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Company offer', 'client_party_id' => $company], $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        $companys = $this->idOfAnswer();
+        $suggester = self::getContainer()->get(OpenDealSuggester::class);
+
+        $withCompany = $this->asUser(fn () => $suggester->suggest($this->customerId, $company));
+        $withoutCompany = $this->asUser(fn () => $suggester->suggest($this->customerId, null));
+
+        self::assertSame($companys, $withCompany?->id);
+        self::assertSame($personal, $withoutCompany?->id);
     }
 
     public function testAPersonWhoCannotSeeDealsIsProposedNone(): void

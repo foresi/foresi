@@ -11,16 +11,24 @@ namespace Foresi\Tests\Activities\Integration\Inbox;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Inbox\Application\InboxPurpose;
 use Foresi\Inbox\Domain\InboxItem;
+use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Tests\Inbox\Support\ContainerPreFills;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\ItemViews;
 use Foresi\Tests\Inbox\Support\McpToolCalls;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 /**
  * The inbox action of Activities: an activity logged from an inbox item, linked
@@ -28,6 +36,8 @@ use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
  */
 final class ActivitiesInboxActionsTest extends ApiTestCase
 {
+    use ContainerPreFills;
+    use ItemViews;
     use McpToolCalls;
 
     private string $address;
@@ -136,6 +146,63 @@ final class ActivitiesInboxActionsTest extends ApiTestCase
         self::assertIsArray($choices);
         self::assertSame('Call', $choices[$this->callTypeId] ?? null);
         self::assertCount(2, $choices);
+    }
+
+    public function testTheActivityIsLinkedToWhatCameOfTheItemAndNotToWhatActivitiesCannotLink(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+        $other = $this->flushed(function () use ($itemId): string {
+            $party = new Party(PartyKind::Person, 'Other Person', null, null, '');
+            $this->em()->persist($party);
+            $item = $this->em()->find(InboxItem::class, $itemId);
+            self::assertInstanceOf(InboxItem::class, $item);
+            // The record of a module whose records activities cannot be about comes first, then a contact.
+            $this->em()->persist(new ItemOutput($item, 'time_entry', '0192f0a0-0000-7000-8000-000000000003', new \DateTimeImmutable('2026-11-24 10:00:00'), $this->user->id()));
+            $this->em()->persist(new ItemOutput($item, 'contact', $party->id(), new \DateTimeImmutable('2026-11-24 10:05:00'), $this->user->id()));
+
+            return $party->id();
+        });
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/activities', ['type_id' => $this->callTypeId, 'subject' => 'Call about the offer', 'done' => true], $this->agent);
+
+        self::assertResponseStatusCodeSame(201);
+        $activityId = $this->at('data', 'id');
+        self::assertIsString($activityId);
+        self::assertSame([['contact', $this->customerId], ['contact', $other]], $this->sorted($this->linksOf($activityId)));
+    }
+
+    public function testAnActivityIsPlannedUnlessItIsSaidToBeDone(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/activities', ['type_id' => $this->callTypeId, 'subject' => 'Call about the offer', 'planned_at' => '2026-12-01T10:00:00+01:00'], $this->agent);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertFalse($this->at('data', 'done'));
+        self::assertNull($this->at('data', 'outcome'));
+    }
+
+    public function testThePreFillTakesTheSubjectTrimmedAndCut(): void
+    {
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(SecurityUser::fromUser($this->user), 'main', ['ROLE_USER']));
+        $values = $this->prefillOf('inbox.actions.log_activity', $this->itemView(subject: '  '.str_repeat('ž', 220).'  '))->values;
+
+        self::assertSame(str_repeat('ž', 200), $values['subject']);
+        self::assertFalse($values['done']);
+        self::assertTrue($values['markDone']);
+    }
+
+    /**
+     * @param list<array{string, string}> $links
+     *
+     * @return list<array{string, string}>
+     */
+    private function sorted(array $links): array
+    {
+        usort($links, static fn (array $a, array $b): int => $a <=> $b);
+
+        return $links;
     }
 
     /**

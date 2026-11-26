@@ -35,7 +35,7 @@ final readonly class CreateDealFromEmailPreFill implements InboxPreFill
     {
         $values = ['title' => mb_substr(trim($item->subject), 0, Deal::MAX_TITLE), 'markDone' => true];
         $clients = [];
-        foreach (array_unique(array_filter([$item->companyId, $item->contactId], is_string(...))) as $id) {
+        foreach (array_filter([$item->companyId, $item->contactId], is_string(...)) as $id) {
             $party = $this->parties->find($id);
             if ($party instanceof PartySummary && !$party->archived) {
                 $clients[$party->id] = $party->displayName;

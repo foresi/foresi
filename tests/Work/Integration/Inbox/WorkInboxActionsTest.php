@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
 use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Attachment\Domain\Attachment;
@@ -30,14 +31,21 @@ use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
+use Foresi\Tests\Inbox\Support\ContainerPreFills;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\ItemViews;
 use Foresi\Tests\Inbox\Support\McpToolCalls;
+use Foresi\Tests\Inbox\Support\RebuiltServices;
+use Foresi\Tests\Shared\Infrastructure\Mcp\RecordingLogger;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Foresi\Work\Integration\Activities\TaskActivityTarget;
+use Foresi\Work\Integration\Inbox\CreateTaskFromEmailHandler;
 use Foresi\Work\Integration\Inbox\CreateTaskFromEmailInput;
 use Foresi\Work\Integration\Inbox\CreateTaskFromEmailPreFill;
 use Foresi\Work\Integration\Inbox\LogTimeFromEmailInput;
@@ -51,7 +59,10 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 final class WorkInboxActionsTest extends WorkApiTestCase
 {
+    use ContainerPreFills;
+    use ItemViews;
     use McpToolCalls;
+    use RebuiltServices;
 
     private string $address;
     private string $agent;
@@ -334,6 +345,119 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         self::assertSame(CreateTaskFromEmailPreFill::MAX_DESCRIPTION, mb_strlen($description));
     }
 
+    public function testTheTaskPreFillTakesTheSubjectAndTheTextTrimmedAndCut(): void
+    {
+        $item = $this->itemView(subject: '  '.str_repeat('ž', Task::MAX_TITLE_LENGTH + 20).'  ', text: "\n  ".str_repeat('é', CreateTaskFromEmailPreFill::MAX_DESCRIPTION + 10)."  \n");
+
+        $values = $this->as(fn (): array => $this->prefillOf('inbox.actions.create_task', $item)->values, $this->user);
+
+        self::assertSame(str_repeat('ž', Task::MAX_TITLE_LENGTH), $values['title']);
+        self::assertSame(str_repeat('é', CreateTaskFromEmailPreFill::MAX_DESCRIPTION), $values['description']);
+        self::assertFalse($values['copyAttachments']);
+        self::assertTrue($values['markDone']);
+    }
+
+    public function testTheTimePreFillTakesTheSubjectTrimmedAndCut(): void
+    {
+        $item = $this->itemView(subject: '  '.str_repeat('ž', TimeEntry::MAX_NOTE_LENGTH + 20).'  ');
+
+        $values = $this->as(fn (): array => $this->prefillOf('inbox.actions.log_time', $item)->values, $this->user);
+
+        self::assertSame(str_repeat('ž', TimeEntry::MAX_NOTE_LENGTH), $values['note']);
+        self::assertSame('2026-11-24', $values['workedOn']);
+        self::assertTrue($values['markDone']);
+    }
+
+    public function testTheTaskIsAnsweredWithItsAddress(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/tasks', ['project_id' => $project->id(), 'title' => 'Answer the offer'], $this->agent);
+
+        self::assertResponseStatusCodeSame(201);
+        $taskId = $this->at('data', 'id');
+        self::assertIsString($taskId);
+        self::assertSame('/api/v1/tasks/'.$taskId, $this->client->getResponse()->headers->get('Location'));
+    }
+
+    public function testTheFilesCopiedAreNotMentionedAndNoTemporaryFileStays(): void
+    {
+        $project = $this->project('Office move');
+        $bytes = '%PDF-1.4 '.bin2hex(random_bytes(8));
+        $itemId = $this->receive($this->withAttachment($bytes));
+
+        $answer = $this->createTask($itemId, $project, copyAttachments: true);
+
+        self::assertSame('Created the task Read the offer from the e-mail.', $answer->summary);
+        self::assertNotNull($answer->location);
+        self::assertSame(['offer.pdf'], $this->attachmentNames($this->taskIdOf($answer)));
+        self::assertSame([], $this->leftOver($bytes));
+    }
+
+    public function testNothingIsSaidOfFilesThatWereNotAskedFor(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive($this->withAttachment('%PDF-1.4 not asked'));
+
+        $answer = $this->createTask($itemId, $project, copyAttachments: false);
+
+        self::assertSame('Created the task Read the offer from the e-mail.', $answer->summary);
+        self::assertSame([], $this->attachmentNames($this->taskIdOf($answer)));
+    }
+
+    public function testAFileThatCannotBeKeptIsCountedLoggedByIdsAndLeavesNoTemporaryFile(): void
+    {
+        $project = $this->project('Office move');
+        $bytes = '%PDF-1.4 '.bin2hex(random_bytes(8));
+        $itemId = $this->receive($this->withAttachment($bytes));
+        $this->storageThrows(new \LogicException('The storage broke offer.pdf.'));
+        $logger = new RecordingLogger();
+
+        $answer = $this->createTask($itemId, $project, copyAttachments: true, logger: $logger);
+
+        self::assertSame('Created the task Read the offer from the e-mail. 1 of the files of the mail could not be copied onto it.', $answer->summary);
+        self::assertSame([], $this->attachmentNames($this->taskIdOf($answer)));
+        self::assertSame([['error', 'A file of an inbox item could not be copied onto its task.', ['item_id' => $itemId, 'task_id' => $this->taskIdOf($answer), 'failure' => \LogicException::class]]], $logger->records, 'Ids and the class: not the name of the file, nor the message.');
+        self::assertSame([], $this->leftOver($bytes));
+    }
+
+    public function testAFileTheStorageRefusesIsCountedButNotLogged(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive($this->withAttachment('%PDF-1.4 refused'));
+        $this->storageThrows(new AttachmentRefused(AttachmentRefused::FAILED));
+        $logger = new RecordingLogger();
+
+        $answer = $this->createTask($itemId, $project, copyAttachments: true, logger: $logger);
+
+        self::assertSame('Created the task Read the offer from the e-mail. 1 of the files of the mail could not be copied onto it.', $answer->summary);
+        self::assertSame([], $logger->records, 'A refusal is the ordinary way a file is not kept.');
+    }
+
+    public function testTheTemporaryFileIsRemovedEvenWhenTheLoggerFails(): void
+    {
+        $project = $this->project('Office move');
+        $bytes = '%PDF-1.4 '.bin2hex(random_bytes(8));
+        $itemId = $this->receive($this->withAttachment($bytes));
+        $this->storageThrows(new \LogicException('The storage broke.'));
+        $logger = new class extends \Psr\Log\AbstractLogger {
+            public function log($level, string|\Stringable $message, array $context = []): void
+            {
+                throw new \RuntimeException('The log is gone.');
+            }
+        };
+
+        try {
+            $this->createTask($itemId, $project, copyAttachments: true, logger: $logger);
+            self::fail('The failure of the logger was swallowed.');
+        } catch (\RuntimeException $failure) {
+            self::assertSame('The log is gone.', $failure->getMessage());
+        }
+
+        self::assertSame([], $this->leftOver($bytes));
+    }
+
     public function testAFileThatCannotBeCopiedForAnyReasonLeavesTheTaskAsAnOutput(): void
     {
         $project = $this->project('Office move');
@@ -571,7 +695,60 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         return $item->id();
     }
 
-    private function withAttachment(): string
+    private function createTask(string $itemId, Project $project, bool $copyAttachments, ?\Psr\Log\LoggerInterface $logger = null): \Foresi\Shared\Contract\Operation\OperationOutput
+    {
+        $handler = $this->rebuilt(self::getContainer()->get(CreateTaskFromEmailHandler::class), $logger instanceof \Psr\Log\LoggerInterface ? ['logger' => $logger] : []);
+
+        return $this->as(static fn () => $handler->handle(new CreateTaskFromEmailInput($itemId, $project->id(), 'Read the offer', copyAttachments: $copyAttachments)), $this->user);
+    }
+
+    private function taskIdOf(\Foresi\Shared\Contract\Operation\OperationOutput $answer): string
+    {
+        $id = $answer->data['id'] ?? null;
+        self::assertIsString($id);
+
+        return $id;
+    }
+
+    private function storageThrows(\Throwable $failure): void
+    {
+        self::getContainer()->set(AttachmentFiles::class, new readonly class($failure) implements AttachmentFiles {
+            public function __construct(private \Throwable $failure)
+            {
+            }
+
+            public function store(string $attachmentId, string $sourcePath): string
+            {
+                throw $this->failure;
+            }
+
+            public function read(string $attachmentId, string $key, string $sha256): string
+            {
+                throw $this->failure;
+            }
+
+            public function locate(string $attachmentId, string $key): string
+            {
+                throw $this->failure;
+            }
+
+            public function remove(string $key): void
+            {
+            }
+        });
+    }
+
+    /**
+     * @return list<string> the temporary files of the copy that hold these bytes
+     */
+    private function leftOver(string $bytes): array
+    {
+        $files = glob(sys_get_temp_dir().'/foresi-inbox-*');
+
+        return array_values(array_filter(false === $files ? [] : $files, static fn (string $file): bool => is_file($file) && $bytes === file_get_contents($file)));
+    }
+
+    private function withAttachment(string $bytes = '%PDF-1.4 example'): string
     {
         return implode("\r\n", [
             'Authentication-Results: '.InboxMail::verifiedBy('client-a.example.com'),
@@ -593,7 +770,7 @@ final class WorkInboxActionsTest extends WorkApiTestCase
             'Content-Disposition: attachment; filename="offer.pdf"',
             'Content-Transfer-Encoding: base64',
             '',
-            base64_encode('%PDF-1.4 example'),
+            base64_encode($bytes),
             '--b1--',
             '',
         ]);

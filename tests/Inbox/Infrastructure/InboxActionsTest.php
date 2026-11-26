@@ -17,11 +17,15 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Inbox\Application\InboxActions;
 use Foresi\Inbox\Application\InboxPurpose;
+use Foresi\Inbox\Application\InboxRefused;
 use Foresi\Inbox\Application\RecordOutputs;
 use Foresi\Inbox\Contract\InboxAction;
 use Foresi\Inbox\Contract\InboxActionCondition;
+use Foresi\Inbox\Contract\InboxItemView;
+use Foresi\Inbox\Contract\InboxOutput;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemOutput;
+use Foresi\Inbox\InboxBundle;
 use Foresi\Inbox\Infrastructure\DependencyInjection\InboxActionPass;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Mail\Application\ReceiveMail;
@@ -30,6 +34,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
+use Foresi\Shared\Infrastructure\Operation\Operations;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureContactNoteHandler;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteInput;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotePreFill;
@@ -41,7 +46,10 @@ use Foresi\Tests\Inbox\Fixtures\BrokenAction\NoMarkDoneInput;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\NotAnActionInput;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\WrongPathInput;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\ItemViews;
+use Foresi\Tests\Inbox\Support\RebuiltServices;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Tests\Shared\Infrastructure\Mcp\RecordingLogger;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -56,6 +64,9 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 final class InboxActionsTest extends ApiTestCase
 {
+    use ItemViews;
+    use RebuiltServices;
+
     private const string NOTE = 'inbox.actions.fixture_note';
     private const string CONTACT_NOTE = 'inbox.actions.fixture_contact_note';
 
@@ -384,6 +395,177 @@ final class InboxActionsTest extends ApiTestCase
         self::assertTrue($outputs->record($attribute, $input, new OperationOutput(['id' => $noteId], 'Made the note.')));
         self::assertTrue($outputs->record($attribute, $input, new OperationOutput(['id' => $noteId], 'Made the note.')), 'The same record twice is one output.');
         self::assertSame([$noteId], $this->storedOutputs($itemId));
+    }
+
+    public function testTheActionsAreListedByWeightThenByOperationName(): void
+    {
+        $actions = self::getContainer()->get(InboxActions::class);
+
+        $names = array_map(static fn ($action): string => $action->name(), $actions->all());
+        self::assertSame([self::NOTE, self::CONTACT_NOTE], array_values(array_intersect($names, [self::CONTACT_NOTE, self::NOTE])), 'The note has the lower weight.');
+        $keys = array_map(static fn ($action): array => [$action->action->weight, $action->name()], $actions->all());
+        $sorted = $keys;
+        sort($sorted);
+        self::assertSame($sorted, $keys);
+        self::assertTrue($actions->isAction(self::NOTE));
+        self::assertFalse($actions->isAction('inbox.actions.nothing'));
+        self::assertNull($actions->get('inbox.actions.nothing'));
+    }
+
+    public function testAnActionWithoutAWeightAndACondition(): void
+    {
+        $action = new InboxAction('inbox_fixture.label', 'note');
+
+        self::assertSame([100, null], [$action->weight, $action->appliesTo]);
+    }
+
+    public function testTheConditionsAndPreFillsAreReadOnceWhateverTheyAreAskedFor(): void
+    {
+        // A generator can be walked once: a second walk fails.
+        $conditions = (static function (): \Generator {
+            yield new HasMatchedContact();
+        })();
+        $prefills = (static function (): \Generator {
+            yield new FixtureNotePreFill();
+        })();
+        $actions = new InboxActions(self::getContainer()->get(Operations::class), $conditions, $prefills);
+        $contactNote = $actions->get(self::CONTACT_NOTE);
+        $note = $actions->get(self::NOTE);
+        self::assertNotNull($contactNote);
+        self::assertNotNull($note);
+        $matched = $this->itemView(contactId: $this->customerId);
+
+        self::assertTrue($actions->applies($contactNote->action, $matched));
+        self::assertFalse($actions->applies($contactNote->action, $this->itemView()), 'The condition is asked again for another item.');
+        self::assertSame('Offer for the new office', $actions->prefill($note, $matched)->values['text']);
+        self::assertSame('Offer for the new office', $actions->prefill($note, $matched)->values['text']);
+    }
+
+    public function testAConditionNoServiceImplementsIsALogicError(): void
+    {
+        $actions = new InboxActions(self::getContainer()->get(Operations::class));
+
+        $this->expectExceptionObject(new \LogicException(\sprintf('No service is the inbox action condition %s.', HasMatchedContact::class)));
+
+        $actions->applies(new InboxAction('inbox_fixture.label', 'note', HasMatchedContact::class), $this->itemView());
+    }
+
+    public function testAPreFillThatFailsIsLoggedByIdsAndClassOnly(): void
+    {
+        $logger = new RecordingLogger();
+        $actions = new InboxActions(self::getContainer()->get(Operations::class), [], [new FixtureNotePreFill()], $logger);
+        $note = $actions->get(self::NOTE);
+        self::assertNotNull($note);
+        $item = $this->itemView(subject: FixtureNotePreFill::BREAKS);
+
+        $prefill = $actions->prefill($note, $item);
+
+        self::assertSame([[], []], [$prefill->values, $prefill->choices]);
+        self::assertSame([['error', 'The pre-fill of an inbox action failed.', [
+            'item_id' => $item->id,
+            'operation' => self::NOTE,
+            'prefill' => FixtureNotePreFill::class,
+            'failure' => \RuntimeException::class,
+        ]]], $logger->records, 'Not the message of the failure: it may carry the mail.');
+    }
+
+    public function testAnOperationThatIsNoInboxActionIsLeftAlone(): void
+    {
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $definition = self::getContainer()->get(Operations::class)->get(self::NOTE);
+        // It carries the attribute but is not an action input, as an operation of a module that forgot the interface.
+        $input = new NotAnActionInput('0192f0a0-0000-7000-8000-000000000001');
+        $output = new OperationOutput(['id' => '0192f0a0-0000-7000-8000-000000000002'], 'Made it.');
+
+        $outputs->before($definition->operation, $input);
+        self::assertSame($output, $outputs->after($definition->operation, $input, $output));
+        $plain = new \stdClass();
+        $outputs->before($definition->operation, $plain);
+        self::assertSame($output, $outputs->after($definition->operation, $plain, $output));
+    }
+
+    public function testTheAnswerSaysWhenTheRecordCouldNotBeAddedAndIsLeftAloneWhenItWas(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->signInAsOwner();
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $definition = self::getContainer()->get(Operations::class)->get(self::NOTE);
+        $input = new FixtureNoteInput($itemId, 'A note', markDone: false);
+        $made = new OperationOutput(['id' => $this->notes()->make('A note')], 'Made the note.', '/notes/1');
+        $withoutId = new OperationOutput(['text' => 'A note'], 'Made the note.', '/notes/2');
+
+        self::assertSame($made, $outputs->after($definition->operation, $input, $made), 'Recorded: the answer as the handler gave it.');
+        $answer = $outputs->after($definition->operation, $input, $withoutId);
+
+        self::assertSame(['Made the note. '.RecordOutputs::NOT_ADDED, ['text' => 'A note'], '/notes/2'], [$answer->summary, $answer->data, $answer->location]);
+    }
+
+    public function testARecordThatCannotBeAddedIsLoggedByIdsAndClassOnly(): void
+    {
+        $logger = new RecordingLogger();
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->signInAsOwner();
+        $attribute = InboxActions::attributeOf(FixtureNoteInput::class);
+        self::assertInstanceOf(InboxAction::class, $attribute);
+        $outputs = $this->rebuilt(self::getContainer()->get(RecordOutputs::class), ['logger' => $logger]);
+
+        self::assertFalse($outputs->record($attribute, new FixtureNoteInput($itemId, 'A note', markDone: false), new OperationOutput(['text' => 'A note'], 'Made the note.')));
+        $unknown = '0192f0a0-0000-7000-8000-0000000000aa';
+        $noteId = $this->notes()->make('Another note');
+        self::assertFalse($outputs->record($attribute, new FixtureNoteInput($unknown, 'Another note', markDone: false), new OperationOutput(['id' => $noteId], 'Made the note.')));
+
+        $message = 'The record of an inbox action could not be added to its item.';
+        self::assertSame([
+            ['error', $message, ['item_id' => $itemId, 'kind' => FixtureNotes::KIND, 'record_id' => null, 'failure' => \UnexpectedValueException::class]],
+            ['error', $message, ['item_id' => $unknown, 'kind' => FixtureNotes::KIND, 'record_id' => $noteId, 'failure' => InboxRefused::class]],
+        ], array_values(array_filter($logger->records, static fn (array $record): bool => $message === $record[1])));
+    }
+
+    public function testWhatTheConditionOfAnActionSeesIsTheItemAsItsOwnerReadsIt(): void
+    {
+        $first = $this->receive(InboxMail::plain($this->address));
+        $reply = $this->receive(InboxMail::plain($this->address, subject: 'Re: Offer for the new office', messageId: 'offer-2@client-a.example.com', inReplyTo: 'offer-1@client-a.example.com'));
+        $this->send('PUT', '/api/v1/inbox/items/'.$reply.'/contact', ['contact_id' => $this->customerId]);
+        self::assertResponseIsSuccessful();
+        $this->flushed(function () use ($reply): void {
+            $item = $this->em()->find(InboxItem::class, $reply);
+            self::assertInstanceOf(InboxItem::class, $item);
+            // A record no module shows (available false): the owner reads it, another person does not.
+            $this->em()->persist(new ItemOutput($item, 'unshown', '0192f0a0-0000-7000-8000-000000000003', new \DateTimeImmutable('2026-11-24 10:00:00'), $this->user->id()));
+        });
+        HasMatchedContact::forget();
+
+        $this->send('POST', '/api/v1/inbox/items/'.$reply.'/fixture-contact-notes', ['text' => 'Call back']);
+
+        self::assertResponseStatusCodeSame(201);
+        $seen = HasMatchedContact::lastSeen();
+        self::assertInstanceOf(InboxItemView::class, $seen);
+        self::assertSame([[$first], ['unshown']], [$seen->threadItemIds, array_map(static fn (InboxOutput $output): string => $output->kind, $seen->outputs)]);
+    }
+
+    public function testTheMailOfADiscardedItemIsKeptOnceSomethingCameOfIt(): void
+    {
+        $raw = InboxMail::plain($this->address);
+        $itemId = $this->receive($raw);
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/discard');
+        self::assertResponseIsSuccessful();
+        $purgeAfter = static fn (self $test): mixed => $test->em()->getConnection()->fetchOne('SELECT purge_after FROM mail_message WHERE raw_sha256 = ?', [hash('sha256', $raw)]);
+        self::assertNotNull($purgeAfter($this), 'A discarded mail is removed after a while.');
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/fixture-notes', ['text' => 'A note']);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($purgeAfter($this), 'Something came of it now.');
+    }
+
+    public function testTheModuleAddsTheBuildCheckOfTheActions(): void
+    {
+        $container = new ContainerBuilder();
+
+        new InboxBundle()->build($container);
+
+        $passes = $container->getCompilerPassConfig()->getPasses();
+        self::assertCount(1, array_filter($passes, static fn (object $pass): bool => $pass instanceof InboxActionPass));
     }
 
     private function signInAsOwner(): void
