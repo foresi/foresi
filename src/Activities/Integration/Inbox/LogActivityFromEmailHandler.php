@@ -65,7 +65,7 @@ final readonly class LogActivityFromEmailHandler implements OperationHandler
     private function links(string $itemId): array
     {
         $item = $this->items->find($itemId);
-        if (null === $item) {
+        if (!$item instanceof \Foresi\Inbox\Contract\InboxItemView) {
             return [];
         }
         $records = [];
