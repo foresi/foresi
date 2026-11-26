@@ -423,13 +423,13 @@ final readonly class CustomFieldTarget implements ImportTarget
         }
 
         return match ($definition->kind) {
-            FieldKind::Date => self::date($value),
+            FieldKind::Date => $this->date($value),
             FieldKind::DateTime => new \DateTimeImmutable($value)->setTimezone(new \DateTimeZone(date_default_timezone_get())),
             default => $value,
         };
     }
 
-    private static function date(string $value): ?\DateTimeImmutable
+    private function date(string $value): ?\DateTimeImmutable
     {
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 

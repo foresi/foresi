@@ -45,7 +45,7 @@ final class LentFields implements FieldSource
     /**
      * Lends the fields to the record kind in this container, before its lists are read.
      *
-     * @param list<string> $required the keys of the fields that are required there, such as "test_fields_code"
+     * @param list<string> $required    the keys of the fields that are required there, such as "test_fields_code"
      * @param list<string> $offApi      the keys of the fields left out of the REST API and MCP there (api: false)
      * @param list<string> $offTemplate the keys of the fields left out of the document templates there (template: false)
      * @param list<string> $offImport   the keys of the fields left out of the import and export there (import: false)
