@@ -186,6 +186,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 // The inbox actions of Work.
                 '/api/v1/inbox/items/{inboxItemId}/tasks' => ['post' => '201'],
                 '/api/v1/inbox/items/{inboxItemId}/time-entries' => ['post' => '201'],
+                '/api/v1/inbox/items/{inboxItemId}/budget-changes' => ['post' => '201'],
             ],
             'invoicing' => [
                 '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
@@ -286,6 +287,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/vat/settings' => ['get' => '200', 'put' => '200'],
             ],
             'shared' => [
+                '/api/v1/fields' => ['get' => '200'],
                 '/api/v1/lists' => ['get' => '200'],
                 '/api/v1/views' => ['get' => '200', 'post' => '201'],
                 '/api/v1/views/{viewId}' => ['get' => '200', 'delete' => '200', 'patch' => '200'],

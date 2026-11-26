@@ -2540,7 +2540,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "6b1f95f5080aa200f28c3717facd44cc0de8e942"
+                "reference": "678cd999029a8fa5ed401bec7791d1d218e71671"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2559,6 +2559,7 @@
                 "symfony/console": "7.4.*",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/event-dispatcher": "^7.4",
+                "symfony/event-dispatcher-contracts": "^3.8",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-client": "^7.4.24",
                 "symfony/http-client-contracts": "^3.7",
@@ -2569,10 +2570,12 @@
                 "symfony/routing": "^7.4",
                 "symfony/security-bundle": "7.4.*",
                 "symfony/security-core": "^7.4",
+                "symfony/security-csrf": "^7.4",
                 "symfony/security-http": "^7.4",
                 "symfony/service-contracts": "^3.8",
                 "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
                 "tecnickcom/tc-lib-barcode": "^2.17.2",
                 "twig/twig": "^3.30",
                 "zircote/swagger-php": "^7.5"
@@ -3335,7 +3338,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "1468c4b1a2647eee5e8f92952c3a0c29014216af"
+                "reference": "5ba81cbab84524006a2f7b85f510806a7b511d86"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3390,7 +3393,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.7.0"
+                "foresi/module-api": "1.8.0"
             },
             "type": "foresi-module",
             "extra": {

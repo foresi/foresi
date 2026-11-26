@@ -137,7 +137,30 @@ class User
     {
         $this->totpSecretSealed = null;
         $this->recoveryCodeHashes = [];
+        $this->forgetTrustedDevices();
+    }
+
+    /**
+     * Every browser trusted to skip the code asks for one again on the next sign-in;
+     * the two-factor sign-in itself stays as it is.
+     */
+    public function forgetTrustedDevices(): void
+    {
         ++$this->trustedDeviceVersion;
+    }
+
+    /**
+     * A new password, hashed by the caller. Whoever knew the old one may have
+     * marked a browser as trusted, so those browsers are forgotten too (OWASP:
+     * a password change ends what the old password opened).
+     */
+    public function changePassword(string $passwordHash): void
+    {
+        if ('' === $passwordHash) {
+            throw new \InvalidArgumentException('A user needs a password hash.');
+        }
+        $this->passwordHash = $passwordHash;
+        $this->forgetTrustedDevices();
     }
 
     public function hasTwoFactor(): bool

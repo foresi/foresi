@@ -13,6 +13,7 @@ use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Shared\Contract\Mcp\WriteTool;
 use Foresi\Shared\Contract\Refused;
+use Foresi\Shared\Infrastructure\Field\CustomFieldSchema;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
 
 /**
@@ -25,7 +26,7 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
 #[Exclude]
 final readonly class OperationTool implements WriteTool, StaffOnlyTool
 {
-    public function __construct(private OperationDefinition $definition, private OperationRunner $runner)
+    public function __construct(private OperationDefinition $definition, private OperationRunner $runner, private ?CustomFieldSchema $fields = null)
     {
     }
 
@@ -61,7 +62,9 @@ final readonly class OperationTool implements WriteTool, StaffOnlyTool
 
     public function inputSchema(): array
     {
-        return InputSchema::of($this->definition->fields);
+        $fields = $this->fields;
+
+        return InputSchema::of($this->definition->fields, $fields instanceof CustomFieldSchema ? static fn (string $record): array => $fields->of($record, true) : null);
     }
 
     public function staffOnly(): bool

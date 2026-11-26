@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\Task;
 
@@ -33,7 +36,8 @@ use Foresi\Work\Domain\Task;
 final readonly class CreateTaskInput
 {
     /**
-     * @param list<string> $labelIds
+     * @param list<string>                 $labelIds
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('The project of the task.', format: 'uuid')]
@@ -56,6 +60,9 @@ final readonly class CreateTaskInput
         public string $priority = Priority::None->value,
         #[Field('The labels of the task, by id as foresi_list_labels gives them.', items: 'string')]
         public array $labelIds = [],
+        #[Field('The custom fields by key, as foresi_list_fields lists them for tasks; required ones need a value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(TaskExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

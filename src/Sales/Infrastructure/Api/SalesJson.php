@@ -19,16 +19,19 @@ use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesStore;
 use Foresi\Sales\Application\StageNames;
 use Foresi\Sales\Contract\BillingDocumentType;
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 
 /**
  * Deals, stages and lost reasons as REST and MCP write them (schemas
- * SalesDeal, SalesDealSummary, SalesStage and SalesLostReason).
+ * SalesDeal, SalesDealSummary, SalesStage and SalesLostReason). A deal carries
+ * its custom fields.
  */
 final readonly class SalesJson
 {
@@ -38,6 +41,7 @@ final readonly class SalesJson
         private StageNames $stageNames,
         private LostReasonNames $reasonNames,
         private LineProjects $projects,
+        private CustomFieldPayload $customFields,
     ) {
     }
 
@@ -50,7 +54,7 @@ final readonly class SalesJson
     {
         $deal = $detail->deal;
 
-        return [
+        return $this->customFields->attachOne(DealExtension::RECORD, [
             'id' => $deal->id(),
             'title' => $deal->title(),
             'description' => $deal->description(),
@@ -89,7 +93,7 @@ final readonly class SalesJson
             'trashed_at' => JsonValues::timestamp($deal->trashedAt()),
             'created_at' => JsonValues::timestamp($deal->createdAt()),
             'updated_at' => JsonValues::timestamp($deal->updatedAt()),
-        ];
+        ]);
     }
 
     /**
@@ -140,7 +144,7 @@ final readonly class SalesJson
         }
         $clients = [];
 
-        return array_map(function (Deal $deal) use ($stages, $reasons, &$clients): array {
+        return $this->customFields->attach(DealExtension::RECORD, array_map(function (Deal $deal) use ($stages, $reasons, &$clients): array {
             $reasonId = $deal->lostReasonId();
 
             return [
@@ -156,7 +160,7 @@ final readonly class SalesJson
                 'created_at' => JsonValues::timestamp($deal->createdAt()),
                 'updated_at' => JsonValues::timestamp($deal->updatedAt()),
             ];
-        }, $deals);
+        }, $deals));
     }
 
     /**

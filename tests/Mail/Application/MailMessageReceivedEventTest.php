@@ -14,9 +14,9 @@ use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
-use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Support\Mail\MailKit;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
+use Foresi\Tests\Support\Scalars;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

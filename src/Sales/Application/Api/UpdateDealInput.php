@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Application\Api;
 
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
@@ -31,7 +33,8 @@ use Foresi\Shared\Contract\Operation\Operation;
 final readonly class UpdateDealInput
 {
     /**
-     * @param list<mixed>|Omitted $contactPersonIds
+     * @param list<mixed>|Omitted          $contactPersonIds
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('The id of the deal.', format: 'uuid')]
@@ -46,6 +49,9 @@ final readonly class UpdateDealInput
         public array|Omitted $contactPersonIds = new Omitted(),
         #[Field('The id of another client, a contact of the address book that is not archived (foresi_search_contacts). The contact persons given in the same call are checked against it; without them the deal has none. Refused while the deal is linked to other deals.', format: 'uuid')]
         public string|Omitted $clientPartyId = new Omitted(),
+        #[Field('The custom fields to change, by key, as foresi_list_fields lists them for deals; null clears one, a field left out keeps its value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(DealExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

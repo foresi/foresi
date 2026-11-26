@@ -44,7 +44,7 @@ final readonly class SearchDealsTool implements ReadTool, StaffOnlyTool
 
     public function description(): string
     {
-        return 'Returns the deals not in the trash whose title holds the text, all of them without one, the newest first, narrowed by each filter given: {items} with the id, title, status (open, won or lost), client {id, name}, owner_user_id, stage {id, key, name}, won_at, lost_at and lost_reason. '
+        return 'Returns the deals not in the trash whose title holds the text, all of them without one, the newest first, narrowed by each filter given: {items} with the id, title, status (open, won or lost), client {id, name}, owner_user_id, stage {id, key, name}, won_at, lost_at, lost_reason and its custom_fields by key (see foresi_list_fields). '
             .'The deals of a client: give client_party_id (from foresi_search_contacts). Stage ids come from foresi_list_deal_stages. Read the lines, value, links and contact persons of one with foresi_get_deal.';
     }
 

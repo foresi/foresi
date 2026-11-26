@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Infrastructure\Api\Operation;
 
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Catalog\Infrastructure\Api\CatalogApiController;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -19,14 +21,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ProductAnswer
 {
-    public function __construct(private UrlGeneratorInterface $urls)
+    public function __construct(private UrlGeneratorInterface $urls, private CustomFieldPayload $customFields)
     {
     }
 
     public function of(Product $product, string $summary, bool $created = false): OperationOutput
     {
         return new OperationOutput(
-            CatalogJson::product($product),
+            $this->customFields->attachOne(ProductExtension::RECORD, CatalogJson::product($product)),
             \sprintf($summary, $product->name()),
             $created ? $this->urls->generate(CatalogApiController::PRODUCT, ['productId' => $product->id()]) : null,
         );

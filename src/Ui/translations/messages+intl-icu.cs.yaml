@@ -69,6 +69,7 @@ nav:
   item:
     people: Lidé
     profile: Profil
+    password: Heslo
     two_factor: Dvoufázové přihlášení
     api: API a MCP
     connected_apps: Připojené aplikace

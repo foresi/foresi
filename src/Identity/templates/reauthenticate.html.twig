@@ -1,0 +1,57 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    "Confirm it's you" before a sensitive page (GitHub sudo mode): why it asks, the password or, with
+    two-factor sign-in, a code, and Confirm. In a dialog it takes the place of the page that asked; as a
+    page it is framed like that page: the sign-in frame before the enrolment, the app elsewhere.
+    Variables: reason, target, twoFactor, error, minutes, layout ("auth" or "app"), cancel.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : ('auth' == layout ? '@Ui/layout/auth.html.twig' : '@Ui/layout/app.html.twig') %}
+
+{% set title = 'reauth.title'|trans %}
+{% set crumbs = [{label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="reauth-form" action="{{ in_dialog() ? target : path('app_reauthenticate', {reason: reason, target: target}) }}" class="grid gap-4" novalidate data-reauthenticate>
+        <p class="m-0 text-small text-muted">{{ ('reauth.reason.' ~ reason)|trans }} {{ 'reauth.window'|trans({minutes: minutes}) }}</p>
+        {# In a dialog the form goes back to the page that asked, so that page answers in the same dialog. #}
+        <input type="hidden" name="_reauthenticate" value="1">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ReauthenticationController::TOKEN')) }}">
+        {# For password managers: the account the password belongs to. #}
+        <input type="hidden" name="username" autocomplete="username" value="{{ app.user.userIdentifier }}">
+        {% if twoFactor %}
+            <twig:Ui:TextInput name="secret" id="reauth-secret" :label="'reauth.code'|trans" :help="'reauth.code_help'|trans" :error="error" required autocomplete="one-time-code" inputmode="numeric" autocapitalize="off" spellcheck="false" autofocus />
+        {% else %}
+            <twig:Ui:TextInput name="secret" id="reauth-secret" type="password" :label="'reauth.password'|trans" :error="error" required autocomplete="current-password" autofocus />
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'reauth.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="reauth-form" variant="primary">{{ 'reauth.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    {% if 'auth' == layout %}
+        {{ body }}
+        <div class="mt-4 grid gap-2">
+            <twig:Ui:Button type="submit" form="reauth-form" variant="primary" class="w-full">{{ 'reauth.submit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="cancel" variant="ghost" class="w-full">{{ 'reauth.cancel'|trans }}</twig:Ui:Button>
+        </div>
+    {% else %}
+        <twig:Ui:Card :title="title" icon="lock" class="max-w-md">
+            {{ body }}
+        </twig:Ui:Card>
+        <div class="max-w-md">
+            <twig:Ui:ActionBar>
+                <twig:Ui:Button :href="cancel">{{ 'reauth.cancel'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button type="submit" form="reauth-form" variant="primary">{{ 'reauth.submit'|trans }}</twig:Ui:Button>
+            </twig:Ui:ActionBar>
+        </div>
+    {% endif %}
+{% endblock %}

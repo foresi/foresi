@@ -400,3 +400,51 @@ profile:
     photo_type: Choose a JPEG, PNG or WebP image.
     photo_too_large: The photo is too large. It can have at most 5 MB.
     photo_dimensions: The photo is too large. It can have at most 16 million pixels.
+password:
+  title: Password
+  intro: You sign in with your e-mail and this password. A few unrelated words make a password that is long, easy to remember and hard to guess; a password manager can make and keep one for you.
+  change: Change password
+  change_title: Change password
+  save: Change password
+  cancel: Cancel
+  field:
+    email: Sign-in e-mail
+    password: Password
+    password_value: Set
+    password_note: Nobody can see it, not even the firm's administrators.
+    after: After a change
+    after_value: Your other devices are signed out and you get an e-mail.
+    after_value_two_factor: Your other devices are signed out, trusted browsers ask for a code again and you get an e-mail.
+    current: Current password
+    new: New password
+    new_help: 'At least {min} characters, no rules for symbols or digits.'
+    show: Show passwords
+  flash:
+    changed: Your password is changed. Your other devices were signed out.
+  error:
+    current_wrong: The current password is not right.
+    too_short: 'A password has at least {min} characters.'
+    too_long: A password has at most 4096 characters.
+    compromised: This password appears in a known data breach, so others may try it. Choose another one.
+  mail:
+    subject: 'Your {product} password was changed'
+    changed: 'The password of your {product} account {email} was changed on {time}.'
+    signed_out: Every other device where you were signed in has been signed out, and browsers you had marked as trusted will ask for a code again.
+    not_you: If you did not change it, contact your firm's administrator right away.
+reauth:
+  title: Confirm it's you
+  reason:
+    two_factor: You are about to set up two-factor sign-in, which decides who can sign in to your account.
+    api_token: You are about to create an API token, which can act as you.
+    default: You are about to change something that protects your account.
+  window: '{minutes, plural, one {You will not be asked again for # minute.} other {You will not be asked again for # minutes.}}'
+  password: Password
+  code: Code from your authenticator app
+  code_help: The six digits the app shows now.
+  submit: Confirm
+  cancel: Cancel
+  error:
+    password_wrong: The password is not right.
+    code_wrong: The code is not right. Check that the time on your phone is correct.
+    code_reused: This code was just used. Wait for the next code.
+    throttled: '{minutes, plural, one {Too many attempts. Try again in # minute.} other {Too many attempts. Try again in # minutes.}}'

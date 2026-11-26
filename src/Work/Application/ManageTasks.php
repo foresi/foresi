@@ -217,9 +217,26 @@ final readonly class ManageTasks
      */
     public function setCustomField(string $taskId, string $key, mixed $value): void
     {
+        $this->setCustomFields($taskId, [$key => $value]);
+    }
+
+    /**
+     * Custom fields of the task by key, null clearing one, in one change: one
+     * work.task.updated names every key whose value changed.
+     *
+     * @param array<string, mixed> $values by field key, as Fields::write() takes them
+     *
+     * @throws WorkRefused
+     * @throws FieldRefused for a field the task has not, one hidden from a guest, or a value its kind does not take
+     */
+    public function setCustomFields(string $taskId, array $values): void
+    {
         $task = $this->work->task($taskId);
-        $this->unit->run(function () use ($task, $key, $value): void {
-            $changed = $this->customFields->write(TaskExtension::RECORD, $task->id(), [$key => $value], false);
+        if ([] === $values) {
+            return;
+        }
+        $this->unit->run(function () use ($task, $values): void {
+            $changed = $this->customFields->write(TaskExtension::RECORD, $task->id(), $values, false);
             if ([] !== $changed) {
                 $this->events->record(new TaskUpdated($task->id(), $task->project()->id(), [], $changed));
             }

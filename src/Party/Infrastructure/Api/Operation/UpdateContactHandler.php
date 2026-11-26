@@ -10,6 +10,8 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\Contact\ContactWrites;
 use Foresi\Party\Application\Contact\UpdateContactInput;
+use Foresi\Party\Contract\Field\ContactExtension;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 
@@ -18,7 +20,7 @@ use Foresi\Shared\Contract\Operation\OperationOutput;
  */
 final readonly class UpdateContactHandler implements OperationHandler
 {
-    public function __construct(private ContactWrites $writes, private ContactAnswer $answer)
+    public function __construct(private ContactWrites $writes, private ContactAnswer $answer, private CustomFieldPayload $customFields)
     {
     }
 
@@ -31,6 +33,6 @@ final readonly class UpdateContactHandler implements OperationHandler
     {
         \assert($input instanceof UpdateContactInput);
 
-        return $this->answer->of($this->writes->update($input), 'Updated the contact %s.');
+        return $this->answer->of($this->writes->update($input, $this->customFields->read(ContactExtension::RECORD, $input->customFields, false)), 'Updated the contact %s.');
     }
 }

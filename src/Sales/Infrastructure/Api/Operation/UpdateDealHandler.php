@@ -10,12 +10,14 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 
 use Foresi\Sales\Application\Api\UpdateDealInput;
 use Foresi\Sales\Application\DealWrites;
+use Foresi\Sales\Contract\Field\DealExtension;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class UpdateDealHandler implements OperationHandler
 {
-    public function __construct(private DealWrites $writes, private DealAnswer $answer)
+    public function __construct(private DealWrites $writes, private DealAnswer $answer, private CustomFieldPayload $customFields)
     {
     }
 
@@ -28,6 +30,6 @@ final readonly class UpdateDealHandler implements OperationHandler
     {
         \assert($input instanceof UpdateDealInput);
 
-        return $this->answer->of($this->writes->update($input)->id(), 'Updated the deal %s.');
+        return $this->answer->of($this->writes->update($input, null, $this->customFields->read(DealExtension::RECORD, $input->customFields, false))->id(), 'Updated the deal %s.');
     }
 }

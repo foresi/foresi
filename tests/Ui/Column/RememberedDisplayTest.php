@@ -46,6 +46,13 @@ final class RememberedDisplayTest extends TestCase
         self::assertSame(['density' => '', 'widths' => ''], $this->queryOf($remembered, ['density' => '', 'widths' => ''], named: true), 'Reset names the view\'s own widths.');
     }
 
+    public function testADraggedColumnKeepsTheColumnsHidden(): void
+    {
+        $remembered = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email']], 'density' => 'dense', 'pinned' => ['city']];
+
+        self::assertSame(['widths' => 'name:300', 'cols' => 'name,email', 'density' => 'dense', 'pins' => 'city'], $this->queryOf($remembered, ['widths' => 'name:300'], named: true));
+    }
+
     /**
      * The query WorkingDisplay is asked to read for a person's remembered display.
      *

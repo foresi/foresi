@@ -11,10 +11,12 @@ namespace Foresi\Party\Infrastructure\Mcp;
 use Foresi\Party\Application\PartyNotAllowed;
 use Foresi\Party\Application\Query\ContactList;
 use Foresi\Party\Application\View\ContactLists;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Infrastructure\Api\ContactJson;
 use Foresi\Party\Infrastructure\Api\ContactListQuery;
 use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Application\View\AppliedView;
 use Foresi\Shared\Application\View\SavedViewRefused;
 use Foresi\Shared\Application\View\SavedViews;
@@ -32,7 +34,7 @@ use Foresi\Shared\Infrastructure\View\Api\ViewJson;
  */
 final readonly class SearchContactsTool implements ReadTool
 {
-    public function __construct(private ContactList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private ContactLists $lists)
+    public function __construct(private ContactList $list, private ToolArguments $arguments, private SavedViews $views, private ScopeGuard $scope, private ViewJson $json, private ContactLists $lists, private CustomFieldPayload $customFields)
     {
     }
 
@@ -56,7 +58,7 @@ final readonly class SearchContactsTool implements ReadTool
         return 'Searches the address book of the organisation (customers, suppliers, partners and authorities, companies and persons), newest first. Archived contacts are left out unless archived is true. '
             .'Every argument narrows the search; with none, it returns the newest contacts. '
             .'view_id lists what a saved view holds (find views with foresi_list_views; it needs the views:read scope) and filter adds conditions in the format of foresi_list_lists, such as {"conditions": [{"field": "role", "op": "is", "value": "supplier"}]}; a condition on archived decides it instead of the archived argument. '
-            .'Returns {items, next_cursor, applied_view}: each contact has its id, kind, name, roles, registration country and number, VAT id, general e-mail, billing address and whether it is archived. '
+            .'Returns {items, next_cursor, applied_view}: each contact has its id, kind, name, roles, registration country and number, VAT id, general e-mail, billing address, whether it is archived, and its custom_fields by key; a filterable custom field is a field of filter by its key (see foresi_list_fields). '
             .'When next_cursor is not null, more contacts match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_get_contact for the addresses, e-mails, bank accounts and contact persons of one contact; its id is the customer_id of foresi_search_invoices.';
     }
@@ -103,7 +105,7 @@ final readonly class SearchContactsTool implements ReadTool
         } catch (PartyNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its contacts.');
         }
-        $page = ToolArguments::page(array_map(ContactJson::row(...), $slice->rows), $slice->hasMore ? $slice->lastId() : null, 'contact', 'contacts');
+        $page = ToolArguments::page($this->customFields->attach(ContactExtension::RECORD, array_map(ContactJson::row(...), $slice->rows)), $slice->hasMore ? $slice->lastId() : null, 'contact', 'contacts');
         if (!$applied->view instanceof SavedView) {
             return new ToolOutput($page->data + ['applied_view' => null], $page->summary);
         }

@@ -20,8 +20,9 @@ use Foresi\Ui\Contract\WorkingState;
 /**
  * The working display of a view with what the person last used on it (spec D-display-3):
  * columns, their widths or a density they change are kept on the server for them alone, and come back
- * when they open the view again without any in the address. The address wins when it
- * names any; naming the view's own (as Reset does with an empty cols=) forgets them.
+ * when they open the view again without any in the address. The address wins for what it
+ * names, the rest stays as remembered; naming the view's own (as Reset does with an empty
+ * density=) forgets them.
  */
 final readonly class RememberedDisplay
 {
@@ -51,9 +52,11 @@ final readonly class RememberedDisplay
         }
         $stored = null === $view->id ? null : $this->states->display($view->id, $user);
         $remembered = $named ? null : $stored;
-        if ($named && null !== $stored && !\array_key_exists(WorkingDisplay::WIDTHS, $query)) {
-            // The Settings sheet sends the columns and the density, never the widths: the ones dragged stay.
-            $query += [WorkingDisplay::WIDTHS => $this->query($stored)[WorkingDisplay::WIDTHS]];
+        if ($named && null !== $stored && '' !== ($query[WorkingDisplay::DENSITY] ?? null)) {
+            // What the address leaves out stays as remembered: the Settings sheet sends no widths, and a
+            // dragged column sends its widths alone, which would otherwise show the columns hidden again.
+            // Reset names the view's own with an empty density, and forgets it all.
+            $query += $this->query($stored);
         }
         $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups, $pins);
         if ($named) {

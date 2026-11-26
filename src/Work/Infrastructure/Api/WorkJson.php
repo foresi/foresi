@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Api;
 
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
 use Foresi\Work\Application\BudgetChangeRow;
 use Foresi\Work\Application\Choice;
@@ -20,6 +21,8 @@ use Foresi\Work\Application\StatusChoice;
 use Foresi\Work\Application\TaskDetail;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\TimeEntryRow;
+use Foresi\Work\Contract\Field\ProjectExtension;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Infrastructure\Controller\TaskController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -27,11 +30,12 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * Projects, tasks, comments, labels and time as the REST API and the MCP tools
  * write them. A person is their membership id and name, as responsible_id takes
  * it. Hourly rates, sharing and the history stay on the screens. The url of a
- * task is its page, for a person to open.
+ * task is its page, for a person to open. A project and a task carry their
+ * custom fields, a list read in one go.
  */
 final readonly class WorkJson
 {
-    public function __construct(private UrlGeneratorInterface $urls)
+    public function __construct(private UrlGeneratorInterface $urls, private CustomFieldPayload $customFields)
     {
     }
 
@@ -39,6 +43,24 @@ final readonly class WorkJson
      * @return array<string, mixed>
      */
     public function project(ProjectRow $project): array
+    {
+        return $this->customFields->attachOne(ProjectExtension::RECORD, $this->projectRow($project));
+    }
+
+    /**
+     * @param list<ProjectRow> $projects
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function projects(array $projects): array
+    {
+        return $this->customFields->attach(ProjectExtension::RECORD, array_map($this->projectRow(...), $projects));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function projectRow(ProjectRow $project): array
     {
         return [
             'id' => $project->id,
@@ -121,6 +143,24 @@ final readonly class WorkJson
      */
     public function task(TaskRow $task): array
     {
+        return $this->customFields->attachOne(TaskExtension::RECORD, $this->taskRow($task));
+    }
+
+    /**
+     * @param list<TaskRow> $tasks
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function tasks(array $tasks): array
+    {
+        return $this->customFields->attach(TaskExtension::RECORD, array_map($this->taskRow(...), $tasks));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function taskRow(TaskRow $task): array
+    {
         return [
             'id' => $task->id,
             'title' => $task->title,
@@ -149,7 +189,7 @@ final readonly class WorkJson
             'section' => null === $detail->task->sectionId ? null : ['id' => $detail->task->sectionId, 'name' => $detail->sectionName],
             'parent' => $detail->parent instanceof Choice ? ['id' => $detail->parent->id, 'title' => $detail->parent->name] : null,
             'watchers' => array_map(self::person(...), $detail->watchers),
-            'subtasks' => array_map($this->task(...), $detail->task->subtasks),
+            'subtasks' => $this->tasks($detail->task->subtasks),
             'estimate_minutes' => $detail->estimateMinutes,
             'project_archived' => $detail->projectArchived,
             'created_at' => JsonValues::timestamp($detail->createdAt),

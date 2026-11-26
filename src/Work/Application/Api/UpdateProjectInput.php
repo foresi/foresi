@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
+use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Domain\Project;
 
 /**
@@ -29,6 +31,9 @@ use Foresi\Work\Domain\Project;
 )]
 final readonly class UpdateProjectInput
 {
+    /**
+     * @param array<string, mixed>|Omitted $customFields
+     */
     public function __construct(
         #[Field('The id of the project.', format: 'uuid')]
         public string $projectId,
@@ -38,6 +43,9 @@ final readonly class UpdateProjectInput
         public string|Omitted|null $clientId = new Omitted(),
         #[Field('What it is about, in Markdown; an empty text clears it.')]
         public string|Omitted $description = new Omitted(),
+        #[Field('The custom fields to change, by key, as foresi_list_fields lists them for projects; null clears one, a field left out keeps its value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ProjectExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

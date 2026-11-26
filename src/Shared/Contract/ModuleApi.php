@@ -23,7 +23,7 @@ namespace Foresi\Shared\Contract;
 final class ModuleApi
 {
     /** The same version as "provide" of foresi/shared's composer.json. */
-    public const string VERSION = '1.7.0';
+    public const string VERSION = '1.8.0';
 
     /** The virtual package of the module API. */
     public const string PACKAGE = 'foresi/module-api';

@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
- * A planned invoice of a deal was linked to the invoice or recurring invoice that fulfils it; the forecast counts that document instead. The subject is the deal. Since module API 1.7.
+ * A planned invoice of a deal was linked to the invoice or recurring invoice that fulfils it; the forecast counts that document instead. The subject is the deal. Since module API 1.8.
  */
 #[DomainEvent('sales.billing_entry.fulfilled', version: 1)]
 final readonly class BillingEntryFulfilled implements DomainEventPayload

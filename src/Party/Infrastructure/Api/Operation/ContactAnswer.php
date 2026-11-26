@@ -9,8 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\Query\ContactDetails;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Infrastructure\Api\ContactApiController;
 use Foresi\Party\Infrastructure\Api\ContactJson;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -20,7 +22,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ContactAnswer
 {
-    public function __construct(private ContactDetails $details, private UrlGeneratorInterface $urls)
+    public function __construct(private ContactDetails $details, private UrlGeneratorInterface $urls, private CustomFieldPayload $customFields)
     {
     }
 
@@ -32,7 +34,7 @@ final readonly class ContactAnswer
         $detail = $this->details->of($id);
 
         return new OperationOutput(
-            ContactJson::detail($detail),
+            $this->customFields->attachOne(ContactExtension::RECORD, ContactJson::detail($detail)),
             \sprintf($summary, $detail->contact->name),
             $created ? $this->urls->generate(ContactApiController::SHOW, ['contactId' => $id]) : null,
         );

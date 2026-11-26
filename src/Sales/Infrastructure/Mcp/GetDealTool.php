@@ -44,7 +44,7 @@ final readonly class GetDealTool implements ReadTool, StaffOnlyTool
     public function description(): string
     {
         return 'Returns one deal with its client, owner, stage, status and the lost reason and note of a lost one; its contacts (the client\'s contact persons it is talked through with); its lines (name, unit, quantity, unit_price, billing_kind and the period of a recurring one; for a time_based line linked to a project, the project and the billable minutes logged on it, whose time is invoiced at the line\'s rate); '
-            .'its value: one_off and monthly totals, one per currency and never converted, approximate when a weekly or daily line was put on a month\'s terms, and hourly, the rate of each time_based line with its expected hours and expected amount when hours are expected, never added into the other two; and its links: a follows_from link is outgoing when this deal follows from the other deal. A deal in the trash is returned too. Find ids with foresi_search_deals.';
+            .'its value: one_off and monthly totals, one per currency and never converted, approximate when a weekly or daily line was put on a month\'s terms, and hourly, the rate of each time_based line with its expected hours and expected amount when hours are expected, never added into the other two; and its links: a follows_from link is outgoing when this deal follows from the other deal. Its custom_fields hold the custom fields by key (see foresi_list_fields). A deal in the trash is returned too. Find ids with foresi_search_deals.';
     }
 
     /**

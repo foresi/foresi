@@ -48,6 +48,31 @@ nelmio_api_doc:
                         detail: { type: string }
                         code: { type: string, description: 'A stable code, such as not_found, forbidden, invalid_parameter or rate_limited.' }
                         parameter: { type: string, description: 'The parameter that cannot be used, with invalid_parameter.' }
+                FieldDefinition:
+                    type: object
+                    description: 'A custom field a module adds to a record (ADR 0045). Records carry its value under custom_fields, by its key.'
+                    required: [key, record, kind, label, options, module, required, filterable, sortable, searchable, guests]
+                    properties:
+                        key: { type: string, description: 'Never changes, such as acme_fleet_industry.' }
+                        record: { type: string, enum: [contact, deal, task, project, product] }
+                        kind: { type: string, enum: [text, long_text, number, date, datetime, boolean, url, select, multi_select, contact, user] }
+                        label: { type: string, description: 'In the language of the token''s person.' }
+                        options:
+                            type: array
+                            nullable: true
+                            description: 'The options of a select or a multi-select, whose keys its value takes; null for the other kinds.'
+                            items:
+                                type: object
+                                required: [key, label]
+                                properties:
+                                    key: { type: string }
+                                    label: { type: string }
+                        module: { type: string, description: 'The id of the module that adds it.' }
+                        required: { type: boolean, description: 'A new record needs a value.' }
+                        filterable: { type: boolean, description: 'A filter condition of the record''s list may use the key as its field.' }
+                        sortable: { type: boolean }
+                        searchable: { type: boolean, description: 'The text search of the record reads it.' }
+                        guests: { type: boolean, description: 'Guests see and write it.' }
                 Me:
                     type: object
                     required: [user, token]
@@ -298,8 +323,9 @@ nelmio_api_doc:
                         next_issues: { type: array, items: { $ref: '#/components/schemas/RecurringInvoiceIssue' } }
                 Contact:
                     type: object
-                    required: [id, kind, name, roles, registration_country, registration_number, vat_id, email, billing_address, archived]
+                    required: [id, kind, name, roles, registration_country, registration_number, vat_id, email, billing_address, archived, custom_fields]
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/ContactCustomFields' }
                         id: { type: string, format: uuid }
                         kind: { type: string, enum: [person, sole_trader, company] }
                         name: { type: string }
@@ -398,8 +424,9 @@ nelmio_api_doc:
                         applied_view: { allOf: [{ $ref: '#/components/schemas/SavedView' }], nullable: true, description: 'The saved view the view parameter named; null without one.' }
                 Project:
                     type: object
-                    required: [id, name, client, visibility, workflow, open_tasks, nearest_due_on, archived]
+                    required: [id, name, client, visibility, workflow, open_tasks, nearest_due_on, archived, custom_fields]
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/ProjectCustomFields' }
                         id: { type: string, format: uuid }
                         name: { type: string }
                         client: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
@@ -448,6 +475,7 @@ nelmio_api_doc:
                     type: object
                     required: [project_id, hours, used_hours, left_hours, counting, estimate_hours, minutes, used_minutes, left_minutes, over_budget, estimate_minutes, changes]
                     properties:
+                        id: { type: string, format: uuid, description: 'The change made; only in the answer of an inbox action that adds one.' }
                         project_id: { type: string, format: uuid }
                         hours: { type: number, nullable: true, description: 'The budget, the sum of the changes; null without any.' }
                         used_hours: { type: number, description: 'Time logged on the project by anyone, not in the trash and not on a task in the trash; billable only when counting is billable.' }
@@ -495,8 +523,9 @@ nelmio_api_doc:
                         colour: { type: string, enum: [gray, green, amber, red] }
                 Task:
                     type: object
-                    required: [id, title, project, section_id, parent_id, status, responsible, due_on, priority, labels, subtask_count, done, private, url]
+                    required: [id, title, project, section_id, parent_id, status, responsible, due_on, priority, labels, subtask_count, done, private, url, custom_fields]
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/TaskCustomFields' }
                         id: { type: string, format: uuid }
                         title: { type: string }
                         project: { $ref: '#/components/schemas/Reference' }
@@ -703,6 +732,7 @@ nelmio_api_doc:
                     type: object
                     description: Something the firm sells, with its unit, an optional price per unit without VAT and how it is billed.
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/ProductCustomFields' }
                         id: { type: string, format: uuid }
                         name: { type: string }
                         description: { type: string }
@@ -719,6 +749,7 @@ nelmio_api_doc:
                     type: object
                     description: A deal with a client as a list shows it, without its lines, links and contact persons.
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/DealCustomFields' }
                         id: { type: string, format: uuid }
                         title: { type: string }
                         status: { type: string, enum: [open, won, lost] }
@@ -734,6 +765,7 @@ nelmio_api_doc:
                     type: object
                     description: A deal with a client, with its lines, their value, its links to other deals and its contact persons.
                     properties:
+                        custom_fields: { $ref: '#/components/schemas/DealCustomFields' }
                         id: { type: string, format: uuid }
                         title: { type: string }
                         description: { type: string, description: Markdown. }

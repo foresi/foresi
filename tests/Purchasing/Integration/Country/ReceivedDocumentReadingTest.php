@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Purchasing\Functional;
+namespace Foresi\Tests\Purchasing\Integration\Country;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\ExchangeRate\Contract\RateSource;

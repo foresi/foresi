@@ -92,7 +92,7 @@ final class AddressWritesTest extends KernelTestCase
     public function testRefusesWhatCannotBeCreated(): void
     {
         $this->assertCreateRefused('purpose_unknown', 'nobody_takes_this', 'Label');
-        $this->assertCreateRefused('purpose_has_no_owners', 'bank_feed', 'Label');
+        $this->assertCreateRefused('purpose_has_no_owners', RecordingPurpose::RESHOWABLE_KEY, 'Label');
         $this->assertCreateRefused('purpose_has_no_owners', RecordingPurpose::KEY, 'Label');
         $this->assertCreateRefused('label_required', RecordingPurpose::OWNED_KEY, '   ');
         $this->assertCreateRefused('label_too_long', RecordingPurpose::OWNED_KEY, str_repeat('x', 81));
@@ -274,7 +274,7 @@ final class AddressWritesTest extends KernelTestCase
         $this->fixtures->join($someone, Role::Member);
         $issuer = self::getContainer()->get(AddressIssuer::class);
         $theirs = $issuer->issue(RecordingPurpose::OWNED_KEY, $someone->id(), 'Theirs');
-        $feed = $issuer->issue('bank_feed', null, 'Bank feed');
+        $feed = $issuer->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
         $unowned = $issuer->issue(RecordingPurpose::KEY, $this->me->id(), 'Mine, but no owners');
 
         foreach ([$theirs->id, $feed->id, $unowned->id, '01937f4e-0000-7000-8000-000000000001'] as $id) {

@@ -161,6 +161,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/document-types` | `documents:read` | The document types, by name. |
 | `/api/v1/document-templates` | `documents:read` | The document templates, by name, without their bodies. |
 | `/api/v1/document-templates/{templateId}` | `documents:read` | One template with its latest version, its versions and the variables a body can use. |
+| `/api/v1/fields?record=` | the record's read scope | The custom fields modules add to contacts, deals, tasks, projects and products, of every record kind the token may read or of one (`record`); see [Custom fields](#custom-fields). |
 | `/api/v1/lists` | `views:read` | The lists saved views filter, with their fields, operators, values and columns; see [Saved views](#saved-views). |
 | `/api/v1/views?list=` | `views:read` | The saved views of a list the token's person sees. |
 | `/api/v1/views/{viewId}` | `views:read` | One saved view, by its id or the system key of one a module ships. |
@@ -308,6 +309,18 @@ Query parameters of `GET /api/v1/tasks`:
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 
 A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task and `billable_by_default` of a project are `null`, and the people of a project are the organisation's own, not other guests.
+
+## Custom fields
+
+Modules add fields to contacts, deals, tasks, projects and products (ADR 0045). Every contact, deal, task, project and product the API returns carries `custom_fields`: an object with each field the token's person sees by its key, null for a field without a value. A select is its option key, a multi-select a list of option keys, a date `YYYY-MM-DD`, a date and time ISO 8601 with an offset, a number a JSON number, a yes/no field `true` or `false`, a contact or a user its id.
+
+```json
+"custom_fields": { "acme_fleet_industry": "logistics", "acme_fleet_contract_until": "2027-06-30", "acme_fleet_services": ["leasing"] }
+```
+
+The create and update writes of the five records take `custom_fields` with the keys to set. In an update, a key left out keeps its value and null clears it. A create needs a value for each required field. A refusal is `400 invalid_parameter` with `parameter` `custom_fields.<key>` and `reason` `unknown_field`, `invalid_value` or `field_required`.
+
+`GET /api/v1/fields` lists the definitions: `key`, `record`, `kind`, `label` in the person's language, `options` (key and label) of a select, `module`, and `required`, `filterable`, `sortable`, `searchable` and `guests`. A filterable field is a field of the record list's `filter`, by its key. The OpenAPI document describes `custom_fields` of each record from these definitions (`ContactCustomFields` and the like). A field a module keeps off the API (`api: false`) is in none of these, and a guest's token sees only the fields open to guests. Fields are declared by modules in code; the API never creates or changes one.
 
 ## Saved views
 
@@ -592,6 +605,7 @@ An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `rec
 | `POST /api/v1/inbox/items/{itemId}/restore` | The item back from the trash. |
 | `POST /api/v1/inbox/items/{inboxItemId}/tasks` | `201` with the task, as `POST /api/v1/tasks` answers it: creates a task (`project_id`, `title`, optional `description`, `responsible_id`, `due_on`) from the item, copies the files of the mail onto it unless `copy_attachments` is false, adds it to the item as an output and links the e-mail activity to the task and its project. Needs `tasks:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/time-entries` | `201` with the time entry, as `POST /api/v1/time-entries` answers it (`project_id`, `worked_on`, optional `task_id`, `minutes` or `started_at` and `ended_at`, `note`, `billable`); the e-mail activity is linked to the project. Needs `time_entries:write` and `inbox:read`. |
+| `POST /api/v1/inbox/items/{inboxItemId}/budget-changes` | `201` with the budget, as `POST /api/v1/projects/{projectId}/budget-changes` answers it, plus `id`, the id of the change made (`project_id`, `hours` or `minutes`, optional `effective_on`, `note`); the item's e-mail activity, made first when it has none, is linked to the project and is the source of the change. For an item whose client has an active project. Needs `projects:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/deals` | `201` with the deal, as `POST /api/v1/sales/deals` answers it (`title`, `client_party_id`, optional `description`), for an item matched to a contact; the e-mail activity is linked to the deal. Needs `sales:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/activities` | `201` with the activity, as `POST /api/v1/activities` answers it (`type_id`, `subject`, optional `planned_on` or `planned_at`, `done`, `outcome`), linked to the item's contact, its company and the outputs that take activities. Needs `activities:write` and `inbox:read`. |
 

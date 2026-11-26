@@ -54,6 +54,7 @@ final class ContactApiTest extends ApiTestCase
                 'email' => 'alpha@example.com',
                 'billing_address' => ['street' => 'Example Street 1', 'city' => 'Example City', 'postal_code' => '100 00', 'country_code' => 'CZ'],
                 'archived' => false,
+                'custom_fields' => [],
             ]],
             'next_cursor' => Cursor::encode($contact->id()),
             'applied_view' => null,
@@ -82,6 +83,7 @@ final class ContactApiTest extends ApiTestCase
             'email' => null,
             'billing_address' => null,
             'archived' => false,
+            'custom_fields' => [],
         ], $this->at('data', 0));
     }
 
@@ -144,6 +146,7 @@ final class ContactApiTest extends ApiTestCase
                 'position' => 'Accountant',
                 'primary' => true,
             ]],
+            'custom_fields' => [],
         ]], $this->json());
     }
 

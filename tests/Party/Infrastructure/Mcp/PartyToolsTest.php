@@ -97,13 +97,13 @@ final class PartyToolsTest extends ReadToolTestCase
 
         $search = $this->call(SearchContactsTool::class, ['limit' => 1]);
         $rest = $this->rest('/api/v1/contacts', ['limit' => '1']);
-        self::assertSame(['items' => $rest, 'next_cursor' => $this->json()['next_cursor'], 'applied_view' => null], $search->data);
+        self::assertSame(['items' => $rest, 'next_cursor' => $this->json()['next_cursor'], 'applied_view' => null], self::wire($search->data));
         self::assertIsArray($rest);
         self::assertSame(['Petra Example'], array_column($rest, 'name'));
         self::assertSame('1 contact, newest first; more match: call again with the same arguments and next_cursor as cursor.', $search->summary);
 
         $get = $this->call(GetContactTool::class, ['id' => $company->id()]);
-        self::assertSame($this->rest('/api/v1/contacts/'.$company->id()), $get->data);
+        self::assertSame($this->rest('/api/v1/contacts/'.$company->id()), self::wire($get->data));
         self::assertIsArray($get->data['contact_persons']);
         self::assertCount(1, $get->data['contact_persons']);
         self::assertSame('The contact with its addresses, e-mails, bank accounts and contact persons.', $get->summary);

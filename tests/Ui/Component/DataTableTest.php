@@ -396,6 +396,25 @@ final class DataTableTest extends KernelTestCase
         self::assertCount(0, new Crawler($this->render())->filter('[role="separator"]'));
     }
 
+    public function testAResizableTableScrollsInsideItsCardInsteadOfWideningIt(): void
+    {
+        $scroller = static fn (Crawler $html): array => explode(' ', (string) $html->filter('table')->ancestors()->first()->attr('class'));
+
+        $resizable = $scroller(new Crawler($this->render(['columns' => self::COLUMNS, 'resizable' => true])));
+        self::assertContains('overflow-x-auto', $resizable);
+        self::assertContains('[contain:inline-size]', $resizable, 'the widths of its columns never size the card or a group\'s grid track');
+        self::assertNotContains('[contain:inline-size]', $scroller(new Crawler($this->render())), 'a table sized to its text keeps sizing what holds it');
+    }
+
+    public function testAGripIsAFaintDividerUntilThePointerIsOnIt(): void
+    {
+        $classes = explode(' ', (string) new Crawler($this->render(['columns' => self::COLUMNS, 'resizable' => true]))->filter('th [role="separator"]')->first()->attr('class'));
+
+        self::assertContains('after:w-px', $classes);
+        self::assertContains('after:bg-divider', $classes);
+        self::assertContains('hover:after:bg-control-line', $classes);
+    }
+
     public function testOnceEveryColumnHasAWidthTheTableLaysThemOutAtTheirWidths(): void
     {
         $columns = self::COLUMNS;
@@ -860,6 +879,12 @@ final class DataTableTest extends KernelTestCase
         // A text alone reads as text; an edit alone as no value.
         self::assertSame('Status: Open', preg_replace('/\s+/', ' ', trim($crawler->filter('#edit-t2-email-button')->text())));
         self::assertSame('Nezadáno', $crawler->filter('#edit-t1-balance-button [data-empty-value]')->text());
+
+        // The trigger's padding and border lie outside the text, so the value starts where its header does.
+        $cell = explode(' ', (string) $status->closest('td')?->attr('class'));
+        self::assertContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', $cell);
+        self::assertContains('[&_[data-person-picker-trigger]]:-mx-[7px]', $cell);
+        self::assertNotContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', explode(' ', (string) $crawler->filter('tbody tr')->eq(1)->filter('td')->last()->attr('class')), 'a cell without an edit keeps its place');
     }
 
     public function testAnEditOfACellMustBeAnArray(): void

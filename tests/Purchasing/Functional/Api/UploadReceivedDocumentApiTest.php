@@ -11,7 +11,7 @@ namespace Foresi\Tests\Purchasing\Functional\Api;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Tests\Purchasing\Support\ReceivedDocumentApiTestCase;
-use Foresi\Tests\Support\IsdocFixtures;
+use Foresi\Tests\Support\ReceivedFileFixtures;
 
 /**
  * A received document uploaded as a file over REST: a draft from the API, its reading queued
@@ -21,7 +21,7 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
 {
     public function testUploadMakesADraftAndQueuesReading(): void
     {
-        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.isdoc', 'content_base64' => base64_encode(IsdocFixtures::invoice())]);
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.pdf', 'content_base64' => base64_encode(ReceivedFileFixtures::pdf())]);
 
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
@@ -105,7 +105,7 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
 
     public function testAFileNameIsRequired(): void
     {
-        $this->send('POST', '/api/v1/received-documents/upload', ['content_base64' => base64_encode(IsdocFixtures::invoice())]);
+        $this->send('POST', '/api/v1/received-documents/upload', ['content_base64' => base64_encode(ReceivedFileFixtures::pdf())]);
 
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'file_name']);
         self::assertSame(0, $this->drafts());
@@ -113,7 +113,7 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
 
     public function testGuestTokenIsRefused(): void
     {
-        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.isdoc', 'content_base64' => base64_encode(IsdocFixtures::invoice())], $this->guestSecret());
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.pdf', 'content_base64' => base64_encode(ReceivedFileFixtures::pdf())], $this->guestSecret());
 
         self::assertResponseStatusCodeSame(401);
         self::assertSame(0, $this->drafts());
@@ -121,7 +121,7 @@ final class UploadReceivedDocumentApiTest extends ReceivedDocumentApiTestCase
 
     public function testAReadTokenCannotUpload(): void
     {
-        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.isdoc', 'content_base64' => base64_encode(IsdocFixtures::invoice())], $this->issued([ApiScope::from('received_documents:read')]));
+        $this->send('POST', '/api/v1/received-documents/upload', ['file_name' => 'invoice.pdf', 'content_base64' => base64_encode(ReceivedFileFixtures::pdf())], $this->issued([ApiScope::from('received_documents:read')]));
 
         $this->assertProblem(403, 'insufficient_scope');
     }

@@ -23,6 +23,11 @@ final readonly class ProductFieldRecord implements FieldRecord
         return ProductExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'catalog:read';
+    }
+
     public function entity(): string
     {
         return Product::class;

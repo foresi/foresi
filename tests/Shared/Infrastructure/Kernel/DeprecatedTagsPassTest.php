@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Kernel;
 
-use Foresi\CashFlow\Contract\CashFlowSource;
 use Foresi\Shared\Contract\Mcp\ReadTool;
 use Foresi\Shared\Infrastructure\Kernel\DeprecatedTagsPass;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -34,21 +33,21 @@ final class DeprecatedTagsPassTest extends TestCase
     public function testAServiceThatHasTheNewTagAlreadyIsNotTaggedTwice(): void
     {
         $container = new ContainerBuilder();
-        $container->register('acme.source', \stdClass::class)->addTag(CashFlowSource::TAG)->addTag('app.cash_flow_source');
+        $container->register('acme.source', \stdClass::class)->addTag(ReadTool::TAG)->addTag('app.mcp_read_tool');
 
         new DeprecatedTagsPass()->process($container);
 
-        self::assertSame(['acme.source' => [[]]], $container->findTaggedServiceIds(CashFlowSource::TAG));
+        self::assertSame(['acme.source' => [[]]], $container->findTaggedServiceIds(ReadTool::TAG));
     }
 
     public function testAServiceWithTheNewTagReportsNothing(): void
     {
         $container = new ContainerBuilder();
-        $container->register('acme.source', \stdClass::class)->addTag(CashFlowSource::TAG);
+        $container->register('acme.source', \stdClass::class)->addTag(ReadTool::TAG);
 
         new DeprecatedTagsPass()->process($container);
 
-        self::assertSame(['acme.source' => [[]]], $container->findTaggedServiceIds(CashFlowSource::TAG));
+        self::assertSame(['acme.source' => [[]]], $container->findTaggedServiceIds(ReadTool::TAG));
     }
 
     public function testEveryOldNameMapsToTheTagOfAContractInterface(): void
@@ -65,8 +64,22 @@ final class DeprecatedTagsPassTest extends TestCase
         foreach (DeprecatedTagsPass::RENAMED as $old => $new) {
             self::assertStringStartsWith('app.', $old);
             self::assertMatchesRegularExpression('/^foresi\.[a-z_]+\.[a-z_]+$/', $new);
+            // A tag of a module that is not installed has no interface here to look for.
+            if (!is_dir($this->moduleDirectory($new))) {
+                continue;
+            }
             self::assertContains($new, $contractTags, \sprintf('%s is no TAG of an interface in a Contract namespace.', $new));
         }
+    }
+
+    /**
+     * The directory under src/ of the module a tag foresi.<module>.<name> belongs to.
+     */
+    private function moduleDirectory(string $tag): string
+    {
+        $module = explode('.', $tag)[1];
+
+        return \dirname(__DIR__, 4).'/src/'.str_replace('_', '', ucwords($module, '_'));
     }
 
     /**

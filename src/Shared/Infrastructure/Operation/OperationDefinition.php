@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
@@ -111,6 +112,7 @@ final readonly class OperationDefinition
             !$parameter->isDefaultValueAvailable(),
             $inPath,
             $describe,
+            ($parameter->getAttributes(CustomFieldsOf::class)[0] ?? null)?->newInstance()->record,
         );
     }
 }

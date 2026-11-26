@@ -13,9 +13,15 @@
 #}
 {% set rowHeight = this.rowHeight %}
 {#
+    A value one edits in the row reads where the header and every other value start: its trigger's
+    frame (px-1.5 and a 1 px border) shows on hover outside the text, in the cell's padding, as
+    Notion's and Airtable's cells do, so a badge or a name never sits 7 px in from its header.
+#}
+{#
     A resizable table (column-resize) has a grip on the right edge of each header from the sm
-    breakpoint up, always marked by a short notch so one sees where to take it (AG Grid's header
-    resize handle, Google Sheets' column edge), a separator one drags, moves with the arrow keys or double-clicks to size the
+    breakpoint up, marked by a faint 1 px divider in the header's own line colour that grows to the
+    full height and darkens only under the pointer, and turns green on focus or while dragged
+    (Notion's and Airtable's column edges, GitHub Projects' table header), a separator one drags, moves with the arrow keys or double-clicks to size the
     column to its text again (WAI-ARIA APG Window Splitter; Excel, Google Sheets). Once every column
     has a width the table lays them out at those widths alone, at least as wide as its frame: the
     actions column, or an empty last column when there is none, takes the room the others leave.
@@ -35,7 +41,12 @@
     {% else %}
         <div class="overflow-hidden rounded-panel border border-container bg-white">
             {# relative: absolute screen-reader texts in the cells stay inside the scroll box instead of widening the page. #}
-            <div class="relative overflow-x-auto">
+            {#
+                A resizable table's columns may add up to more than the page has: inline-size containment
+                keeps their width from sizing the card or what holds it (a group's grid track, a flex
+                row), so the card stays as wide as the page and the table scrolls inside it.
+            #}
+            <div class="relative overflow-x-auto{{ resizable ? ' [contain:inline-size]' : '' }}">
                 <table class="w-full border-collapse{{ fixed ? ' sm:table-fixed sm:w-[max(100%,var(--table-w))]' : '' }}"{% if fixed %} style="--table-w: {{ this.fixedWidth }}px"{% endif %} data-column-resize-target="table">
                     <caption class="sr-only">{{ caption ?: 'ui.table.caption'|trans }}</caption>
                     {#- The widths a view gives its columns, from the sm breakpoint up; a column with none sizes to its content. A col leaves the table where its column does, so the rest keep their place. -#}
@@ -70,7 +81,7 @@
                                         {{- column.label -}}
                                     {%- endif -%}
                                     {%- if resizable -%}
-                                        <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden after:absolute after:inset-y-[30%] after:right-0.5 after:w-0.5 after:rounded-sm after:bg-control-line after:transition-colors hover:after:bg-muted focus-visible:after:bg-transparent data-[resizing]:after:bg-transparent"></span>
+                                        <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden after:absolute after:inset-y-3 after:right-0 after:w-px after:bg-divider after:transition-colors hover:after:inset-y-0 hover:after:bg-control-line focus-visible:after:bg-transparent data-[resizing]:after:bg-transparent"></span>
                                     {%- endif -%}
                                 </th>
                             {% endfor %}
@@ -92,7 +103,7 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}{{ cell.edit ? ' ' ~ this.editInset : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
                                         {%- if cell.edit -%}

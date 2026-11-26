@@ -22,6 +22,7 @@ use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenState;
 use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Security\RequiresReauthentication;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -163,9 +164,11 @@ final class ApiTokenController extends AbstractController
 
     /**
      * The form in a dialog (the same URL is a page of its own) and, posted,
-     * the one answer that shows the secret.
+     * the one answer that shows the secret. A token acts as the person, so they
+     * confirm it is them first (GitHub asks the same before a personal token).
      */
     #[Route('/settings/api/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
+    #[RequiresReauthentication(RequiresReauthentication::API_TOKEN)]
     public function new(Request $request): Response
     {
         $values = ['name' => '', 'days' => (string) ManageApiTokens::DEFAULT_EXPIRY_DAYS, 'scopes' => [ApiScope::READ]];

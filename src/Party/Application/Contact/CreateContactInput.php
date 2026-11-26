@@ -9,7 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Party\Application\Contact;
 
 use Foresi\Party\Application\PartyRules;
+use Foresi\Party\Contract\Field\ContactExtension;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
 
 /**
@@ -32,7 +35,8 @@ use Foresi\Shared\Contract\Operation\Operation;
 final readonly class CreateContactInput
 {
     /**
-     * @param list<string> $roles
+     * @param list<string>                 $roles
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('What the contact is.', enum: ['person', 'sole_trader', 'company'])]
@@ -65,6 +69,9 @@ final readonly class CreateContactInput
         public array $roles = [],
         #[Field('A note for the staff, never printed.')]
         public string $privateNote = '',
+        #[Field('The custom fields by key, as foresi_list_fields lists them for contacts; required ones need a value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ContactExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

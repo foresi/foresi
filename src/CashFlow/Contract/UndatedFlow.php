@@ -15,7 +15,7 @@ use Foresi\Shared\Domain\Money;
  * nobody has given an invoicing day yet. The forecast shows it apart, in its
  * own "No date" column, and never counts it in a balance: any day it chose
  * would be a guess. The amount is positive; the direction says which way it
- * goes. Since module API 1.7.
+ * goes. Since module API 1.8.
  */
 final readonly class UndatedFlow
 {

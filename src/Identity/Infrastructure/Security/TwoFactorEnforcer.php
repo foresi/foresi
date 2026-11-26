@@ -10,6 +10,7 @@ namespace Foresi\Identity\Infrastructure\Security;
 
 use Foresi\Identity\Infrastructure\Controller\InvitationController;
 use Foresi\Identity\Infrastructure\Controller\LanguageController;
+use Foresi\Identity\Infrastructure\Controller\ReauthenticationController;
 use Foresi\Identity\Infrastructure\Controller\TwoFactorSetupController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -30,6 +31,8 @@ final readonly class TwoFactorEnforcer
     private const array OPEN_ROUTES = [
         TwoFactorSetupController::SETUP_ROUTE,
         TwoFactorSetupController::RECOVERY_CODES_ROUTE,
+        // The enrolment may first ask the person to confirm it is them.
+        ReauthenticationController::ROUTE,
         LanguageController::ROUTE,
         // Accepting first; the enrolment follows on the page it leads to.
         InvitationController::ROUTE,

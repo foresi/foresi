@@ -41,7 +41,7 @@ final readonly class GetTaskTool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns one task the person sees by its id: what foresi_search_tasks returns for it, with its description (Markdown), section, parent, watchers, subtasks, estimate_minutes, whether its project is archived, created_at and completed_at. A task in the trash, or a private one not shared with the person, is not found. Read its comments with foresi_list_task_comments.';
+        return 'Returns one task the person sees by its id: what foresi_search_tasks returns for it, with its description (Markdown), section, parent, watchers, subtasks, estimate_minutes, whether its project is archived, created_at, completed_at and custom_fields by key (see foresi_list_fields). A task in the trash, or a private one not shared with the person, is not found. Read its comments with foresi_list_task_comments.';
     }
 
     public function inputSchema(): array

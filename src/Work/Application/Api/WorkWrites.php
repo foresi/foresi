@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application\Api;
 
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Work\Application\Comments;
 use Foresi\Work\Application\ManageComments;
@@ -48,13 +49,16 @@ final readonly class WorkWrites
     }
 
     /**
+     * @param array<string, mixed>|null $customFields by key, as CustomFieldPayload::read() gives them; null when the caller offers none
+     *
      * @throws WorkRefused
+     * @throws FieldRefused nothing is stored
      */
-    public function createTask(CreateTaskInput $input): string
+    public function createTask(CreateTaskInput $input, ?array $customFields = null): string
     {
         $dueOn = null === $input->dueOn ? null : $this->day($input->dueOn, 'dueOn');
 
-        return $this->unit->run(function () use ($input, $dueOn): string {
+        return $this->unit->run(function () use ($input, $dueOn, $customFields): string {
             $task = $this->titled(fn (): \Foresi\Work\Domain\Task => $this->tasks->create(
                 $input->projectId,
                 $input->title,
@@ -64,6 +68,7 @@ final readonly class WorkWrites
                 $input->responsibleId,
                 $dueOn,
                 Priority::from($input->priority),
+                customFields: $customFields,
             ));
             // Saved, so the changes below find it as the task page does.
             $this->store->flush();
@@ -79,13 +84,16 @@ final readonly class WorkWrites
     }
 
     /**
+     * @param array<string, mixed>|null $customFields the custom fields to change by key; null to keep them
+     *
      * @throws WorkRefused
+     * @throws FieldRefused nothing is stored
      */
-    public function updateTask(UpdateTaskInput $input): string
+    public function updateTask(UpdateTaskInput $input, ?array $customFields = null): string
     {
         $id = $input->taskId;
         $dueOn = \is_string($input->dueOn) ? $this->day($input->dueOn, 'dueOn') : null;
-        $this->unit->run(function () use ($input, $id, $dueOn): void {
+        $this->unit->run(function () use ($input, $id, $dueOn, $customFields): void {
             if (!$input->title instanceof Omitted) {
                 $title = $input->title;
                 $this->titled(fn () => $this->tasks->rename($id, $title));
@@ -110,6 +118,9 @@ final readonly class WorkWrites
             }
             if (!$input->labelIds instanceof Omitted) {
                 $this->tasks->setLabels($id, $input->labelIds);
+            }
+            if (null !== $customFields) {
+                $this->tasks->setCustomFields($id, $customFields);
             }
         });
 
@@ -175,17 +186,23 @@ final readonly class WorkWrites
     }
 
     /**
+     * @param array<string, mixed>|null $customFields by key, as CustomFieldPayload::read() gives them; null when the caller offers none
+     *
      * @throws WorkRefused
+     * @throws FieldRefused nothing is stored
      */
-    public function createProject(CreateProjectInput $input): string
+    public function createProject(CreateProjectInput $input, ?array $customFields = null): string
     {
-        return $this->named(fn (): \Foresi\Work\Domain\Project => $this->projects->create($input->name, $input->clientId, WorkflowTemplate::from($input->workflow), $input->description))->id();
+        return $this->named(fn (): \Foresi\Work\Domain\Project => $this->projects->create($input->name, $input->clientId, WorkflowTemplate::from($input->workflow), $input->description, $customFields))->id();
     }
 
     /**
+     * @param array<string, mixed>|null $customFields the custom fields to change by key; null to keep them
+     *
      * @throws WorkRefused
+     * @throws FieldRefused nothing is stored
      */
-    public function updateProject(UpdateProjectInput $input): string
+    public function updateProject(UpdateProjectInput $input, ?array $customFields = null): string
     {
         $project = $this->queries->project($input->projectId) ?? throw new WorkRefused('unknown');
         $this->named(fn () => $this->projects->edit(
@@ -193,6 +210,7 @@ final readonly class WorkWrites
             $input->name instanceof Omitted ? $project->row->name : $input->name,
             $input->clientId instanceof Omitted ? $project->row->clientId : $input->clientId,
             $input->description instanceof Omitted ? $project->description : $input->description,
+            $customFields,
         ));
 
         return $input->projectId;

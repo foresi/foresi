@@ -6,11 +6,12 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\RecurringFilter;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 
 /**
  * The text search of the recurring templates: the name, the description and the

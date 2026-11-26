@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Party\Application\Contact;
 
 use Foresi\Party\Application\PartyRules;
+use Foresi\Party\Contract\Field\ContactExtension;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
@@ -31,7 +33,8 @@ use Foresi\Shared\Contract\Operation\Operation;
 final readonly class UpdateContactInput
 {
     /**
-     * @param list<string>|Omitted $roles
+     * @param list<string>|Omitted         $roles
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('The id of the contact.', format: 'uuid')]
@@ -64,6 +67,9 @@ final readonly class UpdateContactInput
         public array|Omitted $roles = new Omitted(),
         #[Field('A note for the staff, never printed; null clears it.')]
         public string|Omitted|null $privateNote = new Omitted(),
+        #[Field('The custom fields to change, by key, as foresi_list_fields lists them for contacts; null clears one, a field left out keeps its value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ContactExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

@@ -34,6 +34,8 @@ final class GuestAccessTest extends WebTestCase
         // Their account, and their profile: every guest has one (name, photo), and the person's photo is shown wherever they appear.
         'app_account_profile', 'app_account_profile_edit', 'app_account_profile_photo', 'app_account_profile_photo_remove', 'app_user_photo', 'api_v1_operation_identity.profile.update',
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
+        // Their password, and the prompt that confirms it is them before a sensitive page.
+        'app_account_password', 'app_account_password_change', 'app_reauthenticate',
         // Machines: the uptime monitor, the bank mail relay and calendar apps fetching a feed, on firewalls without a session.
         'app_health', 'app_inbound_mail', 'app_calendar_feed',
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
@@ -74,7 +76,7 @@ final class GuestAccessTest extends WebTestCase
         // The inbox actions of Sales and Activities.
         'api_v1_operation_inbox.actions.create_deal', 'api_v1_operation_inbox.actions.log_activity',
         // The inbox actions of Work.
-        'api_v1_operation_inbox.actions.create_task', 'api_v1_operation_inbox.actions.log_time',
+        'api_v1_operation_inbox.actions.create_task', 'api_v1_operation_inbox.actions.log_time', 'api_v1_operation_inbox.actions.add_to_budget',
         'api_v1_mail_addresses', 'api_v1_operation_mail.addresses.create', 'api_v1_operation_mail.addresses.rename', 'api_v1_operation_mail.addresses.revoke', 'api_v1_operation_mail.addresses.replace',
         'documents_api_documents', 'documents_api_document', 'documents_api_document_file', 'documents_api_types', 'documents_api_templates', 'documents_api_template',
         'api_v1_operation_documents.types.create', 'api_v1_operation_documents.types.update', 'api_v1_operation_documents.types.archive', 'api_v1_operation_documents.templates.create', 'api_v1_operation_documents.templates.save_version', 'api_v1_operation_documents.templates.archive', 'api_v1_operation_documents.create', 'api_v1_operation_documents.update', 'api_v1_operation_documents.generate', 'api_v1_operation_documents.mark_sent', 'api_v1_operation_documents.attach_signed_copy', 'api_v1_operation_documents.cancel', 'api_v1_operation_documents.trash', 'api_v1_operation_documents.restore', 'api_v1_operation_documents.generate_again', 'api_v1_operation_documents.signers.add', 'api_v1_operation_documents.signers.update', 'api_v1_operation_documents.signers.remove', 'api_v1_operation_documents.signers.mark_signed', 'api_v1_operation_documents.signers.mark_declined',
@@ -90,7 +92,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',
         'api_v1_recurring_invoices', 'api_v1_recurring_invoice', 'api_v1_recurring_invoice_preview',
         'api_v1_operation_recurring-invoices.create', 'api_v1_operation_recurring-invoices.update', 'api_v1_operation_recurring-invoices.pause', 'api_v1_operation_recurring-invoices.resume', 'api_v1_operation_recurring-invoices.end',
-        'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
+        'api_v1_lists', 'api_v1_fields', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
         'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_project_budget', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',

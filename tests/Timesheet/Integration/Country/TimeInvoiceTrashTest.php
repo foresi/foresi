@@ -130,9 +130,8 @@ final class TimeInvoiceTrashTest extends WorkTestCase
         }
         self::assertSame([], $this->candidateIds());
         self::assertSame(0, $this->rows('SELECT COUNT(*) FROM released_time'));
-        // Billed, released and billed again, under the task for the one on a task and the project for the
-        // other; the save of the one on the task is a fourth, as a day saved is a new value to Doctrine.
-        self::assertSame([4, 3], [$this->updates($design, $this->homepage->id()), $this->updates($planning, $this->website->id())]);
+        // Billed, released and billed again, under the task for the one on a task and the project for the other.
+        self::assertSame([3, 3], [$this->billings($design, $this->homepage->id()), $this->billings($planning, $this->website->id())]);
     }
 
     /**
@@ -199,11 +198,12 @@ final class TimeInvoiceTrashTest extends WorkTestCase
     }
 
     /**
-     * The updates of an entry the audit log keeps under the root.
+     * The updates of an entry the audit log keeps under the root that bill or free it. The save of an
+     * unchanged day is left out: whether it is an update at all is Doctrine's to say, not the trash's.
      */
-    private function updates(string $entryId, string $rootId): int
+    private function billings(string $entryId, string $rootId): int
     {
-        $count = $this->em->getConnection()->fetchOne("SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND entity_id = ? AND root_id = ? AND action = 'updated'", [TimeEntry::class, $entryId, $rootId]);
+        $count = $this->em->getConnection()->fetchOne("SELECT COUNT(*) FROM audit_entry WHERE entity_class = ? AND entity_id = ? AND root_id = ? AND action = 'updated' AND CAST(changes AS TEXT) LIKE ?", [TimeEntry::class, $entryId, $rootId, '%"invoiceId"%']);
 
         return is_numeric($count) ? (int) $count : throw new \LogicException('A count.');
     }
