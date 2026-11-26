@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Integration\Inbox;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\UploadAttachment;
@@ -33,6 +35,8 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
         private WorkAnswers $answer,
         private InboxItems $items,
         private UploadAttachment $upload,
+        private EntityManagerInterface $em,
+        private ManagerRegistry $registry,
         private LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -87,6 +91,10 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
                     $this->logger->error('A file of an inbox item could not be copied onto its task.', ['item_id' => $itemId, 'task_id' => $taskId, 'failure' => $failure::class]);
                 }
                 ++$failed;
+                if (!$this->em->isOpen()) {
+                    // A database error closed the entity manager: the task is committed, so a fresh one reads it back and records it.
+                    $this->registry->resetManager();
+                }
             } finally {
                 if (is_file($path)) {
                     unlink($path);

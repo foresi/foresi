@@ -8,10 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Work\Integration\Inbox;
 
+use Doctrine\DBAL\Driver\PDO\Exception as DriverException;
+use Doctrine\DBAL\Exception\ConnectionLost;
+use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
 use Foresi\Attachment\Application\AttachmentFiles;
+use Foresi\Attachment\Application\Attachments;
 use Foresi\Attachment\Application\VisibleAttachments;
+use Foresi\Attachment\Domain\Attachment;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Inbox\Application\InboxPurpose;
@@ -290,6 +295,73 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         self::assertSame([], $this->attachmentNames($taskId));
     }
 
+    public function testADatabaseErrorWhileKeepingAFileLeavesTheTaskAsAnOutput(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive($this->withAttachment());
+        $em = $this->em();
+        // The flush of the attachment fails in the database and closes the entity manager, as a constraint violation does.
+        self::getContainer()->set(Attachments::class, new readonly class($em) implements Attachments {
+            public function __construct(private EntityManagerInterface $em)
+            {
+            }
+
+            public function of(string $ownerKind, string $ownerId): array
+            {
+                return [];
+            }
+
+            public function get(string $id): ?Attachment
+            {
+                return null;
+            }
+
+            public function withDeleted(string $id): ?Attachment
+            {
+                return null;
+            }
+
+            public function deletedOf(string $ownerKind, string $ownerId): array
+            {
+                return [];
+            }
+
+            public function deletedBefore(\DateTimeImmutable $moment): array
+            {
+                return [];
+            }
+
+            public function allOf(string $ownerKind, array $ownerIds): array
+            {
+                return [];
+            }
+
+            public function remove(Attachment $attachment): void
+            {
+            }
+
+            public function add(Attachment $attachment): void
+            {
+            }
+
+            public function flush(): void
+            {
+                $this->em->close();
+
+                throw new ConnectionLost(DriverException::new(new \PDOException('The database went away.')), null);
+            }
+        });
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/tasks', ['project_id' => $project->id(), 'title' => 'Read the offer'], $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        $taskId = $this->at('data', 'id');
+        self::assertIsString($taskId);
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertSame([['task', $taskId]], array_map(static fn (mixed $output): array => \is_array($output) ? [$output['kind'], $output['id']] : [], (array) $this->at('data', 'outputs')));
+    }
+
     public function testAProjectThePersonCannotSeeIsNeverProposed(): void
     {
         $visible = $this->project('Office move');
@@ -394,7 +466,7 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         $tokens = self::getContainer()->get(TokenStorageInterface::class);
         $tokens->setToken(new UsernamePasswordToken(SecurityUser::fromUser($this->user), 'main', ['ROLE_USER']));
         try {
-            return array_map(static fn (\Foresi\Attachment\Domain\Attachment $file): string => $file->fileName(), $this->service(VisibleAttachments::class)->of(TaskAttachmentAccess::KIND, $taskId));
+            return array_map(static fn (Attachment $file): string => $file->fileName(), $this->service(VisibleAttachments::class)->of(TaskAttachmentAccess::KIND, $taskId));
         } finally {
             $tokens->setToken(null);
         }
