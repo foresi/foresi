@@ -346,6 +346,11 @@ final class ManageApiTokensTest extends TestCase
                 return ['contacts'];
             }
 
+            public function byModule(): array
+            {
+                return ['party' => ['contacts']];
+            }
+
             public function guest(): array
             {
                 return [];

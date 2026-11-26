@@ -180,4 +180,15 @@ abstract class OAuthTestCase extends WebTestCase
             self::getContainer()->get(UserRepository::class)->save($user);
         }
     }
+
+    /**
+     * @return list<string> the form-action sources of the last response
+     */
+    protected function formAction(): array
+    {
+        $policy = (string) $this->client->getResponse()->headers->get('Content-Security-Policy');
+        self::assertSame(1, preg_match('/(?:^|; )form-action ([^;]+)/', $policy, $match), $policy);
+
+        return explode(' ', $match[1]);
+    }
 }

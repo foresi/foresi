@@ -33,6 +33,11 @@ final class GuestOAuthFlowTest extends OAuthTestCase
         // What a guest reads stays ticked; writing tasks can be unticked.
         self::assertNotNull($crawler->filter('#scope-tasks-read')->attr('disabled'));
         self::assertNotNull($crawler->filter('#scope-tasks-write')->attr('checked'));
+        // The same layout as for staff: who signs in, then the access by module, without the whole account.
+        self::assertSelectorTextContains('main', 'guest@example.com · guest');
+        self::assertCount(0, $crawler->filter('#scope-read, details'));
+        self::assertCount(1, $crawler->filterXPath('//*[@role="group"][p[normalize-space()="Work"]]'));
+        self::assertSame(["'self'", 'http://127.0.0.1'], $this->formAction());
 
         $this->client->submit($crawler->filter('button[value="allow"]')->form());
         $answer = $this->answer();

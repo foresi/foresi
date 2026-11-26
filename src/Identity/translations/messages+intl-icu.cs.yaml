@@ -188,6 +188,12 @@ api_tokens:
     projects: Projekty
     tasks: Úkoly a komentáře
     time_entries: Čas
+    documents: Dokumenty
+    inbox: Schránka
+    mail_addresses: E-mailové adresy
+  module:
+    invoicing: Fakturace
+    work: Práce
   state:
     expired: Vypršel
     revoked: Zrušen
@@ -342,10 +348,18 @@ oauth:
     intro: '{client} chce používat Foresi vaším jménem přes MCP server.'
     verified: 'Název ověřuje doména {host}.'
     unverified: Tento název si aplikace uvedla sama a Foresi ho nemůže ověřit. Povolte ji, jen pokud jste ji právě sami připojovali.
-    redirect: 'Po rozhodnutí se vrátíte na {host}.'
+    verified_badge: 'Ověřeno doménou {host}'
+    unverified_badge: Neověřeno
+    account: Přihlášený účet
+    guest: '{email} · host'
+    redirect: Po rozhodnutí se vrátíte na
     access: Přístup
-    access_help: Jen to, co aplikace potřebuje. Úpravy zahrnují čtení.
-    required: nutné
+    access_help: Jen to, co aplikace potřebuje. Kdo mění, smí i číst.
+    asked_read: Čtení, o které aplikace požádala, zůstane zapnuté.
+    account_all: Všechna data
+    by_module: Přístup po oblastech
+    read: Číst
+    write: Měnit
     two_factor: Aplikaci lze připojit jen s dvoufázovým přihlášením.
     revoke: Aplikaci můžete kdykoli odpojit v Nastavení → API a MCP.
     allow: Povolit

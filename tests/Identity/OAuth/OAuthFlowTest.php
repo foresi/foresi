@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Identity\OAuth;
 
 use Foresi\Identity\Domain\ApiToken;
+use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\OAuthTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
@@ -198,6 +199,59 @@ final class OAuthFlowTest extends OAuthTestCase
 
         self::assertStringStartsWith(self::REDIRECT.'?error=access_denied', $this->location());
         self::assertSame([], $this->em->getRepository(ApiToken::class)->findAll());
+    }
+
+    public function testTheConsentScreenLetsItsFormEndOnlyAtTheClientsRedirect(): void
+    {
+        $clientId = $this->register();
+        $this->signIn();
+
+        // Chrome checks form-action on the redirect after the submit, so the page names the client's origin.
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['redirect_uri' => 'http://127.0.0.1:53682/callback']));
+        self::assertResponseIsSuccessful();
+        self::assertSame(["'self'", 'http://127.0.0.1:53682'], $this->formAction());
+
+        $this->client->submit($crawler->filter('button[value="deny"]')->form());
+        self::assertStringStartsWith('http://127.0.0.1:53682/callback?error=access_denied', $this->location());
+
+        // Allowing goes to the same origin, and the next page posts only to Foresi again.
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId));
+        self::assertSame(["'self'", 'http://127.0.0.1'], $this->formAction());
+        $this->client->submit($crawler->filter('button[value="allow"]')->form());
+        self::assertStringStartsWith(self::REDIRECT.'?code=', $this->location());
+        $this->client->request('GET', '/connected-apps');
+        self::assertSame(["'self'"], $this->formAction());
+
+        // A redirect the client never registered gets an error page, and no form may leave.
+        $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['redirect_uri' => 'https://elsewhere.example.com/callback']));
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame(["'self'"], $this->formAction());
+    }
+
+    public function testTheConsentScreenGroupsTheAccessAndNamesWhoSignsIn(): void
+    {
+        $clientId = $this->register();
+        $this->signIn();
+
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read projects:write']));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'Not verified');
+        self::assertSelectorTextContains('main', 'Signed in as');
+        self::assertSelectorTextContains('main', IdentityFixtures::EMAIL);
+        // The whole account first, then each module with its resources, each with reading and changing.
+        self::assertSelectorTextContains('[role="group"][aria-labelledby="access-all-label"]', 'All data');
+        $work = $crawler->filterXPath('//*[@role="group"][p[normalize-space()="Work"]]');
+        self::assertCount(1, $work);
+        self::assertCount(1, $work->filter('#scope-projects-read'));
+        self::assertNotNull($work->filter('#scope-projects-write')->attr('checked'));
+        self::assertNull($work->filter('#scope-tasks-write')->attr('checked'));
+        // A single-resource module is one row, without a heading of its own.
+        self::assertCount(1, $crawler->filterXPath('//*[@role="group"][span[normalize-space()="Contacts"]]'));
+        // The client asked for one resource, so the areas are shown open.
+        self::assertNotNull($crawler->filter('details')->attr('open'));
+
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read']));
+        self::assertNull($crawler->filter('details')->attr('open'));
     }
 
     public function testTheConsentScreenNeedsASignInAndTwoFactorSignIn(): void

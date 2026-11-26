@@ -30,6 +30,20 @@ final class InstalledApiResources implements ApiResources
         return $this->resources ??= $this->modules->graph()->resources();
     }
 
+    public function byModule(): array
+    {
+        $modules = [];
+        foreach ($this->modules->graph()->all() as $module) {
+            if ([] !== $module->scopes) {
+                $resources = $module->scopes;
+                sort($resources, \SORT_STRING);
+                $modules[$module->id->value] = $resources;
+            }
+        }
+
+        return $modules;
+    }
+
     public function guest(): array
     {
         return $this->guest ??= $this->modules->graph()->guestScopes();

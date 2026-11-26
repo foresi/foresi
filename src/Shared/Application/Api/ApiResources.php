@@ -21,6 +21,14 @@ interface ApiResources
     public function declared(): array;
 
     /**
+     * The resources by the module that declares them, in the order the modules are
+     * installed, for screens that show access grouped by module.
+     *
+     * @return array<string, list<string>> module id => its resources, sorted
+     */
+    public function byModule(): array;
+
+    /**
      * The scopes a guest's token may hold, as the modules open their resources
      * to guests (ADR 0041): "tasks:write" up to writing, "projects:read" for
      * reading only.

@@ -155,6 +155,16 @@ final readonly class OAuthAuthorization
     }
 
     /**
+     * The person signed in, whom the consent screen names.
+     */
+    public function signedInPerson(): ?User
+    {
+        $userId = $this->actor->userId();
+
+        return null === $userId ? null : $this->users->findById($userId);
+    }
+
+    /**
      * Whether the person signed in connects as a guest, who is offered only the scopes a guest may hold.
      */
     public function connectsAsGuest(): bool
