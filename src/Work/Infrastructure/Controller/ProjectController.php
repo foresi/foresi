@@ -56,7 +56,6 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
-use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectColumns;
 use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
@@ -698,7 +697,7 @@ final class ProjectController extends AbstractController
                 'user' => $seeds[$task->responsibleId] ?? null,
             ],
             'due' => $this->taskColumns->due($task),
-            'priority' => Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value),
+            'priority' => TaskEdits::priorityBadge($task->priority, $this->translator->trans('work.priority.'.$task->priority->value)),
             'labels' => array_map(static fn (LabelBadge $label): array => ['label' => $label->name, 'tone' => $label->colour->value], $task->labels),
             'subtasks' => 0 === $task->subtaskCount ? null : ['done' => $done, 'total' => $task->subtaskCount],
             // Every status, its own hidden: a drop changes which one that is.

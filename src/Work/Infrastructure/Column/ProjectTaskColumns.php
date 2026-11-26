@@ -107,7 +107,7 @@ final readonly class ProjectTaskColumns implements DataSource
      */
     private function priority(TaskRow $task, array $context): string|array|null
     {
-        return TaskEdits::cell(Priority::None === $task->priority ? null : $this->translator->trans('work.priority.'.$task->priority->value), $this->edits($context)?->priority($task));
+        return TaskEdits::cell(TaskEdits::priorityBadge($task->priority, $this->translator->trans('work.priority.'.$task->priority->value)), $this->edits($context)?->priority($task));
     }
 
     /**
