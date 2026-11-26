@@ -159,7 +159,7 @@ final class InboxActionScreensTest extends InboxScreenTestCase
         self::assertSame([], $this->outputs($id));
     }
 
-    public function testARecordThatCannotBeAddedToTheItemWarnsToLinkIt(): void
+    public function testARecordThatCannotBeAddedToTheItemWarnsNotToSaveAgainWhenItsKindCannotBeLinked(): void
     {
         $id = $this->receive(InboxMail::plain($this->address));
 
@@ -170,7 +170,8 @@ final class InboxActionScreensTest extends InboxScreenTestCase
 
         self::assertResponseRedirects('/inbox/'.$id);
         $page = $this->client->followRedirect();
-        self::assertStringContainsString('The record was made but could not be linked to the e-mail. Use Link… to link it.', $page->filter('main')->text());
+        // No module offers a note to activities, so Link… could not take it.
+        self::assertStringContainsString('The record was made, but it could not be added to what came of this mail. It is saved in its own section; do not save it again.', $page->filter('main')->text());
         self::assertSame([], $this->outputs($id));
         self::assertSame(ItemState::New, $this->item($id)->state());
     }

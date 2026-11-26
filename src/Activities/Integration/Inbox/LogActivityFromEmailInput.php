@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Activities\Integration\Inbox;
 
+use Foresi\Activities\Contract\RecordActivities;
 use Foresi\Activities\Domain\Activity;
 use Foresi\Inbox\Contract\InboxAction;
 use Foresi\Inbox\Contract\InboxActionInput;
@@ -32,7 +33,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     response: 'ActivitiesActivity',
     staffOnly: true,
 )]
-#[InboxAction(label: 'activities.inbox_action.log_activity', kind: 'activity', weight: 40)]
+#[InboxAction(label: 'activities.inbox_action.log_activity', kind: RecordActivities::KIND, weight: 40)]
 final readonly class LogActivityFromEmailInput implements InboxActionInput
 {
     public function __construct(

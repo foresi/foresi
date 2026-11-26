@@ -13,6 +13,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Attachment\Application\AttachmentRefused;
 use Foresi\Attachment\Application\AttachmentUpload;
 use Foresi\Attachment\Application\UploadAttachment;
+use Foresi\Inbox\Contract\InboxAttachmentContent;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
@@ -75,8 +76,13 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
         $failed = 0;
         foreach ($view->attachments ?? [] as $attachment) {
             $content = $this->items->attachmentContent($itemId, $attachment->index);
+            if (!$content instanceof InboxAttachmentContent) {
+                ++$failed;
+                continue;
+            }
+            // Made only once there is something to write, so that every file made is removed below.
             $path = tempnam(sys_get_temp_dir(), 'foresi-inbox-');
-            if (!$content instanceof \Foresi\Inbox\Contract\InboxAttachmentContent || false === $path) {
+            if (false === $path) {
                 ++$failed;
                 continue;
             }
@@ -93,6 +99,7 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
                 ++$failed;
                 if (!$this->em->isOpen()) {
                     // A database error closed the entity manager: the task is committed, so a fresh one reads it back and records it.
+                    // Entities other services loaded before the reset are detached from the fresh manager: nothing here persists one.
                     $this->registry->resetManager();
                 }
             } finally {

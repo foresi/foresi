@@ -12,6 +12,7 @@ use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxPreFill;
 use Foresi\Inbox\Contract\PreFill;
+use Foresi\Inbox\Contract\SuggestedRecord;
 use Foresi\Work\Domain\Task;
 
 /**
@@ -41,7 +42,7 @@ final readonly class CreateTaskFromEmailPreFill implements InboxPreFill
             'markDone' => true,
         ];
         $project = $this->items->suggestedRecord($item->id, ActiveProjectSuggester::KIND);
-        if ($project instanceof \Foresi\Inbox\Contract\SuggestedRecord) {
+        if ($project instanceof SuggestedRecord) {
             $values['projectId'] = $project->id;
         }
 

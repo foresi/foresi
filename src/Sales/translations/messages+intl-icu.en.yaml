@@ -331,4 +331,3 @@ inbox_action:
                 title: Title
                 clientPartyId: Client
                 description: Description
-                markDone: Mark the item done

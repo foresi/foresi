@@ -87,6 +87,16 @@ final class InboxRefused extends \DomainException implements Refused
         return self::conflict('action_not_applicable', 'This action does not apply to the inbox item; foresi_get_inbox_item lists the ones that do in available_actions.');
     }
 
+    /**
+     * An action on an item without its e-mail activity while Activities takes
+     * none (the type email is archived or missing): what it made could not be
+     * added to the item, so it is not made.
+     */
+    public static function emailActivityUnavailable(): self
+    {
+        return self::conflict('email_activity_unavailable', 'The activity type email is archived or missing, so what the action makes cannot be added to the inbox item; restore the type under Settings, Activities first.');
+    }
+
     public function reason(): string
     {
         return $this->reason;

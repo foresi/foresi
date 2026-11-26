@@ -14,6 +14,7 @@ use Foresi\Activities\Contract\LinkableRecords;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
 use Foresi\Activities\Infrastructure\Api\ActivitiesRoutes;
 use Foresi\Inbox\Contract\InboxItems;
+use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -65,7 +66,7 @@ final readonly class LogActivityFromEmailHandler implements OperationHandler
     private function links(string $itemId): array
     {
         $item = $this->items->find($itemId);
-        if (!$item instanceof \Foresi\Inbox\Contract\InboxItemView) {
+        if (!$item instanceof InboxItemView) {
             return [];
         }
         $records = [];

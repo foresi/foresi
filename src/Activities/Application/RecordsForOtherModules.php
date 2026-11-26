@@ -40,6 +40,13 @@ final readonly class RecordsForOtherModules implements ActivityRecorder
         ))->id();
     }
 
+    public function accepts(string $typeKey): bool
+    {
+        $type = $this->store->typeByKey($typeKey);
+
+        return $type instanceof ActivityType && !$type->isArchived();
+    }
+
     public function link(string $activityId, string $kind, string $id): void
     {
         $this->writes->addLink($activityId, $kind, $id);

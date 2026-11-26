@@ -19,7 +19,10 @@ use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Attachment\Domain\Attachment;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Inbox\Application\InboxActions;
 use Foresi\Inbox\Application\InboxPurpose;
+use Foresi\Inbox\Application\RecordOutputs;
+use Foresi\Inbox\Contract\InboxAction;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Instance\Application\InstanceClock;
@@ -28,13 +31,16 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\McpToolCalls;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Foresi\Work\Integration\Activities\TaskActivityTarget;
+use Foresi\Work\Integration\Inbox\CreateTaskFromEmailInput;
 use Foresi\Work\Integration\Inbox\CreateTaskFromEmailPreFill;
+use Foresi\Work\Integration\Inbox\LogTimeFromEmailInput;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
@@ -45,6 +51,8 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 final class WorkInboxActionsTest extends WorkApiTestCase
 {
+    use McpToolCalls;
+
     private string $address;
     private string $agent;
 
@@ -104,6 +112,74 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         $activityId = $this->at('data', 'email_activity_id');
         self::assertIsString($activityId);
         self::assertSame([['project', $project->id()]], $this->linksOf($activityId));
+    }
+
+    public function testWhileTheEmailTypeIsArchivedLogTimeIsRefusedBeforeAnyEntryIsMadeSoARetryMakesNoSecond(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->setEmailTypeArchived(true);
+        $body = ['project_id' => $project->id(), 'worked_on' => '2026-11-24', 'minutes' => 45];
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/time-entries', $body, $this->agent);
+        $this->assertProblem(409, 'email_activity_unavailable');
+        $call = $this->callTool($this->agent, 'foresi_log_time_from_email', ['inbox_item_id' => $itemId] + $body);
+        self::assertTrue($call['isError'] ?? null, 'The retry an agent makes is refused too.');
+        self::assertSame('email_activity_unavailable', ((array) ((array) ($call['structuredContent'] ?? []))['error'])['code'] ?? null);
+
+        self::assertEquals(0, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM time_entry'), 'No time entry was made, so none is billed twice.');
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame(['new', [], null], [$this->at('data', 'state'), $this->at('data', 'outputs'), $this->at('data', 'email_activity_id')]);
+
+        $this->setEmailTypeArchived(false);
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/time-entries', $body, $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        self::assertEquals(1, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM time_entry'));
+    }
+
+    public function testAnItemWithItsEmailActivityTakesActionsWhileTheTypeIsArchived(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/tasks', ['project_id' => $project->id(), 'title' => 'Answer the offer', 'mark_done' => false], $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        $this->setEmailTypeArchived(true);
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-24', 'minutes' => 30], $this->agent);
+
+        self::assertResponseStatusCodeSame(201);
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame(['task', 'time_entry'], array_map(static fn (mixed $output): mixed => \is_array($output) ? $output['kind'] : null, (array) $this->at('data', 'outputs')), 'The existing e-mail activity is extended.');
+    }
+
+    public function testOnlyATaskCanBeLinkedByHandWhenItsRecordingFails(): void
+    {
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $task = InboxActions::attributeOf(CreateTaskFromEmailInput::class);
+        $time = InboxActions::attributeOf(LogTimeFromEmailInput::class);
+        self::assertInstanceOf(InboxAction::class, $task);
+        self::assertInstanceOf(InboxAction::class, $time);
+
+        self::assertSame([true, false], [$outputs->linksByHand($task), $outputs->linksByHand($time)], 'inbox.items.link takes a task, never a time entry.');
+    }
+
+    public function testBothActionsRunOverMcp(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $task = $this->callTool($this->agent, 'foresi_create_task_from_email', ['inbox_item_id' => $itemId, 'project_id' => $project->id(), 'title' => 'Answer the offer', 'mark_done' => false]);
+        self::assertFalse($task['isError'] ?? null);
+        $taskId = ((array) ((array) ($task['structuredContent'] ?? []))['data'])['id'] ?? null;
+        self::assertIsString($taskId);
+        $time = $this->callTool($this->agent, 'foresi_log_time_from_email', ['inbox_item_id' => $itemId, 'project_id' => $project->id(), 'task_id' => $taskId, 'worked_on' => '2026-11-24', 'minutes' => 30]);
+        self::assertFalse($time['isError'] ?? null);
+        $entryId = ((array) ((array) ($time['structuredContent'] ?? []))['data'])['id'] ?? null;
+        self::assertIsString($entryId);
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertSame([['task', $taskId], ['time_entry', $entryId]], array_map(static fn (mixed $output): array => \is_array($output) ? [$output['kind'], $output['id']] : [], (array) $this->at('data', 'outputs')));
     }
 
     public function testTwoActionsOnOneItemGiveTwoOutputsAndOneActivity(): void
@@ -470,6 +546,12 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         } finally {
             $tokens->setToken(null);
         }
+    }
+
+    private function setEmailTypeArchived(bool $archived): void
+    {
+        $this->em()->getConnection()->executeStatement('UPDATE activities_type SET archived_at = ? WHERE type_key = ?', [$archived ? '2026-11-24 10:00:00' : null, 'email']);
+        $this->em()->clear();
     }
 
     private function match(string $itemId): void

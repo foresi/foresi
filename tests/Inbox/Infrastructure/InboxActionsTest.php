@@ -32,6 +32,7 @@ use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureContactNoteHandler;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteInput;
+use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotePreFill;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Fixtures\Action\HasMatchedContact;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\BadConditionInput;
@@ -277,7 +278,7 @@ final class InboxActionsTest extends ApiTestCase
         self::assertFalse($this->in($call, 'isError'));
         $text = $this->in($call, 'content', 0, 'text');
         self::assertIsString($text);
-        self::assertStringContainsString('Made the note. '.RecordOutputs::NOT_LINKED, $text);
+        self::assertStringContainsString('Made the note. '.RecordOutputs::NOT_ADDED, $text, 'No module links a note by hand, so the answer does not send the agent to foresi_link_inbox_item.');
 
         self::assertSame(['A note', 'Another note'], array_values($this->notes()->made), 'Both records survive.');
         $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
@@ -315,6 +316,43 @@ final class InboxActionsTest extends ApiTestCase
 
         self::assertSame($first, $connection->fetchOne('SELECT email_activity_id FROM inbox_item WHERE id = ?', [$itemId]), 'The lock read the item again: one e-mail activity.');
         self::assertCount(2, $this->storedOutputs($itemId));
+    }
+
+    public function testWhileTheEmailTypeIsArchivedAnActionIsRefusedBeforeItMakesAnything(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->em()->getConnection()->executeStatement("UPDATE activities_type SET archived_at = '2026-11-24 10:00:00' WHERE type_key = 'email'");
+        $this->em()->clear();
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/fixture-notes', ['text' => 'A note']);
+        $this->assertProblem(409, 'email_activity_unavailable');
+        $call = $this->tool($this->agent, 'foresi_add_fixture_note_from_email', ['inbox_item_id' => $itemId, 'text' => 'A note']);
+        self::assertTrue($this->in($call, 'isError'));
+        self::assertSame('email_activity_unavailable', $this->in($call, 'structuredContent', 'error', 'code'));
+
+        self::assertSame([], $this->notes()->made, 'Nothing was made, so a retry makes no second record.');
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame(['new', [], null], [$this->at('data', 'state'), $this->outputs(), $this->at('data', 'email_activity_id')]);
+    }
+
+    public function testAPreFillThatFailsLeavesTheItemAndItsOtherActionsAsTheyAre(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, subject: FixtureNotePreFill::BREAKS));
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertResponseIsSuccessful();
+        $note = null;
+        foreach ((array) $this->at('data', 'available_actions') as $action) {
+            if (\is_array($action) && self::NOTE === $action['operation']) {
+                $note = $action;
+            }
+        }
+        self::assertIsArray($note, 'The action is still offered.');
+        self::assertSame(['inbox_item_id' => $itemId], $note['prefill'], 'With nothing filled in.');
+        self::assertArrayNotHasKey('choices', $note);
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/done');
+        self::assertResponseIsSuccessful();
+        self::assertSame('done', $this->at('data', 'state'), 'A write answers the item as usual.');
     }
 
     public function testTheActionRunsOverMcpThroughTheSameRunner(): void

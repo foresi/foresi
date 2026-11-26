@@ -702,7 +702,6 @@ inbox_action:
         responsibleId: Responsible
         dueOn: Due on
         copyAttachments: Copy the attachments onto the task
-        markDone: Mark the item done
       log_time:
         projectId: Project
         workedOn: Day worked
@@ -712,4 +711,3 @@ inbox_action:
         endedAt: Ended at
         note: Note
         billable: Billable
-        markDone: Mark the item done

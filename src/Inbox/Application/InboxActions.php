@@ -14,6 +14,8 @@ use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxPreFill;
 use Foresi\Inbox\Contract\PreFill;
 use Foresi\Shared\Infrastructure\Operation\Operations;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -43,6 +45,7 @@ final class InboxActions
         private readonly iterable $conditions = [],
         #[AutowireIterator(InboxPreFill::TAG)]
         private readonly iterable $prefills = [],
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -131,13 +134,30 @@ final class InboxActions
     }
 
     /**
-     * The starting values of the action's fields for the item; none when no module fills it.
+     * The starting values of the action's fields for the item; none when no
+     * module fills it, or when its pre-fill fails, which is logged by ids and
+     * class alone, so that the item and its other actions still show.
      */
     public function prefill(DeclaredAction $action, InboxItemView $item): PreFill
     {
         $this->prefillsByOperation ??= $this->byKey($this->prefills, static fn (InboxPreFill $prefill): string => $prefill->operation());
+        $prefill = $this->prefillsByOperation[$action->name()] ?? null;
+        if (!$prefill instanceof InboxPreFill) {
+            return new PreFill();
+        }
+        try {
+            return $prefill->prefill($item);
+        } catch (\Throwable $failure) {
+            // Ids and the class of the failure only: its message may carry the mail.
+            $this->logger->error('The pre-fill of an inbox action failed.', [
+                'item_id' => $item->id,
+                'operation' => $action->name(),
+                'prefill' => $prefill::class,
+                'failure' => $failure::class,
+            ]);
 
-        return ($this->prefillsByOperation[$action->name()] ?? null)?->prefill($item) ?? new PreFill();
+            return new PreFill();
+        }
     }
 
     /**

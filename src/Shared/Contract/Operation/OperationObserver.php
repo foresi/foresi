@@ -13,7 +13,9 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * Watches every declared operation the runner runs, over REST and MCP alike,
  * such as Inbox recording what an action on an item made. It sees the
- * declaration and the input, never the request.
+ * declaration and the input, never the request. A screen that runs a handler
+ * itself does not go through the runner, so no observer sees it: the Inbox
+ * action dialog calls RecordOutputs itself.
  */
 #[AutoconfigureTag(self::TAG)]
 interface OperationObserver
@@ -22,7 +24,8 @@ interface OperationObserver
 
     /**
      * Before the handler, after the scope and the input are checked. A Refused
-     * thrown here refuses the operation; nothing is made.
+     * thrown here refuses the operation; nothing is made. Throw nothing else:
+     * any other throwable fails the operation as an error.
      *
      * @param object $input an instance of the operation's input class
      *

@@ -146,4 +146,3 @@ inbox_action:
                 plannedAt: Planned at
                 done: Already done
                 outcome: Outcome
-                markDone: Mark the item done

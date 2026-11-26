@@ -10,6 +10,7 @@ namespace Foresi\Inbox\Infrastructure\Controller;
 
 use Foresi\Inbox\Application\DeclaredAction;
 use Foresi\Inbox\Application\InboxActions;
+use Foresi\Inbox\Application\InboxRefused;
 use Foresi\Inbox\Application\ItemDetail;
 use Foresi\Inbox\Application\ItemReads;
 use Foresi\Inbox\Application\RecordOutputs;
@@ -18,10 +19,12 @@ use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Contract\Refused;
 use Foresi\Shared\Infrastructure\Operation\InputMapper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
@@ -103,19 +106,27 @@ final class InboxActionController extends AbstractController
      *
      * @throws Refused when the input or the module's use case refuses it
      */
-    private function run(DeclaredAction $action, string $id, array $sent): \Symfony\Component\HttpFoundation\RedirectResponse
+    private function run(DeclaredAction $action, string $id, array $sent): RedirectResponse
     {
         $input = InputMapper::map($action->definition, $sent);
         if (!$input instanceof InboxActionInput) {
             throw new \LogicException(\sprintf('The input of %s is no inbox action input.', $action->name()));
         }
         // The item may have gone to the trash or changed since the dialog opened.
-        $this->refused(fn () => $this->outputs->check($action->action, $input, false));
+        try {
+            $this->outputs->check($action->action, $input, false);
+        } catch (InboxRefused $refused) {
+            if ('email_activity_unavailable' === $refused->reason()) {
+                // Shown on the dialog: the person can restore the type and save again.
+                throw $refused;
+            }
+            throw $this->httpError($refused);
+        }
         $output = $action->definition->handler->handle($input);
         if ($this->outputs->record($action->action, $input, $output)) {
             $this->addFlash('success', $this->translator->trans('inbox.flash.action_done'));
         } else {
-            $this->addFlash('warning', $this->translator->trans('inbox.flash.action_not_linked'));
+            $this->addFlash('warning', $this->translator->trans($this->outputs->linksByHand($action->action) ? 'inbox.flash.action_not_linked' : 'inbox.flash.action_not_added'));
         }
 
         return $this->redirectToRoute(InboxController::ITEM_ROUTE, ['id' => $id]);
@@ -145,11 +156,16 @@ final class InboxActionController extends AbstractController
         try {
             return $action();
         } catch (Refused $refused) {
-            throw match ($refused->kind()) {
-                RefusalKind::NotFound => new NotFoundHttpException($refused->getMessage(), $refused),
-                RefusalKind::Conflict => new ConflictHttpException($refused->getMessage(), $refused),
-                default => new AccessDeniedHttpException($refused->getMessage(), $refused),
-            };
+            throw $this->httpError($refused);
         }
+    }
+
+    private function httpError(Refused $refused): HttpException
+    {
+        return match ($refused->kind()) {
+            RefusalKind::NotFound => new NotFoundHttpException($refused->getMessage(), $refused),
+            RefusalKind::Conflict => new ConflictHttpException($refused->getMessage(), $refused),
+            default => new AccessDeniedHttpException($refused->getMessage(), $refused),
+        };
     }
 }

@@ -30,8 +30,10 @@ use Psr\Log\LoggerInterface;
  *
  * - before the handler, the action is checked: the token holds inbox:read too,
  *   the item is the person's own (another person's is not_found, as one that
- *   does not exist) and not in the trash (item_trashed), and the action's
- *   condition applies (action_not_applicable). A refusal here makes nothing;
+ *   does not exist) and not in the trash (item_trashed), the action's
+ *   condition applies (action_not_applicable), and the item has its e-mail
+ *   activity or Activities takes one (email_activity_unavailable, while the
+ *   type email is archived). A refusal here makes nothing;
  * - after it, in one transaction of the inbox: the made record, by the id in
  *   the answer's data, is added as an output under the action's kind, the
  *   item's one e-mail activity is made or extended with it and with the
@@ -39,18 +41,22 @@ use Psr\Log\LoggerInterface;
  *   keeps its mail, and a new item is marked done unless the input says not.
  *
  * The record is committed by then and stays whatever happens here: a failure
- * to record it is logged by ids alone and answered false, and the person links
- * it by hand.
+ * to record it is logged by ids alone and answered false. The person links it
+ * by hand where its kind can be linked (linksByHand()); a record of another
+ * kind, such as a time entry, stays in its module without the item.
  *
  * The REST and MCP runner calls before() and after(), and an answer whose
- * record could not be added says so in its summary (NOT_LINKED). A screen of a
- * session calls check() without the scope and record() itself.
+ * record could not be added says so in its summary (NOT_LINKED, or NOT_ADDED
+ * for a kind that cannot be linked by hand). A screen of a session calls
+ * check() without the scope and record() itself.
  */
 final readonly class RecordOutputs implements OperationObserver
 {
     public const string READ_SCOPE = 'inbox:read';
     /** What the answer of an action adds when its record could not be added to the item. */
     public const string NOT_LINKED = 'The record was made but not linked to the inbox item; link it with foresi_link_inbox_item.';
+    /** The same for a kind that cannot be linked by hand, such as a time entry: the record stays in its module. */
+    public const string NOT_ADDED = 'The record was made but not added to the inbox item, and a record of this kind cannot be linked by hand; it stays as made, so do not run the action again.';
 
     public function __construct(
         private InboxAccess $access,
@@ -68,7 +74,7 @@ final readonly class RecordOutputs implements OperationObserver
     }
 
     /**
-     * @throws InboxRefused insufficient_scope, not_found, item_trashed, action_not_applicable, forbidden
+     * @throws InboxRefused insufficient_scope, not_found, item_trashed, action_not_applicable, email_activity_unavailable, forbidden
      */
     public function before(Operation $operation, object $input): void
     {
@@ -88,7 +94,16 @@ final readonly class RecordOutputs implements OperationObserver
             return $output;
         }
 
-        return new OperationOutput($output->data, $output->summary.' '.self::NOT_LINKED, $output->location);
+        return new OperationOutput($output->data, $output->summary.' '.($this->linksByHand($action) ? self::NOT_LINKED : self::NOT_ADDED), $output->location);
+    }
+
+    /**
+     * Whether what the action makes can be linked to an item by hand (inbox.items.link) when
+     * record() could not add it.
+     */
+    public function linksByHand(InboxAction $action): bool
+    {
+        return $this->emailActivity->linksByHand($action->kind);
     }
 
     /**
@@ -100,7 +115,7 @@ final readonly class RecordOutputs implements OperationObserver
      *
      * @param bool $checkScope whether the token must hold inbox:read, false for a session
      *
-     * @throws InboxRefused insufficient_scope, not_found, item_trashed, action_not_applicable, forbidden
+     * @throws InboxRefused insufficient_scope, not_found, item_trashed, action_not_applicable, email_activity_unavailable, forbidden
      */
     public function check(InboxAction $action, InboxActionInput $input, bool $checkScope): void
     {
@@ -117,6 +132,11 @@ final readonly class RecordOutputs implements OperationObserver
         }
         if (null !== $action->appliesTo && !$this->actions->applies($action, $this->reads->detail($item, true)->view(true))) {
             throw InboxRefused::actionNotApplicable();
+        }
+        if (!$this->emailActivity->canLink($item)) {
+            // record() would be refused by Activities and roll back: what the handler made would
+            // stay outside the item, and a time entry or an activity could not be linked by hand.
+            throw InboxRefused::emailActivityUnavailable();
         }
     }
 

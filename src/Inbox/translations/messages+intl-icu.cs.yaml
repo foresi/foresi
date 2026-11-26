@@ -78,6 +78,7 @@ inbox:
     linked: Propojeno.
     action_done: Uloženo a přidáno k tomu, co z e-mailu vzešlo.
     action_not_linked: Záznam vznikl, ale s e-mailem se ho nepodařilo propojit. Propojte ho přes Propojit…
+    action_not_added: Záznam vznikl, ale k tomu, co z e-mailu vzešlo, ho nešlo přidat. Je uložený ve své sekci, neukládejte ho znovu.
   item:
     no_subject: (bez předmětu)
     mail_removed: Samotný e-mail už byl odstraněn. Zůstalo jen to, co jste s ním udělali.
@@ -124,6 +125,8 @@ inbox:
     'no': Ne
     none: Žádný
     choose: Vyberte…
+    refused:
+      email_activity_unavailable: Typ aktivity E-mail je archivovaný, takže k tomuto e-mailu nelze nic přidat. Obnovte ho v Nastavení, Aktivity, a uložte znovu.
   link:
     title: Propojit se záznamem
     intro: Propojí tento e-mail se záznamem, například s obchodem nebo projektem, a ukáže ho na jeho časové ose.
