@@ -354,7 +354,8 @@ oauth:
     guest: '{email} · guest'
     redirect: After you decide, you go back to
     access: Access
-    access_help: Only what the app needs. Changing includes reading. Reading the app asked for stays on.
+    access_help: Only what the app needs. Changing includes reading.
+    asked_read: Reading the app asked for stays on.
     account_all: All data
     by_module: Access by area
     read: Read

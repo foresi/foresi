@@ -354,7 +354,8 @@ oauth:
     guest: '{email} · host'
     redirect: Po rozhodnutí se vrátíte na
     access: Přístup
-    access_help: Jen to, co aplikace potřebuje. Kdo mění, smí i číst. Čtení, o které aplikace požádala, zůstává zapnuté.
+    access_help: Jen to, co aplikace potřebuje. Kdo mění, smí i číst.
+    asked_read: Čtení, o které aplikace požádala, zůstane zapnuté.
     account_all: Všechna data
     by_module: Přístup po oblastech
     read: Číst

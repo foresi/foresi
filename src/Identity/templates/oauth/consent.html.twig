@@ -92,7 +92,7 @@
             {% if canConnect %}
                 <fieldset class="m-0 grid gap-2 border-0 p-0">
                     <legend class="mb-1 p-0 text-small font-semibold text-ink">{{ 'oauth.consent.access'|trans }}</legend>
-                    <p class="m-0 text-caption text-muted">{{ 'oauth.consent.access_help'|trans }}</p>
+                    <p class="m-0 text-caption text-muted">{{ 'oauth.consent.access_help'|trans }} {{ 'oauth.consent.asked_read'|trans }}</p>
 
                     {% if access.account.read or access.account.write %}
                         <div class="rounded-control border border-container px-3">
