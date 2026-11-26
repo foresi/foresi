@@ -2540,7 +2540,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "6b1f95f5080aa200f28c3717facd44cc0de8e942"
+                "reference": "678cd999029a8fa5ed401bec7791d1d218e71671"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2559,6 +2559,7 @@
                 "symfony/console": "7.4.*",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/event-dispatcher": "^7.4",
+                "symfony/event-dispatcher-contracts": "^3.8",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-client": "^7.4.24",
                 "symfony/http-client-contracts": "^3.7",
@@ -2569,10 +2570,12 @@
                 "symfony/routing": "^7.4",
                 "symfony/security-bundle": "7.4.*",
                 "symfony/security-core": "^7.4",
+                "symfony/security-csrf": "^7.4",
                 "symfony/security-http": "^7.4",
                 "symfony/service-contracts": "^3.8",
                 "symfony/translation": "7.4.*",
                 "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
                 "tecnickcom/tc-lib-barcode": "^2.17.2",
                 "twig/twig": "^3.30",
                 "zircote/swagger-php": "^7.5"
@@ -2880,7 +2883,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "484e2ba13b7644f5900220ce5d4a8fdd74d9cbf3"
+                "reference": "371c9a6f2a5bdbe284ff0ae39583d0c8ce9dc4b5"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2929,6 +2932,7 @@
                     "optional": [
                         "cash-flow",
                         "margin",
+                        "sales",
                         "taxes-and-contributions",
                         "vat"
                     ],
@@ -3258,7 +3262,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "51e4cfea31ca021a515a386b610bf9709dc648ec"
+                "reference": "2d0aac4de7778a3acc61edd5b71c3a0eda80acc8"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3293,8 +3297,10 @@
                     "namespace": "Foresi\\Sales\\",
                     "bundle": "Foresi\\Sales\\SalesBundle",
                     "optional": [
-                        "documents",
                         "activities",
+                        "cash-flow",
+                        "documents",
+                        "invoicing",
                         "timesheet",
                         "work",
                         "inbox"
@@ -3332,7 +3338,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "1468c4b1a2647eee5e8f92952c3a0c29014216af"
+                "reference": "5ba81cbab84524006a2f7b85f510806a7b511d86"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3387,7 +3393,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.7.0"
+                "foresi/module-api": "1.8.0"
             },
             "type": "foresi-module",
             "extra": {

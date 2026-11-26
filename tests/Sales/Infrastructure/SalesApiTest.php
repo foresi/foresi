@@ -256,7 +256,7 @@ final class SalesApiTest extends ApiTestCase
         }
         $inputs = glob(\dirname(__DIR__, 3).'/src/Sales/Application/Api/*Input.php');
         self::assertIsArray($inputs);
-        self::assertCount(22, $inputs);
+        self::assertCount(27, $inputs);
         foreach ($inputs as $file) {
             $input = 'Foresi\\Sales\\Application\\Api\\'.basename($file, '.php');
             self::assertTrue(class_exists($input));

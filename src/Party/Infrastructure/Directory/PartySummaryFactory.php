@@ -36,6 +36,7 @@ final readonly class PartySummaryFactory
             '' !== $phone ? $phone : ('' !== $mobile ? $mobile : null),
             array_map(static fn (PartyRole $role): string => $role->value, $contact->roles),
             $contact->archived,
+            $contact->dueDays,
         );
     }
 

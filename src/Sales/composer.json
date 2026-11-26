@@ -48,8 +48,10 @@
             "namespace": "Foresi\\Sales\\",
             "bundle": "Foresi\\Sales\\SalesBundle",
             "optional": [
-                "documents",
                 "activities",
+                "cash-flow",
+                "documents",
+                "invoicing",
                 "timesheet",
                 "work",
                 "inbox"

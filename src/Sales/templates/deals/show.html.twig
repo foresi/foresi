@@ -20,7 +20,10 @@
     as link tabs, the first, Activities, by default and only the active one loaded, in its lazy frame
     (NN/g, Tabs, used right: the most used tab first and selected). The side column: the details, the
     custom fields under "Additional details", the notes and the linked deals.
-    Variables: deal, badge, stageName, stages (id, name, current), details, lines, lineProjects (whether a line links a project), totals, links, linkable,
+    The billing plan follows the lines on a won deal (Productive's billing plan of a budget): each planned
+    invoice with its kind, day or "No date", state and amount, edited, linked or removed from its row's
+    menu; Plan invoice is in the header's menu. An open or lost deal shows its plan read-only with a note.
+    Variables: deal, badge, stageName, stages (id, name, current), details, lines, lineProjects (whether a line links a project), totals, billing, links, linkable,
     slotActions, tabs, section, context.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -76,6 +79,10 @@
         </twig:block>
         {% if open %}
             <twig:Ui:MenuItem icon="x" :href="path('app_sales_deal_lose', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-lose>{{ 'sales.deal.lose'|trans }}</twig:Ui:MenuItem>
+        {% endif %}
+        {% if billing and billing.editable %}
+            {# A won deal plans its invoices from its header, in a dialog (Productive's billing plan of a budget). #}
+            <twig:Ui:MenuItem icon="receipt-text" :href="path('app_sales_billing_entry_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-billing-entry-new>{{ 'sales.billing.new'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         {% if not deal.trashed %}
             <twig:Ui:MenuItem icon="pencil" :href="path('app_sales_deal_edit', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-edit>{{ 'sales.deal.edit'|trans }}</twig:Ui:MenuItem>
@@ -145,6 +152,31 @@
                         </twig:block>
                     </twig:Ui:DataTable>
                 </section>
+
+                {% if billing %}
+                    {# The billing plan: what the won deal will invoice and when; the forecast counts each row until an invoice or recurring invoice fulfils it. #}
+                    <section class="grid gap-2" aria-labelledby="deal-billing-title" data-deal-billing>
+                        <h2 id="deal-billing-title" class="m-0 text-heading font-semibold text-ink">{{ 'sales.billing.title'|trans }}</h2>
+                        {% if billing.note %}<p class="m-0 text-small text-muted" data-deal-billing-note>{{ billing.note }}</p>{% endif %}
+                        {% if billing.rows is not empty %}
+                            <twig:Ui:DataTable :caption="'sales.billing.title'|trans" :actionToken="token" :rows="billing.rows" :columns="[
+                                {key: 'text', label: 'sales.billing.column.text'|trans, truncate: true},
+                                {key: 'kind', label: 'sales.billing.column.kind'|trans, phone: false},
+                                {key: 'expected', label: 'sales.billing.column.expected_on'|trans, phone: false},
+                                {key: 'state', label: 'sales.billing.column.state'|trans, phone: false},
+                                {key: 'amount', label: 'sales.billing.column.amount'|trans, align: 'right'},
+                            ]" />
+                        {% elseif billing.editable %}
+                            <twig:Ui:EmptyState icon="receipt-text" :title="'sales.billing.empty_title'|trans" :text="'sales.billing.empty_text'|trans" />
+                        {% endif %}
+                        {% if billing.notPlanned or billing.notInvoiced %}
+                            <p class="m-0 flex flex-wrap gap-x-4 gap-y-1 text-small text-muted" data-deal-billing-totals>
+                                {% if billing.notInvoiced %}<span>{{ 'sales.billing.not_invoiced'|trans({amount: billing.notInvoiced}) }}</span>{% endif %}
+                                {% if billing.notPlanned %}<span data-deal-billing-not-planned>{{ 'sales.billing.not_planned'|trans({amount: billing.notPlanned}) }}</span>{% endif %}
+                            </p>
+                        {% endif %}
+                    </section>
+                {% endif %}
 
                 {% if tabs is not empty %}
                     <div class="grid gap-4" data-deal-tabs>

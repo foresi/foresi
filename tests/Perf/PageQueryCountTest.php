@@ -49,7 +49,7 @@ final class PageQueryCountTest extends WebTestCase
         'time week' => 122,
         'time report' => 154,
         'deals' => 189,
-        'cash flow' => 148,
+        'cash flow' => 152,
         'api contacts' => 10,
         'api invoices' => 10,
         'api time entries' => 9,

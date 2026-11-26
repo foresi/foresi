@@ -40,6 +40,7 @@ final readonly class DealLineWrites
         private DealLineRules $rules,
         private Products $products,
         private LineProjects $projects,
+        private BillingPlanWrites $billingPlan,
     ) {
     }
 
@@ -91,6 +92,7 @@ final readonly class DealLineWrites
             $projectId = $this->project($deal, $line, $terms->billingKind, $this->given($input->projectId, $line->projectId()));
             $line->change($terms);
             $line->linkProject($projectId);
+            $this->billingPlan->lineChanged($line, false);
             $this->updated($deal);
 
             return $line;
@@ -108,7 +110,9 @@ final readonly class DealLineWrites
 
         return $this->work->run(function () use ($input): Deal {
             $deal = $this->deal($input->dealId);
-            $this->store->remove($this->line($deal, $input->lineId));
+            $removed = $this->line($deal, $input->lineId);
+            $this->billingPlan->lineChanged($removed, true);
+            $this->store->remove($removed);
             foreach ($this->store->linesOf($deal->id()) as $position => $line) {
                 $line->moveTo($position);
             }

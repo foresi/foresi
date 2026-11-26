@@ -268,7 +268,102 @@ sales:
             one_off_totals: 'Jednorázová hodnota, řádek za každou měnu (currency, amount)'
             monthly_totals: 'Měsíční hodnota, řádek za každou měnu (currency, amount)'
             hourly_lines: 'Řádky po hodinách, nikdy nepřičtené do součtů (name, rate, expected_hours, expected_amount; poslední dvě jsou prázdné bez očekávaných hodin)'
+    billing:
+        title: Plán fakturace
+        new: Naplánovat fakturu
+        edit: Upravit plánovanou fakturu
+        add: Naplánovat
+        no_date: Bez data
+        not_planned: 'Nenaplánováno: {amount}'
+        not_invoiced: 'Nevyfakturováno: {amount}'
+        empty_title: Nic naplánováno
+        empty_text: Naplánujte, kdy obchod vyfakturujete, najednou nebo po částech, třeba zálohu a doplatek.
+        value_help: 'Jednorázově {value}, zbývá naplánovat {left}.'
+        recurring_help: 'Částku a období bere z řádku {line}.'
+        kind:
+            one_off: Jednorázová
+            recurring: Opakovaná
+        state:
+            planned: Naplánovaná
+            overdue: Po termínu
+            invoiced: Vyfakturovaná
+        note:
+            open: Plán fakturace začne, až obchod vyhrajete.
+            not_won: Obchod není vyhraný, takže předpověď cash flow jeho plán nepočítá.
+        column:
+            text: Faktura
+            kind: Druh
+            expected_on: Očekáváno
+            state: Stav
+            amount: Částka
+        plan:
+            amount: Částka
+        field:
+            plan: Co naplánovat
+            plan_help: Částku, nebo opakovaný řádek bez plánované faktury.
+            amount: Částka
+            amount_help: Bez DPH.
+            currency: Měna
+            percent: Nebo procento z obchodu
+            percent_help: Z jednorázové hodnoty; uloží se výsledná částka.
+            expected_on: Den fakturace
+            expected_on_help: Prázdný den jde do sloupce Bez data, mimo zůstatek.
+            text: Text faktury
+            text_help: Může zůstat prázdný.
+        action:
+            edit: Upravit
+            link: Propojit existující fakturu
+            unlink: Odpojit fakturu
+            delete: Odebrat
+        confirm:
+            delete: Odebrat plánovanou fakturu?
+        day:
+            title: Den fakturace
+            description: 'Kdy se očekává fakturace {entry} z obchodu {deal}. S dnem se započítá do svého období a do zůstatku.'
+            clear: Bez data
+        link:
+            title: Propojit existující fakturu
+            description_invoice: 'Faktura klienta, která naplňuje {entry}. Předpověď pak počítá fakturu a už ne plán.'
+            description_recurring_invoice: 'Opakovaná faktura klienta, která naplňuje {entry}. Předpověď pak počítá opakovanou fakturu a už ne plán.'
+            field_invoice: Faktura
+            field_recurring_invoice: Opakovaná faktura
+            none_invoice: Klient nemá žádnou fakturu mimo koš.
+            none_recurring_invoice: Klient nemá žádnou běžící opakovanou fakturu.
+            submit: Propojit
+        flash:
+            added: Faktura je naplánovaná.
+            saved: Plánovaná faktura je uložená.
+            deleted: Plánovaná faktura je odebraná.
+            linked: Plánovaná faktura je propojená se svým dokladem.
+            unlinked: Plánovaná faktura je odpojená; předpověď ji zase počítá.
+            day_saved: Den fakturace je nastavený.
+            day_cleared: Plánovaná faktura teď nemá den.
+        error:
+            day_required: Zadejte den.
     error:
+        deal_not_won: Plán fakturace má jen vyhraný obchod.
+        kind_unknown: Vyberte jednorázovou nebo opakovanou.
+        recurring_amount: Opakovaná plánovaná faktura bere částku ze svého řádku.
+        line_required: Vyberte opakovaný řádek.
+        line_planned: Řádek už plánovanou fakturu má.
+        line_not_recurring: Plánuje se jen opakovaný řádek s cenou; hodinový řádek fakturuje skutečné hodiny.
+        one_off_line: Jednorázová plánovaná faktura je částka.
+        amount_not_one_off: Opakovaná plánovaná faktura bere částku ze svého řádku; změňte řádek.
+        amount_invalid: Zadejte částku větší než nula s nejvýš dvěma desetinnými místy, třeba 5000,00.
+        amount_and_percent: Zadejte částku, nebo procento, ne obojí.
+        percent_invalid: Zadejte procento větší než 0 a nejvýš 100.
+        percent_no_value: Obchod nemá v této měně jednorázovou hodnotu.
+        currency_required: Vyberte měnu.
+        plan_exceeds_value: Plánované faktury by přesáhly jednorázovou hodnotu obchodu.
+        text_too_long: Text má nejvýš 200 znaků.
+        expected_on_invalid: Zadejte platný den.
+        document_type_unknown: Vyberte fakturu, nebo opakovanou fakturu.
+        document_type_mismatch: Jednorázovou plánovanou fakturu naplňuje faktura, opakovanou opakovaná faktura.
+        document_unknown: Vyberte fakturu ze seznamu.
+        document_other_client: Vyberte fakturu klienta obchodu.
+        document_inactive: Faktura je v koši, nebo opakovaná faktura skončila.
+        document_taken: Doklad už naplňuje jinou plánovanou fakturu.
+        entry_fulfilled: Plánovaná faktura je už propojená; nejdřív ji odpojte.
         forbidden: S obchody pracují jen vlastníci a členové.
         not_found: Obchod neexistuje.
         title_required: Zadejte název.

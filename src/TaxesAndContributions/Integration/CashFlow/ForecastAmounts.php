@@ -69,7 +69,8 @@ final readonly class ForecastAmounts implements ForecastAmountSource
         return match ($certainty) {
             FlowCertainty::Document => ForecastCertainty::Document,
             FlowCertainty::Schedule => ForecastCertainty::Schedule,
-            FlowCertainty::Plan => ForecastCertainty::Plan,
+            // A won deal's planned invoice is planned income until it is issued.
+            FlowCertainty::Deal, FlowCertainty::Plan => ForecastCertainty::Plan,
             FlowCertainty::Estimate => null,
         };
     }

@@ -268,7 +268,102 @@ sales:
             one_off_totals: 'One-off value, one row per currency (currency, amount)'
             monthly_totals: 'Monthly value, one row per currency (currency, amount)'
             hourly_lines: 'Hourly lines of the deal, never added into the totals (name, rate, expected_hours, expected_amount; the last two are empty without expected hours)'
+    billing:
+        title: Billing plan
+        new: Plan invoice
+        edit: Edit planned invoice
+        add: Plan
+        no_date: No date
+        not_planned: 'Not planned: {amount}'
+        not_invoiced: 'Not invoiced: {amount}'
+        empty_title: Nothing planned
+        empty_text: Plan when the deal is invoiced, in one part or several, such as a deposit and the rest.
+        value_help: 'One-off value {value}; {left} not planned yet.'
+        recurring_help: 'Amount and period come from the line {line}.'
+        kind:
+            one_off: One-off
+            recurring: Recurring
+        state:
+            planned: Planned
+            overdue: Overdue
+            invoiced: Invoiced
+        note:
+            open: The billing plan starts when the deal is won.
+            not_won: The deal is not won, so the cash-flow forecast does not count its plan.
+        column:
+            text: Invoice
+            kind: Kind
+            expected_on: Expected
+            state: State
+            amount: Amount
+        plan:
+            amount: An amount
+        field:
+            plan: What to plan
+            plan_help: An amount, or a recurring line not planned yet.
+            amount: Amount
+            amount_help: Without VAT.
+            currency: Currency
+            percent: Or a percentage of the deal
+            percent_help: Of its one-off value; the amount it makes is kept.
+            expected_on: Invoicing day
+            expected_on_help: Empty goes to No date in the forecast, outside the balance.
+            text: Text of the invoice
+            text_help: May stay empty.
+        action:
+            edit: Edit
+            link: Link an existing invoice
+            unlink: Unlink the invoice
+            delete: Remove
+        confirm:
+            delete: Remove the planned invoice?
+        day:
+            title: Invoicing day
+            description: 'When {entry} of {deal} is expected to be invoiced. With a day it counts in its period and in the balance.'
+            clear: No date
+        link:
+            title: Link an existing invoice
+            description_invoice: 'The invoice of the client that fulfils {entry}. The forecast then counts the invoice and no longer the plan.'
+            description_recurring_invoice: 'The recurring invoice of the client that fulfils {entry}. The forecast then counts the recurring invoice and no longer the plan.'
+            field_invoice: Invoice
+            field_recurring_invoice: Recurring invoice
+            none_invoice: The client has no invoice that is not in the trash.
+            none_recurring_invoice: The client has no recurring invoice that is still running.
+            submit: Link
+        flash:
+            added: The invoice is planned.
+            saved: The planned invoice is saved.
+            deleted: The planned invoice is removed.
+            linked: The planned invoice is linked to its document.
+            unlinked: The planned invoice is unlinked; the forecast counts it again.
+            day_saved: The invoicing day is set.
+            day_cleared: The planned invoice has no day now.
+        error:
+            day_required: Enter the day.
     error:
+        deal_not_won: Only a won deal has a billing plan.
+        kind_unknown: Choose one-off or recurring.
+        recurring_amount: A recurring planned invoice takes its amount from its line.
+        line_required: Choose the recurring line.
+        line_planned: The line has a planned invoice already.
+        line_not_recurring: Only a recurring line with a price is planned; an hourly line bills its real hours.
+        one_off_line: A one-off planned invoice is an amount.
+        amount_not_one_off: A recurring planned invoice takes its amount from its line; change the line instead.
+        amount_invalid: Enter an amount above zero with at most two decimals, such as 5000.00.
+        amount_and_percent: Enter the amount or the percentage, not both.
+        percent_invalid: Enter a percentage above 0 and at most 100.
+        percent_no_value: The deal has no one-off value in this currency.
+        currency_required: Choose the currency.
+        plan_exceeds_value: The planned invoices would exceed the one-off value of the deal.
+        text_too_long: The text is at most 200 characters.
+        expected_on_invalid: Enter a valid day.
+        document_type_unknown: Choose an invoice or a recurring invoice.
+        document_type_mismatch: A one-off planned invoice is fulfilled by an invoice, a recurring one by a recurring invoice.
+        document_unknown: Choose an invoice of the list.
+        document_other_client: Choose an invoice of the deal's client.
+        document_inactive: The invoice is in the trash, or the recurring invoice ended.
+        document_taken: The document fulfils another planned invoice already.
+        entry_fulfilled: The planned invoice is linked already; unlink it first.
         forbidden: Only the owners and members work with the deals.
         not_found: The deal does not exist.
         title_required: Enter the title.

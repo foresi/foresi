@@ -26,6 +26,7 @@ final readonly class Forecast
      * @param list<string>             $restrictedSources  the keys of the sources whose documents the caller may not read: in the totals, not as items
      * @param list<FlowCertainty>|null $certainties        the certainties counted; null when every flow counts
      * @param string                   $text               the text the flows counted hold in their labels; empty when every flow counts
+     * @param UndatedForecast          $undated            what is expected without a day, outside every balance
      */
     public function __construct(
         public \DateTimeImmutable $today,
@@ -44,6 +45,7 @@ final readonly class Forecast
         public array $restrictedSources = [],
         public ?array $certainties = null,
         public string $text = '',
+        public UndatedForecast $undated = new UndatedForecast(),
     ) {
     }
 

@@ -12,7 +12,10 @@ use Foresi\CashFlow\Application\AccountOpening;
 use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\Forecasts;
+use Foresi\CashFlow\Application\HiddenTotal;
 use Foresi\CashFlow\Application\PeriodForecast;
+use Foresi\CashFlow\Application\UndatedForecast;
+use Foresi\CashFlow\Application\UndatedLine;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowDirection;
@@ -50,6 +53,8 @@ final readonly class ForecastScreen
     /** The filter builder's list of the page: one condition, the certainty of a flow. */
     public const string FILTER_LIST = 'cash_flow.forecast';
     public const string CERTAINTY = 'certainty';
+    /** The key of the "No date" column, after the last period: what is expected without a day, outside the balance. */
+    public const string UNDATED = 'undated';
 
     /**
      * Where the record of an item opens in place, in the same sheet
@@ -65,9 +70,23 @@ final readonly class ForecastScreen
         'planned_item:out' => 'app_cash_flow_planned_costs_item',
     ];
 
+    /**
+     * Where the day of an item that is no document is set, by its subject
+     * type: the dialog of its own module, over the sheet. A won deal's planned
+     * invoice is dated on the deal's billing plan.
+     */
+    public const array DAYS = [
+        'deal_billing_entry' => 'app_sales_billing_entry_day',
+    ];
+
     /** Where an item that is no record is read: a page of its own, which closes the sheet. */
     private const array PAGES = [
         'tax_payment' => 'app_taxes',
+    ];
+
+    /** Where an item is read on the page of the record it belongs to, by its own id, which closes the sheet: a planned invoice on its deal. */
+    private const array OWNER_PAGES = [
+        'deal_billing_entry' => 'app_sales_billing_entry',
     ];
 
     public function __construct(
@@ -223,15 +242,15 @@ final readonly class ForecastScreen
             return false;
         }
 
-        return !array_any($forecast->periods, static fn (PeriodForecast $period): bool => [] !== $period->lines || [] !== $period->hidden);
+        return !$this->hasFlows($forecast);
     }
 
     /**
-     * Whether any period expects money in or out, what the caller may read or not.
+     * Whether any period, or the "No date" column, expects money in or out, what the caller may read or not.
      */
     public function hasFlows(Forecast $forecast): bool
     {
-        return array_any($forecast->periods, static fn (PeriodForecast $period): bool => [] !== $period->lines || [] !== $period->hidden);
+        return !$forecast->undated->isEmpty() || array_any($forecast->periods, static fn (PeriodForecast $period): bool => [] !== $period->lines || [] !== $period->hidden);
     }
 
     /**
@@ -246,12 +265,28 @@ final readonly class ForecastScreen
                 : ['label' => $this->trans('cash_flow.kpi.never_below'), 'tone' => 'green']]
             : ['label' => $this->trans('cash_flow.kpi.minimum'), 'value' => $this->trans('cash_flow.kpi.minimum_unset'), 'note' => $this->trans('cash_flow.kpi.minimum_unset_note')];
 
-        return [
+        $kpis = [
             ['label' => $this->trans('cash_flow.kpi.today'), 'value' => $this->whole($forecast->opening), 'note' => $this->origin($forecast)],
             ['label' => $this->trans('cash_flow.kpi.lowest'), 'value' => $this->whole($forecast->lowest), 'note' => $this->trans('cash_flow.kpi.on_day', ['day' => $this->day($forecast->lowestOn)])],
             $minimum,
             ['label' => $this->trans('cash_flow.kpi.end'), 'value' => $this->whole($last instanceof PeriodForecast ? $last->closing : $forecast->opening), 'note' => $last instanceof PeriodForecast ? $this->trans('cash_flow.kpi.on_day', ['day' => $this->day($last->period->end)]) : null],
         ];
+        // Money in without a day, such as won deals nobody has dated: shown, never in a balance.
+        $undated = $forecast->undated;
+        $in = $this->total($undated->inflows, $forecast->opening);
+        if (!$in->isZero()) {
+            $count = \count(array_filter($undated->lines, static fn (UndatedLine $line): bool => FlowDirection::In === $line->flow->direction))
+                + array_sum(array_map(static fn (HiddenTotal $hidden): int => FlowDirection::In === $hidden->direction ? $hidden->count : 0, $undated->hidden));
+            $readable = array_any($undated->lines, static fn (UndatedLine $line): bool => FlowDirection::In === $line->flow->direction);
+            $kpis[] = [
+                'label' => $this->trans('cash_flow.kpi.undated'),
+                'value' => $this->whole($in),
+                'note' => $this->trans('cash_flow.kpi.undated_note', ['count' => $count]),
+                'href' => $readable ? $this->urls->generate('app_cash_flow_items', ['period' => self::UNDATED, 'direction' => FlowDirection::In->value]) : null,
+            ];
+        }
+
+        return $kpis;
     }
 
     /**
@@ -298,36 +333,49 @@ final readonly class ForecastScreen
      *
      * @param array<string, string> $keep what the links to the items keep of the address: the filter
      *
-     * @return array{columns: list<array{key: string, label: string, detail: string}>, rows: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, below: bool}>}>}
+     * @return array{columns: list<array{key: string, label: string, detail: string, undated: bool}>, rows: list<array{kind: string, label: string, cells: list<array{text: string, href: ?string, below: bool}>}>}
      */
     public function table(Forecast $forecast, array $keep = []): array
     {
         $columns = [];
         foreach ($forecast->periods as $period) {
-            $columns[] = ['key' => $period->period->key(), 'label' => $this->columnLabel($period), 'detail' => $this->columnDetail($period)];
+            $columns[] = ['key' => $period->period->key(), 'label' => $this->columnLabel($period), 'detail' => $this->columnDetail($period), 'undated' => false];
         }
-        $rows = [['kind' => 'opening', 'label' => $this->trans('cash_flow.table.opening'), 'cells' => array_map(fn (PeriodForecast $period): array => $this->cell($period->opening), $forecast->periods)]];
+        // The "No date" column after the last period, only when something has no day; it has no balance.
+        $undated = $forecast->undated->isEmpty() ? null : $forecast->undated;
+        if ($undated instanceof UndatedForecast) {
+            $columns[] = ['key' => self::UNDATED, 'label' => $this->trans('cash_flow.table.undated'), 'detail' => $this->trans('cash_flow.table.undated_detail'), 'undated' => true];
+        }
+        $none = ['text' => '', 'href' => null, 'below' => false];
+        $rows = [['kind' => 'opening', 'label' => $this->trans('cash_flow.table.opening'), 'cells' => [...array_map(fn (PeriodForecast $period): array => $this->cell($period->opening), $forecast->periods), ...($undated instanceof UndatedForecast ? [$none] : [])]]];
         foreach ([FlowDirection::In, FlowDirection::Out] as $direction) {
             $rows[] = [
                 'kind' => 'total',
                 'label' => $this->trans(FlowDirection::In === $direction ? 'cash_flow.table.in' : 'cash_flow.table.out'),
-                'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, null, $keep), $forecast->periods),
+                'cells' => [
+                    ...array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, null, $keep), $forecast->periods),
+                    ...($undated instanceof UndatedForecast ? [$this->undatedCell($undated, $direction, null, $keep)] : []),
+                ],
             ];
             foreach (FlowCategory::cases() as $category) {
-                if (!array_any($forecast->periods, static fn (PeriodForecast $period): bool => isset(self::flows($period, $direction)[$category->value]))) {
+                if (!array_any($forecast->periods, static fn (PeriodForecast $period): bool => isset(self::flows($period, $direction)[$category->value]))
+                    && !isset((FlowDirection::In === $direction ? $forecast->undated->inflows : $forecast->undated->outflows)[$category->value])) {
                     continue;
                 }
                 $rows[] = [
                     'kind' => 'category',
                     'label' => $this->trans('cash_flow.category.'.$category->value),
-                    'cells' => array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, $category, $keep), $forecast->periods),
+                    'cells' => [
+                        ...array_map(fn (PeriodForecast $period): array => $this->flowCell($period, $direction, $category, $keep), $forecast->periods),
+                        ...($undated instanceof UndatedForecast ? [$this->undatedCell($undated, $direction, $category, $keep)] : []),
+                    ],
                 ];
             }
         }
-        $rows[] = ['kind' => 'closing', 'label' => $this->trans('cash_flow.table.closing'), 'cells' => array_map(
+        $rows[] = ['kind' => 'closing', 'label' => $this->trans('cash_flow.table.closing'), 'cells' => [...array_map(
             fn (PeriodForecast $period): array => $this->cell($period->closing, below: $forecast->minimum instanceof Money && $period->closing->minor() < $forecast->minimum->minor()),
             $forecast->periods,
-        )];
+        ), ...($undated instanceof UndatedForecast ? [$none] : [])]];
 
         return ['columns' => $columns, 'rows' => $rows];
     }
@@ -363,6 +411,34 @@ final readonly class ForecastScreen
 
         return [
             'title' => $what.' · '.$this->periodLabel($period),
+            'total' => $this->money->shown($total),
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * The items of one cell of the "No date" column, each marked as having no day.
+     *
+     * @return array{title: string, total: string, items: list<array<string, mixed>>}
+     */
+    public function undatedItems(Forecast $forecast, FlowDirection $direction, ?FlowCategory $category): array
+    {
+        $items = [];
+        $total = Money::ofMinor(0, $forecast->opening->currency());
+        foreach ($forecast->undated->lines as $line) {
+            if ($line->flow->direction !== $direction || ($category instanceof FlowCategory && $line->flow->category !== $category)) {
+                continue;
+            }
+            $total = $total->plus($line->amount);
+            $items[] = $this->undatedItem($line);
+        }
+        $what = $this->trans(FlowDirection::In === $direction ? 'cash_flow.table.in' : 'cash_flow.table.out');
+        if ($category instanceof FlowCategory) {
+            $what .= ' · '.$this->trans('cash_flow.category.'.$category->value);
+        }
+
+        return [
+            'title' => $what.' · '.$this->trans('cash_flow.table.undated'),
             'total' => $this->money->shown($total),
             'items' => $items,
         ];
@@ -423,13 +499,17 @@ final readonly class ForecastScreen
         $subject = $line->flow->subject;
         $moved = FlowCertainty::Document === $line->flow->certainty && $line->flow->hasFlag(FlowFlag::ExpectedDate);
         $record = self::RECORDS[$subject->type] ?? self::RECORDS[$subject->type.':'.$line->flow->direction->value] ?? null;
-        $href = null === $record ? $this->route(self::PAGES[$subject->type] ?? null, []) : $this->route($record, ['id' => $subject->id]);
+        $href = $this->href($subject->type, $subject->id, $record);
         $expected = null;
         if (FlowCertainty::Document === $line->flow->certainty) {
             $expected = [
                 'label' => $this->trans($moved ? 'cash_flow.expected.action.change' : 'cash_flow.expected.action.set'),
                 'href' => $this->urls->generate('app_cash_flow_expected', ['type' => $subject->type, 'id' => $subject->id] + (self::WEEKS === $view ? ['view' => $view] : [])),
             ];
+        } elseif (isset(self::DAYS[$subject->type])) {
+            // A planned invoice changes its day where it is planned, which moves it to its period.
+            $day = $this->route(self::DAYS[$subject->type], ['id' => $subject->id, 'return' => $this->urls->generate('app_cash_flow', self::WEEKS === $view ? ['view' => $view] : [])]);
+            $expected = null === $day ? null : ['label' => $this->trans('cash_flow.expected.action.change'), 'href' => $day];
         }
 
         return [
@@ -448,6 +528,81 @@ final readonly class ForecastScreen
             'czk' => $line->flow->amount->currency() === $line->amount->currency() ? null : $this->money->shown($line->amount),
             'expected' => $expected,
         ];
+    }
+
+    /**
+     * An undated item: its day reads "No date", and the dialog of its own
+     * module gives it one, which moves it into its period.
+     *
+     * @return array<string, mixed>
+     */
+    private function undatedItem(UndatedLine $line): array
+    {
+        $subject = $line->flow->subject;
+        $record = self::RECORDS[$subject->type] ?? null;
+        $day = self::DAYS[$subject->type] ?? null;
+        $href = $this->href($subject->type, $subject->id, $record);
+        $set = null === $day ? null : $this->route($day, ['id' => $subject->id, 'return' => $this->urls->generate('app_cash_flow')]);
+
+        return [
+            'subject' => $subject->type.'-'.$subject->id,
+            'label' => $line->flow->label,
+            'href' => $href,
+            'inPlace' => null !== $record && null !== $href,
+            'certainty' => $this->trans('cash_flow.certainty.'.$line->flow->certainty->value),
+            'certaintyTone' => FlowCertainty::Estimate === $line->flow->certainty ? 'outline' : 'gray',
+            'source' => null,
+            'day' => $this->trans('cash_flow.table.undated'),
+            'due' => null,
+            'flags' => [],
+            'amount' => $this->money->shown($line->flow->amount),
+            'czk' => $line->flow->amount->currency() === $line->amount->currency() ? null : $this->money->shown($line->amount),
+            'expected' => null === $set ? null : ['label' => $this->trans('cash_flow.expected.action.set'), 'href' => $set],
+        ];
+    }
+
+    /**
+     * A cell of the "No date" column, linking to its items when the caller may read one.
+     *
+     * @param array<string, string> $keep
+     *
+     * @return array{text: string, href: ?string, below: bool}
+     */
+    private function undatedCell(UndatedForecast $undated, FlowDirection $direction, ?FlowCategory $category, array $keep): array
+    {
+        $amount = null;
+        foreach (FlowDirection::In === $direction ? $undated->inflows : $undated->outflows as $key => $sum) {
+            if (!$category instanceof FlowCategory || $key === $category->value) {
+                $amount = $amount instanceof Money ? $amount->plus($sum) : $sum;
+            }
+        }
+        if (!$amount instanceof Money || $amount->isZero()) {
+            return ['text' => '', 'href' => null, 'below' => false];
+        }
+        $readable = array_any($undated->lines, static fn (UndatedLine $line): bool => $line->flow->direction === $direction && (!$category instanceof FlowCategory || $line->flow->category === $category));
+        $href = $readable ? $this->urls->generate('app_cash_flow_items', array_filter([
+            'period' => self::UNDATED,
+            'direction' => $direction->value,
+            'category' => $category?->value,
+        ], static fn (?string $value): bool => null !== $value) + $keep) : null;
+
+        return ['text' => $this->whole($amount), 'href' => $href, 'below' => false];
+    }
+
+    /**
+     * Where an item is read: its record in place, a page of its own, or the
+     * page of the record it belongs to; null when its module is not installed.
+     */
+    private function href(string $type, string $id, ?string $record): ?string
+    {
+        if (null !== $record) {
+            return $this->route($record, ['id' => $id]);
+        }
+        if (isset(self::OWNER_PAGES[$type])) {
+            return $this->route(self::OWNER_PAGES[$type], ['id' => $id]);
+        }
+
+        return $this->route(self::PAGES[$type] ?? null, []);
     }
 
     /**
@@ -664,6 +819,7 @@ final readonly class ForecastScreen
             $forecast->restrictedSources,
             $forecast->certainties,
             $forecast->text,
+            $forecast->undated,
         );
     }
 

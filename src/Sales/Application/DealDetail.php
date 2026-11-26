@@ -16,7 +16,8 @@ use Foresi\Sales\Domain\Stage;
 
 /**
  * One deal with what is kept beside it: its stage and lost reason, its lines
- * and their value, its links to other deals and its contact persons.
+ * and their value, its links to other deals, its contact persons and its
+ * billing plan.
  */
 final readonly class DealDetail
 {
@@ -35,6 +36,7 @@ final readonly class DealDetail
         public array $links,
         public array $contactPersonIds,
         public array $contactPersons,
+        public BillingPlanView $billingPlan = new BillingPlanView(),
     ) {
     }
 }

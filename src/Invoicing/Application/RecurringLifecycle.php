@@ -9,9 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
+use Foresi\Invoicing\Contract\Event\RecurringInvoiceDeleted;
+use Foresi\Invoicing\Contract\Event\RecurringInvoiceEnded;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -20,7 +23,8 @@ use Psr\Clock\ClockInterface;
  * Nothing is issued after a pause commits. Ending is final. Only a template that
  * never issued may be deleted, to the trash, paused; one that did is ended instead,
  * so its invoices keep where they came from. A template in the trash is restored
- * before anything else is done with it, and comes back paused.
+ * before anything else is done with it, and comes back paused. Ending and
+ * deleting record invoicing.recurring_invoice.ended and .deleted, once.
  */
 final readonly class RecurringLifecycle
 {
@@ -29,6 +33,7 @@ final readonly class RecurringLifecycle
         private TransactionalWork $work,
         private ClockInterface $clock,
         private AuditActor $actor,
+        private EventRecorder $events,
     ) {
     }
 
@@ -71,7 +76,12 @@ final readonly class RecurringLifecycle
     public function end(string $id): void
     {
         $this->work->run(function () use ($id): void {
-            $this->untrashed($id)->end($this->now());
+            $template = $this->untrashed($id);
+            if (RecurringState::Ended === $template->state()) {
+                return;
+            }
+            $template->end($this->now());
+            $this->events->record(new RecurringInvoiceEnded($template->id()));
         });
     }
 
@@ -89,6 +99,7 @@ final readonly class RecurringLifecycle
                 throw RecurringRefused::because('state', 'recurring.problem.issued');
             }
             $template->trash($this->now(), $this->actor->userId());
+            $this->events->record(new RecurringInvoiceDeleted($template->id()));
         });
     }
 
