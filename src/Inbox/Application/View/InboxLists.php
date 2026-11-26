@@ -35,7 +35,8 @@ final class InboxLists implements ListDefinitionSource
     public const string DISCARDED_VIEW = 'discarded';
     public const string UNMATCHED_VIEW = 'unmatched';
 
-    private ?ListDefinition $list = null;
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
+    private array $list = [];
 
     public function __construct(private readonly ListFields $fields)
     {
@@ -48,7 +49,7 @@ final class InboxLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), [self::STATE, self::MATCH]);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), [self::STATE, self::MATCH]);
     }
 
     /**
