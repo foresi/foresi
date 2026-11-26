@@ -9,15 +9,18 @@ declare(strict_types=1);
 namespace Foresi\Inbox\Infrastructure\Navigation;
 
 use Foresi\Identity\Contract\StaffCheck;
+use Foresi\Inbox\Infrastructure\Controller\AccountInboxController;
 use Foresi\Inbox\Infrastructure\Controller\InboxController;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
+use Foresi\Ui\Contract\Navigation\NavigationArea;
 use Foresi\Ui\Contract\Navigation\NavigationItem;
 use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 
 /**
  * "Inbox" in the Overview, beside the notifications: where the mail the person
  * forwarded waits, with how many items are new. For the staff only, as the
- * inbox is the person's own and a guest has none.
+ * inbox is the person's own and a guest has none. The addresses that forward
+ * to it are among the connections of the person's own account.
  */
 final readonly class InboxNavigation implements NavigationItemProvider
 {
@@ -34,5 +37,6 @@ final readonly class InboxNavigation implements NavigationItemProvider
             return;
         }
         yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.inbox', 'mail', InboxController::ROUTE, $this->count, weight: 15, routePrefixes: ['app_inbox'], countCap: self::CAP, marksArea: true);
+        yield new NavigationItem(NavigationArea::PROFILE, 'inbox.user_menu', 'mail', AccountInboxController::ROUTE, weight: 20, routePrefixes: ['app_account_inbox'], section: CoreNavigationAreas::SECTION_CONNECTIONS);
     }
 }

@@ -232,7 +232,8 @@ final class ApiTokenPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/api/new');
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('form#api-token-form'));
-        self::assertCount(1, $crawler->filter('a[href="/account/two-factor"]'));
+        // The way to set it up, and the profile sidebar's own link to two-factor sign-in.
+        self::assertCount(1, $crawler->filter('main a[href="/account/two-factor"]'));
 
         $this->issue('Reporting', '90');
 

@@ -104,7 +104,8 @@ final class AppShellTest extends WebTestCase
         self::assertSame('/settings/people', $sidebar->filter('[aria-current="page"]')->attr('href'));
         // From seven items in two sections the section headings show; every area is in the drawer, so the other areas are there too.
         self::assertSame($shown->filter('li')->count() >= 7 ? ['Firm', 'Connections'] : [], $shown->filter('h3')->each(static fn ($h): string => trim($h->text())));
-        self::assertCount($crawler->filter('#rail a[data-nav-area]')->count(), $sidebar->filter('section[data-nav-area]'));
+        // The rail does not draw the profile area (the user menu does), but the sidebar and drawer hold it.
+        self::assertCount($crawler->filter('#rail a[data-nav-area]')->count() + 1, $sidebar->filter('section[data-nav-area]'));
     }
 
     public function testOnlyTheContentPanelTakesPartInTheViewTransition(): void
@@ -143,7 +144,7 @@ final class AppShellTest extends WebTestCase
         self::assertNotEmpty($inAreas, 'The owner should see the navigation.');
         self::assertSame($inAreas, array_values(array_unique($inAreas)), 'No item is listed twice.');
         $ids = array_map(static fn (array $a): string => $a['area']->id, $areas);
-        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $ids)), $ids);
+        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'profile', 'settings'], $ids)), $ids);
         self::assertSame('settings', end($ids));
     }
 

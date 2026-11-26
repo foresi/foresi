@@ -31,7 +31,7 @@ final class ApiPlumbingTest extends ApiTestCase
         $this->client->request('POST', '/api/v1/me', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->secret]);
 
         $this->assertProblem(405, 'method_not_allowed', ['title' => 'Method Not Allowed']);
-        self::assertResponseHeaderSame('Allow', 'GET');
+        self::assertResponseHeaderSame('Allow', 'GET, PATCH');
     }
 
     public function testEveryAnswerToATokenSaysItsBudget(): void
@@ -164,7 +164,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/exchange-rate/source' => ['get' => '200', 'put' => '200'],
             ],
             'identity' => [
-                '/api/v1/me' => ['get' => '200'],
+                '/api/v1/me' => ['get' => '200', 'patch' => '200'],
             ],
             'inbox' => [
                 '/api/v1/inbox/items' => ['get' => '200'],

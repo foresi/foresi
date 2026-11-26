@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -113,7 +113,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
-| `/api/v1/me` | none | The person and the token. |
+| `/api/v1/me` | none | The person (id, e-mail, name, language, photo URL) and the token. |
+| `PATCH /api/v1/me` | `profile:write` | Changes the person's own name or language (`display_name`, `language`). |
 | `/api/v1/invoices` | `invoices:read` | Sales documents, newest first. |
 | `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. Each line has its `id` (what the [margin rebill pairing](#margin) takes as `invoice_line_id`) and `source_line_id`, the id of the template line it was issued from, or `null`. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |

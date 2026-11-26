@@ -29,7 +29,7 @@ final class GuestOAuthFlowTest extends OAuthTestCase
         $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read write contacts:write']));
         self::assertResponseIsSuccessful();
         $offered = $crawler->filter('input[name="scopes[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
-        self::assertSame(['projects:read', 'tasks:read', 'tasks:write'], $offered);
+        self::assertSame(['profile:read', 'profile:write', 'projects:read', 'tasks:read', 'tasks:write'], $offered);
         // What a guest reads stays ticked; writing tasks can be unticked.
         self::assertNotNull($crawler->filter('#scope-tasks-read')->attr('disabled'));
         self::assertNotNull($crawler->filter('#scope-tasks-write')->attr('checked'));
@@ -38,7 +38,7 @@ final class GuestOAuthFlowTest extends OAuthTestCase
         $answer = $this->answer();
         $tokens = $this->token(['grant_type' => 'authorization_code', 'code' => $answer['code'] ?? '', 'redirect_uri' => self::REDIRECT, 'client_id' => $clientId, 'code_verifier' => self::VERIFIER, 'resource' => self::MCP]);
         self::assertResponseIsSuccessful();
-        self::assertSame('projects:read tasks:write', $tokens['scope']);
+        self::assertSame('profile:write projects:read tasks:write', $tokens['scope']);
         self::assertSame(200, $this->mcp($tokens['access_token']));
 
         // A refresh cannot widen what the guest gave.

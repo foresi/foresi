@@ -9,9 +9,11 @@ declare(strict_types=1);
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\TokenAuditActor;
 use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Application\UserPhotos;
 use Foresi\Identity\Contract\StaffCheck as StaffCheckContract;
 use Foresi\Identity\Infrastructure\Console\McpStdioSignIn;
 use Foresi\Identity\Infrastructure\Idempotency\DbalIdempotencyKeys;
+use Foresi\Identity\Infrastructure\Photo\FilesystemUserPhotos;
 use Foresi\Identity\Infrastructure\Security\ApiTokenHandler;
 use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
 use Foresi\Identity\Infrastructure\Security\MembershipActorRole;
@@ -25,6 +27,8 @@ use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Infrastructure\Mcp\ToolCaller;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 
 /*
  * The services of the Identity module, loaded by Foresi\Identity\IdentityBundle.
@@ -46,12 +50,19 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(ScopeGuard::class, TokenScopeGuard::class);
     $services->alias(ToolCaller::class, McpStdioSignIn::class);
 
+    // The people's own photos, outside the web root, on the storage the instance keeps.
+    $container->parameters()->set('app.user_photo_dir', '%kernel.share_dir%/user-photos');
+    $services->set(FilesystemUserPhotos::class)->arg('$root', param('app.user_photo_dir'));
+    $services->alias(UserPhotos::class, FilesystemUserPhotos::class);
+
     // The mcp firewall also accepts the access tokens of OAuth clients (ADR 0036); the api firewall does not.
     $services->set('foresi.mcp_token_handler', ApiTokenHandler::class)->arg('$acceptsOAuth', true);
 
     if ('test' === $container->env()) {
         // The MCP server on stdio will sign in with it; until then only the tests do.
         $services->set(ApiTokenLogin::class)->public();
+        // Inside the test cache, one directory per ParaTest process, never the real share directory.
+        $container->parameters()->set('app.user_photo_dir', '%kernel.cache_dir%/user-photos%env(default::TEST_TOKEN)%');
     }
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.
