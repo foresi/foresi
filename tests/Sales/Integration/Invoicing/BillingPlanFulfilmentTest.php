@@ -164,7 +164,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         $source = self::getContainer()->get(BillingPlanFlows::class);
         $today = new \DateTimeImmutable('2026-11-17');
 
-        return [...$source->flows($today, $today->modify('+12 months'), $today), ...$source->undatedFlows($today)];
+        return array_values([...$source->flows($today, $today->modify('+12 months'), $today), ...$source->undatedFlows($today)]);
     }
 
     private function recurring(string $firstIssueOn, string $name, ?Party $customer = null): RecurringInvoice

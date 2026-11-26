@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Sales\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\Expr\Join;
 use Foresi\Sales\Application\DealFilter;
 use Foresi\Sales\Application\SalesStore;
-use Doctrine\ORM\Query\Expr\Join;
 use Foresi\Sales\Contract\BillingDocumentType;
 use Foresi\Sales\Domain\BillingPlanEntry;
 use Foresi\Sales\Domain\Deal;

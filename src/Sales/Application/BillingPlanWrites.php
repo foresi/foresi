@@ -230,13 +230,13 @@ final readonly class BillingPlanWrites
         $now = $this->clock->now();
         $entries = [];
         foreach (DealValues::of($lines)->oneOff as $amount) {
-            if (self::positive($amount)) {
+            if ($this->positive($amount)) {
                 $entries[] = BillingPlanEntry::oneOff($deal->id(), $amount, null, '', $now);
             }
         }
         foreach ($lines as $line) {
             $amount = BillingAmounts::ofLine($line);
-            if ($amount instanceof Money && self::positive($amount)) {
+            if ($amount instanceof Money && $this->positive($amount)) {
                 $entries[] = BillingPlanEntry::recurring($deal->id(), $line->id(), null, $line->name(), $now);
             }
         }
@@ -293,9 +293,7 @@ final readonly class BillingPlanWrites
     private function amount(Deal $deal, ?string $amount, ?string $currency, ?string $percent): Money
     {
         $value = DealValues::of($this->store->linesOf($deal->id()))->oneOff;
-        if (null === $currency) {
-            $currency = 1 === \count($value) ? array_key_first($value) : throw SalesRefused::invalid('currency_required', 'currency', 'Name the currency of the amount: the deal has one-off lines in '.(0 === \count($value) ? 'none' : 'several').'.');
-        }
+        $currency ??= 1 === \count($value) ? array_key_first($value) : throw SalesRefused::invalid('currency_required', 'currency', 'Name the currency of the amount: the deal has one-off lines in '.(0 === \count($value) ? 'none' : 'several').'.');
         $code = Currency::tryFrom($currency);
         if (!$code instanceof Currency) {
             throw SalesRefused::invalid('currency_unknown', 'currency', 'The currency is one of '.implode(', ', DealLineRules::CURRENCIES).'.');
@@ -310,7 +308,7 @@ final readonly class BillingPlanWrites
             }
             $base = $value[$code->value] ?? throw SalesRefused::invalid('percent_no_value', 'percent', 'The deal has no one-off value in this currency to take a percent of.');
             $share = BillingAmounts::share($base, $percent);
-            if (!self::positive($share)) {
+            if (!$this->positive($share)) {
                 throw SalesRefused::invalid('amount_invalid', 'percent', 'A planned invoice is for more than zero.');
             }
 
@@ -321,7 +319,7 @@ final readonly class BillingPlanWrites
             throw SalesRefused::invalid('amount_invalid', 'amount', 'The amount is more than zero, a decimal number with at most two decimals, such as "5000.00".');
         }
         $money = Money::of($amount, $code);
-        if (!self::positive($money)) {
+        if (!$this->positive($money)) {
             throw SalesRefused::invalid('amount_invalid', 'amount', 'A planned invoice is for more than zero.');
         }
 
@@ -396,7 +394,7 @@ final readonly class BillingPlanWrites
         throw SalesRefused::notFound('The deal has no planned invoice with this id. Read the deal with foresi_get_deal.');
     }
 
-    private static function positive(Money $money): bool
+    private function positive(Money $money): bool
     {
         return !$money->isZero() && !$money->isNegative();
     }

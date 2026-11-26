@@ -236,6 +236,9 @@ final class ApiPlumbingTest extends ApiTestCase
             'sales' => [
                 '/api/v1/sales/deals' => ['get' => '200', 'post' => '201'],
                 '/api/v1/sales/deals/{dealId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/sales/deals/{dealId}/billing-plan' => ['post' => '201'],
+                '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}' => ['delete' => '200', 'patch' => '200'],
+                '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}/fulfilment' => ['put' => '200', 'delete' => '200'],
                 '/api/v1/sales/deals/{dealId}/follow-ups' => ['post' => '201'],
                 '/api/v1/sales/deals/{dealId}/lines' => ['post' => '201'],
                 '/api/v1/sales/deals/{dealId}/lines/reorder' => ['post' => '200'],

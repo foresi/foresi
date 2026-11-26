@@ -81,7 +81,7 @@ final readonly class SalesJson
                 'deal' => ['id' => $view->other->id(), 'title' => $view->other->title(), 'status' => $view->other->status()->value],
             ], $detail->links),
             'billing_plan' => [
-                'entries' => array_map(self::billingEntry(...), $detail->billingPlan->entries),
+                'entries' => array_map($this->billingEntry(...), $detail->billingPlan->entries),
                 'not_planned' => array_values(array_map(JsonValues::money(...), $detail->billingPlan->notPlanned)),
                 'not_invoiced' => array_values(array_map(JsonValues::money(...), $detail->billingPlan->notInvoiced())),
             ],
@@ -97,7 +97,7 @@ final readonly class SalesJson
      *
      * @return array<string, mixed>
      */
-    private static function billingEntry(BillingEntryView $view): array
+    private function billingEntry(BillingEntryView $view): array
     {
         $entry = $view->entry;
         $document = $view->document;

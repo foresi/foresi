@@ -73,7 +73,7 @@ final class BillingPlanScreenTest extends SalesScreenTestCase
         self::assertSame('2027-01-15', $this->entries($deal)[0]->expectedOn()?->format('Y-m-d'));
         // A return elsewhere is not followed.
         $form = $this->client->request('GET', '/sales/billing-plan/'.$entries[0]->id().'/day?return=//example.com')->filter('#billing-day-form')->form();
-        $this->client->request('POST', $form->getUri(), ['_token' => $form['_token']->getValue(), 'clear' => '1']);
+        $this->client->request('POST', $form->getUri(), ['_token' => $form->getValues()['_token'], 'clear' => '1']);
         self::assertResponseRedirects('/sales/deals/'.$deal->id());
         self::assertNull($this->entries($deal)[0]->expectedOn());
 

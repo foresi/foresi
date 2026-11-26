@@ -313,7 +313,7 @@ final class BillingPlanController extends AbstractController
         }
         $amount = TypedNumber::decimal($values['amount'], $locale);
 
-        return ['' === $amount ? '' : $amount, null];
+        return [$amount, null];
     }
 
     private function defaultCurrency(DealDetail $detail): string
