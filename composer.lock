@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e8f695a1c5bbda44fa06f5695db1c7a5",
+    "content-hash": "b80f84be610ae98397d62202e5d9bd14",
     "packages": [
         {
             "name": "brick/math",
@@ -1773,7 +1773,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "9c9cc7d7b9c50ae10537bca49d9ce5660a106040"
+                "reference": "ea0742006f8582dea90e893af97c35a5cd83f38b"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1841,7 +1841,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/AiReader",
-                "reference": "ebd4525da55104116edea58a1eb39e7393807bac"
+                "reference": "552a072b30fa74ac7f43e7dbf7d46b4238936315"
             },
             "require": {
                 "foresi/instance": "self.version",
@@ -1892,7 +1892,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "b7d274d6bea2af4e125e404e1e9b45f31e5f4c43"
+                "reference": "83d6fea6e42b6306f3168a3c95d35224a7239c18"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1950,7 +1950,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "87034726e9fb64ef16b6ee6ff51789962678c731"
+                "reference": "6ddd928e7db494a09ea96930fafa6e4422f87bc9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2001,7 +2001,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "2120f699f70b6f03e6066848fe8f7e81bfdce24d"
+                "reference": "ffd9b2b5086356b0ca1a068a184a73a39315a0fa"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2067,7 +2067,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Calendar",
-                "reference": "89ce166d0147310501afeeaad3f7ca982310205b"
+                "reference": "1a624769f1f3d7804069950e074cd745ffcc0965"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2130,7 +2130,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "f3f9733d57435082838c091b6d15bca44b5ac3ae"
+                "reference": "e147efbd294b4d542994b2ce6f7d0e211ae36faf"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2199,7 +2199,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "bf419f77b81baaefc7ca662c16b19f6f096bec8b"
+                "reference": "0815c9877154d5aa9a44557d77d2591a75a572fc"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2293,7 +2293,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "6e5204914f0efb62d3bfaa521a22d3227b388e92"
+                "reference": "d606293a8bde04201948bd89d941e305eb040831"
             },
             "require": {
                 "chillerlan/php-qrcode": "^6.0.1",
@@ -2346,7 +2346,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Documents",
-                "reference": "5cddf64167790ed8cd642e9cfcf527c7f788406d"
+                "reference": "1cd0ca95b06627562a5838cd9899c3a3cb636323"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2413,7 +2413,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "8b09f88a6cb416264eb8dbc551a152065c55c21b"
+                "reference": "85278d2b02b0f40998d43301675ab563aa428c0b"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2480,7 +2480,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "c6eaa52a67da7e61274dadc2299d10b037e15490"
+                "reference": "93f02e880fdc268f34ac8141f07d825cd4895a21"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2545,7 +2545,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "678cd999029a8fa5ed401bec7791d1d218e71671"
+                "reference": "34cde818644e7a4067116b318df43d0eab4d0e19"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2629,7 +2629,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "6b28ac216950d2cfdb425cba198941e2286def4a"
+                "reference": "054c511b3a98e7241e2fa9c657a7403ff0a96b46"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2694,7 +2694,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "e3e11ec17fc984e316020a5356ab67f3ab075a2d"
+                "reference": "48276845a3e1f5f0f98aaca9fd6b8f663d66f425"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2759,7 +2759,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Inbox",
-                "reference": "3c042de77803c7f33f6244c00cc518570900cf92"
+                "reference": "06600ebcc3184ef0b28afc1b7e55bd8cfb8d7479"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2827,7 +2827,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "ed0b15e061c411252f9c065da069a3955039c54b"
+                "reference": "4b673a394bf1aa4123514d6b397396bb9af782fa"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2888,7 +2888,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "371c9a6f2a5bdbe284ff0ae39583d0c8ce9dc4b5"
+                "reference": "35e37f165cd46f4d63ff4cf4cb48d9edd68ac820"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2975,7 +2975,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Mail",
-                "reference": "850cd24fa6e9318da4e8342a8a38156c29b4422d"
+                "reference": "421f4dc0dc18f77e8b6fc741972b473488f562c7"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -3042,7 +3042,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Margin",
-                "reference": "05d47b4f0ee779a3895949565e6f87a44c80437a"
+                "reference": "da96aca800c64ed5e1132855e00fcebeefbddaeb"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3108,12 +3108,80 @@
             }
         },
         {
+            "name": "foresi/meetings",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Meetings",
+                "reference": "e4c9bc7b41f67d5d662e47867de6a93df53dd6f0"
+            },
+            "require": {
+                "doctrine/dbal": "^4.5",
+                "doctrine/migrations": "^3.9",
+                "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "foresi/work": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/routing": "^7.4",
+                "symfony/translation-contracts": "^3.8",
+                "zircote/swagger-php": "^7.5"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "meetings",
+                    "kind": "module",
+                    "namespace": "Foresi\\Meetings\\",
+                    "bundle": "Foresi\\Meetings\\MeetingsBundle",
+                    "optional": [
+                        "calendar",
+                        "sales"
+                    ],
+                    "scopes": [
+                        "meetings"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Meetings\\": ""
+                },
+                "exclude-from-classmap": [
+                    "migrations/"
+                ]
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "Meeting series and meetings with Markdown minutes.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/party",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "a9d32b92ba9234e5afa7d2cc8e3d6d33eacc8296"
+                "reference": "942cdcd0792a765f263f84cf8a823753a1f5263f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3186,7 +3254,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Purchasing",
-                "reference": "40d7fccb38ea659f5b46904fbebbc1b072a00fcf"
+                "reference": "cc80ff5553bc539df8786bae9f1232a638376e52"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3267,7 +3335,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "2d0aac4de7778a3acc61edd5b71c3a0eda80acc8"
+                "reference": "1d3eb79214683f62032610599172a6b92d47137b"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3343,7 +3411,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "2d95d43995fb212091be5db5d8a18bf3d4e8e2d6"
+                "reference": "1ee8f9690366eb1f5462f7e51e04cf0f6b945d9c"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3458,7 +3526,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "ea41797edb94735129cd509db37193ea39d3d003"
+                "reference": "07b6d6927e83afe7a553600add39492114069995"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3528,7 +3596,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "55bdfafd18fe17b29ce16b78feb98ee26456f5eb"
+                "reference": "e5d9d440c411947ea46c291f5d52e778ab360559"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3589,7 +3657,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "7f9b201ad311f7e0d72aa4e059a8b2a285418c1d"
+                "reference": "b2b654e631c8155d9a5ca631931b33d927a3bc3c"
             },
             "require": {
                 "foresi/module-api": "^1.0",
@@ -3654,7 +3722,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "62ee0f7506f25712ce755956254606e7e43ae309"
+                "reference": "d8af5aacb87a6aa4915f5d40e48e452d5b4420b4"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3724,7 +3792,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "0d1c379e8841763c80e0ba216360a6448d694631"
+                "reference": "948e0cf112225e243911f2f145aefd7eeca1055e"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3798,7 +3866,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "a2935867ba074874b1848c5880e189fb3506e793"
+                "reference": "29b3e610b0e16abfc7089cb9e02a442299df8134"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -20580,6 +20648,7 @@
         "foresi/invoicing": 20,
         "foresi/mail": 20,
         "foresi/margin": 20,
+        "foresi/meetings": 20,
         "foresi/party": 20,
         "foresi/purchasing": 20,
         "foresi/sales": 20,
@@ -20604,5 +20673,5 @@
         "ext-zip": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

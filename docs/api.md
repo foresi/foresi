@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `meetings`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -145,6 +145,10 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/inbox/items/{itemId}` | `inbox:read` | One of your inbox items with the plain text of its mail. |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
+| `/api/v1/meetings/series` | `meetings:read` | The meeting series you see, by name; `archived=true` includes the archived ones. See [Meetings](#meetings). |
+| `/api/v1/meetings/series/{seriesId}` | `meetings:read` | One series with its members. |
+| `/api/v1/meetings` | `meetings:read` | The meetings you see, newest first, without their minutes; `q` finds a text in the title or the minutes, and `series_id`, `attendee_id`, `from`, `to`, `link_kind` with `link_id`, and `trashed=true` narrow them. |
+| `/api/v1/meetings/{meetingId}` | `meetings:read` | One meeting with its minutes in Markdown and their `version`. |
 | `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
 | `/api/v1/sales/deals/{dealId}` | `sales:read` | One deal with its lines, value, links and contact persons. |
 | `/api/v1/sales/stages` | `sales:read` | The stages of a deal, in order. |
@@ -651,6 +655,27 @@ Fields of a product:
 | `description` | Up to 2,000 characters. |
 
 A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence`, `time_based_recurrence` or `cycles_invalid`.
+
+## Meetings
+
+Meeting series and meetings with their minutes. What each field means, and who sees what, is in [meetings.md](meetings.md). The writes need `meetings:write`, the reads `meetings:read`; only the owners and members of the organisation may use them, never a guest, and a series or meeting you do not see is `404 not_found`. Bodies are JSON with snake case fields; people of the firm are named by the membership ids under `members`, `attendees`, or `people` of `foresi_list_meeting_series`.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/meetings/series` | `201` with the new series: `name`, `visibility` (`members`, the default, or `organisation`), `agenda_template`, `default_project_id`, `member_ids` and `default_attendee_ids`. A name another series has is `409 name_taken`. |
+| `PATCH /api/v1/meetings/series/{seriesId}` | The series as it is now; a field left out keeps its value. Only the owners and its members change it (`403 not_series_member`). |
+| `POST /api/v1/meetings/series/{seriesId}/archive` | The archived series. It keeps its meetings and takes no new ones (`409 series_archived`). |
+| `POST /api/v1/meetings` | `201` with the new meeting: `held_on`, and `series_id`, `title`, `starts_at`, `attendee_ids`, `links` (`[{"kind": "project", "id": "…"}]`) and `minutes`. A meeting of a series takes the series' default attendees, its agenda template as the minutes and a title of the series name and the day for those left out; a one-off meeting needs a `title`. |
+| `PATCH /api/v1/meetings/{meetingId}` | The meeting as it is now: `title`, `held_on`, `starts_at`, `attendee_ids` and `links`, whichever are given. |
+| `PUT /api/v1/meetings/{meetingId}/minutes` | The meeting with the new minutes: `minutes` and the `version` they were read at. If someone saved them since, `409 stale_minutes` with `current_version`, and nothing changes. |
+| `POST /api/v1/meetings/{meetingId}/trash` | The meeting in the trash; it is removed for good after 30 days. Only its creator and the owners (`403 not_trasher`). |
+| `POST /api/v1/meetings/{meetingId}/restore` | The meeting, out of the trash. |
+
+```bash
+curl -X PUT -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"minutes": "## Numbers\n\nRevenue is on plan.", "version": 3}' \
+  "https://app.example.com/api/v1/meetings/0192f000-0000-7000-8000-000000000000/minutes"
+```
 
 ## Sales
 

@@ -37,6 +37,7 @@ Owners of small firms who want one system for the whole run of the business, fro
 | VAT | The firm's VAT periods with their due dates, and where it pays its VAT | [vat.md](docs/vat.md) |
 | Margin | Who bears the cost of a received document, the firm or a client, per line, with shares in CZK by month | [margin.md](docs/margin.md) |
 | Documents | Contracts such as NDAs from versioned templates, frozen as PDFs, with signers and the signed copy beside the client | [documents.md](docs/documents.md) |
+| Meetings | Series of recurring meetings and one-off meetings with their attendees, linked projects and contacts, and minutes in Markdown that start from the series' agenda | [meetings.md](docs/meetings.md) |
 | Activities | Meetings, calls, notes and tasks logged or planned on a client, on its timeline with their files, and in your calendar | [activities.md](docs/activities.md) |
 | Projects and tasks | Projects with your own workflow, tasks with subtasks, a board, comments and attachments | [projects.md](docs/projects.md) |
 | People | Owners, team members and guests who see only what is shared with them | [people.md](docs/people.md) |

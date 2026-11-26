@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{% for tone in ['success', 'error'] %}
+    {% for message in app.flashes(tone) %}
+        <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+{% endfor %}
