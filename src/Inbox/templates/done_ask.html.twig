@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Done on an inbox item that suggestions still wait on: reject them, or keep them open on the done
+    item to decide later. A dialog over the item; the same URL is a page of its own. Its two buttons
+    post the item's Done with the choice. Variables: id, open (how many wait), token.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'inbox.suggestion.done.title'|trans %}
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-done-ask-form" action="{{ path('app_inbox_item_done', {id: id}) }}" class="grid gap-4" data-inbox-done-ask-form>
+        <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        <p class="m-0 text-text">{{ 'inbox.suggestion.done.text'|trans({count: open}) }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-done-ask-form" name="suggestions" value="keep" data-inbox-done-keep>{{ 'inbox.suggestion.done.keep'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-done-ask-form" name="suggestions" value="reject" variant="primary" data-inbox-done-reject>{{ 'inbox.suggestion.done.reject'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="check" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-done-ask-form" name="suggestions" value="keep" data-inbox-done-keep>{{ 'inbox.suggestion.done.keep'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-done-ask-form" name="suggestions" value="reject" variant="primary" data-inbox-done-reject>{{ 'inbox.suggestion.done.reject'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

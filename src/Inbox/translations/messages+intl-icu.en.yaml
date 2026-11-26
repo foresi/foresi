@@ -21,6 +21,7 @@ inbox:
   field:
     state: State
     match: Contact
+    suggestions: Suggestions
   column:
     sender: Sender
     contact: Contact
@@ -79,6 +80,8 @@ inbox:
     action_done: Saved and added to what came of this mail.
     action_not_linked: The record was made but could not be linked to the e-mail. Use Link… to link it.
     action_not_added: The record was made, but it could not be added to what came of this mail. It is saved in its own section; do not save it again.
+    action_kept_new: The mail stays open because suggestions on it wait for your decision; deciding the last one marks it done.
+    open_suggestions: Suggestions on this mail wait for your decision. Accept or reject them first, or say whether to reject or keep them when you mark it done.
   item:
     no_subject: (no subject)
     mail_removed: The mail itself has been removed. Only what you did with it is kept.
@@ -169,6 +172,72 @@ inbox:
     apple:
       title: Apple Mail
       steps: Select the mail, choose Message, Forward and enter your inbox address. iCloud Mail can forward on its own.
+  suggestions_filter:
+    with: With suggestions
+    without: Without suggestions
+  suggestion:
+    title: Suggestions
+    steps: Steps
+    select: Include in Accept selected
+    accept: Accept
+    retry: Retry
+    accept_selected: Accept selected
+    edit: Edit
+    save_and_accept: Save and accept
+    run_steps: Steps to run
+    editing: Being edited
+    edit_intro: Saving stores your changes and accepts the whole suggestion.
+    source: 'Source: e-mail from {sender}, {received}'
+    proposed_by: 'Proposed by {client}, {time}'
+    reference: The record of step {step}
+    not_offered: '{value} (not one this mail offers)'
+    reason: 'Reason:'
+    decided_title: Decided
+    state:
+      proposed: Open
+      accepted: Accepted
+      rejected: Rejected
+      superseded: Replaced
+    step_state:
+      pending: Waiting
+      done: Done
+      failed: Failed
+      skipped: Skipped
+    decided:
+      accepted: 'Accepted by you, {time}'
+      rejected: 'Rejected by you, {time}'
+      superseded: 'Replaced by a newer suggestion, {time}'
+    reject:
+      open: Reject
+      title: Reject the suggestion
+      intro: Nothing of this suggestion runs. The agent that proposed it can read your reason.
+      reason: Reason
+      reason_help: Optional, at most 500 characters.
+      too_long: A reason has at most 500 characters.
+      submit: Reject
+    done:
+      title: Suggestions are still open
+      text: '{count, plural, one {A suggestion waits on this mail. Reject it, or keep it on the done item to decide later.} other {# suggestions wait on this mail. Reject them, or keep them on the done item to decide later.}}'
+      reject: Reject them
+      keep: Keep them
+    flash:
+      accepted: '{count, plural, one {Suggestion accepted.} other {# suggestions accepted.}}'
+      failed: '{count, plural, one {A step could not run. Its card says why; edit it or retry.} other {Steps of # suggestions could not run. Their cards say why; edit them or retry.}}'
+      rejected: Suggestion rejected.
+      not_open: This suggestion was decided already; nothing was run.
+      none_selected: Tick the suggestions to accept.
+      none_ticked: Leave at least one step ticked, or reject the suggestion.
+    refused:
+      insufficient_scope: Your token may not run this action.
+      reference_unresolved: The step it needs, an earlier one, did not make a record.
+      internal_error: Something went wrong while running this step. Retry it; if it fails again, edit it or reject the suggestion.
+      invalid_input: A value of this step is not right. Edit it and save.
+      invalid_reference: A value of this step names a step that cannot make its record first.
+      action_not_applicable: This action does not apply to the mail any more.
+      item_trashed: The item is in the trash.
+      email_activity_unavailable: The activity type E-mail is archived, so nothing can be added to this mail. Restore it under Settings, Activities, then retry.
+      not_found: A record this step needs does not exist or is not yours to see.
+      not_open: This suggestion was decided already.
   account:
     title: Inbox addresses
     intro: The address that takes the mail you forward into your inbox. Only you see what arrives there. Keep it private; revoke or replace it if it leaks.

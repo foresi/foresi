@@ -79,7 +79,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * deal). The item opens as a page: the mail as plain text, its attachments as
  * downloads, who sent it and what came of it; Done, Discard and Reopen in the
  * header, the actions the modules declare (InboxActionController), Link, Create
- * contact and Match contact in dialogs. Only the owner
+ * contact and Match contact in dialogs, and the suggestions agents proposed as
+ * cards to accept, edit or reject (SuggestionController). Only the owner
  * reaches an item: any other person gets 404, for the page and the attachment.
  *
  * Mail text is untrusted. It is printed escaped, as text, with each address
@@ -116,6 +117,7 @@ final class InboxController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly InboxActions $actions,
+        private readonly SuggestionCards $suggestionCards,
     ) {
     }
 
@@ -131,7 +133,7 @@ final class InboxController extends AbstractController
         $list = $this->inboxLists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $after = $request->query->getString('after');
-        $slice = $this->refused(fn (): \Foresi\Inbox\Application\ItemSlice => $this->reads->list($this->stateOf($shown), $this->unmatchedIn($shown), '' === $after ? null : $after, self::PAGE_SIZE));
+        $slice = $this->refused(fn (): \Foresi\Inbox\Application\ItemSlice => $this->reads->list($this->stateOf($shown), $this->unmatchedIn($shown), '' === $after ? null : $after, self::PAGE_SIZE, $this->suggestionsIn($shown)));
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         $working = $this->rememberedDisplay->read(InboxColumns::LIST, [], $list->key, $view, $request->query->all(), filters: $list);
         $query += $working->query;
@@ -177,6 +179,7 @@ final class InboxController extends AbstractController
         $message = $detail->message;
         $contact = null === $item->contactId() ? null : $this->contacts->find($item->contactId());
         $subject = $message instanceof MailMessageView && '' !== trim($message->subject) ? $message->subject : $this->translator->trans('inbox.item.no_subject');
+        $text = null === $detail->text ? null : UntrustedText::shown($detail->text);
 
         return $this->render('@Inbox/show.html.twig', [
             'id' => $item->id(),
@@ -193,7 +196,7 @@ final class InboxController extends AbstractController
             'matched' => null !== $item->contactId(),
             'warnings' => $detail->warnings(),
             'duplicateOf' => $item->duplicateOfPurpose(),
-            'text' => null === $detail->text ? null : UntrustedText::shown($detail->text),
+            'text' => $text,
             'attachments' => array_map(fn (\Foresi\Mail\Contract\MailAttachment $attachment): array => [
                 'name' => $attachment->name,
                 'size' => $this->size($attachment->size),
@@ -202,6 +205,7 @@ final class InboxController extends AbstractController
             'thread' => $this->thread($detail->thread),
             'outputs' => $this->outputs($detail->outputs),
             'actions' => $this->actions($detail),
+            'suggestions' => $this->suggestionCards->of($detail, $text),
             'token' => self::TOKEN,
         ]);
     }
@@ -235,7 +239,19 @@ final class InboxController extends AbstractController
     public function done(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): InboxItem => $this->writes->done(new MarkItemDoneInput($id)));
+        // What becomes of open suggestions, when the person was asked (reject or keep).
+        $suggestions = $request->request->getString('suggestions');
+        try {
+            $this->writes->done(new MarkItemDoneInput($id, \in_array($suggestions, MarkItemDoneInput::SUGGESTIONS, true) ? $suggestions : null));
+        } catch (Refused $refused) {
+            if ('open_suggestions' !== $refused->reason()) {
+                throw $this->httpError($refused);
+            }
+            // The item page asks whether to reject or keep them.
+            $this->addFlash('warning', $this->translator->trans('inbox.flash.open_suggestions'));
+
+            return $this->redirectToRoute(self::ITEM_ROUTE, ['id' => $id]);
+        }
         $this->addFlash('success', $this->translator->trans('inbox.flash.done'));
 
         return $this->afterAction($request, $id, toList: true);
@@ -482,6 +498,23 @@ final class InboxController extends AbstractController
     private function unmatchedIn(ViewFilter $shown): bool
     {
         return array_any($shown->on(InboxLists::MATCH), static fn (Condition $condition): bool => InboxLists::UNMATCHED === $condition->value);
+    }
+
+    /**
+     * Whether the list shows the items with open suggestions (true), those without (false) or all (null).
+     */
+    private function suggestionsIn(ViewFilter $shown): ?bool
+    {
+        foreach ($shown->on(InboxLists::SUGGESTIONS) as $condition) {
+            if (InboxLists::WITH_SUGGESTIONS === $condition->value) {
+                return true;
+            }
+            if (InboxLists::WITHOUT_SUGGESTIONS === $condition->value) {
+                return false;
+            }
+        }
+
+        return null;
     }
 
     /**

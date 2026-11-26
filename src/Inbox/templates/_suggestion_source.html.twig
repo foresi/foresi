@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Where a suggestion comes from (HubSpot's "Source"): the mail and an excerpt of it as the page shows
+    it, the agent's quote marked (or alone, unmarked, when the page does not show it as stored); then who proposed it. All of it is printed escaped.
+    Variables: card (source, excerpt {before, quote, after}, proposed).
+#}
+<div class="grid gap-1" data-inbox-suggestion-source>
+    <p class="m-0 text-caption text-muted">{{ card.source }}</p>
+    {% if card.excerpt.found %}
+        <blockquote class="m-0 whitespace-pre-wrap break-words border-l-2 border-control-line pl-3 font-sans text-small text-text" data-inbox-suggestion-excerpt>{{ card.excerpt.before }}<mark class="rounded-sm bg-badge-amber px-0.5 text-ink" data-inbox-suggestion-quote>{{ card.excerpt.quote }}</mark>{{ card.excerpt.after }}</blockquote>
+    {% else %}
+        {# The quote is not where the page shows the mail (it spans a link): shown alone, unmarked. #}
+        <blockquote class="m-0 whitespace-pre-wrap break-words border-l-2 border-control-line pl-3 font-sans text-small text-text" data-inbox-suggestion-excerpt data-inbox-suggestion-quote-alone>{{ card.excerpt.quote }}</blockquote>
+    {% endif %}
+    <p class="m-0 text-caption text-muted" data-inbox-suggestion-proposer>{{ card.proposed }}</p>
+</div>

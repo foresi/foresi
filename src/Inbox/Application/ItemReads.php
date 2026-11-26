@@ -32,27 +32,31 @@ final readonly class ItemReads
         private ItemStore $store,
         private Messages $messages,
         private LinkableRecords $records,
+        private SuggestionStore $suggestions,
     ) {
     }
 
     /**
-     * @param ItemState|null $state     only the items in this state
-     * @param bool           $unmatched only the items matched to no contact
-     * @param string|null    $afterId   the id of the last item of the previous page
+     * @param ItemState|null $state               only the items in this state
+     * @param bool           $unmatched           only the items matched to no contact
+     * @param string|null    $afterId             the id of the last item of the previous page
+     * @param bool|null      $withOpenSuggestions only the items with (true) or without (false) an open suggestion
      *
      * @throws InboxRefused forbidden
      */
-    public function list(?ItemState $state, bool $unmatched, ?string $afterId, int $limit): ItemSlice
+    public function list(?ItemState $state, bool $unmatched, ?string $afterId, int $limit, ?bool $withOpenSuggestions = null): ItemSlice
     {
         $owner = $this->access->me();
         $limit = max(1, min(self::MAX_LIMIT, $limit));
         // A cursor that is no item id, such as a crafted ?after=, starts at the top.
         $afterId = null !== $afterId && Id::isValid($afterId) ? $afterId : null;
-        $items = $this->store->page($owner, $state, $unmatched, $afterId, $limit + 1);
+        $items = $this->store->page($owner, $state, $unmatched, $afterId, $limit + 1, $withOpenSuggestions);
         $hasMore = \count($items) > $limit;
         $items = \array_slice($items, 0, $limit);
         $sizes = $this->store->threadSizes($owner, array_map(static fn (InboxItem $item): string => $item->threadKey(), $items));
-        $outputs = $this->store->outputCounts(array_map(static fn (InboxItem $item): string => $item->id(), $items));
+        $ids = array_map(static fn (InboxItem $item): string => $item->id(), $items);
+        $outputs = $this->store->outputCounts($ids);
+        $open = $this->suggestions->openCounts($ids);
         $messages = $this->messages->findMany(array_map(static fn (InboxItem $item): string => $item->mailMessageId(), $items));
 
         return new ItemSlice(array_map(fn (InboxItem $item): ItemRow => new ItemRow(
@@ -60,6 +64,7 @@ final readonly class ItemReads
             $messages[$item->mailMessageId()] ?? null,
             max(0, ($sizes[$item->threadKey()] ?? 1) - 1),
             $outputs[$item->id()] ?? 0,
+            $open[$item->id()] ?? 0,
         ), $items), $hasMore);
     }
 
@@ -82,7 +87,8 @@ final readonly class ItemReads
     }
 
     /**
-     * The item as anyone who may see it reads it; the thread only for its owner.
+     * The item as anyone who may see it reads it; the thread and the
+     * suggestions only for its owner ($withThread).
      */
     public function detail(InboxItem $item, bool $withThread): ItemDetail
     {
@@ -101,6 +107,7 @@ final readonly class ItemReads
                     ? new OutputView($output, true, $record->label, $record->url)
                     : new OutputView($output, false, null, null);
             }, $this->store->outputs($item)),
+            $withThread ? $this->suggestions->forItem($item) : [],
         );
     }
 }

@@ -21,6 +21,7 @@ inbox:
   field:
     state: Stav
     match: Kontakt
+    suggestions: Návrhy
   column:
     sender: Odesílatel
     contact: Kontakt
@@ -79,6 +80,8 @@ inbox:
     action_done: Uloženo a přidáno k tomu, co z e-mailu vzešlo.
     action_not_linked: Záznam vznikl, ale s e-mailem se ho nepodařilo propojit. Propojte ho přes Propojit…
     action_not_added: Záznam vznikl, ale k tomu, co z e-mailu vzešlo, ho nešlo přidat. Je uložený ve své sekci, neukládejte ho znovu.
+    action_kept_new: E-mail zůstává otevřený, protože návrhy k němu čekají na vaše rozhodnutí; rozhodnutí o posledním z nich ho označí jako hotový.
+    open_suggestions: Návrhy k tomuto e-mailu čekají na vaše rozhodnutí. Nejdřív je přijměte nebo odmítněte, nebo při označení jako hotové řekněte, jestli je odmítnout, nebo ponechat.
   item:
     no_subject: (bez předmětu)
     mail_removed: Samotný e-mail už byl odstraněn. Zůstalo jen to, co jste s ním udělali.
@@ -169,6 +172,72 @@ inbox:
     apple:
       title: Apple Mail
       steps: Vyberte e-mail, zvolte Zpráva, Přeposlat a zadejte adresu své schránky. iCloud Mail umí přeposílat samo.
+  suggestions_filter:
+    with: S návrhy
+    without: Bez návrhů
+  suggestion:
+    title: Návrhy
+    steps: Kroky
+    select: Vybrat
+    accept: Přijmout
+    retry: Zkusit znovu
+    accept_selected: Přijmout vybrané
+    edit: Upravit
+    save_and_accept: Uložit a přijmout
+    run_steps: Kroky, které se provedou
+    editing: Právě upravujete
+    edit_intro: Uložením se změny zapíšou a přijme se celý návrh.
+    source: 'Zdroj: e-mail od {sender}, {received}'
+    proposed_by: 'Navrhl {client}, {time}'
+    reference: Záznam z kroku {step}
+    not_offered: '{value} (tento e-mail ho nenabízí)'
+    reason: 'Důvod:'
+    decided_title: Rozhodnuté
+    state:
+      proposed: Otevřený
+      accepted: Přijatý
+      rejected: Odmítnutý
+      superseded: Nahrazený
+    step_state:
+      pending: Čeká
+      done: Hotovo
+      failed: Selhal
+      skipped: Vynechán
+    decided:
+      accepted: 'Přijali jste {time}'
+      rejected: 'Odmítli jste {time}'
+      superseded: 'Nahrazen novějším návrhem {time}'
+    reject:
+      open: Odmítnout
+      title: Odmítnout návrh
+      intro: Z tohoto návrhu se nic neprovede. Agent, který ho navrhl, si může důvod přečíst.
+      reason: Důvod
+      reason_help: Nepovinné, nejvýš 500 znaků.
+      too_long: Důvod může mít nejvýš 500 znaků.
+      submit: Odmítnout
+    done:
+      title: Návrhy jsou stále otevřené
+      text: '{count, plural, one {K tomuto e-mailu čeká návrh. Odmítněte ho, nebo ho u hotové položky ponechte a rozhodněte později.} few {K tomuto e-mailu čekají # návrhy. Odmítněte je, nebo je u hotové položky ponechte a rozhodněte později.} other {K tomuto e-mailu čeká # návrhů. Odmítněte je, nebo je u hotové položky ponechte a rozhodněte později.}}'
+      reject: Odmítnout je
+      keep: Ponechat je
+    flash:
+      accepted: '{count, plural, one {Návrh přijat.} few {Přijaty # návrhy.} other {Přijato # návrhů.}}'
+      failed: '{count, plural, one {Krok se nepodařilo provést. Karta říká proč; upravte ho nebo to zkuste znovu.} few {U # návrhů se krok nepodařilo provést. Karty říkají proč; upravte je nebo to zkuste znovu.} other {U # návrhů se krok nepodařilo provést. Karty říkají proč; upravte je nebo to zkuste znovu.}}'
+      rejected: Návrh odmítnut.
+      not_open: O tomto návrhu už bylo rozhodnuto, nic se neprovedlo.
+      none_selected: Zaškrtněte návrhy, které chcete přijmout.
+      none_ticked: Nechte zaškrtnutý aspoň jeden krok, nebo návrh odmítněte.
+    refused:
+      insufficient_scope: Váš token nesmí tuto akci provést.
+      reference_unresolved: Krok, na kterém závisí, žádný záznam nevytvořil.
+      internal_error: Při provádění kroku se něco pokazilo. Zkuste to znovu; když se to nepovede, krok upravte nebo návrh odmítněte.
+      invalid_input: Některá hodnota kroku není v pořádku. Upravte ji a uložte.
+      invalid_reference: Hodnota kroku odkazuje na krok, který svůj záznam nemůže vytvořit dřív.
+      action_not_applicable: Tato akce se na e-mail už nehodí.
+      item_trashed: Položka je v koši.
+      email_activity_unavailable: Typ aktivity E-mail je archivovaný, takže k e-mailu nejde nic přidat. Obnovte ho v Nastavení, Aktivity, a zkuste to znovu.
+      not_found: Záznam, který krok potřebuje, neexistuje, nebo ho nesmíte vidět.
+      not_open: O tomto návrhu už bylo rozhodnuto.
   account:
     title: Adresy schránky
     intro: Adresa, která přijímá e-maily, které přeposíláte do své schránky. To, co na ni přijde, vidíte jen vy. Nesdílejte ji; pokud unikne, zrušte ji nebo nahraďte.

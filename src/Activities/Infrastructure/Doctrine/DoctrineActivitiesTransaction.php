@@ -16,7 +16,9 @@ use Foresi\Shared\Domain\Id;
 
 /**
  * One transaction per change, joined when one is already open, with its events
- * handed to the outbox once it is committed and dropped when it rolls back.
+ * handed to the outbox once it is committed and dropped when it rolls back. A
+ * joined change is flushed into the open transaction, so that its caller (a step
+ * of an inbox suggestion, say) can read back what it made with a query.
  */
 final readonly class DoctrineActivitiesTransaction implements ActivitiesTransaction
 {
@@ -29,7 +31,15 @@ final readonly class DoctrineActivitiesTransaction implements ActivitiesTransact
 
     public function run(callable $work): mixed
     {
-        return $this->correlation->within($this->correlation->current() ?? 'activities:'.Id::generate(), fn (): mixed => $this->work->run($work));
+        return $this->correlation->within($this->correlation->current() ?? 'activities:'.Id::generate(), function () use ($work): mixed {
+            $joined = $this->em->getConnection()->isTransactionActive();
+            $result = $this->work->run($work);
+            if ($joined) {
+                $this->em->flush();
+            }
+
+            return $result;
+        });
     }
 
     public function flush(): void

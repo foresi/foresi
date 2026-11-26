@@ -125,6 +125,9 @@ final class InboxActionController extends AbstractController
         $output = $action->definition->handler->handle($input);
         if ($this->outputs->record($action->action, $input, $output)) {
             $this->addFlash('success', $this->translator->trans('inbox.flash.action_done'));
+            if ($this->outputs->keptNew($input)) {
+                $this->addFlash('warning', $this->translator->trans('inbox.flash.action_kept_new'));
+            }
         } else {
             $this->addFlash('warning', $this->translator->trans($this->outputs->linksByHand($action->action) ? 'inbox.flash.action_not_linked' : 'inbox.flash.action_not_added'));
         }

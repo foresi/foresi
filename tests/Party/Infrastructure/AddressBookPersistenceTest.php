@@ -245,7 +245,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
         self::assertSame(['Outer Company'], $this->em->getConnection()->fetchFirstColumn('SELECT display_name FROM party'));
     }
 
-    public function testAnInnerUnitIsStoredByTheOuterOne(): void
+    public function testAnInnerUnitFlushesIntoTheOuterOneWhichCommitsIt(): void
     {
         $work = $this->transaction();
         $connection = $this->em->getConnection();
@@ -255,7 +255,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
                 $this->em->persist($this->company('Inner Company'));
             });
             self::assertSame(1, $connection->getTransactionNestingLevel(), 'the inner unit opens no transaction of its own');
-            self::assertEquals(0, $connection->fetchOne('SELECT COUNT(*) FROM party'), 'nor flushes by itself');
+            self::assertEquals(1, $connection->fetchOne('SELECT COUNT(*) FROM party'), 'it flushes into the outer one, so its caller can read what it made');
         });
 
         self::assertEquals(1, $connection->fetchOne('SELECT COUNT(*) FROM party'));
@@ -546,6 +546,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
             }
         };
 
-        return new DoctrineTransactionalWork(new DoctrineUnitOfWork($this->em, self::getContainer()->get('doctrine'), $outbox));
+        return new DoctrineTransactionalWork(new DoctrineUnitOfWork($this->em, self::getContainer()->get('doctrine'), $outbox), $this->em);
     }
 }

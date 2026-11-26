@@ -191,6 +191,8 @@ api_tokens:
     time_entries: Time
     documents: Documents
     inbox: Inbox
+    inbox_suggestions: Inbox suggestions
+    inbox_decisions: Decisions on inbox suggestions
     mail_addresses: E-mail addresses
   module:
     invoicing: Invoicing

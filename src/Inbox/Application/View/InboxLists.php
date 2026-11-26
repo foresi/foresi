@@ -23,6 +23,8 @@ use Foresi\Shared\Application\View\ViewFilter;
  * named New, holds the items that wait; Done and Discarded hold those; Unmatched
  * holds the new items no contact is matched to. A view that names no state means
  * New, as the notifications inbox's All leaves out what is done. No tab counts.
+ * Its quick filters are State, Contact and Suggestions ("With suggestions": items
+ * an agent's suggestions wait on, the open ones only).
  */
 final class InboxLists implements ListDefinitionSource
 {
@@ -31,6 +33,10 @@ final class InboxLists implements ListDefinitionSource
     public const string MATCH = 'match';
     /** The one value of the match field. */
     public const string UNMATCHED = 'unmatched';
+    public const string SUGGESTIONS = 'suggestions';
+    /** The values of the suggestions field: with or without open suggestions. */
+    public const string WITH_SUGGESTIONS = 'with';
+    public const string WITHOUT_SUGGESTIONS = 'without';
     public const string DONE_VIEW = 'done';
     public const string DISCARDED_VIEW = 'discarded';
     public const string UNMATCHED_VIEW = 'unmatched';
@@ -49,7 +55,7 @@ final class InboxLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), [self::STATE, self::MATCH]);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), [self::STATE, self::MATCH, self::SUGGESTIONS]);
     }
 
     /**
@@ -62,6 +68,7 @@ final class InboxLists implements ListDefinitionSource
         return [
             new Field(self::STATE, FieldType::Enum, 'inbox.field.state', ['is'], $states, array_combine($states, array_map(static fn (string $state): string => 'inbox.state.'.$state, $states))),
             new Field(self::MATCH, FieldType::Enum, 'inbox.field.match', ['is'], [self::UNMATCHED], [self::UNMATCHED => 'inbox.match.unmatched']),
+            new Field(self::SUGGESTIONS, FieldType::Enum, 'inbox.field.suggestions', ['is'], [self::WITH_SUGGESTIONS, self::WITHOUT_SUGGESTIONS], [self::WITH_SUGGESTIONS => 'inbox.suggestions_filter.with', self::WITHOUT_SUGGESTIONS => 'inbox.suggestions_filter.without']),
         ];
     }
 

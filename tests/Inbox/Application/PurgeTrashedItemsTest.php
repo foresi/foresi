@@ -15,6 +15,7 @@ use Foresi\Inbox\Application\InboxTransaction;
 use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Application\PurgeItemTrashDaily;
 use Foresi\Inbox\Application\PurgeTrashedItems;
+use Foresi\Inbox\Application\SuggestionStore;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\InboxTestCase;
@@ -67,7 +68,7 @@ final class PurgeTrashedItemsTest extends InboxTestCase
         };
         $c = self::getContainer();
 
-        new PurgeTrashedItems($c->get(ItemStore::class), $c->get(InboxTransaction::class), $retention, $c->get(LinkableRecords::class))->run($this->clock->now());
+        new PurgeTrashedItems($c->get(ItemStore::class), $c->get(InboxTransaction::class), $retention, $c->get(LinkableRecords::class), $c->get(SuggestionStore::class))->run($this->clock->now());
 
         self::assertSame([$messages['linked']], $retention->kept);
         self::assertSame([$messages['plain']], $retention->released);

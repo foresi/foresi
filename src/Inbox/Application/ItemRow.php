@@ -18,14 +18,16 @@ use Foresi\Mail\Contract\MailMessageView;
 final readonly class ItemRow
 {
     /**
-     * @param MailMessageView|null $message       null once Mail removed the mail
-     * @param int                  $otherInThread the owner's other items of the thread, outside the trash
+     * @param MailMessageView|null $message         null once Mail removed the mail
+     * @param int                  $otherInThread   the owner's other items of the thread, outside the trash
+     * @param int                  $openSuggestions its suggestions still proposed
      */
     public function __construct(
         public InboxItem $item,
         public ?MailMessageView $message,
         public int $otherInThread,
         public int $outputCount,
+        public int $openSuggestions = 0,
     ) {
     }
 }

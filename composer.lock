@@ -2759,9 +2759,10 @@
             "dist": {
                 "type": "path",
                 "url": "src/Inbox",
-                "reference": "06600ebcc3184ef0b28afc1b7e55bd8cfb8d7479"
+                "reference": "1191496a6573463feb558ad156cb5560c37e5085"
             },
             "require": {
+                "doctrine/collections": "^3.1",
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
@@ -2795,7 +2796,9 @@
                     "bundle": "Foresi\\Inbox\\InboxBundle",
                     "optional": [],
                     "scopes": [
-                        "inbox"
+                        "inbox",
+                        "inbox_suggestions",
+                        "inbox_decisions"
                     ]
                 }
             },

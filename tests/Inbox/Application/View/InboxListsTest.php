@@ -40,24 +40,26 @@ final class InboxListsTest extends TestCase
         }
     }
 
-    public function testItsFieldsAreTheStateAndWhetherTheSenderIsMatched(): void
+    public function testItsFieldsAreTheStateWhetherTheSenderIsMatchedAndOpenSuggestions(): void
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['state', 'match'], array_keys($fields));
+        self::assertSame(['state', 'match', 'suggestions'], array_keys($fields));
         self::assertSame([FieldType::Enum, 'inbox.field.state', ['is']], [$fields['state']->type, $fields['state']->label, $fields['state']->operators]);
         self::assertSame(['new', 'done', 'discarded'], $fields['state']->options);
         self::assertSame(['new' => 'inbox.state.new', 'done' => 'inbox.state.done', 'discarded' => 'inbox.state.discarded'], $fields['state']->optionLabels);
         self::assertSame([FieldType::Enum, 'inbox.field.match', ['is']], [$fields['match']->type, $fields['match']->label, $fields['match']->operators]);
         self::assertSame(['unmatched'], $fields['match']->options);
         self::assertSame(['unmatched' => 'inbox.match.unmatched'], $fields['match']->optionLabels);
+        self::assertSame([FieldType::Enum, 'inbox.field.suggestions', ['is']], [$fields['suggestions']->type, $fields['suggestions']->label, $fields['suggestions']->operators]);
+        self::assertSame(['with' => 'inbox.suggestions_filter.with', 'without' => 'inbox.suggestions_filter.without'], $fields['suggestions']->optionLabels);
     }
 
-    public function testBothFieldsAreQuickFiltersAndTheDefinitionIsBuiltOnce(): void
+    public function testEveryFieldIsAQuickFilterAndTheDefinitionIsBuiltOnce(): void
     {
         $lists = $this->lists();
 
-        self::assertSame(['state', 'match'], $lists->list()->pinned);
+        self::assertSame(['state', 'match', 'suggestions'], $lists->list()->pinned);
         self::assertSame($lists->list(), $lists->list());
         self::assertSame([$lists->list()], iterator_to_array($lists->lists(), false));
     }

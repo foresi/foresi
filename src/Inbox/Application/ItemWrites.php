@@ -23,10 +23,12 @@ use Foresi\Inbox\Contract\Event\InboxItemDiscarded;
 use Foresi\Inbox\Contract\Event\InboxItemDone;
 use Foresi\Inbox\Contract\Event\InboxItemLinked;
 use Foresi\Inbox\Contract\Event\InboxItemReopened;
+use Foresi\Inbox\Contract\Event\InboxSuggestionRejected;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Domain\ItemState;
 use Foresi\Inbox\Domain\MatchBasis;
+use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\MessageRetention;
@@ -51,7 +53,9 @@ use Foresi\Shared\Domain\Id;
  *   keeps the ones it had;
  * - mark it done, discard it or reopen it. A discarded item without an output
  *   gives its mail back to Mail, which removes it 30 days later; leaving the
- *   discarded state keeps the mail again;
+ *   discarded state keeps the mail again. Discarding rejects the suggestions
+ *   on it that wait for a decision; marking it done asks what becomes of them
+ *   (open_suggestions): rejected, or kept open on the done item;
  * - link it to a record, which becomes an output and a link of the item's one
  *   e-mail activity (EmailActivity);
  * - put it in the trash and restore it.
@@ -76,6 +80,7 @@ final readonly class ItemWrites
         private MessageRetention $retention,
         private LinkableRecords $records,
         private EmailActivity $emailActivity,
+        private SuggestionStore $suggestions,
     ) {
     }
 
@@ -162,11 +167,24 @@ final readonly class ItemWrites
     }
 
     /**
-     * @throws InboxRefused already_done, not_found, forbidden
+     * @throws InboxRefused already_done, open_suggestions, invalid_input, not_found, forbidden
      */
     public function done(MarkItemDoneInput $input): InboxItem
     {
-        return $this->move($input->itemId, ItemState::Done, static fn (string $id): InboxItemDone => new InboxItemDone($id));
+        if (null !== $input->suggestions && !\in_array($input->suggestions, MarkItemDoneInput::SUGGESTIONS, true)) {
+            throw InboxRefused::invalidInput('suggestions', 'This is reject or keep.');
+        }
+
+        return $this->move($input->itemId, ItemState::Done, static fn (string $id): InboxItemDone => new InboxItemDone($id), function (InboxItem $item, string $userId, \DateTimeImmutable $now) use ($input): void {
+            $open = $this->openSuggestions($item);
+            if ([] === $open || MarkItemDoneInput::KEEP === $input->suggestions) {
+                return;
+            }
+            if (null === $input->suggestions) {
+                throw InboxRefused::openSuggestions(\count($open));
+            }
+            $this->reject($open, $userId, $now);
+        });
     }
 
     /**
@@ -174,7 +192,9 @@ final readonly class ItemWrites
      */
     public function discard(DiscardItemInput $input): InboxItem
     {
-        return $this->move($input->itemId, ItemState::Discarded, static fn (string $id): InboxItemDiscarded => new InboxItemDiscarded($id));
+        return $this->move($input->itemId, ItemState::Discarded, static fn (string $id): InboxItemDiscarded => new InboxItemDiscarded($id), function (InboxItem $item, string $userId, \DateTimeImmutable $now): void {
+            $this->reject($this->openSuggestions($item), $userId, $now);
+        });
     }
 
     /**
@@ -261,20 +281,26 @@ final readonly class ItemWrites
     }
 
     /**
-     * @param \Closure(string): DomainEventPayload $event
+     * @param \Closure(string): DomainEventPayload                         $event
+     * @param (\Closure(InboxItem, string, \DateTimeImmutable): void)|null $then  what else the move does, in its transaction
      *
      * @throws InboxRefused
      */
-    private function move(string $itemId, ItemState $to, \Closure $event): InboxItem
+    private function move(string $itemId, ItemState $to, \Closure $event, ?\Closure $then = null): InboxItem
     {
         $userId = $this->access->me();
 
-        return $this->transaction->run(function () use ($itemId, $to, $event, $userId): InboxItem {
+        return $this->transaction->run(function () use ($itemId, $to, $event, $then, $userId): InboxItem {
             $item = $this->access->own($itemId);
+            // The item first, then its suggestions (reject()): the order every decision locks in.
+            $this->store->lock($item);
             $from = $item->state();
             $now = $this->now();
             if (!$item->changeState($to, $userId, $now)) {
                 throw InboxRefused::already($to);
+            }
+            if ($then instanceof \Closure) {
+                $then($item, $userId, $now);
             }
             if (ItemState::Discarded === $from) {
                 $this->retention->keep($item->mailMessageId());
@@ -286,6 +312,32 @@ final readonly class ItemWrites
 
             return $item;
         });
+    }
+
+    /**
+     * @return list<Suggestion> the item's suggestions that wait for a decision
+     */
+    private function openSuggestions(InboxItem $item): array
+    {
+        return array_values(array_filter($this->suggestions->forItem($item), static fn (Suggestion $suggestion): bool => $suggestion->isOpen()));
+    }
+
+    /**
+     * Rejects the suggestions without a reason, each locked first (by id, after the item) so
+     * that a step running at the same moment is not overwritten.
+     *
+     * @param list<Suggestion> $open
+     */
+    private function reject(array $open, string $userId, \DateTimeImmutable $now): void
+    {
+        usort($open, static fn (Suggestion $a, Suggestion $b): int => strcmp($a->id(), $b->id()));
+        foreach ($open as $suggestion) {
+            $this->suggestions->lockForUpdate($suggestion);
+            if ($suggestion->isOpen()) {
+                $suggestion->reject($userId, null, $now);
+                $this->events->record(new InboxSuggestionRejected($suggestion->id(), $suggestion->itemId()));
+            }
+        }
     }
 
     private function matchTo(InboxItem $item, PartySummary $contact): void
