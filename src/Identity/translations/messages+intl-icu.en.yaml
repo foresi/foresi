@@ -188,6 +188,12 @@ api_tokens:
     projects: Projects
     tasks: Tasks and comments
     time_entries: Time
+    documents: Documents
+    inbox: Inbox
+    mail_addresses: E-mail addresses
+  module:
+    invoicing: Invoicing
+    work: Work
   state:
     expired: Expired
     revoked: Revoked
@@ -342,10 +348,18 @@ oauth:
     intro: '{client} wants to use Foresi as you, through the MCP server.'
     verified: 'The name is vouched for by {host}.'
     unverified: The app gave this name itself and Foresi cannot verify it. Allow it only if you have just connected it yourself.
-    redirect: 'After you decide, you go back to {host}.'
+    verified_badge: 'Verified by {host}'
+    unverified_badge: Not verified
+    account: Signed in as
+    guest: '{email} · guest'
+    redirect: After you decide, you go back to
     access: Access
     access_help: Only what the app needs. Changing includes reading.
-    required: needed
+    asked_read: Reading the app asked for stays on.
+    account_all: All data
+    by_module: Access by area
+    read: Read
+    write: Change
     two_factor: An app can only be connected with two-factor sign-in.
     revoke: You can disconnect the app at any time in Settings → API and MCP.
     allow: Allow

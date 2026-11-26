@@ -621,7 +621,7 @@ final class InvoiceListController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl($route, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             // Its own dot weighs the columns and density only; the tab's weighs the whole view (ViewState).
             'modified' => $working->modified,
         ];

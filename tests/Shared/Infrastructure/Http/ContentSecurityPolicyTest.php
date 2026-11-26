@@ -39,6 +39,31 @@ final class ContentSecurityPolicyTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function formRedirects(): iterable
+    {
+        yield 'a loopback client with its port' => ['http://localhost:53682/callback?x=1', "form-action 'self' http://localhost:53682;"];
+        yield 'a loopback address' => ['http://127.0.0.1:8080/cb', "form-action 'self' http://127.0.0.1:8080;"];
+        yield 'a web client, path left out' => ['https://Claude.ai/api/mcp/auth_callback', "form-action 'self' https://claude.ai;"];
+        yield 'a private-use scheme' => ['cursor://anysphere.cursor-retrieval/oauth/callback', "form-action 'self' cursor:;"];
+        yield 'an IPv6 loopback no source can name' => ['http://[::1]:5000/cb', "form-action 'self';"];
+        yield 'a script' => ['javascript:alert(1)', "form-action 'self';"];
+        yield 'data' => ['data:text/html,x', "form-action 'self';"];
+        yield 'no scheme' => ['//example.com/cb', "form-action 'self';"];
+    }
+
+    #[DataProvider('formRedirects')]
+    public function testOnePageMayLetItsFormEndAtOneRedirect(string $redirect, string $formAction): void
+    {
+        $policy = new ContentSecurityPolicy([]);
+
+        self::assertStringContainsString($formAction, $policy->header(null, $redirect));
+        // The next page without one keeps 'self' only.
+        self::assertStringContainsString("form-action 'self';", $policy->header(null));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function refused(): iterable
     {
         yield 'unsafe-inline' => ['script-src', "'unsafe-inline'"];

@@ -120,8 +120,8 @@ final class ListColumnRegistryTest extends TestCase
     {
         $table = $this->registry()->display(self::LIST)->table('-payable', static fn (string $sort): string => '/invoices?sort='.$sort);
 
-        self::assertSame(['key' => 'number', 'label' => 'invoice.list.column.number', 'align' => 'left', 'phone' => true, 'width' => 120, 'sortable' => true, 'sort' => null, 'href' => '/invoices?sort=number'], $table[0]);
-        self::assertSame(['key' => 'customer', 'label' => 'invoice.list.column.customer', 'align' => 'left', 'phone' => false, 'truncate' => true], $table[1]);
+        self::assertSame(['key' => 'number', 'label' => 'invoice.list.column.number', 'align' => 'left', 'phone' => true, 'minWidth' => 64, 'width' => 120, 'sortable' => true, 'sort' => null, 'href' => '/invoices?sort=number'], $table[0]);
+        self::assertSame(['key' => 'customer', 'label' => 'invoice.list.column.customer', 'align' => 'left', 'phone' => false, 'minWidth' => 64, 'truncate' => true], $table[1]);
         self::assertSame(['sortable' => true, 'sort' => 'desc', 'href' => '/invoices?sort=payable'], array_intersect_key($table[3], ['sortable' => 0, 'sort' => 0, 'href' => 0]));
     }
 

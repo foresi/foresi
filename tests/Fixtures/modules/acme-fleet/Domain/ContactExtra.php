@@ -16,8 +16,8 @@ use Foresi\Shared\Contract\Field\FieldKind;
 /**
  * The fleet's custom fields of a contact (ADR 0045): its id is the contact's, and
  * its row exists while the contact has a value. Foresi writes it through
- * Foresi\Shared\Contract\Field\Fields; the fields show in the contact list, its
- * filters and its history.
+ * Foresi\Shared\Contract\Field\Fields; the fields show in the contact's form and
+ * detail, the contact list, its filters and its history.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'acme_fleet_contact_extra')]
@@ -48,6 +48,11 @@ class ContactExtra implements ContactExtension
     #[ORM\Column(type: 'json', nullable: true)]
     #[CustomField(FieldKind::MultiSelect, 'acme_fleet.field.services', options: ['leasing' => 'acme_fleet.service.leasing', 'servicing' => 'acme_fleet.service.servicing', 'insurance' => 'acme_fleet.service.insurance'], filterable: true)]
     private ?array $services = null;
+
+    /** acme_fleet_fleet_manager: the person of the firm who looks after the contact's fleet */
+    #[ORM\Column(name: 'fleet_manager', type: 'guid', nullable: true)]
+    #[CustomField(FieldKind::User, 'acme_fleet.field.fleet_manager', filterable: true)]
+    private ?string $fleetManager = null;
 
     public function contactId(): string
     {

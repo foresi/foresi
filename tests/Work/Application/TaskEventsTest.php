@@ -52,7 +52,7 @@ final class TaskEventsTest extends WorkApiTestCase
         ];
         foreach ($changes as $field => $change) {
             $this->as($change);
-            self::assertSame([['work.task.updated', ['task_id' => $task, 'project_id' => $project->id(), 'changed' => [$field]]]], $this->events(), $field);
+            self::assertSame([['work.task.updated', ['task_id' => $task, 'project_id' => $project->id(), 'changed' => [$field], 'custom_fields' => []]]], $this->events(), $field);
             $this->clear();
             // The same value again changes nothing.
             $this->as($change);
@@ -76,7 +76,7 @@ final class TaskEventsTest extends WorkApiTestCase
 
         $this->as(fn () => $this->tasks()->changeStatus($task, $done->id()));
         self::assertSame([
-            ['work.task.updated', ['task_id' => $task, 'project_id' => $project->id(), 'changed' => ['status']]],
+            ['work.task.updated', ['task_id' => $task, 'project_id' => $project->id(), 'changed' => ['status'], 'custom_fields' => []]],
             ['work.task.completed', ['task_id' => $task, 'project_id' => $project->id()]],
         ], $this->events());
         $this->clear();

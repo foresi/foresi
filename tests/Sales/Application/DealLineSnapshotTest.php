@@ -189,7 +189,7 @@ final class DealLineSnapshotTest extends SalesTestCase
 
         // Each change of a line is a change of its deal.
         self::assertCount(7, $this->events('sales.deal.updated'));
-        self::assertSame(['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id()], $this->events('sales.deal.updated')[0]);
+        self::assertSame(['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], $this->events('sales.deal.updated')[0]);
     }
 
     /**

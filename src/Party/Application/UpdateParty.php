@@ -10,18 +10,21 @@ namespace Foresi\Party\Application;
 
 use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\Event\ContactUpdated;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Application\Field\CustomFieldWrites;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Changes what the address book form edits: the name, identifiers, phones,
  * website, roles, note, billing address and general e-mail, and the document
- * defaults when given. The kind of a party does
- * not change. One unit of work: everything is stored or nothing is, with
- * party.contact.updated. Only the owners and members of the organisation
+ * defaults when given, and the custom fields the input brings. The kind of a
+ * party does not change. One unit of work: everything is stored or nothing is,
+ * with party.contact.updated, which names the custom fields that changed. Only the owners and members of the organisation
  * change a contact, or the application's own work.
  */
 final readonly class UpdateParty
@@ -32,11 +35,13 @@ final readonly class UpdateParty
         private TransactionalWork $transaction,
         private PartyAccess $access,
         private EventRecorder $events,
+        private CustomFieldWrites $customFields,
     ) {
     }
 
     /**
      * @throws PartyNotAllowed for a guest
+     * @throws FieldRefused    for a custom field it does not take
      */
     public function update(Party $party, PartyInput $input): void
     {
@@ -54,7 +59,8 @@ final readonly class UpdateParty
             }
             ($this->details->billingAddress($party) ?? throw new \DomainException('The party has no billing address to change.'))->relocate($input->billingAddress);
             $this->changeEmail($party, trim($input->email));
-            $this->events->record(new ContactUpdated($party->id(), ContactKind::from($party->kind()->value)));
+            $changed = null === $input->customFields ? [] : $this->customFields->write(ContactExtension::RECORD, $party->id(), $input->customFields, false);
+            $this->events->record(new ContactUpdated($party->id(), ContactKind::from($party->kind()->value), $changed));
         });
     }
 

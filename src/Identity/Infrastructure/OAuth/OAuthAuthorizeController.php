@@ -16,6 +16,7 @@ use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\OAuth\RedirectUri;
 use Foresi\Identity\Infrastructure\Controller\ApiScopeOptions;
+use Foresi\Shared\Infrastructure\Http\ContentSecurityPolicy;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +32,13 @@ use Symfony\Component\Routing\Attribute\Route;
  * ticked, everything else can be changed. Errors about the client or its
  * redirect URI are shown here and never redirected to. A guest reaches it too
  * and is offered only the scopes a guest may hold (ADR 0041).
+ *
+ * The answer to the form is a redirect to the client's redirect URI, often a
+ * loopback address of a native client; the page lets its form end there, and
+ * nowhere else (ContentSecurityPolicy::allowFormRedirect()).
+ *
+ * @phpstan-type Row array{value: string, checked: bool, required: bool}
+ * @phpstan-type Access array{account: array{read: ?Row, write: ?Row}, modules: list<array{label: string, resources: list<array{label: string, read: ?Row, write: ?Row}>}>}
  */
 #[OpenToGuest]
 final class OAuthAuthorizeController extends AbstractController
@@ -88,19 +96,65 @@ final class OAuthAuthorizeController extends AbstractController
             }
         }
 
+        ContentSecurityPolicy::allowFormRedirect($request, $authorization->redirectUri);
+        $access = $this->access($authorization);
+
         return $this->render('@Identity/oauth/consent.html.twig', [
             'client' => $authorization->client,
             'verifiedHost' => $authorization->client->verifiedHost(),
             'redirectHost' => RedirectUri::displayHost($authorization->redirectUri),
+            'person' => $this->authorization->signedInPerson(),
+            'guest' => $this->authorization->connectsAsGuest(),
             'parameters' => $authorization->parameters(),
-            'scopes' => $this->scopeRows($authorization),
+            'access' => $access,
+            'byModuleOpen' => $this->authorization->connectsAsGuest() || $this->asksForModules($access),
             'canConnect' => $canConnect,
             'error' => $error,
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**
-     * @return list<array{value: string, label: string, checked: bool, required: bool}>
+     * The offered scopes grouped as the screen shows them, each level a checkbox row.
+     *
+     * @return Access
+     */
+    private function access(AuthorizationRequest $authorization): array
+    {
+        $rows = $this->scopeRows($authorization);
+        $row = static fn (?string $scope): ?array => null === $scope ? null : $rows[$scope];
+        $grouped = $this->scopes->grouped($this->offered());
+        $modules = [];
+        foreach ($grouped['modules'] as $module) {
+            $resources = [];
+            foreach ($module['resources'] as $resource) {
+                $resources[] = ['label' => $resource['label'], 'read' => $row($resource['read']), 'write' => $row($resource['write'])];
+            }
+            $modules[] = ['label' => $module['label'], 'resources' => $resources];
+        }
+
+        return ['account' => ['read' => $row($grouped['account']['read']), 'write' => $row($grouped['account']['write'])], 'modules' => $modules];
+    }
+
+    /**
+     * Whether the client asked for a scope of a single resource, which the screen then shows open.
+     *
+     * @param Access $access
+     */
+    private function asksForModules(array $access): bool
+    {
+        foreach ($access['modules'] as $module) {
+            foreach ($module['resources'] as $resource) {
+                if (($resource['read']['checked'] ?? false) || ($resource['write']['checked'] ?? false)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, Row> by scope
      */
     private function scopeRows(AuthorizationRequest $authorization): array
     {
@@ -114,8 +168,8 @@ final class OAuthAuthorizeController extends AbstractController
             $required = array_map(static fn (ApiScope $scope): string => $scope->value, $authorization->requiredScopes());
         }
         $rows = [];
-        foreach ($offered as $value => $label) {
-            $rows[] = ['value' => $value, 'label' => $label, 'checked' => \in_array($value, $asked, true), 'required' => \in_array($value, $required, true)];
+        foreach (array_keys($offered) as $value) {
+            $rows[$value] = ['value' => $value, 'checked' => \in_array($value, $asked, true), 'required' => \in_array($value, $required, true)];
         }
 
         return $rows;

@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    A new subtask of a task, by its title, in the section of its task. A dialog over the task it goes
+    A new subtask of a task, by its title and the custom fields it needs (required), in the section of its task. A dialog over the task it goes
     back to; the same URL is a page of its own.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
@@ -8,7 +8,7 @@
 {% set row = task.task %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set crumbs = (task.manageable ? [{label: 'nav.group.work'|trans}, {label: 'work.projects.title'|trans, href: path('app_projects')}] : [{label: 'shared_with_me.title'|trans, href: path('app_shared_with_me')}])|merge([row.projectSeen ? {label: row.projectName, href: path('app_project', {id: row.projectId})} : {label: row.projectName}, {label: row.title, href: taskUrl}, {label: 'work.task.new_subtask'|trans}]) %}
-{% set form_invalid = errors is not empty %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set dialog_size = 'sm' %}
 
 {% block title %}{{ 'work.task.new_subtask'|trans }}{% endblock %}
@@ -18,6 +18,8 @@
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) }}">
         {{ include('@Work/_form_errors.html.twig', {prefix: 'subtask-new-'}) }}
         <twig:Ui:TextInput name="title" id="subtask-new-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" />
+        {# The custom fields a new task needs; its sidebar has the others. #}
+        <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\TaskExtension::RECORD')" :values="customValues|default(null)" :errors="customErrors|default({})" :requiredOnly="true" :card="false" />
     </form>
 {% endblock %}
 

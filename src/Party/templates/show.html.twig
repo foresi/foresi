@@ -99,6 +99,8 @@
                     <twig:Ui:DescriptionList :items="defaults" />
                 </twig:Ui:Card>
 
+                <twig:Ui:CustomFields :record="constant('Foresi\\Party\\Contract\\Field\\ContactExtension::RECORD')" mode="detail" :id="id" />
+
                 <twig:Ui:Card :title="'party.card.note'|trans" icon="pencil">
                     {% if note %}<p class="whitespace-pre-line text-text">{{ note }}</p>{% else %}<p class="text-muted">{{ 'party.card.note_empty'|trans }}</p>{% endif %}
                 </twig:Ui:Card>

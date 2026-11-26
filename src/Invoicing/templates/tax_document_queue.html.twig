@@ -26,7 +26,7 @@
             :search="search"
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
         </twig:Ui:FilterBar>
-        <twig:Ui:DataTable :caption="(page.prefix ~ '.title')|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
+        <twig:Ui:DataTable :caption="(page.prefix ~ '.title')|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Invoicing\\Infrastructure\\Controller\\InvoiceListController::ACTION_TOKEN'))">
             <twig:block name="empty">
                 {% if filtered %}
                     <twig:Ui:EmptyState icon="search" :title="'recurring.list.empty.filtered_title'|trans">

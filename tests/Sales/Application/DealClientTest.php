@@ -50,7 +50,7 @@ final class DealClientTest extends SalesTestCase
         self::assertEquals(new \DateTimeImmutable('2026-11-23 11:00:00 UTC'), $moved->updatedAt());
         self::assertSame([$this->tomas->id()], $this->reads()->deal($deal->id())->contactPersonIds);
         self::assertSame($this->beta->id(), $this->reload(Deal::class, $deal->id())->clientPartyId());
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id()]], $this->events('sales.deal.updated'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []]], $this->events('sales.deal.updated'));
 
         // Back to the first client without persons: the deal has none.
         $this->deals()->update(new UpdateDealInput($deal->id(), clientPartyId: $this->client->id()));

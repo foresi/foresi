@@ -6,14 +6,15 @@
     other deals (a link joins deals of one client). Once the client is known its contact persons and a person
     to add show (_persons), and they reload when the client changes (deal-client). Each URL is a page of its own too.
     Variables: deal (null for a new one), action, values, errors, client (PartySummary or null), clientFixed,
-    clientLinked, the variables of _persons, owners (by user id), stages (by id; none for Edit).
+    clientLinked, the variables of _persons, owners (by user id), stages (by id; none for Edit), customValues
+    (null for the deal's own) and customErrors of its custom fields, under "Additional details".
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = deal ? 'sales.deal.edit'|trans : 'sales.deal.new'|trans %}
 {% set back = deal ? path('app_sales_deal', {id: deal.id}) : path('app_sales_deals') %}
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'sales.deals.title'|trans, href: path('app_sales_deals')}]|merge(deal ? [{label: deal.title, href: back}] : [])|merge([{label: heading}]) %}
-{% set form_invalid = errors is not empty %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set dialog_size = 'md' %}
 
 {% block title %}{{ heading }}{% endblock %}
@@ -45,6 +46,7 @@
             {% endif %}
         </div>
         <twig:Ui:Textarea name="description" id="description" :label="'sales.deal.field.description'|trans" :help="'sales.deal.field.description_help'|trans" :value="values.description" :error="errors.description|default(null)" :rows="4" />
+        <twig:Ui:CustomFields :record="constant('Foresi\\Sales\\Contract\\Field\\DealExtension::RECORD')" :id="deal ? deal.id : null" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
     </form>
 {% endblock %}
 

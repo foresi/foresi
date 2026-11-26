@@ -45,6 +45,7 @@ use Foresi\Sales\Application\View\DealLists;
 use Foresi\Sales\Application\View\DealQueries;
 use Foresi\Sales\Application\View\DealRow;
 use Foresi\Sales\Contract\BillingDocument;
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Contract\SalesSlots;
 use Foresi\Sales\Domain\BillingEntryKind;
 use Foresi\Sales\Domain\Deal;
@@ -55,6 +56,7 @@ use Foresi\Sales\Domain\Stage;
 use Foresi\Sales\Infrastructure\Column\DealColumns;
 use Foresi\Sales\Infrastructure\Screen\DealScreen;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
@@ -70,6 +72,8 @@ use Foresi\Ui\Contract\Guard;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Ui\Slot\SlotRegistry;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -98,6 +102,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * person to add to the client on the way, from the address book or new: the
  * dialog cannot open a dialog over itself (dialog_controller), so it happens
  * inside it, and the persons reload when the client changes (deal-client).
+ * The custom fields of a deal (ADR 0045) are in New and Edit, under "Additional
+ * details", and in the side column of the deal.
  */
 final class DealController extends AbstractController
 {
@@ -133,6 +139,7 @@ final class DealController extends AbstractController
         private readonly SlotRegistry $slots,
         private readonly ContactPersonWrites $contactPersons,
         private readonly LineProjects $lineProjects,
+        private readonly CustomFieldForm $customFields,
     ) {
     }
 
@@ -263,21 +270,27 @@ final class DealController extends AbstractController
         ];
         $person = $this->personValues();
         $errors = [];
+        $custom = null;
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             $values = $this->postedDeal($request) + $values;
             $values['clientId'] = $clientId;
             $person = $this->personValues($request);
-            try {
-                $deal = $this->writes->create(new CreateDealInput($values['title'], $values['clientId'], '' === $values['stageId'] ? null : $values['stageId'], '' === $values['ownerUserId'] ? null : $values['ownerUserId'], $values['description'], $values['contactPersonIds']), $this->draft($person));
-                $this->addFlash('success', $this->screen->trans('sales.deal.flash.created', ['title' => $deal->title()]));
+            $custom = $this->customFields->read(DealExtension::RECORD, $request, true);
+            if ($custom->valid()) {
+                try {
+                    $deal = $this->writes->create(new CreateDealInput($values['title'], $values['clientId'], '' === $values['stageId'] ? null : $values['stageId'], '' === $values['ownerUserId'] ? null : $values['ownerUserId'], $values['description'], $values['contactPersonIds']), $this->draft($person), $custom->parsed);
+                    $this->addFlash('success', $this->screen->trans('sales.deal.flash.created', ['title' => $deal->title()]));
 
-                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $deal->id()], Response::HTTP_SEE_OTHER);
-            } catch (SalesRefused $refused) {
-                $this->denyIfForbidden($refused);
-                $errors = $this->errors($refused);
-            } catch (ContactPersonRefused $refused) {
-                $errors = $this->personErrors($refused, $person);
+                    return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $deal->id()], Response::HTTP_SEE_OTHER);
+                } catch (SalesRefused $refused) {
+                    $this->denyIfForbidden($refused);
+                    $errors = $this->errors($refused);
+                } catch (ContactPersonRefused $refused) {
+                    $errors = $this->personErrors($refused, $person);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->screen->trans($refused->translationKey));
+                }
             }
         }
 
@@ -291,9 +304,10 @@ final class DealController extends AbstractController
             'clientFixed' => $client instanceof PartySummary && ($request->isMethod('POST') ? $request->request->getBoolean('clientFixed') : true),
             'clientLinked' => false,
             ...$this->personsBlock($client, $person, $errors),
+            ...$this->customBlock($custom),
             'owners' => $this->screen->owners(),
             'stages' => $this->stageOptions($stages),
-        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/sales/deals/{id}', name: self::DEAL_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
@@ -344,6 +358,7 @@ final class DealController extends AbstractController
         $values = ['title' => $deal->title(), 'clientId' => $deal->clientPartyId(), 'clientQuery' => $client->displayName ?? '', 'ownerUserId' => $deal->ownerUserId(), 'description' => $deal->description(), 'contactPersonIds' => $detail->contactPersonIds];
         $person = $this->personValues();
         $errors = [];
+        $custom = null;
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             $values = array_intersect_key($this->postedDeal($request), $values) + $values;
@@ -352,16 +367,21 @@ final class DealController extends AbstractController
                 $client = '' === $values['clientId'] ? null : $this->parties->find($values['clientId']);
             }
             $person = $this->personValues($request);
-            try {
-                $this->writes->update(new UpdateDealInput($id, $values['title'], $values['description'], $values['ownerUserId'], $values['contactPersonIds'], $linked ? new Omitted() : $values['clientId']), $this->draft($person));
-                $this->addFlash('success', $this->screen->trans('sales.deal.flash.saved'));
+            $custom = $this->customFields->read(DealExtension::RECORD, $request, false);
+            if ($custom->valid()) {
+                try {
+                    $this->writes->update(new UpdateDealInput($id, $values['title'], $values['description'], $values['ownerUserId'], $values['contactPersonIds'], $linked ? new Omitted() : $values['clientId']), $this->draft($person), $custom->parsed);
+                    $this->addFlash('success', $this->screen->trans('sales.deal.flash.saved'));
 
-                return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
-            } catch (SalesRefused $refused) {
-                $this->denyIfForbidden($refused);
-                $errors = $this->errors($refused);
-            } catch (ContactPersonRefused $refused) {
-                $errors = $this->personErrors($refused, $person);
+                    return $this->redirectToRoute(self::DEAL_ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
+                } catch (SalesRefused $refused) {
+                    $this->denyIfForbidden($refused);
+                    $errors = $this->errors($refused);
+                } catch (ContactPersonRefused $refused) {
+                    $errors = $this->personErrors($refused, $person);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->screen->trans($refused->translationKey));
+                }
             }
         }
 
@@ -374,9 +394,10 @@ final class DealController extends AbstractController
             'clientFixed' => $linked,
             'clientLinked' => $linked,
             ...$this->personsBlock($client, $person, $errors),
+            ...$this->customBlock($custom),
             'owners' => $this->screen->owners($deal->ownerUserId()),
             'stages' => [],
-        ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+        ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     #[Route('/sales/deals/{id}/stage', name: 'app_sales_deal_stage', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
@@ -1129,6 +1150,16 @@ final class DealController extends AbstractController
     }
 
     /**
+     * What the custom fields of the form show: what was posted, or the deal's own values (null).
+     *
+     * @return array{customValues: array<string, string|list<string>>|null, customErrors: array<string, string>}
+     */
+    private function customBlock(?CustomFieldSubmission $custom): array
+    {
+        return ['customValues' => $custom?->values, 'customErrors' => $custom->errors ?? []];
+    }
+
+    /**
      * @param list<Stage> $stages
      *
      * @return array<string, string>
@@ -1252,7 +1283,7 @@ final class DealController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

@@ -15,7 +15,8 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * Something of a task changed: what it is called or says, who is responsible,
  * its due date, priority, section, status or labels. Each change records one;
- * a call that changes several fields records one for each.
+ * a call that changes several fields records one for each. A change of its custom
+ * fields (ADR 0045) names their keys in customFields, never their values.
  */
 #[DomainEvent('work.task.updated', version: 1)]
 final readonly class TaskUpdated implements DomainEventPayload
@@ -31,12 +32,14 @@ final readonly class TaskUpdated implements DomainEventPayload
     public const string LABELS = 'labels';
 
     /**
-     * @param list<string> $changed the fields that changed, of the constants above
+     * @param list<string> $changed      the fields that changed, of the constants above; empty when only custom fields did
+     * @param list<string> $customFields the keys of the custom fields that changed
      */
     public function __construct(
         public string $taskId,
         public string $projectId,
         public array $changed,
+        public array $customFields = [],
     ) {
     }
 

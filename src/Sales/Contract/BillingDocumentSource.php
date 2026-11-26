@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * A module that issues invoices, so a planned invoice of a won deal can be
  * linked to one that exists already (ADR 0033): the module implements it in
  * its Integration/Sales directory, and Sales knows it by its tag only.
- * Since module API 1.4.
+ * Since module API 1.5.
  */
 #[AutoconfigureTag(self::TAG)]
 interface BillingDocumentSource

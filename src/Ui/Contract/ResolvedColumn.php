@@ -35,7 +35,7 @@ final readonly class ResolvedColumn
     public function table(string $sort = '', ?callable $href = null): array
     {
         $column = $this->column;
-        $table = ['key' => $column->key, 'label' => $this->label, 'align' => $column->align, 'phone' => $column->phone];
+        $table = ['key' => $column->key, 'label' => $this->label, 'align' => $column->align, 'phone' => $column->phone, 'minWidth' => $column->minWidth];
         if ($column->wide) {
             $table['wide'] = true;
         }

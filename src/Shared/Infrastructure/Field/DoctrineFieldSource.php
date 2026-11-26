@@ -11,6 +11,7 @@ namespace Foresi\Shared\Infrastructure\Field;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query;
+use Foresi\Shared\Application\Field\FieldProperties;
 use Foresi\Shared\Application\Field\FieldRecord;
 use Foresi\Shared\Application\Field\FieldRecords;
 use Foresi\Shared\Contract\Field\CustomField;
@@ -21,6 +22,7 @@ use Foresi\Shared\Contract\Field\RecordExtension;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleManifest;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
 
@@ -35,7 +37,8 @@ use Symfony\Contracts\Cache\CacheInterface;
  *
  * @phpstan-type Catalog array<string, array{definitions: list<FieldDefinition>, fields: array<string, array{class: class-string, property: string, id: string, length: ?int, type: string}>}>
  */
-final class DoctrineFieldSource implements FieldSource
+#[AsAlias(FieldProperties::class)]
+final class DoctrineFieldSource implements FieldSource, FieldProperties
 {
     private const string CACHE_KEY = 'foresi.shared.custom_fields';
 
@@ -117,6 +120,23 @@ final class DoctrineFieldSource implements FieldSource
                 $this->em->remove($entity);
             }
         }
+    }
+
+    public function definitionOf(string $entityClass, string $property): ?FieldDefinition
+    {
+        foreach ($this->catalog() as $record) {
+            foreach ($record['fields'] as $key => $field) {
+                if ($field['class'] === $entityClass && $field['property'] === $property) {
+                    foreach ($record['definitions'] as $definition) {
+                        if ($definition->key === $key) {
+                            return $definition;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     public function expression(string $record, string $key, string $root): FieldExpression
