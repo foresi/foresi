@@ -559,11 +559,17 @@ work:
       archived: Archived
       visibility: Who sees the project
       billable: Bill the time
+      open_tasks: Open tasks
+      overdue_tasks: Overdue tasks
+      unassigned_tasks: Unassigned tasks
+      next_due: Next due date
     column:
       name: Name
       client: Client
       open: Open tasks
-      due: Nearest due date
+      overdue: Overdue
+      unassigned: Unassigned
+      due: Next due date
     empty:
       title: No projects yet
       text: Start a project and add its tasks.
