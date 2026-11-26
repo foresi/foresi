@@ -38,6 +38,9 @@ final readonly class ItemsForOtherModules implements InboxItems
         private LinkableRecords $records,
         private AuditActor $actor,
         private StaffCheck $staff,
+        private InboxAccess $access,
+        private InboxTransaction $transaction,
+        private EmailActivity $emailActivity,
         private iterable $suggesters,
     ) {
     }
@@ -87,6 +90,29 @@ final readonly class ItemsForOtherModules implements InboxItems
         }
 
         return 1 === \count($suggested) ? $suggested[0] : null;
+    }
+
+    public function emailActivity(string $itemId): string
+    {
+        $item = $this->access->ownOrTrashed($itemId);
+        if ($item->isTrashed()) {
+            throw InboxRefused::itemTrashed();
+        }
+        if (null === $item->emailActivityId() && !$this->emailActivity->canLink($item)) {
+            throw InboxRefused::emailActivityUnavailable();
+        }
+
+        return $this->transaction->run(function () use ($itemId): string {
+            // Read again under the lock: an action at the same time may have made the activity.
+            $item = $this->access->own($itemId);
+            $this->store->lock($item);
+            if (null === $item->emailActivityId()) {
+                // No ActivityTarget offers the kind "email", so nothing but the contacts is linked, as on a first output.
+                $this->emailActivity->link($item, EmailActivity::TYPE, $item->id());
+            }
+
+            return $item->emailActivityId() ?? throw InboxRefused::emailActivityUnavailable();
+        });
     }
 
     private function visible(string $itemId): ?InboxItem

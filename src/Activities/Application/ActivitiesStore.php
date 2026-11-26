@@ -36,6 +36,11 @@ interface ActivitiesStore
     public function linkedTo(string $kind, string $id): array;
 
     /**
+     * Whether an activity not in the trash is linked to the record.
+     */
+    public function hasLink(string $activityId, string $kind, string $id): bool;
+
+    /**
      * The person's planned activities that are not done or in the trash, planned
      * at a time in [$from, $to) or on a day from $from's to the one before $to's.
      *

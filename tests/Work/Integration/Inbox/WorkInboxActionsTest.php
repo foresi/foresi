@@ -41,6 +41,7 @@ use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Project;
+use Foresi\Work\Domain\ProjectBudgetChange;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
@@ -75,7 +76,7 @@ final class WorkInboxActionsTest extends WorkApiTestCase
             $this->em()->persist(new ActivityType('email', null, ActivityTiming::None, null, new \DateTimeImmutable()));
         });
         $this->address = self::getContainer()->get(AddressIssuer::class)->issue(InboxPurpose::KEY, $this->user->id(), 'My inbox')->address;
-        $this->agent = $this->issued([ApiScope::from('inbox:write'), ApiScope::from('tasks:write'), ApiScope::from('time_entries:write')]);
+        $this->agent = $this->issued([ApiScope::from('inbox:write'), ApiScope::from('tasks:write'), ApiScope::from('time_entries:write'), ApiScope::from('projects:write')]);
     }
 
     public function testCreateTaskFromEmailLinksTheTaskAndExtendsTheOneEmailActivity(): void
@@ -247,7 +248,7 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         $this->match($itemId);
 
         $actions = $this->actions($itemId);
-        self::assertSame(['inbox.actions.create_task', 'inbox.actions.log_time'], array_keys($actions));
+        self::assertSame(['inbox.actions.create_task', 'inbox.actions.log_time', 'inbox.actions.add_to_budget'], array_keys($actions));
         $task = $actions['inbox.actions.create_task'];
         self::assertSame(['inbox_item_id' => $itemId, 'title' => 'Offer for the new office', 'description' => 'Hello, please find our offer below.', 'copy_attachments' => false, 'mark_done' => true, 'project_id' => $project->id()], $task['prefill']);
         self::assertSame(['project_id' => [$project->id() => 'Office move']], $task['choices'], 'The projects of the client.');
@@ -257,6 +258,81 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         self::assertSame($task['choices'], $time['choices']);
         self::assertSame('Create task', $task['label']);
         self::assertSame('Log time', $time['label']);
+    }
+
+    public function testAddToBudgetFromEmailLinksTheActivityAndTheChange(): void
+    {
+        $project = $this->project('DUD development');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/budget-changes', ['project_id' => $project->id(), 'hours' => '8', 'effective_on' => '2026-11-24', 'note' => '8 h approved'], $this->agent);
+
+        self::assertResponseStatusCodeSame(201);
+        $changeId = $this->at('data', 'id');
+        self::assertIsString($changeId);
+        self::assertSame([$project->id(), 480, 8], [$this->at('data', 'project_id'), $this->at('data', 'minutes'), $this->at('data', 'hours')]);
+        $change = ((array) $this->at('data', 'changes'))[0] ?? null;
+        self::assertIsArray($change);
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        $activityId = $this->at('data', 'email_activity_id');
+        self::assertIsString($activityId);
+        self::assertSame([$changeId, '2026-11-24', 480, '8 h approved', $activityId], [$change['id'], $change['effective_on'], $change['minutes'], $change['note'], $change['source_activity_id']], 'The e-mail activity of the item is the source.');
+        self::assertEqualsCanonicalizing([['contact', $this->customerId], ['project', $project->id()]], $this->linksOf($activityId));
+        self::assertSame('done', $this->at('data', 'state'));
+        $outputs = (array) $this->at('data', 'outputs');
+        self::assertCount(1, $outputs);
+        $output = $outputs[0];
+        self::assertIsArray($output);
+        self::assertSame(['project_budget_change', $changeId], [$output['kind'], $output['id']]);
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/budget-changes', ['project_id' => $project->id(), 'hours' => '2', 'mark_done' => false], $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(600, $this->at('data', 'minutes'));
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame($activityId, $this->at('data', 'email_activity_id'), 'One e-mail activity, used again.');
+    }
+
+    public function testAddToBudgetFromEmailRefusedByTheBudgetLeavesNoChangeAndTheItemNew(): void
+    {
+        $project = $this->project('DUD development');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/budget-changes', ['project_id' => $project->id(), 'hours' => '-3'], $this->agent);
+
+        $this->assertProblem(409, 'budget_below_zero');
+        self::assertEquals(0, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM project_budget_change'));
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame(['new', []], [$this->at('data', 'state'), $this->at('data', 'outputs')], 'Nothing came of the item; the e-mail activity it made stays, linked to the project.');
+    }
+
+    public function testAddToBudgetIsNotAvailableWhenTheClientHasNoActiveProject(): void
+    {
+        $project = $this->project('Other client project', false);
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        self::assertSame(['inbox.actions.create_task', 'inbox.actions.log_time'], array_keys($this->actions($itemId)));
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/budget-changes', ['project_id' => $project->id(), 'hours' => '8'], $this->agent);
+        $this->assertProblem(409, 'action_not_applicable');
+        self::assertEquals(0, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM project_budget_change'));
+    }
+
+    public function testTheAddToBudgetPreFillIsTheSingleProjectAndTodayWithTheSubjectAsTheNote(): void
+    {
+        $project = $this->project('DUD development');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $budget = $this->actions($itemId)['inbox.actions.add_to_budget'];
+
+        self::assertSame('Add to project budget', $budget['label']);
+        self::assertSame(['inbox_item_id' => $itemId, 'effective_on' => self::getContainer()->get(InstanceClock::class)->today()->format('Y-m-d'), 'note' => 'Offer for the new office', 'mark_done' => true, 'project_id' => $project->id()], $budget['prefill']);
+        self::assertSame(['project_id' => [$project->id() => 'DUD development']], $budget['choices']);
+        $item = $this->itemView(subject: '  '.str_repeat('ž', ProjectBudgetChange::MAX_NOTE_LENGTH + 20).'  ');
+        $values = $this->as(fn (): array => $this->prefillOf('inbox.actions.add_to_budget', $item)->values, $this->user);
+        self::assertSame(str_repeat('ž', ProjectBudgetChange::MAX_NOTE_LENGTH), $values['note']);
     }
 
     public function testTwoActiveProjectsPreselectNone(): void

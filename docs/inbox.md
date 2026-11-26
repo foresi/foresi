@@ -72,6 +72,7 @@ The modules add actions to the item, as buttons in its header before **Link…**
 |---|---|---|---|
 | **Create task** | Projects | A task of a project; the files of the mail are copied onto it unless you untick it | The subject as the title, the text as the description, the client's one active project |
 | **Log time** | Projects | A time entry on a project | The day the mail arrived, the subject as the note, the client's one active project |
+| **Add to project budget** | Projects | A change of the time budget of a project, with the e-mail activity as its source; only for an item whose client has an active project | Today as the date, the subject as the note, the client's one active project; you enter the hours |
 | **Create deal** | Sales | A deal of the matched client; only for an item matched to a contact | The subject as the title, the company of the sender (else the contact) as the client |
 | **Log activity** | Activities | An activity linked to the same records as the e-mail activity | The subject; the type when there is only one |
 
@@ -116,6 +117,7 @@ Every action of the screens is an operation with an idempotency key ([ADR 0032](
 | `inbox.items.trash` (destructive), `.restore` | Puts the item in the trash, or brings it back |
 | `inbox.actions.create_task` | Creates a task from the item (Projects; also needs `tasks:write`) |
 | `inbox.actions.log_time` | Logs time from the item (Projects; also needs `time_entries:write`) |
+| `inbox.actions.add_to_budget` | Adds hours to a project's budget from the item (Projects; also needs `projects:write`) |
 | `inbox.actions.create_deal` | Opens a deal from a matched item (Sales; also needs `sales:write`) |
 | `inbox.actions.log_activity` | Logs an activity from the item (Activities; also needs `activities:write`) |
 
@@ -148,7 +150,7 @@ Other modules reach Inbox only through `Foresi\Inbox\Contract`:
 
 An action is an ordinary operation of your module ([ADR 0032](adr/0032-api-writes.md)) whose input also carries `#[InboxAction]`. Inbox finds it among the installed operations and names none of them, so a module adds one without a change to Inbox: the button on the item, the dialog, the REST endpoint, the MCP tool and `available_actions` all come from the declaration.
 
-- **The attribute.** `#[InboxAction(label: 'acme.inbox_action.note', kind: 'note', appliesTo: HasMatchedContact::class, weight: 50)]`. `label` is a translation key of the `messages` domain; `kind` is the kind the made record is stored under as an output, the kind of an `ActivityTarget` when your module offers one, so the output gets a label and a link and the e-mail activity is linked to it; `weight` orders the buttons (Create task is 10, Log time 20, Create deal 30, Log activity 40); `appliesTo` is optional.
+- **The attribute.** `#[InboxAction(label: 'acme.inbox_action.note', kind: 'note', appliesTo: HasMatchedContact::class, weight: 50)]`. `label` is a translation key of the `messages` domain; `kind` is the kind the made record is stored under as an output, the kind of an `ActivityTarget` when your module offers one, so the output gets a label and a link and the e-mail activity is linked to it; `weight` orders the buttons (Create task is 10, Log time 20, Add to project budget 25, Create deal 30, Log activity 40); `appliesTo` is optional.
 - **The input.** It implements `Foresi\Inbox\Contract\InboxActionInput`: a `string $inboxItemId` in the path (`/api/v1/inbox/items/{inboxItemId}/...`), a `bool $markDone = true`, and `relatedRecords()`, the further records the e-mail activity is linked to besides the output, such as the project of a task. The handler answers the made record's id as `data['id']`.
 - **The condition.** A service implementing `InboxActionCondition` (tag `foresi.inbox.action_condition`, by autoconfiguration), `applies(InboxItemView $item): bool`. The action is offered and runs only where it applies; elsewhere it is `action_not_applicable`.
 - **The pre-fill.** A service implementing `InboxPreFill` (tag `foresi.inbox.prefill`), `operation()` naming your operation and `prefill(InboxItemView $item): PreFill`: values and, for a field to pick from, choices (`value => label`), both by the PHP name of the field. A pre-fill that throws is logged and the action is offered with nothing filled in. The item's text is somebody else's: put it in a field as text, never act on it.

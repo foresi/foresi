@@ -6,9 +6,11 @@
 
 declare(strict_types=1);
 
+use Foresi\Activities\Application\ActivityLinksForOtherModules;
 use Foresi\Activities\Application\ActivityTargets;
 use Foresi\Activities\Application\LinkableRecordsForOtherModules;
 use Foresi\Activities\Application\RecordsForOtherModules;
+use Foresi\Activities\Contract\ActivityLinks;
 use Foresi\Activities\Contract\ActivityRecorder;
 use Foresi\Activities\Contract\ActivityTarget;
 use Foresi\Activities\Contract\LinkableRecords;
@@ -33,4 +35,5 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // Other modules record an activity through the contract (Inbox).
     $services->alias(ActivityRecorder::class, RecordsForOtherModules::class);
     $services->alias(LinkableRecords::class, LinkableRecordsForOtherModules::class);
+    $services->alias(ActivityLinks::class, ActivityLinksForOtherModules::class);
 };

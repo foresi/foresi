@@ -13,6 +13,7 @@ work:
   inbox_action:
     create_task: Vytvořit úkol
     log_time: Zapsat čas
+    add_to_budget: Přidat do rozpočtu projektu
   relation:
     projects: Projekty
   status:
@@ -763,3 +764,9 @@ inbox_action:
         endedAt: Konec
         note: Poznámka
         billable: Fakturovatelné
+      add_to_budget:
+        projectId: Projekt
+        hours: Hodiny
+        minutes: Minuty
+        effectiveOn: Datum změny
+        note: Poznámka

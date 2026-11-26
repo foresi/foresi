@@ -13,6 +13,7 @@ work:
   inbox_action:
     create_task: Create task
     log_time: Log time
+    add_to_budget: Add to project budget
   relation:
     projects: Projects
   status:
@@ -763,3 +764,9 @@ inbox_action:
         endedAt: Ended at
         note: Note
         billable: Billable
+      add_to_budget:
+        projectId: Project
+        hours: Hours
+        minutes: Minutes
+        effectiveOn: Date of the change
+        note: Note
