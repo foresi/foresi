@@ -66,6 +66,16 @@ final class ContactsByEmailTest extends ContactTestCase
         self::assertSame([], $this->finder()->byDomain(''));
     }
 
+    public function testByDomainListsACompanyWithSeveralAddressesAtTheDomainOnce(): void
+    {
+        $company = $this->contact('Alpha Example s.r.o.', email: 'office@example.com');
+        $this->em->persist(new PartyEmail($company, 'invoices@example.com', EmailPurpose::Invoices));
+        $this->em->persist(new PartyEmail($company, 'Invoices@Example.com', EmailPurpose::Copy));
+        $this->em->flush();
+
+        self::assertSame([$company->id()], $this->ids($this->finder()->byDomain('example.com')));
+    }
+
     public function testByDomainDoesNotMatchSubdomainsOrLongerDomainsAndIgnoresArchived(): void
     {
         $this->contact('Sub Example s.r.o.', number: '11111111', email: 'a@sub.example.com');
