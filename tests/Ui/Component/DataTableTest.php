@@ -562,7 +562,11 @@ final class DataTableTest extends KernelTestCase
         $columns[0]['wide'] = true;
         $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
         self::assertSame('balance', $html->filter('colgroup col[data-stretch]')->attr('data-column'));
-        self::assertCount(0, new Crawler($this->render(['columns' => $columns]))->filter('col[data-stretch]'), 'a table not resizable sizes its columns to their text');
+        $columns[2]['width'] = 100;
+        $fixedCols = new Crawler($this->render(['columns' => $columns]))->filter('colgroup col');
+        self::assertCount(3, $fixedCols);
+        self::assertCount(0, $fixedCols->filter('[data-stretch]'), 'a table not resizable keeps the width a view gives its last column');
+        self::assertContains('sm:w-(--col-w)', explode(' ', (string) $fixedCols->last()->attr('class')));
     }
 
     public function testListRowsAre56PxLineRows44AndTheHeader44OnTheTint(): void
