@@ -132,7 +132,7 @@ test.describe('list toolbar @layout', () => {
     await expect(sheet.locator('[data-settings-views]')).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Rychlé filtry' })).toBeVisible();
     await expect(sheet.getByRole('group', { name: 'Sloupce' })).toBeVisible();
-    await expect(sheet.getByRole('group', { name: 'Hustota řádků' })).toBeVisible();
+    await expect(sheet.getByRole('group', { name: 'Hustota řádků' })).toHaveCount(0);
     await expect(sheet.getByRole('link', { name: 'Obnovit výchozí' })).toBeVisible();
 
     // Every filter field of the list is in one list, the pinned first: unpin the second default
