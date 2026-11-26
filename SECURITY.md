@@ -15,7 +15,7 @@ A way to make a bank message pay an invoice without a verified notice from the b
 
 ## Verifying a release
 
-From the first release after v0.11.11 on, every [GitHub release](https://github.com/foresi/foresi/releases) carries three files built by the Release workflow from the tagged commit:
+From the first release after v0.11.12 on, every [GitHub release](https://github.com/foresi/foresi/releases) carries three files built by the Release workflow from the tagged commit:
 
 - `foresi-VERSION.tar.gz`: the source of the release (`git archive` of the tag).
 - `foresi-VERSION.cdx.json`: its software bill of materials in CycloneDX 1.6: the Composer packages of `composer.lock` without the development ones, and the JavaScript packages of `importmap.php`.
