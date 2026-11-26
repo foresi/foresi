@@ -26,11 +26,13 @@ use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskLabel;
 use Foresi\Work\Domain\WorkflowTemplate;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -89,6 +91,37 @@ final class TaskListControllerTest extends WebTestCase
         self::assertSame(['Order the hosting', 'Sort the inbox'], $this->titles($this->client->request('GET', '/tasks?view=unassigned')));
         self::assertSame(['Call the client', 'Order the hosting'], $this->titles($this->client->request('GET', '/tasks?view=high')));
         self::assertSame(['Sort the inbox'], $this->titles($this->client->request('GET', '/tasks?view=no_due')));
+    }
+
+    /**
+     * Martin hid a column on Mine, and after a while it was back (2026-11-26): dragging a column
+     * wider sends only the widths, which read the view's own columns over the ones he chose. The
+     * columns he hid stay hidden through a drag, a deploy (app:views:sync) and a reload, as he
+     * left them on the view and as he saved them.
+     */
+    public function testAHiddenColumnStaysHiddenAfterAColumnIsDraggedWider(): void
+    {
+        $this->seed();
+        $sync = new CommandTester(new Application(self::$kernel ?? throw new \LogicException('No kernel.'))->find('app:views:sync'));
+        $hidden = static fn (Crawler $crawler): bool => 0 === $crawler->filter('col[data-column="responsible"]')->count() && $crawler->filter('col[data-column="project"]')->count() > 0;
+
+        // Hidden in the Settings sheet, which sends every column shown and the density.
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels&density=comfortable')));
+        $sync->execute([]);
+        // Opened again, then a column dragged wider, which writes widths= alone to the address.
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine')));
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&widths=title:320')), 'A drag keeps the columns remembered.');
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine')), 'The reload keeps them too.');
+        self::assertSame('320px', $this->width($this->client->getCrawler(), 'title'), 'And the width dragged.');
+
+        // Saved with the view, the same through a deploy, a drag and a reload.
+        $crawler = $this->client->request('GET', '/tasks?view=mine&cols=title,project,client,status,due,priority,labels&density=comfortable');
+        $this->client->submit($crawler->filter('form[action="/views/save"]')->form());
+        self::assertResponseRedirects();
+        $sync->execute([]);
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&widths=project:200')));
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine')));
+        self::assertTrue($hidden($this->client->request('GET', '/tasks?view=mine&density=&widths=')), 'Reset goes back to the view as saved.');
     }
 
     public function testTheListGroupsAndSortsAsTheAddressSays(): void
@@ -220,6 +253,16 @@ final class TaskListControllerTest extends WebTestCase
     private function tabs(Crawler $crawler): array
     {
         return $crawler->filter('nav[aria-label="Views of the tasks"] a')->each(static fn (Crawler $tab): string => trim((string) preg_replace('/\s+/', ' ', $tab->text())));
+    }
+
+    /**
+     * The width a column is drawn at, such as 320px; null when it sizes to its content.
+     */
+    private function width(Crawler $crawler, string $column): ?string
+    {
+        $style = $crawler->filter('col[data-column="'.$column.'"]')->attr('style');
+
+        return null === $style ? null : (1 === preg_match('/--col-w:\s*(\d+px)/', $style, $match) ? $match[1] : null);
     }
 
     /**
