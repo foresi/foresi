@@ -144,8 +144,8 @@ final class AppShellTest extends WebTestCase
         self::assertNotEmpty($inAreas, 'The owner should see the navigation.');
         self::assertSame($inAreas, array_values(array_unique($inAreas)), 'No item is listed twice.');
         $ids = array_map(static fn (array $a): string => $a['area']->id, $areas);
-        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'profile', 'settings'], $ids)), $ids);
-        self::assertSame('settings', end($ids));
+        self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings', 'profile'], $ids)), $ids);
+        self::assertSame('profile', end($ids));
     }
 
     public function testSalesShowsItsSectionHeadingsAndASmallAreaStaysFlat(): void
