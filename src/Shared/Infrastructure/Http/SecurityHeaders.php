@@ -20,7 +20,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *
  * - X-Content-Type-Options: nosniff, so a downloaded CSV or a user's file is never guessed
  *   into a page or a script (ASVS 3.4.4).
- * - Content-Security-Policy (ContentSecurityPolicy), and X-Frame-Options: SAMEORIGIN for
+ * - Content-Security-Policy (ContentSecurityPolicy), with the one redirect a form of the page
+ *   may end in when the controller allowed it (ContentSecurityPolicy::allowFormRedirect()), and X-Frame-Options: SAMEORIGIN for
  *   browsers that do not read frame-ancestors.
  * - Referrer-Policy: same-origin. Other sites get no referrer and no address of a record
  *   (ASVS 3.4.5); requests to the application keep their Origin, which the CSRF check of
@@ -68,7 +69,8 @@ final readonly class SecurityHeaders
         $set('X-Content-Type-Options', 'nosniff');
         // Symfony's debug exception page inlines its scripts and styles; production errors are ours.
         if (!$headers->has('X-Debug-Exception')) {
-            $set('Content-Security-Policy', $this->policy->header($this->nonce->used()));
+            $formRedirect = $request->attributes->get(ContentSecurityPolicy::FORM_REDIRECT);
+            $set('Content-Security-Policy', $this->policy->header($this->nonce->used(), \is_string($formRedirect) ? $formRedirect : null));
         }
         $set('X-Frame-Options', 'SAMEORIGIN');
         $set('Referrer-Policy', 'same-origin');

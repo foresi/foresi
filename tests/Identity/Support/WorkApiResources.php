@@ -22,6 +22,11 @@ final readonly class WorkApiResources implements ApiResources
         return ['contacts', 'projects', 'tasks'];
     }
 
+    public function byModule(): array
+    {
+        return ['party' => ['contacts'], 'work' => ['projects', 'tasks']];
+    }
+
     public function guest(): array
     {
         return ['projects:read', 'tasks:write'];

@@ -369,6 +369,13 @@ stricter of the two would win.
   `font-src`, `form-action`, `frame-src`, `img-src`, `media-src`, `script-src`,
   `style-src` or `worker-src`. Keywords such as `'unsafe-inline'`, `*` and bare
   schemes are refused when the container starts.
+- **The OAuth consent screen** answers its form with a redirect to the client,
+  often a loopback address such as `http://localhost:53682/callback`, and
+  browsers check `form-action` on that redirect. Its page alone adds the
+  origin of that one redirect URI (or the scheme of a private-use one, such as
+  `cursor:`) to `form-action`; every other page keeps `'self'`. An IPv6
+  loopback redirect (`http://[::1]:…`) cannot be named in a policy, so a
+  client should register `localhost` or `127.0.0.1` instead.
 - **Violations** show in the browser console. To collect them, set
   `CSP_REPORT_URI`. The end-to-end tests fail on any violation.
 
