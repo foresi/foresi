@@ -8,10 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Infrastructure\Doctrine;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Catalog\Application\CatalogWork;
-use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Contract\UnitOfWork;
 
 /**
  * The unit of work of the catalog on the shared entity manager, as the
@@ -21,27 +19,12 @@ use Foresi\Shared\Application\Event\EventOutbox;
 final readonly class DoctrineCatalogWork implements CatalogWork
 {
     public function __construct(
-        private EntityManagerInterface $em,
-        private ManagerRegistry $registry,
-        private EventOutbox $outbox,
+        private UnitOfWork $work,
     ) {
     }
 
     public function run(callable $work): mixed
     {
-        if ($this->em->getConnection()->isTransactionActive()) {
-            return $work();
-        }
-        try {
-            $result = $this->em->wrapInTransaction($work);
-        } catch (\Throwable $failure) {
-            $this->outbox->rolledBack();
-            $this->registry->resetManager();
-
-            throw $failure;
-        }
-        $this->outbox->committed();
-
-        return $result;
+        return $this->work->run($work);
     }
 }

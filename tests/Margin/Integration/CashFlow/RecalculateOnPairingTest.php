@@ -47,6 +47,7 @@ use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
+use Foresi\Shared\Infrastructure\Doctrine\DoctrineUnitOfWork;
 use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Margin\Support\FixedCostSource;
 use Psr\Log\NullLogger;
@@ -298,7 +299,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
             new EventListeners(new ServiceLocator([RecalculateOnPairing::class => static fn (): RecalculateOnPairing => $listener])),
             $container->get(EventCatalogue::class),
             new EventPayloads(),
-            new DeliveryWork($this->em, $container->get(ManagerRegistry::class), $outbox),
+            new DeliveryWork(new DoctrineUnitOfWork($this->em, $container->get(ManagerRegistry::class), $outbox)),
             new EventConsumptions($this->em->getConnection(), new MockClock('2026-05-21 11:00:00', 'UTC')),
             new NullLogger(),
         );

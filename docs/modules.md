@@ -339,20 +339,21 @@ final readonly class VehicleAdded implements DomainEventPayload
 }
 ```
 
-The name starts with the module id, and the payload is thin: ids, not copies of the data. The use case records the event with `EventRecorder` in the same transaction as the change, so the event exists exactly when the change is committed:
+The name starts with the module id, and the payload is thin: ids, not copies of the data. The use case runs the change in a `Foresi\Shared\Contract\UnitOfWork` and records the event with `EventRecorder` inside it, so the event exists exactly when the change is committed:
 
 ```php
-return $this->em->wrapInTransaction(function () use ($name, $plate, $input): Vehicle {
+return $this->work->run(function () use ($name, $plate, $input): Vehicle {
     // the checks
     $this->em->persist($vehicle);
-    $this->em->flush();
     $this->events->record(new VehicleAdded($vehicle->id()));
 
     return $vehicle;
 });
 ```
 
-`record()` outside a transaction throws a `LogicException`.
+`run()` flushes the entity manager and commits when the closure returns. Right after the commit, the event goes to the listeners and webhooks. If the closure throws, `run()` rolls back and drops the event. It replaces the entity manager, so the caller can query on, and rethrows the exception unchanged. A refusal thrown in the closure (`VehicleRefused::plateTaken()`) therefore stores nothing. A unit inside another one, such as yours inside a listener the relay runs, or Work's `TaskIntake` inside yours, is part of the outer one: only the outermost unit commits. `record()` outside a transaction throws a `LogicException`.
+
+Do not call `$em->wrapInTransaction()` yourself. Your events would then wait for the relay's periodic sweep, up to five minutes. After a failure the entity manager would stay closed. And inside another unit, you would open a savepoint that flushes the outer unit's changes early (ADR 0048).
 
 A listener of another module's event implements `DomainEventListener`. Fleet takes an archived contact off every vehicle it drove:
 
@@ -374,6 +375,8 @@ final readonly class DropArchivedDriver implements DomainEventListener
 ```
 
 Listeners run after the commit, from the event relay, so they must be idempotent: the relay may call one again for the same event. The relay flushes the unit of work after the listener, so the listener only changes entities. The class name is the listener's key, under which the relay records what it has delivered. Do not rename the class once the module is in use.
+
+The relay runs each delivery in a unit of work, and records the delivery in it. A `UnitOfWork::run()` in the listener joins that unit. So the listener's database changes and the record that it was called are stored together: the relay calls it again only if they were not stored. Effects outside the database, such as a mail or an HTTP call, can still happen twice, so key them on the event id. Operations need nothing of this. The REST API and MCP keep an idempotency key with the answer, so a client's retry never runs the write twice.
 
 ### 9. A setting
 
@@ -473,7 +476,7 @@ To add something to a screen of another module instead of a page of your own, us
 4. Make it idempotent. Do not flush; the relay does.
 5. Do not rename the class later: its name is the listener's key.
 
-To publish an event of your own, put a `DomainEventPayload` with `#[DomainEvent('<id>.<resource>.<action>', version: 1)]` in `Contract/Event/`, and record it with `EventRecorder::record()` inside the transaction of the change. A new field in the payload keeps the version; anything else is a new version.
+To publish an event of your own, put a `DomainEventPayload` with `#[DomainEvent('<id>.<resource>.<action>', version: 1)]` in `Contract/Event/`, and record it with `EventRecorder::record()` inside the `UnitOfWork::run()` of the change. A new field in the payload keeps the version; anything else is a new version.
 
 ### Integrate with an optional module
 
@@ -699,6 +702,7 @@ What each minor version added:
 | 1.7 | Custom fields over the REST API and MCP: `custom_fields` in the payloads of contacts, deals, tasks, projects and products and in their create and update operations, with the `api` flag honoured; `GET /api/v1/fields` and the MCP tool `foresi_list_fields`; the OpenAPI schemas of the fields, generated from the definitions. A module whose fields must reach the API requires `^1.7`. |
 | 1.8 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.sales.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `sales.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.8`. |
 | 1.9 | Custom fields in the import, the export and the document templates: the `import` and `template` flags take effect; `FieldRecordTarget` of Import, an import target whose records take custom fields; a `VariableDefinition` of Documents may be named by a path, such as `custom.acme_fleet_industry`. A module whose fields must reach the import or the templates requires `^1.9`. |
+| 1.10 | `Foresi\Shared\Contract\UnitOfWork`, the unit of work of a module's change: its records and its events are stored together, and the events reach listeners and webhooks right after the commit instead of with the relay's sweep. A module that uses it requires `^1.10`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
@@ -767,6 +771,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
 | `DomainEvent` (attribute), `DomainEventPayload`, `EventSubject` | — | The event in the catalogue, the event log, the API (`/api/v1/events`) and the webhooks. |
+| `UnitOfWork` (service, since 1.10) | — | Runs a change as one unit: the outermost unit flushes and commits, hands its events to the relay at once, and on a failure rolls back, drops them and replaces the entity manager. |
 | `EventRecorder` (service) | — | Records an event in the active transaction. |
 | `DomainEventListener` | `foresi.shared.domain_event_listener` | Called after the commit, from the event relay, with the `RecordedEvent`; the relay flushes and records the delivery. |
 | `RecordedEvent` | — | The stored event: id, name, version, time, correlation id and payload. |
@@ -838,7 +843,6 @@ These are known gaps. They will change, so do not build on them as if they were 
 
 - **`Money` and `Currency`** (`Foresi\Shared\Domain`) appear in some contracts of business modules, but are not part of the contract themselves. How Foresi models currencies is being settled, and these classes will change. Read them, but do not extend them or rely on their constructors.
 - **Response schemas in the OpenAPI document.** An operation's `response` names a schema of the document, and a module cannot add schemas to it yet. Leave `response` out: the endpoint works, and the document shows its answer without a schema of its data. A later module API version will let modules add schemas.
-- **Events wait for the relay.** An event that a module records is delivered to listeners and webhooks when the relay next runs, at most five minutes later, unless another change commits first. Foresi's own modules can hand events to the relay at once; that service is not in the contract yet.
 - **No test kit.** The test support of acme/fleet (`ApiTestCase`, `SignedInBrowser`, `IdentityFixtures`) is part of this repository's tests, not a published package.
 - **Required modules' internals.** A module that requires a business module and uses its `Domain\` or `Application\` classes is not protected by the contract. Use only the other module's `Contract\` namespace.
 

@@ -12,7 +12,6 @@
         "doctrine/dbal": "^4.5",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
-        "doctrine/persistence": "^4.2",
         "foresi/attachment": "self.version",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",

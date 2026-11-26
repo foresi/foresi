@@ -13,18 +13,21 @@ use Acme\Fleet\Domain\Vehicle;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Contract\Event\EventRecorder;
+use Foresi\Shared\Contract\UnitOfWork;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * The firm's vehicles: the use cases every surface calls, the screen, REST
- * and MCP alike. A vehicle is added in one transaction with its event.
+ * and MCP alike. A vehicle is added in one unit of work with its event, so
+ * the event reaches listeners and webhooks as soon as the unit commits.
  */
 final readonly class Fleet
 {
     public function __construct(
         private EntityManagerInterface $em,
+        private UnitOfWork $work,
         private EventRecorder $events,
         private StaffCheck $staff,
         private ClockInterface $clock,
@@ -50,7 +53,7 @@ final readonly class Fleet
             throw VehicleRefused::blank('plate');
         }
 
-        return $this->em->wrapInTransaction(function () use ($name, $plate, $input): Vehicle {
+        return $this->work->run(function () use ($name, $plate, $input): Vehicle {
             $vehicles = $this->em->getRepository(Vehicle::class);
             if ($vehicles->count([]) >= $this->maxVehicles) {
                 throw VehicleRefused::full($this->maxVehicles);
@@ -60,7 +63,6 @@ final readonly class Fleet
             }
             $vehicle = new Vehicle(Uuid::v7()->toRfc4122(), $name, $plate, $input->driverContactId, $this->clock->now());
             $this->em->persist($vehicle);
-            $this->em->flush();
             $this->events->record(new VehicleAdded($vehicle->id()));
 
             return $vehicle;
