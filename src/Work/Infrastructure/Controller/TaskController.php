@@ -16,7 +16,13 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\Field\FieldRefused;
+use Foresi\Shared\Application\Field\VisibleFields;
+use Foresi\Shared\Contract\Field\FieldDefinition;
+use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Ui\FileSize;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\Comments;
@@ -38,6 +44,7 @@ use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Contract\InvoiceNumbers;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
@@ -75,6 +82,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Opening the page reads the row of the task in one's inbox, as opening an
  * issue does in Linear and GitHub; a link Turbo fetches ahead on hover is
  * not an opening.
+ *
+ * The custom fields of a task (ADR 0045) are properties of the panel too, under
+ * "Additional details", each saved on its own; a new task or subtask asks only
+ * for the required ones.
  */
 final class TaskController extends AbstractController
 {
@@ -116,6 +127,9 @@ final class TaskController extends AbstractController
         private readonly TimeQueries $time,
         private readonly InvoiceNumbers $invoiceNumbers,
         private readonly TimeFunctions $duration,
+        private readonly CustomFieldForm $customFields,
+        private readonly Fields $fields,
+        private readonly VisibleFields $visibleFields,
     ) {
     }
 
@@ -464,6 +478,35 @@ final class TaskController extends AbstractController
     }
 
     /**
+     * One custom field of the task (ADR 0045), saved on its own as the other properties
+     * are; a value the field does not take, or a field hidden from a guest, is refused
+     * and told on the page.
+     */
+    #[OpenToGuest]
+    #[Route('/tasks/{id}/fields/{key}', name: 'app_task_custom_field', requirements: ['id' => Requirement::UUID_V7, 'key' => '[a-z0-9_]+'], methods: ['POST'])]
+    public function customField(string $id, string $key, Request $request): RedirectResponse
+    {
+        if (!$this->fields->definition(TaskExtension::RECORD, $key) instanceof FieldDefinition) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->save($id, $request, function () use ($id, $key, $request): void {
+            $custom = $this->customFields->read(TaskExtension::RECORD, $request, false, key: $key);
+            if (!$custom->valid()) {
+                $this->addFlash('error', implode(' ', $custom->errors));
+
+                return;
+            }
+            try {
+                // A field the person does not see is not read from the form; the write refuses it.
+                $this->tasks->setCustomField($id, $key, $custom->parsed[$key] ?? null);
+            } catch (FieldRefused $refused) {
+                $this->addFlash('error', $this->translator->trans($refused->translationKey));
+            }
+        });
+    }
+
+    /**
      * A new subtask by its title, in the section of its task: a dialog over
      * the task (the same URL is a page of its own) that goes back to its
      * subtasks. A subtask has none, nor has a task of an archived project.
@@ -481,20 +524,25 @@ final class TaskController extends AbstractController
         }
         $title = '';
         $error = null;
+        $custom = null;
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
             $title = trim($request->request->getString('title'));
+            // The short dialog asks for the required custom fields only; the subtask's sidebar has the others.
+            $custom = $this->customFields->read(TaskExtension::RECORD, $request, true, true);
             if ('' === $title) {
                 $error = $this->translator->trans('work.task.error.title_required');
-            } else {
+            } elseif ($custom->valid()) {
                 try {
-                    $this->tasks->create($task->task->projectId, $title, $task->task->sectionId, $id);
+                    $this->tasks->create($task->task->projectId, $title, $task->task->sectionId, $id, customFields: $custom->parsed);
                     $this->addFlash('success', $this->translator->trans('work.task.subtask_added', ['title' => $title]));
 
                     return $this->redirect($subtasks, Response::HTTP_SEE_OTHER);
                 } catch (WorkRefused $refused) {
                     $this->notFoundIfUnknown($refused);
                     $error = $this->translator->trans('work.refused.'.$refused->reason);
+                } catch (FieldRefused $refused) {
+                    $custom = $custom->refused($refused->key, $this->translator->trans($refused->translationKey));
                 }
             }
         }
@@ -503,7 +551,9 @@ final class TaskController extends AbstractController
             'task' => $task,
             'values' => ['title' => $title],
             'errors' => null === $error ? [] : ['title' => $error],
-        ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
+        ], new Response(status: null === $error && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
     /**
@@ -628,6 +678,8 @@ final class TaskController extends AbstractController
             'hasLabels' => [] !== $labels,
             'labelOptions' => array_map(static fn (LabelBadge $label): array => ['value' => $label->id, 'label' => $label->name, 'tone' => $label->colour->value], $labels),
             'canCreateLabels' => $this->staff->isStaff(),
+            // The custom fields the person sees, each a form of the sidebar (only those open to guests for a guest).
+            'customFieldKeys' => array_map(static fn (FieldDefinition $definition): string => $definition->key, $this->visibleFields->definitions(TaskExtension::RECORD)),
             'subtaskColumns' => [
                 ['key' => 'title', 'label' => $this->translator->trans('work.task.field.title'), 'truncate' => true],
                 ['key' => 'status', 'label' => $this->translator->trans('work.task.field.status')],

@@ -2,14 +2,15 @@
 {#
     A new product, or one changed. New is a dialog over the list; Edit takes the place of the product in its
     side sheet (layout/record.html.twig) and is a dialog from the product's page; each URL is a page of its
-    own too. Variables: product (null for a new one), action, values, errors, billingKinds, units, currencies.
+    own too. Variables: product (null for a new one), action, values, errors, billingKinds, units, currencies,
+    customValues (null for the product's own) and customErrors of its custom fields, under "Additional details".
 #}
 {% extends product and overlay() == 'sheet' ? '@Ui/layout/record.html.twig' : (overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig') %}
 
 {% set heading = product ? 'catalog.product.edit'|trans : 'catalog.product.new'|trans %}
 {% set back = product ? path('app_catalog_product', {id: product.id}) : path('app_catalog_products') %}
 {% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'catalog.products.title'|trans, href: path('app_catalog_products')}]|merge(product ? [{label: product.name, href: back}] : [])|merge([{label: heading}]) %}
-{% set form_invalid = errors is not empty %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set dialog_size = 'md' %}
 {% set record_fields = true %}
 
@@ -19,6 +20,7 @@
     <form method="post" id="product-form" action="{{ action }}" class="grid gap-4" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Catalog\\Infrastructure\\Controller\\ProductController::TOKEN')) }}">
         {% include '@Catalog/products/_fields.html.twig' %}
+        <twig:Ui:CustomFields :record="constant('Foresi\\Catalog\\Contract\\Field\\ProductExtension::RECORD')" :id="product ? product.id : null" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
     </form>
 {% endblock %}
 

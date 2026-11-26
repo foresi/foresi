@@ -28,7 +28,10 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * reads it, an option by its label and a contact linked to its page. Nothing shows
  * when the record has no field the person sees. A required field is marked only on a
  * new record, the one time it is asked for; a short dialog shows only those
- * (requiredOnly). Without the card, the rows stand bare, as in a sidebar.
+ * (requiredOnly). Without the card, the rows stand bare, as in a sidebar or inside
+ * a dialog, under the heading "Additional details" when one is asked for (heading),
+ * and a detail's rows stack each label over its value, as a sidebar's details do.
+ * A form of one field (only) holds that field alone, as a task's sidebar saves each.
  */
 #[AsTwigComponent]
 final class CustomFields
@@ -59,6 +62,12 @@ final class CustomFields
     /** Inside the card "Additional details"; without it, the rows stand bare. */
     public bool $card = true;
 
+    /** Without the card, under the heading "Additional details". */
+    public bool $heading = false;
+
+    /** The one field to show, by its key, such as a field of a task's sidebar; null for all. */
+    public ?string $only = null;
+
     /** @var list<FieldDefinition> */
     private array $definitions = [];
 
@@ -86,7 +95,7 @@ final class CustomFields
         }
         $this->definitions = array_values(array_filter(
             $this->visible->definitions($this->record),
-            fn (FieldDefinition $definition): bool => !$this->requiredOnly || $definition->required,
+            fn (FieldDefinition $definition): bool => (!$this->requiredOnly || $definition->required) && (null === $this->only || $definition->key === $this->only),
         ));
     }
 

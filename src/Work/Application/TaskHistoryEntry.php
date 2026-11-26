@@ -20,7 +20,7 @@ final readonly class TaskHistoryEntry
 
     /**
      * @param string|null   $userName        null when no person did it
-     * @param list<string>  $fields          translation keys of the plain fields that changed, work.task.field.<field>
+     * @param list<string>  $fields          translation keys of the plain fields that changed, work.task.field.<field>, and the labels of the custom fields
      * @param bool          $statusChanged   whether the status changed, from $statusFrom to $statusTo
      * @param bool          $reassigned      whether the responsible person changed, from $assignedFrom to $assignedTo; null is nobody
      * @param list<string>  $watchersAdded   names

@@ -32,7 +32,7 @@ final readonly class TaskUpdated implements DomainEventPayload
     public const string LABELS = 'labels';
 
     /**
-     * @param list<string> $changed      the fields that changed, of the constants above
+     * @param list<string> $changed      the fields that changed, of the constants above; empty when only custom fields did
      * @param list<string> $customFields the keys of the custom fields that changed
      */
     public function __construct(

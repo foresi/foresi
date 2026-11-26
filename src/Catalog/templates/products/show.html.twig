@@ -2,7 +2,7 @@
 {#
     One product, a record (docs/design/overlays.md): a row of the list opens it in the side sheet, where Edit
     swaps to the form in place; the same URL is a page, where Edit is a dialog. Archive and restore are in
-    the header menu, as the address book has them. Variables: product, details.
+    the header menu, as the address book has them. The custom fields show in their own card. Variables: product, details.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -46,5 +46,6 @@
         <twig:Ui:Card :title="'catalog.product.detail'|trans" icon="tag">
             <twig:Ui:DescriptionList :items="details" />
         </twig:Ui:Card>
+        <twig:Ui:CustomFields :record="constant('Foresi\\Catalog\\Contract\\Field\\ProductExtension::RECORD')" mode="detail" :id="product.id" />
     </div>
 {% endblock %}

@@ -19,10 +19,12 @@ use Foresi\Catalog\Application\RestoreProductInput;
 use Foresi\Catalog\Application\UpdateProductInput;
 use Foresi\Catalog\Application\View\ProductLists;
 use Foresi\Catalog\Contract\BillingKind;
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Domain\Product;
 use Foresi\Catalog\Infrastructure\Column\ProductColumns;
 use Foresi\Catalog\Infrastructure\Screen\ProductScreen;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
@@ -36,6 +38,8 @@ use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Ui\View\ViewBar;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -56,7 +60,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * header and Edit in the product's, each in a dialog, where the billing kind
  * reveals the period fields (the product library of HubSpot and Pipedrive);
  * archive and restore are in the product's header menu. Without JavaScript
- * every dialog is a page of its own.
+ * every dialog is a page of its own. The custom fields of a product (ADR 0045)
+ * are in its form, under "Additional details", and on its detail.
  */
 final class ProductController extends AbstractController
 {
@@ -81,6 +86,7 @@ final class ProductController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly CustomFieldForm $customFields,
     ) {
     }
 
@@ -135,13 +141,19 @@ final class ProductController extends AbstractController
         }
         $this->checkToken($request);
         $values = $this->posted($request);
+        $custom = $this->customFields->read(ProductExtension::RECORD, $request, true);
+        if (!$custom->valid()) {
+            return $this->form(null, $values, [], Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
+        }
         try {
             $d = $this->draft($values, $request->getLocale());
-            $product = $this->writes->create(new CreateProductInput($d['name'], $d['billingKind'], $d['unit'], $d['unitPrice'], $d['currency'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $d['description']));
+            $product = $this->writes->create(new CreateProductInput($d['name'], $d['billingKind'], $d['unit'], $d['unitPrice'], $d['currency'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $d['description']), $custom->parsed);
         } catch (CatalogRefused $refused) {
             $this->denyIfForbidden($refused);
 
-            return $this->form(null, $values, $this->errors($refused), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form(null, $values, $this->errors($refused), Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
+        } catch (FieldRefused $refused) {
+            return $this->form(null, $values, [], Response::HTTP_UNPROCESSABLE_ENTITY, $custom->refused($refused->key, $this->translator->trans($refused->translationKey)));
         }
         $this->addFlash('success', $this->translator->trans('catalog.product.flash.created', ['name' => $product->name()]));
 
@@ -168,13 +180,19 @@ final class ProductController extends AbstractController
         }
         $this->checkToken($request);
         $values = $this->posted($request);
+        $custom = $this->customFields->read(ProductExtension::RECORD, $request, false);
+        if (!$custom->valid()) {
+            return $this->form($product, $values, [], Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
+        }
         try {
             $d = $this->draft($values, $request->getLocale());
-            $this->writes->update(new UpdateProductInput($id, $d['name'], $d['billingKind'], $d['unit'], $d['unitPrice'], $d['currency'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $d['description']));
+            $this->writes->update(new UpdateProductInput($id, $d['name'], $d['billingKind'], $d['unit'], $d['unitPrice'], $d['currency'], $d['recurrenceUnit'], $d['interval'], $d['cycles'], $d['description']), $custom->parsed);
         } catch (CatalogRefused $refused) {
             $this->denyIfForbidden($refused);
 
-            return $this->form($product, $values, $this->errors($refused), Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->form($product, $values, $this->errors($refused), Response::HTTP_UNPROCESSABLE_ENTITY, $custom);
+        } catch (FieldRefused $refused) {
+            return $this->form($product, $values, [], Response::HTTP_UNPROCESSABLE_ENTITY, $custom->refused($refused->key, $this->translator->trans($refused->translationKey)));
         }
         $this->addFlash('success', $this->translator->trans('catalog.product.flash.saved'));
 
@@ -295,16 +313,19 @@ final class ProductController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $values
-     * @param array<string, string> $errors
+     * @param array<string, string>      $values
+     * @param array<string, string>      $errors
+     * @param CustomFieldSubmission|null $custom the custom fields posted; null shows the product's own
      */
-    private function form(?Product $product, array $values, array $errors, int $status): Response
+    private function form(?Product $product, array $values, array $errors, int $status, ?CustomFieldSubmission $custom = null): Response
     {
         return $this->render('@Catalog/products/form.html.twig', [
             'product' => $product,
             'action' => $product instanceof Product ? $this->generateUrl('app_catalog_product_edit', ['id' => $product->id()]) : $this->generateUrl('app_catalog_product_new'),
             'values' => $values,
             'errors' => $errors,
+            'customValues' => $custom?->values,
+            'customErrors' => $custom->errors ?? [],
         ] + $this->screen->options(), new Response(status: $status));
     }
 
