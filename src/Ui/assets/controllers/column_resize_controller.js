@@ -14,7 +14,8 @@ const SAVE_AFTER_KEYS = 600;
  * Window Splitter): dragging it with a pointer (mouse, pen or touch), or the arrow keys (Shift for a
  * bigger step, Home for the narrowest), set the column's width; a double-click sizes it to its
  * widest text, as Excel and Google Sheets do. The first change gives every shown column the width
- * it has, so the others stay where they are and the table lays them out at those widths alone.
+ * it has, so the others stay where they are and the table lays them out at those widths alone;
+ * its last column (data-stretch) takes the room the frame has beyond them.
  * The widths go to the list's address as widths=key:px,… and the list loads in place: the server
  * remembers them for the person (RememberedDisplay), and Save to view keeps them for everyone. On a
  * page of several tables, each writes its own name (`param`), as reasons[widths] under a list slot
@@ -127,13 +128,16 @@ export default class extends Controller {
         this.sum();
     }
 
+    // The stretching column (data-stretch) counts its width in the table's but takes the room left.
     set(key, width) {
         const col = this.col(key);
         if (!col) {
             return;
         }
         col.style.setProperty('--col-w', `${width}px`);
-        col.classList.add('sm:w-(--col-w)');
+        if (!('stretch' in col.dataset)) {
+            col.classList.add('sm:w-(--col-w)');
+        }
     }
 
     // The table is as wide as its columns and the room the checkbox and actions need, or its frame.
