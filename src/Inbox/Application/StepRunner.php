@@ -28,7 +28,7 @@ use Psr\Log\LoggerInterface;
  *
  * The step's identity is inbox:suggestion:<id>:step:<n> (key()), and the
  * step row is its idempotency: the step runs in one transaction that this
- * runner opens, with the suggestion's row locked, and stores the record it
+ * runner opens, with the item's row and then the suggestion's locked, and stores the record it
  * made and "done" in that same transaction. The record and "done" commit
  * together, so a done step never runs again, not under two accepts at once
  * nor after a crash. Every record made is audited under the suggestion's
@@ -55,6 +55,7 @@ final readonly class StepRunner
 
     public function __construct(
         private SuggestionStore $store,
+        private ItemStore $items,
         private InboxAccess $access,
         private InboxActions $actions,
         private RecordOutputs $outputs,
@@ -179,7 +180,7 @@ final readonly class StepRunner
     }
 
     /**
-     * The person's suggestion, its row locked for the open transaction; null when it is not theirs or gone.
+     * The person's suggestion, its item's row and its own locked for the open transaction; null when it is not theirs or gone.
      *
      * @throws InboxRefused forbidden
      */
@@ -190,13 +191,15 @@ final readonly class StepRunner
             return null;
         }
         try {
-            $this->access->ownOrTrashed($suggestion->itemId());
+            $item = $this->access->ownOrTrashed($suggestion->itemId());
         } catch (InboxRefused $refused) {
             if ('not_found' === $refused->reason()) {
                 return null;
             }
             throw $refused;
         }
+        // The item first, then the suggestion: the order every decision and proposal locks in.
+        $this->items->lock($item);
         $this->store->lockForUpdate($suggestion);
 
         return $suggestion;

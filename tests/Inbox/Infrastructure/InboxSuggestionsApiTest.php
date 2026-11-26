@@ -130,8 +130,74 @@ final class InboxSuggestionsApiTest extends ApiTestCase
 
         $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
         self::assertSame(['new', [], 'proposed'], [$this->at('data', 'state'), $this->at('data', 'outputs'), $this->at('data', 'suggestions', 0, 'state')]);
-        self::assertSame([], $this->at('data', 'available_actions'), 'It may run none of them.');
         self::assertSame([], $this->notes());
+    }
+
+    public function testAnAgentThatProposesSeesEveryActionAndWhetherItMayRunIt(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        $actions = (array) $this->at('data', 'available_actions');
+        $byOperation = array_column($actions, null, 'operation');
+        self::assertArrayHasKey(self::NOTE, $byOperation, 'It learns the operation to name in a suggestion.');
+        $note = $byOperation[self::NOTE];
+        self::assertIsArray($note);
+        self::assertFalse($note['allowed'], 'It may propose it, not run it.');
+        self::assertIsArray($note['input_schema']);
+        self::assertArrayHasKey('text', (array) $note['input_schema']['properties']);
+        self::assertNotContains(true, array_column($actions, 'allowed'));
+        $call = $this->callTool($this->agent, 'foresi_get_inbox_item', ['item_id' => $itemId]);
+        self::assertCount(\count($actions), (array) $this->in($call, 'structuredContent', 'data', 'available_actions'));
+
+        // With the scope of the action too, it may run that one.
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->tokenWith(['inbox:read', 'inbox_suggestions:write', 'views:write']));
+        self::assertTrue(array_column((array) $this->at('data', 'available_actions'), 'allowed', 'operation')[self::NOTE]);
+        // A token that does not propose sees only what it may run, as before.
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->tokenWith(['inbox:read']));
+        self::assertSame([], $this->at('data', 'available_actions'));
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->tokenWith(['inbox:read', 'views:write']));
+        $runnable = array_column((array) $this->at('data', 'available_actions'), 'allowed');
+        self::assertNotSame([], $runnable);
+        self::assertNotContains(false, $runnable);
+    }
+
+    public function testARefusalNeverEchoesWhatWasSent(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $odd = str_repeat('x', 80).'<script>';
+
+        $call = $this->callTool($this->agent, 'foresi_propose_inbox_suggestions', ['item_id' => $itemId, 'suggestions' => [[
+            'steps' => [['operation' => self::NOTE, 'input' => ['text' => 'A note', $odd => 'Secret value of the mail']]],
+            'rationale' => 'Why',
+            'quote' => 'Please call me back',
+        ]]]);
+        self::assertTrue($call['isError'] ?? false);
+        self::assertSame(['parameter' => 'suggestions.0.steps.0.input.*', 'reason' => 'invalid_input'], $this->in($call, 'structuredContent', 'error', 'details'));
+        $answer = (string) json_encode($call);
+        self::assertStringNotContainsString('Secret value', $answer);
+        self::assertStringNotContainsString('xxxxxxxxxx', $answer);
+
+        $call = $this->callTool($this->agent, 'foresi_propose_inbox_suggestions', ['item_id' => $itemId, 'suggestions' => [[
+            'steps' => [['operation' => self::NOTE, 'input' => ['text' => "A note\u{0}"]]],
+            'rationale' => 'Why',
+            'quote' => 'Please call me back',
+        ]]]);
+        self::assertSame(['parameter' => 'suggestions.0.steps.0.input.text', 'reason' => 'invalid_input'], $this->in($call, 'structuredContent', 'error', 'details'), 'A NUL is refused, not a server error.');
+        self::assertSame(0, $this->suggestionCount());
+    }
+
+    public function testATokenWithoutANameProposesAsAnApiClient(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, body: self::BODY));
+        $secret = $this->tokenWith(['inbox:read', 'inbox_suggestions:write']);
+        // Identity refuses a blank name today; a token named so another way (an OAuth client) must not break propose.
+        $this->em()->getConnection()->executeStatement("UPDATE api_token SET name = ' ' WHERE name = 'Mail agent'");
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/suggestions', $this->proposal(), $secret);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(['client_name' => 'API client'], $this->at('data', 'suggestions', 0, 'proposed_by'));
     }
 
     public function testPromptInjectionChangesNothing(): void

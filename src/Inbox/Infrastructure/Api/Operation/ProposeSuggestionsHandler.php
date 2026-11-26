@@ -30,6 +30,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ProposeSuggestionsHandler implements OperationHandler
 {
+    public const string UNNAMED = 'API client';
+
     public function __construct(
         private ProposeSuggestions $propose,
         private ScopeGuard $scopes,
@@ -55,7 +57,9 @@ final readonly class ProposeSuggestionsHandler implements OperationHandler
             // The runner refuses a request without a token before this.
             throw InboxRefused::forbidden();
         }
-        $stored = $this->propose->propose($input->itemId, $input->suggestions, new ProposingClient($grant->tokenId, $grant->tokenName));
+        // A token's name may be blank; the person still sees who proposed it.
+        $client = '' === trim($grant->tokenName) ? self::UNNAMED : $grant->tokenName;
+        $stored = $this->propose->propose($input->itemId, $input->suggestions, new ProposingClient($grant->tokenId, $client));
 
         return new OperationOutput(
             ['suggestions' => array_map($this->json->of(...), $stored)],

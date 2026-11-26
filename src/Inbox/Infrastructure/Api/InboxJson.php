@@ -37,6 +37,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class InboxJson
 {
+    /** The scope of an agent that proposes suggestions: it sees every action of the item, runnable or not. */
+    public const string SUGGEST_SCOPE = 'inbox_suggestions:write';
+
     public function __construct(
         private InstanceClock $clock,
         private InboxActions $actions,
@@ -116,7 +119,9 @@ final readonly class InboxJson
     }
 
     /**
-     * The actions on the item the token may run: its scope and inbox:read; none on an item in the trash.
+     * The actions on the item the token may run (its scope and inbox:read), each with allowed
+     * true; for a token that proposes suggestions every action that applies, allowed saying
+     * whether it may also run it. None on an item in the trash.
      *
      * @return list<array<string, mixed>>
      */
@@ -126,6 +131,9 @@ final readonly class InboxJson
             return [];
         }
         $view = $detail->view(true);
+        // An agent that proposes (inbox_suggestions:write) learns every action it may propose,
+        // with whether its own token may also run it; other tokens see the ones they may run.
+        $proposes = $this->scopes->allows(self::SUGGEST_SCOPE);
 
         return array_map(function (DeclaredAction $action) use ($view): array {
             $operation = $action->definition->operation;
@@ -133,6 +141,7 @@ final readonly class InboxJson
             $answer = [
                 'operation' => $operation->name,
                 'tool' => $operation->tool,
+                'allowed' => $this->scopes->allows($operation->scope),
                 'label' => $this->translator->trans($action->action->label, [], 'messages', 'en'),
                 'input_schema' => InputSchema::of($action->definition->fields),
                 'prefill' => ['inbox_item_id' => $view->id] + $this->byWireName($prefill->values),
@@ -142,7 +151,7 @@ final readonly class InboxJson
             }
 
             return $answer;
-        }, $this->actions->available($view, $this->scopes->allows(...)));
+        }, $this->actions->available($view, $proposes ? null : $this->scopes->allows(...)));
     }
 
     /**

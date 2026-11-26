@@ -33,6 +33,7 @@ use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\InboxTestCase;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TimeEntry;
 
 /**
  * The owner decides on the suggestions on an item, in a session: accepting
@@ -47,25 +48,22 @@ final class DecideSuggestionsTest extends InboxTestCase
     private const string QUOTE = 'please find our offer';
 
     private string $itemId;
+    private ProposingClient $agent;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->agent = new ProposingClient(Id::generate(), 'Mail agent');
         $this->itemId = $this->receive(InboxMail::plain($this->address, body: "Hello,\r\nplease find our offer below.\r\n"));
     }
 
-    /**
-     * Create a task, then a note about the task step 1 made, then log an activity: real Work and
-     * Activities actions around the tests' own. Work's log time cannot be the middle step yet:
-     * joined to the step's transaction its answer reads the entry back before it is flushed.
-     */
     public function testAThreeStepSuggestionRunsInOrderAndResolvesTheTaskReference(): void
     {
         $project = self::getContainer()->get(ManageProjects::class)->create('Office move', null);
         $call = $this->activityType('call');
         $suggestion = $this->proposed([
             ['operation' => 'inbox.actions.create_task', 'input' => ['project_id' => $project->id(), 'title' => 'Answer the offer']],
-            ['operation' => self::NOTE, 'input' => ['text' => 'About the task', 'about_id' => ['$step' => 1, 'field' => 'id']]],
+            ['operation' => 'inbox.actions.log_time', 'input' => ['project_id' => $project->id(), 'task_id' => ['$step' => 1, 'field' => 'id'], 'worked_on' => '2026-11-25', 'minutes' => 30]],
             ['operation' => 'inbox.actions.log_activity', 'input' => ['type_id' => $call, 'subject' => 'Call about the offer', 'done' => true]],
         ]);
 
@@ -75,17 +73,17 @@ final class DecideSuggestionsTest extends InboxTestCase
         $stored = $this->stored($suggestion);
         self::assertSame([null, null, null], array_map(static fn (SuggestionStep $step): ?array => $step->refusal(), $stored->steps()));
         self::assertSame(SuggestionState::Accepted, $stored->state());
-        self::assertSame([[1, StepState::Done, 'task'], [2, StepState::Done, FixtureNotes::KIND], [3, StepState::Done, 'activity']], array_map(static fn (SuggestionStep $step): array => [$step->position(), $step->state(), $step->recordKind()], $stored->steps()));
+        self::assertSame([[1, StepState::Done, 'task'], [2, StepState::Done, 'time_entry'], [3, StepState::Done, 'activity']], array_map(static fn (SuggestionStep $step): array => [$step->position(), $step->state(), $step->recordKind()], $stored->steps()));
         $taskId = $stored->step(1)->recordId();
         $task = $this->em->find(Task::class, $taskId);
         self::assertInstanceOf(Task::class, $task);
         self::assertSame('Answer the offer', $task->title());
-        self::assertSame([$stored->step(2)->recordId() => $taskId], $this->fixtureNotes()->about, 'The reference took the task step 1 made.');
+        $entry = $this->em->find(TimeEntry::class, $stored->step(2)->recordId());
+        self::assertInstanceOf(TimeEntry::class, $entry);
+        self::assertSame([$taskId, 30], [$entry->task()?->id(), $entry->minutes()], 'The reference took the task step 1 made.');
         self::assertInstanceOf(Activity::class, $this->em->find(Activity::class, $stored->step(3)->recordId()));
         // The final input keeps the reference as proposed.
-        self::assertSame(['$step' => 1, 'field' => 'id'], $stored->step(2)->finalInput()['about_id'] ?? null);
-        $ran = array_map(static fn (SuggestionStep $step): ?\DateTimeImmutable => $step->ranAt(), $stored->steps());
-        self::assertSame($ran, array_values(array_filter($ran)), 'Each step ran.');
+        self::assertSame(['$step' => 1, 'field' => 'id'], $stored->step(2)->finalInput()['task_id'] ?? null);
         self::assertSame(ItemState::Done, $this->item($this->itemId)->state(), 'Its last open suggestion is decided.');
         self::assertSame([['suggestion_id' => $suggestion, 'item_id' => $this->itemId]], $this->eventData('inbox.suggestion.accepted'));
     }
@@ -171,7 +169,7 @@ final class DecideSuggestionsTest extends InboxTestCase
         $this->assertRefusedAt('invalid_input', 'edits.'.$second.'.2.markDone', fn (): array => $this->accept([$first, $second], [$second => [2 => ['text' => 'Third', 'mark_done' => true]]]));
         $this->assertRefusedAt('invalid_reference', 'edits.'.$second.'.1.text', fn (): array => $this->accept([$first, $second], [$second => [1 => ['text' => ['$step' => 2, 'field' => 'id']]]]));
         $this->assertRefusedAt('invalid_input', 'edits.'.$second.'.3', fn (): array => $this->accept([$first, $second], [$second => [3 => ['text' => 'None']]]));
-        $this->assertRefusedAt('invalid_input', 'edits.'.$first, fn (): array => $this->accept([$second], [$first => [1 => ['text' => 'Not named']]]));
+        $this->assertRefusedAt('invalid_input', 'edits', fn (): array => $this->accept([$second], [$first => [1 => ['text' => 'Not named']]]));
         $this->assertRefusedAt('invalid_input', 'unselected.'.$first, fn (): array => $this->accept([$first], unselected: [$first => [1]]));
         $this->assertRefusedAt('invalid_input', 'unselected.'.$second.'.0', fn (): array => $this->accept([$second], [$second => [1 => ['text' => 'Edited']]], [$second => [1]]));
         $this->assertRefusedAt('invalid_input', 'suggestionIds', fn (): array => $this->accept([]));
@@ -253,6 +251,24 @@ final class DecideSuggestionsTest extends InboxTestCase
         // The runner itself never runs a done step again.
         self::assertSame(StepState::Done, self::getContainer()->get(StepRunner::class)->run($suggestion, 1));
         self::assertSame(['First'], $this->notes());
+    }
+
+    public function testAnAcceptedSuggestionCannotBeReplacedAfterwards(): void
+    {
+        $suggestion = $this->proposed([$this->note('First')]);
+        $this->accept([$suggestion]);
+        $this->writes()->reopen(new \Foresi\Inbox\Application\Api\ReopenItemInput($this->itemId));
+
+        $this->assertRefusedAt('not_open', 'suggestions.0.replaces.0', fn (): array => self::getContainer()->get(ProposeSuggestions::class)->propose($this->itemId, [['steps' => [$this->note('Second')], 'rationale' => 'Why', 'quote' => self::QUOTE, 'replaces' => [$suggestion]]], $this->agent));
+        self::assertSame(SuggestionState::Accepted, $this->stored($suggestion)->state());
+    }
+
+    public function testAnEditWithANulIsRefused(): void
+    {
+        $suggestion = $this->proposed([$this->note('First')]);
+
+        $this->assertRefusedAt('invalid_input', 'edits.'.$suggestion.'.1.text', fn (): array => $this->accept([$suggestion], [$suggestion => [1 => ['text' => "A\0"]]]));
+        $this->assertRefusedAt('invalid_input', 'reason', fn (): Suggestion => $this->decide()->reject($suggestion, "No\0"));
     }
 
     public function testAnotherPersonsSuggestionIsNotFound(): void
@@ -343,7 +359,7 @@ final class DecideSuggestionsTest extends InboxTestCase
     private function proposeOn(string $itemId, array $steps): string
     {
         $quote = $itemId === $this->itemId ? self::QUOTE : 'please find our offer again';
-        [$suggestion] = self::getContainer()->get(ProposeSuggestions::class)->propose($itemId, [['steps' => $steps, 'rationale' => 'The client asks for it.', 'quote' => $quote]], new ProposingClient(Id::generate(), 'Mail agent'));
+        [$suggestion] = self::getContainer()->get(ProposeSuggestions::class)->propose($itemId, [['steps' => $steps, 'rationale' => 'The client asks for it.', 'quote' => $quote]], $this->agent);
 
         return $suggestion->id();
     }

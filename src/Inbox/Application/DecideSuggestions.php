@@ -100,7 +100,7 @@ final readonly class DecideSuggestions
     public function reject(string $suggestionId, ?string $reason): Suggestion
     {
         $userId = $this->access->me();
-        if (null !== $reason && mb_strlen(trim($reason)) > Suggestion::MAX_REJECT_REASON) {
+        if (null !== $reason && (mb_strlen(trim($reason)) > Suggestion::MAX_REJECT_REASON || str_contains($reason, "\0"))) {
             throw InboxRefused::invalidInput('reason', 'A reason has at most 500 characters.');
         }
 
@@ -109,7 +109,7 @@ final readonly class DecideSuggestions
             if ($suggestion->item()->isTrashed()) {
                 throw InboxRefused::itemTrashed();
             }
-            $this->store->lockForUpdate($suggestion);
+            $this->lock($suggestion);
             if (!$suggestion->isOpen()) {
                 throw InboxRefused::suggestionClosed();
             }
@@ -135,7 +135,7 @@ final readonly class DecideSuggestions
                 if (!$suggestion instanceof Suggestion) {
                     return 'not_found';
                 }
-                $this->store->lockForUpdate($suggestion);
+                $this->lock($suggestion);
                 if (!$suggestion->isOpen()) {
                     // Decided since the call was checked.
                     return 'not_open';
@@ -167,7 +167,7 @@ final readonly class DecideSuggestions
                 if (!$suggestion instanceof Suggestion) {
                     return;
                 }
-                $this->store->lockForUpdate($suggestion);
+                $this->lock($suggestion);
                 if ($suggestion->acceptIfComplete($userId, $this->now())) {
                     $this->events->record(new InboxSuggestionAccepted($suggestion->id(), $suggestion->itemId()));
                     $this->closeIfDecided($suggestion->itemId(), $userId);
@@ -178,6 +178,16 @@ final readonly class DecideSuggestions
         }
 
         return new Decision($id, $this->mine($id));
+    }
+
+    /**
+     * Locks the suggestion's item, then the suggestion: the order every decision and proposal
+     * locks in, so two of them on one item never wait on each other.
+     */
+    private function lock(Suggestion $suggestion): void
+    {
+        $this->items->lock($suggestion->item());
+        $this->store->lockForUpdate($suggestion);
     }
 
     /**
@@ -232,7 +242,7 @@ final readonly class DecideSuggestions
         }
         $edited = [];
         foreach ($edits as $key => $input) {
-            $path = 'edits.'.$id.'.'.$key;
+            $path = 'edits.'.$id.'.'.StepReferences::segment($key);
             $step = $this->stepAt($suggestion, $key, $steps, $path);
             if (!$step->isRunnable()) {
                 throw InboxRefused::invalidInput($path, 'Only a step that is pending or failed can be edited: this one is done or unticked.');
@@ -326,7 +336,8 @@ final readonly class DecideSuggestions
         $by = [];
         foreach ($value as $id => $item) {
             if (!\in_array((string) $id, $ids, true)) {
-                throw InboxRefused::invalidInput($field.'.'.$id, 'This names no suggestion of suggestion_ids.');
+                // Not echoed back: the key is whatever was sent.
+                throw InboxRefused::invalidInput($field, 'A key names no suggestion of suggestion_ids.');
             }
             $by[(string) $id] = $item;
         }

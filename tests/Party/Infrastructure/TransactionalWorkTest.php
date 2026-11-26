@@ -56,6 +56,23 @@ final class TransactionalWorkTest extends KernelTestCase
         self::assertSame($marker, $this->work()->run(static fn (): \stdClass => $marker));
     }
 
+    public function testAJoinedUnitFlushesSoItsCallerFindsWhatItMadeAndTheOuterUnitCommits(): void
+    {
+        $found = $this->em->wrapInTransaction(function (): mixed {
+            $party = $this->work()->run(function (): Party {
+                $party = new Party(PartyKind::Person, 'Joined Person', null, null, '');
+                $this->em->persist($party);
+
+                return $party;
+            });
+
+            // A query, not the identity map: it sees only what was flushed.
+            return $this->em->getConnection()->fetchOne('SELECT display_name FROM party WHERE id = ?', [$party->id()]);
+        });
+
+        self::assertSame('Joined Person', $found);
+    }
+
     private function work(): TransactionalWork
     {
         return self::getContainer()->get(TransactionalWork::class);

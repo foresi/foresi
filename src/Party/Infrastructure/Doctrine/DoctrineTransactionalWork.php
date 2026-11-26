@@ -18,10 +18,13 @@ use Foresi\Shared\Application\Event\EventOutbox;
  * handles the exception (a form error, say) must be able to query on, so the
  * manager is replaced by a fresh one before the exception travels on.
  *
- * A unit of work inside another one is part of it: it runs as it is, and the
- * outermost unit flushes, commits or rolls back. Wrapping it would flush the outer
- * unit's pending changes into a savepoint and, on a failure, close and replace the
- * manager under the outer unit, which then stored nothing it held.
+ * A unit of work inside another one is part of it: it runs inside the outer
+ * transaction and flushes into it, so that its caller can read back what it made
+ * with a query (an answer that finds the new record by its id, say), as the inbox's
+ * joined transaction does; the outermost unit commits or rolls back. Wrapping it
+ * would put the outer unit's pending changes into a savepoint and, on a failure,
+ * close and replace the manager under the outer unit, which then stored nothing it
+ * held.
  *
  * The outbox is told how the outermost unit ended: events recorded in it are
  * released after the commit and dropped after a rollback.
@@ -38,7 +41,10 @@ final readonly class DoctrineTransactionalWork implements TransactionalWork
     public function run(callable $work): mixed
     {
         if ($this->em->getConnection()->isTransactionActive()) {
-            return $work();
+            $result = $work();
+            $this->em->flush();
+
+            return $result;
         }
         try {
             $result = $this->em->wrapInTransaction($work);

@@ -29,7 +29,8 @@ use Foresi\Shared\Domain\Id;
  * mark_done, references only to earlier steps), the quote is an exact span of
  * the item's text (QuoteCheck), at most 10 suggestions of at most 10 steps.
  * A suggestion may name open suggestions of the same item that it replaces;
- * only ones the same token proposed, which become superseded by it.
+ * only ones the same token proposed, which become superseded by it. They are
+ * locked after the item and checked again once locked.
  *
  * A refusal names its field by its path in the call, such as
  * suggestions.0.steps.1.input.projectId, and never quotes the mail or the input.
@@ -79,6 +80,7 @@ final readonly class ProposeSuggestions
             if (\count($suggestions) > self::MAX_SUGGESTIONS) {
                 throw InboxRefused::tooMany('suggestions', self::MAX_SUGGESTIONS);
             }
+            $this->lockReplaced($item, $suggestions);
             $detail = $this->reads->detail($item, true);
             $offered = [];
             foreach ($this->actions->available($detail->view(true)) as $action) {
@@ -122,12 +124,13 @@ final readonly class ProposeSuggestions
     {
         $suggestion = $this->object($suggestion, $path, self::SUGGESTION_KEYS, ['steps', 'rationale', 'quote']);
         $rationale = $suggestion['rationale'];
-        if (!\is_string($rationale) || '' === trim($rationale) || mb_strlen($rationale) > Suggestion::MAX_RATIONALE) {
+        if (!\is_string($rationale) || '' === trim($rationale) || mb_strlen($rationale) > Suggestion::MAX_RATIONALE || str_contains($rationale, "\0")) {
             throw InboxRefused::invalidInput($path.'.rationale', 'A rationale is a text of 1 to 2,000 characters.');
         }
         $quote = $suggestion['quote'];
-        if (!\is_string($quote) || '' === $quote || mb_strlen($quote) > Suggestion::MAX_QUOTE) {
-            throw InboxRefused::invalidInput($path.'.quote', 'A quote is a text of 1 to 1,000 characters.');
+        // A quote of blanks only would be found in nearly every mail: it shows nothing of the source.
+        if (!\is_string($quote) || '' === trim($quote) || mb_strlen($quote) > Suggestion::MAX_QUOTE || str_contains($quote, "\0")) {
+            throw InboxRefused::invalidInput($path.'.quote', 'A quote is a text of 1 to 1,000 characters, not only blanks.');
         }
         $offset = QuoteCheck::offset($text, $quote);
         if (null === $offset) {
@@ -204,6 +207,33 @@ final readonly class ProposeSuggestions
         }
 
         return $old;
+    }
+
+    /**
+     * Locks the open suggestions of the item the call names in replaces, by id, after the item
+     * (the order every decision locks in), so that one accepted or rejected meanwhile is seen as
+     * such before it is superseded. What is malformed is refused later, in its place.
+     *
+     * @param list<mixed> $suggestions
+     */
+    private function lockReplaced(InboxItem $item, array $suggestions): void
+    {
+        $ids = [];
+        foreach ($suggestions as $suggestion) {
+            $replaces = \is_array($suggestion) ? ($suggestion['replaces'] ?? null) : null;
+            foreach (\is_array($replaces) ? $replaces : [] as $id) {
+                if (\is_string($id)) {
+                    $ids[$id] = $id;
+                }
+            }
+        }
+        sort($ids);
+        foreach ($ids as $id) {
+            $old = $this->store->find($id);
+            if ($old instanceof Suggestion && $old->itemId() === $item->id()) {
+                $this->store->lockForUpdate($old);
+            }
+        }
     }
 
     /**

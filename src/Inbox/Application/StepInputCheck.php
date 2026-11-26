@@ -47,11 +47,40 @@ final class StepInputCheck
                 throw InboxRefused::invalidInput($path.'.'.$name, 'A step leaves out inbox_item_id and mark_done: accepting it runs the action on this item and leaves marking it done to the last decision.');
             }
         }
+        self::refuseNul($input, $path);
         $sent = StepReferences::validate($input, $position, $path);
         try {
             InputMapper::map($action->definition, $sent + ['inbox_item_id' => $itemId, 'mark_done' => false]);
         } catch (InvalidInput $invalid) {
-            throw InboxRefused::invalidInput($path.'.'.$invalid->field(), \sprintf('The input of step %d does not fit its action; compare it with the input_schema of the action in foresi_get_inbox_item.', $position));
+            throw InboxRefused::invalidInput($path.'.'.self::field($invalid->wire), \sprintf('The input of step %d does not fit its action; compare it with the input_schema of the action in foresi_get_inbox_item.', $position));
         }
+    }
+
+    /**
+     * A text that holds a NUL character, which the database cannot store.
+     *
+     * @throws InboxRefused invalid_input
+     */
+    public static function refuseNul(mixed $value, string $path): void
+    {
+        if (\is_string($value) && str_contains($value, "\0")) {
+            throw InboxRefused::invalidInput($path, 'A text may not hold a NUL character.');
+        }
+        if (\is_array($value)) {
+            foreach ($value as $key => $item) {
+                if (\is_string($key) && str_contains($key, "\0")) {
+                    throw InboxRefused::invalidInput($path, 'A field name may not hold a NUL character.');
+                }
+                self::refuseNul($item, $path.'.'.StepReferences::segment($key));
+            }
+        }
+    }
+
+    /**
+     * The field an input mapper refused, by its path segments, each named as a field or *.
+     */
+    private static function field(string $wire): string
+    {
+        return implode('.', array_map(StepReferences::segment(...), explode('.', $wire)));
     }
 }

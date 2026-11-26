@@ -140,10 +140,15 @@ final class StepReferences
     }
 
     /**
-     * A key of the path as a refusal names a field: contact_id is contactId.
+     * A key of the path as a refusal names a field: contact_id is contactId. A key that is no
+     * field name (odd characters, or longer than 64) is named * rather than echoed back.
      */
-    private static function segment(int|string $key): string
+    public static function segment(int|string $key): string
     {
-        return \is_int($key) ? (string) $key : lcfirst(str_replace('_', '', ucwords($key, '_')));
+        if (\is_int($key)) {
+            return (string) $key;
+        }
+
+        return 1 === preg_match('/^[A-Za-z][A-Za-z0-9_]{0,63}$/', $key) ? lcfirst(str_replace('_', '', ucwords($key, '_'))) : '*';
     }
 }

@@ -292,6 +292,8 @@ final readonly class ItemWrites
 
         return $this->transaction->run(function () use ($itemId, $to, $event, $then, $userId): InboxItem {
             $item = $this->access->own($itemId);
+            // The item first, then its suggestions (reject()): the order every decision locks in.
+            $this->store->lock($item);
             $from = $item->state();
             $now = $this->now();
             if (!$item->changeState($to, $userId, $now)) {
@@ -321,13 +323,14 @@ final readonly class ItemWrites
     }
 
     /**
-     * Rejects the suggestions without a reason, each locked first so that a step running at
-     * the same moment is not overwritten.
+     * Rejects the suggestions without a reason, each locked first (by id, after the item) so
+     * that a step running at the same moment is not overwritten.
      *
      * @param list<Suggestion> $open
      */
     private function reject(array $open, string $userId, \DateTimeImmutable $now): void
     {
+        usort($open, static fn (Suggestion $a, Suggestion $b): int => strcmp($a->id(), $b->id()));
         foreach ($open as $suggestion) {
             $this->suggestions->lockForUpdate($suggestion);
             if ($suggestion->isOpen()) {

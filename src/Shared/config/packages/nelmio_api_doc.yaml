@@ -1608,13 +1608,14 @@ nelmio_api_doc:
                         trashed_at: { type: string, format: date-time, nullable: true }
                         available_actions:
                             type: array
-                            description: 'The actions the installed modules offer on the item that the token may run (its scope and inbox:read), in their order; none on an item in the trash. Run one with its operation (REST) or tool (MCP); it records what it made as an output and marks the item done unless mark_done is false.'
+                            description: 'The actions the installed modules offer on the item that the token may run (its scope and inbox:read), in their order; for a token with inbox_suggestions:write every action that applies, to name in a suggestion, with allowed saying whether the token may also run it. None on an item in the trash. Run one with its operation (REST) or tool (MCP); it records what it made as an output and marks the item done unless mark_done is false.'
                             items:
                                 type: object
-                                required: [operation, tool, label, input_schema, prefill]
+                                required: [operation, tool, allowed, label, input_schema, prefill]
                                 properties:
                                     operation: { type: string, example: inbox.actions.create_task }
                                     tool: { type: string, example: foresi_create_task_from_email }
+                                    allowed: { type: boolean, description: 'Whether the token may run it; false only for a token that proposes suggestions without the scope of the action.' }
                                     label: { type: string, description: 'The name of the action in English.' }
                                     input_schema: { type: object, description: 'The JSON Schema of the input, as the MCP tool publishes it.' }
                                     prefill: { type: object, description: 'The values the fields start with, by field name, such as a title from the subject; inbox_item_id always.' }
