@@ -121,7 +121,7 @@ final readonly class BillingPlanWrites
                 $percent = $input->percent instanceof Omitted ? null : $input->percent;
                 // Only a currency given keeps the amount it had, in the new currency.
                 if (null === $amount && null === $percent && $current instanceof Money) {
-                    $amount = self::decimal($current);
+                    $amount = $this->decimal($current);
                 }
                 $money = $this->amount($deal, $amount, $currency, $percent);
                 $this->checkPlanned($deal, $money, $entry);
@@ -318,12 +318,9 @@ final readonly class BillingPlanWrites
         if (1 !== preg_match(self::AMOUNT, $amount)) {
             throw SalesRefused::invalid('amount_invalid', 'amount', 'The amount is more than zero, a decimal number with at most two decimals, such as "5000.00".');
         }
-        $money = Money::of($amount, $code);
-        if (!$this->positive($money)) {
-            throw SalesRefused::invalid('amount_invalid', 'amount', 'A planned invoice is for more than zero.');
-        }
 
-        return $money;
+        // A zero is refused by the entry itself, as amount_invalid.
+        return Money::of($amount, $code);
     }
 
     /**
@@ -343,7 +340,7 @@ final readonly class BillingPlanWrites
         }
         if ($planned->minor() > $value->minor()) {
             $left = $value->minus($planned->minus($amount));
-            throw SalesRefused::invalid('plan_exceeds_value', 'amount', \sprintf('The one-off entries would exceed the deal\'s one-off value in %s; %s is left to plan.', $amount->currency()->value, $left->isNegative() ? '0' : self::decimal($left)));
+            throw SalesRefused::invalid('plan_exceeds_value', 'amount', \sprintf('The one-off entries would exceed the deal\'s one-off value in %s; %s is left to plan.', $amount->currency()->value, $left->isNegative() ? '0' : $this->decimal($left)));
         }
     }
 
@@ -400,7 +397,7 @@ final readonly class BillingPlanWrites
     }
 
     /** An amount as a decimal number, such as "5000.00". */
-    public static function decimal(Money $money): string
+    private function decimal(Money $money): string
     {
         return (string) BigDecimal::ofUnscaledValue($money->minor(), $money->currency()->minorUnits());
     }

@@ -11,6 +11,8 @@ namespace Foresi\Tests\Sales\Integration\Invoicing;
 use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\UndatedFlow;
 use Foresi\Events\Infrastructure\Relay\EventListeners;
+use Foresi\Invoicing\Application\InvoiceInput;
+use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\RecurringInput;
 use Foresi\Invoicing\Application\RecurringLifecycle;
@@ -154,6 +156,33 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         self::assertSame([['recurring_invoice_id' => $template->id()]], $this->events('invoicing.recurring_invoice.deleted'));
     }
 
+    public function testAnInvoiceOfTheClientFulfilsOneOneOffEntry(): void
+    {
+        $deal = $this->deal('E-shop audit');
+        $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Audit', unit: 'piece', quantity: '1', unitPrice: '10000.00', currency: 'CZK'));
+        $this->deals()->win(new WinDealInput($deal->id()));
+        $entry = $this->entry($deal);
+        $invoice = $this->invoice('Audit of the e-shop');
+
+        $this->plans()->link(new LinkBillingEntryInput($deal->id(), $entry->id(), 'invoice', $invoice));
+
+        $plan = self::getContainer()->get(DealReads::class)->deal($deal->id())->billingPlan;
+        self::assertSame(BillingEntryView::INVOICED, $plan->entries[0]->state);
+        self::assertSame($invoice, $plan->entries[0]->document?->id);
+        self::assertSame([], $plan->notInvoiced(), 'What an invoice fulfils is invoiced.');
+        self::assertSame([], $this->flows());
+
+        $other = $this->deal('Second audit');
+        $this->lines()->add(new AddDealLineInput($other->id(), name: 'Audit', unit: 'piece', quantity: '1', unitPrice: '5000.00', currency: 'CZK'));
+        $this->deals()->win(new WinDealInput($other->id()));
+        try {
+            $this->plans()->link(new LinkBillingEntryInput($other->id(), $this->entry($other)->id(), 'invoice', $invoice));
+            self::fail('Expected the invoice to be taken.');
+        } catch (SalesRefused $refused) {
+            self::assertSame(['document_taken', ['deal_id' => $deal->id(), 'entry_id' => $entry->id()]], [$refused->reason(), $refused->details()]);
+        }
+    }
+
     /**
      * The flows and undated flows the billing plan gives the forecast.
      *
@@ -165,6 +194,33 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         $today = new \DateTimeImmutable('2026-11-17');
 
         return array_values([...$source->flows($today, $today->modify('+12 months'), $today), ...$source->undatedFlows($today)]);
+    }
+
+    private function invoice(string $description): string
+    {
+        $input = new \ReflectionClass(InvoiceInput::class)->newInstanceArgs([
+            'seriesId' => $this->series->id(),
+            'typedNumber' => null,
+            'customerId' => $this->customer->id(),
+            'customerOnDocument' => null,
+            'issueDate' => new \DateTimeImmutable('2026-11-17'),
+            'taxPointDate' => new \DateTimeImmutable('2026-11-17'),
+            'dueDate' => new \DateTimeImmutable('2026-12-01'),
+            'paymentMethod' => PaymentMethod::BankTransfer,
+            'bankAccount' => self::IBAN,
+            'variableSymbol' => '',
+            'constantSymbol' => '0308',
+            'orderNumber' => '',
+            'description' => $description,
+            'textBefore' => '',
+            'textAfter' => '',
+            'language' => DocumentLanguage::Czech,
+            'lines' => [new LineInput($description, Quantity::fromString('1'), 'piece', Money::of('10000.00', Currency::CZK), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'))],
+        ]);
+        $id = self::getContainer()->get(IssueInvoice::class)->issue($input)->id();
+        $this->em->flush();
+
+        return $id;
     }
 
     private function recurring(string $firstIssueOn, string $name, ?Party $customer = null): RecurringInvoice

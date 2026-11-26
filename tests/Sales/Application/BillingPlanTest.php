@@ -14,6 +14,8 @@ use Foresi\Sales\Application\Api\DeleteBillingEntryInput;
 use Foresi\Sales\Application\Api\LinkBillingEntryInput;
 use Foresi\Sales\Application\Api\RemoveDealLineInput;
 use Foresi\Sales\Application\Api\ReopenDealInput;
+use Foresi\Sales\Application\Api\TrashDealInput;
+use Foresi\Sales\Application\Api\UnlinkBillingEntryInput;
 use Foresi\Sales\Application\Api\UpdateBillingEntryInput;
 use Foresi\Sales\Application\Api\UpdateDealLineInput;
 use Foresi\Sales\Application\Api\WinDealInput;
@@ -109,14 +111,18 @@ final class BillingPlanTest extends SalesTestCase
         // A price change follows into the entry; a line that no longer recurs takes its entry along.
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $seo->id(), unitPrice: '15000.00'));
         self::assertSame(1_500_000, $this->reads()->deal($deal->id())->billingPlan->entries[0]->amount?->minor());
+        $start = $this->only($deal);
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $seo->id(), billingKind: 'one_off'));
         self::assertSame([], $this->reads()->deal($deal->id())->billingPlan->entries);
+        self::assertSame([['entry_id' => $start->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring']], $this->events('sales.billing_entry.deleted'));
 
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $seo->id(), billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
         $entry = $this->plans()->create(new CreateBillingEntryInput($deal->id(), 'recurring', lineId: $seo->id(), expectedOn: '2026-12-01'));
         self::assertNull($entry->amount(), 'A recurring entry stores no amount; its line prices it.');
         $this->lines()->remove(new RemoveDealLineInput($deal->id(), $seo->id()));
         self::assertSame([], $this->reads()->deal($deal->id())->billingPlan->entries);
+        self::assertSame(['entry_id' => $entry->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring'], array_reverse($this->events('sales.billing_entry.deleted'))[0]);
+        self::assertCount(2, $this->events('sales.billing_entry.deleted'));
     }
 
     public function testLinkingNeedsAModuleThatIssuesInvoices(): void
@@ -132,9 +138,122 @@ final class BillingPlanTest extends SalesTestCase
     public function testOnlyStaffPlans(): void
     {
         $deal = $this->won('10000.00');
+        $entry = $this->only($deal);
         $this->signIn($this->guest);
 
         $this->assertRefused('forbidden', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '1.00')));
+        $this->assertRefused('forbidden', fn (): BillingPlanEntry => $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $entry->id(), text: 'Rest')));
+        $this->assertRefused('forbidden', fn (): Deal => $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $entry->id())));
+        $this->assertRefused('forbidden', fn (): BillingPlanEntry => $this->plans()->link(new LinkBillingEntryInput($deal->id(), $entry->id(), 'invoice', '019a0000-0000-7000-8000-000000000001')));
+        $this->assertRefused('forbidden', fn (): BillingPlanEntry => $this->plans()->unlink(new UnlinkBillingEntryInput($deal->id(), $entry->id())));
+    }
+
+    public function testRefusesWhatIsNoPlannedInvoice(): void
+    {
+        $deal = $this->won('10000.00');
+        $entry = $this->only($deal);
+        $unpriced = $this->lines()->add(new AddDealLineInput($deal->id(), name: 'Support', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+
+        self::assertSame('kind', $this->assertRefused('kind_unknown', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), 'weekly', amount: '1.00')))->field());
+        self::assertSame('lineId', $this->assertRefused('line_required', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), 'recurring')))->field());
+        $this->assertRefused('line_not_recurring', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), 'recurring', lineId: $unpriced->id())));
+        self::assertSame('type', $this->assertRefused('document_type_unknown', fn (): BillingPlanEntry => $this->plans()->link(new LinkBillingEntryInput($deal->id(), $entry->id(), 'order', '019a0000-0000-7000-8000-000000000001')))->field());
+
+        // A won deal in the trash has no plan to change.
+        $this->deals()->trash(new TrashDealInput($deal->id()));
+        $this->assertRefused('not_found', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '1.00')));
+    }
+
+    public function testTheCurrencyMayBeLeftOutOnlyWhenTheOneOffValueHasOne(): void
+    {
+        $none = $this->deal('Hosting');
+        $this->lines()->add(new AddDealLineInput($none->id(), name: 'Hosting', unitPrice: '500.00', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+        $this->deals()->win(new WinDealInput($none->id()));
+        $several = $this->deal('Two currencies');
+        $this->typedLine($several, 'Audit', '1000.00');
+        $this->typedLine($several, 'Report', '100.00', currency: 'EUR');
+        $this->deals()->win(new WinDealInput($several->id()));
+
+        self::assertSame('Name the currency of the amount: the deal has one-off lines in none.', $this->assertRefused('currency_required', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($none->id(), amount: '1.00')))->getMessage());
+        self::assertSame('Name the currency of the amount: the deal has one-off lines in several.', $this->assertRefused('currency_required', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($several->id(), amount: '1.00')))->getMessage());
+        // A currency the deal has no one-off value in has nothing to plan.
+        self::assertSame('The one-off entries would exceed the deal\'s one-off value in EUR; 0.00 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($none->id(), amount: '0.01', currency: 'EUR')))->getMessage());
+    }
+
+    public function testAmountsPercentsAndDaysAreReadAsTyped(): void
+    {
+        $deal = $this->won('1000.01');
+        $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $this->only($deal)->id()));
+
+        $whole = $this->plans()->create(new CreateBillingEntryInput($deal->id(), percent: ' 100 ', expectedOn: ' 2026-12-15 '));
+        self::assertSame([100_001, '2026-12-15'], [$whole->amount()?->minor(), $whole->expectedOn()?->format('Y-m-d')]);
+        $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $whole->id()));
+        $half = $this->plans()->create(new CreateBillingEntryInput($deal->id(), percent: '50', expectedOn: '  '));
+        self::assertSame(50_001, $half->amount()?->minor(), 'Half a minor unit rounds up.');
+        self::assertNull($half->expectedOn());
+        $typed = $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: ' 1.00 '));
+        self::assertSame(100, $typed->amount()?->minor());
+
+        foreach (['0', '0.00', '5x', '100.01'] as $percent) {
+            self::assertSame('percent', $this->assertRefused('percent_invalid', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), percent: $percent)))->field(), $percent);
+        }
+        self::assertSame('amount', $this->assertRefused('amount_invalid', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '0.00')))->field());
+
+        // A share that rounds to nothing is refused on the percent.
+        $small = $this->won('0.01');
+        self::assertSame('percent', $this->assertRefused('amount_invalid', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($small->id(), percent: '1')))->field());
+    }
+
+    public function testAChangeIsCheckedAgainstTheValueAndACurrencyAloneKeepsTheAmount(): void
+    {
+        $deal = $this->deal('Two currencies');
+        $this->typedLine($deal, 'Audit', '500.00');
+        $this->typedLine($deal, 'Report', '1000.00', currency: 'EUR');
+        $this->deals()->win(new WinDealInput($deal->id()));
+        [$czk, $eur] = array_map(static fn (BillingEntryView $view): BillingPlanEntry => $view->entry, $this->reads()->deal($deal->id())->billingPlan->entries);
+        self::assertSame(['CZK', 'EUR'], [$czk->amount()?->currency()->value, $eur->amount()?->currency()->value]);
+
+        self::assertSame('The one-off entries would exceed the deal\'s one-off value in CZK; 500.00 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), amount: '500.01')))->getMessage());
+
+        $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $eur->id()));
+        $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), currency: 'EUR'));
+        $moved = $this->entry($deal, $czk->id());
+        self::assertSame([50_000, 'EUR'], [$moved->amount()?->minor(), $moved->amount()?->currency()->value]);
+
+        // What is planned is never more than the value: the left over is said, or none when the plan is above it.
+        $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), amount: '600.00'));
+        self::assertSame('The one-off entries would exceed the deal\'s one-off value in EUR; 400.00 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '400.01', currency: 'EUR')))->getMessage());
+        $created = $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '400.00', currency: 'EUR', text: 'Rest'));
+        self::assertSame(['entry_id' => $created->id(), 'deal_id' => $deal->id(), 'kind' => 'one_off'], array_reverse($this->events('sales.billing_entry.created'))[0]);
+        self::assertCount(3, $this->events('sales.billing_entry.created'));
+        $report = $this->reads()->deal($deal->id())->lines[1];
+        $this->lines()->update(new UpdateDealLineInput($deal->id(), $report->id(), unitPrice: '900.00'));
+        self::assertSame('The one-off entries would exceed the deal\'s one-off value in EUR; 0 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '1.00', currency: 'EUR')))->getMessage());
+    }
+
+    public function testThePlanSaysWhatIsLeftToPlanAndToInvoicePerCurrency(): void
+    {
+        $deal = $this->deal('Shop and SEO');
+        $this->typedLine($deal, 'Report', '1000.00', currency: 'EUR');
+        $this->typedLine($deal, 'Audit', '10000.00');
+        $this->lines()->add(new AddDealLineInput($deal->id(), name: 'SEO', quantity: '2', unitPrice: '14000.00', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+        $this->deals()->win(new WinDealInput($deal->id()));
+        [$audit, $report] = array_map(static fn (BillingEntryView $view): BillingPlanEntry => $view->entry, $this->reads()->deal($deal->id())->billingPlan->entries);
+        self::assertSame([1_000_000, 100_000], [$audit->amount()?->minor(), $report->amount()?->minor()]);
+
+        $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $audit->id()));
+        $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $report->id(), expectedOn: '2026-11-23'));
+
+        $plan = $this->reads()->deal($deal->id())->billingPlan;
+        self::assertSame(['CZK' => 1_000_000], array_map(static fn (Money $money): int => $money->minor(), $plan->notPlanned), 'A recurring entry is not part of the one-off value.');
+        self::assertSame(['CZK' => 2_800_000, 'EUR' => 100_000], array_map(static fn (Money $money): int => $money->minor(), $plan->notInvoiced()), 'Price × quantity of the recurring line, the currencies in their order.');
+        self::assertSame(BillingEntryView::PLANNED, $this->view($deal, $report->id())->state, 'Due today is not overdue.');
+
+        // An odd half of a minor unit rounds up.
+        $odd = $this->deal('Odd hosting');
+        $this->lines()->add(new AddDealLineInput($odd->id(), name: 'Hosting', quantity: '1.5', unitPrice: '3.33', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
+        $this->deals()->win(new WinDealInput($odd->id()));
+        self::assertSame(500, $this->reads()->deal($odd->id())->billingPlan->entries[0]->amount?->minor());
     }
 
     private function won(string $price): Deal
