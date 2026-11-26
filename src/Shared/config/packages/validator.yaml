@@ -5,6 +5,11 @@ framework:
         #auto_mapping:
         #    Foresi\Entity\: []
 
+        # New passwords are checked against Have I Been Pwned (only a hash prefix leaves the
+        # server); an installation without the internet turns it off with APP_PASSWORD_BREACH_CHECK.
+        not_compromised_password:
+            enabled: '%env(bool:APP_PASSWORD_BREACH_CHECK)%'
+
 when@test:
     framework:
         validation:

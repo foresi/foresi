@@ -400,3 +400,51 @@ profile:
     photo_type: Vyberte obrázek JPEG, PNG nebo WebP.
     photo_too_large: Fotka je moc velká. Může mít nejvýš 5 MB.
     photo_dimensions: Fotka je moc velká. Může mít nejvýš 16 milionů pixelů.
+password:
+  title: Heslo
+  intro: Přihlašujete se e-mailem a tímto heslem. Několik nesouvisejících slov dá heslo, které je dlouhé, snadno se pamatuje a těžko se uhádne; vytvořit a uložit vám ho může i správce hesel.
+  change: Změnit heslo
+  change_title: Změnit heslo
+  save: Změnit heslo
+  cancel: Zrušit
+  field:
+    email: Přihlašovací e-mail
+    password: Heslo
+    password_value: Nastavené
+    password_note: Nikdo ho nevidí, ani správci firmy.
+    after: Po změně
+    after_value: Ostatní zařízení se odhlásí a přijde vám e-mail.
+    after_value_two_factor: Ostatní zařízení se odhlásí, důvěryhodné prohlížeče se znovu zeptají na kód a přijde vám e-mail.
+    current: Současné heslo
+    new: Nové heslo
+    new_help: 'Aspoň {min} znaků, bez pravidel pro symboly a číslice.'
+    show: Zobrazit hesla
+  flash:
+    changed: Heslo je změněné. Ostatní zařízení jsme odhlásili.
+  error:
+    current_wrong: Současné heslo nesedí.
+    too_short: 'Heslo má aspoň {min} znaků.'
+    too_long: Heslo má nejvýš 4096 znaků.
+    compromised: Toto heslo se objevilo v úniku dat, takže ho mohou zkoušet i jiní. Zvolte jiné.
+  mail:
+    subject: 'Vaše heslo do {product} se změnilo'
+    changed: 'Heslo k vašemu účtu {email} v {product} se změnilo {time}.'
+    signed_out: Všechna ostatní zařízení, kde jste byli přihlášení, jsme odhlásili a prohlížeče, které jste označili jako důvěryhodné, se znovu zeptají na kód.
+    not_you: Pokud jste heslo neměnili vy, hned se obraťte na správce své firmy.
+reauth:
+  title: Potvrďte, že jste to vy
+  reason:
+    two_factor: Chystáte se nastavit dvoufázové přihlášení, které rozhoduje o tom, kdo se k vašemu účtu přihlásí.
+    api_token: Chystáte se vytvořit API token, který může jednat vaším jménem.
+    default: Chystáte se změnit něco, co chrání váš účet.
+  window: '{minutes, plural, one {Další # minutu se už ptát nebudeme.} few {Další # minuty se už ptát nebudeme.} other {Dalších # minut se už ptát nebudeme.}}'
+  password: Heslo
+  code: Kód z ověřovací aplikace
+  code_help: Šest číslic, které aplikace právě ukazuje.
+  submit: Potvrdit
+  cancel: Zrušit
+  error:
+    password_wrong: Heslo nesedí.
+    code_wrong: Kód nesedí. Zkontrolujte, že má telefon správný čas.
+    code_reused: Tento kód byl právě použit. Počkejte na další kód.
+    throttled: '{minutes, plural, one {Příliš mnoho pokusů. Zkuste to znovu za # minutu.} few {Příliš mnoho pokusů. Zkuste to znovu za # minuty.} other {Příliš mnoho pokusů. Zkuste to znovu za # minut.}}'

@@ -40,6 +40,13 @@ framework:
             limit: 5
             interval: '5 minutes'
 
+        # Failed confirmations that it is still the person (a password or a code before a
+        # sensitive change, the current password of a password change), per user.
+        reauthentication:
+            policy: sliding_window
+            limit: 5
+            interval: '5 minutes'
+
         # Documents sent by e-mail, per signed-in user and per firm.
         invoice_send:
             policy: sliding_window
@@ -110,6 +117,8 @@ when@test:
                 storage_service: test.mail_test_storage
             two_factor_code:
                 storage_service: test.two_factor_code_storage
+            reauthentication:
+                storage_service: test.reauthentication_storage
             invoice_send:
                 storage_service: test.invoice_send_storage
             invoice_send_firm:
@@ -142,6 +151,8 @@ when@test:
         test.mail_test_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
         test.two_factor_code_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.reauthentication_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
         test.invoice_send_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage

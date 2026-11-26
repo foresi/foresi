@@ -176,9 +176,10 @@ final class AppShellTest extends WebTestCase
         self::assertSame('nav-section-sales-billing', $sales->filter('[data-nav-section="billing"]')->attr('aria-labelledby'));
         self::assertCount(0, $crawler->filter('#sidebar [data-nav-area="projects"] h3'));
         self::assertNull($crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section]')->attr('aria-labelledby'));
-        // The command palette groups the items of an area with headings by the same sections.
+        // The command palette groups the items of an area with headings by the same sections; the
+        // profile area has enough items for headings too, and its Connections join those of the settings.
         $groups = $crawler->filter('[data-controller="command-palette"] ul[role="group"]')->each(static fn ($g): string => trim($g->filter('li[role="presentation"]')->first()->text()));
-        self::assertSame(['Go to', 'Selling', 'Billing', 'Firm', 'Connections'], $groups);
+        self::assertSame(['Go to', 'Selling', 'Billing', 'Firm', 'Connections', 'Profile', 'Security', 'Notifications'], $groups);
     }
 
     public function testARegisteredProviderItemAppearsInTheExtensionsGroupWithItsCount(): void
