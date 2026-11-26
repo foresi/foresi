@@ -89,8 +89,8 @@ final class ChangePasswordTest extends TestCase
     private function service(): ChangePassword
     {
         $test = $this;
-        $users = new class($test) implements UserRepository {
-            public function __construct(private readonly ChangePasswordTest $test)
+        $users = new readonly class($test) implements UserRepository {
+            public function __construct(private ChangePasswordTest $test)
             {
             }
 
@@ -125,8 +125,8 @@ final class ChangePasswordTest extends TestCase
                 return 'hashed:'.$password === $hash;
             }
         };
-        $compromised = new class($test) implements CompromisedPasswords {
-            public function __construct(private readonly ChangePasswordTest $test)
+        $compromised = new readonly class($test) implements CompromisedPasswords {
+            public function __construct(private ChangePasswordTest $test)
             {
             }
 
@@ -135,8 +135,8 @@ final class ChangePasswordTest extends TestCase
                 return $this->test->isCompromised($password);
             }
         };
-        $notice = new class($test) implements PasswordChangedNotice {
-            public function __construct(private readonly ChangePasswordTest $test)
+        $notice = new readonly class($test) implements PasswordChangedNotice {
+            public function __construct(private ChangePasswordTest $test)
             {
             }
 

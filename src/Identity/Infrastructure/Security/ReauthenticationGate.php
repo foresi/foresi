@@ -55,7 +55,7 @@ final readonly class ReauthenticationGate
         $reason = $attributes[0]->reason;
         $target = $request->getRequestUri();
         if (DialogRequest::is($request)) {
-            $event->setController(fn () => $this->prompt->prompt($reason, $target), []);
+            $event->setController(fn (): \Symfony\Component\HttpFoundation\Response => $this->prompt->prompt($reason, $target), []);
             $event->setArguments([]);
 
             return;

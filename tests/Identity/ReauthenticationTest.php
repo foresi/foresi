@@ -209,7 +209,6 @@ final class ReauthenticationTest extends WebTestCase
     {
         $users = self::getContainer()->get(UserRepository::class);
         $user = $users->findByEmail(IdentityFixtures::EMAIL) ?? throw new \LogicException('The fixture user is missing.');
-        \assert($user instanceof User);
         $user->enrolTwoFactor(self::getContainer()->get(Sealer::class)->seal($this->secret), ['recovery-hash']);
         $users->save($user);
     }
