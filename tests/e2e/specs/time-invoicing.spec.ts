@@ -80,6 +80,8 @@ async function expectFree(page: Page): Promise<void> {
 
 test.describe('invoicing time', () => {
   test('bills the ticked time on a new invoice, frees it in the trash and locks it again on restore', async ({ page }) => {
+    // A whole invoice life in one test: about thirty page loads, past the default budget on a CI runner.
+    test.slow();
     const dialog = await openDialog(page);
     await expect(dialog.locator('[data-time-invoice-entry]')).toHaveCount(3);
     // The instance's one firm invoices the time: there is no firm to pick (ADR 0039).
