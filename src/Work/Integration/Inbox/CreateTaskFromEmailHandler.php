@@ -18,11 +18,13 @@ use Foresi\Work\Application\Api\CreateTaskInput;
 use Foresi\Work\Application\Api\WorkWrites;
 use Foresi\Work\Infrastructure\Api\Operation\WorkAnswers;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * inbox.actions.create_task: the same task tasks.create makes, then the files
  * of the mail on it as the task screen keeps an upload, when asked. The task
- * stays when a file cannot be kept; the answer says how many were not.
+ * stays when a file cannot be kept, for whatever reason; the answer says how many were not.
  */
 final readonly class CreateTaskFromEmailHandler implements OperationHandler
 {
@@ -31,6 +33,7 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
         private WorkAnswers $answer,
         private InboxItems $items,
         private UploadAttachment $upload,
+        private LoggerInterface $logger = new NullLogger(),
     ) {
     }
 
@@ -78,7 +81,11 @@ final readonly class CreateTaskFromEmailHandler implements OperationHandler
                     throw new AttachmentRefused(AttachmentRefused::FAILED);
                 }
                 $this->upload->upload(TaskAttachmentAccess::KIND, $taskId, new AttachmentUpload($path, '' === $content->name ? 'attachment' : $content->name, \strlen($content->bytes)));
-            } catch (AttachmentRefused) {
+            } catch (\Throwable $failure) {
+                // Whatever the failure, the task exists and must still be recorded: ids and the class only, never the file name or message.
+                if (!$failure instanceof AttachmentRefused) {
+                    $this->logger->error('A file of an inbox item could not be copied onto its task.', ['item_id' => $itemId, 'task_id' => $taskId, 'failure' => $failure::class]);
+                }
                 ++$failed;
             } finally {
                 if (is_file($path)) {

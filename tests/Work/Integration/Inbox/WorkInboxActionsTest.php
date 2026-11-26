@@ -10,6 +10,7 @@ namespace Foresi\Tests\Work\Integration\Inbox;
 
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
+use Foresi\Attachment\Application\AttachmentFiles;
 use Foresi\Attachment\Application\VisibleAttachments;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
@@ -24,8 +25,10 @@ use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 use Foresi\Work\Application\ManageProjects;
+use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
+use Foresi\Work\Integration\Activities\TaskActivityTarget;
 use Foresi\Work\Integration\Inbox\CreateTaskFromEmailPreFill;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
@@ -248,6 +251,96 @@ final class WorkInboxActionsTest extends WorkApiTestCase
         $description = $this->actions($itemId)['inbox.actions.create_task']['prefill']['description'] ?? null;
         self::assertIsString($description);
         self::assertSame(CreateTaskFromEmailPreFill::MAX_DESCRIPTION, mb_strlen($description));
+    }
+
+    public function testAFileThatCannotBeCopiedForAnyReasonLeavesTheTaskAsAnOutput(): void
+    {
+        $project = $this->project('Office move');
+        $itemId = $this->receive($this->withAttachment());
+        // A storage failure that is not an AttachmentRefused nor a RuntimeException.
+        self::getContainer()->set(AttachmentFiles::class, new class implements AttachmentFiles {
+            public function store(string $attachmentId, string $sourcePath): string
+            {
+                throw new \LogicException('The storage broke.');
+            }
+
+            public function read(string $attachmentId, string $key, string $sha256): string
+            {
+                throw new \LogicException('The storage broke.');
+            }
+
+            public function locate(string $attachmentId, string $key): string
+            {
+                throw new \LogicException('The storage broke.');
+            }
+
+            public function remove(string $key): void
+            {
+            }
+        });
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/tasks', ['project_id' => $project->id(), 'title' => 'Read the offer'], $this->agent);
+        self::assertResponseStatusCodeSame(201);
+        $taskId = $this->at('data', 'id');
+        self::assertIsString($taskId);
+
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertSame([['task', $taskId]], array_map(static fn (mixed $output): array => \is_array($output) ? [$output['kind'], $output['id']] : [], (array) $this->at('data', 'outputs')));
+        self::assertSame([], $this->attachmentNames($taskId));
+    }
+
+    public function testAProjectThePersonCannotSeeIsNeverProposed(): void
+    {
+        $visible = $this->project('Office move');
+        $this->chosenProject('Secret');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $task = $this->actions($itemId)['inbox.actions.create_task'];
+        self::assertSame($visible->id(), $task['prefill']['project_id'] ?? null, 'The one project the person sees.');
+        self::assertSame(['project_id' => [$visible->id() => 'Office move']], $task['choices']);
+    }
+
+    public function testOnlyAProjectThePersonCannotSeeProposesNothingAndNamesNothing(): void
+    {
+        $secret = $this->chosenProject('Secret');
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->match($itemId);
+
+        $task = $this->actions($itemId)['inbox.actions.create_task'];
+        self::assertArrayNotHasKey('project_id', $task['prefill']);
+        self::assertSame(['project_id' => []], $task['choices']);
+        self::assertStringNotContainsString($secret->id(), (string) json_encode($task));
+    }
+
+    public function testTheTaskTargetFollowsWhatThePersonSees(): void
+    {
+        $project = $this->project('Office move');
+        $open = $this->task($project, 'Open task');
+        $private = $this->privateTask($project, 'Private task');
+        $trashed = $this->task($project, 'Trashed task');
+        $this->as(fn () => $this->service(ManageTasks::class)->delete($trashed));
+        $archivedProject = $this->project('Old roof');
+        $inArchived = $this->task($archivedProject, 'Task of an archived project');
+        $this->as(fn () => $this->service(ManageProjects::class)->archive($archivedProject->id()));
+
+        $target = $this->service(TaskActivityTarget::class);
+        $seen = $this->as(static fn (): array => [
+            [$target->canSee('task', $open), $target->canLink('task', $open), $target->label('task', $open), $target->url('task', $open)],
+            [$target->canSee('task', $private), $target->canLink('task', $private), $target->label('task', $private), $target->url('task', $private)],
+            [$target->canSee('task', $trashed), $target->canLink('task', $trashed), $target->label('task', $trashed), $target->url('task', $trashed)],
+            [$target->canSee('task', $inArchived), $target->canLink('task', $inArchived), $target->label('task', $inArchived), $target->url('task', $inArchived)],
+            [$target->canSee('project', $open), $target->canSee('task', 'not-an-id')],
+        ], $this->user);
+
+        self::assertSame([true, true, 'Open task', '/tasks/'.$open], $seen[0]);
+        self::assertSame([false, false, null, null], $seen[1], 'A private task is not the member\'s to see.');
+        self::assertSame([false, false, null, null], $seen[2], 'A task in the trash is gone.');
+        self::assertSame([true, false, 'Task of an archived project', '/tasks/'.$inArchived], $seen[3], 'Seen, but an archived project takes no new activity.');
+        self::assertSame([false, false], $seen[4]);
+        $asOwner = $this->as(static fn (): array => [$target->canSee('task', $private), $target->label('task', $private)]);
+        self::assertSame([true, 'Private task'], $asOwner, 'The owner sees every task.');
     }
 
     /**
