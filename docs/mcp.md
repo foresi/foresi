@@ -109,7 +109,7 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_record_balance_checkpoint` | **Write.** Records the balance of a firm bank account (`bank_account_id`, from `balance.accounts` of the forecast) at the end of a day. |
 | `foresi_set_expected_date` | **Write.** Sets the day a document is expected to be paid, which replaces its due date in the forecast. |
 | `foresi_clear_expected_date` | **Write.** Removes the expected day of a document. |
-| `foresi_search_projects` | Searches the projects you see, newest first, by `query`, `archived` and `client_id`, through a saved view of `work.projects` (`view_id`) or conditions (`filter`). |
+| `foresi_search_projects` | Searches the projects you see, newest first, by `query`, `archived` and `client_id`, through a saved view of `work.projects` (`view_id`) or conditions (`filter`), the task counts among them (`open_tasks`, `overdue_tasks`, `unassigned_tasks`, `next_due`); each project says its counts and nearest due date. |
 | `foresi_get_project` | One project with its statuses (id, name, type, position), the sections you see and its time budget `{hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. A status of type `done` or `closed` completes a task. |
 | `foresi_get_project_budget` | The time budget of a project (`project_id`): budget, used and left in hours and minutes, `counting` (`all` or `billable`), the sum of the task estimates, and the changes, the latest first, with their notes; `changes` is `null` for a guest. Over budget is a negative left, never a refusal. |
 | `foresi_list_project_people` | Who may be responsible for a task of a project (`project_id`, optional `task_id`): their ids are the `responsible_id` of a task. |

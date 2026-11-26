@@ -39,6 +39,7 @@ use Foresi\Work\Application\MentionCandidate;
 use Foresi\Work\Application\ProjectBoard;
 use Foresi\Work\Application\ProjectDetail;
 use Foresi\Work\Application\ProjectList;
+use Foresi\Work\Application\ProjectOrder;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\Projects;
 use Foresi\Work\Application\ProjectSettings;
@@ -147,38 +148,59 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $this->projectRows($projects, $scope);
     }
 
-    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = ''): array
+    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = '', string $sort = ProjectOrder::NAME): array
     {
         $scope = $this->visibility->scope();
         $seen = ScopedDql::projects($scope, 'p');
-        $derived = static fn (Condition $condition): array => [match ($condition->field) {
-            ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
-            default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
-        }, []];
-        [$condition, $parameters] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
+        [$condition, $parameters] = $this->projectConditions($view, $scope);
         // The archived projects only when the view asks for them, as the Active tab showed.
         $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
-        $direction = $descending ? 'DESC' : 'ASC';
         $text = trim(mb_substr($text, 0, self::MAX_TEXT));
         $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!'"
             .implode('', array_map(static fn (string $field): string => ' OR '.$field, $this->fields->searched(ProjectExtension::RECORD, 'p', 'text'))).')';
         $query = $seen->apply($this->entityManager
-            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name ASC, p.id ASC'));
         if ('' !== $text) {
             $query->setParameter('text', '%'.$this->like(mb_strtolower($text)).'%');
         }
-        foreach ($parameters as $name => [$value, $type]) {
-            $query->setParameter($name, $value, $type);
-        }
+        $this->bind($query, $parameters);
         /** @var list<Project> $projects */
         $projects = $query->getResult();
 
-        return $this->projectRows($projects, $scope);
+        // The index holds every project it shows at once, so its rows are ordered with their counts.
+        return ProjectOrder::sorted($this->projectRows($projects, $scope), $sort, $descending);
+    }
+
+    /**
+     * The condition of a view of the projects on the alias p, its counts among them, with its parameters.
+     *
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
+     */
+    private function projectConditions(ViewFilter $view, WorkScope $scope): array
+    {
+        [$own, $counted] = ProjectTaskCounts::split($view);
+        $derived = static fn (Condition $condition): array => [match ($condition->field) {
+            ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
+            default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
+        }, []];
+        [$condition, $parameters] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($own, $this->clock->today(...), 'v');
+        if ([] === $counted->conditions) {
+            return [$condition, $parameters];
+        }
+        [$counts, $bound] = $this->projectCounts($scope)->where($counted);
+
+        return [$condition.' AND '.$counts, $parameters + $bound];
+    }
+
+    private function projectCounts(WorkScope $scope): ProjectTaskCounts
+    {
+        return new ProjectTaskCounts($this->projectLists->list(), $scope, $this->clock->today());
     }
 
     /**
      * The rows of the projects, each with what is left of it: one query counts the
-     * unfinished tasks the person sees and finds the nearest due date of each.
+     * unfinished tasks the person sees, those overdue and those unassigned, and finds the
+     * nearest due date of each (ProjectTaskCounts).
      *
      * @param list<Project> $projects
      *
@@ -191,16 +213,16 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         // The custom fields of the rows, read once for their columns (ADR 0045).
         $this->fields->values(ProjectExtension::RECORD, array_map(static fn (Project $project): string => $project->id(), $projects));
-        $tasks = ScopedDql::tasks($scope, 't');
-        /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
-        $counts = $tasks->apply($this->entityManager
-            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s'.$tasks->joins.' WHERE s.type IN (:unfinished) AND t.deletedAt IS NULL'.$tasks->where.' GROUP BY t.project'))
-            ->setParameter('unfinished', $this->unfinished())
-            ->getArrayResult();
-        $open = [];
+        $counted = $this->projectCounts($scope);
+        $query = $this->entityManager->createQuery($counted->select())
+            ->setParameter('pt_projects', array_map(static fn (Project $project): string => $project->id(), $projects), ArrayParameterType::STRING);
+        $this->bind($query, $counted->parameters());
+        /** @var list<array{project: string, open: int|string|null, overdue: int|string|null, unassigned: int|string|null, due: string|\DateTimeInterface|null}> $counts */
+        $counts = $query->getArrayResult();
+        $of = [];
         foreach ($counts as $count) {
             $due = $count['due'];
-            $open[$count['project']] = [(int) $count['open'], null === $due ? null : new \DateTimeImmutable($due instanceof \DateTimeInterface ? $due->format('Y-m-d') : $due)];
+            $of[$count['project']] = [(int) $count['open'], null === $due ? null : new \DateTimeImmutable($due instanceof \DateTimeInterface ? $due->format('Y-m-d') : $due), (int) $count['overdue'], (int) $count['unassigned']];
         }
 
         return array_map(static fn (Project $project): ProjectRow => new ProjectRow(
@@ -209,10 +231,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $project->client()?->id(),
             $project->client()?->displayName(),
             $project->workflowTemplate(),
-            $open[$project->id()][0] ?? 0,
-            $open[$project->id()][1] ?? null,
+            $of[$project->id()][0] ?? 0,
+            $of[$project->id()][1] ?? null,
             $project->isArchived(),
             $project->visibility(),
+            $of[$project->id()][2] ?? 0,
+            $of[$project->id()][3] ?? 0,
         ), $projects);
     }
 
@@ -844,27 +868,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $where .= ' AND LOWER(p.name) LIKE :text ESCAPE \'!\'';
             $parameters['text'] = ['%'.$this->like(mb_strtolower(mb_substr($text, 0, self::MAX_TEXT))).'%', null];
         }
-        if ([] !== $view->conditions) {
-            $derived = static fn (Condition $condition): array => [match ($condition->field) {
-                ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
-                default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
-            }, []];
-            [$condition, $bound] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
-            $where .= ' AND '.$condition;
-            $parameters += $bound;
-        }
+        $scope = $this->visibility->scope();
+        [$condition, $bound] = $this->projectConditions($view, $scope);
+        $where .= ' AND '.$condition;
+        $parameters += $bound;
         if (null !== $afterId) {
             $where .= ' AND p.id < :after';
             $parameters['after'] = [$afterId, null];
         }
-        $scope = $this->visibility->scope();
         $seen = ScopedDql::projects($scope, 'p');
         $query = $seen->apply($this->entityManager
             ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$where.$seen->where.' ORDER BY p.id DESC'))
             ->setMaxResults($limit);
-        foreach ($parameters as $name => [$value, $type]) {
-            $query->setParameter($name, $value, $type);
-        }
+        $this->bind($query, $parameters);
         /** @var list<Project> $projects */
         $projects = $query->getResult();
 

@@ -125,6 +125,16 @@ final readonly class ScopedDql
     }
 
     /**
+     * The parameters of the condition, for a query that binds them with its own.
+     *
+     * @return array<string, array{mixed, ArrayParameterType|string}>
+     */
+    public function parameters(): array
+    {
+        return $this->parameters;
+    }
+
+    /**
      * @template TKey
      * @template TResult
      *
