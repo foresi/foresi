@@ -25,11 +25,11 @@
         "symfony/clock": "^7.4 || ^8.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/framework-bundle": "7.4.*",
-        "symfony/http-client": "^7.4.23",
+        "symfony/http-client": "^7.4.24",
         "symfony/http-client-contracts": "^3.7",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
-        "symfony/messenger": "^7.4.23",
+        "symfony/messenger": "^7.4.24",
         "symfony/routing": "^7.4",
         "symfony/translation-contracts": "^3.8"
     },
