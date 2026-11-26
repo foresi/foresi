@@ -49,6 +49,7 @@ use Foresi\Work\Contract\InvoiceNumbers;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
+use Foresi\Work\Infrastructure\Slot\TaskPageSlots;
 use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -130,6 +131,7 @@ final class TaskController extends AbstractController
         private readonly CustomFieldForm $customFields,
         private readonly Fields $fields,
         private readonly VisibleFields $visibleFields,
+        private readonly TaskPageSlots $pageSlots,
     ) {
     }
 
@@ -664,6 +666,7 @@ final class TaskController extends AbstractController
             'values' => $values + ['title' => $row->title, 'description' => $task->description, 'comment' => '', 'comment_internal' => ''],
             'errors' => array_filter($errors, \is_string(...)),
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
+            'headerFacts' => $this->pageSlots->headerFacts($row->id, $row->projectId),
             'statuses' => $statuses,
             'responsibles' => array_values($responsibles),
             'priorities' => $priorities,

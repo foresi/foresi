@@ -3381,7 +3381,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.5.0"
+                "foresi/module-api": "1.6.0"
             },
             "type": "foresi-module",
             "extra": {
