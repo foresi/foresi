@@ -129,7 +129,7 @@ final readonly class CustomFieldPayload
             FieldKind::Date => $this->date($key, $value),
             FieldKind::DateTime => $this->dateTime($key, $value),
             FieldKind::Number => \is_int($value) || \is_float($value) ? $value : throw new FieldRefused($key, FieldRefused::INVALID, \sprintf('The custom field "%s" takes a number.', $key)),
-            FieldKind::Url => \is_string($value) && ('' === $value || self::isUrl($value)) ? $value : throw new FieldRefused($key, FieldRefused::INVALID, \sprintf('The custom field "%s" takes an http or https address.', $key)),
+            FieldKind::Url => \is_string($value) && ('' === $value || $this->isUrl($value)) ? $value : throw new FieldRefused($key, FieldRefused::INVALID, \sprintf('The custom field "%s" takes an http or https address.', $key)),
             FieldKind::Contact, FieldKind::User => $this->reference($definition, $value),
             FieldKind::MultiSelect => \is_array($value) && array_is_list($value) ? $value : throw new FieldRefused($key, FieldRefused::INVALID, \sprintf('The custom field "%s" takes a list of option keys.', $key)),
             // The registry checks the rest by kind: a text, one of the options, true or false.
@@ -200,7 +200,7 @@ final readonly class CustomFieldPayload
         return strtolower($value);
     }
 
-    private static function isUrl(string $text): bool
+    private function isUrl(string $text): bool
     {
         $parts = parse_url($text);
 

@@ -82,9 +82,9 @@ final class CustomFieldPayloadTest extends TestCase
         ], false);
 
         self::assertIsArray($read);
-        self::assertSame('2026-12-01', self::date($read['due'])->format('Y-m-d'));
-        self::assertSame((new \DateTimeImmutable('2026-11-26T14:30:00+01:00'))->getTimestamp(), self::date($read['seen'])->getTimestamp());
-        self::assertSame(date_default_timezone_get(), self::date($read['seen'])->getTimezone()->getName());
+        self::assertSame('2026-12-01', $this->date($read['due'])->format('Y-m-d'));
+        self::assertSame(new \DateTimeImmutable('2026-11-26T14:30:00+01:00')->getTimestamp(), $this->date($read['seen'])->getTimestamp());
+        self::assertSame(date_default_timezone_get(), $this->date($read['seen'])->getTimezone()->getName());
         unset($read['due'], $read['seen']);
         self::assertSame(['code' => 'A-1', 'seats' => 4, 'weight' => 12.5, 'flag' => true, 'site' => 'https://example.com/a', 'size' => 'large', 'tags' => ['red'], 'contact' => self::CONTACT], $read);
         self::assertSame(['due' => null, 'site' => null, 'contact' => null], $this->payload()->read(self::RECORD, ['due' => '', 'site' => null, 'contact' => ''], false));
@@ -132,13 +132,13 @@ final class CustomFieldPayloadTest extends TestCase
     public function testATokenSeesNoFieldOffTheApiAndAGuestOnlyThoseOpenToGuests(): void
     {
         $keys = static fn (VisibleFields $visible): array => array_map(static fn (FieldDefinition $definition): string => $definition->key, $visible->definitions(self::RECORD));
-        $fields = new StoredFields(self::definitions());
+        $fields = new StoredFields($this->definitions());
 
         self::assertContains('secret', $keys(new VisibleFields($fields, FixedActor::staff())), 'The screens show it.');
-        self::assertContains('secret', $keys(new VisibleFields($fields, FixedActor::staff(), self::scopes(false))), 'Without a token, as on the screens.');
-        self::assertNotContains('secret', $keys(new VisibleFields($fields, FixedActor::staff(), self::scopes(true))));
-        self::assertNull(new VisibleFields($fields, FixedActor::staff(), self::scopes(true))->definition(self::RECORD, 'secret'));
-        self::assertSame(['size'], $keys(new VisibleFields($fields, FixedActor::guest(), self::scopes(true))));
+        self::assertContains('secret', $keys(new VisibleFields($fields, FixedActor::staff(), $this->scopes(false))), 'Without a token, as on the screens.');
+        self::assertNotContains('secret', $keys(new VisibleFields($fields, FixedActor::staff(), $this->scopes(true))));
+        self::assertNull(new VisibleFields($fields, FixedActor::staff(), $this->scopes(true))->definition(self::RECORD, 'secret'));
+        self::assertSame(['size'], $keys(new VisibleFields($fields, FixedActor::guest(), $this->scopes(true))));
 
         try {
             $this->payload(actor: FixedActor::staff(), token: true)->read(self::RECORD, ['secret' => 'x'], false);
@@ -154,7 +154,7 @@ final class CustomFieldPayloadTest extends TestCase
      */
     private function payload(array $values = [], ?ActorRole $actor = null, bool $token = false): CustomFieldPayload
     {
-        $fields = new StoredFields(self::definitions(), $values);
+        $fields = new StoredFields($this->definitions(), $values);
         $contacts = new class implements FieldReferenceNames {
             public function kind(): FieldKind
             {
@@ -177,15 +177,15 @@ final class CustomFieldPayloadTest extends TestCase
             }
         };
 
-        return new CustomFieldPayload($fields, new VisibleFields($fields, $actor ?? FixedActor::staff(), self::scopes($token)), new ReferenceNames([$contacts]));
+        return new CustomFieldPayload($fields, new VisibleFields($fields, $actor ?? FixedActor::staff(), $this->scopes($token)), new ReferenceNames([$contacts]));
     }
 
     /**
      * @return list<FieldDefinition>
      */
-    private static function definitions(): array
+    private function definitions(): array
     {
-        $field = self::field(...);
+        $field = $this->field(...);
 
         return [
             $field('code', FieldKind::Text),
@@ -205,12 +205,12 @@ final class CustomFieldPayloadTest extends TestCase
     /**
      * @param array<string, string> $options
      */
-    private static function field(string $key, FieldKind $kind, array $options = [], bool $guests = false, bool $api = true): FieldDefinition
+    private function field(string $key, FieldKind $kind, array $options = [], bool $guests = false, bool $api = true): FieldDefinition
     {
         return new FieldDefinition($key, self::RECORD, $kind, 'test.field.'.$key, $options, 'test-fields', guests: $guests, api: $api);
     }
 
-    private static function scopes(bool $token): ScopeGuard
+    private function scopes(bool $token): ScopeGuard
     {
         return new readonly class($token) implements ScopeGuard {
             public function __construct(private bool $token)
@@ -231,7 +231,7 @@ final class CustomFieldPayloadTest extends TestCase
         };
     }
 
-    private static function date(mixed $value): \DateTimeImmutable
+    private function date(mixed $value): \DateTimeImmutable
     {
         self::assertInstanceOf(\DateTimeImmutable::class, $value);
 

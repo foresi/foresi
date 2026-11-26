@@ -98,7 +98,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
         self::assertSame(array_keys(self::EMPTY), array_keys($fields));
         $seen = $fields['test_fields_seen_at'];
         self::assertIsString($seen);
-        self::assertSame((new \DateTimeImmutable('2026-11-26T14:30:00+01:00'))->getTimestamp(), (new \DateTimeImmutable($seen))->getTimestamp());
+        self::assertSame(new \DateTimeImmutable('2026-11-26T14:30:00+01:00')->getTimestamp(), new \DateTimeImmutable($seen)->getTimestamp());
         $expected = ['test_fields_seen_at' => $seen] + $sent + self::EMPTY;
         ksort($expected);
         $read = $fields;
@@ -198,7 +198,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
         self::assertSame(['string', 'null'], self::in($property, 'properties', 'test_fields_due', 'type'));
         self::assertSame('date', self::in($property, 'properties', 'test_fields_due', 'format'));
         self::assertSame(['small', 'large', null], self::in($property, 'properties', 'test_fields_size', 'enum'));
-        self::assertStringContainsString('Required when the record is created.', self::text($property, 'properties', 'test_fields_code', 'description'));
+        self::assertStringContainsString('Required when the record is created.', $this->text($property, 'properties', 'test_fields_code', 'description'));
 
         $this->client->request('GET', '/api/v1/openapi.json');
         self::assertResponseIsSuccessful();
@@ -246,7 +246,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
 
         $listed = $this->mcpTool('foresi_list_fields', ['record' => 'contact']);
         self::assertSame(array_keys(self::EMPTY), array_column($this->listAt($listed, 'structuredContent', 'data', 'items'), 'key'));
-        self::assertStringContainsString('record', self::text($this->mcpRequest('tools/call', ['name' => 'foresi_list_fields', 'arguments' => ['record' => 'invoice']]), 'error', 'message'));
+        self::assertStringContainsString('record', $this->text($this->mcpRequest('tools/call', ['name' => 'foresi_list_fields', 'arguments' => ['record' => 'invoice']]), 'error', 'message'));
     }
 
     public function testADealCarriesItsCustomFields(): void
@@ -361,7 +361,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
         $update = array_values(array_filter($tools, static fn (mixed $tool): bool => \is_array($tool) && 'foresi_update_task' === ($tool['name'] ?? null)))[0] ?? null;
         self::assertSame(['test_fields_size'], array_keys((array) self::in($update, 'inputSchema', 'properties', 'custom_fields', 'properties')));
         $refused = $this->mcpRequest('tools/call', ['name' => 'foresi_update_task', 'arguments' => ['task_id' => $task, 'custom_fields' => ['test_fields_code' => 'G-1']]]);
-        self::assertStringContainsString('test_fields_code', self::text($refused, 'error', 'message'));
+        self::assertStringContainsString('test_fields_code', $this->text($refused, 'error', 'message'));
         self::assertSame(['test_fields_size'], array_column($this->listAt($this->mcpTool('foresi_list_fields', ['record' => 'task']), 'structuredContent', 'data', 'items'), 'key'));
     }
 
@@ -419,7 +419,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
         return array_values($payload['custom_fields']);
     }
 
-    private static function text(mixed $value, string|int ...$path): string
+    private function text(mixed $value, string|int ...$path): string
     {
         $text = self::in($value, ...$path);
         self::assertIsString($text);

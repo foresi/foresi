@@ -18,7 +18,7 @@ use Foresi\Shared\Contract\Operation\Field;
 final class InputSchema
 {
     /**
-     * @param list<OperationField>                                $fields
+     * @param list<OperationField>                          $fields
      * @param (\Closure(string): array<string, mixed>)|null $customFields the schema of the custom fields of a record kind; a plain object without it
      *
      * @return array<string, mixed>
