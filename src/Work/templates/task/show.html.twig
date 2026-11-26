@@ -82,6 +82,14 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     {% if row.private and overlay() is not null %}<p class="m-0 mb-4"><twig:Ui:Badge tone="gray" class="gap-1" data-header-badge>{{ ux_icon('lucide:lock', {class: 'size-3 shrink-0', 'aria-hidden': 'true'}) }}{{ 'work.sharing.private_badge'|trans }}</twig:Ui:Badge></p>{% endif %}
+    {# The short facts other modules add under the header (TaskSlots::HEADER_FACTS), each its own template with its data. #}
+    {% if headerFacts is not empty %}
+        <div class="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small text-muted" data-task-facts>
+            {% for fact in headerFacts %}
+                <div data-task-fact>{{ include(fact.template, fact.data) }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-controller="attachments" data-action="click->attachments#openImage dialog:closed->attachments#closed">
         <div class="grid min-w-0 content-start gap-6">
             {#
