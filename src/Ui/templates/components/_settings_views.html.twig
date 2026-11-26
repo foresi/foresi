@@ -1,4 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set sfx = manage.suffix ?? '' %}
 {#
     The Views section of a list's Settings sheet (Ui:ColumnPicker; saved views D6, D7), as the view
     lists of Linear, Notion and Attio: All first and fixed, then every view in its order, the tabs
@@ -13,7 +14,7 @@
 {% set reorder = manage.canReorder %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 <section class="grid min-w-0 gap-2" aria-labelledby="settings-views" data-settings-views>
-    <h3 id="settings-views" class="{{ legend }} m-0">{{ 'saved_view.section.views'|trans }}</h3>
+    <h3 id="settings-views{{ sfx }}" class="{{ legend }} m-0">{{ 'saved_view.section.views'|trans }}</h3>
     {% if reorder %}
         <form method="post" action="{{ path('app_view_order') }}" hidden data-column-picker-target="viewOrder">
             <input type="hidden" name="_token" value="{{ token }}">
@@ -24,12 +25,12 @@
         {% set allName = manage.all.translated ? manage.all.name|trans : manage.all.name %}
         <li class="{{ row }}" data-settings-view="all" data-label="{{ allName }}">
             <span class="grid size-8 shrink-0 place-items-center text-muted" title="{{ 'saved_view.all_fixed'|trans }}">{{ ux_icon('lucide:lock', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
-            <input type="checkbox" id="settings-view-all" checked disabled aria-describedby="settings-view-all-fixed" class="size-4 shrink-0 accent-green">
-            <label for="settings-view-all" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ allName }} <span id="settings-view-all-fixed" class="text-small text-muted">{{ 'saved_view.all_fixed'|trans }}</span></label>
+            <input type="checkbox" id="settings-view-all{{ sfx }}" checked disabled aria-describedby="settings-view-all-fixed{{ sfx }}" class="size-4 shrink-0 accent-green">
+            <label for="settings-view-all{{ sfx }}" class="min-w-0 flex-1 truncate py-2 pl-1.5">{{ allName }} <span id="settings-view-all-fixed{{ sfx }}" class="text-small text-muted">{{ 'saved_view.all_fixed'|trans }}</span></label>
         </li>
         {% for view in manage.tabs|merge(manage.more) %}
             {% set viewLabel = view.translated ? view.name|trans : view.name %}
-            {% set boxId = 'settings-view-' ~ view.key %}
+            {% set boxId = 'settings-view-' ~ view.key ~ sfx %}
             <li class="{{ row }}" data-settings-view="{{ view.key }}" data-ref="{{ view.ref }}" data-label="{{ viewLabel }}"{% if reorder %} data-movable data-column-picker-target="viewRow"{% endif %}>
                 {% if reorder %}
                     {# The handle is for a pointer; the buttons do the same with one tap or a key (WCAG 2.5.7). #}
@@ -47,12 +48,12 @@
                     <twig:Ui:IconButton icon="arrow-up" variant="ghost" size="sm" :label="'saved_view.move_up'|trans({name: viewLabel})" data-action="column-picker#up" data-column-picker-up="" />
                     <twig:Ui:IconButton icon="arrow-down" variant="ghost" size="sm" :label="'saved_view.move_down'|trans({name: viewLabel})" data-action="column-picker#down" data-column-picker-down="" />
                 {% endif %}
-                <twig:Ui:Menu id="view-row-{{ view.key }}" :label="'saved_view.row_actions'|trans({name: viewLabel})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" data-dropdown-below-value="true" data-view-row-menu>
+                <twig:Ui:Menu id="view-row-{{ view.key }}{{ sfx }}" :label="'saved_view.row_actions'|trans({name: viewLabel})" icon="ellipsis" :iconOnly="true" variant="ghost" size="sm" :float="true" data-dropdown-below-value="true" data-view-row-menu>
                     {% if not view.primary %}
                         <twig:Ui:MenuItem :href="view.href" icon="external-link" data-view-open>{{ 'saved_view.open'|trans }}</twig:Ui:MenuItem>
                     {% endif %}
                     {% if view.editable %}
-                        <twig:Ui:MenuItem type="button" icon="pencil" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-rename-{{ view.key }}" aria-haspopup="dialog" data-view-rename>{{ 'saved_view.rename'|trans }}</twig:Ui:MenuItem>
+                        <twig:Ui:MenuItem type="button" icon="pencil" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-rename-{{ view.key }}{{ sfx }}" aria-haspopup="dialog" data-view-rename>{{ 'saved_view.rename'|trans }}</twig:Ui:MenuItem>
                         <form method="post" action="{{ path('app_view_edit') }}" role="none">
                             <input type="hidden" name="_token" value="{{ token }}">
                             <input type="hidden" name="ref" value="{{ view.ref }}">
@@ -133,7 +134,7 @@
     {% endif %}
     <div class="flex flex-wrap items-center gap-2">
         {% if viewBar %}
-            <button type="button" class="inline-flex h-control-sm cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-transparent bg-transparent px-2.5 text-small font-semibold text-green no-underline transition-colors hover:bg-head {{ focus }}" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as" aria-haspopup="dialog" data-view-new>{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{{ 'saved_view.new'|trans }}</button>
+            <button type="button" class="inline-flex h-control-sm cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-transparent bg-transparent px-2.5 text-small font-semibold text-green no-underline transition-colors hover:bg-head {{ focus }}" data-controller="dialog-open" data-action="dialog-open#open" data-dialog-open-id-param="view-save-as{{ sfx }}" aria-haspopup="dialog" data-view-new>{{ ux_icon('lucide:plus', {class: 'size-4 shrink-0', 'aria-hidden': 'true'}) }}{{ 'saved_view.new'|trans }}</button>
         {% endif %}
         {% if manage.canRestore %}
             <form method="post" action="{{ path('app_view_restore') }}" class="ml-auto" data-turbo-confirm="{{ 'saved_view.restore_confirm'|trans }}" data-confirm-text="{{ 'saved_view.restore_confirm_text'|trans }}" data-confirm-accept="{{ 'saved_view.restore'|trans }}" data-confirm-cancel="{{ 'saved_view.cancel'|trans }}">

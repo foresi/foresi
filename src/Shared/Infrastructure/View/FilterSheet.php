@@ -16,6 +16,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Application\View\QuickPick;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
@@ -69,11 +70,13 @@ final readonly class FilterSheet
      * @param array<string, Reference>     $references by source
      * @param list<string>|null            $pinned     the fields pinned as quick filters, in order (WorkingState::$pinned); null for the list's own
      * @param array<string, list<string>>  $months     the months as YYYY-MM a date field's quick filter offers, by field, such as the months with a document
+     * @param ListSlot|null                $slot       where the list keeps its state on a page of several tables; null for the page's one
      *
-     * @return array{chips: list<Chip>, quick: list<Quick>, pinnable: list<array{key: string, label: string, pinned: bool}>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param: string}}
+     * @return array{chips: list<Chip>, quick: list<Quick>, pinnable: list<array{key: string, label: string, pinned: bool}>, builder: array{fields: list<FieldView>, rows: list<array<string, mixed>>, kept: list<string>, rules: array<string, string>, param: string, name: string, marker: string}}
      */
-    public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = [], ?array $pinned = null, array $months = []): array
+    public function of(ListDefinition $list, ViewFilter $filter, \Closure $href, array $references = [], ?array $pinned = null, array $months = [], ?ListSlot $slot = null): array
     {
+        $slot ??= ListSlot::first([]);
         $references += $this->fieldReferences();
         $pinned = $list->pinnedOf($pinned);
         $chips = [];
@@ -104,13 +107,16 @@ final readonly class FilterSheet
             }
         }
 
-        return ['chips' => $chips, 'quick' => $this->quick($list, $filter, $href, $pinned, $months, $references), 'pinnable' => $this->pinnable($list, $pinned), 'builder' => [
+        return ['chips' => $chips, 'quick' => $this->quick($list, $filter, $href, $pinned, $months, $references, $slot->field(WorkingFilter::PARAM)), 'pinnable' => $this->pinnable($list, $pinned), 'builder' => [
             'fields' => array_values(array_map(fn (Field $field): array => $this->fieldView($field, $references), $list->fields)),
             'rows' => $rows,
             'kept' => $kept,
             'rules' => $this->rules(),
             // The address parameter of the working filter, which clearing the bar drops.
-            'param' => WorkingFilter::PARAM,
+            'param' => $slot->field(WorkingFilter::PARAM),
+            // The names the builder's rows and its marker have in the address (FilterRows).
+            'name' => $slot->field(FilterRows::PARAM),
+            'marker' => $slot->field(FilterRows::MARKER),
         ]];
     }
 
@@ -149,10 +155,11 @@ final readonly class FilterSheet
      * @param list<string>                 $pinned
      * @param array<string, list<string>>  $months
      * @param array<string, Reference>     $references
+     * @param string                       $param      the name of the working filter in the address
      *
      * @return list<Quick>
      */
-    private function quick(ListDefinition $list, ViewFilter $filter, \Closure $href, array $pinned, array $months, array $references): array
+    private function quick(ListDefinition $list, ViewFilter $filter, \Closure $href, array $pinned, array $months, array $references, string $param): array
     {
         $quick = [];
         foreach ($pinned as $key) {
@@ -197,7 +204,7 @@ final readonly class FilterSheet
                 'lookup' => $pick->looksUp() || $typed ? [
                     'url' => $typed ? null : $url,
                     'base' => $href($others),
-                    'param' => WorkingFilter::PARAM,
+                    'param' => $param,
                     'conditions' => json_encode($others->toArray()['conditions'], \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION),
                     'field' => $key,
                     'op' => $typed ? 'contains' : $field->pickOperator(),

@@ -241,6 +241,13 @@ sales:
         rename_stage: Rename the stage
         rename_reason: Rename the lost reason
         archived: Archived
+        views: 'Views of {list}'
+        search: Search by name
+        tab:
+            all: All
+        empty:
+            filtered_title: Nothing matches the filter
+            reset: Clear the filter
         column:
             name: Name
             key: Key

@@ -1,4 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{% set sfx = viewBar.suffix ?? '' %}
 {#
     Save as new view in a dialog (name, private or shared, show count; saved views D6, D9), which
     "+ New view" of the Settings sheet and "Save as new view" of the filter row open, and Rename of
@@ -6,33 +7,33 @@
     (_settings_views). Takes `viewBar` and `manageViews`.
 #}
 {% set token = csrf_token(constant('Foresi\\Ui\\Controller\\SavedViewController::TOKEN')) %}
-<twig:Ui:Dialog id="view-save-as" :title="'saved_view.save_as'|trans" :description="'saved_view.save_as_description'|trans" size="sm" :fields="true">
-    <form method="post" action="{{ path('app_view_new') }}" id="view-save-as-form" class="grid gap-4" data-view-save-as-form>
+<twig:Ui:Dialog id="view-save-as{{ sfx }}" :title="'saved_view.save_as'|trans" :description="'saved_view.save_as_description'|trans" size="sm" :fields="true">
+    <form method="post" action="{{ path('app_view_new') }}" id="view-save-as-form{{ sfx }}" class="grid gap-4" data-view-save-as-form>
         {{ include('@Ui/components/_view_fields.html.twig') }}
         <input type="hidden" name="return" value="{{ viewBar.base }}">
-        <twig:Ui:TextInput name="name" id="view-name" :label="'saved_view.field.name'|trans" required maxlength="60" autocomplete="off" />
-        <twig:Ui:Select name="visibility" id="view-visibility" :label="'saved_view.field.visibility'|trans" :options="{private: 'saved_view.visibility.private'|trans, shared: 'saved_view.visibility.shared'|trans}" value="private" :help="'saved_view.field.visibility_help'|trans" />
-        <twig:Ui:Checkbox name="showCount" id="view-show-count" :label="'saved_view.field.show_count'|trans" />
+        <twig:Ui:TextInput name="name" id="view-name{{ sfx }}" :label="'saved_view.field.name'|trans" required maxlength="60" autocomplete="off" />
+        <twig:Ui:Select name="visibility" id="view-visibility{{ sfx }}" :label="'saved_view.field.visibility'|trans" :options="{private: 'saved_view.visibility.private'|trans, shared: 'saved_view.visibility.shared'|trans}" value="private" :help="'saved_view.field.visibility_help'|trans" />
+        <twig:Ui:Checkbox name="showCount" id="view-show-count{{ sfx }}" :label="'saved_view.field.show_count'|trans" />
     </form>
     <twig:block name="footer">
         <twig:Ui:Button data-action="dialog#close">{{ 'saved_view.cancel'|trans }}</twig:Ui:Button>
-        <twig:Ui:Button type="submit" variant="primary" form="view-save-as-form" data-view-save-as-submit>{{ 'saved_view.save_as_submit'|trans }}</twig:Ui:Button>
+        <twig:Ui:Button type="submit" variant="primary" form="view-save-as-form{{ sfx }}" data-view-save-as-submit>{{ 'saved_view.save_as_submit'|trans }}</twig:Ui:Button>
     </twig:block>
 </twig:Ui:Dialog>
 
 {# Rename in its own small dialog, as Shopify renames a view: the Settings sheet keeps one line per view. #}
 {% for row in manageViews.tabs|merge(manageViews.more)|filter(row => row.editable) %}
     {% set viewName = row.translated ? row.name|trans : row.name %}
-    <twig:Ui:Dialog id="view-rename-{{ row.key }}" :title="'saved_view.rename_title'|trans" size="sm" :fields="true">
-        <form method="post" action="{{ path('app_view_edit') }}" id="view-rename-{{ row.key }}-form" class="grid gap-4" data-view-rename-form="{{ row.key }}">
+    <twig:Ui:Dialog id="view-rename-{{ row.key }}{{ sfx }}" :title="'saved_view.rename_title'|trans" size="sm" :fields="true">
+        <form method="post" action="{{ path('app_view_edit') }}" id="view-rename-{{ row.key }}{{ sfx }}-form" class="grid gap-4" data-view-rename-form="{{ row.key }}">
             <input type="hidden" name="_token" value="{{ token }}">
             <input type="hidden" name="ref" value="{{ row.ref }}">
             <input type="hidden" name="return" value="{{ manageViews.return }}">
-            <twig:Ui:TextInput name="name" id="view-rename-{{ row.key }}-name" :label="'saved_view.field.name'|trans" :value="viewName" required maxlength="60" autocomplete="off" />
+            <twig:Ui:TextInput name="name" id="view-rename-{{ row.key }}{{ sfx }}-name" :label="'saved_view.field.name'|trans" :value="viewName" required maxlength="60" autocomplete="off" />
         </form>
         <twig:block name="footer">
             <twig:Ui:Button data-action="dialog#close">{{ 'saved_view.cancel'|trans }}</twig:Ui:Button>
-            <twig:Ui:Button type="submit" variant="primary" form="view-rename-{{ row.key }}-form">{{ 'saved_view.rename_submit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" variant="primary" form="view-rename-{{ row.key }}{{ sfx }}-form">{{ 'saved_view.rename_submit'|trans }}</twig:Ui:Button>
         </twig:block>
     </twig:Ui:Dialog>
 {% endfor %}

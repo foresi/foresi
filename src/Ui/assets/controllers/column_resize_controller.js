@@ -8,7 +8,6 @@ const WIDE_STEP = 64;
 // px-4 on either side of a cell.
 const PADDING = 32;
 const SAVE_AFTER_KEYS = 600;
-const PARAM = 'widths';
 
 /**
  * Ui:DataTable's column widths. Each header has a grip on its right edge, a separator (WAI-ARIA APG
@@ -17,11 +16,13 @@ const PARAM = 'widths';
  * widest text, as Excel and Google Sheets do. The first change gives every shown column the width
  * it has, so the others stay where they are and the table lays them out at those widths alone.
  * The widths go to the list's address as widths=key:px,… and the list loads in place: the server
- * remembers them for the person (RememberedDisplay), and Save to view keeps them for everyone.
+ * remembers them for the person (RememberedDisplay), and Save to view keeps them for everyone. On a
+ * page of several tables, each writes its own name (`param`), as reasons[widths] under a list slot
+ * (ListSlot), so the others keep theirs.
  */
 export default class extends Controller {
     static targets = ['table', 'col', 'grip'];
-    static values = { max: { type: Number, default: 1200 }, reserve: { type: Number, default: 0 } };
+    static values = { max: { type: Number, default: 1200 }, reserve: { type: Number, default: 0 }, param: { type: String, default: 'widths' } };
 
     // A focusable separator says its value (WAI-ARIA): the width each column has as it is laid out.
     connect() {
@@ -217,13 +218,14 @@ export default class extends Controller {
             .map(([key, width]) => `${key}:${width}`)
             .join(',');
         const url = new URL(window.location.href);
-        url.searchParams.set(PARAM, widths);
+        url.searchParams.set(this.paramValue, widths);
         const scroller = this.tableTarget.parentElement;
         const main = document.getElementById('main');
+        const scope = `[data-column-resize-param-value="${CSS.escape(this.paramValue)}"]`;
         const kept = { x: scroller.scrollLeft, y: window.scrollY, main: main ? main.scrollTop : 0, key: grip.dataset.key, focused: document.activeElement === grip };
         // The list comes back where it was, the grip still focused for the next key.
         document.addEventListener('turbo:load', () => {
-            const table = document.querySelector('[data-column-resize-target="table"]');
+            const table = document.querySelector(`${scope} [data-column-resize-target="table"]`);
             if (table) {
                 table.parentElement.scrollLeft = kept.x;
             }
@@ -233,7 +235,7 @@ export default class extends Controller {
                 next.scrollTop = kept.main;
             }
             if (kept.focused) {
-                document.querySelector(`[data-column-resize-target="grip"][data-key="${CSS.escape(kept.key)}"]`)?.focus();
+                document.querySelector(`${scope} [data-column-resize-target="grip"][data-key="${CSS.escape(kept.key)}"]`)?.focus();
             }
         }, { once: true });
         if (window.Turbo && typeof window.Turbo.visit === 'function') {
