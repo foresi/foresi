@@ -93,7 +93,8 @@ final class NotificationControllerTest extends WebTestCase
         self::assertSame('page', $crawler->filter('#sidebar a[href="/notifications"]')->attr('aria-current'));
         // The inbox marks its area: the rail puts the unread dot on Overview alone.
         self::assertSame(['overview'], $crawler->filter('#rail [data-nav-unread]')->each(static fn (Crawler $dot): string => (string) $dot->closest('[data-nav-area]')?->attr('data-nav-area')));
-        self::assertSame(['/', '/inbox', '/notifications'], $crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        // The links of Work itself; where the inbox of mail goes between them is tested with it (Integration/Inbox).
+        self::assertSame(['/', '/notifications'], array_values(array_diff($crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')), ['/inbox'])));
         self::assertSame(['All', 'Done'], $crawler->filter('main nav[aria-label="Notification views"] a')->each(static fn (Crawler $a): string => trim($a->text())));
         self::assertCount(0, $crawler->filter('[data-notifications-kept]'));
         self::assertCount(0, $crawler->filter('main nav[aria-label="Pagination"]'));

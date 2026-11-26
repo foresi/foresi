@@ -233,20 +233,17 @@ final class OAuthFlowTest extends OAuthTestCase
         $clientId = $this->register();
         $this->signIn();
 
-        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read projects:write']));
+        $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read contacts:write']));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Not verified');
         self::assertSelectorTextContains('main', 'Signed in as');
         self::assertSelectorTextContains('main', IdentityFixtures::EMAIL);
-        // The whole account first, then each module with its resources, each with reading and changing.
+        // The whole account first, then each module with its resources; a module with several is tested with Work (Integration/Work).
         self::assertSelectorTextContains('[role="group"][aria-labelledby="access-all-label"]', 'All data');
-        $work = $crawler->filterXPath('//*[@role="group"][p[normalize-space()="Work"]]');
-        self::assertCount(1, $work);
-        self::assertCount(1, $work->filter('#scope-projects-read'));
-        self::assertNotNull($work->filter('#scope-projects-write')->attr('checked'));
-        self::assertNull($work->filter('#scope-tasks-write')->attr('checked'));
         // A single-resource module is one row, without a heading of its own.
-        self::assertCount(1, $crawler->filterXPath('//*[@role="group"][span[normalize-space()="Contacts"]]'));
+        $contacts = $crawler->filterXPath('//*[@role="group"][span[normalize-space()="Contacts"]]');
+        self::assertCount(1, $contacts);
+        self::assertNotNull($contacts->filter('#scope-contacts-write')->attr('checked'));
         // The client asked for one resource, so the areas are shown open.
         self::assertNotNull($crawler->filter('details')->attr('open'));
 

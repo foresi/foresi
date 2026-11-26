@@ -20,6 +20,7 @@ use Foresi\Purchasing\Domain\DocumentSource;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentContent;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Instance\Support\InstanceZone;
 use Foresi\Tests\Purchasing\Support\StoredMessages;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -39,6 +40,7 @@ final class ReceivedDocumentMailSourceTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
+        InstanceZone::set(self::getContainer());
         self::getContainer()->set(Messages::class, new StoredMessages(self::MAIL, 'Pat Supplier <pat@supplier.example.com>', 'Invoice <b>11/2026</b>', new \DateTimeImmutable('2026-11-20 09:00:00 UTC')));
         $browser = new SignedInBrowser($this->client, $this->em());
         $this->user = $browser->seed();

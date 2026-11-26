@@ -27,6 +27,7 @@ use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
+use Foresi\Tests\Support\Scalars;
 use Psr\Clock\ClockInterface;
 
 /**

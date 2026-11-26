@@ -10,7 +10,7 @@ namespace Foresi\Tests\Banking\Infrastructure;
 
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Banking\Support\BankScreenTestCase;
-use Foresi\Tests\Banking\Support\Scalars;
+use Foresi\Tests\Support\Scalars;
 
 /**
  * The Messages tab of the bank screen: every bank mail that came, what became of

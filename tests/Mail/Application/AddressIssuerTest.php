@@ -23,8 +23,8 @@ use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Mail\Domain\InboundAddress;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
-use Foresi\Tests\Banking\Support\Scalars;
 use Foresi\Tests\Support\Mail\RecordingPurpose;
+use Foresi\Tests\Support\Scalars;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

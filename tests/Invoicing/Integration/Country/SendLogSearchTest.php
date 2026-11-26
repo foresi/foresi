@@ -6,11 +6,12 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Invoicing\Application;
+namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\SendLogFilter;
 use Foresi\Invoicing\Application\SendLogRow;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Tests\Invoicing\Application\SendingTestCase;
 
 /**
  * The text search of the send log: the number, the customer, the subject and the

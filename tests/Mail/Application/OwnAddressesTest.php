@@ -105,7 +105,7 @@ final class OwnAddressesTest extends KernelTestCase
     {
         $issuer = self::getContainer()->get(AddressIssuer::class);
         $mine = $this->own()->create(RecordingPurpose::OWNED_RESHOWABLE_KEY, 'Receipts');
-        $feed = $issuer->issue('bank_feed', null, 'Bank feed');
+        $feed = $issuer->issue(RecordingPurpose::RESHOWABLE_KEY, null, 'Bank feed');
         $owners = self::getContainer()->get(AddressOwners::class);
 
         self::assertSame($this->me->id(), $owners->ownerOf($mine->id));
