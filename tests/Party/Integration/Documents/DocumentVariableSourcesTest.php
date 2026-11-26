@@ -16,6 +16,7 @@ use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Contract\PartyDirectory;
+use Foresi\Ui\Field\CustomFieldTemplates;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
@@ -202,6 +203,6 @@ final class DocumentVariableSourcesTest extends ContactTestCase
 
     private function client(): ClientVariables
     {
-        return new ClientVariables(self::getContainer()->get(PartyDirectory::class), self::getContainer()->get('translator'));
+        return new ClientVariables(self::getContainer()->get(PartyDirectory::class), self::getContainer()->get('translator'), self::getContainer()->get(CustomFieldTemplates::class));
     }
 }

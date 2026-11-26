@@ -10,8 +10,10 @@ namespace Foresi\Party\Integration\Documents;
 
 use Foresi\Documents\Contract\DocumentVariableSource;
 use Foresi\Documents\Contract\VariableDefinition;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
+use Foresi\Ui\Field\CustomFieldTemplates;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -19,10 +21,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * "contact". Without one, or when that contact is archived or gone, the source
  * does not apply and Documents names the client variables the template misses.
  * The persons are the contact persons of a company in the order they were linked.
+ * The contact's custom fields that allow templates are under client.custom.
  */
 final readonly class ClientVariables implements DocumentVariableSource
 {
-    public function __construct(private PartyDirectory $directory, private TranslatorInterface $translator)
+    public function __construct(private PartyDirectory $directory, private TranslatorInterface $translator, private CustomFieldTemplates $custom)
     {
     }
 
@@ -39,6 +42,7 @@ final readonly class ClientVariables implements DocumentVariableSource
             $this->definition('registration_number', '87654321'),
             $this->definition('vat_id', 'CZ87654321'),
             $this->definition('persons', [['name' => 'Jana Example', 'position' => 'Director', 'email' => 'jana@example.com', 'phone' => '+420 000 000 000']]),
+            ...array_map(static fn (array $field): VariableDefinition => new VariableDefinition($field['name'], $field['label'], $field['example']), $this->custom->definitions(ContactExtension::RECORD)),
         ];
     }
 
@@ -66,7 +70,7 @@ final readonly class ClientVariables implements DocumentVariableSource
                 'email' => $person->email ?? '',
                 'phone' => $person->phone ?? '',
             ], $this->directory->personsOf($contact->id)),
-        ];
+        ] + $this->custom->values(ContactExtension::RECORD, $contact->id);
     }
 
     /**

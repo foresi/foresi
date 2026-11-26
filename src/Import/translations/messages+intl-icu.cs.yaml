@@ -126,7 +126,12 @@ import:
       delivery: Dodací adresa
       bank: Bankovní účet
       contact: Kontaktní osoba
+      # The custom fields of the contacts (ADR 0045).
+      custom: Další údaje
   value:
+    # A yes/no custom field in an export.
+    'yes': Ano
+    'no': Ne
     party:
       kind:
         person: Osoba
@@ -289,6 +294,10 @@ import:
     company_identifier: 'Firma potřebuje IČO nebo DIČ.'
     too_long: '„{value}“ je delší než {max, number} znaků.'
     out_of_range: '{value, number} není mezi {min, number} a {max, number}.'
+    invalid_url: '„{value}“ není webová adresa. Zadejte adresu začínající http:// nebo https://.'
+    invalid_date_time: '„{value}“ není datum a čas. Zadejte například 2026-11-26 14:30.'
+    unknown_contact: '„{value}“ není identifikátor kontaktu této organizace.'
+    unknown_user: '„{value}“ není identifikátor osoby této organizace.'
   failure:
     file_missing: 'Nahraný soubor už není k dispozici. Nahrajte ho znovu.'
     stalled: 'Import se zastavil, aniž by skončil. Nahrajte soubor znovu.'

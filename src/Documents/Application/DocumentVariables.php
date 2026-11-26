@@ -77,7 +77,7 @@ final readonly class DocumentVariables
         foreach ($this->sources as $source) {
             $prefix = $source->prefix();
             foreach ($source->definitions() as $definition) {
-                $value = $values[$prefix][$definition->name] ?? null;
+                $value = self::at($values[$prefix] ?? [], $definition->name);
                 if (!$definition->image || !\is_string($value)) {
                     continue;
                 }
@@ -87,7 +87,8 @@ final readonly class DocumentVariables
                     $preview => ImageTag::forPreview($file, $definition->label),
                     default => ImageTag::forPdf($file, $definition->label),
                 };
-                $values[$prefix][$definition->name] = $tag ?? ($preview && '' !== $value ? ImageTag::placeholder($definition->label) : '');
+                $own = \is_array($values[$prefix] ?? null) ? $values[$prefix] : [];
+                $values[$prefix] = self::put($own, $definition->name, $tag ?? ($preview && '' !== $value ? ImageTag::placeholder($definition->label) : ''));
             }
         }
 
@@ -104,10 +105,49 @@ final readonly class DocumentVariables
         $examples = [];
         foreach ($this->definitions() as $prefix => $definitions) {
             foreach ($definitions as $definition) {
-                $examples[$prefix][$definition->name] = $definition->example;
+                $examples[$prefix] = self::put($examples[$prefix] ?? [], $definition->name, $definition->example);
             }
         }
 
         return $examples;
+    }
+
+    /**
+     * The value at a variable's name, a path such as "custom.key" read level by level.
+     *
+     * @param array<array-key, mixed> $values
+     */
+    private static function at(array $values, string $name): mixed
+    {
+        $value = $values;
+        foreach (explode('.', $name) as $part) {
+            if (!\is_array($value) || !\array_key_exists($part, $value)) {
+                return null;
+            }
+            $value = $value[$part];
+        }
+
+        return $value;
+    }
+
+    /**
+     * The values with one set at a variable's name, nested by its path.
+     *
+     * @param array<array-key, mixed> $values
+     *
+     * @return array<array-key, mixed>
+     */
+    private static function put(array $values, string $name, mixed $value): array
+    {
+        $parts = explode('.', $name, 2);
+        if (1 === \count($parts)) {
+            $values[$name] = $value;
+
+            return $values;
+        }
+        $inner = \is_array($values[$parts[0]] ?? null) ? $values[$parts[0]] : [];
+        $values[$parts[0]] = self::put($inner, $parts[1], $value);
+
+        return $values;
     }
 }

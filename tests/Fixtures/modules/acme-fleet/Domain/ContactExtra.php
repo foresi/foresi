@@ -17,7 +17,8 @@ use Foresi\Shared\Contract\Field\FieldKind;
  * The fleet's custom fields of a contact (ADR 0045): its id is the contact's, and
  * its row exists while the contact has a value. Foresi writes it through
  * Foresi\Shared\Contract\Field\Fields; the fields show in the contact's form and
- * detail, the contact list, its filters and its history.
+ * detail, the contact list, its filters and its history, the contacts' import and
+ * export and the document templates as {{ client.custom.<key> }}.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'acme_fleet_contact_extra')]
@@ -39,9 +40,9 @@ class ContactExtra implements ContactExtension
     #[CustomField(FieldKind::Date, 'acme_fleet.field.contract_until', filterable: true, sortable: true)]
     private ?\DateTimeImmutable $contractUntil = null;
 
-    /** acme_fleet_account_code */
+    /** acme_fleet_account_code: an internal code, never printed on a document */
     #[ORM\Column(name: 'account_code', type: 'string', length: self::MAX_ACCOUNT_CODE, nullable: true)]
-    #[CustomField(FieldKind::Text, 'acme_fleet.field.account_code', filterable: true, searchable: true)]
+    #[CustomField(FieldKind::Text, 'acme_fleet.field.account_code', filterable: true, template: false, searchable: true)]
     private ?string $accountCode = null;
 
     /** acme_fleet_services */
@@ -49,9 +50,9 @@ class ContactExtra implements ContactExtension
     #[CustomField(FieldKind::MultiSelect, 'acme_fleet.field.services', options: ['leasing' => 'acme_fleet.service.leasing', 'servicing' => 'acme_fleet.service.servicing', 'insurance' => 'acme_fleet.service.insurance'], filterable: true)]
     private ?array $services = null;
 
-    /** acme_fleet_fleet_manager: the person of the firm who looks after the contact's fleet */
+    /** acme_fleet_fleet_manager: the person of the firm who looks after the contact's fleet; people differ between firms, so it is not imported */
     #[ORM\Column(name: 'fleet_manager', type: 'guid', nullable: true)]
-    #[CustomField(FieldKind::User, 'acme_fleet.field.fleet_manager', filterable: true)]
+    #[CustomField(FieldKind::User, 'acme_fleet.field.fleet_manager', filterable: true, import: false)]
     private ?string $fleetManager = null;
 
     public function contactId(): string

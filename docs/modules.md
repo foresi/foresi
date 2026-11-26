@@ -38,7 +38,7 @@ A module is a Composer package of type `foresi-module`, and its `composer.json` 
     "license": "AGPL-3.0-only",
     "require": {
         "php": ">=8.4",
-        "foresi/module-api": "^1.7",
+        "foresi/module-api": "^1.9",
         "foresi/identity": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
@@ -72,7 +72,7 @@ The real file also requires the Doctrine and Symfony packages that the code impo
 
 What matters here:
 
-- `"foresi/module-api": "^1.7"` says which versions of the module API the module is written for: 1.7, which brought custom fields to the REST API and MCP, up to but not including 2.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
+- `"foresi/module-api": "^1.9"` says which versions of the module API the module is written for: 1.9, which brought custom fields to the import, the export and the document templates, up to but not including 2.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
 - The namespace `Acme\Fleet\` gives everything else its name. The module id is `acme-fleet`, and the bundle is `Acme\Fleet\AcmeFleetBundle`. `extra.foresi.module` and `extra.foresi.bundle` must say exactly that, and `autoload.psr-4` must declare the same namespace. See [Names](#names).
 - The modules you need are ordinary Composer requirements: the module uses Identity, Party, Shared and Ui, so it requires them. A module you can work without goes in `extra.foresi.optional` instead (see [Integrate with an optional module](#integrate-with-an-optional-module)).
 - `scopes` declares the resources an API token can be given: `acme_fleet_vehicles` gives the scopes `acme_fleet_vehicles:read` and `acme_fleet_vehicles:write`.
@@ -525,9 +525,9 @@ Foresi has no settings screen for modules. A setting that the people of a firm c
 
 ### Add fields to a record
 
-A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field in the card "Additional details" of the record's dialogs and detail, as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, keeps its changes in the record's history under the field's label, and names it in the record's update event when its value changes.
+A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field in the card "Additional details" of the record's dialogs and detail, as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, keeps its changes in the record's history under the field's label, names it in the record's update event when its value changes, and offers it in the record's import and export and in the document templates.
 
-1. Require the record's module and module API 1.7 in `composer.json`, such as `"foresi/party": "*"` and `"foresi/module-api": "^1.7"` for a contact.
+1. Require the record's module and module API 1.9 in `composer.json`, such as `"foresi/party": "*"` and `"foresi/module-api": "^1.9"` for a contact.
 2. Write an entity in `Domain/` that implements the record's extension interface:
 
    | Record | Extension interface | Its id accessor | The list that shows the fields |
@@ -596,7 +596,8 @@ The flags of `#[CustomField]`, all off unless the table says otherwise:
 | `guests` | Guests see it too, and may change it where they may change the record. Without it, a guest gets no column, input or value of it, and a write of it by a guest is refused. |
 | `required` | A new record needs a value: its dialogs mark it and refuse to create the record without one, and the short dialogs (a new contact from a picker, a new task or subtask) show only the required fields. A later change may clear it. |
 | `api` (on) | Part of the REST and MCP payloads (since 1.7). Off, the field is left out of what an API token reads, and a write of it over the API is refused as an unknown field; a required field that is off is not required over the API. |
-| `template` (on), `import` (on) | Part of the document templates and of the import and export. |
+| `template` (on) | A variable of the document templates of the record (since 1.9), `{{ client.custom.<key> }}` for a contact and `{{ deal.custom.<key> }}` for a deal. Off, templates do not offer it. |
+| `import` (on) | A field of the record's import and a column of its export (since 1.9), where the record has an import (the contacts). Off, neither offers it. |
 
 Foresi checks the declarations when it first reads the fields and stops with a `LogicException` that names the class and the property: a column that is not nullable, a type the kind does not allow, options on a kind that is no select (or none on a select), an option key that is not lowercase letters, digits and underscores, a sortable or searchable kind that cannot be, a column without `#[CustomField]`, an association, an id that is not one `guid`, or two fields of one key.
 
@@ -605,6 +606,12 @@ To read and write the fields, inject `Foresi\Shared\Contract\Field\Fields`, neve
 Where a person sees and changes the fields, under "Additional details": the whole form and the detail of a contact, the form and the detail of a product, the dialogs and the side column of a deal, the sidebar of a task (each field saved on its own), and the new project dialog and the project's settings (the project's page shows none). Each input is the one of its kind: a text field, a number, a date, a date and time, a web address, a long text, a select, choice chips of a multi-select, a checkbox, and a picker of a contact or a person, which the filter sheet uses too. The record's update event (`party.contact.updated`, `sales.deal.updated`, `catalog.product.updated`, `work.task.updated`, `work.project.updated`) names the keys of the fields whose value changed in `customFields`, never the values.
 
 Over the REST API and MCP (since 1.7), every contact, deal, task, project and product carries `custom_fields`, an object with each field the token's person sees by key, and null for one without a value: a select gives its option key, a multi-select a list of them, a date `YYYY-MM-DD`, a date and time ISO 8601 with an offset, a number a JSON number, a contact or a user its id. The create and update operations of the five records (`contacts.create`, `foresi_update_deal` and the others) take `custom_fields` with the keys to set; null clears one, and a key left out keeps its value. A create without a value for a required field is refused. A refusal is an invalid `custom_fields.<key>` with the reason `unknown_field`, `invalid_value` or `field_required`. `GET /api/v1/fields` and the MCP tool `foresi_list_fields` list the definitions, one record kind with `record`, each with its key, kind, label, options and flags; they only read, and nothing creates a field over the API. The OpenAPI document and the schemas of the MCP tools describe `custom_fields` from the definitions (`ContactCustomFields` and the like), and a filterable field is a field of the `filter` of the record's search tool and of its REST list.
+
+In the import and the export (since 1.9), each field with `import` on is one more field of the record's import, in the group "Additional details", and one more column of its export, so an exported file imports again. Today the contacts are the record with an import. A cell is read by the field's kind: a select by an option's key or its label in Czech or English, a multi-select as such options separated by commas or semicolons, a yes/no field as the import reads yes and no, a date as the import reads dates, a date and time as `YYYY-MM-DD HH:MM` or ISO 8601 with an offset, a contact or a user by its id. The export writes options by their labels in the exporting person's language, dates as `YYYY-MM-DD` and numbers with a decimal point. The value is written through `Fields`, an undo of the import puts the earlier value back, and an empty cell keeps or clears the value as the import's option says. The import does not ask for a required field, because a row may only update a record that has it.
+
+In the document templates (since 1.9), each field with `template` on is a variable of its record below `custom`: `{{ client.custom.acme_fleet_industry }}` for a contact, which templates call the client, and `{{ deal.custom.<key> }}` for a deal. The other records have no variables in templates, so their fields have none either. The value is the text the record's detail shows, in the language of the person who generates the document: an option by its label, a date as their language writes it, yes or no, a contact or a person by name. A field without a value is empty, so a template that uses it never misses it. The editor lists the fields beside the record's own variables, and the preview shows an example of each kind.
+
+A module that adds an import target of its own for one of these records implements `Foresi\Import\Contract\FieldRecordTarget` instead of `ImportTarget` and returns the record kind from `fieldRecord()`, such as `ContactExtension::RECORD`; the import then adds the fields as above, and the target never sees their values. A document variable source may name a variable by a path, such as `custom.acme_fleet_industry`, and nest its value the same way.
 
 ### Run a job on a schedule
 
@@ -675,7 +682,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.8.0), and `"provide": {"foresi/module-api": "1.8.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.9.0), and `"provide": {"foresi/module-api": "1.9.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -691,11 +698,12 @@ What each minor version added:
 | 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
 | 1.7 | Custom fields over the REST API and MCP: `custom_fields` in the payloads of contacts, deals, tasks, projects and products and in their create and update operations, with the `api` flag honoured; `GET /api/v1/fields` and the MCP tool `foresi_list_fields`; the OpenAPI schemas of the fields, generated from the definitions. A module whose fields must reach the API requires `^1.7`. |
 | 1.8 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.sales.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `sales.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.8`. |
+| 1.9 | Custom fields in the import, the export and the document templates: the `import` and `template` flags take effect; `FieldRecordTarget` of Import, an import target whose records take custom fields; a `VariableDefinition` of Documents may be named by a path, such as `custom.acme_fleet_industry`. A module whose fields must reach the import or the templates requires `^1.9`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.8.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.9.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -703,7 +711,7 @@ This Foresi provides the module API 1.8.0, which these modules are not written f
 ```
 $ bin/console app:modules:check --api=2.0
  [ERROR] These modules are not written for the module API 2.0:
- * acme-fleet (acme/fleet) requires foresi/module-api ^1.7.
+ * acme-fleet (acme/fleet) requires foresi/module-api ^1.9.
 ```
 
 The deployment (`ops/deploy.sh`) runs `app:modules:check` after `composer install` and before the migrations, so an incompatible module never touches the database.
@@ -749,7 +757,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
-| `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, and a member of `custom_fields` over REST and MCP (since 1.7). |
+| `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, a member of `custom_fields` over REST and MCP (since 1.7), and a field of the import and export and a variable of the document templates (since 1.9). |
 | `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Sales\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
 | `Fields` (service), `FieldDefinition`, `FieldExpression` | — | The fields of a record kind, their values read once a request and written in the caller's transaction, and the DQL that reads them. |
 | `FieldSource` | `foresi.shared.field_source` | A source of fields of its own, such as fields defined at runtime. The core's source reads the record extensions. |
@@ -802,7 +810,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
-| Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
+| Import | `ImportTarget` (`foresi.import.target`) and its extension `FieldRecordTarget` (since 1.9), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
 | Margin | `MarginCostSource` (`foresi.margin.cost_source`), `MarginRevenueSource` (`foresi.margin.revenue_source`) |
@@ -831,7 +839,6 @@ These are known gaps. They will change, so do not build on them as if they were 
 - **`Money` and `Currency`** (`Foresi\Shared\Domain`) appear in some contracts of business modules, but are not part of the contract themselves. How Foresi models currencies is being settled, and these classes will change. Read them, but do not extend them or rely on their constructors.
 - **Response schemas in the OpenAPI document.** An operation's `response` names a schema of the document, and a module cannot add schemas to it yet. Leave `response` out: the endpoint works, and the document shows its answer without a schema of its data. A later module API version will let modules add schemas.
 - **Events wait for the relay.** An event that a module records is delivered to listeners and webhooks when the relay next runs, at most five minutes later, unless another change commits first. Foresi's own modules can hand events to the relay at once; that service is not in the contract yet.
-- **Custom fields in import, export and templates.** Since module API 1.7 a record's custom fields are in its dialogs, detail, lists, filters, saved views, text search, history, update event, REST and MCP. The import and export and the document templates do not show them yet; a later 1.x version adds them, without a change to an extension.
 - **No test kit.** The test support of acme/fleet (`ApiTestCase`, `SignedInBrowser`, `IdentityFixtures`) is part of this repository's tests, not a published package.
 - **Required modules' internals.** A module that requires a business module and uses its `Domain\` or `Application\` classes is not protected by the contract. Use only the other module's `Contract\` namespace.
 

@@ -15,6 +15,7 @@ use Foresi\Shared\Contract\Field\FieldDefinition;
 use Foresi\Shared\Contract\Field\FieldKind;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldText;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -78,6 +79,7 @@ final class CustomFields
         private readonly ReferenceNames $names,
         private readonly TranslatorInterface $translator,
         private readonly UrlGeneratorInterface $urls,
+        private readonly CustomFieldText $text,
     ) {
     }
 
@@ -173,21 +175,10 @@ final class CustomFields
         }
 
         return match ($definition->kind) {
-            FieldKind::Text, FieldKind::LongText => \is_scalar($value) ? (string) $value : null,
             FieldKind::Url => \is_string($value) ? ['links' => [['text' => $value, 'href' => $value]]] : null,
-            FieldKind::Number => is_numeric($value) ? new \NumberFormatter($this->translator->getLocale(), \NumberFormatter::DECIMAL)->format((float) $value) : null,
-            FieldKind::Date => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.date')) : null,
-            FieldKind::DateTime => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.datetime')) : null,
-            FieldKind::Boolean => $this->translator->trans(true === $value ? 'ui.attribute.yes' : 'ui.attribute.no'),
-            FieldKind::Select => \is_string($value) ? $this->option($definition, $value) : null,
-            FieldKind::MultiSelect => \is_array($value) ? implode(', ', array_map(fn (mixed $option): string => \is_string($option) ? $this->option($definition, $option) : '', $value)) : null,
             FieldKind::Contact, FieldKind::User => \is_string($value) ? $this->reference($definition, $value) : null,
+            default => $this->text->text($definition, $value),
         };
-    }
-
-    private function option(FieldDefinition $definition, string $option): string
-    {
-        return isset($definition->options[$option]) ? $this->translator->trans($definition->options[$option]) : $option;
     }
 
     private function reference(FieldDefinition $definition, string $id): mixed
