@@ -97,7 +97,7 @@ final class InboxController extends AbstractController
     /** The one order of the inbox, newest first. */
     private const string ORDER = '-received';
     /** The parts of the list's address an action carries back to it. */
-    private const array LIST_QUERY = ['view', WorkingFilter::PARAM, 'after', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY];
+    private const array LIST_QUERY = ['view', WorkingFilter::PARAM, 'after', WorkingDisplay::COLUMNS, WorkingDisplay::DENSITY, WorkingDisplay::WIDTHS];
 
     public function __construct(
         private readonly InboxLists $inboxLists,
@@ -652,7 +652,7 @@ final class InboxController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }
