@@ -191,6 +191,8 @@ api_tokens:
     time_entries: Čas
     documents: Dokumenty
     inbox: Schránka
+    inbox_suggestions: Návrhy ve schránce
+    inbox_decisions: Rozhodnutí o návrzích ve schránce
     mail_addresses: E-mailové adresy
   module:
     invoicing: Fakturace

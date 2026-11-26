@@ -31,7 +31,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * An item lists the actions the modules offer on it that the token may run
  * (available_actions): the operation, its MCP tool, its label in English, the
  * schema of its input and the values it starts with (prefill, with choices for
- * a field picked from a list), all by the fields' wire names.
+ * a field picked from a list), all by the fields' wire names; and the
+ * suggestions agents proposed on it (SuggestionJson), the oldest first. A row
+ * says how many of them are still open.
  */
 final readonly class InboxJson
 {
@@ -40,6 +42,7 @@ final readonly class InboxJson
         private InboxActions $actions,
         private ScopeGuard $scopes,
         private TranslatorInterface $translator,
+        private SuggestionJson $suggestions,
     ) {
     }
 
@@ -74,6 +77,7 @@ final readonly class InboxJson
             'email_activity_id' => $item->emailActivityId(),
             'trashed_at' => $item->trashedAt() instanceof \DateTimeImmutable ? $this->time($item->trashedAt()) : null,
             'available_actions' => $this->availableActions($detail),
+            'suggestions' => array_map($this->suggestions->of(...), $detail->suggestions),
         ];
     }
 
@@ -85,6 +89,7 @@ final readonly class InboxJson
         return $this->common($row->item, $row->message?->from, $row->message?->subject, $row->message->verdict ?? SenderCheck::UNKNOWN) + [
             'others_in_thread' => $row->otherInThread,
             'output_count' => $row->outputCount,
+            'open_suggestions' => $row->openSuggestions,
         ];
     }
 

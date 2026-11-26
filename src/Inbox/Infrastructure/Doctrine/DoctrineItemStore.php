@@ -14,6 +14,8 @@ use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Domain\ItemState;
+use Foresi\Inbox\Domain\Suggestion;
+use Foresi\Inbox\Domain\SuggestionState;
 use Foresi\Shared\Domain\Id;
 
 final readonly class DoctrineItemStore implements ItemStore
@@ -36,7 +38,7 @@ final readonly class DoctrineItemStore implements ItemStore
         return $this->em->getRepository(InboxItem::class)->findOneBy(['mailMessageId' => $mailMessageId]);
     }
 
-    public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array
+    public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit, ?bool $withOpenSuggestions = null): array
     {
         $query = $this->em->createQueryBuilder()
             ->select('i')
@@ -54,6 +56,15 @@ final readonly class DoctrineItemStore implements ItemStore
         }
         if (null !== $afterId) {
             $query->andWhere('i.id < :after')->setParameter('after', $afterId);
+        }
+        if (null !== $withOpenSuggestions) {
+            $open = $this->em->createQueryBuilder()
+                ->select('s.id')
+                ->from(Suggestion::class, 's')
+                ->where('s.item = i')
+                ->andWhere('s.state = :proposed')
+                ->getDQL();
+            $query->andWhere(($withOpenSuggestions ? 'EXISTS' : 'NOT EXISTS').' ('.$open.')')->setParameter('proposed', SuggestionState::Proposed);
         }
 
         /* @var list<InboxItem> */

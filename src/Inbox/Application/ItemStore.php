@@ -28,13 +28,14 @@ interface ItemStore
     /**
      * A page of an owner's items outside the trash, the newest first (by id).
      *
-     * @param ItemState|null $state     only the items in this state
-     * @param bool           $unmatched only the items with no contact
-     * @param string|null    $afterId   the id the page starts after, from the previous page
+     * @param ItemState|null $state               only the items in this state
+     * @param bool           $unmatched           only the items with no contact
+     * @param string|null    $afterId             the id the page starts after, from the previous page
+     * @param bool|null      $withOpenSuggestions only the items with (true) or without (false) an open suggestion; null for both
      *
      * @return list<InboxItem> at most $limit
      */
-    public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array;
+    public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit, ?bool $withOpenSuggestions = null): array;
 
     /**
      * How many items outside the trash an owner has in a state, counted up to a limit.

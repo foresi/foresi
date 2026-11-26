@@ -9,12 +9,14 @@ declare(strict_types=1);
 use Foresi\Inbox\Application\InboxTransaction;
 use Foresi\Inbox\Application\ItemsForOtherModules;
 use Foresi\Inbox\Application\ItemStore;
+use Foresi\Inbox\Application\SuggestionStore;
 use Foresi\Inbox\Contract\InboxActionCondition;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxPreFill;
 use Foresi\Inbox\Contract\RecordSuggester;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineInboxTransaction;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineSuggestionStore;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -32,6 +34,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../InboxBundle.php', '../Domain/', '../Contract/']);
 
     $services->alias(ItemStore::class, DoctrineItemStore::class);
+    $services->alias(SuggestionStore::class, DoctrineSuggestionStore::class);
     $services->alias(InboxTransaction::class, DoctrineInboxTransaction::class);
 
     // Modules propose the record an item is about through Foresi\Inbox\Contract\RecordSuggester.

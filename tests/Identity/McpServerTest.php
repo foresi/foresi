@@ -33,7 +33,7 @@ final class McpServerTest extends ApiTestCase
         'exchange-rate' => ['foresi_get_exchange_rate_source', 'foresi_set_exchange_rate_source'],
         'identity' => ['foresi_update_profile', 'foresi_whoami'],
         // With the inbox actions of the module only the tests have (tests/Inbox/Fixtures/Action) and those of Work, Sales and Activities (they exist only where the inbox is installed).
-        'inbox' => ['foresi_add_fixture_contact_note_from_email', 'foresi_add_fixture_note_from_email', 'foresi_add_project_budget_from_email', 'foresi_create_contact_from_inbox_item', 'foresi_create_deal_from_email', 'foresi_create_task_from_email', 'foresi_log_activity_from_email', 'foresi_log_time_from_email', 'foresi_discard_inbox_item', 'foresi_get_inbox_item', 'foresi_link_inbox_item', 'foresi_list_inbox_items', 'foresi_mark_inbox_item_done', 'foresi_match_inbox_item', 'foresi_match_inbox_item_again', 'foresi_reopen_inbox_item', 'foresi_restore_inbox_item', 'foresi_trash_inbox_item'],
+        'inbox' => ['foresi_add_fixture_contact_note_from_email', 'foresi_add_fixture_note_from_email', 'foresi_add_project_budget_from_email', 'foresi_create_contact_from_inbox_item', 'foresi_create_deal_from_email', 'foresi_create_task_from_email', 'foresi_log_activity_from_email', 'foresi_log_time_from_email', 'foresi_discard_inbox_item', 'foresi_get_inbox_item', 'foresi_link_inbox_item', 'foresi_list_inbox_items', 'foresi_mark_inbox_item_done', 'foresi_match_inbox_item', 'foresi_match_inbox_item_again', 'foresi_propose_inbox_suggestions', 'foresi_reopen_inbox_item', 'foresi_restore_inbox_item', 'foresi_trash_inbox_item'],
         'invoicing' => ['foresi_create_invoice', 'foresi_create_recurring_invoice', 'foresi_end_recurring_invoice', 'foresi_get_invoice', 'foresi_get_payment', 'foresi_get_recurring_invoice', 'foresi_list_recurring_invoices', 'foresi_mark_invoice_sent', 'foresi_pause_recurring_invoice', 'foresi_preview_recurring_invoice', 'foresi_restore_invoice', 'foresi_resume_recurring_invoice', 'foresi_search_invoices', 'foresi_search_payments', 'foresi_trash_invoice', 'foresi_update_invoice', 'foresi_update_recurring_invoice'],
         'mail' => ['foresi_create_mail_address', 'foresi_list_mail_addresses', 'foresi_rename_mail_address', 'foresi_replace_mail_address', 'foresi_revoke_mail_address'],
         'margin' => ['foresi_assign_received_document', 'foresi_client_margin', 'foresi_client_margin_cell', 'foresi_get_document_allocation', 'foresi_get_planned_item_allocation', 'foresi_get_supplier_default_recipient', 'foresi_list_unrebilled_costs', 'foresi_pair_rebill_line', 'foresi_set_line_allocation', 'foresi_set_planned_item_allocation', 'foresi_set_rebill_link', 'foresi_set_supplier_default_recipient', 'foresi_unpair_rebill_line'],
@@ -124,6 +124,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_match_inbox_item_again' => false,
         'foresi_pair_rebill_line' => false,
         'foresi_pause_recurring_invoice' => false,
+        'foresi_propose_inbox_suggestions' => false,
         'foresi_read_received_document_again' => false,
         'foresi_record_balance_checkpoint' => false,
         'foresi_record_received_document' => false,

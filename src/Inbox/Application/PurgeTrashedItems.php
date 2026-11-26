@@ -26,6 +26,7 @@ final readonly class PurgeTrashedItems
         private InboxTransaction $transaction,
         private MessageRetention $retention,
         private LinkableRecords $records,
+        private SuggestionStore $suggestions,
     ) {
     }
 
@@ -45,6 +46,9 @@ final readonly class PurgeTrashedItems
                 }
                 foreach ($this->store->outputs($item) as $output) {
                     $this->store->remove($output);
+                }
+                foreach ($this->suggestions->forItem($item) as $suggestion) {
+                    $this->suggestions->remove($suggestion);
                 }
                 $this->store->remove($item);
             }

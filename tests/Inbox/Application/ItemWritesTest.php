@@ -361,9 +361,9 @@ final class ItemWritesTest extends InboxTestCase
                 return $this->store->itemOfMessage($mailMessageId);
             }
 
-            public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array
+            public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit, ?bool $withOpenSuggestions = null): array
             {
-                return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit);
+                return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit, $withOpenSuggestions);
             }
 
             public function countInState(string $ownerUserId, ItemState $state, int $limit): int
