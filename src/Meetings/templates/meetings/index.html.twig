@@ -1,0 +1,55 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The meetings on saved views, as every list has them: All, Upcoming, Past and My meetings, the person's own
+    views, the filter sheet and the Settings sheet; the series, My meetings and when are the quick filters under
+    the tabs. New meeting opens a dialog over the list; Series opens the series; the trash is in the header menu.
+    Without JavaScript the same links are pages.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans}] %}
+
+{% block title %}{{ 'meetings.meetings.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:MoreActions menuId="meetings-actions">
+        <twig:block name="primary">
+            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_meetings_meeting_new')" id="meeting-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'meetings.meeting.new'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="buttons">
+            <twig:Ui:Button icon="list" :href="path('app_meetings_series')" id="meeting-series">{{ 'meetings.series.title'|trans }}</twig:Ui:Button>
+        </twig:block>
+        <twig:block name="phone">
+            <twig:Ui:MenuItem :href="path('app_meetings_series')" icon="list">{{ 'meetings.series.title'|trans }}</twig:Ui:MenuItem>
+        </twig:block>
+        <twig:Ui:MenuItem :href="path('app_meetings_trash')" icon="trash-2" data-meetings-trash>{{ 'meetings.trash.title'|trans }}</twig:Ui:MenuItem>
+    </twig:Ui:MoreActions>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Meetings/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {% set search = {name: 'q', value: text ?? '', label: 'meetings.meetings.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'meetings.meetings.views'|trans, toolsFilter: 'meeting-filters', toolsSearch: search, toolsColumns: {id: 'meeting-columns', action: path('app_meetings_meetings')}}) }}
+        <twig:Ui:FilterBar id="meeting-filters" :search="search" :action="path('app_meetings_meetings')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
+        </twig:Ui:FilterBar>
+
+        <twig:Ui:DataTable :caption="'meetings.meetings.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density">
+            <twig:block name="empty">
+                {% if filtered %}
+                    <twig:Ui:EmptyState icon="search" :title="'meetings.meetings.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="resetHref">{{ 'meetings.meetings.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif view == '' %}
+                    <twig:Ui:EmptyState icon="square-pen" :title="'meetings.meetings.empty.title'|trans" :text="'meetings.meetings.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_meetings_meeting_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'meetings.meeting.new'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="square-pen" :title="'meetings.meetings.empty.view_title'|trans" />
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
+{% endblock %}

@@ -1,0 +1,154 @@
+nav:
+  item:
+    meetings: Schůzky
+meetings:
+  cancel: Zrušit
+  save: Uložit
+  meetings:
+    title: Schůzky
+    views: Pohledy na schůzky
+    search_label: Hledat ve schůzkách
+    tab:
+      all: Vše
+      upcoming: Nadcházející
+      past: Proběhlé
+      mine: Moje schůzky
+    field:
+      series: Řada
+      mine: Moje schůzky
+      when: Kdy
+      held_on: Den
+    when:
+      upcoming: Nadcházející
+      past: Proběhlé
+    column:
+      held_on: Den
+      title: Název
+      series: Řada
+      attendees: Účastníci
+      links: Propojené záznamy
+    empty:
+      title: Zatím žádné schůzky
+      text: Veďte tu zápisy ze schůzek, s účastníky a záznamy, kterých se týkají.
+      view_title: V tomto pohledu není žádná schůzka
+      filtered_title: Filtru neodpovídá žádná schůzka
+      reset: Zrušit filtr
+  meeting:
+    new: Nová schůzka
+    create: Vytvořit schůzku
+    edit: Upravit
+    edit_minutes: Upravit zápis
+    trash: Přesunout do koše
+    restore: Obnovit
+    in_trash: V koši
+    one_off: Jednorázová schůzka
+    nobody: Nikdo
+    no_minutes: Zatím bez zápisu.
+    history: Historie
+    field:
+      series: Řada
+      title: Název
+      title_help: Když ho necháte prázdný, schůzka řady dostane název podle řady a dne.
+      held_on: Den
+      starts_at: Čas
+      attendees: Účastníci
+      links: Propojené záznamy
+      minutes: Zápis
+    link:
+      add_project: Propojit projekt
+      no_project: Žádný projekt
+      add_contact: Propojit kontakt
+      contact_placeholder: Najít kontakt
+      contact_empty: Žádný kontakt neodpovídá
+      kind:
+        project: Projekt
+        contact: Kontakt
+        deal: Obchod
+    flash:
+      created: Schůzka „{title}“ byla vytvořena.
+      saved: Schůzka byla uložena.
+      minutes_saved: Zápis byl uložen.
+      trashed: Schůzka „{title}“ byla přesunuta do koše. Za {days} dní se smaže natrvalo.
+      restored: Schůzka „{title}“ byla obnovena.
+    error:
+      title_required: Zadejte název schůzky.
+      title_too_long: Název je příliš dlouhý.
+      held_on_invalid: Vyberte den schůzky.
+      starts_at_invalid: Zadejte čas jako HH:MM, třeba 09:30.
+      attendee_unknown: Některý účastník už ve firmě není.
+      link_invalid: Propojený záznam není platný.
+      link_not_found: Propojený záznam se nenašel.
+      series_not_found: Řada se nenašla.
+      series_archived: Řada je archivovaná a nové schůzky nepřijímá.
+      minutes_too_long: Zápis je příliš dlouhý.
+      stale_minutes: Zápis mezitím změnil někdo jiný. Načtěte stránku znovu, ať vidíte jeho verzi.
+      trashed: Schůzka je v koši. Nejdřív ji obnovte.
+      not_found: Schůzka se nenašla.
+      not_trasher: Do koše ji může přesunout jen ten, kdo ji vytvořil, a majitelé.
+      forbidden: Schůzky firmy vedou jen její majitelé a členové.
+  series:
+    title: Řady
+    views: Pohledy na řady
+    new: Nová řada
+    create: Vytvořit řadu
+    edit: Upravit
+    archive: Archivovat
+    no_project: Žádný projekt
+    tab:
+      active: Aktivní
+      archived: Archivované
+    column:
+      name: Název
+      visibility: Kdo ji vidí
+      members: Členové
+      meetings: Schůzky
+      last: Poslední schůzka
+    visibility:
+      members: Její členové a účastníci
+      organisation: Celá firma
+    field:
+      name: Název
+      visibility: Kdo ji vidí
+      visibility_help: Majitelé vidí všechny řady. Řadu pro členy vidí její členové a účastníci jednotlivých schůzek.
+      members: Členové
+      defaults: Výchozí účastníci
+      defaults_help: Jsou účastníky každé nové schůzky řady.
+      default_project: Výchozí projekt
+      default_project_help: Projekt, který se nabídne jako první pro úkol ze zápisu.
+      agenda_template: Šablona programu
+      agenda_template_help: Zkopíruje se do zápisu každé nové schůzky. Pozdější změna stávající schůzky nemění.
+    empty:
+      title: Zatím žádné řady
+      text: Řada sdružuje opakované schůzky, třeba týdenní poradu výroby, s jejich lidmi a programem.
+    flash:
+      created: Řada „{name}“ byla vytvořena.
+      saved: Řada byla uložena.
+      archived: Řada „{name}“ byla archivována.
+    error:
+      name_required: Zadejte název řady.
+      name_too_long: Název je příliš dlouhý.
+      name_taken: Řada s tímto názvem už existuje.
+      visibility_invalid: Vyberte, kdo řadu vidí.
+      template_too_long: Šablona programu je příliš dlouhá.
+      project_not_found: Projekt se nenašel.
+      member_unknown: Některý člen už ve firmě není.
+      not_series_member: Řadu mění jen majitelé a její členové.
+      not_found: Řada se nenašla.
+      forbidden: Schůzky firmy vedou jen její majitelé a členové.
+  trash:
+    title: Koš
+    purge: Schůzky v koši se po {days} dnech smažou natrvalo.
+    empty: Koš je prázdný
+    column:
+      deleted_at: Přesunuto do koše
+  history:
+    someone: Někdo
+    created: "{who} vytvořil(a) schůzku"
+    changed: "{who} změnil(a) {what}"
+    trashed: "{who} přesunul(a) schůzku do koše"
+    restored: "{who} obnovil(a) schůzku"
+    fields: "{fields}"
+    attendees_added: "přidal(a) {names}"
+    attendees_removed: "odebral(a) {names}"
+    linked: "{count, plural, one {propojil(a) záznam} few {propojil(a) # záznamy} other {propojil(a) # záznamů}}"
+    unlinked: "{count, plural, one {odebral(a) propojení} few {odebral(a) # propojení} other {odebral(a) # propojení}}"
