@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Infrastructure;
 
 use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Infrastructure\Form\MailTokenLabels;
-use Foresi\Party\Domain\DocumentLanguage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

@@ -72,13 +72,6 @@ party:
     registration_country: Register country
     billing_city: Billing city
     billing_country: Billing country
-    default_due_days: Due period (days)
-    currency: Currency
-    payment_method: Payment method
-    language: Document language
-    reverse_charge: Reverse charge
-    reminders: Payment reminders
-    hourly_rate: Hourly rate
     vies_result: VIES
     unreliable_payer: Unreliable payer register
     archived_at: Archived at
@@ -131,7 +124,6 @@ party:
     billing: Billing address
     roles: Roles and note
     checks: Register checks
-    defaults: Document defaults
     note: Private note
     note_empty: No note yet.
   field:
@@ -164,12 +156,7 @@ party:
     unreliablePayerResult: Unreliable payer
     viesResult: VIES
     invoicingDefaults: Document defaults
-    invoicingDueDays: Due period
     legalEntity: Firm
-    invoicingCurrency: Currency
-    invoicingLanguage: Document language
-    invoicingPaymentMethod: Payment method
-    invoicingReverseCharge: Reverse charge
   lookup:
     label: Find in a register
     help: Registration number or at least three letters of a name
@@ -252,19 +239,6 @@ party:
       delete: Delete the address?
       delete_text: The address goes from the contact. Documents that already show it do not change.
       delete_accept: Delete
-  defaults:
-    due_days: Due period
-    days: '{count, plural, one {# day} other {# days}}'
-    currency: Currency
-    language: Document language
-    reverse_charge: Reverse charge
-  payment_method:
-    bank_transfer: Bank transfer
-    cash: Cash
-    card: Card
-  language:
-    cs: Czech
-    en: English
   history:
     empty: There is no change yet.
     entry: '{action}: {subject} ({fields})'
@@ -310,6 +284,4 @@ party:
     company_identifier: A company needs a registration number or a VAT ID.
     save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
-    due_days: Enter a whole number of days from 0 to 365.
     choice: Choose one of the options.
-    hourly_rate: Enter a rate, such as 1500 or 1500.50.

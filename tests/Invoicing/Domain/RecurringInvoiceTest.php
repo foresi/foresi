@@ -8,15 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\RecurringContent;
 use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Domain\TaxPointRule;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;

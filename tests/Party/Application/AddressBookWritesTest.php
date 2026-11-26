@@ -20,16 +20,12 @@ use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Application\UpdateParty;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
-use Foresi\Shared\Domain\Currency;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookWritesTest extends KernelTestCase
@@ -73,26 +69,19 @@ final class AddressBookWritesTest extends KernelTestCase
         self::assertCount(1, $this->details()->emails($party));
     }
 
-    public function testMobileWebsiteAndDocumentDefaultsAreStoredOnCreateAndUpdate(): void
+    public function testMobileAndWebsiteAreStoredOnCreateAndUpdate(): void
     {
         $address = new Address('Example Street 1', 'Example City', '100 00', 'CZ');
-        $defaults = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, false);
-        $party = self::getContainer()->get(CreateParty::class)->createFrom(new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', ' +420 987 654 321 ', ' www.example.com ', $defaults));
+        $party = self::getContainer()->get(CreateParty::class)->createFrom(new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', ' +420 987 654 321 ', ' www.example.com '));
 
         self::assertSame('+420 987 654 321', $party->mobile());
         self::assertSame('www.example.com', $party->website());
-        self::assertEquals($defaults, $party->invoicingDefaults());
 
-        // The form sends no document defaults: they stay.
         $this->update($party, new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, '', '+420 111 222 333', ''));
         $this->em->clear();
         $party = $this->query()->find($party->id()) ?? self::fail();
         self::assertSame('+420 111 222 333', $party->mobile());
         self::assertSame('', $party->website());
-        self::assertEquals($defaults, $party->invoicingDefaults());
-
-        $this->update($party, new PartyInput(PartyKind::SoleTrader, 'Example Trader', null, null, '', '', [], $address, invoicingDefaults: InvoicingDefaults::standard()));
-        self::assertEquals(InvoicingDefaults::standard(), $party->invoicingDefaults());
     }
 
     public function testUpdateAddsAMissingEmailAndRemovesAClearedOne(): void

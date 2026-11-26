@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\InvalidMailTemplate;
 use Foresi\Invoicing\Domain\MailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\DocumentLanguage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

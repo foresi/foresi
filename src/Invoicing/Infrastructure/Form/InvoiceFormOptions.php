@@ -10,13 +10,13 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\PaymentMethod;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

@@ -13,9 +13,9 @@ use Foresi\Invoicing\Application\MailTemplates;
 use Foresi\Invoicing\Application\MailVariables;
 use Foresi\Invoicing\Application\RenderedMail;
 use Foresi\Invoicing\Application\UnknownMailVariables;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\MailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

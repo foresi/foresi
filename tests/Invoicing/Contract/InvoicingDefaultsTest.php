@@ -6,11 +6,11 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Domain;
+namespace Foresi\Tests\Invoicing\Contract;
 
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;

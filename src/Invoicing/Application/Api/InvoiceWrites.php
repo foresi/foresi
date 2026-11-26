@@ -26,6 +26,8 @@ use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
@@ -34,10 +36,8 @@ use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 
 /**

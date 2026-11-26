@@ -10,8 +10,8 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\DeductibleAdvances;
 use Foresi\Invoicing\Application\DocumentChain;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 
 /**

@@ -14,7 +14,6 @@ use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
@@ -76,9 +75,6 @@ final readonly class CreateParty
             $party->changePrivateNote($input->privateNote);
             $party->changeMobile($input->mobile);
             $party->changeWebsite($input->website);
-            if ($input->invoicingDefaults instanceof InvoicingDefaults) {
-                $party->changeInvoicingDefaults($input->invoicingDefaults);
-            }
             $emails = '' === trim($input->email) ? [] : [new PartyEmail($party, $input->email, EmailPurpose::General)];
             $this->parties->register($party, new PartyAddress($party, AddressType::Billing, $input->billingAddress), $emails);
             if (null !== $input->customFields) {

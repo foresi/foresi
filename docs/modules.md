@@ -803,10 +803,10 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
 | Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
-| Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
+| Invoicing | `InvoicingCountry` (`foresi.invoicing.country`); the service `PartyInvoicingDefaults`, the invoicing defaults of a contact (due period, currency, document language, payment method, reverse charge, reminders, hourly rate), with `InvoicingDefaults`, `DocumentLanguage` and `PaymentMethod` (moved from Party's domain) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
 | Margin | `MarginCostSource` (`foresi.margin.cost_source`), `MarginRevenueSource` (`foresi.margin.revenue_source`) |
-| Party | `BankAccountUsage` (`foresi.party.bank_account_usage`) |
+| Party | `BankAccountUsage` (`foresi.party.bank_account_usage`); what another module keeps for each contact: `ContactColumns` (`foresi.party.contact_columns`, columns of the contact list that sort and filter), `ContactImportColumns` (`foresi.party.contact_import_columns`, columns of the contact import and export, with `ContactImportColumn`), `ContactDueDays` (`foresi.party.contact_due_days`, the due period of `PartySummary`) and the slot `ContactCards::SLOT` (`party.contact_cards`, cards of the contact's detail), added with the move of the invoicing defaults to Invoicing |
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
 | Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.8) |

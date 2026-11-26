@@ -30,6 +30,7 @@ use Foresi\Invoicing\Application\UnknownInvoiceSend;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Contract\Event\DeliveryChannel;
 use Foresi\Invoicing\Contract\Event\InvoiceDelivered;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
@@ -108,6 +109,7 @@ final readonly class DeliverInvoiceSendHandler
         private LoggerInterface $logger,
         private InvoiceBalances $balances,
         private ReminderSettings $reminders,
+        private PartyInvoicingDefaults $partyDefaults,
         private SendDraft $drafts,
         private EventRecorder $events,
         private Markdown $markdown,
@@ -235,7 +237,7 @@ final readonly class DeliverInvoiceSendHandler
 
     private function stillReminded(Invoice $invoice): bool
     {
-        return $this->reminders->get()->enabled() && $invoice->customerParty()->invoicingDefaults()->sendReminders;
+        return $this->reminders->get()->enabled() && $this->partyDefaults->of($invoice->customerParty()->id())->sendReminders;
     }
 
     /**

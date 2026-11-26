@@ -9,12 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Country\Integration\Invoicing\CzechRepublic;
 
 use Foresi\Invoicing\Contract\IssuedDocument;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\RateSummary;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Contract\VatRegime;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 

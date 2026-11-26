@@ -19,6 +19,10 @@ use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\RecordPayment;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
@@ -26,9 +30,6 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Domain\VariableSymbol;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -97,7 +98,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
 
     public function testWhatIsLeftOutTakesTheDefaultsOfTheFormForTheCustomer(): void
     {
-        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
         $this->em->flush();
 
         $invoice = $this->stored($this->writes->create(new CreateInvoiceInput(
@@ -188,7 +189,7 @@ final class InvoiceWritesTest extends InvoicingReadTestCase
     public function testNewLinesOfAChangeTakeTheReverseChargeOfTheCustomer(): void
     {
         $id = $this->created();
-        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
         $this->em->flush();
 
         $this->writes->update(new UpdateInvoiceInput(invoiceId: $id, lines: [['text' => 'Review', 'unit_price' => '500.00']]));

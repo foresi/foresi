@@ -33,24 +33,22 @@ use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
 use Foresi\Party\Application\UpdateParty;
+use Foresi\Party\Contract\ContactImportColumns;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\ContactLink;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyChanges;
-use Foresi\Shared\Domain\Currency;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -79,6 +77,9 @@ final readonly class PartyImportTarget implements ImportTarget
         'contactLinks' => ContactLink::class,
     ];
 
+    /**
+     * @param iterable<ContactImportColumns> $columns the columns other modules add
+     */
     public function __construct(
         private EntityManagerInterface $em,
         private ImportPartyValues $reader,
@@ -95,6 +96,8 @@ final readonly class PartyImportTarget implements ImportTarget
         private MessageBusInterface $bus,
         private AuditCorrelation $correlation,
         private TranslatorInterface $translator,
+        #[AutowireIterator(ContactImportColumns::TAG)]
+        private iterable $columns = [],
     ) {
     }
 
@@ -139,11 +142,26 @@ final readonly class PartyImportTarget implements ImportTarget
             $field('contact_email', FieldType::Email, ['e mail kontaktni osoby', 'contact email'], 'contact'),
             $field('contact_phone', FieldType::Phone, ['telefon kontaktni osoby', 'contact phone'], 'contact'),
             $field('contact_position', FieldType::Text, ['pozice', 'funkce', 'position'], 'contact'),
-            $field('due_days', FieldType::Integer, ['splatnost', 'due days']),
-            $field('currency', FieldType::Choice, ['mena', 'currency'], choices: array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
-            $field('payment_method', FieldType::Choice, ['zpusob platby', 'forma uhrady', 'payment method'], choices: array_map(static fn (PaymentMethod $method): string => $method->value, PaymentMethod::cases())),
+            ...$this->contributedFields(),
             $field('private_note', FieldType::Text, ['poznamka', 'note']),
         ];
+    }
+
+    /**
+     * The fields of the columns other modules add, before the note.
+     *
+     * @return list<FieldDefinition>
+     */
+    private function contributedFields(): array
+    {
+        $fields = [];
+        foreach ($this->columns as $columns) {
+            foreach ($columns->columns() as $column) {
+                $fields[] = new FieldDefinition($column->key, $column->labelKey, FieldType::from($column->type), aliases: $column->aliases, choices: $column->choices);
+            }
+        }
+
+        return $fields;
     }
 
     /**
@@ -184,6 +202,11 @@ final readonly class PartyImportTarget implements ImportTarget
         $errors = [];
         foreach ($this->read($values)->errors as $field => [$messageKey, $parameters]) {
             $errors[] = new RowError($field, $messageKey, $parameters);
+        }
+        foreach ($this->columns as $columns) {
+            foreach ($columns->check($values) as $field => [$messageKey, $parameters]) {
+                $errors[] = new RowError($field, $messageKey, $parameters);
+            }
         }
 
         return $errors;
@@ -238,6 +261,9 @@ final readonly class PartyImportTarget implements ImportTarget
     {
         $row = $this->read($values);
         $party = $this->createParty->createFrom($this->reader->input($row));
+        foreach ($this->columns as $columns) {
+            $columns->write($party->id(), $values, false, true);
+        }
         $added = $this->addChildren($party, $row);
         if ($party->vatId() instanceof VatId) {
             $this->recheck($party);
@@ -263,6 +289,9 @@ final readonly class PartyImportTarget implements ImportTarget
 
         $row = $this->read($values);
         $this->updateParty->update($party, $this->reader->merge($party, $billing?->address(), $general?->address() ?? '', $row, BlankCells::Clear === $blankCells));
+        foreach ($this->columns as $columns) {
+            $columns->write($party->id(), $values, BlankCells::Clear === $blankCells, false);
+        }
         $added = $this->addChildren($party, $row);
         if (!$general instanceof PartyEmail && ($new = $this->details->generalEmail($party)) instanceof PartyEmail) {
             $added['emails'][] = $new->id();
@@ -540,15 +569,19 @@ final readonly class PartyImportTarget implements ImportTarget
     }
 
     /**
-     * Everything an undo of an update puts back: the fields, the billing address and the general e-mail.
+     * Everything an undo of an update puts back: the fields, the billing address, the general e-mail
+     * and what the columns of other modules keep (ContactImportColumns).
      *
      * @return array<string, mixed>
      */
     private function snapshot(Party $party, ?PartyAddress $billing, ?PartyEmail $general): array
     {
         $registration = $party->registrationNumber();
-        $defaults = $party->invoicingDefaults();
         $address = $billing?->address();
+        $columns = [];
+        foreach ($this->columns as $contributed) {
+            $columns[$contributed->key()] = $contributed->snapshot($party->id());
+        }
 
         return [
             'party' => [
@@ -561,13 +594,8 @@ final readonly class PartyImportTarget implements ImportTarget
                 'website' => $party->website(),
                 'roles' => array_map(static fn (PartyRole $role): string => $role->value, $party->roles()),
                 'privateNote' => $party->privateNote(),
-                'dueDays' => $defaults->dueDays,
-                'currency' => $defaults->currency->value,
-                'language' => $defaults->language->value,
-                'paymentMethod' => $defaults->paymentMethod->value,
-                'reverseCharge' => $defaults->reverseCharge,
-                'sendReminders' => $defaults->sendReminders,
             ],
+            'columns' => $columns,
             'billing' => $address instanceof Address ? ['street' => $address->street, 'city' => $address->city, 'postalCode' => $address->postalCode, 'countryCode' => $address->countryCode] : null,
             'generalEmail' => $general instanceof PartyEmail ? ['id' => $general->id(), 'address' => $general->address()] : null,
         ];
@@ -593,17 +621,14 @@ final readonly class PartyImportTarget implements ImportTarget
         $party->changeWebsite($text('website'));
         $party->assignRoles(array_values(array_filter(array_map(static fn (mixed $role): ?PartyRole => \is_string($role) ? PartyRole::tryFrom($role) : null, \is_array($fields['roles'] ?? null) ? $fields['roles'] : []))));
         $party->changePrivateNote($text('privateNote'));
-        $standard = InvoicingDefaults::standard();
-        $party->changeInvoicingDefaults(new InvoicingDefaults(
-            \is_int($fields['dueDays'] ?? null) ? $fields['dueDays'] : $standard->dueDays,
-            Currency::tryFrom($text('currency')) ?? $standard->currency,
-            DocumentLanguage::tryFrom($text('language')) ?? $standard->language,
-            PaymentMethod::tryFrom($text('paymentMethod')) ?? $standard->paymentMethod,
-            true === ($fields['reverseCharge'] ?? null),
-            false !== ($fields['sendReminders'] ?? null),
-            // An import never sets the hourly rate, so the undo leaves it as it is.
-            $party->invoicingDefaults()->hourlyRate(),
-        ));
+        // An undo written before the columns of other modules had their own place found theirs among the party's.
+        $columns = \is_array($data['columns'] ?? null) ? $data['columns'] : null;
+        foreach ($this->columns as $contributed) {
+            $snapshot = null === $columns ? $fields : ($columns[$contributed->key()] ?? null);
+            if (\is_array($snapshot)) {
+                $contributed->restore($party->id(), $snapshot);
+            }
+        }
 
         $billing = $data['billing'] ?? null;
         $current = $this->details->billingAddress($party);
@@ -644,7 +669,10 @@ final readonly class PartyImportTarget implements ImportTarget
         $link = $links[0] ?? null;
         $person = $link?->person();
         $registration = $party->registrationNumber();
-        $defaults = $party->invoicingDefaults();
+        $contributed = [];
+        foreach ($this->columns as $columns) {
+            $contributed += $columns->export($party->id());
+        }
 
         return [
             'id' => $party->id(),
@@ -680,9 +708,7 @@ final readonly class PartyImportTarget implements ImportTarget
             'contact_email' => null === $person ? '' : ($this->details->generalEmail($person)?->address() ?? ''),
             'contact_phone' => $person?->phone() ?? '',
             'contact_position' => $link?->position() ?? '',
-            'due_days' => (string) $defaults->dueDays,
-            'currency' => $defaults->currency->value,
-            'payment_method' => $defaults->paymentMethod->value,
+            ...$contributed,
             'private_note' => $party->privateNote(),
         ];
     }

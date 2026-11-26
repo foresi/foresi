@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Shared\Domain\Money;
 
 /**

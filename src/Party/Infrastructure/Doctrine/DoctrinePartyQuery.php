@@ -112,6 +112,10 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         $descending = str_starts_with($sort, '-');
         // A sortable custom field sorts by its column in the row of its extension (ADR 0045).
         [$join, $by] = $this->fieldSort(ltrim($sort, '-'));
+        if (null === $by) {
+            // A column of another module sorts by its row (ContactColumns).
+            $join = $this->source->join(ltrim($sort, '-'));
+        }
         $order = array_values(array_unique([$by ?? $this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_NAME, self::ORDER_NAME]));
         $ids = PartyConditions::bind($this->em->createQuery(
             'SELECT p.id FROM '.Party::class.' p '.$join.' WHERE '.$where.' ORDER BY '
@@ -197,6 +201,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         // The custom fields of the page, read once for its columns (ADR 0045).
         $this->fields->values(ContactExtension::RECORD, $ids);
+        $this->source->load($ids);
         $byId = [];
         foreach ($this->findMany($ids) as $party) {
             $id = $party->id();

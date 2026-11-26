@@ -95,9 +95,7 @@
                     {% endif %}
                 </twig:Ui:Card>
 
-                <twig:Ui:Card :title="'party.card.defaults'|trans" icon="receipt-text">
-                    <twig:Ui:DescriptionList :items="defaults" />
-                </twig:Ui:Card>
+                {% for card in slot_items(constant('Foresi\\Party\\Contract\\ContactCards::SLOT'), {contactId: id}) %}{{ include(card.template, card.data) }}{% endfor %}
 
                 <twig:Ui:CustomFields :record="constant('Foresi\\Party\\Contract\\Field\\ContactExtension::RECORD')" mode="detail" :id="id" />
 

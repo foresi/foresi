@@ -195,7 +195,6 @@ final class PartyController extends AbstractController
             'accounts' => $unreliable ? $party->publishedBankAccounts() : [],
             'hasVatId' => $vatId instanceof VatId,
             'note' => $party->privateNote(),
-            'defaults' => $this->defaults($party),
             'locale' => $locale,
         ];
 
@@ -519,21 +518,6 @@ final class PartyController extends AbstractController
     }
 
     /**
-     * @return list<array{label: string, value: string}>
-     */
-    private function defaults(Party $party): array
-    {
-        $defaults = $party->invoicingDefaults();
-
-        return [
-            ['label' => $this->translator->trans('party.defaults.due_days'), 'value' => $this->translator->trans('party.defaults.days', ['count' => $defaults->dueDays])],
-            ['label' => $this->translator->trans('party.defaults.currency'), 'value' => $defaults->currency->value],
-            ['label' => $this->translator->trans('party.defaults.language'), 'value' => $this->translator->trans('locale.'.$defaults->language->value)],
-            ['label' => $this->translator->trans('party.defaults.reverse_charge'), 'value' => $this->translator->trans($defaults->reverseCharge ? 'party.yes' : 'party.no')],
-        ];
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function contactsTab(Party $party): array
@@ -662,7 +646,7 @@ final class PartyController extends AbstractController
         return array_map(function (PartyHistoryEntry $entry): array {
             $fields = [];
             foreach ($entry->fields as $field) {
-                // Embedded values (address.street, invoicingDefaults.currency) are reported as the embedded value.
+                // Embedded values (address.street, invoicingDefaults.currency of Invoicing) are reported as the embedded value.
                 $field = explode('.', $field)[0];
                 if (\in_array($field, self::QUIET_FIELDS, true)) {
                     continue;

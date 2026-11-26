@@ -21,6 +21,8 @@ use Foresi\Import\Contract\RecordSnapshot;
 use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
@@ -34,7 +36,6 @@ use Foresi\Party\Domain\PartyBankAccount;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Integration\Import\PartyImportTarget;
 use Foresi\Shared\Domain\Currency;
@@ -133,9 +134,9 @@ final class PartyImportTargetTest extends KernelTestCase
         yield 'IBAN wins over the domestic account' => [['bank_account_iban' => 'CZ0303000000190000123457', 'bank_account_number' => '123456789', 'bank_code' => '0100'], self::accounts(...), [['CZ0303000000190000123457', null, true]]];
         yield 'contact person' => [['contact_title' => 'Ing.', 'contact_first_name' => 'Jana', 'contact_last_name' => 'Example', 'contact_email' => 'jana@example.com', 'contact_phone' => '+420 111 222 333', 'contact_position' => 'Accountant'], self::contact(...), ['Ing. Jana Example', 'jana@example.com', '+420 111 222 333', 'Accountant', true]];
         yield 'contact person by full name' => [['contact_name' => 'Jana Example', 'contact_first_name' => 'Ignored'], self::contact(...), ['Jana Example', null, '', '', true]];
-        yield 'due days' => [['due_days' => 30], static fn (Party $p): int => $p->invoicingDefaults()->dueDays, 30];
-        yield 'currency' => [['currency' => 'EUR'], static fn (Party $p): Currency => $p->invoicingDefaults()->currency, Currency::EUR];
-        yield 'payment method' => [['payment_method' => 'cash'], static fn (Party $p): PaymentMethod => $p->invoicingDefaults()->paymentMethod, PaymentMethod::Cash];
+        yield 'due days' => [['due_days' => 30], static fn (Party $p): int => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->dueDays, 30];
+        yield 'currency' => [['currency' => 'EUR'], static fn (Party $p): Currency => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->currency, Currency::EUR];
+        yield 'payment method' => [['payment_method' => 'cash'], static fn (Party $p): PaymentMethod => self::getContainer()->get(PartyInvoicingDefaults::class)->of($p->id())->paymentMethod, PaymentMethod::Cash];
         yield 'private note' => [['private_note' => 'Pays late'], static fn (Party $p): string => $p->privateNote(), 'Pays late'];
     }
 
@@ -416,7 +417,7 @@ final class PartyImportTargetTest extends KernelTestCase
     {
         $id = $this->create($this->values(['email' => ['info@example.com', 'copy@example.com'], 'phone' => '+420 123 456 789', 'website' => 'https://old.example.com', 'roles' => 'supplier', 'due_days' => 30, 'currency' => 'EUR', 'bank_account_iban' => 'CZ0303000000190000123457']))->id;
         $party = $this->find($id);
-        $party->changeInvoicingDefaults(new \Foresi\Party\Domain\InvoicingDefaults(30, Currency::EUR, \Foresi\Party\Domain\DocumentLanguage::English, PaymentMethod::Card, true));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new \Foresi\Invoicing\Contract\InvoicingDefaults(30, Currency::EUR, \Foresi\Invoicing\Contract\DocumentLanguage::English, PaymentMethod::Card, true));
         $this->em->flush();
         $before = $this->state($id);
 
@@ -764,7 +765,7 @@ final class PartyImportTargetTest extends KernelTestCase
      */
     private function scalars(Party $party): array
     {
-        $defaults = $party->invoicingDefaults();
+        $defaults = self::getContainer()->get(PartyInvoicingDefaults::class)->of($party->id());
 
         return [$party->phone(), $party->mobile(), $party->website(), $party->vatId()?->toString(), $party->privateNote(), $party->roles(), $defaults->dueDays, $defaults->currency, $defaults->paymentMethod];
     }
@@ -779,7 +780,7 @@ final class PartyImportTargetTest extends KernelTestCase
         $this->em->clear();
         $party = $this->find($id);
         $details = $this->details();
-        $defaults = $party->invoicingDefaults();
+        $defaults = self::getContainer()->get(PartyInvoicingDefaults::class)->of($party->id());
 
         return [
             'party' => [$party->displayName(), $party->registrationNumber()?->value, $party->vatId()?->toString(), $party->phone(), $party->mobile(), $party->website(), $party->roles(), $party->privateNote(), $party->isArchived()],

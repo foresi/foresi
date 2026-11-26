@@ -10,6 +10,7 @@ namespace Foresi\Timesheet\Application;
 
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
@@ -40,6 +41,7 @@ final readonly class RateResolver
         private Projects $projects,
         private People $people,
         private ProjectTimeSettingStore $settings,
+        private PartyInvoicingDefaults $partyDefaults,
         private iterable $sources = [],
     ) {
     }
@@ -68,7 +70,7 @@ final readonly class RateResolver
             return new ResolvedRate($rate, RateSource::Project);
         }
         $client = $project->client();
-        $rate = $client instanceof Party ? $client->invoicingDefaults()->hourlyRate() : null;
+        $rate = $client instanceof Party ? $this->partyDefaults->of($client->id())->hourlyRate() : null;
         if ($rate instanceof Money) {
             return new ResolvedRate($rate, RateSource::Client);
         }

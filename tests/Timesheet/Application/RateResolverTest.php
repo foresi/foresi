@@ -12,11 +12,12 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Application\ProjectTimeSettingStore;
@@ -40,6 +41,9 @@ final class RateResolverTest extends TestCase
 {
     /** @var array<string, ProjectTimeSetting> the time settings of the projects, by id */
     private array $settings = [];
+
+    /** @var array<string, InvoicingDefaults> the defaults of the clients by party id */
+    private array $clientDefaults = [];
 
     /**
      * Rates as "1500 CZK"; null for none.
@@ -67,7 +71,9 @@ final class RateResolverTest extends TestCase
     public function testTheRateComesFromTheFirstLevelThatHasOne(array $rates, bool $client, ?array $expected): void
     {
         $party = $client ? new Party(PartyKind::Person, 'Example Client', null, null, '') : null;
-        $party?->changeInvoicingDefaults($this->defaults($this->money($rates['client'] ?? null)));
+        if ($party instanceof Party) {
+            $this->clientDefaults[$party->id()] = $this->defaults($this->money($rates['client'] ?? null));
+        }
         $project = new Project('Website', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
         $this->rate($project, $this->money($rates['project'] ?? null));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
@@ -88,7 +94,7 @@ final class RateResolverTest extends TestCase
     public function testALinkedDealLineRateComesFirst(): void
     {
         $party = new Party(PartyKind::Person, 'Example Client', null, null, '');
-        $party->changeInvoicingDefaults($this->defaults(Money::of('1100', Currency::CZK)));
+        $this->clientDefaults[$party->id()] = $this->defaults(Money::of('1100', Currency::CZK));
         $project = new Project('DUD', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
         $this->rate($project, Money::of('1000', Currency::CZK));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
@@ -176,7 +182,10 @@ final class RateResolverTest extends TestCase
         $settings = self::createStub(ProjectTimeSettingStore::class);
         $settings->method('setting')->willReturnCallback(fn (Project $of): ?ProjectTimeSetting => $this->settings[$of->id()] ?? null);
 
-        return new RateResolver($projects, $people, $settings, $sources);
+        $defaults = self::createStub(PartyInvoicingDefaults::class);
+        $defaults->method('of')->willReturnCallback(fn (string $id): InvoicingDefaults => $this->clientDefaults[$id] ?? InvoicingDefaults::standard());
+
+        return new RateResolver($projects, $people, $settings, $defaults, $sources);
     }
 
     private function rate(Project $project, ?Money $rate): void

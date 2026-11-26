@@ -19,10 +19,10 @@ use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Application\ConflictRetry;
 use Foresi\Shared\Application\TransactionalWork;
 

@@ -10,22 +10,20 @@ namespace Foresi\Party\Infrastructure\Column;
 
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\ContactColumns;
 use Foresi\Party\Contract\Contacts;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistryResult;
-use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\DataSource;
 use Foresi\Ui\Contract\RelationTarget;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -57,8 +55,15 @@ final readonly class ContactSource implements DataSource, RelationTarget
     /** The billing address of the contact "p", which the filters of its city and country read in. */
     private const string BILLING = PartyAddress::class.' a WHERE a.party = p AND a.type = \'billing\'';
 
-    public function __construct(private TranslatorInterface $translator, private InstanceClock $instanceClock)
-    {
+    /**
+     * @param iterable<ContactColumns> $columns
+     */
+    public function __construct(
+        private TranslatorInterface $translator,
+        private InstanceClock $instanceClock,
+        #[AutowireIterator(ContactColumns::TAG)]
+        private iterable $columns = [],
+    ) {
     }
 
     public function root(string $list): ?string
@@ -73,7 +78,6 @@ final readonly class ContactSource implements DataSource, RelationTarget
         }
         $label = static fn (string $key): string => 'party.column.'.$key;
         $party = static fn (\Closure $read): \Closure => static fn (PartyRow $row): mixed => $row->party instanceof Party ? $read($row->party) : null;
-        $defaults = static fn (\Closure $read): \Closure => $party(static fn (Party $contact): mixed => $read($contact->invoicingDefaults()));
         $billing = static fn (\Closure $read): \Closure => static fn (PartyRow $row): mixed => $row->billing instanceof Address ? $read($row->billing) : null;
 
         return [
@@ -93,16 +97,10 @@ final readonly class ContactSource implements DataSource, RelationTarget
             new Attribute('registration_country', $label('registration_country'), AttributeType::Country, $party(static fn (Party $contact): ?string => $contact->registrationNumber()?->countryCode), sort: 'p.registrationCountry', defaultPosition: 140, phone: false, filterable: true),
             new Attribute('billing_city', $label('billing_city'), AttributeType::Text, $billing(static fn (Address $address): string => $address->city), defaultPosition: 150, phone: false, truncate: true, filterable: true, filter: 'a.address.city', within: self::BILLING),
             new Attribute('billing_country', $label('billing_country'), AttributeType::Country, $billing(static fn (Address $address): string => $address->countryCode), defaultPosition: 160, phone: false, filterable: true, filter: 'a.address.countryCode', within: self::BILLING),
-            new Attribute('default_due_days', $label('default_due_days'), AttributeType::Number, $defaults(static fn (InvoicingDefaults $values): int => $values->dueDays), sort: 'p.invoicingDefaults.dueDays', defaultPosition: 170, phone: false, filterable: true),
-            new Attribute('currency', $label('currency'), AttributeType::Text, $defaults(static fn (InvoicingDefaults $values): string => $values->currency->value), sort: 'p.invoicingDefaults.currency', defaultPosition: 180, phone: false, filterable: true),
-            new Attribute('payment_method', $label('payment_method'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): PaymentMethod => $values->paymentMethod), sort: 'p.invoicingDefaults.paymentMethod', defaultPosition: 190, options: $this->options(PaymentMethod::cases(), 'party.payment_method.'), phone: false, filterable: true),
-            new Attribute('language', $label('language'), AttributeType::Enum, $defaults(static fn (InvoicingDefaults $values): DocumentLanguage => $values->language), sort: 'p.invoicingDefaults.language', defaultPosition: 200, options: $this->options(DocumentLanguage::cases(), 'party.language.'), phone: false, filterable: true),
-            new Attribute('reverse_charge', $label('reverse_charge'), AttributeType::Boolean, $defaults(static fn (InvoicingDefaults $values): bool => $values->reverseCharge), sort: 'p.invoicingDefaults.reverseCharge', defaultPosition: 210, phone: false, filterable: true),
-            new Attribute('reminders', $label('reminders'), AttributeType::Boolean, $defaults(static fn (InvoicingDefaults $values): bool => $values->sendReminders), sort: 'p.invoicingDefaults.sendReminders', defaultPosition: 220, phone: false, filterable: true),
-            new Attribute('hourly_rate', $label('hourly_rate'), AttributeType::Money, $defaults(static fn (InvoicingDefaults $values): ?Money => $values->hourlyRate()), sort: 'p.invoicingDefaults.hourlyRateMinor', defaultPosition: 230, phone: false, filterable: true),
             new Attribute('vies_result', $label('vies_result'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->viesCheck()?->result), sort: 'p.viesResult', defaultPosition: 240, options: $this->options(RegistryResult::cases(), 'registry.result.'), phone: false, filterable: true),
             new Attribute('unreliable_payer', $label('unreliable_payer'), AttributeType::Enum, $party(static fn (Party $contact): ?RegistryResult => $contact->unreliablePayerCheck()?->result), sort: 'p.unreliablePayerResult', defaultPosition: 250, options: $this->options(RegistryResult::cases(), 'registry.result.'), phone: false),
             new Attribute('archived_at', $label('archived_at'), AttributeType::DateTime, $party(fn (Party $contact): ?\DateTimeImmutable => $contact->archivedAt()?->setTimezone($this->instanceClock->timezone())), sort: 'p.archivedAt', defaultPosition: 260, phone: false, filterable: true),
+            ...$this->contributed(),
         ];
     }
 
@@ -127,11 +125,79 @@ final readonly class ContactSource implements DataSource, RelationTarget
     }
 
     /**
+     * The join a sort by the attribute needs: the row of the module that adds the column
+     * (ContactColumns); nothing for a column of the address book.
+     */
+    public function join(string $key): string
+    {
+        foreach ($this->columns as $columns) {
+            foreach ($columns->attributes() as $attribute) {
+                if (\in_array($key, [$attribute->key, ...$attribute->aliases], true)) {
+                    return $columns->join();
+                }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Has the modules that add columns read their rows of a page of contacts once.
+     *
+     * @param list<string> $ids
+     */
+    public function load(array $ids): void
+    {
+        foreach ($this->columns as $columns) {
+            $columns->load($ids);
+        }
+    }
+
+    /**
      * The roles as one line of text, for the second line of a row on a phone.
      */
     public function roles(PartyRow $row): string
     {
         return implode(', ', array_map(fn (PartyRole $role): string => $this->translator->trans('party.role.'.$role->value), $row->roles));
+    }
+
+    /**
+     * The columns of other modules, read from the contact's id (ContactColumns).
+     *
+     * @return list<Attribute>
+     */
+    private function contributed(): array
+    {
+        $attributes = [];
+        foreach ($this->columns as $columns) {
+            foreach ($columns->attributes() as $attribute) {
+                $attributes[] = new Attribute(
+                    $attribute->key,
+                    $attribute->label,
+                    $attribute->type,
+                    static fn (PartyRow $row): mixed => $attribute->value($row->id),
+                    sort: $attribute->sort,
+                    defaultVisible: $attribute->defaultVisible,
+                    defaultPosition: $attribute->defaultPosition,
+                    defaultWidth: $attribute->defaultWidth,
+                    minWidth: $attribute->minWidth,
+                    options: $attribute->options,
+                    cell: $attribute->hasCell() ? static fn (PartyRow $row): mixed => $attribute->cell($row->id) : null,
+                    aliases: $attribute->aliases,
+                    locked: $attribute->locked,
+                    phone: $attribute->phone,
+                    wide: $attribute->wide,
+                    truncate: $attribute->truncate,
+                    available: $attribute->available(...),
+                    filterable: $attribute->filterable,
+                    filter: $attribute->filter,
+                    within: $attribute->within,
+                    tones: $attribute->tones,
+                );
+            }
+        }
+
+        return $attributes;
     }
 
     private static function statusOf(PartyRow $row): string

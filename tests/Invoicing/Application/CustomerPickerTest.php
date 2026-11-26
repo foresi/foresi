@@ -10,17 +10,18 @@ namespace Foresi\Tests\Invoicing\Application;
 
 use Foresi\Invoicing\Application\CustomerOption;
 use Foresi\Invoicing\Application\CustomerPicker;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 
 final class CustomerPickerTest extends InvoiceTestCase
@@ -101,7 +102,7 @@ final class CustomerPickerTest extends InvoiceTestCase
     public function testPicksTheInvoicingDefaultsOfTheContact(): void
     {
         $defaults = new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true);
-        $this->customer->changeInvoicingDefaults($defaults);
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), $defaults);
         $this->em->flush();
 
         self::assertTrue($defaults->equals($this->only('Example Customer')->defaults));

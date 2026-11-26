@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Domain;
+namespace Foresi\Invoicing\Contract;
 
 /**
  * The language a party's documents are issued in.

@@ -61,6 +61,7 @@ use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
 use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWork;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease;
 use Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease;
@@ -72,6 +73,7 @@ use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePartyInvoicingDefaults;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog;
@@ -135,6 +137,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // Mail goes out through the firm's own server. Named here so the test and e2e
     // environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
+    $services->alias(PartyInvoicingDefaults::class, DoctrinePartyInvoicingDefaults::class);
     $services->alias(MailGateway::class, SymfonyMailGateway::class);
     $services->alias(MailServers::class, DoctrineMailServers::class);
     $services->alias(MailSecrets::class, SodiumMailSecrets::class);
@@ -246,6 +249,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias('e2e.issue_invoice', IssueInvoice::class)->public();
         $services->alias('e2e.send_invoice', SendInvoice::class)->public();
         $services->alias('e2e.link_tokens', LinkTokens::class)->public();
+        $services->alias('e2e.party_invoicing_defaults', PartyInvoicingDefaults::class)->public();
         $services->alias('e2e.record_payment', RecordPayment::class)->public();
         $services->alias('e2e.save_recurring', SaveRecurringInvoice::class)->public();
         $services->alias('e2e.recurring_lifecycle', RecurringLifecycle::class)->public();

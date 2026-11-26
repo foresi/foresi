@@ -12,9 +12,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Audit\Domain\AuditRooted;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 
 /**

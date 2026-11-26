@@ -12,7 +12,6 @@ use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\Event\ContactUpdated;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Shared\Application\Field\CustomFieldWrites;
@@ -55,9 +54,6 @@ final readonly class UpdateParty
             $party->changePrivateNote($input->privateNote);
             $party->changeMobile($input->mobile);
             $party->changeWebsite($input->website);
-            if ($input->invoicingDefaults instanceof InvoicingDefaults) {
-                $party->changeInvoicingDefaults($input->invoicingDefaults);
-            }
             ($this->details->billingAddress($party) ?? throw new \DomainException('The party has no billing address to change.'))->relocate($input->billingAddress);
             $this->changeEmail($party, trim($input->email));
             $changed = null === $input->customFields ? [] : $this->customFields->write(ContactExtension::RECORD, $party->id(), $input->customFields, false);

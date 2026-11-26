@@ -27,6 +27,7 @@ use Foresi\Import\Domain\ImportOptions;
 use Foresi\Import\Domain\ImportRow;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Domain\MatchReason;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
@@ -124,7 +125,7 @@ final class PartyImportEndToEndTest extends KernelTestCase
         self::assertSame('+420 123 456 789', $company->phone());
         self::assertSame('+420 987 654 321', $company->mobile());
         self::assertSame('https://www.example.com', $company->website());
-        self::assertSame(14, $company->invoicingDefaults()->dueDays);
+        self::assertSame(14, self::getContainer()->get(PartyInvoicingDefaults::class)->of($company->id())->dueDays);
         $billing = $this->details()->billingAddress($company)?->address();
         self::assertSame(['Example Street 1', 'Praha', '110 00', 'CZ'], [$billing?->street, $billing?->city, $billing?->postalCode, $billing?->countryCode]);
         self::assertSame([['testing@example.com', EmailPurpose::General], ['billing@example.com', EmailPurpose::Copy]], array_map(static fn (PartyEmail $email): array => [$email->address(), $email->purpose()], $this->details()->emails($company)));

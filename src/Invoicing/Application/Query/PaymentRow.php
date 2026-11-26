@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application\Query;
 
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Money;
 
 /**

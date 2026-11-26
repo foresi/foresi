@@ -72,13 +72,6 @@ party:
     registration_country: Země registru
     billing_city: Fakturační město
     billing_country: Fakturační stát
-    default_due_days: Splatnost (dny)
-    currency: Měna
-    payment_method: Způsob úhrady
-    language: Jazyk dokladů
-    reverse_charge: Přenesená daňová povinnost
-    reminders: Upomínky
-    hourly_rate: Hodinová sazba
     vies_result: VIES
     unreliable_payer: Registr nespolehlivých plátců
     archived_at: Archivace
@@ -131,7 +124,6 @@ party:
     billing: Fakturační adresa
     roles: Role a poznámka
     checks: Kontroly v rejstřících
-    defaults: Výchozí údaje pro doklady
     note: Soukromá poznámka
     note_empty: Poznámka není vyplněna.
   field:
@@ -164,12 +156,7 @@ party:
     unreliablePayerResult: Nespolehlivý plátce
     viesResult: VIES
     invoicingDefaults: Výchozí údaje pro doklady
-    invoicingDueDays: Splatnost
     legalEntity: Firma
-    invoicingCurrency: Měna
-    invoicingLanguage: Jazyk dokladů
-    invoicingPaymentMethod: Způsob úhrady
-    invoicingReverseCharge: Přenesená daňová povinnost
   lookup:
     label: Najít v rejstříku
     help: IČO nebo alespoň tři písmena názvu
@@ -252,19 +239,6 @@ party:
       delete: Smazat adresu?
       delete_text: Adresa zmizí z kontaktu. Doklady, na kterých už je, se nezmění.
       delete_accept: Smazat
-  defaults:
-    due_days: Splatnost
-    days: '{count, plural, one {# den} few {# dny} other {# dní}}'
-    currency: Měna
-    language: Jazyk dokladů
-    reverse_charge: Přenesená daňová povinnost
-  payment_method:
-    bank_transfer: Převodem
-    cash: Hotově
-    card: Kartou
-  language:
-    cs: Čeština
-    en: Angličtina
   history:
     empty: Zatím tu není žádná změna.
     entry: '{action}: {subject} ({fields})'
@@ -310,6 +284,4 @@ party:
     company_identifier: Firma potřebuje IČO nebo DIČ.
     save_failed: Kontakt se nepodařilo uložit. Zkontrolujte údaje a zkuste to znovu.
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
-    due_days: Zadejte celý počet dní od 0 do 365.
     choice: Vyberte jednu z možností.
-    hourly_rate: Zadejte sazbu, třeba 1500 nebo 1500,50.

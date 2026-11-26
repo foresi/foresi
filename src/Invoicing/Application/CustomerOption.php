@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\InvoicingDefaults;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\InvoicingDefaults;
 
 /**
  * A contact as the invoice form offers it: the values of the firm where

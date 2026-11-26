@@ -6,17 +6,18 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Domain;
+namespace Foresi\Invoicing\Contract;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 
 /**
- * What a new invoice to or from this party starts with, whether overdue
- * invoices to it are reminded automatically, and the hourly rate its time is
- * billed at when its project has none. The rate is two nullable columns, as
- * an embeddable cannot be null; only owners see it.
+ * What a new invoice to or from a party starts with, whether overdue invoices
+ * to it are reminded automatically, and the hourly rate its time is billed at
+ * when its project has none. Invoicing keeps them for each party
+ * (PartyInvoicingDefaults). The rate is two nullable columns, as an embeddable
+ * cannot be null; only owners see it.
  */
 #[ORM\Embeddable]
 final readonly class InvoicingDefaults

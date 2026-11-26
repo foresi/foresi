@@ -910,6 +910,30 @@ invoice:
     trashed: This invoice is in the trash. Restore it to change it.
     variable_symbol_invalid: The variable symbol has 1 to 10 digits.
     vat_invalid: Choose the VAT of the line.
+  contact_defaults:
+    card: Document defaults
+    due_days: Due period
+    days: '{count, plural, one {# day} other {# days}}'
+    currency: Currency
+    language: Document language
+    reverse_charge: Reverse charge
+    "yes": "Yes"
+    "no": "No"
+    column:
+      default_due_days: Due period (days)
+      currency: Currency
+      payment_method: Payment method
+      language: Document language
+      reverse_charge: Reverse charge
+      reminders: Payment reminders
+      hourly_rate: Hourly rate
+    payment_method:
+      bank_transfer: Bank transfer
+      cash: Cash
+      card: Card
+    document_language:
+      cs: Czech
+      en: English
 recurring:
   notice:
     failing: '{count, plural, one {A recurring invoice could not be issued or sent.} other {# recurring invoices could not be issued or sent.}}'

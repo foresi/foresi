@@ -10,11 +10,11 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\PaymentRequest;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Tests\Events\Support\ReadsEventLog;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 

@@ -14,6 +14,7 @@ use Doctrine\ORM\Event\PrePersistEventArgs;
 use Doctrine\ORM\Events;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Domain\AuditEntry;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyAccess;
 use Foresi\Party\Domain\Address;
@@ -79,7 +80,7 @@ final class AddressBookPersistenceTest extends KernelTestCase
         self::assertTrue($parties[0]->isArchived());
         self::assertSame('2026-10-30 10:00:00', $parties[0]->archivedAt()?->format('Y-m-d H:i:s'));
         self::assertSame('Pays late', $parties[0]->privateNote());
-        self::assertSame(14, $parties[0]->invoicingDefaults()->dueDays);
+        self::assertSame(14, self::getContainer()->get(PartyInvoicingDefaults::class)->of($parties[0]->id())->dueDays);
         self::assertSame(RegistryResult::Valid, $parties[0]->viesCheck()?->result);
         self::assertSame('2026-10-30 09:00:00', $parties[0]->viesCheck()->checkedAt->format('Y-m-d H:i:s'));
         self::assertNull($parties[0]->unreliablePayerCheck());

@@ -14,14 +14,11 @@ use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
 use Foresi\Party\Domain\InvalidRegistrationNumber;
 use Foresi\Party\Domain\InvalidVatId;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
-use Foresi\Shared\Domain\Currency;
 
 /**
  * Turns the normalised values of an imported row (by field key) into the
@@ -34,7 +31,6 @@ final readonly class ImportPartyValues
     /** The country a row means when it names none: firms are Czech for now. */
     public const string DEFAULT_COUNTRY = 'CZ';
 
-    private const int MAX_DUE_DAYS = 365;
     private const int MAX_EMAIL = 254;
 
     /** The column limits of the fields the importer writes as text. */
@@ -110,7 +106,6 @@ final readonly class ImportPartyValues
         [$iban, $bic] = $this->bankAccount($values, $errors);
         $contact = $this->contact($values, $contactName, $errors);
         $roles = $this->roles($values, $errors);
-        $this->checkInvoicing($values, $errors);
 
         return new ImportedParty(
             $values,
@@ -149,7 +144,6 @@ final readonly class ImportPartyValues
             $row->text('private_note'),
             $row->text('mobile'),
             $row->text('website'),
-            $this->invoicingDefaults($row, InvoicingDefaults::standard(), false),
         );
     }
 
@@ -192,28 +186,6 @@ final readonly class ImportPartyValues
             $this->pickText($row, 'private_note', $party->privateNote(), $clear),
             $this->pickText($row, 'mobile', $party->mobile(), $clear),
             $this->pickText($row, 'website', $party->website(), $clear),
-            $this->invoicingDefaults($row, $party->invoicingDefaults(), $clear),
-        );
-    }
-
-    /**
-     * The document defaults with the due period, currency and payment method of the row.
-     */
-    public function invoicingDefaults(ImportedParty $row, InvoicingDefaults $base, bool $clear): InvoicingDefaults
-    {
-        $standard = InvoicingDefaults::standard();
-        $dueDays = $row->values['due_days'] ?? null;
-        $currency = Currency::tryFrom($row->text('currency'));
-        $method = PaymentMethod::tryFrom($row->text('payment_method'));
-
-        return new InvoicingDefaults(
-            \is_int($dueDays) ? $dueDays : ($clear && $row->blank('due_days') ? $standard->dueDays : $base->dueDays),
-            $currency ?? ($clear && $row->blank('currency') ? $standard->currency : $base->currency),
-            $base->language,
-            $method ?? ($clear && $row->blank('payment_method') ? $standard->paymentMethod : $base->paymentMethod),
-            $base->reverseCharge,
-            $base->sendReminders,
-            $base->hourlyRate(),
         );
     }
 
@@ -495,17 +467,5 @@ final readonly class ImportPartyValues
         }
 
         return array_values($roles);
-    }
-
-    /**
-     * @param array<string, mixed>                                    $values
-     * @param array<string, array{string, array<string, int|string>}> $errors
-     */
-    private function checkInvoicing(array $values, array &$errors): void
-    {
-        $dueDays = $values['due_days'] ?? null;
-        if (\is_int($dueDays) && ($dueDays < 0 || $dueDays > self::MAX_DUE_DAYS)) {
-            $errors['due_days'] = ['import.error.out_of_range', ['value' => $dueDays, 'min' => 0, 'max' => self::MAX_DUE_DAYS]];
-        }
     }
 }

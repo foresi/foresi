@@ -29,11 +29,12 @@ use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Integration\CashFlow\BillingPlanFlows;
 use Foresi\Identity\Application\ApiTokenContext;
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 use Foresi\Tests\TaxesAndContributions\Support\FixedToken;
@@ -53,7 +54,7 @@ final class BillingPlanFlowsTest extends CashFlowTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->em->flush();
 
         // Planned in this order, each a second after the one before.

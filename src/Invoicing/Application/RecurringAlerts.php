@@ -10,10 +10,10 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Contract\StaffCheck;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Shared\Application\TransactionalWork;
 use Psr\Log\LoggerInterface;
