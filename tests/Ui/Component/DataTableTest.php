@@ -367,6 +367,59 @@ final class DataTableTest extends KernelTestCase
         }
     }
 
+    public function testAResizableTableHasAGripOnEachHeaderAndAColForEachColumn(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[1]['minWidth'] = 120;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
+
+        self::assertStringContainsString('column-resize', (string) $html->filter('[data-controller~="row-link"]')->attr('data-controller'));
+        $grips = $html->filter('th [role="separator"]');
+        self::assertCount(3, $grips);
+        self::assertSame('Změnit šířku sloupce E-mail', $grips->eq(1)->attr('aria-label'));
+        self::assertSame('vertical', $grips->eq(1)->attr('aria-orientation'));
+        self::assertSame('0', $grips->eq(1)->attr('tabindex'));
+        self::assertSame('120', $grips->eq(1)->attr('aria-valuemin'));
+        self::assertSame('64', $grips->eq(0)->attr('aria-valuemin'));
+        self::assertNull($grips->eq(0)->attr('aria-valuenow'), 'a column sized to its text has no width to say');
+        self::assertContains('max-sm:hidden', explode(' ', (string) $grips->eq(0)->attr('class')));
+        self::assertCount(3, $html->filter('colgroup col[data-column-resize-target="col"]'));
+        self::assertStringNotContainsString('table-fixed', (string) $html->filter('table')->attr('class'), 'the columns size to their text until each has a width');
+    }
+
+    public function testATableNotResizableHasNoGrips(): void
+    {
+        self::assertCount(0, new Crawler($this->render())->filter('[role="separator"]'));
+    }
+
+    public function testOnceEveryColumnHasAWidthTheTableLaysThemOutAtTheirWidths(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 200;
+        $columns[1]['width'] = 300;
+        $columns[2]['width'] = 100;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true, 'rows' => $this->rowsWithActions(), 'actionToken' => 'tok']));
+        $table = $html->filter('table');
+
+        self::assertContains('sm:table-fixed', explode(' ', (string) $table->attr('class')));
+        self::assertSame('--table-w: 648px', $table->attr('style'), 'the columns and the room of the actions');
+        self::assertSame('300', $html->filter('th [role="separator"]')->eq(1)->attr('aria-valuenow'));
+        self::assertCount(0, $html->filter('[data-column-filler]'), 'the actions column takes the room left');
+    }
+
+    public function testWithoutActionsAnEmptyLastColumnTakesTheRoomLeft(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 200;
+        $columns[1]['width'] = 300;
+        $columns[2]['width'] = 100;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
+
+        self::assertCount(1, $html->filter('thead [data-column-filler][aria-hidden="true"]'));
+        self::assertCount(4, $html->filter('colgroup col'));
+        self::assertCount(4, $html->filter('tbody tr')->first()->filter('td'));
+    }
+
     public function testListRowsAre56PxDenseRows44AndTheHeader44OnTheTint(): void
     {
         $list = new Crawler($this->render());

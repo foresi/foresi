@@ -842,7 +842,7 @@ final class ProjectController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id] + $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::PROJECT_ROUTE, ['id' => $id] + $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }
@@ -1010,7 +1010,7 @@ final class ProjectController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

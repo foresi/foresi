@@ -1162,7 +1162,7 @@ final class DealController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

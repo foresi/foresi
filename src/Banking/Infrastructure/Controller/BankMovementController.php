@@ -657,7 +657,7 @@ final class BankMovementController extends AbstractController
             'columns' => $working->picker(),
             'density' => $working->density,
             // An empty density names the view's own display, which forgets the one remembered (D-display-3).
-            'resetHref' => $this->generateUrl('app_bank_movements', $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl('app_bank_movements', $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
         ];
     }

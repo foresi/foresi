@@ -324,6 +324,52 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame('email', $state->payload['group_by'] ?? null);
     }
 
+    public function testDraggedWidthsAreAChangeKeptInThePayloadAndTheAddress(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['widths' => 'name:240,kind:120,email:300']);
+
+        self::assertTrue($state->modified);
+        self::assertSame([240, 120, 300], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
+        self::assertSame(['widths' => 'name:240,kind:120,email:300'], $state->query);
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 240], ['key' => 'kind', 'width' => 120], ['key' => 'email', 'width' => 300]], 'density' => 'comfortable'], $state->payload);
+    }
+
+    public function testTheViewsOwnWidthsAreNoChangeAndEmptyWidthsAreTheViewsOwn(): void
+    {
+        $saved = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email', 'width' => 180]]];
+
+        self::assertFalse($this->working()->read(self::LIST, [], $saved, ['widths' => 'name:240,email:180'])->modified);
+        $state = $this->working()->read(self::LIST, [], $saved, ['widths' => '']);
+        self::assertFalse($state->modified);
+        self::assertSame([240, 180], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
+    }
+
+    public function testWidthsAskedReplaceTheViewsAllAtOnce(): void
+    {
+        $saved = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email', 'width' => 180]]];
+        $state = $this->working()->read(self::LIST, [], $saved, ['widths' => 'email:260']);
+
+        self::assertSame([null, 260], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
+        self::assertSame(['widths' => 'email:260'], $state->query);
+    }
+
+    public function testWidthsGoWithTheColumnsAsked(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,phone', 'widths' => 'name:200,phone:150,email:400']);
+
+        self::assertSame(['columns' => [['key' => 'name', 'width' => 200], ['key' => 'phone', 'width' => 150]], 'density' => 'comfortable'], $state->payload);
+        self::assertSame(['cols' => 'name,phone', 'widths' => 'name:200,phone:150'], $state->query, 'a width of a column not shown is left out');
+    }
+
+    public function testWidthsAreReadLenientlyAndKeptBetweenTheColumnsMinimumAndTheMaximum(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['widths' => 'name:10, kind:9999,email:abc,:120,phone,kind:300']);
+
+        self::assertSame([64, 1200, null], array_map(static fn (ResolvedColumn $column): ?int => $column->width, $state->display->columns));
+        self::assertSame(['widths' => 'name:64,kind:1200'], $state->query);
+        self::assertNull(RegistryWorkingDisplay::widths(['name' => 200]), 'only text names widths');
+    }
+
     public function working(): RegistryWorkingDisplay
     {
         $provider = new class implements DataSource {

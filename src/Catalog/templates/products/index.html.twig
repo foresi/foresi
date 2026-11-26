@@ -30,7 +30,7 @@
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty">
         </twig:Ui:FilterBar>
 
-        <twig:Ui:DataTable :caption="'catalog.products.title'|trans" :columns="columns" :rows="rows" :density="density">
+        <twig:Ui:DataTable :caption="'catalog.products.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density">
             <twig:block name="empty">
                 {% if filtered %}
                     <twig:Ui:EmptyState icon="search" :title="'catalog.products.empty.filtered_title'|trans">
