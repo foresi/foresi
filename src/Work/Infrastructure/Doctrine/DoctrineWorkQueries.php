@@ -129,7 +129,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private VisibleAttachments $attachments,
         private OwnerCheck $owner,
         private TrashPermission $trash,
-        private ProjectTaskLists $taskLists,
+        private ProjectTaskLists $projectTaskLists,
         private Fields $fields,
     ) {
     }
@@ -998,10 +998,10 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     {
         $conditions = $filter->conditions;
         if ($conditions instanceof TaskConditions) {
-            $others = $conditions->others($this->taskLists->list());
+            $others = $conditions->others($this->projectTaskLists->list());
             if ([] !== $others->conditions) {
                 $derived = static fn (): never => throw new \LogicException('A field of the tasks the query matches has its expression.');
-                [$where, $parameters] = new DqlConditions($this->taskLists->list(), [], $derived(...))->compile($others, $this->clock->today(...), 'v');
+                [$where, $parameters] = new DqlConditions($this->projectTaskLists->list(), [], $derived(...))->compile($others, $this->clock->today(...), 'v');
                 $conditions = $conditions->matching($this->taskIds($project, $where, $parameters));
             }
         }
