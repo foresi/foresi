@@ -27,6 +27,28 @@ final class ManageTasksTest extends WorkTestCase
         $this->project = $this->project();
     }
 
+    public function testAnEstimateIsSetOnATaskTheTeamSees(): void
+    {
+        $task = $this->tasks->create($this->project->id(), 'Write the brief');
+        $this->signIn($this->member);
+        $this->tasks->setEstimate($task->id(), 300);
+        self::assertSame(300, $task->estimateMinutes());
+        foreach ([0, Task::MAX_ESTIMATE_MINUTES + 1] as $minutes) {
+            try {
+                $this->tasks->setEstimate($task->id(), $minutes);
+                self::fail('An estimate out of range is refused.');
+            } catch (WorkRefused $refused) {
+                self::assertSame('estimate', $refused->reason);
+            }
+        }
+        $this->tasks->setEstimate($task->id(), null);
+        self::assertNull($task->estimateMinutes());
+
+        $this->signIn($this->guest);
+        $this->expectExceptionObject(new WorkRefused('unknown'));
+        $this->tasks->setEstimate($task->id(), 60);
+    }
+
     public function testASubtaskGoesOneLevelDeepOnly(): void
     {
         $task = $this->tasks->create($this->project->id(), 'Launch');

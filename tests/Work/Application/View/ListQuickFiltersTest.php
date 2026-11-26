@@ -13,7 +13,6 @@ use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\View\NotificationLists;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\ProjectTaskLists;
-use Foresi\Work\Application\View\TimeReportLists;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -30,9 +29,8 @@ final class ListQuickFiltersTest extends KernelTestCase
     {
         yield 'my tasks' => ['my tasks', ['client']];
         yield 'notifications' => ['notifications', ['reason', 'unread']];
-        yield 'projects' => ['projects', ['client', 'billable']];
+        yield 'projects' => ['projects', ['client']];
         yield 'project tasks' => ['project tasks', ['responsible', 'due']];
-        yield 'time report' => ['time report', ['worked_on', 'person']];
     }
 
     /**
@@ -51,7 +49,6 @@ final class ListQuickFiltersTest extends KernelTestCase
             'notifications' => self::getContainer()->get(NotificationLists::class)->list(),
             'projects' => self::getContainer()->get(ProjectLists::class)->list(),
             'project tasks' => self::getContainer()->get(ProjectTaskLists::class)->list(),
-            'time report' => TimeReportLists::list(),
             default => throw new \LogicException($list),
         };
     }

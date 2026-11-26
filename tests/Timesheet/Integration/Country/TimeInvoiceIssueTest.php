@@ -38,16 +38,18 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Timesheet\Application\TimeInvoicing;
 use Foresi\Timesheet\Application\TimeInvoicingRefused;
+use Foresi\Timesheet\Application\TimeRefused;
 use Foresi\Timesheet\Application\TimeScope;
 use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\TimeEntry;
 use Foresi\Timesheet\Domain\TimeRounding;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
-use Foresi\Work\Domain\TimeEntry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -95,7 +97,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
         $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
 
     public function testIssuingBillsTheTimeOfEachLineKeptAndLeavesTheTimeOfARemovedLine(): void
@@ -132,7 +134,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
             try {
                 $change();
                 self::fail('Invoiced time is not changed.');
-            } catch (WorkRefused $refused) {
+            } catch (TimeRefused|WorkRefused $refused) {
                 self::assertSame('time_invoiced', $refused->reason);
             }
         }
@@ -155,14 +157,14 @@ final class TimeInvoiceIssueTest extends WorkTestCase
      */
     public static function changes(): iterable
     {
-        yield 'edited' => ['edit', 'timesheet.problem.time_changed'];
+        yield 'edited' => ['edit', 'timesheet.invoice.problem.time_changed'];
         // Changes the issue could bill all the same, so only what the entry says tells them.
-        yield 'edited to fewer minutes' => ['fewer', 'timesheet.problem.time_changed'];
-        yield 'its note edited' => ['note', 'timesheet.problem.time_changed'];
-        yield 'moved to another task' => ['task', 'timesheet.problem.time_changed'];
-        yield 'made not billable' => ['unbillable', 'timesheet.problem.time_changed'];
-        yield 'deleted' => ['delete', 'timesheet.problem.time_changed'];
-        yield 'invoiced by another invoice' => ['invoice', 'timesheet.problem.time_invoiced'];
+        yield 'edited to fewer minutes' => ['fewer', 'timesheet.invoice.problem.time_changed'];
+        yield 'its note edited' => ['note', 'timesheet.invoice.problem.time_changed'];
+        yield 'moved to another task' => ['task', 'timesheet.invoice.problem.time_changed'];
+        yield 'made not billable' => ['unbillable', 'timesheet.invoice.problem.time_changed'];
+        yield 'deleted' => ['delete', 'timesheet.invoice.problem.time_changed'];
+        yield 'invoiced by another invoice' => ['invoice', 'timesheet.invoice.problem.time_invoiced'];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('changes')]
@@ -199,7 +201,7 @@ final class TimeInvoiceIssueTest extends WorkTestCase
 
     public function testTheChoiceIsRefusedForTimeWithoutARateOrInAnotherCurrency(): void
     {
-        $this->time->setProjectHourlyRate($this->website->id(), null);
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), null);
         $entry = $this->logged($this->homepage, 50, '2026-10-05');
 
         $refusal = function (): string {
@@ -214,13 +216,13 @@ final class TimeInvoiceIssueTest extends WorkTestCase
         self::assertSame('rate_missing', $refusal());
         self::assertNull($this->invoicing->candidates($this->scope())[0]->rate);
 
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('40', Currency::EUR));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('40', Currency::EUR));
         self::assertSame('firm_currency', $refusal());
 
         $this->owner->changeHourlyRate(Money::of('1000', Currency::CZK));
-        $this->time->setProjectHourlyRate($this->website->id(), null);
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), null);
         $other = $this->projects->create('Shop', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
-        $this->time->setProjectHourlyRate($other->id(), Money::of('40', Currency::EUR));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($other->id(), Money::of('40', Currency::EUR));
         $this->time->log($other->id(), null, new \DateTimeImmutable('2026-10-08'), 30, billable: true);
         $mixed = new TimeScope($this->customer->id(), [$this->website->id(), $other->id()], new \DateTimeImmutable('2026-10-01'), new \DateTimeImmutable('2026-10-31'));
         try {

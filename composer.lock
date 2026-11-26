@@ -3520,12 +3520,13 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "dfa23da7d6de7817e11bcabd58f51686a946408e"
+                "reference": "7efa6296291c2569858f63934719404d6cd947e4"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/invoicing": "self.version",
@@ -3534,13 +3535,18 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "foresi/work": "self.version",
+                "openspout/openspout": "^5.12",
                 "psr/clock": "^1.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4",
-                "symfony/translation-contracts": "^3.8"
+                "symfony/serializer": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "twig/twig": "^3.30",
+                "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
             "extra": {
@@ -3549,7 +3555,13 @@
                     "kind": "module",
                     "namespace": "Foresi\\Timesheet\\",
                     "bundle": "Foresi\\Timesheet\\TimesheetBundle",
-                    "optional": []
+                    "optional": [
+                        "activities",
+                        "inbox"
+                    ],
+                    "scopes": [
+                        "time_entries"
+                    ]
                 }
             },
             "autoload": {
@@ -3563,7 +3575,7 @@
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "Time tracking against tasks.",
+            "description": "Time tracking against projects and tasks, the time budget of a project, and the billing of time.",
             "homepage": "https://foresi.app",
             "support": {
                 "issues": "https://github.com/foresi/foresi/issues",
@@ -3789,7 +3801,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "56a0655bbe5e33b58970bb148fd88204253ea9b6"
+                "reference": "9e8ca72d65e9e2ab45983ae2f2a494e40c241997"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3805,7 +3817,6 @@
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
-                "openspout/openspout": "^5.12",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -3840,8 +3851,7 @@
                         {
                             "resource": "tasks",
                             "guest": "write"
-                        },
-                        "time_entries"
+                        }
                     ]
                 }
             },

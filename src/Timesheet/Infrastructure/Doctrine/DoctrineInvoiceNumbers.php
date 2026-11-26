@@ -12,7 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Shared\Domain\Id;
-use Foresi\Work\Contract\InvoiceNumbers;
+use Foresi\Timesheet\Infrastructure\InvoiceNumbers;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

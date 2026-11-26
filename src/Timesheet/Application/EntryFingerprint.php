@@ -8,8 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Timesheet\Application;
 
-use Foresi\Work\Application\TimeEntryRow;
-use Foresi\Work\Domain\TimeEntry;
+use Foresi\Timesheet\Domain\TimeEntry;
 
 /**
  * What an entry said when it was chosen for an invoice: an edit since then

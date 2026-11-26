@@ -10,6 +10,8 @@ namespace Foresi\Work\Integration\Inbox;
 
 use Foresi\Inbox\Contract\RecordSuggester;
 use Foresi\Inbox\Contract\SuggestedRecord;
+use Foresi\Work\Application\ClientProjects;
+use Foresi\Work\Contract\ProjectDirectory;
 
 /**
  * The one active project of the client of an inbox item, when the person sees
@@ -17,7 +19,7 @@ use Foresi\Inbox\Contract\SuggestedRecord;
  */
 final readonly class ActiveProjectSuggester implements RecordSuggester
 {
-    public const string KIND = 'project';
+    public const string KIND = ProjectDirectory::KIND;
 
     public function __construct(private ClientProjects $projects)
     {

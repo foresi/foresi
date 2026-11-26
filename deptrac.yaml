@@ -855,14 +855,14 @@ deptrac:
       - IdentityApplication
       # The project screens, the sidebar item and "Shared with me".
       - Ui
-      # The time report as CSV, as the address book and the invoice list export.
-      - VendorOpenSpout
       # Who reaches the files of a task.
       - AttachmentDomain
       - AttachmentApplication
-    # Timesheet builds on Work (projects and time), Party (clients and firms),
-    # Identity (people) and Invoicing; none of them uses Timesheet, which reads
-    # them through their application ports, as Banking reads Party.
+    # Timesheet builds on Work (the projects and tasks time is logged on), Party
+    # (clients), Identity (people) and Invoicing (the billing of time, through
+    # Invoicing's application ports); none of them uses Timesheet. Its screens
+    # fill Work's slots and ports and link Work's screens, so its infrastructure
+    # may use Work's.
     TimesheetDomain:
       - Contract
       - VendorDoctrineOrmMapping
@@ -914,6 +914,11 @@ deptrac:
       - IdentityApplication
       - InvoicingDomain
       - InvoicingApplication
+      - WorkInfrastructure
+      # The REST endpoints describe themselves for the OpenAPI document.
+      - VendorOpenApi
+      # The time report as CSV, as the address book and the invoice list export.
+      - VendorOpenSpout
       - Ui
     # Attachments build on Instance and Audit only; modules plug into them with
     # AttachmentAccess (Work -> Attachment), never the other way round.

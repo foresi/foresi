@@ -27,7 +27,7 @@ use Foresi\Work\Domain\ProjectVisibility;
  * list's All, and shows the projects the Active tab showed, so ?tab=active opens it.
  *
  * The name is a filterable attribute of the list's data source (DS1); the archive, the
- * client, the visibility and billable are the module's own fields.
+ * client and the visibility are the module's own fields.
  */
 final class ProjectLists implements ListDefinitionSource
 {
@@ -35,7 +35,6 @@ final class ProjectLists implements ListDefinitionSource
     public const string ARCHIVED = 'archived';
     public const string CLIENT = 'client';
     public const string VISIBILITY = 'visibility';
-    public const string BILLABLE = 'billable';
 
     /** What a client reference points to: the builder picks one with the contact picker. */
     public const string CONTACT = 'contact';
@@ -53,7 +52,7 @@ final class ProjectLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client', 'billable']);
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client']);
     }
 
     /**
@@ -67,7 +66,6 @@ final class ProjectLists implements ListDefinitionSource
             new Field(self::ARCHIVED, FieldType::Boolean, 'work.projects.field.archived'),
             new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT),
             new Field(self::VISIBILITY, FieldType::Enum, 'work.projects.field.visibility', options: $visibilities, optionLabels: array_combine($visibilities, array_map(static fn (string $value): string => 'work.sharing.visibility.'.$value, $visibilities))),
-            new Field(self::BILLABLE, FieldType::Boolean, 'work.projects.field.billable'),
         ];
     }
 

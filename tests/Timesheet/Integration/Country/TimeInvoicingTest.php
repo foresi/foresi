@@ -22,6 +22,8 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Timesheet\Application\TimeCandidate;
 use Foresi\Timesheet\Application\TimeInvoicing;
 use Foresi\Timesheet\Application\TimeInvoicingRefused;
@@ -30,7 +32,6 @@ use Foresi\Timesheet\Domain\BilledTime;
 use Foresi\Timesheet\Domain\LineGrouping;
 use Foresi\Timesheet\Domain\TimeLine;
 use Foresi\Timesheet\Domain\TimeRounding;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,7 +71,7 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->em->flush();
 
         $this->website = $this->projects->create('Website', $this->customer->id(), WorkflowTemplate::Simple);
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
 
     public function testOnlyAnOwnerGetsAnyOfIt(): void

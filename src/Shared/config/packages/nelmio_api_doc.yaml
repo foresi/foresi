@@ -441,10 +441,9 @@ nelmio_api_doc:
                     allOf:
                         - $ref: '#/components/schemas/Project'
                         - type: object
-                          required: [description, billable_by_default, statuses, sections, budget]
+                          required: [description, statuses, sections]
                           properties:
                               description: { type: string, description: Markdown. }
-                              billable_by_default: { type: boolean, nullable: true, description: Null for a guest. }
                               statuses:
                                   type: array
                                   items:
@@ -463,16 +462,6 @@ nelmio_api_doc:
                                           id: { type: string, format: uuid }
                                           name: { type: string }
                                           position: { type: integer }
-                              budget:
-                                  type: object
-                                  nullable: true
-                                  description: 'The time budget in hours; null for a project without one.'
-                                  properties:
-                                      hours: { type: number }
-                                      used_hours: { type: number }
-                                      left_hours: { type: number, description: Negative over budget. }
-                                      counting: { type: string, enum: [all, billable], description: Which time uses the budget. }
-                                      estimate_hours: { type: number, description: The sum of the estimates of the tasks not in the trash. }
                 ProjectBudget:
                     type: object
                     required: [project_id, hours, used_hours, left_hours, counting, estimate_hours, minutes, used_minutes, left_minutes, over_budget, estimate_minutes, changes]

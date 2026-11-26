@@ -40,7 +40,7 @@ final class ProjectListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['archived', 'client', 'visibility', 'billable', 'name'], array_keys($fields));
+        self::assertSame(['archived', 'client', 'visibility', 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => !str_contains($key, '_'))));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
         self::assertSame(FieldType::Reference, $fields['client']->type);
@@ -50,8 +50,6 @@ final class ProjectListsTest extends KernelTestCase
         self::assertSame(['organisation', 'chosen'], $fields['visibility']->options);
         self::assertSame(['organisation' => 'work.sharing.visibility.organisation', 'chosen' => 'work.sharing.visibility.chosen'], $fields['visibility']->optionLabels);
         self::assertSame('work.projects.field.visibility', $fields['visibility']->label);
-        self::assertSame(FieldType::Boolean, $fields['billable']->type);
-        self::assertSame('work.projects.field.billable', $fields['billable']->label);
     }
 
     public function testTheListIsBuiltOnce(): void

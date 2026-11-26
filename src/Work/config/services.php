@@ -13,33 +13,26 @@ use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageSections;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ManageWorkflow;
-use Foresi\Work\Application\ProjectBudgetReads;
-use Foresi\Work\Application\ProjectBudgets;
 use Foresi\Work\Application\PurgeDeletedComments;
 use Foresi\Work\Application\PurgeDeletedTasks;
 use Foresi\Work\Application\PurgeTrashedLabels;
-use Foresi\Work\Application\PurgeTrashedTime;
 use Foresi\Work\Application\SharedWorkVisibility;
 use Foresi\Work\Application\TaskHistory;
-use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkTaskIntake;
 use Foresi\Work\Application\WorkVisibility;
-use Foresi\Work\Contract\InvoiceNumbers;
 use Foresi\Work\Contract\ProjectDirectory;
 use Foresi\Work\Contract\TaskDirectory;
 use Foresi\Work\Contract\TaskIntake;
-use Foresi\Work\Contract\TimeTotals;
-use Foresi\Work\Infrastructure\CollectedInvoiceNumbers;
+use Foresi\Work\Contract\TaskPurge;
 use Foresi\Work\Infrastructure\Directory\WorkProjectDirectory;
 use Foresi\Work\Infrastructure\Directory\WorkTaskDirectory;
-use Foresi\Work\Infrastructure\Directory\WorkTimeTotals;
-use Foresi\Work\Infrastructure\Doctrine\DoctrineTimeQueries;
 use Foresi\Work\Infrastructure\Doctrine\DoctrineWorkQueries;
 use Foresi\Work\Infrastructure\Identity\SharedWorkGuestHome;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /*
  * The services of the Work module, loaded by Foresi\Work\WorkBundle.
@@ -53,28 +46,27 @@ return static function (ContainerConfigurator $container): void {
     // Seconds between a mention or an assignment and its e-mail, skipped if read in the inbox meanwhile.
     $container->parameters()->set('app.notification_mail_delay', 120);
 
+    // What other modules keep of a task lets go of it before the task is deleted for good.
+    $purgeTasks = $services->set(PurgeDeletedTasks::class)->arg('$purges', tagged_iterator(TaskPurge::TAG));
+
     // A guest's first page is the work shared with them.
     $services->alias(GuestHome::class, SharedWorkGuestHome::class);
-    // A line of invoiced time names its invoice.
-    $services->alias(InvoiceNumbers::class, CollectedInvoiceNumbers::class);
 
     if ('test' === $container->env()) {
         // The tests drive the work services directly; the screens come next.
         foreach ([
             ManageProjects::class, ManageSections::class, ManageWorkflow::class, ManageTasks::class, ManageLabels::class,
-            TaskHistory::class, ManageComments::class, PurgeDeletedTasks::class, PurgeDeletedComments::class, PurgeTrashedTime::class, PurgeTrashedLabels::class, ManageSharing::class, ManageTime::class,
-            ProjectBudgets::class, ProjectBudgetReads::class,
+            TaskHistory::class, ManageComments::class, PurgeDeletedComments::class, PurgeTrashedLabels::class, ManageSharing::class,
         ] as $service) {
             $services->set($service)->public();
         }
-        $services->alias(TimeQueries::class, DoctrineTimeQueries::class)->public();
+        $purgeTasks->public();
         $services->alias(WorkVisibility::class, SharedWorkVisibility::class)->public();
         $services->alias(WorkQueries::class, DoctrineWorkQueries::class)->public();
         // Contracts only other modules use, reached by the Work tests as such a module would.
         $services->alias(TaskIntake::class, WorkTaskIntake::class)->public();
         $services->alias(TaskDirectory::class, WorkTaskDirectory::class)->public();
         $services->alias(ProjectDirectory::class, WorkProjectDirectory::class)->public();
-        $services->alias(TimeTotals::class, WorkTimeTotals::class)->public();
     }
 
     if ('e2e' === $container->env()) {
@@ -85,6 +77,5 @@ return static function (ContainerConfigurator $container): void {
         $services->alias('e2e.manage_labels', ManageLabels::class)->public();
         $services->alias('e2e.manage_comments', ManageComments::class)->public();
         $services->alias('e2e.manage_sharing', ManageSharing::class)->public();
-        $services->alias('e2e.manage_time', ManageTime::class)->public();
     }
 };

@@ -15,14 +15,13 @@ use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
-use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Application\WorkQueries;
 
 /**
- * The lists of projects, tasks and time read by cursor, for the REST API and
+ * The lists of projects and tasks read by cursor, for the REST API and
  * MCP alike: the newest first, a limit between 1 and 100 and one row more read
  * to know whether more follow. A cursor that is no id lists nothing. A saved
  * view of the tasks is one of the list work.tasks or work.my_tasks, of the
@@ -34,7 +33,6 @@ final readonly class WorkLists
 
     public function __construct(
         private WorkQueries $queries,
-        private TimeQueries $time,
         private SavedViews $views,
         private ScopeGuard $scope,
         private ViewJson $viewJson,
@@ -88,13 +86,6 @@ final readonly class WorkLists
         [$rows, $next] = $this->slice(fn (int $limit): array => $this->queries->projectSlice($query->filter($applied->filter), $afterId, $limit), $afterId, $query->limit);
 
         return new WorkPage($this->json->projects($rows), $next, $this->view($applied));
-    }
-
-    public function timeEntries(TimeEntryListQuery $query, ?string $afterId): WorkPage
-    {
-        [$rows, $next] = $this->slice(fn (int $limit): array => $this->time->slice($query->filter(), $afterId, $limit), $afterId, $query->limit);
-
-        return new WorkPage(array_map(WorkJson::timeEntry(...), $rows), $next);
     }
 
     /**

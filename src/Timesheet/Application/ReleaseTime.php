@@ -13,8 +13,7 @@ use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Timesheet\Domain\ReleasedTime;
-use Foresi\Work\Application\TimeEntries;
-use Foresi\Work\Domain\TimeEntry;
+use Foresi\Timesheet\Domain\TimeEntry;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -52,20 +51,20 @@ final readonly class ReleaseTime implements BilledWorkRelease
     }
 
     /**
-     * @throws IssueRefused with timesheet.problem.restore_time_invoiced or timesheet.problem.restore_time_changed
+     * @throws IssueRefused with timesheet.invoice.problem.restore_time_invoiced or timesheet.invoice.problem.restore_time_changed
      */
     public function reclaim(Invoice $invoice): void
     {
         $released = $this->released->ofInvoice($invoice->id());
         $locked = $this->entries->lockForInvoicing(array_map(static fn (ReleasedTime $time): string => $time->entryId(), $released));
         foreach ($released as $time) {
-            $entry = $locked[$time->entryId()] ?? throw $this->refused('timesheet.problem.restore_time_changed');
+            $entry = $locked[$time->entryId()] ?? throw $this->refused('timesheet.invoice.problem.restore_time_changed');
             if ($entry->isInvoiced()) {
-                throw $this->refused('timesheet.problem.restore_time_invoiced');
+                throw $this->refused('timesheet.invoice.problem.restore_time_invoiced');
             }
             // The fingerprint holds whether the entry is billable and its minutes, which a running timer has none of.
             if (EntryFingerprint::ofEntry($entry) !== $time->fingerprint()) {
-                throw $this->refused('timesheet.problem.restore_time_changed');
+                throw $this->refused('timesheet.invoice.problem.restore_time_changed');
             }
             $this->bill($entry, $time);
             $this->released->remove($time);
@@ -99,7 +98,7 @@ final readonly class ReleaseTime implements BilledWorkRelease
         try {
             $entry->invoice($time->invoiceId(), $time->lineId(), $time->rate(), $time->minutes());
         } catch (\DomainException) {
-            throw $this->refused('timesheet.problem.restore_time_changed');
+            throw $this->refused('timesheet.invoice.problem.restore_time_changed');
         }
     }
 

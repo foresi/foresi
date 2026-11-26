@@ -14,8 +14,7 @@ use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
-use Foresi\Work\Application\TimeEntries;
-use Foresi\Work\Domain\TimeEntry;
+use Foresi\Timesheet\Domain\TimeEntry;
 
 /**
  * Time chosen in the dialog, as what issues its invoice: in the transaction
@@ -51,7 +50,7 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
     public function recordIn(Invoice $invoice, array $lines): void
     {
         if (DocumentKind::Invoice !== $invoice->kind()) {
-            throw $this->refused('timesheet.problem.other_document');
+            throw $this->refused('timesheet.invoice.problem.other_document');
         }
         // The first row that kept a line's source bills its time; a copy of the row bills nothing.
         $rows = [];
@@ -71,13 +70,13 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
         foreach ($billed as $line) {
             $row = $rows[$line->key];
             foreach ($line->entries as $chosen) {
-                $entry = $locked[$chosen->id] ?? throw $this->refused('timesheet.problem.time_changed');
+                $entry = $locked[$chosen->id] ?? throw $this->refused('timesheet.invoice.problem.time_changed');
                 if ($entry->isInvoiced()) {
-                    throw $this->refused('timesheet.problem.time_invoiced');
+                    throw $this->refused('timesheet.invoice.problem.time_invoiced');
                 }
                 // The fingerprint holds whether the entry is billable and its minutes, which a running timer has none of.
                 if (EntryFingerprint::ofEntry($entry) !== $chosen->fingerprint || $entry->isDeleted() || true === $entry->task()?->isDeleted()) {
-                    throw $this->refused('timesheet.problem.time_changed');
+                    throw $this->refused('timesheet.invoice.problem.time_changed');
                 }
                 $this->bill($entry, $invoice, $row, $line, $chosen);
             }
@@ -89,7 +88,7 @@ final readonly class TimeInvoiceOrigin implements IssueOrigin
         try {
             $entry->invoice($invoice->id(), $row->id(), $line->rate, $chosen->minutes);
         } catch (\DomainException) {
-            throw $this->refused('timesheet.problem.time_changed');
+            throw $this->refused('timesheet.invoice.problem.time_changed');
         }
     }
 

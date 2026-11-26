@@ -63,7 +63,7 @@ final class WorkVisibilityApiTest extends WorkApiTestCase
         self::assertSame([], $this->ids());
         $this->get('/api/v1/tasks/'.$private);
         $this->assertProblem(404, 'not_found');
-        $this->assertRefused('not_found', 'No such project, section, status, task, label, comment or time entry, or not one the person sees.', GetTaskTool::class, ['task_id' => $private]);
+        $this->assertRefused('not_found', 'No such project, section, status, task, label or comment, or not one the person sees.', GetTaskTool::class, ['task_id' => $private]);
 
         // Nor can it be changed or commented on.
         $this->send('PATCH', '/api/v1/tasks/'.$private, ['title' => 'Mine now']);

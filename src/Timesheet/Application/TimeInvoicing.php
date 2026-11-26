@@ -22,9 +22,6 @@ use Foresi\Timesheet\Domain\TimeLine;
 use Foresi\Timesheet\Domain\TimeLines;
 use Foresi\Timesheet\Domain\TimeRounding;
 use Foresi\Work\Application\ProjectRow;
-use Foresi\Work\Application\TimeEntryRow;
-use Foresi\Work\Application\TimeQueries;
-use Foresi\Work\Application\TimeReportFilter;
 use Foresi\Work\Application\WorkQueries;
 
 /**

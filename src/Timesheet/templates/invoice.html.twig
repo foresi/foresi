@@ -11,7 +11,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set title = 'timesheet.invoice.title'|trans %}
-{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.time.report.title'|trans, href: path('app_time_report')}, {label: title}] %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'timesheet.time.report.title'|trans, href: path('app_time_report')}, {label: title}] %}
 {% set dialog_size = 'lg' %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 
@@ -77,7 +77,7 @@
                     <twig:Ui:Select name="rounding" id="time-invoice-rounding" :label="'timesheet.invoice.rounding.label'|trans" :help="'timesheet.invoice.rounding.help'|trans" :options="roundings" :value="rounding" data-time-invoice-target="rounding" />
                 </div>
 
-                <p class="m-0 text-small text-badge-red-text" hidden data-time-invoice-target="noRate">{{ 'timesheet.refused.rate_missing'|trans }}</p>
+                <p class="m-0 text-small text-badge-red-text" hidden data-time-invoice-target="noRate">{{ 'timesheet.invoice.refused.rate_missing'|trans }}</p>
                 <dl class="m-0 flex flex-wrap gap-x-6 gap-y-1 text-body" aria-live="polite" data-time-invoice-totals>
                     <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_hours'|trans }}</dt><dd class="num m-0 font-semibold text-ink" data-time-invoice-target="hours" data-time-invoice-hours>{{ totals.hours }}</dd></div>
                     <div class="flex gap-2"><dt class="text-muted">{{ 'timesheet.invoice.total_amount'|trans }}</dt><dd class="num m-0 font-semibold text-ink"><span data-time-invoice-target="amount" data-time-invoice-amount{% if totals.amount is null %} hidden{% endif %}>{{ totals.amount }}</span><twig:Ui:EmptyValue data-time-invoice-target="amountEmpty" :hidden="totals.amount is not null" /></dd></div>

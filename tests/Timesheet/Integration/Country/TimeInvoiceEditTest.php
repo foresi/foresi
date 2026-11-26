@@ -37,14 +37,15 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Timesheet\Application\TimeInvoicing;
 use Foresi\Timesheet\Application\TimeScope;
 use Foresi\Timesheet\Domain\LineGrouping;
+use Foresi\Timesheet\Domain\TimeEntry;
 use Foresi\Timesheet\Domain\TimeRounding;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
-use Foresi\Work\Domain\TimeEntry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -97,7 +98,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
         $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
         $this->contact = $this->tasks->create($this->website->id(), 'Build the contact page');
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
 
     public function testTheTimeOfARowRemovedIsFreeAndTheRestStaysOnItsLine(): void

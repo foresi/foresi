@@ -39,6 +39,7 @@ final readonly class RateResolver
     public function __construct(
         private Projects $projects,
         private People $people,
+        private ProjectTimeSettingStore $settings,
         private iterable $sources = [],
     ) {
     }
@@ -62,7 +63,7 @@ final readonly class RateResolver
                 return new ResolvedRate($rate, RateSource::DealLine);
             }
         }
-        $rate = $project->hourlyRate();
+        $rate = $this->settings->setting($project)?->hourlyRate();
         if ($rate instanceof Money) {
             return new ResolvedRate($rate, RateSource::Project);
         }

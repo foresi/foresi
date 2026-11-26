@@ -9,9 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Work\Infrastructure\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Audit\Application\AuditTrail;
-use Foresi\Audit\Domain\AuditAction;
-use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
@@ -20,11 +17,9 @@ use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\Task;
-use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 
 /**
  * The settings of a project: its general part and archiving, its sections and
@@ -100,104 +95,6 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Saved.');
         self::assertSame('Example Client', $crawler->filter('#client')->attr('value'));
         self::assertSame(['name' => 'New website', 'client_id' => $client, 'description' => 'The new site.'], $this->em->getConnection()->fetchAssociative('SELECT name, client_id, description FROM project WHERE id = ?', [$id]));
-    }
-
-    public function testAnOwnerChoosesWhetherTheTimeOfTheProjectIsBillable(): void
-    {
-        $this->signIn();
-        $id = $this->createProject('Website');
-        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
-        // An internal project starts with its time not billable.
-        self::assertNull($crawler->filter('#billable')->attr('checked'));
-        self::assertSame('New time on this project starts as billable.', trim($crawler->filter('#billable-help')->text()));
-
-        $this->client->submit($crawler->filter('#project-settings-form')->form(['billable' => '1']));
-        self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
-        $crawler = $this->client->followRedirect();
-        self::assertNotNull($crawler->filter('#billable')->attr('checked'));
-        self::assertTrue($this->billable($id));
-
-        // The change is in the history of the project, as its other fields are.
-        $updates = array_values(array_filter(
-            self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
-            static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
-        ));
-        self::assertSame([false, true], $updates[0]->changes()['billableByDefault'] ?? null);
-
-        $form = $crawler->filter('#project-settings-form')->form();
-        $checkbox = $form['billable'];
-        self::assertInstanceOf(ChoiceFormField::class, $checkbox);
-        $checkbox->untick();
-        $this->client->submit($form);
-        self::assertFalse($this->billable($id));
-    }
-
-    public function testAGuestCannotChangeWhetherTheTimeIsBillable(): void
-    {
-        $this->signIn(Role::Guest);
-        $userId = $this->em->getConnection()->fetchOne('SELECT id FROM app_user LIMIT 1');
-        self::assertIsString($userId);
-        $project = new Project('Website', null, WorkflowTemplate::Simple, $userId, new \DateTimeImmutable());
-        $this->em->persist($project);
-        $this->em->flush();
-        $id = $project->id();
-
-        $this->client->request('POST', '/projects/'.$id.'/settings', ['name' => 'Website', 'billable' => '1']);
-
-        self::assertResponseStatusCodeSame(403);
-        self::assertFalse($this->billable($id));
-    }
-
-    public function testAnOwnerSetsTheHourlyRateOfTheProject(): void
-    {
-        $this->signIn();
-        $id = $this->createProject('Website');
-        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
-        self::assertSame('', $crawler->filter('#rate')->attr('value'));
-        self::assertSame(['CZK', 'EUR', 'USD'], $crawler->filter('#rate-currency option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
-
-        $crawler = $this->client->submit($crawler->filter('#project-settings-form')->form(['rate' => 'a lot', 'rateCurrency' => 'EUR']));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('Enter a rate, such as 1500 or 1500.50.', trim($crawler->filter('#rate-error')->text()));
-        self::assertSame('a lot', $crawler->filter('#rate')->attr('value'));
-        self::assertSame([null, null], $this->rate($id));
-
-        $this->client->submit($crawler->filter('#project-settings-form')->form(['rate' => '1 250.50', 'rateCurrency' => 'EUR']));
-        self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
-        $crawler = $this->client->followRedirect();
-        self::assertSame('1250.50', $crawler->filter('#rate')->attr('value'));
-        self::assertSame('EUR', $crawler->filter('#rate-currency option[selected]')->attr('value'));
-        self::assertSame([125050, 'EUR'], $this->rate($id));
-
-        // The change is in the history of the project, as its other fields are.
-        $updates = array_values(array_filter(
-            self::getContainer()->get(AuditTrail::class)->rootHistory(Project::class, $id),
-            static fn (AuditEntry $entry): bool => Project::class === $entry->entityClass() && AuditAction::Updated === $entry->action(),
-        ));
-        self::assertSame([null, 125050], $updates[0]->changes()['hourlyRateMinor'] ?? null);
-
-        // Saving the form unchanged keeps the rate; an empty field takes it away.
-        $this->client->submit($crawler->filter('#project-settings-form')->form());
-        self::assertSame([125050, 'EUR'], $this->rate($id));
-        $this->client->submit($this->client->request('GET', '/projects/'.$id.'/settings')->filter('#project-settings-form')->form(['rate' => '']));
-        self::assertSame([null, null], $this->rate($id));
-    }
-
-    public function testATeamMemberNeitherSeesNorChangesTheHourlyRate(): void
-    {
-        $this->signIn(Role::Member);
-        $id = $this->createProject('Website');
-        $this->em->getConnection()->executeStatement('UPDATE project SET hourly_rate_minor = 150000, hourly_rate_currency = ? WHERE id = ?', ['CZK', $id]);
-
-        $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
-        self::assertCount(0, $crawler->filter('#rate, [data-project-rate]'));
-        // Only the visible text: tokens and ids in the markup can contain these digits by chance.
-        self::assertDoesNotMatchRegularExpression('/1[\s\x{a0}\x{202f}]?500/u', $crawler->filter('main')->text());
-
-        $token = $crawler->filter('#project-settings-form input[name="_token"]')->attr('value');
-        $this->client->request('POST', '/projects/'.$id.'/settings', ['_token' => $token, 'name' => 'Website', 'rate' => '1', 'rateCurrency' => 'USD']);
-        self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
-        self::assertSame([150000, 'CZK'], $this->rate($id));
     }
 
     public function testAProjectIsArchivedAndRestoredAfterAQuestion(): void
@@ -489,24 +386,6 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertIsString($userId);
         $this->em->persist(new Task($project, $title, $status, 0, $userId, new \DateTimeImmutable(), $section));
         $this->em->flush();
-    }
-
-    private function billable(string $project): bool
-    {
-        return (bool) $this->em->getConnection()->fetchOne('SELECT billable_by_default FROM project WHERE id = ?', [$project]);
-    }
-
-    /**
-     * @return array{?int, ?string}
-     */
-    private function rate(string $project): array
-    {
-        $row = $this->em->getConnection()->fetchNumeric('SELECT hourly_rate_minor, hourly_rate_currency FROM project WHERE id = ?', [$project]);
-        self::assertIsArray($row);
-
-        [$minor, $currency] = $row;
-
-        return [is_numeric($minor) ? (int) $minor : null, \is_string($currency) ? $currency : null];
     }
 
     private function contact(string $name): string

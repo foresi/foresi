@@ -11,6 +11,7 @@ namespace Foresi\Tests\Deals\Application;
 use Foresi\Deals\Application\LineProject;
 use Foresi\Deals\Application\LineProjects;
 use Foresi\Deals\Application\LineProjectSource;
+use Foresi\Deals\Application\LineProjectTime;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,26 +26,35 @@ final class LineProjectsTest extends TestCase
     public function testAProjectAndItsTimeAreReadOncePerRequest(): void
     {
         $source = $this->source();
-        $projects = new LineProjects([$source]);
+        $time = $this->time();
+        $projects = new LineProjects([$source], [$time]);
 
         foreach ([1, 2, 3] as $ignored) {
             self::assertSame('DUD', $projects->find(self::SEEN)?->name);
             self::assertSame(90, $projects->billableMinutes(self::SEEN));
         }
-        self::assertSame(['find' => 1, 'minutes' => 1], $source->calls);
+        self::assertSame([1, 1], [$source->calls['find'], $time->calls]);
 
         $projects->reset();
         $projects->billableMinutes(self::SEEN);
-        self::assertSame(['find' => 2, 'minutes' => 2], $source->calls, 'a new request reads again');
+        self::assertSame([2, 2], [$source->calls['find'], $time->calls], 'a new request reads again');
     }
 
     public function testAProjectThePersonDoesNotSeeHasNoLoggedTime(): void
     {
-        $source = $this->source();
-        $projects = new LineProjects([$source]);
+        $time = $this->time();
+        $projects = new LineProjects([$this->source()], [$time]);
 
         self::assertNull($projects->billableMinutes(self::HIDDEN));
-        self::assertSame(0, $source->calls['minutes'], 'its time is not read');
+        self::assertSame(0, $time->calls, 'its time is not read');
+    }
+
+    public function testWithoutTimesheetAProjectHasNoLoggedTime(): void
+    {
+        $projects = new LineProjects([$this->source()]);
+
+        self::assertSame('DUD', $projects->find(self::SEEN)?->name);
+        self::assertNull($projects->billableMinutes(self::SEEN));
     }
 
     public function testWithoutWorkThereAreNoProjects(): void
@@ -58,13 +68,13 @@ final class LineProjectsTest extends TestCase
     }
 
     /**
-     * @return LineProjectSource&object{calls: array{find: int, minutes: int}}
+     * @return LineProjectSource&object{calls: array{find: int}}
      */
     private function source(): LineProjectSource
     {
         return new class(self::SEEN) implements LineProjectSource {
-            /** @var array{find: int, minutes: int} */
-            public array $calls = ['find' => 0, 'minutes' => 0];
+            /** @var array{find: int} */
+            public array $calls = ['find' => 0];
 
             public function __construct(private readonly string $seen)
             {
@@ -81,10 +91,22 @@ final class LineProjectsTest extends TestCase
             {
                 return [];
             }
+        };
+    }
+
+    /**
+     * The time logged on every project: 90 minutes, and how often it was read.
+     *
+     * @return LineProjectTime&object{calls: int}
+     */
+    private function time(): LineProjectTime
+    {
+        return new class implements LineProjectTime {
+            public int $calls = 0;
 
             public function billableMinutes(string $projectId): int
             {
-                ++$this->calls['minutes'];
+                ++$this->calls;
 
                 return 90;
             }

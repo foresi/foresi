@@ -10,7 +10,7 @@ namespace Foresi\Timesheet\Application;
 
 /**
  * Why time is not taken to an invoice; the reason is the last part of a
- * translation key under timesheet.refused.
+ * translation key under timesheet.invoice.refused.
  */
 final class TimeInvoicingRefused extends \DomainException
 {

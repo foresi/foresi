@@ -10,7 +10,6 @@ namespace Foresi\Timesheet\Application;
 
 use Foresi\Shared\Domain\Money;
 use Foresi\Timesheet\Domain\RateSource;
-use Foresi\Work\Application\TimeEntryRow;
 
 /**
  * An entry that may go on the invoice, with the rate the firm bills it at and

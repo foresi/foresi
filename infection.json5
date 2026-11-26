@@ -251,7 +251,7 @@
             "Foresi\\Identity\\Domain\\Membership::hourlyRate",
             "Foresi\\Party\\Domain\\InvoicingDefaults::hourlyRate",
             "Foresi\\Work\\Domain\\Project::hourlyRate",
-            "Foresi\\Work\\Domain\\TimeEntry::invoicedRate"
+            "Foresi\\Timesheet\\Domain\\TimeEntry::invoicedRate"
         ]},
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
         // string fails the check of its column below.

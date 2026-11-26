@@ -14,7 +14,7 @@ use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Priority;
 
 /**
- * The reads of projects, tasks, comments, labels and time over REST: what the
+ * The reads of projects, tasks, comments and labels over REST: what the
  * token's person sees, in the shapes the OpenAPI document gives, newest first
  * and read by cursor.
  */
@@ -168,8 +168,9 @@ final class WorkReadApiTest extends WorkApiTestCase
             'open_tasks' => 1,
             'nearest_due_on' => null,
             'archived' => false,
-            'custom_fields' => [],
-        ]], $this->at('data'));
+        ]], array_map(static fn (array $row): array => array_diff_key($row, ['custom_fields' => true]), (array) $this->at('data')));
+        // Its custom fields are those the installed modules add, each null without a value.
+        self::assertSame([], array_filter((array) $this->at('data', 0, 'custom_fields'), static fn (mixed $value): bool => null !== $value));
 
         $this->get('/api/v1/projects/'.$project->id());
         self::assertSame('', $this->at('data', 'description'));
@@ -210,29 +211,12 @@ final class WorkReadApiTest extends WorkApiTestCase
         self::assertNull($this->at('data', 0, 'edited_at'));
     }
 
-    public function testLabelsAndTimeAreRead(): void
+    public function testLabelsAreRead(): void
     {
         $label = $this->label('Urgent');
-        $project = $this->project();
-        $task = $this->task($project, 'Billable work');
-        $mine = $this->logged($project, $task, 90, $this->user);
-        $this->logged($project, null, 30);
 
         $this->get('/api/v1/labels');
         self::assertSame([['id' => $label, 'name' => 'Urgent', 'colour' => 'green']], $this->at('data'));
-
-        $this->get('/api/v1/time-entries', ['person' => 'me']);
-        self::assertSame([$mine], $this->ids());
-        self::assertSame(['id' => $task, 'title' => 'Billable work'], $this->at('data', 0, 'task'));
-        self::assertSame(90, $this->at('data', 0, 'minutes'));
-        self::assertSame('2026-11-18', $this->at('data', 0, 'worked_on'));
-        self::assertFalse($this->at('data', 0, 'running'));
-
-        $this->get('/api/v1/time-entries', ['project_id' => $project->id()]);
-        self::assertCount(2, $this->ids());
-
-        $this->get('/api/v1/time-entries', ['from' => '19.11.2026']);
-        $this->assertProblem(400, 'invalid_parameter');
     }
 
     public function testWhatDoesNotExistIsNotFound(): void
@@ -250,7 +234,7 @@ final class WorkReadApiTest extends WorkApiTestCase
 
         $this->get('/api/v1/projects', secret: $projects);
         self::assertResponseIsSuccessful();
-        foreach (['/api/v1/tasks', '/api/v1/labels', '/api/v1/time-entries'] as $path) {
+        foreach (['/api/v1/tasks', '/api/v1/labels'] as $path) {
             $this->get($path, secret: $projects);
             $this->assertProblem(403, 'insufficient_scope');
         }

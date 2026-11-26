@@ -810,9 +810,9 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
 | Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.8) |
-| Timesheet | `ProjectRateSource` (`foresi.timesheet.project_rate_source`) |
+| Timesheet | `ProjectRateSource` (`foresi.timesheet.project_rate_source`); the service `TimeTotals`, the minutes logged on a project |
 | VAT | `VatCountryRules`, `VatDocumentSource`, `VatPaymentSource`, `VatPlanSource`, `PlannedVatSource`, `VatScheduleSource` (`foresi.vat.*`) |
-| Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`); the services `ProjectDirectory`, `TaskIntake` and `TaskDirectory` (since 1.6), and the slots of `ProjectSlots` and `TaskSlots` (since 1.6) |
+| Work | `ProjectTrashSources` (`foresi.work.project_trash_source`), `TaskPurge` (`foresi.work.task_purge`) and `TaskTimes`; the services `ProjectDirectory`, `TaskIntake` and `TaskDirectory` (since 1.6), and the slots of `ProjectSlots` and `TaskSlots` (since 1.6; `HEADER_ACTIONS`, `SETTINGS` and `TaskSlots::SECTIONS` added with the move of time to Timesheet) |
 
 Each interface carries its tag as the constant `TAG` with `#[AutoconfigureTag]`, so an implementation never writes the tag. A tag of an interface outside a `Contract\` namespace, such as `foresi.idoklad.import_stage`, is internal.
 

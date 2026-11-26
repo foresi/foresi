@@ -1,0 +1,16 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The time of a project in its settings (Work's ProjectSlots::SETTINGS), for an owner only: the project's own
+    hourly rate, which comes before the rate of its client and of the person who worked; empty for none.
+    Whether its time is billable by default is a custom field of the general settings.
+#}
+<twig:Ui:Card :title="'timesheet.project.settings.title'|trans" icon="clock-3" data-settings-time>
+    <form method="post" action="{{ path('app_project_time_settings', {id: projectId}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Timesheet\\Infrastructure\\Controller\\ProjectTimeSettingsController::TOKEN')) }}">
+        <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]" data-project-rate>
+            <twig:Ui:TextInput name="rate" id="rate" inputmode="decimal" maxlength="20" :label="'timesheet.project.field.rate'|trans" :help="'timesheet.project.field.rate_help'|trans" :value="rate" autocomplete="off" />
+            <twig:Ui:Select name="rateCurrency" id="rate-currency" :label="'timesheet.project.field.rate_currency'|trans" :options="currencies" :value="rateCurrency" />
+        </div>
+        <div><twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button></div>
+    </form>
+</twig:Ui:Card>

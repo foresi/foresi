@@ -16,7 +16,6 @@ use Foresi\Invoicing\Application\IssueOrigin;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
 use Foresi\Invoicing\Application\LineInput;
-use Foresi\Work\Application\TimeEntries;
 
 /**
  * Time as the work an invoice bills: the time chosen in the dialog opens the
@@ -49,7 +48,7 @@ final readonly class TimeBilledWork implements BilledWork
     {
         $selection = null === $input->billedWork ? null : $this->selections->find($input->billedWork);
         if (!$selection instanceof TimeSelection) {
-            throw new IssueRefused([new IssueProblem('form', 'timesheet.problem.selection_gone')]);
+            throw new IssueRefused([new IssueProblem('form', 'timesheet.invoice.problem.selection_gone')]);
         }
 
         return new TimeInvoiceOrigin($selection, array_map(static fn (LineInput $line): ?string => $line->source, $input->lines), $this->entries);

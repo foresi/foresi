@@ -19,9 +19,11 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Application\ProjectTimeSettingStore;
 use Foresi\Timesheet\Application\RateResolver;
 use Foresi\Timesheet\Application\UnknownRateTarget;
 use Foresi\Timesheet\Contract\ProjectRateSource;
+use Foresi\Timesheet\Domain\ProjectTimeSetting;
 use Foresi\Timesheet\Domain\RateSource;
 use Foresi\Work\Application\Projects;
 use Foresi\Work\Domain\Project;
@@ -36,6 +38,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class RateResolverTest extends TestCase
 {
+    /** @var array<string, ProjectTimeSetting> the time settings of the projects, by id */
+    private array $settings = [];
+
     /**
      * Rates as "1500 CZK"; null for none.
      *
@@ -64,7 +69,7 @@ final class RateResolverTest extends TestCase
         $party = $client ? new Party(PartyKind::Person, 'Example Client', null, null, '') : null;
         $party?->changeInvoicingDefaults($this->defaults($this->money($rates['client'] ?? null)));
         $project = new Project('Website', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
-        $project->changeHourlyRate($this->money($rates['project'] ?? null));
+        $this->rate($project, $this->money($rates['project'] ?? null));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
         $membership->changeHourlyRate($this->money($rates['person'] ?? null));
 
@@ -85,7 +90,7 @@ final class RateResolverTest extends TestCase
         $party = new Party(PartyKind::Person, 'Example Client', null, null, '');
         $party->changeInvoicingDefaults($this->defaults(Money::of('1100', Currency::CZK)));
         $project = new Project('DUD', $party, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
-        $project->changeHourlyRate(Money::of('1000', Currency::CZK));
+        $this->rate($project, Money::of('1000', Currency::CZK));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
         $membership->changeHourlyRate(Money::of('900', Currency::CZK));
         $asked = new \ArrayObject();
@@ -104,7 +109,7 @@ final class RateResolverTest extends TestCase
     public function testWithoutASourceTheOrderIsUnchanged(): void
     {
         $project = new Project('DUD', null, WorkflowTemplate::Simple, 'creator', new \DateTimeImmutable('2026-11-10 10:00'));
-        $project->changeHourlyRate(Money::of('1000', Currency::CZK));
+        $this->rate($project, Money::of('1000', Currency::CZK));
         $membership = new Membership(new User('person@example.com', 'hash', 'Example Person'), Role::Member);
         $asked = new \ArrayObject();
 
@@ -168,7 +173,16 @@ final class RateResolverTest extends TestCase
         $people = self::createStub(People::class);
         $people->method('membership')->willReturnCallback(static fn (string $id): ?Membership => $id === $membership->id() ? $membership : null);
 
-        return new RateResolver($projects, $people, $sources);
+        $settings = self::createStub(ProjectTimeSettingStore::class);
+        $settings->method('setting')->willReturnCallback(fn (Project $of): ?ProjectTimeSetting => $this->settings[$of->id()] ?? null);
+
+        return new RateResolver($projects, $people, $settings, $sources);
+    }
+
+    private function rate(Project $project, ?Money $rate): void
+    {
+        $this->settings[$project->id()] = new ProjectTimeSetting($project);
+        $this->settings[$project->id()]->changeHourlyRate($rate);
     }
 
     private function defaults(?Money $rate): InvoicingDefaults

@@ -73,6 +73,7 @@ use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
+use Foresi\Work\Contract\TaskTimes;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -82,7 +83,6 @@ use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskLabel;
 use Foresi\Work\Domain\TaskWatcher;
-use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 
 /**
@@ -101,7 +101,6 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private const array PROJECT_COLUMNS = [
         ProjectLists::CLIENT => 'IDENTITY(p.client)',
         ProjectLists::VISIBILITY => 'p.visibility',
-        ProjectLists::BILLABLE => 'p.billableByDefault',
     ];
     /** The tasks I am responsible for, by the membership bound as :me. */
     private const string RESPONSIBLE = 't.responsible = :me';
@@ -131,6 +130,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private TrashPermission $trash,
         private ProjectTaskLists $projectTaskLists,
         private Fields $fields,
+        // The time logged on tasks, by the module that keeps time; none without it.
+        private ?TaskTimes $taskTimes = null,
     ) {
     }
 
@@ -405,7 +406,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $this->visibility->canShare($task),
             $this->visibility->canManage(),
             $scope->opens($project),
-            // The estimate sits in the time block, which a guest never sees.
+            // The estimate is the organisation's, which a guest never sees.
             $this->visibility->canManage() ? $task->estimateMinutes() : null,
         );
     }
@@ -877,8 +878,6 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return new ProjectDetail(
             $this->projectRows([$project], $this->visibility->scope())[0],
             $project->description(),
-            // Billing is the organisation's: a guest is not told.
-            $this->visibility->canManage() ? $project->billsTimeByDefault() : null,
             array_map(static fn (ProjectStatus $status): StatusChoice => new StatusChoice($status->id(), $status->name(), $status->type()), $this->projects->statuses($project)),
             array_map(static fn (Section $section): Choice => new Choice($section->id(), $section->name()), $this->sections($project)),
         );
@@ -962,8 +961,6 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $this->visibility->canManage(),
             $open,
             $open || [] !== $this->sections($project),
-            $project->billsTimeByDefault(),
-            $this->owner->isOwner() ? $project->hourlyRate() : null,
         );
     }
 
@@ -1127,9 +1124,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         if (!$wide) {
             return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
         }
-        // The estimate and the time sit in the time block of a task, which a guest never sees.
+        // The estimate and the time logged are the organisation's, which a guest never sees.
         $manage = $this->visibility->canManage();
-        $logged = $manage ? $this->logged($tasks) : [];
+        $logged = $manage && $this->taskTimes instanceof TaskTimes ? $this->taskTimes->minutes(array_map(static fn (Task $task): string => $task->id(), $tasks)) : null;
 
         return array_map(function (Task $task) use ($labels, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
             $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0));
@@ -1141,30 +1138,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 $client?->id(),
                 $client?->displayName(),
                 $manage ? $task->estimateMinutes() : null,
-                $manage ? ($logged[$task->id()] ?? 0) : null,
+                null === $logged ? null : ($logged[$task->id()] ?? 0),
                 $task->createdAt(),
                 $task->updatedAt(),
                 $task->parent()?->title(),
             );
         }, $tasks);
-    }
-
-    /**
-     * The minutes logged on each task, the time in the trash and a running timer left out.
-     *
-     * @param list<Task> $tasks
-     *
-     * @return array<string, int> by task id
-     */
-    private function logged(array $tasks): array
-    {
-        /** @var list<array{task: string, minutes: int|string|null}> $sums */
-        $sums = $this->entityManager
-            ->createQuery('SELECT IDENTITY(e.task) AS task, SUM(e.minutes) AS minutes FROM '.TimeEntry::class.' e WHERE e.task IN (:tasks) AND e.deletedAt IS NULL GROUP BY e.task')
-            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
-            ->getScalarResult();
-
-        return array_map(static fn (int|string|null $minutes): int => (int) $minutes, array_column($sums, 'minutes', 'task'));
     }
 
     /**

@@ -11,7 +11,7 @@ namespace Foresi\Tests\Work\Infrastructure\Api;
 use Foresi\Work\Domain\Task;
 
 /**
- * The writes of projects, tasks, comments and time over REST and MCP (ADR
+ * The writes of projects, tasks and comments over REST and MCP (ADR
  * 0032): the use cases of the screens, the same refusals on both surfaces, and
  * the answer of the read endpoint as the answer of the write.
  */
@@ -198,37 +198,6 @@ final class WorkWriteApiTest extends WorkApiTestCase
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'name', 'reason' => 'name']);
     }
 
-    public function testTimeIsLoggedAndATimerStartedAndStopped(): void
-    {
-        $project = $this->project();
-        $task = $this->task($project, 'Build');
-
-        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'task_id' => $task, 'worked_on' => '2026-11-18', 'minutes' => 45, 'note' => 'Templates']);
-        self::assertResponseStatusCodeSame(201);
-        self::assertSame(45, $this->at('data', 'minutes'));
-        self::assertSame('Templates', $this->at('data', 'note'));
-
-        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-18', 'minutes' => 45, 'started_at' => '2026-11-18T09:00:00+01:00', 'ended_at' => '2026-11-18T10:00:00+01:00']);
-        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'minutes', 'reason' => 'duration']);
-        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-18', 'started_at' => '2026-11-18 09:00', 'ended_at' => '2026-11-18T10:00:00+01:00']);
-        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'started_at', 'reason' => 'date']);
-        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '18. 11. 2026', 'minutes' => 5]);
-        $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'worked_on', 'reason' => 'date']);
-
-        $this->send('POST', '/api/v1/time-entries/timer', ['project_id' => $project->id(), 'task_id' => $task]);
-        self::assertResponseStatusCodeSame(201);
-        $timer = $this->at('data', 'id');
-        self::assertIsString($timer);
-        self::assertTrue($this->at('data', 'running'));
-        self::assertNull($this->at('data', 'minutes'));
-
-        $this->send('POST', '/api/v1/time-entries/'.\Foresi\Shared\Domain\Id::generate().'/stop');
-        $this->assertProblem(409, 'timer_not_running');
-        $this->send('POST', '/api/v1/time-entries/'.$timer.'/stop');
-        self::assertResponseIsSuccessful();
-        self::assertFalse($this->at('data', 'running'));
-    }
-
     public function testAReadTokenCannotWriteAndScopesAreKeptApart(): void
     {
         $project = $this->project();
@@ -237,8 +206,6 @@ final class WorkWriteApiTest extends WorkApiTestCase
 
         $tasksOnly = $this->issued([\Foresi\Identity\Domain\ApiScope::from('tasks:write')]);
         $this->send('POST', '/api/v1/projects', ['name' => 'Nope'], $tasksOnly);
-        $this->assertProblem(403, 'insufficient_scope');
-        $this->send('POST', '/api/v1/time-entries', ['project_id' => $project->id(), 'worked_on' => '2026-11-18', 'minutes' => 5], $tasksOnly);
         $this->assertProblem(403, 'insufficient_scope');
     }
 

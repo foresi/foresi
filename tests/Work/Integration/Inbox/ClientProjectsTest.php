@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Work\Integration\Inbox;
 
+use Foresi\Work\Application\ClientProjects;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Domain\WorkflowTemplate;
-use Foresi\Work\Integration\Inbox\ClientProjects;
 use PHPUnit\Framework\TestCase;
 
 /**

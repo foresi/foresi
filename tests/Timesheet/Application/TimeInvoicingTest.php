@@ -22,10 +22,11 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Timesheet\Application\TimeCandidate;
 use Foresi\Timesheet\Application\TimeInvoicing;
 use Foresi\Timesheet\Application\TimeScope;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\WorkflowTemplate;
@@ -67,7 +68,7 @@ final class TimeInvoicingTest extends WorkTestCase
         $this->em->flush();
 
         $this->website = $this->projects->create('Website', $this->customer->id(), WorkflowTemplate::Simple);
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
 
     public function testEveryProjectIsOfferedOnceArchivedOnesTooByName(): void
@@ -82,7 +83,7 @@ final class TimeInvoicingTest extends WorkTestCase
     public function testOnlyFinishedTimeOfTheProjectsChosenIsOffered(): void
     {
         $shop = $this->projects->create('Shop', $this->customer->id(), WorkflowTemplate::Simple);
-        $this->time->setProjectHourlyRate($shop->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($shop->id(), Money::of('1000', Currency::CZK));
         $finished = $this->logged($this->website, '2026-10-05');
         $this->logged($shop, '2026-10-06');
         $this->time->startTimer($this->website->id(), null, billable: true);
@@ -92,7 +93,7 @@ final class TimeInvoicingTest extends WorkTestCase
 
     public function testEachPersonsTimeHasTheirOwnRate(): void
     {
-        $this->time->setProjectHourlyRate($this->website->id(), null);
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), null);
         $this->owner->changeHourlyRate(Money::of('1500', Currency::CZK));
         $this->member->changeHourlyRate(Money::of('800', Currency::CZK));
         $this->em->flush();

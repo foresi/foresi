@@ -235,7 +235,6 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['Old site'], $shown([['field' => 'archived', 'op' => 'is', 'value' => '1']]));
         self::assertSame(['Internal'], $shown([['field' => 'client', 'op' => 'is_empty']]));
         self::assertSame(['Internal'], $shown([['field' => 'client', 'op' => 'is_not', 'value' => $client]]));
-        self::assertSame(['Website'], $shown([['field' => 'billable', 'op' => 'is', 'value' => '1']]), 'a project for a client bills its time');
         self::assertSame(['Internal'], $shown([['field' => 'visibility', 'op' => 'is', 'values' => ['chosen']]]));
         self::assertSame(['Website'], $shown([['field' => 'visibility', 'op' => 'is', 'values' => ['organisation']]]));
         self::assertSame([], $shown([['field' => 'archived', 'op' => 'is', 'value' => '1'], ['field' => 'client', 'op' => 'is', 'value' => $client]], 'archived'));
@@ -273,7 +272,7 @@ final class ProjectControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/projects?view=archived');
         self::assertSelectorTextContains('main', 'No archived projects');
 
-        $this->client->request('GET', '/projects?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'billable', 'op' => 'is', 'value' => '1']]]));
+        $this->client->request('GET', '/projects?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'visibility', 'op' => 'is', 'values' => ['chosen']]]]));
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Nothing matches these filters');
         self::assertSame('/projects', $crawler->selectLink('Clear the filters')->attr('href'));
@@ -340,7 +339,8 @@ final class ProjectControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/projects/'.$id);
         // The tabs of Work itself; where Activities adds its section between them is tested with it (Integration/Activities).
-        self::assertSame(['List', 'Board', 'Budget'], array_values(array_diff($crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())), ['Activities'])));
+        // List and Board are Work's; the sections of other modules follow them, such as Activities and Budget.
+        self::assertSame(['List', 'Board'], \array_slice($crawler->filter('nav[aria-label="Project views"] a')->each(static fn (Crawler $tab): string => trim($tab->text())), 0, 2));
         self::assertSame(['All', 'Mine', 'Finished'], $this->tabs($crawler));
         self::assertSame(['/projects/'.$id, '/projects/'.$id.'?view=mine', '/projects/'.$id.'?view=finished'], $crawler->filter('nav[aria-label="Task views"] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame('page', $crawler->filter('nav[aria-label="Task views"] a')->eq(0)->attr('aria-current'));

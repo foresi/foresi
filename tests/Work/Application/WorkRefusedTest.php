@@ -35,7 +35,7 @@ final class WorkRefusedTest extends TestCase
         self::assertSame([RefusalKind::Forbidden, 'forbidden'], [new WorkRefused('not_allowed')->kind(), new WorkRefused('not_allowed')->reason()]);
         self::assertSame(RefusalKind::Forbidden, new WorkRefused('task_not_yours')->kind());
         self::assertSame(RefusalKind::Conflict, new WorkRefused('archived')->kind());
-        self::assertSame(RefusalKind::Conflict, new WorkRefused('timer_not_running')->kind());
+        self::assertSame(RefusalKind::Conflict, new WorkRefused('parent_in_trash')->kind());
         self::assertSame(RefusalKind::Invalid, new WorkRefused('name')->kind());
         // The translation key of the screens keeps the reason itself.
         self::assertSame('unknown', new WorkRefused('unknown')->reason);

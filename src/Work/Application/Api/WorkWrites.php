@@ -14,10 +14,7 @@ use Foresi\Work\Application\Comments;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\Projects;
-use Foresi\Work\Application\TimeEntryRow;
-use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Application\WorkUnit;
@@ -26,7 +23,7 @@ use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
- * The writes of projects, tasks, comments and time over the API and MCP (ADR
+ * The writes of projects, tasks and comments over the API and MCP (ADR
  * 0032). Each runs the use cases the screens run, so WorkVisibility decides
  * who may, and in one unit of work: a call that changes several fields of a
  * task is saved whole or not at all, and is one step of its history. Every
@@ -38,9 +35,7 @@ final readonly class WorkWrites
         private ManageTasks $tasks,
         private ManageProjects $projects,
         private ManageComments $comments,
-        private ManageTime $time,
         private WorkQueries $queries,
-        private TimeQueries $timeQueries,
         private Comments $commentStore,
         private WorkUnit $unit,
         private Projects $store,
@@ -237,46 +232,6 @@ final readonly class WorkWrites
     }
 
     /**
-     * @throws WorkRefused
-     */
-    public function logTime(LogTimeInput $input): string
-    {
-        return $this->time->log(
-            $input->projectId,
-            $input->taskId,
-            $this->day($input->workedOn, 'workedOn'),
-            $input->minutes,
-            $this->moment($input->startedAt, 'startedAt'),
-            $this->moment($input->endedAt, 'endedAt'),
-            $input->note,
-            $input->billable,
-        )->id();
-    }
-
-    /**
-     * @throws WorkRefused
-     */
-    public function startTimer(StartTimerInput $input): string
-    {
-        return $this->time->startTimer($input->projectId, $input->taskId, $input->note, $input->billable)->id();
-    }
-
-    /**
-     * @throws WorkRefused when the entry is not the running timer of the person
-     */
-    public function stopTimer(StopTimerInput $input): string
-    {
-        $running = $this->timeQueries->running();
-        if (!$running instanceof TimeEntryRow || $running->id !== $input->entryId) {
-            throw new WorkRefused('timer_not_running', 'entryId');
-        }
-
-        $this->time->stopTimer();
-
-        return $input->entryId;
-    }
-
-    /**
      * @template T
      *
      * @param \Closure(): T $change
@@ -316,18 +271,5 @@ final readonly class WorkWrites
         }
 
         return $day;
-    }
-
-    private function moment(?string $value, string $field): ?\DateTimeImmutable
-    {
-        if (null === $value) {
-            return null;
-        }
-        $moment = \DateTimeImmutable::createFromFormat(\DATE_ATOM, $value);
-        if (!$moment instanceof \DateTimeImmutable) {
-            throw new WorkRefused('date', $field);
-        }
-
-        return $moment;
     }
 }

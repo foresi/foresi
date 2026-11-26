@@ -13,6 +13,7 @@ use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxPreFill;
 use Foresi\Inbox\Contract\PreFill;
 use Foresi\Inbox\Contract\SuggestedRecord;
+use Foresi\Work\Application\ClientProjects;
 use Foresi\Work\Domain\Task;
 
 /**

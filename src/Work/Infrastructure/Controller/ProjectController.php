@@ -10,7 +10,6 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OpenToGuest;
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Contract\StaffCheck;
@@ -45,10 +44,7 @@ use Foresi\Work\Application\SectionTasks;
 use Foresi\Work\Application\StatusTasks;
 use Foresi\Work\Application\TaskFilter;
 use Foresi\Work\Application\TaskRow;
-use Foresi\Work\Application\TimeQueries;
-use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TrashedTask;
-use Foresi\Work\Application\TrashedTime;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
@@ -61,7 +57,7 @@ use Foresi\Work\Infrastructure\Column\ProjectColumns;
 use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
 use Foresi\Work\Infrastructure\Column\ProjectTaskColumns;
 use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
-use Foresi\Work\Infrastructure\Twig\TimeFunctions;
+use Foresi\Work\Infrastructure\Trash\ProjectTrashPage;
 use Foresi\Work\Infrastructure\View\ProjectTaskViews;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -113,10 +109,7 @@ final class ProjectController extends AbstractController
         private readonly AuditActor $actor,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
-        private readonly TimeQueries $time,
-        private readonly OwnerCheck $owner,
         private readonly InlineTaskEdits $edits,
-        private readonly TimeFunctions $timeFormat,
         private readonly ProjectTaskViews $taskViews,
         private readonly ProjectTaskColumns $taskColumns,
         private readonly ListViews $listViews,
@@ -125,6 +118,7 @@ final class ProjectController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly ProjectPageSlots $pageSlots,
+        private readonly ProjectTrashPage $trashPage,
         private readonly CustomFieldForm $customFields,
     ) {
     }
@@ -299,10 +293,7 @@ final class ProjectController extends AbstractController
             ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified'], $text),
             'columns' => $working->display->table(),
             'picker' => $this->taskPicker($id, $working, $query),
-            'trashCount' => $this->queries->trashCount($id) + $this->time->trashCount($id),
-            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner sees the actions that bill time.
-            'timeBilling' => $this->owner->isOwner(),
+            'trashCount' => $this->trashPage->count($id),
         ]);
     }
 
@@ -363,9 +354,6 @@ final class ProjectController extends AbstractController
             'filtered' => '' !== $text || '' !== $query['responsible'] || '' !== $query['due'],
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
-            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner sees the actions that bill time.
-            'timeBilling' => $this->owner->isOwner(),
             'columns' => array_map(fn (StatusTasks $column): array => [
                 'id' => $column->id,
                 'name' => $column->name,
@@ -382,16 +370,16 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The tasks and the time deleted from the project, the last first: the
-     * subtasks deleted with their task are restored with it, so only it is
-     * listed. Restoring is offered to whom may restore each one.
+     * The tasks deleted from the project, the last first, and what other
+     * modules keep of it in the trash: the subtasks deleted with their task are
+     * restored with it, so only it is listed. Restoring is offered to whom may
+     * restore each one.
      */
     #[Route('/projects/{id}/trash', name: self::TRASH_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function trash(string $id): Response
     {
         $this->denyUnlessStaff();
         $trash = $this->queries->trash($id) ?? throw new NotFoundHttpException();
-        $here = $this->generateUrl(self::TRASH_ROUTE, ['id' => $id]);
         $deletedBy = ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false];
         $deletedAt = ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')];
 
@@ -422,34 +410,8 @@ final class ProjectController extends AbstractController
                     'fields' => ['from' => 'trash', 'project' => $trash->project->id],
                 ]] : [],
             ], $trash->tasks),
-            'timeColumns' => [
-                ['key' => 'workedOn', 'label' => $this->translator->trans('work.time.trash.column.worked_on')],
-                ['key' => 'person', 'label' => $this->translator->trans('work.time.trash.column.person'), 'truncate' => true, 'phone' => false],
-                ['key' => 'duration', 'label' => $this->translator->trans('work.time.trash.column.duration'), 'align' => 'right'],
-                ['key' => 'task', 'label' => $this->translator->trans('work.time.trash.column.task'), 'truncate' => true, 'phone' => false],
-                $deletedBy,
-                $deletedAt,
-            ],
-            'timeRows' => array_map(fn (TrashedTime $time): array => [
-                'id' => $time->id,
-                'label' => $this->timeFormat->duration($time->minutes).' · '.$time->workedOn->format($this->translator->trans('format.date')),
-                'secondary' => $time->taskTitle,
-                'cells' => [
-                    'workedOn' => $time->workedOn->format($this->translator->trans('format.date')),
-                    'person' => $time->personName,
-                    'duration' => $this->timeFormat->duration($time->minutes),
-                    'task' => $time->taskTitle,
-                    'deletedBy' => $time->deletedByName,
-                    'deletedAt' => $time->deletedAt->format($this->translator->trans('format.datetime')),
-                ],
-                'actions' => $time->restorable ? [[
-                    'label' => $this->translator->trans('work.trash.restore'),
-                    'href' => $this->generateUrl('app_time_restore', ['id' => $time->id]),
-                    'method' => 'POST',
-                    'icon' => 'archive-restore',
-                    'fields' => ['return' => $here],
-                ]] : [],
-            ], $this->time->trash($id)),
+            // What other modules keep of the project in its trash, each a section after the tasks.
+            'trashSections' => $this->trashPage->sections($id),
         ]);
     }
 

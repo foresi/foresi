@@ -31,12 +31,18 @@ use Psr\Clock\ClockInterface;
  */
 final class GuestApiTest extends WorkApiTestCase
 {
-    /** What a guest's agent sees in tools/list: Work's tasks and projects, the custom fields of those, and whoami. */
+    /**
+     * What a guest's agent sees in tools/list of Work's and the core's: tasks and projects, their custom
+     * fields, and whoami. The tools of the modules built on Work, such as the time budget of a project, are
+     * left out here; their own tests say what a guest sees of them.
+     */
+    private const array OTHER_MODULES = ['foresi_get_project_budget'];
+
+    /** Work's and the core's tools a guest's agent sees. */
     private const array GUEST_TOOLS = [
         'foresi_add_task_comment',
         'foresi_create_task',
         'foresi_get_project',
-        'foresi_get_project_budget',
         'foresi_get_task',
         'foresi_list_fields',
         'foresi_list_labels',
@@ -88,7 +94,7 @@ final class GuestApiTest extends WorkApiTestCase
     {
         $listed = array_column($this->list($this->mcpRequest('tools/list'), 'result', 'tools'), 'name');
         sort($listed);
-        self::assertSame(self::GUEST_TOOLS, $listed);
+        self::assertSame(self::GUEST_TOOLS, array_values(array_diff($listed, self::OTHER_MODULES)));
 
         $all = array_keys($this->service(ReadToolLoader::class)->scopes());
         // Every installed module adds its tools; Work alone already has more than a guest may use.
@@ -113,7 +119,8 @@ final class GuestApiTest extends WorkApiTestCase
         $this->as(fn () => $this->service(ManageSharing::class)->shareProject($this->project->id(), $this->membershipOf($other)->id()));
 
         $project = $this->mcpTool('foresi_get_project', ['project_id' => $this->project->id()]);
-        self::assertNull(self::in($project, 'structuredContent', 'data', 'billable_by_default'));
+        // Whether its time is billable is the organisation's: a custom field not open to guests.
+        self::assertArrayNotHasKey('timesheet_billable_by_default', (array) self::in($project, 'structuredContent', 'data', 'custom_fields'));
         $people = array_column($this->list($this->mcpTool('foresi_list_project_people', ['project_id' => $this->project->id()]), 'structuredContent', 'data', 'items'), 'id');
         self::assertContains($this->membershipOf($this->owner)->id(), $people);
         self::assertNotContains($this->membershipOf($other)->id(), $people, 'A guest is not told who else the organisation works with.');

@@ -120,7 +120,7 @@ final class TimeInvoiceController extends AbstractController
 
                 return $this->redirectToRoute('app_invoice_new', ['billedWork' => $reference], Response::HTTP_SEE_OTHER);
             } catch (TimeInvoicingRefused $refused) {
-                $error = $this->translator->trans('timesheet.refused.'.$refused->reason);
+                $error = $this->translator->trans('timesheet.invoice.refused.'.$refused->reason);
             }
         }
 

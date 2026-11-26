@@ -22,7 +22,6 @@
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
-        "openspout/openspout": "^5.12",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -64,8 +63,7 @@
                 {
                     "resource": "tasks",
                     "guest": "write"
-                },
-                "time_entries"
+                }
             ]
         }
     }

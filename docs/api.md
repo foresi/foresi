@@ -128,7 +128,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
 | `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
-| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. The project itself carries `budget {hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. |
+| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. With Timesheet installed. |
 | `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
 | `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first or in the `sort` asked for. |
 | `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
@@ -308,7 +308,7 @@ Query parameters of `GET /api/v1/tasks`:
 
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 
-A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task and `billable_by_default` of a project are `null`, and the people of a project are the organisation's own, not other guests.
+A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task is `null` and the custom fields not open to guests, such as `timesheet_billable_by_default` of a project, are left out, and the people of a project are the organisation's own, not other guests.
 
 ## Custom fields
 

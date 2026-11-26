@@ -12,7 +12,6 @@ use Foresi\Deals\Application\LineProject;
 use Foresi\Deals\Application\LineProjectSource;
 use Foresi\Work\Contract\ProjectDirectory;
 use Foresi\Work\Contract\ProjectSummary;
-use Foresi\Work\Contract\TimeTotals;
 
 /**
  * The projects an hourly line links to, read from Work's contract as the person
@@ -20,7 +19,7 @@ use Foresi\Work\Contract\TimeTotals;
  */
 final readonly class WorkLineProjects implements LineProjectSource
 {
-    public function __construct(private ProjectDirectory $projects, private TimeTotals $time)
+    public function __construct(private ProjectDirectory $projects)
     {
     }
 
@@ -37,11 +36,6 @@ final readonly class WorkLineProjects implements LineProjectSource
         usort($projects, static fn (ProjectSummary $a, ProjectSummary $b): int => strnatcasecmp($a->name, $b->name));
 
         return array_map($this->line(...), $projects);
-    }
-
-    public function billableMinutes(string $projectId): int
-    {
-        return $this->time->minutes($projectId, billableOnly: true);
     }
 
     private function line(ProjectSummary $project): LineProject

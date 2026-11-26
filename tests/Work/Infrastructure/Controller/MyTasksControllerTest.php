@@ -67,7 +67,8 @@ final class MyTasksControllerTest extends WebTestCase
         $link = $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a[href="/tasks"]');
         self::assertCount(1, $link);
         self::assertCount(0, $link->filter('[data-nav-count]'));
-        self::assertSame(['/tasks', '/projects', '/time'], $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        // Work's own items; the modules built on it add theirs after them, such as Time.
+        self::assertSame(['/tasks', '/projects'], \array_slice($crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')), 0, 2));
     }
 
     public function testAGuestWithNothingSharedHasNoTasks(): void
