@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\Operation;
 
 use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Field\CustomFieldSchema;
 use Nelmio\ApiDocBundle\Describer\DescriberInterface;
 use Nelmio\ApiDocBundle\OpenApiPhp\Util;
 use OpenApi\Annotations\OpenApi;
@@ -61,7 +62,7 @@ final readonly class OperationDocs implements DescriberInterface
             ];
             $body = $definition->bodyFields();
             if ([] !== $body) {
-                $spec['requestBody'] = ['required' => array_any($body, static fn (OperationField $field): bool => $field->required), 'content' => ['application/json' => ['schema' => InputSchema::of($body)]]];
+                $spec['requestBody'] = ['required' => array_any($body, static fn (OperationField $field): bool => $field->required), 'content' => ['application/json' => ['schema' => InputSchema::of($body, static fn (string $record): array => ['$ref' => '#/components/schemas/'.CustomFieldSchema::component($record)])]]];
             }
             Util::merge(Util::getOperation(Util::getPath($api, $operation->path), strtolower($operation->method)), $spec, true);
         }

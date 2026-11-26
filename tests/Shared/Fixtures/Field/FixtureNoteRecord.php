@@ -23,6 +23,11 @@ final readonly class FixtureNoteRecord implements FieldRecord
         return FixtureNoteExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'contacts:read';
+    }
+
     public function entity(): string
     {
         return FixtureNote::class;

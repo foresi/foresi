@@ -12,21 +12,25 @@ use Foresi\Shared\Contract\Operation\Field;
 
 /**
  * The JSON Schema of an operation's input, from its fields and their #[Field]:
- * for the MCP tool all fields, for the REST body those not in the path.
+ * for the MCP tool all fields, for the REST body those not in the path. The
+ * custom fields of a record are described by the caller, from their definitions.
  */
 final class InputSchema
 {
     /**
-     * @param list<OperationField> $fields
+     * @param list<OperationField>                                $fields
+     * @param (\Closure(string): array<string, mixed>)|null $customFields the schema of the custom fields of a record kind; a plain object without it
      *
      * @return array<string, mixed>
      */
-    public static function of(array $fields): array
+    public static function of(array $fields, ?\Closure $customFields = null): array
     {
         $properties = [];
         $required = [];
         foreach ($fields as $field) {
-            $properties[$field->wire] = self::property($field);
+            $properties[$field->wire] = null !== $field->customFields && $customFields instanceof \Closure
+                ? $customFields($field->customFields) + (null === $field->describe ? [] : ['description' => $field->describe->description])
+                : self::property($field);
             if ($field->required) {
                 $required[] = $field->wire;
             }

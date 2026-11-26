@@ -24,6 +24,11 @@ final readonly class DealFieldRecord implements FieldRecord
         return DealExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'sales:read';
+    }
+
     public function entity(): string
     {
         return Deal::class;

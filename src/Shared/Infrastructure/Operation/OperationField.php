@@ -13,7 +13,8 @@ use Foresi\Shared\Contract\Operation\Field;
 /**
  * One field of an operation's input, read from a constructor parameter of the
  * input class: its name in the class and over the wire, its type, and whether
- * it may be left out, be null, or is part of the path.
+ * it may be left out, be null, or is part of the path, and for the custom
+ * fields of a record (CustomFieldsOf) the record kind.
  */
 final readonly class OperationField
 {
@@ -27,6 +28,7 @@ final readonly class OperationField
         public bool $required,
         public bool $inPath,
         public ?Field $describe,
+        public ?string $customFields = null,
     ) {
     }
 

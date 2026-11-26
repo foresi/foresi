@@ -25,6 +25,11 @@ final readonly class ContactFieldRecord implements FieldRecord
         return ContactExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'contacts:read';
+    }
+
     public function entity(): string
     {
         return Party::class;
