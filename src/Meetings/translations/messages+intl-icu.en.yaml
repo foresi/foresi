@@ -48,7 +48,7 @@ meetings:
     field:
       series: Series
       title: Title
-      title_help: Left empty, a meeting of a series is named after it and the day.
+      title_help: Left empty in a series, it is the series name and day.
       held_on: Day
       starts_at: Time
       attendees: Attendees
@@ -109,14 +109,14 @@ meetings:
     field:
       name: Name
       visibility: Who sees it
-      visibility_help: The owners see every series. A series for its members is seen by them and by the attendees of each meeting.
+      visibility_help: Owners see all, attendees also see their meeting.
       members: Members
       defaults: Default attendees
       defaults_help: They start as attendees of each new meeting of the series.
       default_project: Default project
       default_project_help: The project offered first for a task from the minutes.
       agenda_template: Agenda template
-      agenda_template_help: Copied into the minutes of each new meeting. A later change does not touch existing meetings.
+      agenda_template_help: Copied into the minutes of new meetings only.
     empty:
       title: No series yet
       text: A series groups recurring meetings, such as a weekly production meeting, with their people and agenda.

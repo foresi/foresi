@@ -48,7 +48,7 @@ meetings:
     field:
       series: Řada
       title: Název
-      title_help: Když ho necháte prázdný, schůzka řady dostane název podle řady a dne.
+      title_help: U řady se prázdný název doplní z názvu řady a dne.
       held_on: Den
       starts_at: Čas
       attendees: Účastníci
@@ -109,14 +109,14 @@ meetings:
     field:
       name: Název
       visibility: Kdo ji vidí
-      visibility_help: Majitelé vidí všechny řady. Řadu pro členy vidí její členové a účastníci jednotlivých schůzek.
+      visibility_help: Majitelé vidí vždy vše, účastníci i svou schůzku.
       members: Členové
       defaults: Výchozí účastníci
       defaults_help: Jsou účastníky každé nové schůzky řady.
       default_project: Výchozí projekt
       default_project_help: Projekt, který se nabídne jako první pro úkol ze zápisu.
       agenda_template: Šablona programu
-      agenda_template_help: Zkopíruje se do zápisu každé nové schůzky. Pozdější změna stávající schůzky nemění.
+      agenda_template_help: Zkopíruje se do zápisu jen u nově vzniklých schůzek.
     empty:
       title: Zatím žádné řady
       text: Řada sdružuje opakované schůzky, třeba týdenní poradu výroby, s jejich lidmi a programem.
