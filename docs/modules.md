@@ -684,6 +684,7 @@ What each minor version added:
 | 1.2 | Banking: the `StatementIntake` service, the one way bank movements enter, and the `StatementFormat` port for statement files, with their values (`BankStatement`, `StatementSequence`, `StatementFile`, `MovementProvenance`, `MovementChannel`, `MovementTrust`, `IntakeResult`) and the events `banking.statement.gap_detected` and `banking.statement.gap_closed`. A module that uses them requires `^1.2`. |
 | 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
 | 1.4 | Custom fields on the records' dialogs and details, with `required` and `guests` enforced; `customFields`, the keys of the custom fields that changed, in `party.contact.updated`, `sales.deal.updated`, `catalog.product.updated` and `work.task.updated`; the event `work.project.updated` (`projectId`, `customFields`), recorded on every save of a project's name, client, description or custom fields. A module that reads them requires `^1.4`. |
+| 1.5 | `Foresi\Shared\Contract\Operation\OperationObserver` (`foresi.shared.operation_observer`), told before and after every operation the runner runs; and Inbox's actions (`Foresi\Inbox\Contract\InboxAction`, `InboxActionInput`, `InboxActionCondition` with `foresi.inbox.action_condition`, `InboxPreFill` with `foresi.inbox.prefill`, and `PreFill`), see [Adding an action](inbox.md#adding-an-action). A module that uses them requires `^1.4`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
@@ -728,6 +729,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | `Operation\Operation`, `Operation\Field` (attributes) | — | A REST endpoint below `/api/v1` and an MCP write tool from one declaration, with the scope check, idempotency and the OpenAPI entry. |
 | `Operation\OperationHandler` | `foresi.shared.operation_handler` | Called with the validated input of its operation, over REST and MCP. |
 | `Operation\OperationOutput` | — | The data of the answer and the sentence an MCP client shows. |
+| `Operation\OperationObserver` (since 1.5) | `foresi.shared.operation_observer` | Told before and after every operation the runner runs, over REST and MCP; `before()` refuses with a `Refused` only, and `after()` may answer a longer summary. |
 | `Operation\Omitted` | — | A field that a partial update did not send. |
 | `Mcp\ReadTool` | `foresi.shared.mcp_read_tool` | A read-only MCP tool, listed to the tokens that hold its scope. |
 | `Mcp\WriteTool` | `foresi.shared.mcp_write_tool` | An MCP tool that changes data, for a write that no operation describes. |
@@ -793,6 +795,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
+| Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
 | Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |

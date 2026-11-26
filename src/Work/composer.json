@@ -13,6 +13,7 @@
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
+        "doctrine/persistence": "^4.2",
         "foresi/attachment": "self.version",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
@@ -52,7 +53,8 @@
             "namespace": "Foresi\\Work\\",
             "bundle": "Foresi\\Work\\WorkBundle",
             "optional": [
-                "activities"
+                "activities",
+                "inbox"
             ],
             "scopes": [
                 {

@@ -9,7 +9,9 @@ declare(strict_types=1);
 use Foresi\Inbox\Application\InboxTransaction;
 use Foresi\Inbox\Application\ItemsForOtherModules;
 use Foresi\Inbox\Application\ItemStore;
+use Foresi\Inbox\Contract\InboxActionCondition;
 use Foresi\Inbox\Contract\InboxItems;
+use Foresi\Inbox\Contract\InboxPreFill;
 use Foresi\Inbox\Contract\RecordSuggester;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineInboxTransaction;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
@@ -36,11 +38,20 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // The contract is not loaded as services, so its #[AutoconfigureTag] would never apply: tag the
     // implementations here.
     $builder->registerForAutoconfiguration(RecordSuggester::class)->addTag(RecordSuggester::TAG);
+    // The same for the conditions and pre-fills of the inbox actions modules declare (InboxActions).
+    $builder->registerForAutoconfiguration(InboxActionCondition::class)->addTag(InboxActionCondition::TAG);
+    $builder->registerForAutoconfiguration(InboxPreFill::class)->addTag(InboxPreFill::TAG);
     $services->set(ItemsForOtherModules::class)
         ->arg('$suggesters', tagged_iterator(RecordSuggester::TAG));
     $alias = $services->alias(InboxItems::class, ItemsForOtherModules::class);
     if ('test' === $container->env()) {
         // A contract nothing in a test boot uses yet, reached by the Inbox tests.
         $alias->public();
+        // A module only the tests have (tests/Inbox/Fixtures/Action), whose inbox actions reach
+        // the item without a change to Inbox.
+        foreach (['FixtureNoteHandler', 'FixtureContactNoteHandler', 'FixtureNotePreFill', 'HasMatchedContact'] as $class) {
+            $services->set('Foresi\\Tests\\Inbox\\Fixtures\\Action\\'.$class);
+        }
+        $services->set(Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes::class)->public();
     }
 };

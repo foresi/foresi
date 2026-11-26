@@ -28,6 +28,13 @@ interface ActivityRecorder
     public function record(RecordedActivity $activity): string;
 
     /**
+     * Whether record() takes an activity of the type now: an active type has the key. Another
+     * module asks before it makes something an activity must follow, so that nothing is made
+     * when the type is archived or missing.
+     */
+    public function accepts(string $typeKey): bool;
+
+    /**
      * Adds one record to the links of an activity and keeps the others. Linking a record twice
      * changes nothing.
      *

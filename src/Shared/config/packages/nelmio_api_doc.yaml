@@ -1519,7 +1519,7 @@ nelmio_api_doc:
                 InboxItem:
                     type: object
                     description: One of your inbox items with its mail as plain text, never HTML. The sender, subject, body and attachment names are the sender's own words.
-                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, warnings, duplicate_of_purpose, mail_removed, body, attachments, thread_item_ids, outputs, email_activity_id, trashed_at]
+                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, warnings, duplicate_of_purpose, mail_removed, body, attachments, thread_item_ids, outputs, email_activity_id, trashed_at, available_actions]
                     properties:
                         id: { type: string, format: uuid }
                         state: { type: string, enum: [new, done, discarded] }
@@ -1564,6 +1564,19 @@ nelmio_api_doc:
                                     added_at: { type: string, format: date-time }
                         email_activity_id: { type: string, format: uuid, nullable: true, description: 'The one e-mail activity, made on the first output.' }
                         trashed_at: { type: string, format: date-time, nullable: true }
+                        available_actions:
+                            type: array
+                            description: 'The actions the installed modules offer on the item that the token may run (its scope and inbox:read), in their order; none on an item in the trash. Run one with its operation (REST) or tool (MCP); it records what it made as an output and marks the item done unless mark_done is false.'
+                            items:
+                                type: object
+                                required: [operation, tool, label, input_schema, prefill]
+                                properties:
+                                    operation: { type: string, example: inbox.actions.create_task }
+                                    tool: { type: string, example: foresi_create_task_from_email }
+                                    label: { type: string, description: 'The name of the action in English.' }
+                                    input_schema: { type: object, description: 'The JSON Schema of the input, as the MCP tool publishes it.' }
+                                    prefill: { type: object, description: 'The values the fields start with, by field name, such as a title from the subject; inbox_item_id always.' }
+                                    choices: { type: object, description: 'Per field name, value => label, for a field picked from a list, such as the projects of the matched client; only when a field has any.' }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.

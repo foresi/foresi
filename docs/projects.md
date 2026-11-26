@@ -38,6 +38,8 @@ The order of a card is the order of the task in its status; the list shows the s
 
 With the Activities module installed, a project's page has an **Activities** tab after List and Board, which stay the default: the project's timeline of meetings, calls, notes and e-mails, with **Log activity** and **Plan activity** (see [activities](activities.md)). An activity is linked to a project with the kind `project`, on the screens, over REST (`activities.create`) and over MCP (`foresi_create_activity` with `links: [{kind: "project", id}]`). Whoever sees the project sees its activities. An archived project keeps them and takes no new one, as it takes no new tasks. Activities is for the owners and team members, so a guest a project is shared with gets no tab.
 
+With the Inbox module installed, an inbox item has **Create task** and **Log time**, filled from the mail with the client's one active project chosen; the mail then shows on the project's Activities tab (see [inbox](inbox.md#actions)).
+
 ### For other modules
 
 The project's page has two slots, `Foresi\Work\Contract\ProjectSlots`, the way the deal's page has `SalesSlots`. Both get the context `projectId`, `clientId` (or null) and `return`, the address of the page as shown, with its tab.

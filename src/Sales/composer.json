@@ -51,7 +51,8 @@
                 "documents",
                 "activities",
                 "timesheet",
-                "work"
+                "work",
+                "inbox"
             ],
             "scopes": [
                 "sales"

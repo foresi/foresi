@@ -2,6 +2,8 @@ nav:
     item:
         activity_settings: Aktivity
 activities:
+    inbox_action:
+        log_activity: Zapsat aktivitu
     cancel: Zrušit
     keep: Ponechat
     save: Uložit
@@ -134,3 +136,13 @@ activities:
         flash:
             saved: 'Uloženo: {name}.'
             archived: 'Archivováno: {name}.'
+inbox_action:
+    inbox:
+        actions:
+            log_activity:
+                typeId: Typ
+                subject: Předmět
+                plannedOn: Naplánováno na den
+                plannedAt: Naplánováno na čas
+                done: Již hotovo
+                outcome: Výsledek

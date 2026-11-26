@@ -76,6 +76,9 @@ inbox:
     unmatched: Přiřazení zrušeno.
     contact_created: Kontakt vytvořen a přiřazen.
     linked: Propojeno.
+    action_done: Uloženo a přidáno k tomu, co z e-mailu vzešlo.
+    action_not_linked: Záznam vznikl, ale s e-mailem se ho nepodařilo propojit. Propojte ho přes Propojit…
+    action_not_added: Záznam vznikl, ale k tomu, co z e-mailu vzešlo, ho nešlo přidat. Je uložený ve své sekci, neukládejte ho znovu.
   item:
     no_subject: (bez předmětu)
     mail_removed: Samotný e-mail už byl odstraněn. Zůstalo jen to, co jste s ním udělali.
@@ -104,6 +107,26 @@ inbox:
     sender_not_verified: Odesílatel není ověřen. Přijímající server nemohl potvrdit, kdo e-mail poslal.
     forwarded_not_verified: Přeposláno, původní odesílatel není ověřen. Původní odesílatel je to, co říká přeposlaný text; nikdo to nekontroloval.
     duplicate: 'Už přijato jako {purpose}. Stejný e-mail přišel dříve na jinou vaši adresu.'
+  output_kind:
+    contact: Kontakt
+    deal: Obchod
+    project: Projekt
+    task: Úkol
+    time_entry: Zapsaný čas
+    activity: Aktivita
+  action_dialog:
+    submit: Uložit
+    mark_done: Označit položku jako hotovou
+    required: Vyplňte toto pole.
+    whole_number: Zadejte celé číslo.
+    date_time: Zadejte datum a čas.
+    default: Podle výchozího nastavení
+    'yes': Ano
+    'no': Ne
+    none: Žádný
+    choose: Vyberte…
+    refused:
+      email_activity_unavailable: Typ aktivity E-mail je archivovaný, takže k tomuto e-mailu nelze nic přidat. Obnovte ho v Nastavení, Aktivity, a uložte znovu.
   link:
     title: Propojit se záznamem
     intro: Propojí tento e-mail se záznamem, například s obchodem nebo projektem, a ukáže ho na jeho časové ose.

@@ -2,6 +2,8 @@ nav:
     item:
         activity_settings: Activities
 activities:
+    inbox_action:
+        log_activity: Log activity
     cancel: Cancel
     keep: Keep
     save: Save
@@ -134,3 +136,13 @@ activities:
         flash:
             saved: 'Saved {name}.'
             archived: 'Archived {name}.'
+inbox_action:
+    inbox:
+        actions:
+            log_activity:
+                typeId: Type
+                subject: Subject
+                plannedOn: Planned on
+                plannedAt: Planned at
+                done: Already done
+                outcome: Outcome

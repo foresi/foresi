@@ -76,6 +76,13 @@ interface ItemStore
      */
     public function trashedBefore(\DateTimeImmutable $time): array;
 
+    /**
+     * Locks the item's row until the open transaction ends and reads it again,
+     * so that two changes of one item, such as two actions at once, run one
+     * after the other and the second sees the first's e-mail activity.
+     */
+    public function lock(InboxItem $item): void;
+
     public function add(InboxItem|ItemOutput $record): void;
 
     public function remove(InboxItem|ItemOutput $record): void;

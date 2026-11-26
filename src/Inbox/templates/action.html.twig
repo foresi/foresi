@@ -1,0 +1,54 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    An action a module declares on an inbox item, such as Create task: the fields of its operation,
+    filled from the mail, and Mark the item done, ticked. A dialog over the item; the same URL is a
+    page of its own. Whatever a field starts with may be the sender's words (the subject, the text):
+    it is printed escaped as the value of its control, never as markup.
+    Variables: id, operation, title, fields (name, id, widget, label, required, value, checked,
+    options, maxLength, error), summary, token.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set form_invalid = summary is not null or fields|filter(field => field.error is not null) is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-action-form" action="{{ path('app_inbox_item_action', {id: id, operation: operation}) }}" class="grid gap-4" novalidate data-inbox-action-form="{{ operation }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        {% if summary %}
+            <twig:Ui:Alert tone="error" data-inbox-action-error>{{ summary }}</twig:Ui:Alert>
+        {% endif %}
+        {% for field in fields %}
+            {% if field.widget == 'select' %}
+                <twig:Ui:Select :name="field.name" :id="field.id" :label="field.label" :options="field.options" :value="field.value" :required="field.required" :error="field.error" />
+            {% elseif field.widget == 'textarea' %}
+                <twig:Ui:Textarea :name="field.name" :id="field.id" :label="field.label" :value="field.value" :required="field.required" :error="field.error" :rows="6" :maxlength="field.maxLength" />
+            {% elseif field.widget == 'checkbox' %}
+                <twig:Ui:Checkbox :name="field.name" :id="field.id" :label="field.label" :checked="field.checked" :error="field.error" />
+            {% else %}
+                <twig:Ui:TextInput :name="field.name" :id="field.id" :label="field.label" :type="{date: 'date', datetime: 'datetime-local', number: 'number'}[field.widget] ?? 'text'" :value="field.value" :required="field.required" :error="field.error" :maxlength="field.maxLength" autocomplete="off" />
+            {% endif %}
+        {% endfor %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ 'inbox.action_dialog.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="plus" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ 'inbox.action_dialog.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
