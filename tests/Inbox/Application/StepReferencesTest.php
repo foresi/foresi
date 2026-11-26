@@ -65,6 +65,38 @@ final class StepReferencesTest extends TestCase
         self::assertNull(QuoteCheck::offset($text, ''));
     }
 
+    public function testAFieldIsNamedByItsKeyOrByAStarWhenTheKeyIsNoFieldName(): void
+    {
+        self::assertSame('taskId', StepReferences::segment('task_id'));
+        self::assertSame('a', StepReferences::segment('a'));
+        self::assertSame('7', StepReferences::segment(7));
+        self::assertSame(str_repeat('a', 64), StepReferences::segment(str_repeat('a', 64)));
+        foreach ([str_repeat('a', 65), 'task!', '!task', '1task', 'task id', "task\n", ''] as $key) {
+            self::assertSame('*', StepReferences::segment($key), (string) json_encode($key));
+        }
+    }
+
+    public function testTheStepsAReferenceNamesAreListedOnceInOrder(): void
+    {
+        $reference = static fn (int $step): array => ['$step' => $step, 'field' => 'id'];
+
+        self::assertSame([1, 3], StepReferences::positions(['a' => $reference(3), 'b' => ['c' => $reference(1)], 'd' => $reference(3)]));
+        self::assertSame([], StepReferences::positions(['a' => 'text']));
+    }
+
+    public function testAReferenceIsTheSameInEitherOrderOfItsKeys(): void
+    {
+        $record = Id::generate();
+
+        self::assertSame(['task_id' => $record], StepReferences::resolve(['task_id' => ['field' => 'id', '$step' => 1]], [1 => $record]));
+    }
+
+    public function testAQuoteOffsetCountsCharactersNotBytes(): void
+    {
+        self::assertSame(2, QuoteCheck::offset('éabcd', 'bc'));
+        self::assertSame(1, QuoteCheck::offset('éabcd', 'abc'));
+    }
+
     private function assertRefused(string $reason, string $field, \Closure $work): void
     {
         try {

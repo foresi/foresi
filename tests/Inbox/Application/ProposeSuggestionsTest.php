@@ -13,6 +13,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\Api\MarkItemDoneInput;
 use Foresi\Inbox\Application\Api\TrashItemInput;
 use Foresi\Inbox\Application\ItemReads;
+use Foresi\Inbox\Application\ItemRow;
 use Foresi\Inbox\Application\ProposeSuggestions;
 use Foresi\Inbox\Application\ProposingClient;
 use Foresi\Inbox\Application\StepReferences;
@@ -21,11 +22,17 @@ use Foresi\Inbox\Domain\StepState;
 use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Domain\SuggestionState;
 use Foresi\Inbox\Domain\SuggestionStep;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineSuggestionStore;
 use Foresi\Shared\Contract\Refused;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\InboxTestCase;
+use Foresi\Tests\Inbox\Support\LockLog;
+use Foresi\Tests\Inbox\Support\LockRecordingItems;
+use Foresi\Tests\Inbox\Support\LockRecordingSuggestions;
+use Foresi\Tests\Inbox\Support\RebuiltServices;
 
 /**
  * An agent proposes suggestions on an item, with the actions only the tests
@@ -34,6 +41,8 @@ use Foresi\Tests\Inbox\Support\InboxTestCase;
  */
 final class ProposeSuggestionsTest extends InboxTestCase
 {
+    use RebuiltServices;
+
     private const string NOTE = 'inbox.actions.fixture_note';
     private const string CONTACT_NOTE = 'inbox.actions.fixture_contact_note';
     private const string QUOTE = 'please find our offer';
@@ -168,6 +177,76 @@ final class ProposeSuggestionsTest extends InboxTestCase
         $this->assertRefusedAt('invalid_input', 'suggestions.0.replaces', fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()]) + ['replaces' => $second->id()]]));
     }
 
+    public function testTheTextsAreCountedInCharactersAtTheirLimits(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address, body: str_repeat('a', 1001).' '.str_repeat('é', 600)."\r\n"));
+        $at = static fn (string $field): string => 'suggestions.0.'.$field;
+
+        self::assertCount(1, $this->propose($itemId, [$this->suggestion([$this->note()], rationale: str_repeat('a', 2000), quote: str_repeat('a', 1000))]));
+        self::assertCount(1, $this->propose($itemId, [$this->suggestion([$this->note()], rationale: str_repeat('é', 2000), quote: str_repeat('é', 600))]));
+        $this->assertRefusedAt('invalid_input', $at('rationale'), fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()], rationale: str_repeat('a', 2001))]));
+        $this->assertRefusedAt('invalid_input', $at('rationale'), fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()], rationale: str_repeat('é', 2001))]));
+        $this->assertRefusedAt('invalid_input', $at('rationale'), fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()], rationale: " \n ")]));
+        $this->assertRefusedAt('invalid_input', $at('quote'), fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()], quote: str_repeat('a', 1001))]));
+        $this->assertRefusedAt('invalid_input', $at('quote'), fn (): array => $this->propose($itemId, [$this->suggestion([$this->note()], quote: ' '.str_repeat(' ', 3))]));
+        self::assertSame(2, $this->stored());
+    }
+
+    public function testTheShapeOfASuggestionAndItsStepsIsChecked(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $steps = [$this->note()];
+        $refused = fn (string $field, mixed $suggestion) => $this->assertRefusedAt('invalid_input', $field, fn (): array => $this->propose($itemId, [$suggestion]));
+
+        $refused('suggestions.0', 'a suggestion');
+        $refused('suggestions.0', ['a', 'b']);
+        $refused('suggestions.0', ['steps' => $steps, 'rationale' => 'Why', 'quote' => self::QUOTE, 'other' => 1]);
+        $refused('suggestions.0.steps', []);
+        $refused('suggestions.0.rationale', ['steps' => $steps, 'quote' => self::QUOTE]);
+        $refused('suggestions.0.quote', ['steps' => $steps, 'rationale' => 'Why']);
+        $refused('suggestions.0.steps', ['rationale' => 'Why', 'quote' => self::QUOTE]);
+        $refused('suggestions.0.steps', ['steps' => 'a step', 'rationale' => 'Why', 'quote' => self::QUOTE]);
+        $refused('suggestions.0.steps', ['steps' => ['first' => $this->note()], 'rationale' => 'Why', 'quote' => self::QUOTE]);
+        $refused('suggestions.0.steps.0.operation', $this->suggestion([[]]));
+        $refused('suggestions.0.steps.0', $this->suggestion([['a', 'b']]));
+        $refused('suggestions.0.steps.0', $this->suggestion([['operation' => self::NOTE, 'input' => [], 'other' => 1]]));
+        $refused('suggestions.0.steps.0.operation', $this->suggestion([['input' => []]]));
+        $refused('suggestions.0.steps.0.operation', $this->suggestion([['operation' => 5, 'input' => []]]));
+        $refused('suggestions.0.steps.0.input', $this->suggestion([['operation' => self::NOTE, 'input' => 'text']]));
+        self::assertSame(0, $this->stored());
+    }
+
+    public function testASuggestionReplacesSeveralAtOnce(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        [$first, $second, $third] = $this->propose($itemId, [$this->suggestion([$this->note('First')]), $this->suggestion([$this->note('Second')]), $this->suggestion([$this->note('Third')])]);
+
+        [$replacement] = $this->propose($itemId, [$this->suggestion([$this->note('Replacement')], replaces: [$first->id(), $second->id()])]);
+
+        $this->em->clear();
+        $state = fn (Suggestion $suggestion): array => [$this->store()->find($suggestion->id())?->state(), $this->store()->find($suggestion->id())?->supersededBy()];
+        self::assertSame([[SuggestionState::Superseded, $replacement->id()], [SuggestionState::Superseded, $replacement->id()], [SuggestionState::Proposed, null]], [$state($first), $state($second), $state($third)]);
+    }
+
+    public function testAProposalLocksTheItemThenTheSuggestionsItReplacesByIdAndOnlyOfItsItem(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $otherItem = $this->receive(InboxMail::plain($this->address, messageId: 'offer-2@client-a.example.com', body: "Hello, please find our offer again.\r\n"));
+        [$first, $second] = $this->propose($itemId, [$this->suggestion([$this->note('First')]), $this->suggestion([$this->note('Second')])]);
+        [$onOther] = $this->propose($otherItem, [$this->suggestion([$this->note()], quote: 'please find our offer again')]);
+        $log = new LockLog();
+        $propose = $this->rebuilt(self::getContainer()->get(ProposeSuggestions::class), ['items' => new LockRecordingItems(new DoctrineItemStore($this->em), $log), 'store' => new LockRecordingSuggestions(new DoctrineSuggestionStore($this->em), $log)]);
+        $ids = [$first->id(), $second->id()];
+        sort($ids);
+
+        $this->assertRefusedAt('not_found', 'suggestions.0.replaces.2', fn (): array => $propose->propose($itemId, [$this->suggestion([$this->note()], replaces: [$second->id(), $first->id(), $onOther->id()])], $this->agent));
+        self::assertSame(['item '.$itemId, 'suggestion '.$ids[0], 'suggestion '.$ids[1]], $log->locks);
+
+        $log->locks = [];
+        $this->assertRefusedAt('not_found', 'suggestions.0.replaces.0', fn (): array => $propose->propose($itemId, [$this->suggestion([$this->note()]) + ['replaces' => [123]], 'a suggestion'], $this->agent));
+        self::assertSame(['item '.$itemId], $log->locks, 'What is no id is refused in its place, not looked up.');
+    }
+
     public function testASuggestionOfAnotherItemCannotBeReplaced(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));
@@ -233,6 +312,35 @@ final class ProposeSuggestionsTest extends InboxTestCase
         self::assertSame([[$without, 0], [$itemId, 1]], $rows(null));
         self::assertSame([[$itemId, 1]], $rows(true));
         self::assertSame([[$without, 0]], $rows(false));
+    }
+
+    public function testTheOpenSuggestionsAreCountedForTheIdsOfTheItemsOfThePage(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $other = $this->receive(InboxMail::plain($this->address, subject: 'Something else', messageId: 'other-1@client-a.example.com'));
+        $this->propose($itemId, [$this->suggestion([$this->note()])]);
+        $log = new LockLog();
+        $reads = $this->rebuilt(self::getContainer()->get(ItemReads::class), ['suggestions' => new LockRecordingSuggestions(new DoctrineSuggestionStore($this->em), $log)]);
+
+        $rows = $reads->list(null, false, null, 10)->rows;
+
+        self::assertSame([[$other, $itemId]], $log->counted);
+        self::assertSame([[$other, 0], [$itemId, 1]], array_map(static fn (ItemRow $row): array => [$row->item->id(), $row->openSuggestions], $rows));
+        self::assertSame(0, new ItemRow($rows[0]->item, null, 0, 0)->openSuggestions);
+    }
+
+    public function testANulInAFieldNameOrAValueOfAnInputIsRefusedAtItsPath(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $input = static fn (array $input): array => [['steps' => [['operation' => self::NOTE, 'input' => $input]], 'rationale' => 'Why', 'quote' => self::QUOTE]];
+        $at = 'suggestions.0.steps.0.input';
+
+        $this->assertRefusedAt('invalid_input', $at, fn (): array => $this->propose($itemId, $input(['text' => 'A', "te\0xt" => 'B'])));
+        $this->assertRefusedAt('invalid_input', $at.'.text', fn (): array => $this->propose($itemId, $input(['text' => "A\0"])));
+        $this->assertRefusedAt('invalid_input', $at.'.lines.0', fn (): array => $this->propose($itemId, $input(['text' => 'A', 'lines' => [["k\0" => 1]]])));
+        $this->assertRefusedAt('invalid_input', $at.'.lines.1', fn (): array => $this->propose($itemId, $input(['text' => 'A', 'lines' => ['fine', "no\0"]])));
+        $this->assertRefusedAt('invalid_input', $at.'.lines.0.noteKind', fn (): array => $this->propose($itemId, $input(['text' => 'A', 'lines' => [['note_kind' => "x\0"]]])));
+        self::assertSame(0, $this->stored());
     }
 
     public function testTheSuggestionAndItsStepsAreAudited(): void

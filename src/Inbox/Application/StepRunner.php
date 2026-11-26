@@ -78,7 +78,7 @@ final readonly class StepRunner
     }
 
     /** The identity of one step, for its logs. */
-    public static function key(string $suggestionId, int $position): string
+    private function key(string $suggestionId, int $position): string
     {
         return self::correlation($suggestionId).':step:'.$position;
     }
@@ -103,7 +103,7 @@ final readonly class StepRunner
             } catch (\Throwable $failure) {
                 // Ids and the class only: a message may carry what was sent.
                 $this->logger->error('A step of an inbox suggestion failed.', [
-                    'step' => self::key($suggestionId, $position),
+                    'step' => $this->key($suggestionId, $position),
                     'failure' => $failure::class,
                 ]);
                 $this->fail($suggestionId, $position, self::INTERNAL_ERROR, null);

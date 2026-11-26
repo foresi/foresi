@@ -15,10 +15,15 @@ use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\Api\DiscardItemInput;
 use Foresi\Inbox\Application\Api\MarkItemDoneInput;
+use Foresi\Inbox\Application\Api\TrashItemInput;
 use Foresi\Inbox\Application\DecideSuggestions;
 use Foresi\Inbox\Application\Decision;
+use Foresi\Inbox\Application\InboxActions;
+use Foresi\Inbox\Application\InboxRefused;
+use Foresi\Inbox\Application\ItemWrites;
 use Foresi\Inbox\Application\ProposeSuggestions;
 use Foresi\Inbox\Application\ProposingClient;
+use Foresi\Inbox\Application\RecordOutputs;
 use Foresi\Inbox\Application\StepRunner;
 use Foresi\Inbox\Application\SuggestionStore;
 use Foresi\Inbox\Domain\ItemState;
@@ -26,11 +31,21 @@ use Foresi\Inbox\Domain\StepState;
 use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Domain\SuggestionState;
 use Foresi\Inbox\Domain\SuggestionStep;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
+use Foresi\Inbox\Infrastructure\Doctrine\DoctrineSuggestionStore;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Shared\Contract\Refused;
 use Foresi\Shared\Domain\Id;
+use Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteInput;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\InboxTestCase;
+use Foresi\Tests\Inbox\Support\LockLog;
+use Foresi\Tests\Inbox\Support\LockRecordingItems;
+use Foresi\Tests\Inbox\Support\LockRecordingSuggestions;
+use Foresi\Tests\Inbox\Support\RebuiltServices;
+use Foresi\Tests\Inbox\Support\ScriptedTransaction;
+use Foresi\Tests\Shared\Infrastructure\Mcp\RecordingLogger;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TimeEntry;
@@ -44,6 +59,8 @@ use Foresi\Work\Domain\TimeEntry;
  */
 final class DecideSuggestionsTest extends InboxTestCase
 {
+    use RebuiltServices;
+
     private const string NOTE = 'inbox.actions.fixture_note';
     private const string QUOTE = 'please find our offer';
 
@@ -340,8 +357,8 @@ final class DecideSuggestionsTest extends InboxTestCase
     public function testADirectActionLeavesTheItemNewWhileSuggestionsWait(): void
     {
         $this->proposed([$this->note('Proposed')]);
-        $outputs = self::getContainer()->get(\Foresi\Inbox\Application\RecordOutputs::class);
-        $action = self::getContainer()->get(\Foresi\Inbox\Application\InboxActions::class)->get(self::NOTE);
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $action = self::getContainer()->get(InboxActions::class)->get(self::NOTE);
         self::assertNotNull($action);
         $input = \Foresi\Shared\Infrastructure\Operation\InputMapper::map($action->definition, ['inbox_item_id' => $this->itemId, 'text' => 'Direct']);
         self::assertInstanceOf(\Foresi\Inbox\Contract\InboxActionInput::class, $input);
@@ -444,10 +461,239 @@ final class DecideSuggestionsTest extends InboxTestCase
         self::assertSame(ItemState::Done, $this->writes()->done(new MarkItemDoneInput($plain))->state());
     }
 
+    public function testARejectReasonIsCountedByCharactersAfterTheTrim(): void
+    {
+        foreach ([str_repeat('é', 500), '  '.str_repeat('a', 500).'  '] as $reason) {
+            $rejected = $this->decide()->reject($this->proposed([$this->note('First')]), $reason);
+            self::assertSame(trim($reason), $rejected->rejectReason());
+        }
+        $this->assertRefusedAt('invalid_input', 'reason', fn (): Suggestion => $this->decide()->reject($this->proposed([$this->note('Second')]), str_repeat('é', 501)));
+        $this->assertRefusedAt('invalid_input', 'reason', fn (): Suggestion => $this->decide()->reject($this->proposed([$this->note('Third')]), '  '.str_repeat('a', 501)));
+    }
+
+    public function testRejectingAnItemInTheTrashIsRefused(): void
+    {
+        $suggestion = $this->proposed([$this->note('First')]);
+        $this->writes()->trash(new TrashItemInput($this->itemId));
+
+        $this->assertRefusedAt('item_trashed', null, fn (): Suggestion => $this->decide()->reject($suggestion, null));
+        self::assertSame(SuggestionState::Proposed, $this->stored($suggestion)->state());
+    }
+
+    public function testTheShapeOfTheIdsAndTheLimitAreChecked(): void
+    {
+        $first = $this->proposed([$this->note('First')]);
+
+        $this->assertRefusedAt('invalid_input', 'suggestionIds.0', fn (): array => $this->accept([5]));
+        $this->assertRefusedAt('invalid_input', 'suggestionIds.1', fn (): array => $this->accept([$first, '']));
+        $ten = array_map(Id::generate(...), range(1, 10));
+        self::assertSame(array_fill(0, 10, 'not_found'), array_map(static fn (Decision $decision): ?string => $decision->refused, $this->accept($ten)));
+        self::assertCount(1, $this->accept([$first, $first]), 'A suggestion named twice is decided once.');
+        try {
+            $this->accept(array_map(Id::generate(...), range(1, 11)));
+            self::fail('Expected a refusal.');
+        } catch (InboxRefused $refused) {
+            self::assertSame(['too_many', 'suggestionIds', ['max' => 10]], [$refused->reason(), $refused->field(), $refused->details()]);
+        }
+    }
+
+    public function testTheShapeOfTheEditsAndTheUntickedStepsIsChecked(): void
+    {
+        $first = $this->proposed([$this->note('First'), $this->note('Second')]);
+        $second = $this->proposed([$this->note('Third')]);
+        $invalid = fn (string $field, ?array $edits, ?array $unselected = null) => $this->assertRefusedAt('invalid_input', $field, fn (): array => $this->accept([$first, $second], $edits, $unselected));
+
+        $invalid('edits', [['text' => 'A list']]);
+        $invalid('unselected', null, [[1]]);
+        $invalid('edits.'.$first, [$first => 'text']);
+        $invalid('edits.'.$first, [$first => [['text' => 'A list']]]);
+        $invalid('edits.'.$first.'.1', [$first => [1 => 'text']]);
+        $invalid('edits.'.$first.'.3', [$first => [3 => ['text' => 'None']]]);
+        foreach (['1x', ' 1', '01', '+1', '1.0'] as $key) {
+            $invalid('edits.'.$first.'.*', [$first => [$key => ['text' => 'Odd key']]]);
+        }
+        $invalid('unselected.'.$first, null, [$first => 'text']);
+        $invalid('unselected.'.$first, null, [$first => ['a' => 1]]);
+        foreach (['1x', ' 1', '01', 'x1', '+1', "1\n", 1.5, 0, 3, -1, true, null, [1]] as $position) {
+            $invalid('unselected.'.$first.'.0', null, [$first => [$position]]);
+        }
+        $invalid('unselected.'.$first.'.1', null, [$first => [1, 9]]);
+        self::assertSame([], $this->notes());
+        self::assertSame([SuggestionState::Proposed, SuggestionState::Proposed], [$this->stored($first)->state(), $this->stored($second)->state()]);
+    }
+
+    public function testEditsAndUntickedStepsOfSeveralSuggestionsAndOfNumberedStringsApply(): void
+    {
+        $first = $this->proposed([$this->note('First'), $this->note('Second'), $this->note('Third')]);
+        $second = $this->proposed([$this->note('Fourth')]);
+
+        $this->accept([$first, $second], [$first => [1 => ['text' => 'First, edited']], $second => [1 => ['text' => 'Fourth, edited']]], [$first => ['2', 3, '3']]);
+
+        self::assertSame(['First, edited', 'Fourth, edited'], $this->notes());
+        self::assertSame([StepState::Done, StepState::Skipped, StepState::Skipped], $this->states($this->stored($first)));
+        self::assertSame(SuggestionState::Accepted, $this->stored($second)->state());
+    }
+
+    public function testATrashedItemAndAClosedSuggestionAreDecidedBeforeTheirEditsAreChecked(): void
+    {
+        $closed = $this->proposed([$this->note('Closed')]);
+        $open = $this->proposed([$this->note('Open')]);
+        $this->decide()->reject($closed, null);
+
+        // Leaving nothing ticked would refuse the whole call, were the closed suggestion planned.
+        [$decision] = $this->accept([$closed], null, [$closed => [1]]);
+        self::assertSame('not_open', $decision->refused);
+
+        $this->writes()->trash(new TrashItemInput($this->itemId));
+        [$decision] = $this->accept([$open]);
+        self::assertSame(['item_trashed', SuggestionState::Proposed], [$decision->refused, $decision->suggestion?->state()]);
+        self::assertSame([], $this->notes());
+    }
+
+    public function testAStepWhoseActionIsGoneIsRefusedAtTheEditAndFailedAtTheRun(): void
+    {
+        $suggestion = $this->proposed([$this->note('First')]);
+        $this->em->getConnection()->executeStatement("UPDATE inbox_suggestion_step SET operation = 'inbox.actions.gone' WHERE suggestion_id = ?", [$suggestion]);
+        $this->em->clear();
+
+        $this->assertRefusedAt('action_not_applicable', 'edits.'.$suggestion.'.1', fn (): array => $this->accept([$suggestion], [$suggestion => [1 => ['text' => 'Edited']]]));
+
+        [$decision] = $this->accept([$suggestion]);
+
+        self::assertNull($decision->refused);
+        $step = $this->stored($suggestion)->step(1);
+        self::assertSame([StepState::Failed, ['reason' => 'action_not_applicable', 'field' => 'operation']], [$step->state(), $step->refusal()]);
+    }
+
+    public function testASuggestionDecidedBySomeoneElseOrFailingForGoodIsReportedAndStopsNoOtherOne(): void
+    {
+        $first = $this->proposed([$this->note('First')]);
+        $second = $this->proposed([$this->note('Second')]);
+        $logger = new RecordingLogger();
+        $transaction = new ScriptedTransaction(self::getContainer()->get(\Foresi\Inbox\Application\InboxTransaction::class));
+        $decide = $this->rebuilt($this->decide(), ['transaction' => $transaction->failing(1, InboxRefused::itemTrashed())->failing(3, new \RuntimeException('A secret text of the mail')), 'logger' => $logger]);
+
+        [$refused, $failed] = $decide->accept([$first, $second]);
+
+        self::assertSame(['item_trashed', SuggestionState::Proposed], [$refused->refused, $refused->suggestion?->state()]);
+        self::assertSame([StepRunner::INTERNAL_ERROR, SuggestionState::Proposed], [$failed->refused, $failed->suggestion?->state()]);
+        self::assertSame([['error', 'An inbox suggestion could not be decided.', ['suggestion_id' => $second, 'failure' => \RuntimeException::class]]], $logger->records);
+    }
+
+    public function testEveryLockIsTakenInTheOrderOfTheItemThenItsSuggestions(): void
+    {
+        $first = $this->proposed([$this->note('First')]);
+        $second = $this->proposed([$this->note('Second')]);
+        $item = 'item '.$this->itemId;
+
+        [$decide, $log] = $this->locking(DecideSuggestions::class);
+        $decide->reject($first, null);
+        self::assertSame([$item, 'suggestion '.$first, $item], $log->locks, 'Rejected: the decision, then the item once more to close it.');
+
+        [$decide, $log] = $this->locking(DecideSuggestions::class);
+        $decide->accept([$second]);
+        $this->em->clear();
+        self::assertSame([$item, 'suggestion '.$second, $item, 'suggestion '.$second, $item, 'suggestion '.$second, $item], $log->locks, 'Accepted: the edits, the step, the end, and the item to close it.');
+        self::assertSame([false], $this->fixtureNotes()->markDone, 'A step leaves marking the item done to the last decision.');
+    }
+
+    public function testDiscardingLocksTheOpenSuggestionsByIdAfterTheItem(): void
+    {
+        $oldest = $this->proposed([$this->note('Oldest')]);
+        $this->clock->modify('-1 hour');
+        $newest = $this->proposed([$this->note('Newest')]);
+        $accepted = $this->proposed([$this->note('Accepted')]);
+        $this->accept([$accepted]);
+        [$writes, $log] = $this->locking(ItemWrites::class);
+        $ids = [$oldest, $newest];
+        sort($ids);
+
+        $writes->discard(new DiscardItemInput($this->itemId));
+
+        self::assertSame(['item '.$this->itemId, 'suggestion '.$ids[0], 'suggestion '.$ids[1]], $log->locks, 'By id, though proposed in the other order; the accepted one is not locked.');
+        self::assertSame(SuggestionState::Rejected, $this->stored($oldest)->state());
+    }
+
+    public function testAStepThatFailsOnASuggestionDecidedMeanwhileStoresNothing(): void
+    {
+        $suggestion = $this->proposed([$this->note('First', fail: true)]);
+        $runner = $this->rebuilt(self::getContainer()->get(StepRunner::class), ['transaction' => new ScriptedTransaction(self::getContainer()->get(\Foresi\Inbox\Application\InboxTransaction::class))->before(2, fn (): \Foresi\Inbox\Domain\Suggestion => $this->decide()->reject($suggestion, null))]);
+
+        self::assertSame(StepState::Failed, $runner->run($suggestion, 1));
+
+        $stored = $this->stored($suggestion);
+        self::assertSame([SuggestionState::Rejected, StepState::Pending, null], [$stored->state(), $stored->step(1)->state(), $stored->step(1)->refusal()]);
+    }
+
+    public function testAStepThatBreaksIsLoggedByItsIdentityAndTheClassOnly(): void
+    {
+        $suggestion = $this->proposed([['operation' => self::NOTE, 'input' => ['text' => 'The secret input', 'explode' => true]]]);
+        $logger = new RecordingLogger();
+        $runner = $this->rebuilt(self::getContainer()->get(StepRunner::class), ['logger' => $logger]);
+
+        self::assertSame(StepState::Failed, $runner->run($suggestion, 1));
+
+        self::assertSame([['error', 'A step of an inbox suggestion failed.', ['step' => 'inbox:suggestion:'.$suggestion.':step:1', 'failure' => \RuntimeException::class]]], $logger->records);
+        self::assertSame('inbox:suggestion:'.$suggestion, StepRunner::correlation($suggestion));
+    }
+
+    public function testWhatMarkDoneLeavesNewIsToldOnlyWhileASuggestionWaitsOnANewItem(): void
+    {
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $asked = fn (string $itemId, bool $markDone): bool => $outputs->keptNew(new FixtureNoteInput($itemId, 'Direct', markDone: $markDone));
+
+        self::assertFalse($asked($this->itemId, true), 'No suggestion waits.');
+        $this->proposed([$this->note('First')]);
+        self::assertTrue($asked($this->itemId, true));
+        self::assertFalse($asked($this->itemId, false), 'mark_done did not ask.');
+        self::assertFalse($asked(Id::generate(), true), 'An item that is not theirs.');
+        $this->writes()->done(new MarkItemDoneInput($this->itemId, MarkItemDoneInput::KEEP));
+        self::assertFalse($asked($this->itemId, true), 'The item is done already.');
+    }
+
+    public function testTheAnswerOfADirectActionSaysTheItemStaysNew(): void
+    {
+        $this->proposed([$this->note('Waiting')]);
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $action = self::getContainer()->get(InboxActions::class)->get(self::NOTE);
+        self::assertNotNull($action);
+        $output = new OperationOutput(['id' => $this->fixtureNotes()->make('Direct')], 'Made the note.');
+
+        $answer = $outputs->after($action->definition->operation, new FixtureNoteInput($this->itemId, 'Direct', markDone: true), $output);
+
+        self::assertSame('Made the note. '.RecordOutputs::KEPT_NEW, $answer->summary);
+        self::assertSame($output->data, $answer->data);
+    }
+
     /**
-     * @param list<string>                     $ids
-     * @param array<string, array<mixed>>|null $edits
-     * @param array<string, list<int>>|null    $unselected
+     * A use case of the container with the stores that note the locks they are asked for.
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return array{T, LockLog}
+     */
+    private function locking(string $class): array
+    {
+        $log = new LockLog();
+        $items = new LockRecordingItems(new DoctrineItemStore($this->em), $log);
+        $suggestions = new LockRecordingSuggestions(new DoctrineSuggestionStore($this->em), $log);
+        $replace = ItemWrites::class === $class ? ['store' => $items, 'suggestions' => $suggestions] : ['items' => $items, 'store' => $suggestions];
+        if (DecideSuggestions::class === $class) {
+            $replace['steps'] = $this->rebuilt(self::getContainer()->get(StepRunner::class), ['items' => $items, 'store' => $suggestions]);
+        }
+
+        $service = $this->rebuilt(self::getContainer()->get($class), $replace);
+        self::assertInstanceOf($class, $service);
+
+        return [$service, $log];
+    }
+
+    /**
+     * @param list<mixed>       $ids
+     * @param array<mixed>|null $edits
+     * @param array<mixed>|null $unselected
      *
      * @return list<Decision>
      */

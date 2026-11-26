@@ -149,6 +149,6 @@ final class StepReferences
             return (string) $key;
         }
 
-        return 1 === preg_match('/^[A-Za-z][A-Za-z0-9_]{0,63}$/', $key) ? lcfirst(str_replace('_', '', ucwords($key, '_'))) : '*';
+        return 1 === preg_match('/^[A-Za-z][A-Za-z0-9_]{0,63}$/D', $key) ? lcfirst(str_replace('_', '', ucwords($key, '_'))) : '*';
     }
 }

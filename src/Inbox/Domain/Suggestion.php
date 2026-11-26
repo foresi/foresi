@@ -212,10 +212,8 @@ class Suggestion implements Audited
      */
     public function steps(): array
     {
-        $steps = $this->steps->toArray();
-        usort($steps, static fn (SuggestionStep $a, SuggestionStep $b): int => $a->position() <=> $b->position());
-
-        return $steps;
+        // In order already: built in order, and read back by the position (OrderBy).
+        return $this->steps->getValues();
     }
 
     /**
@@ -251,8 +249,9 @@ class Suggestion implements Audited
     {
         $records = [];
         foreach ($this->steps() as $step) {
+            // Only a done step holds a record.
             $recordId = $step->recordId();
-            if (StepState::Done === $step->state() && null !== $recordId) {
+            if (null !== $recordId) {
                 $records[$step->position()] = $recordId;
             }
         }

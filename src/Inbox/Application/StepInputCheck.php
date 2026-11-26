@@ -61,7 +61,7 @@ final class StepInputCheck
      *
      * @throws InboxRefused invalid_input
      */
-    public static function refuseNul(mixed $value, string $path): void
+    private static function refuseNul(mixed $value, string $path): void
     {
         if (\is_string($value) && str_contains($value, "\0")) {
             throw InboxRefused::invalidInput($path, 'A text may not hold a NUL character.');

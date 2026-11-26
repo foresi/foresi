@@ -40,6 +40,7 @@ final readonly class FixtureNoteHandler implements OperationHandler
             throw new FixtureNoteRefused('failAfter');
         }
         $id = $this->notes->make($input->text, $input->aboutId);
+        $this->notes->markDone[] = $input->markDone;
 
         return new OperationOutput(['id' => $id, 'text' => $input->text], 'Made the note.');
     }

@@ -80,8 +80,12 @@ final readonly class DecideSuggestions
 
         $plans = [];
         foreach ($ids as $id) {
-            $refused = $this->refusalOf($id);
-            $plans[$id] = $refused ?? $this->planned($id, $edits[$id] ?? [], $unselected[$id] ?? []);
+            $suggestion = $this->mine($id);
+            if (!$suggestion instanceof Suggestion) {
+                $plans[$id] = 'not_found';
+                continue;
+            }
+            $plans[$id] = $this->refusalOf($suggestion) ?? $this->planned($id, $suggestion, $edits[$id] ?? [], $unselected[$id] ?? []);
         }
 
         $decisions = [];
@@ -132,7 +136,7 @@ final readonly class DecideSuggestions
     private function decide(string $id, string $userId, array $edits, array $unselected): Decision
     {
         try {
-            $refused = $this->transaction->run(function () use ($id, $edits, $unselected): ?string {
+            $planned = $this->transaction->run(function () use ($id, $edits, $unselected): string|array {
                 $suggestion = $this->mine($id);
                 if (!$suggestion instanceof Suggestion) {
                     return 'not_found';
@@ -153,13 +157,12 @@ final readonly class DecideSuggestions
                     }
                 }
 
-                return null;
+                return array_map(static fn (SuggestionStep $step): int => $step->position(), $suggestion->stepsToRun());
             });
-            if (null !== $refused) {
-                return new Decision($id, $this->mine($id), $refused);
+            if (\is_string($planned)) {
+                return new Decision($id, $this->mine($id), $planned);
             }
-            $positions = array_map(static fn (SuggestionStep $step): int => $step->position(), $this->mine($id)?->stepsToRun() ?? []);
-            foreach ($positions as $position) {
+            foreach ($planned as $position) {
                 if (StepState::Done !== $this->steps->run($id, $position)) {
                     break;
                 }
@@ -220,12 +223,9 @@ final readonly class DecideSuggestions
     /**
      * Why the suggestion cannot be accepted at all, before the call runs; null when it can.
      */
-    private function refusalOf(string $id): ?string
+    private function refusalOf(Suggestion $suggestion): ?string
     {
-        $suggestion = $this->mine($id);
-
         return match (true) {
-            !$suggestion instanceof Suggestion => 'not_found',
             $suggestion->item()->isTrashed() => 'item_trashed',
             !$suggestion->isOpen() => 'not_open',
             default => null,
@@ -239,9 +239,8 @@ final readonly class DecideSuggestions
      *
      * @throws InboxRefused
      */
-    private function planned(string $id, mixed $edits, mixed $unselected): array
+    private function planned(string $id, Suggestion $suggestion, mixed $edits, mixed $unselected): array
     {
-        $suggestion = $this->mine($id) ?? throw new \LogicException('The suggestion was checked to be the person\'s.');
         $steps = \count($suggestion->steps());
 
         if (!\is_array($edits) || ([] !== $edits && array_is_list($edits))) {
@@ -291,7 +290,7 @@ final readonly class DecideSuggestions
      */
     private function stepAt(Suggestion $suggestion, mixed $key, int $steps, string $path): SuggestionStep
     {
-        $position = \is_int($key) ? $key : (\is_string($key) && 1 === preg_match('/^[1-9][0-9]?$/', $key) ? (int) $key : null);
+        $position = \is_int($key) ? $key : (\is_string($key) && 1 === preg_match('/^[1-9][0-9]?$/D', $key) ? (int) $key : null);
         if (null === $position || $position < 1 || $position > $steps) {
             throw InboxRefused::invalidInput($path, \sprintf('A step is named by its position, 1 to %d.', $steps));
         }
