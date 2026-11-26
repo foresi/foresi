@@ -16,7 +16,8 @@ namespace Foresi\TaxesAndContributions\Contract;
  * A part that cannot be computed is null with the reason why:
  * year_not_started, rules_not_available, cash_flow_not_installed or
  * forecast_unavailable. A past year has no forecast: its year end is what
- * was paid. The payments are those of the year as they fall due, each
+ * was paid. Next year has nothing to date; its year end is the forecast of
+ * all its months. The payments are those of the year as they fall due, each
  * expected, paid by a bank movement or overdue (B4), with the planned items of
  * Cash flow that may count them twice (B5). Every figure is an estimate, not
  * a basis for the tax return.
