@@ -15,6 +15,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Activities\\Integration\\Calendar\\.*
+    - name: activities_integration_inbox
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Activities\\Integration\\Inbox\\.*
     - name: ai_reader
       collectors:
         - type: classLike
@@ -299,6 +303,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Sales\\Integration\\Documents\\.*
+    - name: sales_integration_inbox
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Sales\\Integration\\Inbox\\.*
     - name: sales_integration_invoicing
       collectors:
         - type: classLike
@@ -395,6 +403,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Work\\Integration\\Activities\\.*
+    - name: work_integration_inbox
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Work\\Integration\\Inbox\\.*
   ruleset:
     activities:
       - activities_contract
@@ -432,6 +444,22 @@ deptrac:
       - calendar_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    activities_integration_inbox:
+      - activities
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - inbox_contract
       - instance
       - instance_contract
       - shared
@@ -1346,6 +1374,25 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    sales_integration_inbox:
+      - activities_contract
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - identity
+      - identity_contract
+      - inbox_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - sales
+      - sales_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     sales_integration_invoicing:
       - audit
       - audit_contract
@@ -1676,6 +1723,25 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
+    work_integration_inbox:
+      - activities_contract
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - inbox_contract
       - instance
       - instance_contract
       - party

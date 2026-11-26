@@ -10,6 +10,9 @@ shared_with_me:
     title: Nothing is shared with you yet
     text: Once the organisation shares work with you, you will find it here.
 work:
+  inbox_action:
+    create_task: Create task
+    log_time: Log time
   relation:
     projects: Projects
   status:
@@ -741,3 +744,22 @@ work:
       due_invalid: Enter the due date as a date.
       priority_invalid: Choose a priority.
       no_projects: There is no project a task of yours can go in yet.
+inbox_action:
+  inbox:
+    actions:
+      create_task:
+        projectId: Project
+        title: Title
+        description: Description
+        responsibleId: Responsible
+        dueOn: Due on
+        copyAttachments: Copy the attachments onto the task
+      log_time:
+        projectId: Project
+        workedOn: Day worked
+        taskId: Task
+        minutes: Minutes
+        startedAt: Started at
+        endedAt: Ended at
+        note: Note
+        billable: Billable

@@ -71,6 +71,32 @@ final class InboxRefused extends \DomainException implements Refused
         return new self('insufficient_scope', RefusalKind::Forbidden, null, \sprintf('The token does not have the "%s" scope.', $scope));
     }
 
+    /**
+     * An action on an item in the trash: restore it first.
+     */
+    public static function itemTrashed(): self
+    {
+        return self::conflict('item_trashed', 'The inbox item is in the trash; restore it with foresi_restore_inbox_item first.');
+    }
+
+    /**
+     * An action whose condition the item does not meet, such as one that needs a matched contact.
+     */
+    public static function actionNotApplicable(): self
+    {
+        return self::conflict('action_not_applicable', 'This action does not apply to the inbox item; foresi_get_inbox_item lists the ones that do in available_actions.');
+    }
+
+    /**
+     * An action on an item without its e-mail activity while Activities takes
+     * none (the type email is archived or missing): what it made could not be
+     * added to the item, so it is not made.
+     */
+    public static function emailActivityUnavailable(): self
+    {
+        return self::conflict('email_activity_unavailable', 'The activity type email is archived or missing, so what the action makes cannot be added to the inbox item; restore the type under Settings, Activities first.');
+    }
+
     public function reason(): string
     {
         return $this->reason;

@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Infrastructure\Api;
 
+use Foresi\Inbox\Application\DeclaredAction;
+use Foresi\Inbox\Application\InboxActions;
 use Foresi\Inbox\Application\ItemDetail;
 use Foresi\Inbox\Application\ItemRow;
 use Foresi\Inbox\Application\OutputView;
@@ -16,16 +18,29 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\SenderCheck;
+use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Infrastructure\Operation\InputSchema;
+use Foresi\Shared\Infrastructure\Operation\OperationField;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * An inbox item as REST and MCP answer it, the schemas InboxItem and
  * InboxItemSummary. Times are in the instance's zone. The sender, subject, body
  * and attachment names are the sender's own words; MCP marks them as such.
+ *
+ * An item lists the actions the modules offer on it that the token may run
+ * (available_actions): the operation, its MCP tool, its label in English, the
+ * schema of its input and the values it starts with (prefill, with choices for
+ * a field picked from a list), all by the fields' wire names.
  */
 final readonly class InboxJson
 {
-    public function __construct(private InstanceClock $clock)
-    {
+    public function __construct(
+        private InstanceClock $clock,
+        private InboxActions $actions,
+        private ScopeGuard $scopes,
+        private TranslatorInterface $translator,
+    ) {
     }
 
     /**
@@ -58,6 +73,7 @@ final readonly class InboxJson
             ], $detail->outputs),
             'email_activity_id' => $item->emailActivityId(),
             'trashed_at' => $item->trashedAt() instanceof \DateTimeImmutable ? $this->time($item->trashedAt()) : null,
+            'available_actions' => $this->availableActions($detail),
         ];
     }
 
@@ -92,6 +108,53 @@ final readonly class InboxJson
             'match_basis' => $item->matchBasis()?->value,
             'thread_key' => $item->threadKey(),
         ];
+    }
+
+    /**
+     * The actions on the item the token may run: its scope and inbox:read; none on an item in the trash.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function availableActions(ItemDetail $detail): array
+    {
+        if ($detail->item->isTrashed() || !$this->scopes->allows(InboxApiController::READ_SCOPE)) {
+            return [];
+        }
+        $view = $detail->view(true);
+
+        return array_map(function (DeclaredAction $action) use ($view): array {
+            $operation = $action->definition->operation;
+            $prefill = $this->actions->prefill($action, $view);
+            $answer = [
+                'operation' => $operation->name,
+                'tool' => $operation->tool,
+                'label' => $this->translator->trans($action->action->label, [], 'messages', 'en'),
+                'input_schema' => InputSchema::of($action->definition->fields),
+                'prefill' => ['inbox_item_id' => $view->id] + $this->byWireName($prefill->values),
+            ];
+            if ([] !== $prefill->choices) {
+                $answer['choices'] = $this->byWireName($prefill->choices);
+            }
+
+            return $answer;
+        }, $this->actions->available($view, $this->scopes->allows(...)));
+    }
+
+    /**
+     * @template T
+     *
+     * @param array<string, T> $values by field name
+     *
+     * @return array<string, T> by wire name
+     */
+    private function byWireName(array $values): array
+    {
+        $wired = [];
+        foreach ($values as $name => $value) {
+            $wired[OperationField::wireName($name)] = $value;
+        }
+
+        return $wired;
     }
 
     private function time(\DateTimeImmutable $time): string

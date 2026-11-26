@@ -1768,7 +1768,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "52a413fb6eda0bb07feb3347e27ab32951e754a1"
+                "reference": "9c9cc7d7b9c50ae10537bca49d9ce5660a106040"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1800,7 +1800,8 @@
                     "namespace": "Foresi\\Activities\\",
                     "bundle": "Foresi\\Activities\\ActivitiesBundle",
                     "optional": [
-                        "calendar"
+                        "calendar",
+                        "inbox"
                     ],
                     "scopes": [
                         "activities"
@@ -2750,7 +2751,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Inbox",
-                "reference": "fcb745e7a14a7ad104d98f716e2f79c4927787c4"
+                "reference": "3c042de77803c7f33f6244c00cc518570900cf92"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2767,6 +2768,7 @@
                 "foresi/shared": "self.version",
                 "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
+                "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
                 "symfony/framework-bundle": "7.4.*",
                 "symfony/http-foundation": "^7.4 || ^8.0",
@@ -3257,7 +3259,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "da3a266ddcbed8fff739c9ed2481e1dd833127ab"
+                "reference": "2d0aac4de7778a3acc61edd5b71c3a0eda80acc8"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3297,7 +3299,8 @@
                         "documents",
                         "invoicing",
                         "timesheet",
-                        "work"
+                        "work",
+                        "inbox"
                     ],
                     "scopes": [
                         "sales"
@@ -3332,7 +3335,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "22a8401c34c47deb0f0ef1622628501b48f7b9db"
+                "reference": "b4b18fe49c1f55060bdbfe7d512eb68562791dc8"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3387,7 +3390,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.5.0"
+                "foresi/module-api": "1.6.0"
             },
             "type": "foresi-module",
             "extra": {
@@ -3787,13 +3790,14 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "11a43b9b6439ce307794000549dbbceb31068bcf"
+                "reference": "a2935867ba074874b1848c5880e189fb3506e793"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/doctrine-bundle": "^3.3.4",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/attachment": "self.version",
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
@@ -3826,7 +3830,8 @@
                     "namespace": "Foresi\\Work\\",
                     "bundle": "Foresi\\Work\\WorkBundle",
                     "optional": [
-                        "activities"
+                        "activities",
+                        "inbox"
                     ],
                     "scopes": [
                         {

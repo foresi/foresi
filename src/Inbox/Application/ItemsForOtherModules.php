@@ -11,17 +11,13 @@ namespace Foresi\Inbox\Application;
 use Foresi\Activities\Contract\LinkableRecords;
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Contract\StaffCheck;
-use Foresi\Inbox\Contract\InboxAttachment;
 use Foresi\Inbox\Contract\InboxAttachmentContent;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
-use Foresi\Inbox\Contract\InboxOutput;
 use Foresi\Inbox\Contract\RecordSuggester;
 use Foresi\Inbox\Contract\SuggestedRecord;
 use Foresi\Inbox\Domain\InboxItem;
-use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\Messages;
-use Foresi\Mail\Contract\SenderCheck;
 use Foresi\Mail\Contract\UnknownMailMessage;
 
 /**
@@ -53,29 +49,8 @@ final readonly class ItemsForOtherModules implements InboxItems
             return null;
         }
         $owner = $item->isOwnedBy($this->actor->userId());
-        $detail = $this->reads->detail($item, $owner);
-        // Another person learns nothing of the owner's mailbox: not the thread, nor records they do not see.
-        $outputs = $owner ? $detail->outputs : array_values(array_filter($detail->outputs, static fn (OutputView $output): bool => $output->available));
 
-        return new InboxItemView(
-            $item->id(),
-            $item->ownerUserId(),
-            $item->state()->value,
-            $item->receivedAt(),
-            $detail->message?->from,
-            $item->originalFrom(),
-            $detail->message->verdict ?? SenderCheck::UNKNOWN,
-            $item->isForwarded(),
-            $item->contactId(),
-            $item->companyId(),
-            $detail->message->subject ?? '',
-            $detail->text,
-            array_map(static fn (MailAttachment $attachment): InboxAttachment => new InboxAttachment($attachment->index, $attachment->name, $attachment->contentType, $attachment->size), $detail->attachments),
-            array_map(static fn (InboxItem $other): string => $other->id(), $detail->thread),
-            array_map(static fn (OutputView $output): InboxOutput => new InboxOutput($output->output->kind(), $output->output->recordId(), $output->output->addedAt()), $outputs),
-            $item->emailActivityId(),
-            $item->duplicateOfPurpose(),
-        );
+        return $this->reads->detail($item, $owner)->view($owner);
     }
 
     public function attachmentContent(string $itemId, int $index): ?InboxAttachmentContent

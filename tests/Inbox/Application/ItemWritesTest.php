@@ -396,6 +396,11 @@ final class ItemWritesTest extends InboxTestCase
                 return $this->store->trashedBefore($time);
             }
 
+            public function lock(InboxItem $item): void
+            {
+                $this->store->lock($item);
+            }
+
             public function add(InboxItem|ItemOutput $record): void
             {
                 $this->store->add($record);

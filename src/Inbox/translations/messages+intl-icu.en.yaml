@@ -76,6 +76,9 @@ inbox:
     unmatched: Match removed.
     contact_created: Contact created and matched.
     linked: Linked.
+    action_done: Saved and added to what came of this mail.
+    action_not_linked: The record was made but could not be linked to the e-mail. Use Link… to link it.
+    action_not_added: The record was made, but it could not be added to what came of this mail. It is saved in its own section; do not save it again.
   item:
     no_subject: (no subject)
     mail_removed: The mail itself has been removed. Only what you did with it is kept.
@@ -104,6 +107,26 @@ inbox:
     sender_not_verified: Sender not verified. The receiving server could not confirm who sent this mail.
     forwarded_not_verified: Forwarded, original sender not verified. The original sender is what the forwarded text says; nobody checked it.
     duplicate: 'Already received as {purpose}. The same mail came to another address of yours before.'
+  output_kind:
+    contact: Contact
+    deal: Deal
+    project: Project
+    task: Task
+    time_entry: Time entry
+    activity: Activity
+  action_dialog:
+    submit: Save
+    mark_done: Mark the item done
+    required: Fill this in.
+    whole_number: Enter a whole number.
+    date_time: Enter a date and a time.
+    default: As the default says
+    'yes': 'Yes'
+    'no': 'No'
+    none: None
+    choose: Choose…
+    refused:
+      email_activity_unavailable: The activity type E-mail is archived, so nothing can be added to this mail. Restore it under Settings, Activities, then save again.
   link:
     title: Link to a record
     intro: Links this mail to a record, such as a deal or a project, and shows it on that record's timeline.

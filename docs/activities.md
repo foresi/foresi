@@ -20,7 +20,7 @@ A **type** is a kind of activity with a **timing**:
 
 The migrations seed Meeting, Call, Note, Task and E-mail (keys `meeting`, `call`, `note`, `task`, `email`); an existing instance gets E-mail when it migrates. A seeded type has no name of its own: it shows under its key's name in the person's language until someone renames it. A type's key never changes, so events and integrations can name it. Types are kept under **Settings → Activities**, and archived, never deleted; an archived type is no longer offered, and the activities of that type keep it. The seeded types follow the same rule as the others: any of them, E-mail included, can be renamed and archived.
 
-An **E-mail** activity is an e-mail kept as the source of a record: its subject, its text as the body and the time it was received, linked to the client and the records it led to, such as a deal or a project. Its body opens with the sender line, `From: Client A <client.a@example.com>`, which the timeline shows under the subject with an envelope icon. Like all e-mail text it is shown as plain text, never as HTML.
+An **E-mail** activity is an e-mail kept as the source of a record: its subject, its text as the body and the time it was received, linked to the client and the records it led to, such as a deal or a project. Its body opens with the sender line, `From: Client A <client.a@example.com>`, which the timeline shows under the subject with an envelope icon. Like all e-mail text it is shown as plain text, never as HTML. With the Inbox module installed, an inbox item has **Log activity**, which makes an activity linked to the same records as the item's e-mail activity (see [inbox](inbox.md#actions)).
 
 ## Activities
 

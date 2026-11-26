@@ -99,6 +99,8 @@ These appear on a deal only when the modules are installed; without them the dea
   The deal variables need a link to a deal that is not in the trash (the first `deal` link): without one a template that uses them is refused when it is generated. Like every variable, they are frozen with the document when it is generated.
 - **Activities:** the deal's header has **Log activity** and **Plan activity**, and the deal's page has its timeline. The activity is linked to the deal, to its client and to the deal's contact persons, so it also shows on the timeline of each of them, and the dialog comes back to the deal. Owners and members see the activities of a deal; who sees an activity follows its records, as [activities.md](activities.md#who-sees-an-activity) says: a trashed deal no longer makes its activities visible.
 
+With the Inbox module installed, an inbox item matched to a contact has **Create deal**, filled from the mail with the sender's company (else the contact) as the client; the mail shows on the deal's timeline, and the client's one open deal is suggested for the item (see [inbox](inbox.md#actions)).
+
 The new-document and new-activity screens take several links as `links[]=kind:id`, repeated, besides the single `link_kind` and `link_id`, which still work.
 
 ## Events

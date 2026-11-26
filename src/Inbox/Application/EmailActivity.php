@@ -47,6 +47,25 @@ final readonly class EmailActivity
     }
 
     /**
+     * Whether an output can be added to the item now: it has its e-mail
+     * activity, or Activities takes a new one, which it does not while the type
+     * email is archived or missing.
+     */
+    public function canLink(InboxItem $item): bool
+    {
+        return null !== $item->emailActivityId() || $this->recorder->accepts(self::TYPE);
+    }
+
+    /**
+     * Whether a record of the kind can be linked to an item by hand
+     * (inbox.items.link): some module offers the kind to activities.
+     */
+    public function linksByHand(string $kind): bool
+    {
+        return \in_array($kind, $this->records->kinds(), true);
+    }
+
+    /**
      * Makes the activity, linked to the record too, or adds the record to it.
      * A record of a kind no module offers to activities is left out; an
      * activity that went to the trash since is left as it is.

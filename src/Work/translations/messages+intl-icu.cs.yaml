@@ -10,6 +10,9 @@ shared_with_me:
     title: Zatím s vámi nikdo nic nesdílí
     text: Až s vámi organizace začne sdílet práci, najdete ji tady.
 work:
+  inbox_action:
+    create_task: Vytvořit úkol
+    log_time: Zapsat čas
   relation:
     projects: Projekty
   status:
@@ -741,3 +744,22 @@ work:
       due_invalid: Zadejte termín jako datum.
       priority_invalid: Vyberte prioritu.
       no_projects: Zatím není projekt, do kterého byste mohli přidat úkol.
+inbox_action:
+  inbox:
+    actions:
+      create_task:
+        projectId: Projekt
+        title: Název
+        description: Popis
+        responsibleId: Odpovědná osoba
+        dueOn: Termín
+        copyAttachments: Zkopírovat přílohy k úkolu
+      log_time:
+        projectId: Projekt
+        workedOn: Den práce
+        taskId: Úkol
+        minutes: Minuty
+        startedAt: Začátek
+        endedAt: Konec
+        note: Poznámka
+        billable: Fakturovatelné

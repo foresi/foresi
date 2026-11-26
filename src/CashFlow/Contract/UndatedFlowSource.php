@@ -14,7 +14,7 @@ namespace Foresi\CashFlow\Contract;
  * under "undated"; they are left out of every balance, the lowest point, the
  * minimum-balance warning and what other modules read of the forecast
  * (ForecastReader), such as the taxes forecast. The same filters apply to
- * them as to the dated flows. Since module API 1.5.
+ * them as to the dated flows. Since module API 1.6.
  */
 interface UndatedFlowSource extends CashFlowSource
 {

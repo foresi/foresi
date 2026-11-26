@@ -160,7 +160,7 @@ A module whose documents or movements stand for planned money also implements `F
 
 A balance source implements `Foresi\CashFlow\Contract\BalanceSource` (tag `foresi.cash_flow.balance_source`): given the latest `BalanceCheckpoint` of an account and today, it answers an `AccountBalance` with the amount and the last day its knowledge reaches, or null when it does not know the account. The first source that answers for an account wins.
 
-A source that also knows amounts without a day implements `Foresi\CashFlow\Contract\UndatedFlowSource` (since module API 1.5), which extends `CashFlowSource` with `undatedFlows(today)`: `UndatedFlow`s with what an `ExpectedFlow` has but the day and the flags. They go to the No date column and `undated`, never to a balance or to `ForecastReader`.
+A source that also knows amounts without a day implements `Foresi\CashFlow\Contract\UndatedFlowSource` (since module API 1.6), which extends `CashFlowSource` with `undatedFlows(today)`: `UndatedFlow`s with what an `ExpectedFlow` has but the day and the flags. They go to the No date column and `undated`, never to a balance or to `ForecastReader`.
 
 The planned items of Cash flow are a source of their own, `cash-flow.planned_items`.
 

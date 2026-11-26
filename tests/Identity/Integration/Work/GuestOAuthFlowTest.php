@@ -29,7 +29,6 @@ final class GuestOAuthFlowTest extends OAuthTestCase
         $crawler = $this->client->request('GET', '/oauth/authorize?'.$this->query($clientId, ['scope' => 'read write contacts:write']));
         self::assertResponseIsSuccessful();
         $offered = $crawler->filter('input[name="scopes[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
-        // The modules in the order of their names in the person's language: Práce (Work) before Profil in Czech.
         self::assertSame(['projects:read', 'tasks:read', 'tasks:write', 'profile:read', 'profile:write'], $offered);
         // What a guest reads stays ticked; writing tasks can be unticked.
         self::assertNotNull($crawler->filter('#scope-tasks-read')->attr('disabled'));

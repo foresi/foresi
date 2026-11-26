@@ -88,6 +88,18 @@ final class ActivityRecorderTest extends ActivitiesTestCase
         $this->assertReason('trashed', fn () => $this->recorder()->link($id, 'contact', $this->contactId));
     }
 
+    public function testAcceptsOnlyAnActiveType(): void
+    {
+        $recorder = $this->recorder();
+        self::assertTrue($recorder->accepts('email'));
+        self::assertFalse($recorder->accepts('no_such_type'));
+
+        $this->type('email')->archive(new \DateTimeImmutable('2026-11-20 09:30:00'));
+        $this->em->flush();
+
+        self::assertFalse($recorder->accepts('email'), 'An archived type takes no activity.');
+    }
+
     public function testRecordAndLinkRefuseAnUnknownTypeAndAGuest(): void
     {
         $this->assertReason('type_unknown', fn (): string => $this->recorder()->record(new RecordedActivity('no_such_type', 'Subject', '', new \DateTimeImmutable('2026-11-20 09:30:00'), $this->owner->user()->id())));
