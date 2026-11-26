@@ -16,11 +16,13 @@ use Foresi\Import\Application\Target\TargetRegistry;
 use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Contract\FieldDefinition;
 use Foresi\Import\Contract\FieldType;
+use Foresi\Import\Contract\ImportTarget;
 use Foresi\Import\Contract\RecordMatch;
 use Foresi\Import\Contract\RecordSnapshot;
 use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Import\Infrastructure\Target\CustomFieldTarget;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
@@ -50,7 +52,7 @@ final class PartyImportTargetTest extends KernelTestCase
     private const string CORRELATION = 'import:1';
 
     private EntityManagerInterface $em;
-    private PartyImportTarget $target;
+    private ImportTarget $target;
 
     protected function setUp(): void
     {
@@ -62,7 +64,7 @@ final class PartyImportTargetTest extends KernelTestCase
         $tool->dropSchema($metadata);
         $tool->createSchema($metadata);
         $target = self::getContainer()->get(TargetRegistry::class)->get(PartyImportTarget::KEY);
-        self::assertInstanceOf(PartyImportTarget::class, $target);
+        self::assertInstanceOf(CustomFieldTarget::class, $target, 'The contacts take custom fields.');
         $this->target = $target;
     }
 

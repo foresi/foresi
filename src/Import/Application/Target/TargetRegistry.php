@@ -10,7 +10,10 @@ namespace Foresi\Import\Application\Target;
 
 use Foresi\Import\Contract\ImportTarget;
 
-/** All import targets, found by their key. */
+/**
+ * All import targets, found by their key. A target whose records take custom
+ * fields comes extended with them (TargetExtension).
+ */
 final class TargetRegistry
 {
     /** @var array<string, ImportTarget> */
@@ -21,8 +24,10 @@ final class TargetRegistry
      */
     public function __construct(
         iterable $targets,
+        ?TargetExtension $extension = null,
     ) {
         foreach ($targets as $target) {
+            $target = $extension?->extend($target) ?? $target;
             $this->targets[$target->key()] = $target;
         }
     }

@@ -77,6 +77,10 @@ final class DocumentsDomainTest extends TestCase
         self::assertSame('vat_id', new VariableDefinition('vat_id', 'VAT ID', 'CZ1')->name);
         $this->assertRefused(fn (): VariableDefinition => new VariableDefinition('Vat', 'VAT ID', 'CZ1'));
         $this->assertRefused(fn (): VariableDefinition => new VariableDefinition('vat-id', 'VAT ID', 'CZ1'));
+        self::assertSame('custom.acme_fleet_industry', new VariableDefinition('custom.acme_fleet_industry', 'Industry', 'Logistics')->name, 'a path of names');
+        $this->assertRefused(fn (): VariableDefinition => new VariableDefinition('custom.', 'Industry', 'Logistics'));
+        $this->assertRefused(fn (): VariableDefinition => new VariableDefinition('custom..industry', 'Industry', 'Logistics'));
+        $this->assertRefused(fn (): VariableDefinition => new VariableDefinition('custom.Industry', 'Industry', 'Logistics'));
     }
 
     #[Test]

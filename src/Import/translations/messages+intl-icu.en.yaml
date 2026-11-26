@@ -126,7 +126,12 @@ import:
       delivery: Delivery address
       bank: Bank account
       contact: Contact person
+      # The custom fields of the contacts (ADR 0045).
+      custom: Additional details
   value:
+    # A yes/no custom field in an export.
+    'yes': Yes
+    'no': No
     party:
       kind:
         person: Person
@@ -289,6 +294,10 @@ import:
     company_identifier: 'A company needs a registration number or a VAT ID.'
     too_long: '"{value}" is longer than {max, number} characters.'
     out_of_range: '{value, number} is not between {min, number} and {max, number}.'
+    invalid_url: '"{value}" is not a web address. Enter one that starts with http:// or https://.'
+    invalid_date_time: '"{value}" is not a date and time. Enter for example 2026-11-26 14:30.'
+    unknown_contact: '"{value}" is not the identifier of a contact of this organisation.'
+    unknown_user: '"{value}" is not the identifier of a person of this organisation.'
   failure:
     file_missing: 'The uploaded file is no longer available. Upload it again.'
     stalled: 'The import stopped without finishing. Upload the file again.'
