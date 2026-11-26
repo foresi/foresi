@@ -128,6 +128,9 @@ final class CashFlowController extends AbstractController
         $forecast = $this->forecastOrNull(ForecastScreen::viewOf($key), $certainties, $text) ?? throw new NotFoundHttpException();
         $direction = FlowDirection::tryFrom($request->query->getString('direction')) ?? throw new NotFoundHttpException();
         $category = $request->query->has('category') ? (FlowCategory::tryFrom($request->query->getString('category')) ?? throw new NotFoundHttpException()) : null;
+        if (ForecastScreen::UNDATED === $key) {
+            return $this->render('@CashFlow/items.html.twig', $this->screen->undatedItems($forecast, $direction, $category));
+        }
         $period = $this->screen->period($forecast, $key) ?? throw new NotFoundHttpException();
 
         return $this->render('@CashFlow/items.html.twig', $this->screen->items($period, $direction, $category));

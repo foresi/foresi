@@ -324,6 +324,23 @@ final class DealScreen implements ResetInterface
         return str_contains($quantity, '.') ? rtrim(rtrim($quantity, '0'), '.') : $quantity;
     }
 
+    /**
+     * A day as the deal page writes it: "15 Dec 2026", "15. 12. 2026" in Czech.
+     */
+    public function day(\DateTimeImmutable $day): string
+    {
+        $formatter = new \IntlDateFormatter($this->locales->getLocale(), \IntlDateFormatter::MEDIUM, \IntlDateFormatter::NONE, 'UTC');
+        $text = $formatter->format(new \DateTimeImmutable($day->format('Y-m-d'), new \DateTimeZone('UTC')));
+
+        return false === $text ? $day->format('Y-m-d') : $text;
+    }
+
+    /** An amount as a form's field holds it: "5000.00". */
+    public function plainAmount(Money $money): string
+    {
+        return $this->decimal($money);
+    }
+
     private function decimal(Money $money): string
     {
         $minor = $money->minor();

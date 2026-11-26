@@ -99,7 +99,8 @@
                                     <tr>
                                         <th scope="col" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider bg-head px-4 text-left text-caption font-medium text-muted"><span class="sr-only">{{ 'cash_flow.table.row'|trans }}</span></th>
                                         {% for column in table.columns %}
-                                            <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted" data-period="{{ column.key }}">
+                                            {# The "No date" column is set apart by a rule: it has no balance and comes after the last period. #}
+                                            <th scope="col" class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-right text-caption font-medium text-muted {{ column.undated ? 'border-l' : '' }}" data-period="{{ column.key }}"{% if column.undated %} data-cash-flow-undated{% endif %}>
                                                 <span class="block leading-tight">{{ column.label }}</span>
                                                 <span class="block font-normal leading-tight">{{ column.detail }}</span>
                                             </th>
@@ -112,7 +113,7 @@
                                         <tr data-row="{{ row.kind }}" class="{{ row.kind == 'closing' ? 'bg-head' : '' }}">
                                             <th scope="row" class="sticky left-0 z-10 h-row whitespace-nowrap border-b border-divider px-4 text-left {{ row.kind == 'closing' ? 'bg-head' : 'bg-white' }} {{ row.kind == 'category' ? 'pl-8 font-normal text-muted' : 'font-semibold text-ink' }}">{{ row.label }}</th>
                                             {% for cell in row.cells %}
-                                                <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ strong ? 'font-semibold' : '' }} {{ cell.below ? 'bg-badge-red text-badge-red-text' : (row.kind == 'category' ? 'text-muted' : 'text-ink') }}"{% if cell.below %} data-below-minimum{% endif %}>
+                                                <td class="num h-row whitespace-nowrap border-b border-divider px-4 text-right {{ table.columns[loop.index0].undated ? 'border-l' : '' }} {{ strong ? 'font-semibold' : '' }} {{ cell.below ? 'bg-badge-red text-badge-red-text' : (row.kind == 'category' ? 'text-muted' : 'text-ink') }}"{% if cell.below %} data-below-minimum{% endif %}>
                                                     {%- if cell.href -%}
                                                         <a href="{{ cell.href }}" data-sheet class="text-current underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ cell.text }}</a>
                                                     {%- elseif cell.text -%}

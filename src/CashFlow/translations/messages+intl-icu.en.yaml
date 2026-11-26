@@ -20,6 +20,8 @@ cash_flow:
     below_on: 'Below on {day}'
     never_below: Never below
     end: End of the forecast
+    undated: No date
+    undated_note: '{count, plural, one {# item} other {# items}}, outside the balance'
   alert:
     incomplete_title: The forecast is incomplete
     stale_title: The balance is out of date
@@ -49,6 +51,8 @@ cash_flow:
     week: 'Week {week}'
     below_minimum: below the minimum balance
     none: none
+    undated: No date
+    undated_detail: outside the balance
   category:
     revenue: Revenue
     purchases: Purchases
@@ -70,6 +74,7 @@ cash_flow:
     recurring_invoice: Recurring invoice
     received_document: Received document
     planned_item: Planned item
+    deal_billing_entry: Won deal
     bank_movement: Bank movement
   filter:
     certainty: Source
@@ -80,6 +85,7 @@ cash_flow:
   certainty:
     document: Open documents
     schedule: Recurring invoices
+    deal: Won deals
     plan: Planned items
     estimate: Tax, insurance and VAT estimate
   flag:

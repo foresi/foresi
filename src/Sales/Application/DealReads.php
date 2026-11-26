@@ -30,6 +30,7 @@ final readonly class DealReads
         private SalesAccess $access,
         private SalesStore $store,
         private PartyDirectory $parties,
+        private BillingPlans $billingPlans,
     ) {
     }
 
@@ -87,16 +88,18 @@ final readonly class DealReads
         }
         $persons = array_values(array_filter(array_map(static fn (string $id): ?PartyPersonSummary => $linked[$id] ?? null, $ids)));
         $reasonId = $deal->lostReasonId();
+        $value = DealValues::of($lines);
 
         return new DealDetail(
             $deal,
             $this->store->stage($deal->stageId()),
             null === $reasonId ? null : $this->store->lostReason($reasonId),
             $lines,
-            DealValues::of($lines),
+            $value,
             $links,
             $ids,
             $persons,
+            $this->billingPlans->of($deal, $lines, $value),
         );
     }
 

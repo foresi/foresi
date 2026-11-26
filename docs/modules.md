@@ -670,7 +670,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.3.0), and `"provide": {"foresi/module-api": "1.3.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.4.0), and `"provide": {"foresi/module-api": "1.4.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -681,11 +681,12 @@ What each minor version added:
 | 1.1 | `Foresi\ExchangeRate\Contract\RateRules` (`foresi.exchange_rate.rules`), the legal rate of a country; `PublishedRates::$base`, the currency a source's quotes are priced in (leaving it out is deprecated and means CZK). A module that uses them requires `^1.1`. |
 | 1.2 | Banking: the `StatementIntake` service, the one way bank movements enter, and the `StatementFormat` port for statement files, with their values (`BankStatement`, `StatementSequence`, `StatementFile`, `MovementProvenance`, `MovementChannel`, `MovementTrust`, `IntakeResult`) and the events `banking.statement.gap_detected` and `banking.statement.gap_closed`. A module that uses them requires `^1.2`. |
 | 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
+| 1.4 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.sales.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `sales.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.4`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.3.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.4.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -787,7 +788,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Activities | `ActivityTarget` (`foresi.activities.target`) |
 | Banking | `BankMessageParser` (`foresi.banking.message_parser`); `StatementFormat` (`foresi.banking.statement_format`, since 1.2) and the `StatementIntake` service (since 1.2), see [bank pairing](bank-pairing.md#statements-and-other-channels) |
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
-| Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
+| Cash flow | `CashFlowSource` (`foresi.cash_flow.source`) and its extension `UndatedFlowSource` (since 1.4), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
@@ -797,6 +798,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Party | `BankAccountUsage` (`foresi.party.bank_account_usage`) |
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
+| Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.4) |
 | Timesheet | `ProjectRateSource` (`foresi.timesheet.project_rate_source`) |
 | VAT | `VatCountryRules`, `VatDocumentSource`, `VatPaymentSource`, `VatPlanSource`, `PlannedVatSource`, `VatScheduleSource` (`foresi.vat.*`) |
 | Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`) |

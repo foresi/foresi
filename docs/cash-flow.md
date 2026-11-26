@@ -14,9 +14,10 @@ Everything is available through the [REST API](api.md#cash-flow) and the [MCP se
 - **Alert**: when the forecast is stale or incomplete, a warning names each account without a balance, a balance older than 7 days, a source that failed and a currency without a rate, with its own Enter balance button.
 - **Figures**: the balance today with where it comes from (the entered balance and its day, and whether bank movements were added), the lowest point and its day, the minimum balance with "Below on" the first day under it or "Never below", and the balance at the end of the forecast.
 - **3 months or 12 months**: tabs pick one granularity for the chart and the table alike: thirteen ISO weeks from this one (the first starts today), or twelve calendar months from today (no week in front of them; the first month starts today). In the weeks view the lowest point, the first day under the minimum and the end are those of the thirteen weeks. A link to a week's cell carries its key (`2026-W48`), so the sheet reads the same view.
-- **Filter** (the Filter icon): the filter sheet of the list pages, with one condition, **Source** (Open documents, Recurring invoices, Planned items, Tax, insurance and VAT estimate: the certainties `document`, `schedule`, `plan` and `estimate`; is, is not, is any of, is none of). It sits on the right of the row of the 3 months and 12 months tabs, as on every list. The chart, the table, the figures and the sheet count only the flows it keeps; the balance today and the bank movements in it are never filtered. The filter travels in the address (`f`), through the 3 months or 12 months tabs and the links to a cell's items. A filter that keeps no flow shows the empty state of the table with Clear the filter. The page stores no view of it.
+- **Filter** (the Filter icon): the filter sheet of the list pages, with one condition, **Source** (Open documents, Recurring invoices, Won deals, Planned items, Tax, insurance and VAT estimate: the certainties `document`, `schedule`, `deal`, `plan` and `estimate`; is, is not, is any of, is none of). It sits on the right of the row of the 3 months and 12 months tabs, as on every list. The chart, the table, the figures and the sheet count only the flows it keeps; the balance today and the bank movements in it are never filtered. The filter travels in the address (`f`), through the 3 months or 12 months tabs and the links to a cell's items. A filter that keeps no flow shows the empty state of the table with Clear the filter. The page stores no view of it.
 - **Chart** (`Ui:BalanceChart`): money in (green) and out (sand) of each period as two columns, the closing balance as a line over them, and the minimum balance dashed. It is a server-rendered SVG with the table under it as its accessible equivalent; on a phone it scrolls sideways. Hovering a period shows its money in, out and closing balance in a tooltip.
 - **By period**: the periods of the view, with the opening balance, money in and money out by category, and the closing balance, red when it is below the minimum balance. A cell with money opens its items in the side sheet: the label, a badge for how sure each is (Document, Schedule, Plan, or Estimate in its own outlined badge, so an estimate never reads as a document or a bank movement), where it comes from when that says more (invoice, recurring invoice, received document), the day it is counted on, its flags and the amount in its own currency.
+- **No date**: what a source expects without a day, such as a won deal nobody has dated yet, is a column of its own after the last period, set apart by a rule, with its money in and out by category and no opening or closing: it is in no balance, not in the lowest point, the minimum-balance warning, the end of the forecast or the taxes forecast. Its items read No date, and **Set expected day** on an item opens the dialog of its own module, which moves it into its period. A figure **No date** sums its money in and links to its items; it shows only when there is some.
 - **Empty states**: before the first-run setup; a firm without a bank account; and a firm with no balance and nothing expected, which asks for the balance first.
 
 ## Planned items
@@ -60,6 +61,7 @@ A `BalanceSource` of another module may add what was booked after the checkpoint
 - **Shortfall**: with a minimum balance set for the firm, `shortfall_on` is the first day the projected balance falls below it. It is a field of the answer, not a notification.
 - **Actuals**: a planned occurrence that a document or a bank movement already stands for is left out; see [What replaces a plan](#what-replaces-a-plan).
 - **Restricted sources**: a source whose documents the caller may not read, such as an API token with `cashflow:read` and no `invoices:read`, still counts in the balance and in `inflows` and `outflows`, but its items are left out of the period. The period lists them as `hidden_items` instead, a total per source, direction and category with the count of items, and the forecast names such a source in `restricted_sources`. People signed in on the screens read every source.
+- **Undated**: `undated` holds what the sources expect without a day: `inflows` and `outflows` (with `total`, `by_category` and `by_certainty`), `items` (as a period's, without a day) and `hidden_items`. It is in no period and in no balance, and the filters apply to it as to the periods.
 - **Isolation**: a source or a balance source that throws is logged and listed in `unavailable_sources`; nothing it gave is counted, and the forecast is `incomplete`. So is a forecast with an account without a balance or a currency without a rate.
 
 ## Sources
@@ -69,11 +71,21 @@ A `BalanceSource` of another module may add what was booked after the checkpoint
 | `cash-flow.planned_items` | Cash flow | The planned items that are included, certainty `plan`. | `cashflow:read` |
 | `invoicing.invoices` | Invoicing | Unpaid invoices and advance invoices: what remains after corrections, payments and, for a final invoice, the advances; on the due date; category `revenue`, certainty `document`. | `invoices:read` |
 | `invoicing.recurring_invoices` | Invoicing | The occurrences of active recurring invoices not issued yet: the payable amount on the issue day plus the template's due days, certainty `schedule`. | `invoices:read` |
+| `sales.billing_plan` | Sales | The planned invoices of the won deals not in the trash that no invoice or recurring invoice fulfils: a one-off entry on its day, a recurring one every invoice of its line from its day, each paid the client's due days later; category `revenue`, certainty `deal`. An entry without a day is undated. See [Won deals](#won-deals). | `sales:read` |
 | `purchasing.received_documents` | Purchasing | Recorded received documents not fully paid: what remains, on the due date, or on the received date (else the issue date) with the flag `no_due_date`. A credit note comes in. Category `purchases`. | `received_documents:read` |
 | `taxes-and-contributions.estimate` | Taxes and contributions | The advances and settlements of the owner not paid yet, on their due days, certainty `estimate`, category `taxes` or `insurance` (see [Payments](taxes-and-contributions.md#payments)). | the owner with `taxes:read` |
 | `banking.movements` | Banking | The balance after a checkpoint (see [The balance](#the-balance)) and the bank movements as actuals. | — |
 
 Banking records the event `banking.movement.recorded` (version 1) for every movement it records, with its firm, account, direction, amount, currency, booking day, state and variable symbol. Owners and team members read it in the event feed and through webhooks.
+
+## Won deals
+
+A won deal is in the forecast through its [billing plan](sales.md#billing-plan), certainty `deal`, between a recurring invoice and a planned item: agreed with the client, its day still a plan.
+
+- **Invoicing day**: the entry's day. The money is expected the client's due days later (14 when the contact has none set).
+- **No day**: an entry nobody has dated is not scheduled; Foresi assumes no day, because any delay would be a guess that moves the balance. It is under No date, outside the balance, until it gets a day on the deal or from the item in the sheet.
+- **Past days**: an invoicing day before today is counted in the first period as `overdue`: planned to be invoiced, and not invoiced.
+- **Fulfilled**: an entry linked to its invoice or recurring invoice gives nothing; that document is counted by Invoicing. An invoice moved to the trash, or a recurring invoice that ends or is deleted, unlinks it, and the entry counts again.
 
 ## What replaces a plan
 
@@ -142,11 +154,13 @@ interface CashFlowSource
 }
 ```
 
-An `ExpectedFlow` carries the source key, its subject (type, id and API URL), the direction, a positive `Money`, the expected day, the category, the certainty (`document`, `schedule`, `plan` or `estimate`), a label, flags (`estimated`, `no_due_date`, `awaited` on a flow dated before today that is not late) and an optional counterparty id. A source returns open flows only, overdue ones included. When `mayReadDetails()` is false, the forecast shows only the totals of its flows, never a document.
+An `ExpectedFlow` carries the source key, its subject (type, id and API URL), the direction, a positive `Money`, the expected day, the category, the certainty (`document`, `schedule`, `deal`, `plan` or `estimate`), a label, flags (`estimated`, `no_due_date`, `awaited` on a flow dated before today that is not late) and an optional counterparty id. A source returns open flows only, overdue ones included. When `mayReadDetails()` is false, the forecast shows only the totals of its flows, never a document.
 
 A module whose documents or movements stand for planned money also implements `Foresi\CashFlow\Contract\ActualFlowSource` (tag `foresi.cash_flow.actual_source`): `actuals(firmId, from, to)` returns `ActualFlow`s with the source key, the subject, the direction, the amount, the day, and the counterparty id (a document) or the counter account and variable symbol (a bank movement).
 
 A balance source implements `Foresi\CashFlow\Contract\BalanceSource` (tag `foresi.cash_flow.balance_source`): given the latest `BalanceCheckpoint` of an account and today, it answers an `AccountBalance` with the amount and the last day its knowledge reaches, or null when it does not know the account. The first source that answers for an account wins.
+
+A source that also knows amounts without a day implements `Foresi\CashFlow\Contract\UndatedFlowSource` (since module API 1.4), which extends `CashFlowSource` with `undatedFlows(today)`: `UndatedFlow`s with what an `ExpectedFlow` has but the day and the flags. They go to the No date column and `undated`, never to a balance or to `ForecastReader`.
 
 The planned items of Cash flow are a source of their own, `cash-flow.planned_items`.
 

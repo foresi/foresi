@@ -10,6 +10,7 @@ namespace Foresi\Sales\Infrastructure\Api;
 
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
+use Foresi\Sales\Application\BillingEntryView;
 use Foresi\Sales\Application\DealDetail;
 use Foresi\Sales\Application\DealLinkView;
 use Foresi\Sales\Application\HourlyValue;
@@ -17,6 +18,7 @@ use Foresi\Sales\Application\LineProjects;
 use Foresi\Sales\Application\LostReasonNames;
 use Foresi\Sales\Application\SalesStore;
 use Foresi\Sales\Application\StageNames;
+use Foresi\Sales\Contract\BillingDocumentType;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Domain\LostReason;
@@ -40,7 +42,7 @@ final readonly class SalesJson
     }
 
     /**
-     * One deal with its lines, value, links and contact persons.
+     * One deal with its lines, value, links, contact persons and billing plan.
      *
      * @return array<string, mixed>
      */
@@ -78,10 +80,44 @@ final readonly class SalesJson
                 'direction' => $view->outgoing ? 'outgoing' : 'incoming',
                 'deal' => ['id' => $view->other->id(), 'title' => $view->other->title(), 'status' => $view->other->status()->value],
             ], $detail->links),
+            'billing_plan' => [
+                'entries' => array_map(self::billingEntry(...), $detail->billingPlan->entries),
+                'not_planned' => array_values(array_map(JsonValues::money(...), $detail->billingPlan->notPlanned)),
+                'not_invoiced' => array_values(array_map(JsonValues::money(...), $detail->billingPlan->notInvoiced())),
+            ],
             'trashed' => $deal->isTrashed(),
             'trashed_at' => JsonValues::timestamp($deal->trashedAt()),
             'created_at' => JsonValues::timestamp($deal->createdAt()),
             'updated_at' => JsonValues::timestamp($deal->updatedAt()),
+        ];
+    }
+
+    /**
+     * One planned invoice of the billing plan.
+     *
+     * @return array<string, mixed>
+     */
+    private static function billingEntry(BillingEntryView $view): array
+    {
+        $entry = $view->entry;
+        $document = $view->document;
+        $type = $entry->fulfilledType();
+
+        return [
+            'id' => $entry->id(),
+            'kind' => $entry->kind()->value,
+            'line_id' => $entry->lineId(),
+            'amount' => $view->amount instanceof Money ? JsonValues::money($view->amount) : null,
+            'expected_on' => JsonValues::date($entry->expectedOn()),
+            'text' => $entry->text(),
+            'state' => $view->state,
+            'fulfilled_by' => $type instanceof BillingDocumentType ? [
+                'type' => $type->value,
+                'id' => $entry->fulfilledId(),
+                'label' => $document?->label,
+            ] : null,
+            'created_at' => JsonValues::timestamp($entry->createdAt()),
+            'updated_at' => JsonValues::timestamp($entry->updatedAt()),
         ];
     }
 

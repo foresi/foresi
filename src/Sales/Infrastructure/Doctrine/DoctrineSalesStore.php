@@ -11,6 +11,9 @@ namespace Foresi\Sales\Infrastructure\Doctrine;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Sales\Application\DealFilter;
 use Foresi\Sales\Application\SalesStore;
+use Doctrine\ORM\Query\Expr\Join;
+use Foresi\Sales\Contract\BillingDocumentType;
+use Foresi\Sales\Domain\BillingPlanEntry;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealContact;
 use Foresi\Sales\Domain\DealLine;
@@ -145,13 +148,75 @@ final readonly class DoctrineSalesStore implements SalesStore
         return $reasons;
     }
 
-    public function add(Deal|DealLine|DealContact|DealLink|Stage|LostReason $record): void
+    public function billingPlanOf(string $dealId): array
+    {
+        /** @var list<BillingPlanEntry> $entries */
+        $entries = $this->em->createQueryBuilder()
+            ->select('e')
+            ->from(BillingPlanEntry::class, 'e')
+            ->where('e.dealId = :deal')
+            ->setParameter('deal', $dealId)
+            ->orderBy('e.createdAt', 'ASC')
+            ->addOrderBy('e.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $entries;
+    }
+
+    public function billingEntry(string $id): ?BillingPlanEntry
+    {
+        return $this->em->find(BillingPlanEntry::class, $id);
+    }
+
+    public function billingEntryOfLine(string $lineId): ?BillingPlanEntry
+    {
+        return $this->em->getRepository(BillingPlanEntry::class)->findOneBy(['lineId' => $lineId]);
+    }
+
+    public function billingEntriesFulfilledBy(BillingDocumentType $type, string $documentId): array
+    {
+        /** @var list<BillingPlanEntry> $entries */
+        $entries = $this->em->createQueryBuilder()
+            ->select('e')
+            ->from(BillingPlanEntry::class, 'e')
+            ->where('e.fulfilledType = :type')
+            ->andWhere('e.fulfilledId = :id')
+            ->setParameter('type', $type->value)
+            ->setParameter('id', $documentId)
+            ->orderBy('e.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $entries;
+    }
+
+    public function openBillingEntries(): array
+    {
+        /** @var list<BillingPlanEntry> $entries */
+        $entries = $this->em->createQueryBuilder()
+            ->select('e')
+            ->from(BillingPlanEntry::class, 'e')
+            ->join(Deal::class, 'd', Join::WITH, 'd.id = e.dealId')
+            ->where('e.fulfilledId IS NULL')
+            ->andWhere('d.status = :won')
+            ->andWhere('d.trashedAt IS NULL')
+            ->setParameter('won', DealStatus::Won->value)
+            ->orderBy('e.createdAt', 'ASC')
+            ->addOrderBy('e.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $entries;
+    }
+
+    public function add(Deal|DealLine|DealContact|DealLink|Stage|LostReason|BillingPlanEntry $record): void
     {
         $this->em->persist($record);
         $this->em->flush();
     }
 
-    public function remove(DealLine|DealContact|DealLink $record): void
+    public function remove(DealLine|DealContact|DealLink|BillingPlanEntry $record): void
     {
         $this->em->remove($record);
         $this->em->flush();

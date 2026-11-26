@@ -65,6 +65,9 @@ use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
 use Foresi\Ui\Contract\Guard;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Sales\Domain\BillingEntryKind;
+use Foresi\Sales\Contract\BillingDocument;
+use Foresi\Sales\Application\BillingEntryView;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\Slot\SlotRegistry;
@@ -316,6 +319,7 @@ final class DealController extends AbstractController
             'lines' => $this->lineRows($detail),
             'lineProjects' => [] !== array_filter($detail->lines, static fn (DealLine $line): bool => null !== $line->projectId()),
             'totals' => $this->totalRows($detail->value),
+            'billing' => $this->billingSection($detail),
             'links' => $this->linkViews($detail),
             'linkable' => !$deal->isTrashed() && [] !== $this->linkOptions($detail),
             'slotActions' => $deal->isTrashed() ? [] : $this->slotActions($context),
@@ -775,6 +779,92 @@ final class DealController extends AbstractController
         }
 
         return $rows;
+    }
+
+    /**
+     * The billing plan section: shown for a won deal, where it changes, and for
+     * an open or lost one that has a plan, read-only with a note that it is not
+     * counted; null for a deal with nothing to show. Each row says what it is,
+     * its amount, its day or "No date", and whether it is planned, overdue or
+     * invoiced, with a link to its document.
+     *
+     * @return array{editable: bool, note: ?string, rows: list<array<string, mixed>>, notPlanned: string, notInvoiced: string}|null
+     */
+    private function billingSection(DealDetail $detail): ?array
+    {
+        $deal = $detail->deal;
+        $won = DealStatus::Won === $deal->status();
+        $plan = $detail->billingPlan;
+        if (!$won && [] === $plan->entries && !$deal->isOpen()) {
+            return null;
+        }
+        $editable = $won && !$deal->isTrashed();
+        $rows = [];
+        foreach ($plan->entries as $view) {
+            $entry = $view->entry;
+            $actions = [];
+            $edit = $this->generateUrl('app_sales_billing_entry_edit', ['id' => $deal->id(), 'entryId' => $entry->id()]);
+            if ($editable) {
+                $actions[] = ['label' => $this->screen->trans('sales.billing.action.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true];
+                if ($entry->isFulfilled()) {
+                    $actions[] = ['label' => $this->screen->trans('sales.billing.action.unlink'), 'href' => $this->generateUrl('app_sales_billing_entry_unlink', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'x', 'method' => 'POST'];
+                } else {
+                    $actions[] = ['label' => $this->screen->trans('sales.billing.action.link'), 'href' => $this->generateUrl('app_sales_billing_entry_link', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'link-2', 'dialog' => true];
+                }
+                $actions[] = ['label' => $this->screen->trans('sales.billing.action.delete'), 'href' => $this->generateUrl('app_sales_billing_entry_delete', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'method' => 'POST',
+                    'confirm' => ['title' => $this->screen->trans('sales.billing.confirm.delete'), 'accept' => $this->screen->trans('sales.billing.action.delete'), 'cancel' => $this->screen->trans('sales.keep'), 'tone' => 'danger']];
+            }
+            $label = '' !== $entry->text() ? $entry->text() : ($view->line?->name() ?? $this->screen->trans('sales.billing.kind.'.$entry->kind()->value));
+            $on = $entry->expectedOn();
+            $rows[] = [
+                'id' => $entry->id(),
+                'href' => $editable ? $edit : null,
+                'opens' => Opens::DIALOG,
+                'label' => $label,
+                'secondary' => $view->amount instanceof Money ? $this->screen->money($view->amount) : '',
+                'cells' => [
+                    'text' => $label,
+                    'kind' => $this->screen->trans('sales.billing.kind.'.$entry->kind()->value).(BillingEntryKind::Recurring === $entry->kind() && $view->line instanceof DealLine ? ' · '.$this->screen->billing($view->line) : ''),
+                    'expected' => $on instanceof \DateTimeImmutable ? ['text' => $this->screen->day($on)] : ['text' => '', 'empty' => $this->screen->trans('sales.billing.no_date')],
+                    'state' => $this->billingState($view),
+                    'amount' => $view->amount instanceof Money ? $this->screen->money($view->amount) : '',
+                ],
+                'actions' => $actions,
+            ];
+        }
+        $note = match (true) {
+            $deal->isTrashed() => null,
+            $deal->isOpen() && [] === $plan->entries => $this->screen->trans('sales.billing.note.open'),
+            !$won => $this->screen->trans('sales.billing.note.not_won'),
+            default => null,
+        };
+
+        return [
+            'editable' => $editable,
+            'note' => $note,
+            'rows' => $rows,
+            'notPlanned' => $won ? $this->screen->amounts($plan->notPlanned) : '',
+            'notInvoiced' => $this->screen->amounts($plan->notInvoiced()),
+        ];
+    }
+
+    /**
+     * Planned, overdue, or invoiced with a link to the document.
+     *
+     * @return array<string, mixed>
+     */
+    private function billingState(BillingEntryView $view): array
+    {
+        $document = $view->document;
+        if (BillingEntryView::INVOICED === $view->state && $document instanceof BillingDocument && null !== $document->url) {
+            return ['links' => [['text' => $document->label, 'href' => $document->url, 'opens' => Opens::PAGE]], 'plain' => true];
+        }
+
+        return match ($view->state) {
+            BillingEntryView::INVOICED => ['text' => $this->screen->trans('sales.billing.state.invoiced'), 'tone' => 'green'],
+            BillingEntryView::OVERDUE => ['text' => $this->screen->trans('sales.billing.state.overdue'), 'tone' => 'amber'],
+            default => ['text' => $this->screen->trans('sales.billing.state.planned'), 'tone' => 'gray'],
+        };
     }
 
     /**

@@ -53,6 +53,19 @@ The **value** of a deal is counted from its priced lines, per currency, and neve
 - **Hourly** lists each `time_based` line with its rate per hour and, when hours are expected, the amount they make (rate times hours, rounded half up). It is never added into the one-off or the monthly value, because the hours are not worked yet: on the deal's page it is a row of its own under the lines (such as "1,200.00 Kč / h (≈ 40 h = 48,000.00 Kč)"), in a list a deal with hourly lines shows "+ hourly" after its other values, and over the API and MCP it is `value.hourly` with `rate`, `expected_hours` and `expected_amount` (the last two `null` without hours).
 - A line without a price is left out. A deal without a priced line has no value.
 
+## Billing plan
+
+A won deal carries its **billing plan**: the invoices it will bring, each a **planned invoice** of the deal. The [cash-flow forecast](cash-flow.md#won-deals) counts every planned invoice until an invoice or recurring invoice fulfils it, so a deal is in the forecast from the moment it is won.
+
+- **Starting plan.** Winning a deal that has no plan makes one: a `one_off` entry per currency for the sum of the one-off lines, and a `recurring` entry for each priced recurring line. None of them has a day. A deal reopened keeps its plan, which the forecast no longer counts, and a deal won again uses the plan it has.
+- **One-off entries** are an amount without VAT. The dialog takes the amount, or a percentage of the deal's one-off value in the currency; the percentage only works the amount out, and the amount is what is kept. The one-off entries of a currency never add up to more than the deal's one-off value in it (`plan_exceeds_value`); what is left is shown under the table as **Not planned**. A deposit and the rest are two entries.
+- **Recurring entries** follow one recurring line of the deal, which gives their amount, unit, interval and cycles; a line has one entry at most (`line_planned`). Changing the line's price changes the entry's amount. A line that is removed, or no longer recurs with a price, takes its entry along.
+- **Hourly lines** are never planned: the time logged on them is billed as it is worked, not guessed.
+- **The day** is when the invoice is expected to be issued; for a recurring entry, the day of the first one. It may stay empty, and then Foresi assumes no day: the forecast shows the entry under **No date**, outside the balance, until someone gives it one. An entry whose day has passed and that nothing fulfils is **Overdue**.
+- **Fulfilled.** An entry is linked to the invoice (a one-off entry) or the recurring invoice (a recurring entry) of the deal's client that fulfils it, such as one issued before the plan existed: **Link an existing invoice** in the row's menu. A document fulfils one entry (`document_taken`); an invoice in the trash or a recurring invoice that ended is refused (`document_inactive`). The forecast then counts that document and no longer the entry, so nothing is counted twice. **Unlink the invoice** puts the entry back into the forecast. When the invoice goes to the trash, or the recurring invoice ends or is deleted, the entry is unlinked by itself.
+
+On the deal's page the **Billing plan** follows the lines: each planned invoice with its text, kind, day or No date, state (Planned, Overdue, or the invoice it is linked to) and amount, and Not invoiced and Not planned under it. **Plan invoice** is in the header's menu of a won deal and opens a dialog; each row's menu edits it, links or unlinks its invoice, or removes it. An open deal says that its plan starts when it is won, and a reopened or lost deal shows its plan read-only. Only a won deal not in the trash changes its plan (`deal_not_won`).
+
 ## Follow-up deals
 
 A deal can **follow from** another deal of the same client, such as a monthly service after a one-off audit. **New follow-up deal** on a deal opens a new deal for the same client and contact persons, lets you pick the lines to copy (as they are on the source deal), and links the two. A link can also be added to or removed from existing deals. A deal is never linked to itself (`link_self`), to a deal of another client (`link_other_client`), or twice to the same deal (`link_duplicate`). Both deals stay when a link is removed.
@@ -90,7 +103,9 @@ The new-document and new-activity screens take several links as `links[]=kind:id
 
 ## Events
 
-`sales.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the client, the lines, the links or the contact persons records `.updated`. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
+`sales.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the client, the lines, the links or the contact persons records `.updated`.
+
+The billing plan records `sales.billing_entry.created`, `.updated`, `.deleted`, `.fulfilled` and `.unfulfilled`, version 1, about the subject of type `deal`. The payload holds the `entryId`, the `dealId` and the `kind` (`one_off` or `recurring`); `.fulfilled` and `.unfulfilled` add the `documentType` (`invoice` or `recurring_invoice`) and the `documentId`. Amounts and texts never travel in an event. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
 
 ## API and MCP
 

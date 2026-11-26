@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Application\Query;
 
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
@@ -20,7 +21,8 @@ final readonly class ContactRow
 {
     /**
      * @param list<PartyRole> $roles
-     * @param string|null     $email the general e-mail address; none when the contact has no address of that purpose
+     * @param string|null     $email   the general e-mail address; none when the contact has no address of that purpose
+     * @param int             $dueDays how many days after issue an invoice to it is due
      */
     public function __construct(
         public string $id,
@@ -33,6 +35,7 @@ final readonly class ContactRow
         public ?string $email,
         public ?Address $billingAddress,
         public bool $archived,
+        public int $dueDays = InvoicingDefaults::DEFAULT_DUE_DAYS,
     ) {
     }
 
@@ -49,6 +52,7 @@ final readonly class ContactRow
             $email,
             $billingAddress,
             $party->isArchived(),
+            $party->invoicingDefaults()->dueDays,
         );
     }
 }

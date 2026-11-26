@@ -35,7 +35,8 @@ use Psr\Log\LoggerInterface;
  * ForecastReads. A certainty filter keeps the flows of the certainties chosen,
  * and the balances, the lowest point and the shortfall follow it; the balance
  * today is never filtered. A source whose documents the caller may not
- * read adds to the category totals only, never as items (C15).
+ * read adds to the category totals only, never as items (C15). What a source
+ * expects without a day is kept apart (UndatedForecast) and moves no balance.
  * A source, a balance source or a rate that fails is listed and left out; it
  * never breaks the forecast.
  */
@@ -103,7 +104,7 @@ final class Forecasts
         }
         // In the order of FlowCertainty, each once.
         $certainties = null === $certainties ? null : array_values(array_filter(FlowCertainty::cases(), static fn (FlowCertainty $certainty): bool => \in_array($certainty, $certainties, true)));
-        $collected = $this->flows->collect($today, $start, $end, $czk, certainties: $certainties, text: $text);
+        $collected = $this->flows->collect($today, $start, $end, $czk, certainties: $certainties, text: $text, undated: true);
         $lines = $collected->lines;
         $this->restricted = $collected->restricted;
         array_push($unavailable, ...$collected->unavailable);
@@ -168,7 +169,47 @@ final class Forecasts
             $this->restricted,
             $certainties,
             trim($text),
+            $this->undated($collected->undated),
         );
+    }
+
+    /**
+     * The undated lines by direction, category and certainty; those of a
+     * source the caller may not read are summed, as in a period.
+     *
+     * @param list<UndatedLine> $lines
+     */
+    private function undated(array $lines): UndatedForecast
+    {
+        $in = [];
+        $out = [];
+        $inByCertainty = [];
+        $outByCertainty = [];
+        $visible = [];
+        $hidden = [];
+        foreach ($lines as $line) {
+            $flow = $line->flow;
+            $category = $flow->category->value;
+            $certainty = $flow->certainty->value;
+            if (FlowDirection::In === $flow->direction) {
+                $in[$category] = isset($in[$category]) ? $in[$category]->plus($line->amount) : $line->amount;
+                $inByCertainty[$certainty] = isset($inByCertainty[$certainty]) ? $inByCertainty[$certainty]->plus($line->amount) : $line->amount;
+            } else {
+                $out[$category] = isset($out[$category]) ? $out[$category]->plus($line->amount) : $line->amount;
+                $outByCertainty[$certainty] = isset($outByCertainty[$certainty]) ? $outByCertainty[$certainty]->plus($line->amount) : $line->amount;
+            }
+            if (!\in_array($flow->source, $this->restricted, true)) {
+                $visible[] = $line;
+                continue;
+            }
+            $key = $flow->source.'|'.$flow->direction->value.'|'.$category;
+            $hidden[$key] = isset($hidden[$key])
+                ? new HiddenTotal($flow->source, $flow->direction, $flow->category, $hidden[$key]->amount->plus($line->amount), $hidden[$key]->count + 1)
+                : new HiddenTotal($flow->source, $flow->direction, $flow->category, $line->amount, 1);
+        }
+        ksort($hidden);
+
+        return new UndatedForecast($in, $out, $visible, array_values($hidden), $inByCertainty, $outByCertainty);
     }
 
     /**

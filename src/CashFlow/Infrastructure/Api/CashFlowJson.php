@@ -13,6 +13,7 @@ use Foresi\CashFlow\Application\Forecast;
 use Foresi\CashFlow\Application\ForecastLine;
 use Foresi\CashFlow\Application\HiddenTotal;
 use Foresi\CashFlow\Application\PeriodForecast;
+use Foresi\CashFlow\Application\UndatedLine;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowFlag;
 use Foresi\CashFlow\Domain\Checkpoint;
@@ -164,6 +165,13 @@ final class CashFlowJson
                 'accounts' => array_map(self::account(...), $forecast->accounts),
             ],
             'periods' => array_map(self::period(...), $periods),
+            // What is expected without a day: in no period and in no balance.
+            'undated' => [
+                'inflows' => self::totals($forecast->undated->inflows, $forecast->undated->inflowsByCertainty),
+                'outflows' => self::totals($forecast->undated->outflows, $forecast->undated->outflowsByCertainty),
+                'items' => array_map(self::undatedLine(...), $forecast->undated->lines),
+                'hidden_items' => array_map(self::hidden(...), $forecast->undated->hidden),
+            ],
             'lowest' => ['amount' => JsonValues::money($forecast->lowest), 'on' => JsonValues::date($forecast->lowestOn)],
             'minimum_balance' => $forecast->minimum instanceof Money ? JsonValues::money($forecast->minimum) : null,
             'shortfall_on' => JsonValues::date($forecast->shortfallOn),
@@ -205,13 +213,41 @@ final class CashFlowJson
             'outflows' => self::totals($period->outflows, $period->outflowsByCertainty),
             'closing' => JsonValues::money($period->closing),
             'items' => array_map(self::line(...), $period->lines),
-            'hidden_items' => array_map(static fn (HiddenTotal $hidden): array => [
-                'source' => $hidden->source,
-                'direction' => $hidden->direction->value,
-                'category' => $hidden->category->value,
-                'amount_czk' => JsonValues::money($hidden->amount),
-                'count' => $hidden->count,
-            ], $period->hidden),
+            'hidden_items' => array_map(self::hidden(...), $period->hidden),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function hidden(HiddenTotal $hidden): array
+    {
+        return [
+            'source' => $hidden->source,
+            'direction' => $hidden->direction->value,
+            'category' => $hidden->category->value,
+            'amount_czk' => JsonValues::money($hidden->amount),
+            'count' => $hidden->count,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function undatedLine(UndatedLine $line): array
+    {
+        $flow = $line->flow;
+
+        return [
+            'source' => $flow->source,
+            'subject' => ['type' => $flow->subject->type, 'id' => $flow->subject->id, 'url' => $flow->subject->url],
+            'direction' => $flow->direction->value,
+            'label' => $flow->label,
+            'category' => $flow->category->value,
+            'certainty' => $flow->certainty->value,
+            'amount' => JsonValues::money($flow->amount),
+            'amount_czk' => JsonValues::money($line->amount),
+            'counterparty_id' => $flow->counterpartyId,
         ];
     }
 

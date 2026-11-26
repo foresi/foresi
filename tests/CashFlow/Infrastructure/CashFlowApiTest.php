@@ -162,7 +162,7 @@ final class CashFlowApiTest extends ApiTestCase
         self::assertIsArray($week);
         self::assertSame(['total' => ['amount_minor' => 1000000, 'currency' => 'CZK'], 'by_category' => ['rent' => ['amount_minor' => 1000000, 'currency' => 'CZK']], 'by_certainty' => ['plan' => ['amount_minor' => 1000000, 'currency' => 'CZK']]], $week['outflows']);
         self::assertEquals([], $this->at('data', 'periods', 1, 'inflows', 'by_certainty'));
-        self::assertSame(['document', 'schedule', 'plan', 'estimate'], $this->at('data', 'certainty'));
+        self::assertSame(['document', 'schedule', 'deal', 'plan', 'estimate'], $this->at('data', 'certainty'));
         self::assertSame([
             'source' => 'cash-flow.planned_items',
             'subject' => ['type' => 'planned_item', 'id' => $this->at('data', 'periods', 1, 'items', 0, 'subject', 'id'), 'url' => null],

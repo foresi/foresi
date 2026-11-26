@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Application;
 
+use Foresi\Sales\Contract\BillingDocumentType;
+use Foresi\Sales\Domain\BillingPlanEntry;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealContact;
 use Foresi\Sales\Domain\DealLine;
@@ -16,8 +18,8 @@ use Foresi\Sales\Domain\LostReason;
 use Foresi\Sales\Domain\Stage;
 
 /**
- * The deals, their lines, contact persons and links, and the stages and lost
- * reasons. A write is flushed by the unit of work around it.
+ * The deals, their lines, contact persons, links and billing plans, and the
+ * stages and lost reasons. A write is flushed by the unit of work around it.
  */
 interface SalesStore
 {
@@ -72,7 +74,35 @@ interface SalesStore
      */
     public function lostReasons(bool $includeArchived = false): array;
 
-    public function add(Deal|DealLine|DealContact|DealLink|Stage|LostReason $record): void;
+    /**
+     * The billing plan of a deal, the oldest entry first.
+     *
+     * @return list<BillingPlanEntry>
+     */
+    public function billingPlanOf(string $dealId): array;
 
-    public function remove(DealLine|DealContact|DealLink $record): void;
+    /** A planned invoice of any deal; null for an unknown id. */
+    public function billingEntry(string $id): ?BillingPlanEntry;
+
+    /** The entry that follows the recurring line; null for none. */
+    public function billingEntryOfLine(string $lineId): ?BillingPlanEntry;
+
+    /**
+     * The entries the document fulfils, of any deal.
+     *
+     * @return list<BillingPlanEntry>
+     */
+    public function billingEntriesFulfilledBy(BillingDocumentType $type, string $documentId): array;
+
+    /**
+     * The entries no document fulfils, of the won deals not in the trash: what
+     * the forecast counts. The oldest first.
+     *
+     * @return list<BillingPlanEntry>
+     */
+    public function openBillingEntries(): array;
+
+    public function add(Deal|DealLine|DealContact|DealLink|Stage|LostReason|BillingPlanEntry $record): void;
+
+    public function remove(DealLine|DealContact|DealLink|BillingPlanEntry $record): void;
 }

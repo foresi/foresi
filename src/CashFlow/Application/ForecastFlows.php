@@ -15,6 +15,8 @@ use Foresi\CashFlow\Contract\ExpectedFlow;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Contract\FlowFlag;
+use Foresi\CashFlow\Contract\UndatedFlow;
+use Foresi\CashFlow\Contract\UndatedFlowSource;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Money;
@@ -30,7 +32,9 @@ use Psr\Log\LoggerInterface;
  * a bank movement already fulfils (PlannedFulfilment).
  *
  * A source left out is never called. A source or an actual source that fails
- * is logged, listed and left out.
+ * is logged, listed and left out. When asked, the undated flows of an
+ * UndatedFlowSource are collected too, through the same filters, and kept
+ * apart: they have no day to be counted on.
  */
 final readonly class ForecastFlows
 {
@@ -53,6 +57,7 @@ final readonly class ForecastFlows
      * @param list<FlowCategory>       $excludeCategories
      * @param list<FlowCertainty>|null $certainties       the certainties kept; null keeps them all
      * @param string                   $text              the flows kept are those whose label or subject's label holds it, whatever its case; empty keeps them all
+     * @param bool                     $undated           whether to collect the undated flows too
      */
     public function collect(
         \DateTimeImmutable $today,
@@ -63,12 +68,14 @@ final readonly class ForecastFlows
         array $excludeCategories = [],
         ?array $certainties = null,
         string $text = '',
+        bool $undated = false,
     ): CollectedFlows {
         $text = mb_strtolower(trim($text));
         $unavailable = [];
         $restricted = [];
         $expected = $this->store->expectedDates();
         $lines = [];
+        $undatedLines = [];
         foreach ($this->sources as $source) {
             // Asked for its key only: a source left out is never asked for its flows,
             // nor one whose categories are all left out.
@@ -80,6 +87,12 @@ final readonly class ForecastFlows
                 $details = $source->mayReadDetails();
                 foreach ($source->flows($today, $end, $today) as $flow) {
                     $flows[] = $flow;
+                }
+                $undatedFlows = [];
+                if ($undated && $source instanceof UndatedFlowSource) {
+                    foreach ($source->undatedFlows($today) as $flow) {
+                        $undatedFlows[] = $flow;
+                    }
                 }
             } catch (\Throwable $failure) {
                 $this->logger->error('The cash-flow source {source} failed.', ['source' => $source->key(), 'exception' => $failure]);
@@ -101,12 +114,38 @@ final readonly class ForecastFlows
                     $lines[] = $line;
                 }
             }
+            foreach ($undatedFlows as $flow) {
+                if (!$this->kept($flow, $excludeCategories, $certainties, $text)) {
+                    continue;
+                }
+                $amount = $czk->of($flow->amount);
+                if ($amount instanceof Money) {
+                    $undatedLines[] = new UndatedLine($flow, $amount);
+                }
+            }
         }
+        // The largest first, as nothing orders them by a day.
+        usort($undatedLines, static fn (UndatedLine $a, UndatedLine $b): int => [$b->amount->minor(), $a->flow->label] <=> [$a->amount->minor(), $b->flow->label]);
         // By the day they are counted on, overdue and awaited ones first, money in before money out.
         usort($lines, static fn (ForecastLine $a, ForecastLine $b): int => self::order($a) <=> self::order($b));
         $lines = $this->unfulfilled($lines, $unavailable);
 
-        return new CollectedFlows($lines, array_values(array_unique($unavailable)), array_values(array_unique($restricted)));
+        return new CollectedFlows($lines, array_values(array_unique($unavailable)), array_values(array_unique($restricted)), $undatedLines);
+    }
+
+    /**
+     * Whether the filters keep an undated flow, as they keep a dated one.
+     *
+     * @param list<FlowCategory>       $excludeCategories
+     * @param list<FlowCertainty>|null $certainties
+     */
+    private function kept(UndatedFlow $flow, array $excludeCategories, ?array $certainties, string $text): bool
+    {
+        if (\in_array($flow->category, $excludeCategories, true) || (null !== $certainties && !\in_array($flow->certainty, $certainties, true))) {
+            return false;
+        }
+
+        return '' === $text || str_contains(mb_strtolower($flow->label.' '.($flow->subject->label ?? '')), $text);
     }
 
     /**

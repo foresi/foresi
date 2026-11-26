@@ -20,6 +20,8 @@ cash_flow:
     below_on: 'Pod ním {day}'
     never_below: Nikdy pod ním
     end: Konec předpovědi
+    undated: Bez data
+    undated_note: '{count, plural, one {# položka} few {# položky} other {# položek}} mimo zůstatek'
   alert:
     incomplete_title: Předpověď není úplná
     stale_title: Zůstatek je zastaralý
@@ -49,6 +51,8 @@ cash_flow:
     week: 'Týden {week}'
     below_minimum: pod minimálním zůstatkem
     none: nic
+    undated: Bez data
+    undated_detail: mimo zůstatek
   category:
     revenue: Tržby
     purchases: Nákupy
@@ -70,6 +74,7 @@ cash_flow:
     recurring_invoice: Opakovaná faktura
     received_document: Přijatý doklad
     planned_item: Plánovaná položka
+    deal_billing_entry: Vyhraný obchod
     bank_movement: Pohyb na účtu
   filter:
     certainty: Zdroj
@@ -80,6 +85,7 @@ cash_flow:
   certainty:
     document: Otevřené doklady
     schedule: Opakované faktury
+    deal: Vyhrané obchody
     plan: Plánované položky
     estimate: Odhad daní, pojištění a DPH
   flag:

@@ -59,6 +59,7 @@ final readonly class DealWrites
         private PartyDirectory $parties,
         private ContactPersonWrites $contactPersons,
         private LineProjects $projects,
+        private BillingPlanWrites $billingPlan,
     ) {
     }
 
@@ -177,6 +178,8 @@ final readonly class DealWrites
             $deal = $this->deal($input->dealId);
             SalesRefused::unless(fn () => $deal->win($this->clock->now()));
             $this->events->record(new DealWon($deal->id(), $deal->status()->value, $deal->stageId()));
+            // A deal won for the first time gets its starting plan, each entry without a day (D1).
+            $this->billingPlan->startPlan($deal);
 
             return $deal;
         });
