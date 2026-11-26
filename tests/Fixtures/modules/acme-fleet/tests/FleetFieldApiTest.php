@@ -12,7 +12,7 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
- * The fleet's custom fields of a contact over REST and MCP (module API 1.6): listed by
+ * The fleet's custom fields of a contact over REST and MCP (module API 1.7): listed by
  * GET /api/v1/fields, written by contacts.create and foresi_update_contact, read back
  * under custom_fields by key, and a value its kind does not take refused at its key.
  */
