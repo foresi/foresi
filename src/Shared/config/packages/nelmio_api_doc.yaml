@@ -52,11 +52,7 @@ nelmio_api_doc:
                     type: object
                     required: [user, token]
                     properties:
-                        user:
-                            type: object
-                            properties:
-                                id: { type: string, format: uuid }
-                                email: { type: string }
+                        user: { $ref: '#/components/schemas/Profile' }
                         token:
                             type: object
                             properties:
@@ -64,6 +60,15 @@ nelmio_api_doc:
                                 name: { type: string }
                                 scopes: { type: array, items: { type: string, enum: [read, write] } }
                                 expires_at: { type: string, format: date-time }
+                Profile:
+                    type: object
+                    required: [id, email, display_name, language, photo_url]
+                    properties:
+                        id: { type: string, format: uuid }
+                        email: { type: string }
+                        display_name: { type: string }
+                        language: { type: string, enum: [cs, en] }
+                        photo_url: { type: string, format: uri, nullable: true, description: 'Opens only in a signed-in Foresi session; null without a photo.' }
                 InvoiceListItem:
                     type: object
                     required: [id, number, kind, firm, customer, issue_date, due_date, tax_point_date, total, paid, remaining, payment_state, overdue, sent, sent_at, delivered, trashed, created_at]

@@ -76,6 +76,19 @@ final class AvatarTest extends KernelTestCase
     public function testAnUnknownSizeThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->mountTwigComponent('Ui:Avatar', ['name' => 'Jana', 'size' => 'xl']);
+        $this->mountTwigComponent('Ui:Avatar', ['name' => 'Jana', 'size' => 'xxl']);
+    }
+
+    public function testAPhotoFillsTheCircleInPlaceOfTheInitials(): void
+    {
+        $avatar = $this->avatar(['name' => 'Jana Example', 'photo' => '/people/1/photo?v=abc', 'size' => 'xl']);
+
+        $image = $avatar->filter('img[data-avatar-photo]');
+        self::assertSame('/people/1/photo?v=abc', $image->attr('src'));
+        self::assertSame('', $image->attr('alt'));
+        self::assertStringContainsString('object-cover', (string) $image->attr('class'));
+        self::assertStringNotContainsString('JE', $avatar->text());
+        self::assertStringContainsString('size-24', (string) $avatar->attr('class'));
+        self::assertStringNotContainsString(Avatar::tone('Jana Example'), (string) $avatar->attr('class'));
     }
 }

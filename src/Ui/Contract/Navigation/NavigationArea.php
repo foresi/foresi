@@ -17,7 +17,8 @@ use Foresi\Ui\Contract\Guard;
  * locked icon set, and areas are shown by weight, then by registration order.
  *
  * "settings" is the one area that is not a business area: it sits apart at the
- * bottom of the rail, whatever its weight.
+ * bottom of the rail, whatever its weight. "profile", the person's own account,
+ * has no rail entry at all: the avatar of the account menu opens it.
  *
  * An area defines its sections (NavigationSection), in order. An area that
  * defines none has one section, which is never given a heading. The sidebar
@@ -30,6 +31,8 @@ final readonly class NavigationArea
     public const string TAG = 'foresi.ui.navigation_area';
 
     public const string SETTINGS = 'settings';
+
+    public const string PROFILE = 'profile';
 
     /** The number of items from which an area shows its section headings. */
     public const int SECTION_HEADINGS_FROM = 7;

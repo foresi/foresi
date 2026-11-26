@@ -31,7 +31,8 @@ final class GuestAccessTest extends WebTestCase
     private const array OPEN = [
         // The sign-in, its code step and signing out.
         'app_login', '2fa_login', '2fa_login_check', 'app_logout',
-        // Their account.
+        // Their account, and their profile: every guest has one (name, photo), and the person's photo is shown wherever they appear.
+        'app_account_profile', 'app_account_profile_edit', 'app_account_profile_photo', 'app_account_profile_photo_remove', 'app_user_photo', 'api_v1_operation_identity.profile.update',
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Machines: the uptime monitor, the bank mail relay and calendar apps fetching a feed, on firewalls without a session.
         'app_health', 'app_inbound_mail', 'app_calendar_feed',

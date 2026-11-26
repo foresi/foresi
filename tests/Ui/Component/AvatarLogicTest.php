@@ -56,7 +56,7 @@ final class AvatarLogicTest extends TestCase
 
     public function testAnUnknownSizeNamesTheSizesThatExist(): void
     {
-        $this->expectExceptionObject(new \InvalidArgumentException('Unknown avatar size "xl", expected one of: sm, md, lg.'));
-        $this->avatar('Jana', 'xl')->classes();
+        $this->expectExceptionObject(new \InvalidArgumentException('Unknown avatar size "xxl", expected one of: sm, md, lg, xl.'));
+        $this->avatar('Jana', 'xxl')->classes();
     }
 }

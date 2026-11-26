@@ -5,5 +5,5 @@
 {%- else -%}
     <span aria-hidden="true" {{ attributes.defaults({class: avatar.classes, 'data-avatar': ''}) }}>
 {%- endif -%}
-    {%- if avatar.nobody %}{{ ux_icon('lucide:user', {class: avatar.iconClasses, 'aria-hidden': 'true'}) }}{% else %}{{ avatar.initials }}{% endif -%}
+    {%- if photo is not null %}<img src="{{ photo }}" alt="" class="size-full object-cover" data-avatar-photo>{% elseif avatar.nobody %}{{ ux_icon('lucide:user', {class: avatar.iconClasses, 'aria-hidden': 'true'}) }}{% else %}{{ avatar.initials }}{% endif -%}
 </span>

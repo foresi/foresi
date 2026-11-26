@@ -44,6 +44,7 @@ final class GuestApiTest extends WorkApiTestCase
         'foresi_search_projects',
         'foresi_search_tasks',
         'foresi_trash_task_comment',
+        'foresi_update_profile',
         'foresi_update_task',
         'foresi_update_task_comment',
         'foresi_whoami',

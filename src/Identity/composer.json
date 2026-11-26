@@ -57,7 +57,13 @@
             "kind": "core",
             "namespace": "Foresi\\Identity\\",
             "bundle": "Foresi\\Identity\\IdentityBundle",
-            "optional": []
+            "optional": [],
+            "scopes": [
+                {
+                    "resource": "profile",
+                    "guest": "write"
+                }
+            ]
         }
     }
 }

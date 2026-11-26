@@ -176,6 +176,7 @@ api_tokens:
     events: Události
     activities: Aktivity
     calendar: Kalendář
+    profile: Váš profil
     cashflow: Cash flow
     catalog: Katalog
     sales: Obchod
@@ -368,3 +369,34 @@ oauth:
     title: Aplikaci nelze připojit
     text: Požadavek aplikace není platný, a proto vás Foresi zpět do ní nepošle.
     back: Zpět do Foresi
+profile:
+  title: Profil
+  edit: Upravit profil
+  edit_title: Upravit profil
+  change_photo: Změnit fotku
+  photo_title: Profilová fotka
+  photo_preview: Náhled fotky v kruhu avataru
+  photo_zoom: Přiblížení
+  photo_drag: Tažením fotku posunete v kruhu.
+  remove_photo: Odebrat fotku
+  save: Uložit
+  save_photo: Uložit fotku
+  cancel: Zrušit
+  field:
+    name: Jméno
+    email: E-mail
+    email_note: Adresa, kterou se přihlašujete
+    language: Jazyk
+    photo: Fotka
+    photo_help: JPEG, PNG nebo WebP, nejvýš 5 MB
+  flash:
+    saved: Profil je uložený.
+    photo_saved: Fotka je uložená.
+    photo_removed: Fotka je odebraná.
+  error:
+    name_required: Zadejte své jméno.
+    name_too_long: Jméno má nejvýš 255 znaků.
+    unsupported_language: Vyberte jeden z jazyků.
+    photo_type: Vyberte obrázek JPEG, PNG nebo WebP.
+    photo_too_large: Fotka je moc velká. Může mít nejvýš 5 MB.
+    photo_dimensions: Fotka je moc velká. Může mít nejvýš 16 milionů pixelů.

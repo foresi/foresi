@@ -11,6 +11,7 @@ namespace Foresi\Identity\Infrastructure\Mcp;
 use Foresi\Identity\Application\InsufficientScope;
 use Foresi\Identity\Application\Query\CurrentApiIdentity;
 use Foresi\Identity\Domain\ApiScope;
+use Foresi\Identity\Infrastructure\Api\ProfileJson;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Contract\Mcp\ReadTool;
 use Foresi\Shared\Contract\Mcp\ToolOutput;
@@ -22,7 +23,7 @@ use Foresi\Shared\Contract\Mcp\ToolRefusal;
  */
 final readonly class WhoAmITool implements ReadTool
 {
-    public function __construct(private CurrentApiIdentity $identity)
+    public function __construct(private CurrentApiIdentity $identity, private ProfileJson $profile)
     {
     }
 
@@ -43,7 +44,7 @@ final readonly class WhoAmITool implements ReadTool
 
     public function description(): string
     {
-        return 'Returns the person this connection acts as, and the name, scopes and expiry of its API token.';
+        return 'Returns the person this connection acts as (id, e-mail, name, language and the address of their photo, which opens only signed in to Foresi), and the name, scopes and expiry of its API token.';
     }
 
     public function inputSchema(): array
@@ -62,7 +63,7 @@ final readonly class WhoAmITool implements ReadTool
 
         return new ToolOutput(
             [
-                'user' => ['id' => $identity->userId, 'email' => $identity->email],
+                'user' => $this->profile->of($identity->user),
                 'token' => [
                     'id' => $token->tokenId,
                     'name' => $token->tokenName,
