@@ -23,6 +23,8 @@ final readonly class BadConditionInput implements InboxActionInput
     public function __construct(
         #[Field('The id of the inbox item.', format: 'uuid')]
         public string $inboxItemId,
+        #[Field('Mark the item done after the action.')]
+        public bool $markDone = true,
     ) {
     }
 
@@ -33,7 +35,7 @@ final readonly class BadConditionInput implements InboxActionInput
 
     public function markDone(): bool
     {
-        return true;
+        return $this->markDone;
     }
 
     public function relatedRecords(): array

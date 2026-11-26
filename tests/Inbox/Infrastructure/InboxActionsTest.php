@@ -19,6 +19,7 @@ use Foresi\Inbox\Application\InboxActions;
 use Foresi\Inbox\Application\InboxPurpose;
 use Foresi\Inbox\Application\RecordOutputs;
 use Foresi\Inbox\Contract\InboxAction;
+use Foresi\Inbox\Contract\InboxActionCondition;
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemOutput;
 use Foresi\Inbox\Infrastructure\DependencyInjection\InboxActionPass;
@@ -29,11 +30,15 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
+use Foresi\Tests\Inbox\Fixtures\Action\FixtureContactNoteHandler;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteInput;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
+use Foresi\Tests\Inbox\Fixtures\Action\HasMatchedContact;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\BadConditionInput;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\NoItemIdHandler;
+use Foresi\Tests\Inbox\Fixtures\BrokenAction\NoMarkDoneInput;
 use Foresi\Tests\Inbox\Fixtures\BrokenAction\NotAnActionInput;
+use Foresi\Tests\Inbox\Fixtures\BrokenAction\WrongPathInput;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Psr\Clock\ClockInterface;
@@ -73,14 +78,19 @@ final class InboxActionsTest extends ApiTestCase
         $container = new ContainerBuilder();
         $container->setDefinition(NoItemIdHandler::class, new Definition(NoItemIdHandler::class))->addTag(OperationHandler::TAG);
 
-        $this->expectExceptionObject(new \LogicException('The inbox action Foresi\Tests\Inbox\Fixtures\BrokenAction\NoItemIdInput must have the field inboxItemId.'));
+        $this->expectExceptionObject(new \LogicException('The inbox action Foresi\Tests\Inbox\Fixtures\BrokenAction\NoItemIdInput must have the field inboxItemId, a string.'));
 
         new InboxActionPass()->process($container);
     }
 
     public function testAnActionMustTakeTheInputContractAndAConditionThatIsOne(): void
     {
-        foreach ([NotAnActionInput::class => 'must implement Foresi\Inbox\Contract\InboxActionInput.', BadConditionInput::class => 'The condition stdClass of the inbox action'] as $input => $message) {
+        foreach ([
+            NotAnActionInput::class => 'must implement Foresi\Inbox\Contract\InboxActionInput.',
+            WrongPathInput::class => 'must name {inboxItemId}.',
+            NoMarkDoneInput::class => 'must have the field markDone, a bool.',
+            BadConditionInput::class => 'The condition stdClass of the inbox action',
+        ] as $input => $message) {
             try {
                 InboxActionPass::check($input);
                 self::fail(\sprintf('%s passed.', $input));
@@ -89,6 +99,22 @@ final class InboxActionsTest extends ApiTestCase
             }
         }
         InboxActionPass::check(FixtureNoteInput::class);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testAConditionThatIsNoServiceBreaksTheBuild(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setDefinition(FixtureContactNoteHandler::class, new Definition(FixtureContactNoteHandler::class))->addTag(OperationHandler::TAG);
+        try {
+            new InboxActionPass()->process($container);
+            self::fail('The build passed.');
+        } catch (\LogicException $refused) {
+            self::assertStringContainsString('is no service; register it as one.', $refused->getMessage());
+        }
+
+        $container->setDefinition(HasMatchedContact::class, new Definition(HasMatchedContact::class))->addTag(InboxActionCondition::TAG);
+        new InboxActionPass()->process($container);
         $this->addToAssertionCount(1);
     }
 
@@ -110,7 +136,7 @@ final class InboxActionsTest extends ApiTestCase
         $schema = $note['input_schema'];
         self::assertIsArray($schema);
         self::assertIsArray($schema['properties']);
-        self::assertSame(['inbox_item_id', 'text', 'note_kind', 'fail', 'mark_done'], array_keys($schema['properties']));
+        self::assertSame(['inbox_item_id', 'text', 'note_kind', 'fail', 'mark_done', 'fail_recording'], array_keys($schema['properties']));
 
         $call = $this->tool($this->agent, 'foresi_get_inbox_item', ['item_id' => $itemId]);
         self::assertSame($actions, $this->in($call, 'structuredContent', 'data', 'available_actions'));
@@ -241,6 +267,56 @@ final class InboxActionsTest extends ApiTestCase
         self::assertSame([$itemId], $this->em()->getConnection()->fetchFirstColumn('SELECT id FROM inbox_item WHERE email_activity_id = ?', [$activityId]));
     }
 
+    public function testAFailureWhileRecordingRollsBackTheOutputKeepsTheRecordAndSaysSo(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/fixture-notes', ['text' => 'A note', 'fail_recording' => true]);
+        self::assertResponseStatusCodeSame(201, 'The note was made and committed.');
+        $call = $this->tool($this->agent, 'foresi_add_fixture_note_from_email', ['inbox_item_id' => $itemId, 'text' => 'Another note', 'fail_recording' => true]);
+        self::assertFalse($this->in($call, 'isError'));
+        $text = $this->in($call, 'content', 0, 'text');
+        self::assertIsString($text);
+        self::assertStringContainsString('Made the note. '.RecordOutputs::NOT_LINKED, $text);
+
+        self::assertSame(['A note', 'Another note'], array_values($this->notes()->made), 'Both records survive.');
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['new', [], null], [$this->at('data', 'state'), $this->outputs(), $this->at('data', 'email_activity_id')], 'The output and the e-mail activity were rolled back.');
+        self::assertSame([], $this->eventData('inbox.item.linked'));
+
+        // The next action on the same kernel records as usual.
+        $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/fixture-notes', ['text' => 'A third note']);
+        self::assertResponseStatusCodeSame(201);
+        $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
+        self::assertSame('done', $this->at('data', 'state'));
+        self::assertCount(1, $this->outputs());
+    }
+
+    public function testASecondActionExtendsTheActivityOfTheFirstThoughItReadTheItemBefore(): void
+    {
+        $itemId = $this->receive(InboxMail::plain($this->address));
+        $this->signInAsOwner();
+        $attribute = InboxActions::attributeOf(FixtureNoteInput::class);
+        self::assertInstanceOf(InboxAction::class, $attribute);
+        $outputs = self::getContainer()->get(RecordOutputs::class);
+        $connection = $this->em()->getConnection();
+
+        self::assertTrue($outputs->record($attribute, new FixtureNoteInput($itemId, 'First', markDone: false), new OperationOutput(['id' => $this->notes()->make('First')], 'Made the note.')));
+        $first = $connection->fetchOne('SELECT email_activity_id FROM inbox_item WHERE id = ?', [$itemId]);
+        self::assertIsString($first);
+        // This request read the item before the other one made the activity, as two parallel actions do.
+        $connection->executeStatement('UPDATE inbox_item SET email_activity_id = NULL WHERE id = ?', [$itemId]);
+        $this->em()->clear();
+        self::assertNull(new DoctrineItemStore($this->em())->item($itemId)?->emailActivityId());
+        $connection->executeStatement('UPDATE inbox_item SET email_activity_id = ? WHERE id = ?', [$first, $itemId]);
+
+        self::assertTrue($outputs->record($attribute, new FixtureNoteInput($itemId, 'Second', markDone: false), new OperationOutput(['id' => $this->notes()->make('Second')], 'Made the note.')));
+
+        self::assertSame($first, $connection->fetchOne('SELECT email_activity_id FROM inbox_item WHERE id = ?', [$itemId]), 'The lock read the item again: one e-mail activity.');
+        self::assertCount(2, $this->storedOutputs($itemId));
+    }
+
     public function testTheActionRunsOverMcpThroughTheSameRunner(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));
@@ -258,7 +334,7 @@ final class InboxActionsTest extends ApiTestCase
     public function testARecordThatCannotBeAddedIsAnsweredFalseAndLeavesTheItemAsItWas(): void
     {
         $itemId = $this->receive(InboxMail::plain($this->address));
-        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($this->user->id(), $this->user->email(), 'hash'), 'main', ['ROLE_USER']));
+        $this->signInAsOwner();
         $attribute = InboxActions::attributeOf(FixtureNoteInput::class);
         self::assertInstanceOf(InboxAction::class, $attribute);
         $outputs = self::getContainer()->get(RecordOutputs::class);
@@ -270,6 +346,11 @@ final class InboxActionsTest extends ApiTestCase
         self::assertTrue($outputs->record($attribute, $input, new OperationOutput(['id' => $noteId], 'Made the note.')));
         self::assertTrue($outputs->record($attribute, $input, new OperationOutput(['id' => $noteId], 'Made the note.')), 'The same record twice is one output.');
         self::assertSame([$noteId], $this->storedOutputs($itemId));
+    }
+
+    private function signInAsOwner(): void
+    {
+        self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken(new SecurityUser($this->user->id(), $this->user->email(), 'hash'), 'main', ['ROLE_USER']));
     }
 
     /**

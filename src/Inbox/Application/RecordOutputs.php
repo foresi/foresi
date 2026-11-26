@@ -42,12 +42,15 @@ use Psr\Log\LoggerInterface;
  * to record it is logged by ids alone and answered false, and the person links
  * it by hand.
  *
- * The REST and MCP runner calls before() and after(); a screen of a session
- * calls check() without the scope and record() itself.
+ * The REST and MCP runner calls before() and after(), and an answer whose
+ * record could not be added says so in its summary (NOT_LINKED). A screen of a
+ * session calls check() without the scope and record() itself.
  */
 final readonly class RecordOutputs implements OperationObserver
 {
     public const string READ_SCOPE = 'inbox:read';
+    /** What the answer of an action adds when its record could not be added to the item. */
+    public const string NOT_LINKED = 'The record was made but not linked to the inbox item; link it with foresi_link_inbox_item.';
 
     public function __construct(
         private InboxAccess $access,
@@ -75,16 +78,25 @@ final readonly class RecordOutputs implements OperationObserver
         }
     }
 
-    public function after(Operation $operation, object $input, OperationOutput $output): void
+    /**
+     * The handler's answer; one that says so in its summary when the record could not be added to the item.
+     */
+    public function after(Operation $operation, object $input, OperationOutput $output): OperationOutput
     {
         $action = InboxActions::attributeOf($input::class);
-        if ($action instanceof InboxAction && $input instanceof InboxActionInput) {
-            $this->record($action, $input, $output);
+        if (!$action instanceof InboxAction || !$input instanceof InboxActionInput || $this->record($action, $input, $output)) {
+            return $output;
         }
+
+        return new OperationOutput($output->data, $output->summary.' '.self::NOT_LINKED, $output->location);
     }
 
     /**
-     * Whether the action may run on its item; nothing to check for an input without an item.
+     * Whether the action may run on its item; nothing to check for an input
+     * without an item. The handler of an action checks nothing of the item, so
+     * a caller outside the runner, such as a screen of a session, must call
+     * this before the handler, with $checkScope false, and answer not_found as
+     * a 404; then record() after it.
      *
      * @param bool $checkScope whether the token must hold inbox:read, false for a session
      *
@@ -127,6 +139,8 @@ final readonly class RecordOutputs implements OperationObserver
             $userId = $this->access->me();
             $this->transaction->run(function () use ($action, $input, $itemId, $recordId, $userId): void {
                 $item = $this->access->own($itemId);
+                // One action after the other on an item, so that a second sees the e-mail activity of the first.
+                $this->store->lock($item);
                 $this->addOutput($item, $action->kind, $recordId, $userId);
                 foreach ($input->relatedRecords() as $related) {
                     $this->emailActivity->link($item, $related->kind, $related->id);

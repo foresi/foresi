@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Infrastructure\Doctrine;
 
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Domain\InboxItem;
@@ -169,6 +170,11 @@ final readonly class DoctrineItemStore implements ItemStore
             ->setParameter('time', $time->setTimezone(new \DateTimeZone('UTC')))
             ->getQuery()
             ->getResult();
+    }
+
+    public function lock(InboxItem $item): void
+    {
+        $this->em->refresh($item, LockMode::PESSIMISTIC_WRITE);
     }
 
     public function add(InboxItem|ItemOutput $record): void

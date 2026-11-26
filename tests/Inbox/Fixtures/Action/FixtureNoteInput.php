@@ -15,7 +15,8 @@ use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * The action of a module only the tests have: a note from an e-mail, a record
- * of a kind no ActivityTarget offers. It fails on demand.
+ * of a kind no ActivityTarget offers. It fails on demand, before the note is
+ * made (fail) or after it while Inbox records it (failRecording).
  */
 #[Operation(
     name: 'inbox.actions.fixture_note',
@@ -42,6 +43,8 @@ final readonly class FixtureNoteInput implements InboxActionInput
         public bool $fail = false,
         #[Field('Mark the item done after the note is made.')]
         public bool $markDone = true,
+        #[Field('Make the note, then fail while Inbox adds it to the item.')]
+        public bool $failRecording = false,
     ) {
     }
 
@@ -55,8 +58,15 @@ final readonly class FixtureNoteInput implements InboxActionInput
         return $this->markDone;
     }
 
+    /**
+     * @throws \RuntimeException when the test asks the recording to fail, after the output was added
+     */
     public function relatedRecords(): array
     {
+        if ($this->failRecording) {
+            throw new \RuntimeException('The recording failed, as the test asked.');
+        }
+
         return [];
     }
 }

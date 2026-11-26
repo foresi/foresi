@@ -24,6 +24,8 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  */
 final class InboxActions
 {
+    /** @var array<class-string, InboxAction|null> */
+    private static array $attributes = [];
     /** @var list<DeclaredAction>|null */
     private ?array $actions = null;
     /** @var array<string, InboxActionCondition>|null */
@@ -51,7 +53,12 @@ final class InboxActions
      */
     public static function attributeOf(string $input): ?InboxAction
     {
-        return (new \ReflectionClass($input)->getAttributes(InboxAction::class)[0] ?? null)?->newInstance();
+        // Every operation of every module asks (RecordOutputs), so each class is read once.
+        if (!\array_key_exists($input, self::$attributes)) {
+            self::$attributes[$input] = (new \ReflectionClass($input)->getAttributes(InboxAction::class)[0] ?? null)?->newInstance();
+        }
+
+        return self::$attributes[$input];
     }
 
     /**
