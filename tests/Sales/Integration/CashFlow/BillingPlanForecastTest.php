@@ -55,7 +55,7 @@ final class BillingPlanForecastTest extends CashFlowTestCase
         self::assertSame(['revenue' => 1_000_000], array_map(static fn (\Foresi\Shared\Domain\Money $money): int => $money->minor(), $forecast->undated->inflows));
         // Nothing of it in a period, a balance or the lowest point.
         self::assertSame([], $this->dealLines($forecast));
-        self::assertSame(5_000_000, self::last($forecast->periods)->closing->minor());
+        self::assertSame(5_000_000, $this->last($forecast->periods)->closing->minor());
         self::assertSame(5_000_000, $forecast->lowest->minor());
         // Nor in what other modules read, such as the taxes forecast.
         $read = self::getContainer()->get(ForecastReader::class)->read(new ForecastQuery(new \DateTimeImmutable('2026-11-17'), new \DateTimeImmutable('2027-11-16')));
@@ -64,11 +64,11 @@ final class BillingPlanForecastTest extends CashFlowTestCase
         // The page: a No date column after the last period, with its own total, and a tile.
         $screen = self::getContainer()->get(ForecastScreen::class);
         $table = $screen->table($forecast);
-        $last = self::last($table['columns']);
+        $last = $this->last($table['columns']);
         self::assertSame([ForecastScreen::UNDATED, true], [$last['key'], $last['undated']]);
         $in = array_values(array_filter($table['rows'], static fn (array $row): bool => 'total' === $row['kind']))[0];
-        self::assertStringContainsString('10', self::last($in['cells'])['text']);
-        self::assertNotNull(self::last($in['cells'])['href']);
+        self::assertStringContainsString('10', $this->last($in['cells'])['text']);
+        self::assertNotNull($this->last($in['cells'])['href']);
         $tiles = $screen->kpis($forecast);
         self::assertCount(5, $tiles);
         self::assertNotNull($tiles[4]['href'] ?? null);
@@ -77,8 +77,8 @@ final class BillingPlanForecastTest extends CashFlowTestCase
         self::assertNotNull($items['items'][0]['expected'], 'The item gets its day where it is planned.');
         // And the API.
         $json = CashFlowJson::forecast($forecast, $this->firm);
-        self::assertSame('deal', self::at($json, 'undated', 'items', 0, 'certainty'));
-        self::assertSame(1_000_000, self::at($json, 'undated', 'inflows', 'total', 'amount_minor'));
+        self::assertSame('deal', $this->at($json, 'undated', 'items', 0, 'certainty'));
+        self::assertSame(1_000_000, $this->at($json, 'undated', 'inflows', 'total', 'amount_minor'));
 
         // A day moves it into its period: invoiced on 1 December, paid 14 days later.
         $entry = self::getContainer()->get(DealReads::class)->deal($deal->id())->billingPlan->entries[0]->entry;
@@ -90,7 +90,7 @@ final class BillingPlanForecastTest extends CashFlowTestCase
             static fn (ForecastLine $line): array => [$line->countedOn->format('Y-m-d'), $line->amount->minor(), $line->flow->certainty, $line->flow->label],
             $this->dealLines($forecast),
         ));
-        self::assertSame(6_000_000, self::last($forecast->periods)->closing->minor());
+        self::assertSame(6_000_000, $this->last($forecast->periods)->closing->minor());
 
         // The certainty filter shows or hides it.
         self::assertSame([], $this->dealLines($this->forecast([FlowCertainty::Document])));
@@ -117,7 +117,7 @@ final class BillingPlanForecastTest extends CashFlowTestCase
      *
      * @return T
      */
-    private static function last(array $list): mixed
+    private function last(array $list): mixed
     {
         $last = end($list);
         self::assertNotFalse($last);
@@ -125,7 +125,7 @@ final class BillingPlanForecastTest extends CashFlowTestCase
         return $last;
     }
 
-    private static function at(mixed $data, string|int ...$path): mixed
+    private function at(mixed $data, string|int ...$path): mixed
     {
         foreach ($path as $key) {
             self::assertIsArray($data);
