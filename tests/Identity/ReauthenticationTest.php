@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Identity;
 
 use Foresi\Identity\Application\UserRepository;
-use Foresi\Identity\Domain\User;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
