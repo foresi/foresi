@@ -31,9 +31,9 @@ final readonly class ProjectRow
         public int $openTasks,
         public ?\DateTimeImmutable $nearestDue,
         public bool $archived,
-        public ProjectVisibility $visibility = ProjectVisibility::Organisation,
-        public int $overdueTasks = 0,
-        public int $unassignedTasks = 0,
+        public ProjectVisibility $visibility,
+        public int $overdueTasks,
+        public int $unassignedTasks,
     ) {
     }
 }

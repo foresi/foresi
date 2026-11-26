@@ -29,23 +29,30 @@ final readonly class ProjectOrder
      */
     public static function sorted(array $rows, string $sort, bool $descending): array
     {
-        $direction = $descending ? -1 : 1;
         $at = array_flip(array_map(static fn (ProjectRow $row): string => $row->id, $rows));
-        usort($rows, static function (ProjectRow $a, ProjectRow $b) use ($sort, $direction, $at): int {
+        usort($rows, static function (ProjectRow $a, ProjectRow $b) use ($sort, $descending, $at): int {
             if (self::DUE === $sort && (!$a->nearestDue instanceof \DateTimeImmutable) !== (!$b->nearestDue instanceof \DateTimeImmutable)) {
-                return $a->nearestDue instanceof \DateTimeImmutable ? -1 : 1;
+                return ($b->nearestDue instanceof \DateTimeImmutable) <=> ($a->nearestDue instanceof \DateTimeImmutable);
             }
-            $by = match ($sort) {
-                self::OPEN => $a->openTasks <=> $b->openTasks,
-                self::OVERDUE => $a->overdueTasks <=> $b->overdueTasks,
-                self::UNASSIGNED => $a->unassignedTasks <=> $b->unassignedTasks,
-                self::DUE => $a->nearestDue <=> $b->nearestDue,
-                default => 0,
-            };
+            [$first, $second] = $descending ? [$b, $a] : [$a, $b];
 
-            return 0 === $by ? $direction * ($at[$a->id] <=> $at[$b->id]) : $direction * $by;
+            return [self::key($first, $sort), $at[$first->id]] <=> [self::key($second, $sort), $at[$second->id]];
         });
 
         return $rows;
+    }
+
+    /**
+     * What a row is ordered by; null when the order is the name alone.
+     */
+    private static function key(ProjectRow $row, string $sort): int|\DateTimeImmutable|null
+    {
+        return match ($sort) {
+            self::OPEN => $row->openTasks,
+            self::OVERDUE => $row->overdueTasks,
+            self::UNASSIGNED => $row->unassignedTasks,
+            self::DUE => $row->nearestDue,
+            default => null,
+        };
     }
 }

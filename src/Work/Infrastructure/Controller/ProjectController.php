@@ -956,7 +956,7 @@ final class ProjectController extends AbstractController
     {
         $href = fn (string $view): ?string => $project->archived ? null : $this->generateUrl(TaskListController::ROUTE, [
             'view' => ListDefinition::ALL === $view ? null : $view,
-            WorkingFilter::PARAM => WorkingFilter::encode(($this->allTasks->list()->default($view)?->filter ?? new ViewFilter())->with(new Condition(TaskLists::PROJECT, 'is', $project->id))),
+            WorkingFilter::PARAM => WorkingFilter::encode(($this->allTasks->list()->default($view)->filter ?? new ViewFilter())->with(new Condition(TaskLists::PROJECT, 'is', $project->id))),
         ]);
 
         return ['openHref' => $href(ListDefinition::ALL), 'overdueHref' => $href(TaskLists::OVERDUE), 'unassignedHref' => $href(TaskLists::UNASSIGNED)];

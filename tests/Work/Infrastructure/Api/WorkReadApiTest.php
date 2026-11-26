@@ -196,17 +196,19 @@ final class WorkReadApiTest extends WorkApiTestCase
         $create($late, 'Mine', $me, '+1 day');
         $create($calm, 'Later', $me, '+3 days');
 
-        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'overdue_tasks', 'op' => 'gt', 'value' => 0]]])]);
-        self::assertResponseIsSuccessful();
-        self::assertSame([[$late->id(), 2, 1, 1, new \DateTimeImmutable('-2 days')->format('Y-m-d')]], array_map(static fn (array $project): array => [$project['id'], $project['open_tasks'], $project['overdue_tasks'], $project['unassigned_tasks'], $project['nearest_due_on']], $this->at('data')));
+        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'overdue_tasks', 'op' => 'gt', 'value' => 0]]], \JSON_THROW_ON_ERROR)]);
+        self::assertSame([$late->id()], $this->ids());
+        self::assertSame([2, 1, 1, new \DateTimeImmutable('-2 days')->format('Y-m-d')], [$this->at('data', 0, 'open_tasks'), $this->at('data', 0, 'overdue_tasks'), $this->at('data', 0, 'unassigned_tasks'), $this->at('data', 0, 'nearest_due_on')]);
 
         // A project with no task meets a condition that zero meets, newest first as every page.
         $found = $this->mcpTool('foresi_search_projects', ['filter' => ['conditions' => [['field' => 'unassigned_tasks', 'op' => 'eq', 'value' => 0]]]]);
         self::assertFalse($found['isError'] ?? false);
-        self::assertSame([$empty->id(), $calm->id()], array_column(self::in($found, 'structuredContent', 'data', 'items'), 'id'));
+        $items = self::in($found, 'structuredContent', 'data', 'items');
+        self::assertIsArray($items);
+        self::assertSame([$empty->id(), $calm->id()], array_column($items, 'id'));
         self::assertSame(0, self::in($found, 'structuredContent', 'data', 'items', 1, 'overdue_tasks'));
 
-        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'next_due', 'op' => 'is_empty']]])]);
+        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'next_due', 'op' => 'is_empty']]], \JSON_THROW_ON_ERROR)]);
         self::assertSame([$empty->id()], $this->ids());
     }
 
