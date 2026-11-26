@@ -70,6 +70,7 @@ final readonly class ManageTasks
         private Notifier $notifier,
         private EventRecorder $events,
         private CustomFieldWrites $customFields,
+        private TaskStars $stars,
     ) {
     }
 
@@ -478,6 +479,10 @@ final readonly class ManageTasks
         $this->updated($task, true, TaskUpdated::STATUS);
         if (!$finished && $status->type()->isFinished()) {
             $this->events->record(new TaskCompleted($task->id(), $task->project()->id()));
+            // A finished task leaves My priorities: the star goes, as Freelo's does when it is ticked.
+            foreach ($this->stars->onTask($task) as $star) {
+                $this->stars->remove($star);
+            }
         }
     }
 

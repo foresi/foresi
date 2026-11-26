@@ -81,6 +81,7 @@ use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskStar;
 use Foresi\Work\Domain\TaskWatcher;
 use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
@@ -372,8 +373,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $project = $task->project();
         $subtasks = array_values(array_filter($this->tasks->siblings($project, $task), $scope->seesTask(...)));
         $labels = $this->labelsOf([$task, ...$subtasks]);
+        $starred = $this->starredOf([$task, ...$subtasks]);
         $deletable = $this->trash->rule();
-        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, $scope, 0), $subtasks);
+        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, $scope, 0, starred: $starred), $subtasks);
         /** @var list<TaskWatcher> $watchers */
         $watchers = $this->entityManager
             ->createQuery('SELECT w, m, u FROM '.TaskWatcher::class.' w JOIN w.membership m JOIN m.user u WHERE w.task = :task ORDER BY u.displayName ASC, w.id ASC')
@@ -390,7 +392,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $parent = $task->parent();
 
         return new TaskDetail(
-            $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows),
+            $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows, $starred),
             $task->description(),
             $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
             $task->section()?->name(),
@@ -662,6 +664,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         if ('' !== $filter->sort) {
+            $parameters += new TaskListDql($this->taskLists->list(), $me, $this->clock->today())->meParameter();
+
             return $this->sortedSlice($where, $parameters, $seen, $filter->sort, $afterId, $limit);
         }
         if (null !== $afterId) {
@@ -724,7 +728,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $where .= " AND (LOWER(t.title) LIKE :tl_text ESCAPE '!' OR LOWER(p.name) LIKE :tl_text ESCAPE '!')";
             $parameters['tl_text'] = ['%'.$this->like(mb_strtolower($text)).'%', null];
         }
-        $parameters += $dql->dueParameters();
+        $parameters += $dql->dueParameters() + $dql->meParameter();
         $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         [$hidden, $order] = $this->ordered([...TaskListDql::groupOrder($search->group), ...TaskListDql::order(TaskLists::sort($search->sort, TaskLists::DEFAULT_SORT))]);
         $query = $seen->apply($this->entityManager
@@ -1081,20 +1085,21 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private function tree(array $tasks): array
     {
         $labels = $this->labelsOf($tasks);
+        $starred = $this->starredOf($tasks);
         $deletable = $this->trash->rule();
         $scope = $this->visibility->scope();
         $children = [];
         foreach ($tasks as $task) {
             $parent = $task->parent();
             if ($parent instanceof Task) {
-                $children[$parent->id()][] = $this->row($task, $labels, $deletable, $scope, 0);
+                $children[$parent->id()][] = $this->row($task, $labels, $deletable, $scope, 0, starred: $starred);
             }
         }
         $rows = [];
         foreach ($tasks as $task) {
             if (!$task->isSubtask()) {
                 $subtasks = $children[$task->id()] ?? [];
-                $rows[] = $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtasks);
+                $rows[] = $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtasks, $starred);
             }
         }
 
@@ -1120,19 +1125,20 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ->getArrayResult();
         $subtasks = array_column($counts, 'subtasks', 'parent');
         $labels = $this->labelsOf($tasks);
+        $starred = $this->starredOf($tasks);
 
         $deletable = $this->trash->rule();
         $scope = $this->visibility->scope();
 
         if (!$wide) {
-            return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+            return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0), starred: $starred), $tasks);
         }
         // The estimate and the time sit in the time block of a task, which a guest never sees.
         $manage = $this->visibility->canManage();
         $logged = $manage ? $this->logged($tasks) : [];
 
-        return array_map(function (Task $task) use ($labels, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
-            $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0));
+        return array_map(function (Task $task) use ($labels, $starred, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
+            $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0), starred: $starred);
             $client = $task->project()->client();
 
             return new TaskRow(
@@ -1145,6 +1151,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 $task->createdAt(),
                 $task->updatedAt(),
                 $task->parent()?->title(),
+                $row->starred,
             );
         }, $tasks);
     }
@@ -1171,8 +1178,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
      * @param array<string, list<LabelBadge>> $labels    by task id
      * @param \Closure(string): bool          $deletable whether the person may delete a task, by who created it
      * @param list<TaskRow>                   $subtasks
+     * @param array<string, true>             $starred   the tasks the person starred, by id
      */
-    private function row(Task $task, array $labels, \Closure $deletable, WorkScope $scope, int $subtaskCount, array $subtasks = []): TaskRow
+    private function row(Task $task, array $labels, \Closure $deletable, WorkScope $scope, int $subtaskCount, array $subtasks = [], array $starred = []): TaskRow
     {
         $status = $task->status();
         $responsible = $task->responsible();
@@ -1198,7 +1206,31 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $deletable($task->createdBy()),
             $task->isPrivate(),
             $scope->seesProject($task->project()),
+            starred: isset($starred[$task->id()]),
         );
+    }
+
+    /**
+     * The tasks the person looking starred for My priorities, of those given.
+     *
+     * @param list<Task> $tasks
+     *
+     * @return array<string, true> by task id
+     */
+    private function starredOf(array $tasks): array
+    {
+        $me = $this->me();
+        if (!$me instanceof Membership || [] === $tasks) {
+            return [];
+        }
+        /** @var list<array{task: string}> $rows */
+        $rows = $this->entityManager
+            ->createQuery('SELECT IDENTITY(st.task) AS task FROM '.TaskStar::class.' st WHERE st.membership = :me AND st.task IN (:tasks)')
+            ->setParameter('me', $me->id())
+            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
+            ->getScalarResult();
+
+        return array_fill_keys(array_column($rows, 'task'), true);
     }
 
     /**

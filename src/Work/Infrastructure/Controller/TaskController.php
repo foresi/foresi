@@ -34,6 +34,7 @@ use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageLabels;
 use Foresi\Work\Application\ManageNotifications;
 use Foresi\Work\Application\ManageTasks;
+use Foresi\Work\Application\ManageTaskStars;
 use Foresi\Work\Application\MentionCandidate;
 use Foresi\Work\Application\TaskDetail;
 use Foresi\Work\Application\TaskHistoryEntry;
@@ -132,6 +133,7 @@ final class TaskController extends AbstractController
         private readonly Fields $fields,
         private readonly VisibleFields $visibleFields,
         private readonly TaskPageSlots $pageSlots,
+        private readonly ManageTaskStars $stars,
     ) {
     }
 
@@ -461,6 +463,46 @@ final class TaskController extends AbstractController
                 $this->tasks->unwatch($id, $me);
             }
         });
+    }
+
+    /**
+     * The person puts the task on My priorities, at its end (plan 37.2).
+     */
+    #[OpenToGuest]
+    #[Route('/tasks/{id}/star', name: 'app_task_star', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function star(string $id, Request $request): RedirectResponse
+    {
+        return $this->save($id, $request, fn () => $this->stars->star($id));
+    }
+
+    #[OpenToGuest]
+    #[Route('/tasks/{id}/unstar', name: 'app_task_unstar', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function unstar(string $id, Request $request): RedirectResponse
+    {
+        return $this->save($id, $request, fn () => $this->stars->unstar($id));
+    }
+
+    /**
+     * A starred task moves before another of My priorities, or to its end: a row dropped by
+     * its grip (JSON) or Move up and Move down of its menu (a form).
+     */
+    #[OpenToGuest]
+    #[Route('/tasks/{id}/star/move', name: 'app_task_star_move', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function moveStar(string $id, Request $request): Response
+    {
+        $before = $request->request->getString('beforeTaskId');
+        $change = fn () => $this->stars->move($id, '' === $before ? null : $before);
+        if (!\in_array('application/json', $request->getAcceptableContentTypes(), true)) {
+            return $this->save($id, $request, $change);
+        }
+        $this->checkToken($request);
+        try {
+            $change();
+        } catch (WorkRefused $refused) {
+            return $this->json(['error' => $this->translator->trans('work.refused.'.$refused->reason)], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
     }
 
     /**

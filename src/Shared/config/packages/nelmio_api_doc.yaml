@@ -525,7 +525,7 @@ nelmio_api_doc:
                         colour: { type: string, enum: [gray, green, amber, red] }
                 Task:
                     type: object
-                    required: [id, title, project, section_id, parent_id, status, responsible, due_on, priority, labels, subtask_count, done, private, url, custom_fields]
+                    required: [id, title, project, section_id, parent_id, status, responsible, due_on, priority, labels, subtask_count, done, private, starred, url, custom_fields]
                     properties:
                         custom_fields: { $ref: '#/components/schemas/TaskCustomFields' }
                         id: { type: string, format: uuid }
@@ -546,7 +546,14 @@ nelmio_api_doc:
                         subtask_count: { type: integer }
                         done: { type: boolean, description: 'Its status is of type done or closed.' }
                         private: { type: boolean, description: 'Only the people it is shared with see it.' }
+                        starred: { type: boolean, description: 'The person of the token starred it for My priorities; nobody else sees whose star it is.' }
                         url: { type: string, format: uri, description: 'The page of the task, for a person to open.' }
+                StarredTaskOrder:
+                    type: object
+                    description: My priorities in their new order.
+                    required: [task_ids]
+                    properties:
+                        task_ids: { type: array, items: { type: string, format: uuid } }
                 TaskDetail:
                     allOf:
                         - $ref: '#/components/schemas/Task'

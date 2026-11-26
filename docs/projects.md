@@ -83,7 +83,7 @@ Under the task, **Discussion and history** is one timeline, oldest first: every 
 
 ## Tasks across projects
 
-**Work, Tasks** is the first item of the Work area: every task you see in the active projects, subtasks among them, in one list, so you see and file the work of the firm without opening a project. It opens on **Mine**, the tasks you are responsible for, grouped by when they are due and by priority within each group. The other views it ships are **All open**, **Overdue**, **Unassigned**, **High and urgent** and **No due date**; a finished task is left out unless a condition asks about the status type, and a task of an archived project is left out always.
+**Work, Tasks** is the first item of the Work area: every task you see in the active projects, subtasks among them, in one list, so you see and file the work of the firm without opening a project. It opens on **Mine**, the tasks you are responsible for, grouped by when they are due and by priority within each group. The other views it ships are **All open**, **My priorities**, **Overdue**, **Unassigned**, **High and urgent** and **No due date**; a finished task is left out unless a condition asks about the status type, and a task of an archived project is left out always.
 
 The filter sheet narrows the list by the project, the client, the person responsible (you, nobody or someone), how a task is yours (responsible or watching), the status type (open, active, done, closed: the statuses are per project, their types the same everywhere), the priority, the labels, when it is due (overdue, today, the next 7 days, no date, or a date), who created it, when it was created and when it last changed. A task changes when one of its fields or labels does; a comment or time logged does not change it.
 
@@ -92,6 +92,12 @@ The column headers sort the list: by the title, the project, the due date (the u
 The filters, the sort, the grouping, the columns and the quick filters are kept with a view: **Save** keeps them in the view you changed, **Save as new view** makes your own, private or shared, as on every list. There is no board across projects yet: the statuses differ from project to project, and a task dropped in a column of a status type would have no single status to take.
 
 **New task** stands in the header of Tasks, My tasks, the projects and the time week, and opens a dialog: the title and the project are required, the projects you last added a task to come first, and you find one by its name or its client's. The project is the one the page or the list's filter names, or the one you last added a task to. Who is responsible, the due date, the priority and the labels are optional. The task goes in no section, or in the first section you see of a project not open to you. A project's own page keeps its own **New task**, which also asks for the section.
+
+## My priorities
+
+**My priorities** is your own shortlist of the tasks you mean to work on, in the order you choose. The star in a row of any task list, or **Add to My priorities** in the header of a task, puts a task on it, at its end; pressing the star again, or **Remove from My priorities**, takes it off. Only you see your stars: nobody else sees whose star a task has, and the task's history does not record it.
+
+A task keeps its star whoever becomes responsible for it and whenever it falls due, also when it is someone else's. It leaves the list when it is finished, and does not come back if it is reopened; a task in the trash, of an archived project or one you no longer see is out of the list while it is so. Drag a row by its grip to put it elsewhere, or use **Move up** and **Move down** in its menu. The order can be changed while the list shows My priorities in your order, ungrouped and not searched. Your own views can filter by **Starred** and sort by your order too. Over the API and MCP, the same tasks are `starred`, and the star, its removal and the order have their own calls (see [API](api.md) and [MCP](mcp.md)).
 
 ## My tasks
 

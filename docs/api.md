@@ -294,17 +294,20 @@ Query parameters of `GET /api/v1/tasks`:
 | `priority` | Priorities, comma separated, such as `high,urgent`: a task of any of them. |
 | `label_id` | Label ids, comma separated: a task with any of these labels. |
 | `client_id` | Only the tasks of the projects of this client. |
+| `starred` | `true` for the tasks the token's person starred for My priorities, `false` for the others. |
 | `created_from`, `created_to` | Only the tasks created on or after, on or before a day, `YYYY-MM-DD`. |
 | `updated_from`, `updated_to` | Only the tasks last changed on or after, on or before a day. A task changes when one of its fields or labels does; its comments and time do not change it. |
 | `status_type` | `open`, `active`, `done` or `closed`. |
 | `finished` | `true` for tasks in a status of type `done` or `closed`, `false` for the others. |
 | `due` | `overdue` (before today and not finished), `today`, `next_7_days` (today and the seven days after) or `none`. |
-| `view` | A saved view of the list `work.tasks`, such as `work.tasks.mine`, `work.tasks.overdue`, `work.tasks.unassigned`, `work.tasks.high` or `work.tasks.no_due`, or of `work.my_tasks`, such as `work.my_tasks.watching`. A view of `work.tasks` leaves out the finished tasks unless it asks about the status type, as the list does on the screen. Needs `views:read` too. |
+| `view` | A saved view of the list `work.tasks`, such as `work.tasks.mine`, `work.tasks.priorities`, `work.tasks.overdue`, `work.tasks.unassigned`, `work.tasks.high` or `work.tasks.no_due`, or of `work.my_tasks`, such as `work.my_tasks.watching`. A view of `work.tasks` leaves out the finished tasks unless it asks about the status type, as the list does on the screen. Needs `views:read` too. |
 | `filter` | Conditions as JSON in the format of [Saved views](#saved-views), checked against the list of the view, `work.tasks` without one. `work.tasks` has every field of `work.my_tasks` too. |
-| `sort` | `due` (the undated last), `priority`, `created`, `updated`, `project` or `title`; a minus first for backwards, such as `-priority`. Ties go by due date, then the highest priority. Without it, the newest first. The cursor of a sorted list goes on after the task it names. |
+| `sort` | `due` (the undated last), `priority`, `created`, `updated`, `project`, `title` or `my_order` (the order of My priorities, the unstarred last); a minus first for backwards, such as `-priority`. Ties go by due date, then the highest priority. Without it, the newest first. The cursor of a sorted list goes on after the task it names. |
 | `limit`, `cursor` | Paging, as above. |
 
 "My tasks" in an instance is `GET /api/v1/tasks?view=work.tasks.mine&sort=due`, or `GET /api/v1/tasks?assignee=me&finished=false`.
+
+My priorities, the person's own shortlist (see [projects](projects.md)), is `GET /api/v1/tasks?starred=true&sort=my_order`; each task says `starred` for the token's person, and nobody else sees whose star it is. `PUT /api/v1/tasks/{id}/star` stars a task, at the end or before `before_task_id`, `DELETE /api/v1/tasks/{id}/star` takes the star off, and `POST /api/v1/tasks/starred/reorder` with `task_ids`, every task of the shortlist once, puts them in a new order. A finished task leaves the shortlist, so starring one is refused `409 star_finished`.
 
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 

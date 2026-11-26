@@ -291,6 +291,7 @@ ui:
   empty_value: Nezadáno
   table:
     caption: Tabulka
+    order: Pořadí
     select_all: Vybrat všechny řádky
     select_row: 'Vybrat řádek {label}'
     actions: Akce

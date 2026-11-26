@@ -318,6 +318,22 @@ final class DataTableTest extends KernelTestCase
         return (string) $this->renderTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => $this->rows(), 'caption' => 'Contacts'], null, $blocks);
     }
 
+    public function testAColumnOfTogglesIsNarrowAndNamedToAScreenReaderAlone(): void
+    {
+        $star = ['toggle' => ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star', 'pressed' => true]];
+        $crawler = new Crawler($this->render([
+            'columns' => [['key' => 'name', 'label' => 'Name'], ['key' => 'star', 'label' => 'Starred']],
+            'rows' => [['id' => 'a1', 'cells' => ['name' => 'Write the brief', 'star' => $star]]],
+        ]));
+
+        $header = $crawler->filter('thead th')->eq(1);
+        self::assertSame('Starred', trim($header->filter('.sr-only')->text()));
+        self::assertStringContainsString('w-10', (string) $header->attr('class'));
+        self::assertSame('true', $crawler->filter('tbody td')->eq(1)->filter('button')->attr('aria-pressed'));
+        // A column of text keeps its visible heading.
+        self::assertCount(0, $crawler->filter('thead th')->eq(0)->filter('.sr-only'));
+    }
+
     public function testWithoutWidthsTheTableHasNoColgroup(): void
     {
         self::assertCount(0, new Crawler($this->render())->filter('colgroup'));

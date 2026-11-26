@@ -309,6 +309,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/tasks/{taskId}/comments' => ['get' => '200', 'post' => '201'],
                 '/api/v1/tasks/{taskId}/trash' => ['post' => '200'],
                 '/api/v1/tasks/{taskId}/restore' => ['post' => '200'],
+                '/api/v1/tasks/{taskId}/star' => ['put' => '200', 'delete' => '200'],
+                '/api/v1/tasks/starred/reorder' => ['post' => '200'],
                 '/api/v1/task-comments/{commentId}' => ['patch' => '200'],
                 '/api/v1/task-comments/{commentId}/trash' => ['post' => '200'],
                 '/api/v1/labels' => ['get' => '200'],

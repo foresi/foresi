@@ -34,7 +34,8 @@ use Foresi\Work\Domain\StatusType;
  * project's list. All holds no condition, as every list's All, so it is "All open"; Mine is
  * where a person lands, as Asana's My Tasks and Linear's My Issues are the personal home.
  * Overdue, Unassigned, High and urgent and No due date are Freelo's prebuilt filters and
- * Basecamp's Unassigned work.
+ * Basecamp's Unassigned work. My priorities holds the tasks the person starred, in the
+ * order they put them (plan 37.2, Freelo's "My priorities"); a star is the person's own.
  *
  * What a view groups by and how it sorts are kept with it; a shipped view that keeps
  * neither shows its own (groupOf, sortOf): Mine by when it is due, the rest ungrouped.
@@ -56,6 +57,8 @@ final class TaskLists implements ListDefinitionSource
     public const string CREATED_BY = 'created_by';
     public const string CREATED = 'created';
     public const string UPDATED = 'updated';
+    /** Whether the person looking starred the task for My priorities (plan 37.2). */
+    public const string STARRED = 'starred';
 
     /** A person value that stands for the person looking, whoever that is. */
     public const string ME = 'me';
@@ -72,6 +75,7 @@ final class TaskLists implements ListDefinitionSource
     public const string UNASSIGNED = 'unassigned';
     public const string HIGH = 'high';
     public const string NO_DUE = 'no_due';
+    public const string PRIORITIES = 'priorities';
 
     /** What the list groups by, kept in a view's display as group_by. */
     public const string GROUP_NONE = 'none';
@@ -90,7 +94,9 @@ final class TaskLists implements ListDefinitionSource
     public const string SORT_UPDATED = 'updated';
     public const string SORT_PROJECT = 'project';
     public const string SORT_TITLE = 'title';
-    public const array SORTS = [self::SORT_DUE, self::SORT_PRIORITY, self::SORT_CREATED, self::SORT_UPDATED, self::SORT_PROJECT, self::SORT_TITLE];
+    /** The order the person gave their starred tasks; the tasks with no star of theirs last. */
+    public const string SORT_MY_ORDER = 'my_order';
+    public const array SORTS = [self::SORT_DUE, self::SORT_PRIORITY, self::SORT_CREATED, self::SORT_UPDATED, self::SORT_PROJECT, self::SORT_TITLE, self::SORT_MY_ORDER];
     /** The list's own order: by when the task is due, the undated last, then the highest priority. */
     public const string DEFAULT_SORT = self::SORT_DUE;
 
@@ -138,7 +144,11 @@ final class TaskLists implements ListDefinitionSource
      */
     public static function sortOf(?string $slug): string
     {
-        return self::MINE === $slug ? '-'.self::SORT_PRIORITY : self::DEFAULT_SORT;
+        return match ($slug) {
+            self::MINE => '-'.self::SORT_PRIORITY,
+            self::PRIORITIES => self::SORT_MY_ORDER,
+            default => self::DEFAULT_SORT,
+        };
     }
 
     /**
@@ -176,6 +186,7 @@ final class TaskLists implements ListDefinitionSource
             $person(self::CREATED_BY, 'work.tasks.field.created_by'),
             new Field(self::CREATED, FieldType::Date, 'work.tasks.field.created'),
             new Field(self::UPDATED, FieldType::Date, 'work.tasks.field.updated'),
+            new Field(self::STARRED, FieldType::Boolean, 'work.tasks.field.starred'),
         ];
     }
 
@@ -199,10 +210,11 @@ final class TaskLists implements ListDefinitionSource
         return [
             new DefaultView(ListDefinition::ALL, 'work.tasks.tab.all', showCount: false, position: 0),
             new DefaultView(self::MINE, 'work.tasks.tab.mine', ViewFilter::all(new Condition(self::RESPONSIBLE, 'is', self::ME)), showCount: false, position: 1),
-            new DefaultView(self::OVERDUE, 'work.tasks.tab.overdue', ViewFilter::all(new Condition(self::DUE, 'is', DueBucket::Overdue->value)), showCount: false, position: 2),
-            new DefaultView(self::UNASSIGNED, 'work.tasks.tab.unassigned', ViewFilter::all(new Condition(self::RESPONSIBLE, 'is_empty')), showCount: false, position: 3),
-            new DefaultView(self::HIGH, 'work.tasks.tab.high', ViewFilter::all(new Condition(self::PRIORITY, 'is_any_of', [Priority::High->value, Priority::Urgent->value])), showCount: false, position: 4),
-            new DefaultView(self::NO_DUE, 'work.tasks.tab.no_due', ViewFilter::all(new Condition(self::DUE, 'is', DueBucket::None->value)), showCount: false, position: 5),
+            new DefaultView(self::PRIORITIES, 'work.tasks.tab.priorities', ViewFilter::all(new Condition(self::STARRED, 'is', true)), showCount: false, position: 2),
+            new DefaultView(self::OVERDUE, 'work.tasks.tab.overdue', ViewFilter::all(new Condition(self::DUE, 'is', DueBucket::Overdue->value)), showCount: false, position: 3),
+            new DefaultView(self::UNASSIGNED, 'work.tasks.tab.unassigned', ViewFilter::all(new Condition(self::RESPONSIBLE, 'is_empty')), showCount: false, position: 4),
+            new DefaultView(self::HIGH, 'work.tasks.tab.high', ViewFilter::all(new Condition(self::PRIORITY, 'is_any_of', [Priority::High->value, Priority::Urgent->value])), showCount: false, position: 5),
+            new DefaultView(self::NO_DUE, 'work.tasks.tab.no_due', ViewFilter::all(new Condition(self::DUE, 'is', DueBucket::None->value)), showCount: false, position: 6),
         ];
     }
 }

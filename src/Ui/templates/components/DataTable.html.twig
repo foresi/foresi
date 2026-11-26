@@ -27,6 +27,7 @@
     actions column, or an empty last column when there is none, takes the room the others leave.
 #}
 {% set resizable = this.resizable %}
+{% set toggleColumns = this.toggleColumns %}
 {% set fixed = this.fixed %}
 {% set filler = resizable and not this.hasActions %}
 {# A header is named by its label alone, never by its grip's label as well. #}
@@ -35,7 +36,7 @@
 {# A table in an overlay (a record in the sheet) asks with confirm-submit: its host posts the form itself, so data-turbo-confirm would never ask. #}
 {% macro confirm(confirm) %}{% if confirm %}{% if confirm.overlay %} data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ confirm.title }}"{% else %} data-turbo-confirm="{{ confirm.title }}"{% endif %}{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 {# A click anywhere on a row follows its first cell's link (row-link); the link stays the one way in for a keyboard. #}
-<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}{{ resizable ? ' column-resize' : '' }}"{% if resizable %} data-column-resize-max-value="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" data-column-resize-reserve-value="{{ (selectable ? 48 : 0) + (this.hasActions ? 48 : 0) }}" data-column-resize-param-value="{{ this.widthsParam }}"{% endif %} data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
+<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}{{ resizable ? ' column-resize' : '' }}"{% if resizable %} data-column-resize-max-value="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" data-column-resize-reserve-value="{{ (selectable ? 48 : 0) + (reorder ? 40 : 0) + (this.hasActions ? 48 : 0) }}" data-column-resize-param-value="{{ this.widthsParam }}"{% endif %} data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
     {% if this.rowViews is empty %}
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
     {% else %}
@@ -53,6 +54,7 @@
                     {% if this.hasWidths or resizable %}
                         <colgroup>
                             {%- if selectable %}<col class="w-12">{% endif -%}
+                            {%- if reorder %}<col class="w-10">{% endif -%}
                             {%- for column in this.columnViews -%}
                                 <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}"{% if resizable %} data-column-resize-target="col"{% endif %}>
                             {%- endfor -%}
@@ -68,19 +70,24 @@
                                     </label>
                                 </th>
                             {% endif %}
+                            {% if reorder %}
+                                <th scope="col" class="h-row w-10 border-b border-divider bg-head px-2"><span class="sr-only">{{ 'ui.table.order'|trans }}</span></th>
+                            {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
+                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head {{ column.key in toggleColumns ? 'w-10 px-2' : 'px-4' }} text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
                                     {%- if column.sortable -%}
                                         <a href="{{ column.href }}"{% if headerId %} id="{{ headerId }}-{{ loop.index }}"{% endif %} class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
                                             {{- ux_icon('lucide:' ~ (column.sort ? 'chevron-down' : 'chevrons-up-down'), {class: 'size-3.5 shrink-0' ~ (column.sort == 'asc' ? ' rotate-180' : ''), 'aria-hidden': 'true'}) -}}
                                         </a>
+                                    {%- elseif column.key in toggleColumns -%}
+                                        <span{% if headerId %} id="{{ headerId }}-{{ loop.index }}"{% endif %} class="sr-only">{{ column.label }}</span>
                                     {%- elseif headerId -%}
                                         <span id="{{ headerId }}-{{ loop.index }}">{{ column.label }}</span>
                                     {%- else -%}
                                         {{- column.label -}}
                                     {%- endif -%}
-                                    {%- if resizable -%}
+                                    {%- if resizable and column.key not in toggleColumns -%}
                                         <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden after:absolute after:inset-y-3 after:right-0 after:w-px after:bg-divider after:transition-colors hover:after:inset-y-0 hover:after:bg-control-line focus-visible:after:bg-transparent data-[resizing]:after:bg-transparent"></span>
                                     {%- endif -%}
                                 </th>
@@ -92,7 +99,7 @@
                             {% endif %}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody{% if reorder %} class="[&>.row-ghost]:opacity-40 [&>.row-chosen]:bg-green-tint [&>.row-drag]:bg-white [&>.row-drag]:shadow-floating" data-controller="row-reorder" data-row-reorder-url-value="{{ reorder.url }}" data-row-reorder-token-value="{{ reorder.token }}"{% endif %}>
                         {% for row in this.rowViews %}
                             <tr data-table-selection-target="row" data-id="{{ row.id }}"{% if row.selected %} data-selected="true"{% endif %} class="group scroll-mb-24{{ row.href ? ' cursor-pointer' : '' }}{{ row.child ? ' text-small' : '' }}"{% if row.child %} data-row-child{% endif %}>
                                 {% if selectable %}
@@ -102,11 +109,26 @@
                                         </label>
                                     </td>
                                 {% endif %}
+                                {% if reorder %}
+                                    {# The grip is for a pointer; Move up and Move down in the row's menu do the same with one tap or a key (WCAG 2.5.7). #}
+                                    <td class="{{ rowHeight }} w-10 border-b border-divider px-2 group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame">
+                                        <span class="inline-grid size-6 cursor-grab touch-none place-items-center text-muted hover:text-ink" title="{{ reorder.label }}" data-row-reorder-handle aria-hidden="true">{{ ux_icon('lucide:grip-vertical', {class: 'size-4'}) }}</span>
+                                    </td>
+                                {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}{{ cell.edit ? ' ' ~ this.editInset : '' }}">
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider {{ cell.toggle ? 'px-2' : 'px-4' }} text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}{{ cell.edit ? ' ' ~ this.editInset : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
-                                        {%- if cell.edit -%}
+                                        {%- if cell.toggle -%}
+                                            {#- One press switches it, as GitHub's and Gmail's stars: a toggle button that says its state (WAI-ARIA APG Button, aria-pressed). -#}
+                                            <form method="post" action="{{ cell.toggle.action }}" class="inline-flex" data-cell-toggle>
+                                                <input type="hidden" name="_token" value="{{ cell.toggle.token }}">
+                                                {% for name, value in cell.toggle.fields %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                                                <button type="submit" aria-pressed="{{ cell.toggle.pressed ? 'true' : 'false' }}" aria-label="{{ cell.toggle.label }}" title="{{ cell.toggle.label }}" class="inline-grid size-8 place-items-center rounded-control max-shell:-m-1.5 max-shell:size-touch {{ cell.toggle.pressed ? 'text-badge-amber-text' : 'text-muted hover:text-ink' }} hover:bg-head {{ focus }}">
+                                                    {{- ux_icon('lucide:' ~ cell.toggle.icon, {class: 'size-4' ~ (cell.toggle.pressed ? ' [&_path]:fill-current' : ''), 'aria-hidden': 'true'}) -}}
+                                                </button>
+                                            </form>
+                                        {%- elseif cell.edit -%}
                                             {{ component('Ui:InlineEdit', cell.edit|merge({id: 'edit-' ~ row.id ~ '-' ~ cell.key, text: cell.edit.kind|default('menu') == 'person' ? null : cell.text, tone: cell.tone})) }}
                                         {%- elseif cell.links -%}
                                             {#- Each record the row refers to is a chip of its own that opens it, apart from the row's link (Atlassian Tag: interactive metadata). -#}
@@ -188,6 +210,7 @@
                                 {% set edge = loop.first ? ' border-t border-divider' : '' %}
                                 <tr>
                                     {% if selectable %}<td class="h-row bg-head px-4{{ edge }}"></td>{% endif %}
+                                    {% if reorder %}<td class="h-row bg-head px-2{{ edge }}"></td>{% endif %}
                                     {% for cell in cells %}
                                         <td class="num h-row whitespace-nowrap bg-head px-4 font-semibold text-ink{{ edge }} {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}">
                                             {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}

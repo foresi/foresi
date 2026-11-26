@@ -45,6 +45,7 @@ final readonly class ProjectTaskColumns implements DataSource
 
         return [
             new Attribute('title', $label('title'), AttributeType::Text, static fn (TaskRow $task): string => $task->title, defaultVisible: true, defaultPosition: 10, cell: $this->title(...), locked: true, truncate: true, filterable: true, filter: 't.title'),
+            new Attribute('starred', $label('starred'), AttributeType::Boolean, static fn (TaskRow $task): bool => $task->starred, defaultVisible: true, defaultPosition: 15, cell: $this->star(...), phone: false),
             new Attribute('status', $label('status'), AttributeType::Text, static fn (TaskRow $task): string => $task->statusName, defaultVisible: true, defaultPosition: 20, cell: $this->status(...)),
             new Attribute('responsible', $label('responsible'), AttributeType::Reference, static fn (TaskRow $task): ?string => $task->responsibleName, defaultVisible: true, defaultPosition: 30, cell: $this->responsible(...), phone: false, truncate: true),
             new Attribute('due', $label('due_on'), AttributeType::Date, static fn (TaskRow $task): ?\DateTimeImmutable => $task->dueOn, defaultVisible: true, defaultPosition: 40, cell: $this->dueCell(...), phone: false),
@@ -125,6 +126,16 @@ final readonly class ProjectTaskColumns implements DataSource
         ];
 
         return TaskEdits::cell($person, $this->edits($context)?->responsible($task));
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     *
+     * @return array<string, mixed>|null
+     */
+    private function star(TaskRow $task, array $context): ?array
+    {
+        return $this->edits($context)?->star($task);
     }
 
     /**

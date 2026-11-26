@@ -12,6 +12,7 @@ use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
@@ -40,6 +41,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -57,6 +59,8 @@ final class TaskListController extends AbstractController
     public const int PAGE = 100;
     private const int MAX_SEARCH = 100;
     private const int MAX_LOOKUP = 20;
+    /** A task id the route takes, for the address the drop of a row fills in. */
+    private const string ID = '00000000-0000-7000-8000-000000000000';
 
     public function __construct(
         private readonly WorkQueries $queries,
@@ -71,6 +75,7 @@ final class TaskListController extends AbstractController
         private readonly FilterSheet $filterSheet,
         private readonly WorkVisibility $visibility,
         private readonly People $people,
+        private readonly CsrfTokenManagerInterface $tokens,
     ) {
     }
 
@@ -100,6 +105,11 @@ final class TaskListController extends AbstractController
         $pages = max(1, (int) ceil($index->total / self::PAGE));
         $edits = $this->edits->for($index->rows, $request->getRequestUri());
         $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, TaskLists::sortOf($view->slug), $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
+        $reorder = $this->reorderable($shown, $sort, $group, $text, $pages);
+        $groups = $this->groups($index->rows, $index->groups, $group, $working, $edits);
+        if ($reorder) {
+            $groups = $this->withMoves($groups, $request->getRequestUri());
+        }
 
         return $this->render('@Work/tasks/index.html.twig', [
             'view' => $view->key,
@@ -114,8 +124,10 @@ final class TaskListController extends AbstractController
             'picker' => $this->picker($working, $query, $group, $view),
             'workingQuery' => $working->query,
             'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->key]),
-            'groups' => $this->groups($index->rows, $index->groups, $group, $working, $edits),
+            'groups' => $groups,
             'grouped' => TaskLists::GROUP_NONE !== $group,
+            'reorder' => $reorder ? ['url' => str_replace(self::ID, '__id__', $this->generateUrl('app_task_star_move', ['id' => self::ID])), 'token' => $this->tokens->getToken(TaskController::TOKEN)->getValue(), 'label' => $this->translator->trans('work.tasks.reorder.drag')] : null,
+            'actionToken' => $reorder ? $this->tokens->getToken(TaskController::TOKEN)->getValue() : null,
             'total' => $index->total,
             'page' => min($page, $pages),
             'pages' => $pages,
@@ -223,6 +235,50 @@ final class TaskListController extends AbstractController
     }
 
     /**
+     * Whether the rows are put in order by hand: My priorities, or a view of starred tasks,
+     * in the person's order, ungrouped, on one page and not searched, so what is dragged is
+     * the whole list (plan 37.2).
+     */
+    private function reorderable(ViewFilter $shown, string $sort, string $group, string $text, int $pages): bool
+    {
+        $starred = array_filter($shown->conditions, static fn (Condition $condition): bool => TaskLists::STARRED === $condition->field && 'is' === $condition->op && true === $condition->value);
+
+        return [] !== $starred && TaskLists::SORT_MY_ORDER === $sort && TaskLists::GROUP_NONE === $group && '' === $text && 1 === $pages;
+    }
+
+    /**
+     * Move up and Move down on each row of My priorities: before the row above, or before
+     * the row after the next one (the end for the one before last).
+     *
+     * @param list<array<string, mixed>> $groups
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function withMoves(array $groups, string $return): array
+    {
+        foreach ($groups as $at => $group) {
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $group['rows'];
+            $ids = array_map(static fn (array $row): string => \is_string($row['id'] ?? null) ? $row['id'] : '', $rows);
+            foreach ($rows as $index => $row) {
+                $href = $this->generateUrl('app_task_star_move', ['id' => $ids[$index]]);
+                $move = fn (string $label, string $before): array => ['label' => $this->translator->trans($label), 'href' => $href, 'method' => 'POST', 'fields' => ['beforeTaskId' => $before, 'return' => $return]];
+                $actions = [];
+                if ($index > 0) {
+                    $actions[] = $move('work.tasks.reorder.up', $ids[$index - 1]);
+                }
+                if ($index < \count($rows) - 1) {
+                    $actions[] = $move('work.tasks.reorder.down', $ids[$index + 2] ?? '');
+                }
+                $rows[$index]['actions'] = $actions;
+            }
+            $groups[$at]['rows'] = $rows;
+        }
+
+        return $groups;
+    }
+
+    /**
      * The empty state a view says: a shipped view as it ships, one changed or a person's own
      * that nothing matches.
      */
@@ -232,7 +288,7 @@ final class TaskListController extends AbstractController
             return 'filtered';
         }
 
-        return \in_array($view->slug, [ListDefinition::ALL, TaskLists::MINE, TaskLists::OVERDUE, TaskLists::UNASSIGNED, TaskLists::HIGH, TaskLists::NO_DUE], true) ? $view->slug : 'filtered';
+        return \in_array($view->slug, [ListDefinition::ALL, TaskLists::MINE, TaskLists::PRIORITIES, TaskLists::OVERDUE, TaskLists::UNASSIGNED, TaskLists::HIGH, TaskLists::NO_DUE], true) ? $view->slug : 'filtered';
     }
 
     /**

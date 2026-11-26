@@ -55,6 +55,7 @@ final readonly class TaskColumns implements DataSource
 
         return [
             new Attribute('title', $label('title'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->title, sort: 't.title', defaultVisible: true, defaultPosition: 10, cell: static fn (MyTaskLine $line): string => $line->task->title, locked: true, truncate: true),
+            new Attribute('starred', $label('starred'), AttributeType::Boolean, static fn (MyTaskLine $line): bool => $line->task->starred, defaultVisible: true, defaultPosition: 15, cell: static fn (MyTaskLine $line): ?array => $line->edits->star($line->task), phone: false),
             new Attribute('project', $label('project'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->projectName, sort: 'p.name', defaultVisible: true, defaultPosition: 20, cell: $this->project(...), phone: false, truncate: true),
             new Attribute('client', 'work.tasks.field.client', AttributeType::Text, static fn (MyTaskLine $line): ?string => $line->task->clientName, defaultVisible: true, defaultPosition: 25, phone: false, wide: true, truncate: true),
             new Attribute('status', $label('status'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->statusName, defaultVisible: true, defaultPosition: 30, cell: static fn (MyTaskLine $line): mixed => TaskEdits::cell(['text' => $line->task->statusName, 'tone' => self::STATUS_TONES[$line->task->statusType->value]], $line->edits->status($line->task))),

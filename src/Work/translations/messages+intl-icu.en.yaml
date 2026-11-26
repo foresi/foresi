@@ -28,6 +28,7 @@ work:
   task:
     field:
       title: Title
+      starred: Star
       description: Description
       section: Section
       status: Status
@@ -50,6 +51,8 @@ work:
     create: Add task
     added: 'The task “{title}” is added.'
     new_subtask: New subtask
+    star: Add to My priorities
+    unstar: Remove from My priorities
     create_subtask: Add subtask
     subtask_added: 'The subtask “{title}” is added.'
     details: Details
@@ -115,6 +118,8 @@ work:
     budget_note: A note can have at most 500 characters.
     budget_counting: Choose all time or billable time only.
     source_not_on_project: The source must be an activity of this project.
+    star_finished: A finished task leaves My priorities, so it cannot be starred.
+    star_order: Put every task of My priorities in the new order, each once.
   time:
     title: Time
     log: Log time
@@ -703,6 +708,7 @@ work:
       unassigned: Unassigned
       high: High and urgent
       no_due: No due date
+      priorities: My priorities
     field:
       client: Client
       status_type: Status type
@@ -711,6 +717,7 @@ work:
       created: Created
       updated: Updated
       logged: Logged
+      starred: Starred
     group_by:
       none: No grouping
       client: Client
@@ -719,6 +726,10 @@ work:
       priority: Priority
       status_type: Status type
       due: Due date
+    reorder:
+      drag: Drag to change the order
+      up: Move up
+      down: Move down
     group:
       no_client: No client
       no_responsible: Unassigned
@@ -735,6 +746,8 @@ work:
       high_text: Unfinished tasks of high or urgent priority show here.
       no_due_title: Every task has a due date
       no_due_text: Unfinished tasks with no due date show here.
+      priorities_title: No priorities yet
+      priorities_text: Star the tasks you want to work on and drag them into your order. Only you see your stars.
       filtered_title: Nothing matches
       filtered: No task matches these conditions.
       reset: Reset the view

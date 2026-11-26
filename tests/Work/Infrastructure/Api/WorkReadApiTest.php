@@ -46,6 +46,7 @@ final class WorkReadApiTest extends WorkApiTestCase
                 'subtask_count' => 0,
                 'done' => false,
                 'private' => false,
+                'starred' => false,
                 'url' => 'http://localhost/tasks/'.$id,
                 'custom_fields' => [],
             ]],

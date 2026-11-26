@@ -13,7 +13,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string, user: ?string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>, empty: ?string}
+ * @phpstan-type Cell array{key: string, align: string, numeric: bool, text: string, tone: ?string, title: ?string, link: ?string, opens: string, hint: ?string, phone: bool, wide: bool, truncate: bool, plain: bool, icon: ?string, iconClass: string, links: list<array{text: string, href: string, opens: string}>, avatar: ?array{name: string, seed: string, user: ?string}, badges: list<array{label: string, tone: string}>, flag: ?array{label: string, tone: string, icon: ?string}, edit: ?array<array-key, mixed>, empty: ?string, toggle: ?array{action: string, token: string, pressed: bool, label: string, icon: string, fields: array<string, string>}}
  * @phpstan-type Confirm array{title: string, text: ?string, accept: ?string, cancel: ?string, tone: ?string, overlay: bool}
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
@@ -63,6 +63,9 @@ final class DataTable
      *                                 confirm, icon (shown in the row, else in its menu), plain and fields (hidden values of
      *                                 a POST). A cell value with "edit" is changed in place: "edit" holds the props of a
      *                                 Ui:InlineEdit (but its id, text and tone, which the cell gives), the rest what it reads as.
+     *                                 A cell value with "toggle" is a button that switches something of the row on or off
+     *                                 with one POST, such as a star: its action, token, pressed, label (what a press does),
+     *                                 icon and optional fields (hidden values).
      */
     public array $rows = [];
 
@@ -97,6 +100,16 @@ final class DataTable
     public bool $resizable = false;
     /** The name a resizable table writes its widths to: widths, or reasons[widths] under a list slot (ListSlot). */
     public string $widthsParam = 'widths';
+
+    /**
+     * The rows are put in order by hand (My priorities): a grip before each row drags it to
+     * another place, as the board's cards and the views of the Settings sheet; the drop posts
+     * the row's id and the id of the row it lands before to the url, its __id__ the row's.
+     * The rows' Move up and Move down actions do the same without dragging (WCAG 2.5.7).
+     *
+     * @var array{url: string, token: string, label: string}|null
+     */
+    public ?array $reorder = null;
 
     /** The count of the footer, such as "12 invoices". */
     public ?string $count = null;
@@ -250,6 +263,28 @@ final class DataTable
             'width' => $this->width($column['width'] ?? null),
             'minWidth' => is_int($column['minWidth'] ?? null) && $column['minWidth'] > 0 ? $column['minWidth'] : self::MIN_WIDTH,
         ];
+    }
+
+    /**
+     * The keys of the columns whose every cell is a toggle, such as a star: a narrow column whose
+     * header names it to a screen reader alone, as a star column in Gmail or GitHub has no
+     * visible heading.
+     *
+     * @return list<string>
+     */
+    public function toggleColumns(): array
+    {
+        if ([] === $this->rowViews) {
+            return [];
+        }
+        $keys = [];
+        foreach ($this->columnViews as $index => $column) {
+            if (array_all($this->rowViews, static fn (array $row): bool => null !== ($row['cells'][$index]['toggle'] ?? null))) {
+                $keys[] = $column['key'];
+            }
+        }
+
+        return $keys;
     }
 
     /** Whether a column has a width, so the table sets the widths in a colgroup. */
@@ -455,6 +490,11 @@ final class DataTable
         $badges = [];
         $flag = null;
         $edit = null;
+        $toggle = null;
+        if (is_array($value) && isset($value['toggle'])) {
+            $toggle = $this->toggle($value['toggle']);
+            $value = null;
+        }
         if (is_array($value) && isset($value['edit'])) {
             // The value changed in place (Ui:InlineEdit): its props, and what it reads as without them.
             $edit = is_array($value['edit']) ? $value['edit'] : throw new \InvalidArgumentException('An edit of a cell must be the props of a Ui:InlineEdit.');
@@ -533,7 +573,32 @@ final class DataTable
             'flag' => $flag,
             'edit' => $edit,
             'empty' => $empty,
+            'toggle' => $toggle,
         ];
+    }
+
+    /**
+     * @return array{action: string, token: string, pressed: bool, label: string, icon: string, fields: array<string, string>}
+     */
+    private function toggle(mixed $toggle): array
+    {
+        if (!is_array($toggle) || !isset($toggle['action'], $toggle['token'], $toggle['label']) || !is_string($toggle['action']) || !is_string($toggle['token']) || !is_string($toggle['label'])) {
+            throw new \InvalidArgumentException('A toggle of a cell needs an action, a token and a label.');
+        }
+        Style::href($toggle['action']);
+        $icon = $toggle['icon'] ?? 'star';
+        if (!is_string($icon)) {
+            throw new \InvalidArgumentException('A toggle icon must be a string.');
+        }
+        Style::icon($icon);
+        $fields = [];
+        foreach (is_array($toggle['fields'] ?? null) ? $toggle['fields'] : [] as $name => $field) {
+            if (is_string($name) && is_string($field)) {
+                $fields[$name] = $field;
+            }
+        }
+
+        return ['action' => $toggle['action'], 'token' => $toggle['token'], 'pressed' => true === ($toggle['pressed'] ?? false), 'label' => $toggle['label'], 'icon' => $icon, 'fields' => $fields];
     }
 
     /**
