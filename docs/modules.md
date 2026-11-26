@@ -726,6 +726,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | `Operation\Operation`, `Operation\Field` (attributes) | — | A REST endpoint below `/api/v1` and an MCP write tool from one declaration, with the scope check, idempotency and the OpenAPI entry. |
 | `Operation\OperationHandler` | `foresi.shared.operation_handler` | Called with the validated input of its operation, over REST and MCP. |
 | `Operation\OperationOutput` | — | The data of the answer and the sentence an MCP client shows. |
+| `Operation\OperationObserver` (since 1.4) | `foresi.shared.operation_observer` | Told before and after every operation the runner runs, over REST and MCP; `before()` refuses with a `Refused` only, and `after()` may answer a longer summary. |
 | `Operation\Omitted` | — | A field that a partial update did not send. |
 | `Mcp\ReadTool` | `foresi.shared.mcp_read_tool` | A read-only MCP tool, listed to the tokens that hold its scope. |
 | `Mcp\WriteTool` | `foresi.shared.mcp_write_tool` | An MCP tool that changes data, for a write that no operation describes. |
@@ -791,6 +792,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
+| Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.4): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
 | Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
