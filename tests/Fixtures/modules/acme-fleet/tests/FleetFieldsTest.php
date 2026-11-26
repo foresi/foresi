@@ -52,13 +52,15 @@ final class FleetFieldsTest extends WebTestCase
             $definitions[$definition->key] = $definition;
         }
 
-        self::assertSame(['acme_fleet_industry', 'acme_fleet_contract_until', 'acme_fleet_account_code', 'acme_fleet_services'], array_keys($definitions));
+        self::assertSame(['acme_fleet_industry', 'acme_fleet_contract_until', 'acme_fleet_account_code', 'acme_fleet_services', 'acme_fleet_fleet_manager'], array_keys($definitions));
         self::assertSame(FieldKind::Select, $definitions['acme_fleet_industry']->kind);
         self::assertSame(['logistics', 'construction', 'retail'], array_keys($definitions['acme_fleet_industry']->options));
         self::assertSame('acme-fleet', $definitions['acme_fleet_industry']->module);
         self::assertTrue($definitions['acme_fleet_contract_until']->sortable);
         self::assertTrue($definitions['acme_fleet_account_code']->searchable);
         self::assertSame(FieldKind::MultiSelect, $definitions['acme_fleet_services']->kind);
+        self::assertSame(FieldKind::User, $definitions['acme_fleet_fleet_manager']->kind);
+        self::assertTrue($definitions['acme_fleet_fleet_manager']->filterable);
     }
 
     public function testAValueIsWrittenReadAndAuditedUnderTheContact(): void

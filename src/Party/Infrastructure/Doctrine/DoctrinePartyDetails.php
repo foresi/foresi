@@ -110,7 +110,7 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         }
 
         return array_map(
-            static fn (AuditEntry $entry): PartyHistoryEntry => new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes())),
+            static fn (AuditEntry $entry): PartyHistoryEntry => new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes()), $entry->entityClass()),
             $entries,
         );
     }

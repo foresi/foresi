@@ -34,6 +34,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Party\Infrastructure\Http\WebsiteLink;
 use Foresi\Party\Infrastructure\View\ContactViews;
+use Foresi\Shared\Application\Field\FieldProperties;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
@@ -101,6 +102,7 @@ final class PartyController extends AbstractController
         private readonly FilterSheet $filterSheet,
         private readonly ContactLists $contactLists,
         private readonly SlotRegistry $slots,
+        private readonly FieldProperties $fieldProperties,
     ) {
     }
 
@@ -665,6 +667,13 @@ final class PartyController extends AbstractController
                 // Embedded values (address.street, invoicingDefaults.currency) are reported as the embedded value.
                 $field = explode('.', $field)[0];
                 if (\in_array($field, self::QUIET_FIELDS, true)) {
+                    continue;
+                }
+                // A custom field of a module's extension of the contact (ADR 0045) by its label.
+                $custom = null === $entry->entityClass ? null : $this->fieldProperties->definitionOf($entry->entityClass, $field);
+                if ($custom instanceof \Foresi\Shared\Contract\Field\FieldDefinition) {
+                    $fields[$field] = $this->translator->trans($custom->label);
+
                     continue;
                 }
                 $key = 'party.field.'.$field;

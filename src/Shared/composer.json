@@ -61,7 +61,7 @@
         "zircote/swagger-php": "^7.5"
     },
     "provide": {
-        "foresi/module-api": "1.3.0"
+        "foresi/module-api": "1.4.0"
     },
     "autoload": {
         "psr-4": {

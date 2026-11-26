@@ -15,14 +15,19 @@ use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
  * A product changed. The payload is thin (ADR 0030): read the
- * product itself for its name and price.
+ * product itself for its name and price. It names the keys of the custom fields
+ * that changed (ADR 0045), never their values; empty when none did.
  */
 #[DomainEvent('catalog.product.updated', version: 1)]
 final readonly class ProductUpdated implements DomainEventPayload
 {
+    /**
+     * @param list<string> $customFields the keys of the custom fields that changed
+     */
     public function __construct(
         public string $productId,
         public BillingKind $billingKind,
+        public array $customFields = [],
     ) {
     }
 
