@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Ui\Component;
 
 use Foresi\Ui\Avatar as Initials;
+use Foresi\Ui\Contract\PersonPhotos;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -17,7 +18,9 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * such as the user id, always picks the same (Foresi\Ui\Avatar). A circle is a person and a
  * square is a project or a firm (Atlassian Avatar); the initials stand in for a photo
  * (Polaris Avatar). With "photo" the person's own picture fills the circle instead, cut to it
- * (object-cover), with an empty alt as the name is beside it or on the circle.
+ * (object-cover), with an empty alt as the name is beside it or on the circle. With "user", the
+ * id of the person who uses Foresi, the photo is theirs when they have one (PersonPhotos); a
+ * contact who is no user has no photo and keeps the initials.
  *
  * The name is usually written next to it, so the avatar is hidden from assistive tech; with
  * "labelled" it stands alone and is an image named by the full name. Without a name it is the
@@ -45,10 +48,19 @@ final class Avatar
     public bool $labelled = false;
     /** The address of the person's photo, shown in place of the initials; null for none. */
     public ?string $photo = null;
+    /** The id of the user the avatar shows, whose photo it takes when "photo" is not given. */
+    public ?string $user = null;
+
+    public function __construct(private readonly ?PersonPhotos $photos = null)
+    {
+    }
 
     #[PostMount]
     public function validate(): void
     {
+        if (null === $this->photo && null !== $this->user && '' !== $this->user && !$this->nobody()) {
+            $this->photo = $this->photos?->url($this->user);
+        }
         $this->classes();
     }
 

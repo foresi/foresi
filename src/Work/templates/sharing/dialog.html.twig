@@ -46,7 +46,7 @@
                 <ul class="m-0 grid list-none divide-y divide-divider p-0">
                     {% for person in people %}
                         <li class="flex min-w-0 items-center gap-2.5 py-1.5" data-sharing-person="{{ person.id }}">
-                            <twig:Ui:Avatar :name="person.name" :seed="person.seed" size="md" />
+                            <twig:Ui:Avatar :name="person.name" :seed="person.seed" :user="person.user" size="md" />
                             <span class="grid min-w-0 flex-1">
                                 <span class="truncate font-medium text-ink">{{ person.name }}</span>
                                 <span class="text-caption text-muted">{{ ('role.' ~ person.role)|trans }}</span>

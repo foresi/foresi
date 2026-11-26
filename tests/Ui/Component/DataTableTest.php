@@ -10,6 +10,7 @@ namespace Foresi\Tests\Ui\Component;
 
 use Foresi\Ui\Avatar;
 use Foresi\Ui\Component\DataTable;
+use Foresi\Ui\Contract\PersonPhotos;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -817,10 +818,29 @@ final class DataTableTest extends KernelTestCase
         self::assertContains(Avatar::tone('user-2'), Avatar::TONES);
     }
 
+    public function testAPersonCellOfAUserWithAPhotoShowsThePhoto(): void
+    {
+        self::getContainer()->set(PersonPhotos::class, new class implements PersonPhotos {
+            public function url(string $userId): ?string
+            {
+                return 'user-1' === $userId ? '/people/user-1/photo?v=1' : null;
+            }
+        });
+        $rows = [
+            ['id' => 'a1', 'cells' => ['name' => ['avatar' => 'user-1', 'user' => 'user-1', 'text' => 'Jana Example'], 'email' => null, 'balance' => '']],
+            ['id' => 'b2', 'cells' => ['name' => ['avatar' => 'user-2', 'user' => 'user-2', 'text' => 'Petr Example'], 'email' => null, 'balance' => '']],
+        ];
+
+        $cells = new Crawler($this->render(['rows' => $rows]))->filter('[data-avatar-cell]');
+
+        self::assertSame('/people/user-1/photo?v=1', $cells->eq(0)->filter('img[data-avatar-photo]')->attr('src'));
+        self::assertCount(0, $cells->eq(1)->filter('img'));
+    }
+
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAPersonCellNeedsANameAndASeed(): void
     {
-        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana'], ['avatar' => 'user-1', 'text' => 5], ['avatar' => 'user-1']] as $cell) {
+        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana'], ['avatar' => 'user-1', 'text' => 5], ['avatar' => 'user-1'], ['avatar' => 'user-1', 'user' => 5, 'text' => 'Jana']] as $cell) {
             try {
                 $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
                 self::fail('A person cell without a name or seed was accepted.');

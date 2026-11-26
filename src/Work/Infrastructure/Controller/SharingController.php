@@ -78,6 +78,7 @@ final class SharingController extends AbstractController
                 'id' => $person->membershipId,
                 'name' => $person->name,
                 'seed' => $person->userId,
+                'user' => $person->userId,
                 'role' => $person->role->value,
             ], $view->people),
             'candidates' => ['' => $this->translator->trans('work.sharing.choose')] + array_column(array_map(static fn (Choice $choice): array => [$choice->id, $choice->name], $view->candidates), 1, 0),

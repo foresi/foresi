@@ -21,11 +21,11 @@ final readonly class TaskEdits
     public const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
     /**
-     * @param array<string, list<array{value: string, label: string, tone: string}>> $statuses   by project id
-     * @param array<string, list<array{value: string, name: string, seed: string}>>  $people     who can be responsible, by task id
-     * @param array<string, string>                                                  $seeds      avatar seeds by membership id
-     * @param list<array{value: string, label: string}>                              $priorities
-     * @param array<string, string>                                                  $labels     the names of the properties and of their empty values
+     * @param array<string, list<array{value: string, label: string, tone: string}>>               $statuses   by project id
+     * @param array<string, list<array{value: string, name: string, seed: string, user: ?string}>> $people     who can be responsible, by task id
+     * @param array<string, string>                                                                $seeds      avatar seeds by membership id
+     * @param list<array{value: string, label: string}>                                            $priorities
+     * @param array<string, string>                                                                $labels     the names of the properties and of their empty values
      */
     public function __construct(
         private UrlGeneratorInterface $urls,
@@ -45,6 +45,14 @@ final readonly class TaskEdits
     public function seed(string $membershipId): string
     {
         return $this->seeds[$membershipId] ?? $membershipId;
+    }
+
+    /**
+     * The user id of a person, whose photo their avatar shows; null for someone who is no user any more.
+     */
+    public function user(string $membershipId): ?string
+    {
+        return $this->seeds[$membershipId] ?? null;
     }
 
     /**
@@ -89,7 +97,7 @@ final readonly class TaskEdits
         }
         // Someone no longer active stays shown as long as the task is theirs, as on the task page.
         if (null !== $task->responsibleId && !\in_array($task->responsibleId, array_column($people, 'value'), true)) {
-            $people[] = ['value' => $task->responsibleId, 'name' => $task->responsibleName ?? '', 'seed' => $this->seeds[$task->responsibleId] ?? $task->responsibleId];
+            $people[] = ['value' => $task->responsibleId, 'name' => $task->responsibleName ?? '', 'seed' => $this->seeds[$task->responsibleId] ?? $task->responsibleId, 'user' => $this->seeds[$task->responsibleId] ?? null];
         }
 
         return $this->props($task, 'person', 'app_task_responsible', 'responsible', $this->labels['responsible'], $task->responsibleId ?? '') + ['people' => $people, 'noneLabel' => $this->labels['nobody']];

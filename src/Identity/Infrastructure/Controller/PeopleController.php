@@ -353,7 +353,7 @@ final class PeopleController extends AbstractController
             'label' => $person->name,
             'secondary' => $person->email,
             'cells' => [
-                'name' => ['avatar' => $person->userId, 'text' => $person->name],
+                'name' => ['avatar' => $person->userId, 'user' => $person->userId, 'text' => $person->name],
                 'email' => $person->email,
                 'role' => ['text' => $this->translator->trans('role.'.$person->role->value), 'tone' => Role::Owner === $person->role ? 'green' : 'gray'],
                 'contact' => null === $person->contactId ? null : ['links' => [['text' => $person->contactName ?? '', 'href' => $this->generateUrl('app_contact_show', ['id' => $person->contactId])]]],

@@ -14,6 +14,7 @@ use Foresi\Identity\Contract\StaffCheck as StaffCheckContract;
 use Foresi\Identity\Infrastructure\Console\McpStdioSignIn;
 use Foresi\Identity\Infrastructure\Idempotency\DbalIdempotencyKeys;
 use Foresi\Identity\Infrastructure\Photo\FilesystemUserPhotos;
+use Foresi\Identity\Infrastructure\Photo\UserPhotoUrls;
 use Foresi\Identity\Infrastructure\Security\ApiTokenHandler;
 use Foresi\Identity\Infrastructure\Security\ApiTokenLogin;
 use Foresi\Identity\Infrastructure\Security\MembershipActorRole;
@@ -25,6 +26,7 @@ use Foresi\Shared\Application\Api\ApiClient;
 use Foresi\Shared\Application\Api\IdempotencyKeys;
 use Foresi\Shared\Application\Api\ScopeGuard;
 use Foresi\Shared\Infrastructure\Mcp\ToolCaller;
+use Foresi\Ui\Contract\PersonPhotos;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 
@@ -54,6 +56,8 @@ return static function (ContainerConfigurator $container): void {
     $container->parameters()->set('app.user_photo_dir', '%kernel.share_dir%/user-photos');
     $services->set(FilesystemUserPhotos::class)->arg('$root', param('app.user_photo_dir'));
     $services->alias(UserPhotos::class, FilesystemUserPhotos::class);
+    // Every Ui:Avatar given a user id shows their photo (Foresi\Ui\Contract\PersonPhotos).
+    $services->alias(PersonPhotos::class, UserPhotoUrls::class);
 
     // The mcp firewall also accepts the access tokens of OAuth clients (ADR 0036); the api firewall does not.
     $services->set('foresi.mcp_token_handler', ApiTokenHandler::class)->arg('$acceptsOAuth', true);
