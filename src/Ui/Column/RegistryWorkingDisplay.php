@@ -46,6 +46,7 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $baseGroup = $this->group($base->groupBy, $groups);
         $wantedGroup = $query[self::GROUP] ?? null;
         $wantedGroup = \is_string($wantedGroup) && \in_array($wantedGroup, $groups, true) ? $wantedGroup : null;
+        $wantedWidths = self::widths($query[self::WIDTHS] ?? null);
 
         if (null !== $keys) {
             // The column that names the row leads and never moves (the Settings sheet shows it so);
@@ -54,13 +55,11 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
             $keys = [...$locked, ...array_diff($keys, $locked)];
         }
         $payload = $saved;
-        if (null !== $keys || null !== $wanted || null !== $wantedGroup || null !== $wantedPins) {
-            $widths = [];
-            foreach ($base->columns as $column) {
-                $widths[$column->key()] = $column->width;
-            }
+        if (null !== $keys || null !== $wanted || null !== $wantedGroup || null !== $wantedPins || null !== $wantedWidths) {
+            // The widths asked replace the view's all at once: a column they leave out sizes to its content.
+            $widths = $wantedWidths ?? $this->widthsOf($base);
             $columns = null === $keys
-                ? array_map(static fn (ResolvedColumn $column): array => array_filter(['key' => $column->key(), 'width' => $column->width], static fn (mixed $value): bool => null !== $value), $base->columns)
+                ? array_map(static fn (ResolvedColumn $column): array => array_filter(['key' => $column->key(), 'width' => $widths[$column->key()] ?? null], static fn (mixed $value): bool => null !== $value), $base->columns)
                 : array_map(static fn (string $key): array => array_filter(['key' => $key, 'width' => $widths[$key] ?? null], static fn (mixed $value): bool => null !== $value), $keys);
             $group = $wantedGroup ?? $base->groupBy;
             $payload = ['columns' => $columns, 'density' => $wanted ?? $baseDensity] + (null === $group ? [] : ['group_by' => $group]) + (null === $pins ? [] : ['pinned' => $wantedPins ?? $basePins]);
@@ -72,7 +71,9 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $shownDensity = $display->density ?? $density;
         $shownGroup = $this->group($display->groupBy, $groups);
         $shownPins = $wantedPins ?? $basePins;
-        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity || $shownGroup !== $baseGroup || $shownPins !== $basePins;
+        $shownWidths = $this->widthsOf($display);
+        $widthsChanged = $shownWidths !== array_intersect_key($this->widthsOf($base), array_flip($display->keys()));
+        $modified = $display->keys() !== $base->keys() || $shownDensity !== $baseDensity || $shownGroup !== $baseGroup || $shownPins !== $basePins || $widthsChanged;
         if (!$modified) {
             return new WorkingState($base, $saved, $all, $baseDensity, false, [], $basePins);
         }
@@ -83,6 +84,7 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
             self::GROUP => $shownGroup === $baseGroup ? null : $shownGroup,
             // Empty pins none.
             self::PINNED => $shownPins === $basePins ? null : implode(',', $shownPins),
+            self::WIDTHS => $widthsChanged ? self::encodeWidths($shownWidths) : null,
         ], static fn (?string $value): bool => null !== $value);
 
         return new WorkingState($display, $payload, $all, $shownDensity, true, $kept, $shownPins);
@@ -114,6 +116,56 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         }
 
         return \array_slice($keys, 0, self::MAX_PINNED);
+    }
+
+    /**
+     * The widths a value names: key:px pairs, comma separated, each px a whole number from 1 to
+     * MAX_WIDTH (the registry raises one under a column's minimum to it); null when it names none,
+     * as an empty value does, which is the view's own.
+     *
+     * @return array<string, int>|null
+     */
+    public static function widths(mixed $value): ?array
+    {
+        if (!\is_string($value)) {
+            return null;
+        }
+        $widths = [];
+        foreach (explode(',', $value) as $pair) {
+            // A key, then a whole number of px from 1 to 9999; the first of a key counts.
+            if (1 === preg_match('/^\s*([^\s:]+)\s*:\s*([1-9]\d{0,3})\s*$/', $pair, $match) && !isset($widths[$match[1]])) {
+                $widths[$match[1]] = min((int) $match[2], self::MAX_WIDTH);
+            }
+        }
+
+        return [] === $widths ? null : $widths;
+    }
+
+    /**
+     * The widths as the address carries them.
+     *
+     * @param array<string, int> $widths
+     */
+    public static function encodeWidths(array $widths): string
+    {
+        return implode(',', array_map(static fn (string $key, int $px): string => $key.':'.$px, array_keys($widths), $widths));
+    }
+
+    /**
+     * The widths a display gives its columns, by key; a column sized to its content is left out.
+     *
+     * @return array<string, int>
+     */
+    private function widthsOf(ListDisplay $display): array
+    {
+        $widths = [];
+        foreach ($display->columns as $column) {
+            if (null !== $column->width) {
+                $widths[$column->key()] = $column->width;
+            }
+        }
+
+        return $widths;
     }
 
     /**

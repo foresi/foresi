@@ -29,13 +29,21 @@ final class RememberedDisplayTest extends TestCase
     {
         $query = $this->queryOf(['columns' => [['key' => 'name'], 'not a column', ['key' => 'email', 'width' => 200]], 'density' => 'dense', 'group_by' => 'kind', 'pinned' => ['city', 7, 'kind']], ['q' => 'example']);
 
-        self::assertSame(['cols' => 'name,email', 'density' => 'dense', 'group' => 'kind', 'pins' => 'city,kind', 'q' => 'example'], $query);
+        self::assertSame(['cols' => 'name,email', 'density' => 'dense', 'widths' => 'email:200', 'group' => 'kind', 'pins' => 'city,kind', 'q' => 'example'], $query);
     }
 
     public function testWhatTheDisplayLeavesOutIsTheViewsOwn(): void
     {
-        self::assertSame(['cols' => 'name', 'density' => ''], $this->queryOf(['columns' => [['key' => 'name']], 'pinned' => 'not a list', 'group_by' => 7]));
-        self::assertSame(['cols' => '', 'density' => '', 'pins' => ''], $this->queryOf(['pinned' => []]), 'A display that pins none pins none.');
+        self::assertSame(['cols' => 'name,kind', 'density' => '', 'widths' => ''], $this->queryOf(['columns' => [['key' => 'name'], ['key' => 'kind', 'width' => 0]], 'pinned' => 'not a list', 'group_by' => 7]), 'A width of no px is none.');
+        self::assertSame(['cols' => '', 'density' => '', 'widths' => '', 'pins' => ''], $this->queryOf(['pinned' => []]), 'A display that pins none pins none.');
+    }
+
+    public function testTheSettingsSheetsColumnsKeepTheWidthsDragged(): void
+    {
+        $remembered = ['columns' => [['key' => 'name', 'width' => 240], ['key' => 'email', 'width' => 180]]];
+
+        self::assertSame(['cols' => 'name,kind', 'density' => 'dense', 'widths' => 'name:240,email:180'], $this->queryOf($remembered, ['cols' => 'name,kind', 'density' => 'dense'], named: true));
+        self::assertSame(['density' => '', 'widths' => ''], $this->queryOf($remembered, ['density' => '', 'widths' => ''], named: true), 'Reset names the view\'s own widths.');
     }
 
     /**
@@ -43,10 +51,11 @@ final class RememberedDisplayTest extends TestCase
      *
      * @param array<string, mixed>  $remembered
      * @param array<string, string> $query
+     * @param bool                  $named      whether the address names a display, so a read may forget the one remembered
      *
      * @return array<array-key, mixed>
      */
-    private function queryOf(array $remembered, array $query = []): array
+    private function queryOf(array $remembered, array $query = [], bool $named = false): array
     {
         $working = new class implements WorkingDisplay {
             /** @var array<array-key, mixed> */
@@ -59,11 +68,11 @@ final class RememberedDisplayTest extends TestCase
                 return new WorkingState(new ListDisplay([]), null, [], $density, false, []);
             }
         };
-        $states = new readonly class($remembered) implements SavedViewUserStates {
+        $states = new readonly class($remembered, $named) implements SavedViewUserStates {
             /**
              * @param array<string, mixed> $remembered
              */
-            public function __construct(private array $remembered)
+            public function __construct(private array $remembered, private bool $named)
             {
             }
 
@@ -79,7 +88,9 @@ final class RememberedDisplayTest extends TestCase
 
             public function forget(string $viewId, string $userId): void
             {
-                throw new \LogicException('Nothing is forgotten from a read alone.');
+                if (!$this->named) {
+                    throw new \LogicException('Nothing is forgotten from a read alone.');
+                }
             }
         };
         $actor = self::createStub(ActorRole::class);

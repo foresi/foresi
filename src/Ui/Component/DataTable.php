@@ -18,7 +18,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * @phpstan-type Action array{label: string, href: string, method: string, confirm: ?Confirm, icon: ?string, plain: bool, dialog: bool, fields: array<string, string>}
  * @phpstan-type RowAlert array{text: string, column: string, href: ?string, action: ?string}
  * @phpstan-type RowView array{id: string, href: ?string, label: string, selected: bool, child: bool, unread: ?bool, cells: list<Cell>, actions: list<Action>, secondary: ?string, alert: ?RowAlert}
- * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool, width: ?int}
+ * @phpstan-type ColumnView array{key: string, label: string, align: string, sort: ?string, href: ?string, sortable: bool, phone: bool, wide: bool, truncate: bool, width: ?int, minWidth: int}
  */
 #[AsTwigComponent]
 final class DataTable
@@ -27,6 +27,10 @@ final class DataTable
     private const int TITLE_FROM_LENGTH = 24;
     private const array ALIGNS = ['left', 'right', 'center'];
     private const array ROW_HEIGHTS = ['list' => 'h-row-list', 'dense' => 'h-row'];
+    /** The narrowest a column is dragged to when it declares no minimum (Attribute::MIN_WIDTH). */
+    private const int MIN_WIDTH = 64;
+    /** The widest a column is dragged to (WorkingDisplay::MAX_WIDTH). */
+    public const int MAX_WIDTH = 1200;
     /**
      * The share of the room left by the other columns that each truncating column takes, by
      * how many there are. The browser scales the shares down to the room there is.
@@ -41,7 +45,7 @@ final class DataTable
      *                                 screen only, for one of low value) and truncate (true lets a column of long text give
      *                                 way, cut with an ellipsis and its full text in a title, so the table fits its frame;
      *                                 numbers, badges and the actions never give way) and width (px from the sm breakpoint
-     *                                 up; a phone keeps its own layout). A list declares its columns in a DataSource
+     *                                 up; a phone keeps its own layout) and minWidth (the narrowest it is dragged to). A list declares its columns in a DataSource
      *                                 provider and passes ListDisplay::table() here.
      */
     public array $columns = [];
@@ -83,6 +87,12 @@ final class DataTable
      * keep 44 px for a table read line by line, such as invoice lines or bank movements.
      */
     public string $density = 'list';
+
+    /**
+     * Whether a person drags the columns to the widths they want, from the sm breakpoint up: a list
+     * whose view keeps them (WorkingDisplay::WIDTHS), as Airtable, Notion and ABRA Flexi let one do.
+     */
+    public bool $resizable = false;
 
     /** The count of the footer, such as "12 invoices". */
     public ?string $count = null;
@@ -225,6 +235,7 @@ final class DataTable
             'wide' => true === ($column['wide'] ?? false),
             'truncate' => true === ($column['truncate'] ?? false),
             'width' => $this->width($column['width'] ?? null),
+            'minWidth' => is_int($column['minWidth'] ?? null) && $column['minWidth'] > 0 ? $column['minWidth'] : self::MIN_WIDTH,
         ];
     }
 
@@ -232,6 +243,27 @@ final class DataTable
     public function hasWidths(): bool
     {
         return array_any($this->columnViews, static fn (array $column): bool => null !== $column['width']);
+    }
+
+    /**
+     * Whether the table lays its columns out at their widths alone (table-layout: fixed): a
+     * resizable one whose every column has a width, as dragging one gives them all. Text then gives
+     * way to the width instead of the width to the text.
+     */
+    public function fixed(): bool
+    {
+        return $this->resizable && [] !== $this->columnViews && !array_any($this->columnViews, static fn (array $column): bool => null === $column['width']);
+    }
+
+    /**
+     * The width of a fixed table in px: its columns', the checkbox's and the room the actions
+     * need. It is never narrower than its frame.
+     */
+    public function fixedWidth(): int
+    {
+        $sum = array_sum(array_map(static fn (array $column): int => (int) $column['width'], $this->columnViews));
+
+        return $sum + ($this->selectable ? 48 : 0) + ($this->hasActions() ? 48 : 0);
     }
 
     private function width(mixed $width): ?int

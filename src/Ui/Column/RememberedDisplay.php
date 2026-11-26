@@ -19,7 +19,7 @@ use Foresi\Ui\Contract\WorkingState;
 
 /**
  * The working display of a view with what the person last used on it (spec D-display-3):
- * columns or a density they change are kept on the server for them alone, and come back
+ * columns, their widths or a density they change are kept on the server for them alone, and come back
  * when they open the view again without any in the address. The address wins when it
  * names any; naming the view's own (as Reset does with an empty cols=) forgets them.
  */
@@ -49,7 +49,12 @@ final readonly class RememberedDisplay
         if (null === $user) {
             return $this->display->read($columns, $context, $view->display, $query, $density, $groups, $pins);
         }
-        $remembered = $named || null === $view->id ? null : $this->states->display($view->id, $user);
+        $stored = null === $view->id ? null : $this->states->display($view->id, $user);
+        $remembered = $named ? null : $stored;
+        if ($named && null !== $stored && !\array_key_exists(WorkingDisplay::WIDTHS, $query)) {
+            // The Settings sheet sends the columns and the density, never the widths: the ones dragged stay.
+            $query += [WorkingDisplay::WIDTHS => $this->query($stored)[WorkingDisplay::WIDTHS]];
+        }
         $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $density, $groups, $pins);
         if ($named) {
             if ($working->modified) {
@@ -76,7 +81,7 @@ final readonly class RememberedDisplay
 
     /**
      * The address of a remembered display payload, which WorkingDisplay wrote: its
-     * columns in order, its density, what it groups by and the quick filters it pins.
+     * columns in order with their widths, its density, what it groups by and the quick filters it pins.
      *
      * @param array<array-key, mixed> $display
      *
@@ -85,9 +90,13 @@ final readonly class RememberedDisplay
     private function query(array $display): array
     {
         $keys = [];
+        $widths = [];
         foreach ((array) ($display['columns'] ?? []) as $column) {
             if (\is_array($column) && \is_string($column['key'] ?? null)) {
                 $keys[] = $column['key'];
+                if (\is_int($column['width'] ?? null) && $column['width'] > 0) {
+                    $widths[$column['key']] = $column['width'];
+                }
             }
         }
         $density = $display['density'] ?? null;
@@ -96,7 +105,8 @@ final readonly class RememberedDisplay
         // An empty density is the view's own.
         $pinned = $display['pinned'] ?? null;
 
-        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : '']
+        // Empty widths are the view's own.
+        return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::DENSITY => \is_string($density) ? $density : '', WorkingDisplay::WIDTHS => RegistryWorkingDisplay::encodeWidths($widths)]
             + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : [])
             + (\is_array($pinned) ? [WorkingDisplay::PINNED => implode(',', array_filter($pinned, \is_string(...)))] : []);
     }

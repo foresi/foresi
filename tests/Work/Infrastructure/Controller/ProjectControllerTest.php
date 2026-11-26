@@ -405,7 +405,7 @@ final class ProjectControllerTest extends WebTestCase
         self::assertSame(['Brief', 'Launch'], $this->titles($crawler));
         self::assertSame('All, unsaved changes', $this->tabs($crawler)[0]);
         self::assertStringContainsString('Responsible: empty', $crawler->filter('main')->text());
-        self::assertCount(1, $crawler->filter('[data-view-actions] [data-view-reset][href="/projects/'.$id.'?density="]'));
+        self::assertCount(1, $crawler->filter('[data-view-actions] [data-view-reset][href="/projects/'.$id.'?density=&widths="]'));
         $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Nobody\'s']));
         $crawler = $this->client->followRedirect();
         self::assertSame(['Brief', 'Launch'], $this->titles($crawler));

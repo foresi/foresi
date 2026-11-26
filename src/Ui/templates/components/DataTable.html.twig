@@ -12,27 +12,39 @@
     HIG, Buttons; WCAG 2.2 SC 2.5.8).
 #}
 {% set rowHeight = this.rowHeight %}
+{#
+    A resizable table (column-resize) has a grip on the right edge of each header from the sm
+    breakpoint up, a separator one drags, moves with the arrow keys or double-clicks to size the
+    column to its text again (WAI-ARIA APG Window Splitter; Excel, Google Sheets). Once every column
+    has a width the table lays them out at those widths alone, at least as wide as its frame: the
+    actions column, or an empty last column when there is none, takes the room the others leave.
+#}
+{% set resizable = this.resizable %}
+{% set fixed = this.fixed %}
+{% set filler = resizable and not this.hasActions %}
+{# A header is named by its label alone, never by its grip's label as well. #}
+{% set headerId = resizable ? 'th-' ~ random() : null %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {# A table in an overlay (a record in the sheet) asks with confirm-submit: its host posts the form itself, so data-turbo-confirm would never ask. #}
 {% macro confirm(confirm) %}{% if confirm %}{% if confirm.overlay %} data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ confirm.title }}"{% else %} data-turbo-confirm="{{ confirm.title }}"{% endif %}{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
 {# A click anywhere on a row follows its first cell's link (row-link); the link stays the one way in for a keyboard. #}
-<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}" data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
+<div {{ attributes.defaults({class: 'relative' ~ (selectable ? ' pb-24' : '')}) }} data-controller="row-link{{ selectable ? ' table-selection' : '' }}{{ resizable ? ' column-resize' : '' }}"{% if resizable %} data-column-resize-max-value="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" data-column-resize-reserve-value="{{ (selectable ? 48 : 0) + (this.hasActions ? 48 : 0) }}"{% endif %} data-action="click->row-link#click{{ selectable ? ' keydown->table-selection#keydown click->table-selection#rowClick' : '' }}">
     {% if this.rowViews is empty %}
         {% if emptySlot %}{{ emptySlot|raw }}{% else %}<twig:Ui:EmptyState />{% endif %}
     {% else %}
         <div class="overflow-hidden rounded-panel border border-container bg-white">
             {# relative: absolute screen-reader texts in the cells stay inside the scroll box instead of widening the page. #}
             <div class="relative overflow-x-auto">
-                <table class="w-full border-collapse">
+                <table class="w-full border-collapse{{ fixed ? ' sm:table-fixed sm:w-[max(100%,var(--table-w))]' : '' }}"{% if fixed %} style="--table-w: {{ this.fixedWidth }}px"{% endif %} data-column-resize-target="table">
                     <caption class="sr-only">{{ caption ?: 'ui.table.caption'|trans }}</caption>
                     {#- The widths a view gives its columns, from the sm breakpoint up; a column with none sizes to its content. A col leaves the table where its column does, so the rest keep their place. -#}
-                    {% if this.hasWidths %}
+                    {% if this.hasWidths or resizable %}
                         <colgroup>
                             {%- if selectable %}<col class="w-12">{% endif -%}
                             {%- for column in this.columnViews -%}
-                                <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}">
+                                <col{% if column.width %} style="--col-w: {{ column.width }}px"{% endif %} class="{{ column.width ? 'sm:w-(--col-w)' : '' }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}" data-column="{{ column.key }}"{% if resizable %} data-column-resize-target="col"{% endif %}>
                             {%- endfor -%}
-                            {%- if this.hasActions %}<col>{% endif -%}
+                            {%- if this.hasActions or filler %}<col>{% endif -%}
                         </colgroup>
                     {% endif %}
                     <thead>
@@ -45,19 +57,26 @@
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}">
+                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
                                     {%- if column.sortable -%}
-                                        <a href="{{ column.href }}" class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
+                                        <a href="{{ column.href }}"{% if headerId %} id="{{ headerId }}-{{ loop.index }}"{% endif %} class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
                                             {{- ux_icon('lucide:' ~ (column.sort ? 'chevron-down' : 'chevrons-up-down'), {class: 'size-3.5 shrink-0' ~ (column.sort == 'asc' ? ' rotate-180' : ''), 'aria-hidden': 'true'}) -}}
                                         </a>
+                                    {%- elseif headerId -%}
+                                        <span id="{{ headerId }}-{{ loop.index }}">{{ column.label }}</span>
                                     {%- else -%}
                                         {{- column.label -}}
+                                    {%- endif -%}
+                                    {%- if resizable -%}
+                                        <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden"></span>
                                     {%- endif -%}
                                 </th>
                             {% endfor %}
                             {% if this.hasActions %}
                                 <th scope="col" class="h-row border-b border-divider bg-head px-2"><span class="sr-only">{{ 'ui.table.actions'|trans }}</span></th>
+                            {% elseif filler %}
+                                <td class="h-row border-b border-divider bg-head p-0 max-sm:hidden" aria-hidden="true" data-column-filler></td>
                             {% endif %}
                         </tr>
                     </thead>
@@ -144,6 +163,8 @@
                                             </twig:Ui:Menu>
                                         </div>
                                     </td>
+                                {% elseif filler %}
+                                    <td class="{{ rowHeight }} border-b border-divider p-0 group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint max-sm:hidden" aria-hidden="true"></td>
                                 {% endif %}
                             </tr>
                         {% endfor %}
@@ -160,7 +181,7 @@
                                             {{- cell.text is not same as('') ? cell.text : (loop.first ? 'ui.table.total'|trans : '') -}}
                                         </td>
                                     {% endfor %}
-                                    {% if this.hasActions %}<td class="h-row bg-head px-2{{ edge }}"></td>{% endif %}
+                                    {% if this.hasActions %}<td class="h-row bg-head px-2{{ edge }}"></td>{% elseif filler %}<td class="h-row bg-head p-0 max-sm:hidden{{ edge }}" aria-hidden="true"></td>{% endif %}
                                 </tr>
                             {% endfor %}
                         </tfoot>

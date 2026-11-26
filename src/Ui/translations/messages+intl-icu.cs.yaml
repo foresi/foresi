@@ -292,6 +292,7 @@ ui:
     select_row: 'Vybrat řádek {label}'
     actions: Akce
     more_actions: 'Další akce pro {label}'
+    resize: 'Změnit šířku sloupce {label}'
     total: Celkem
     unread: Nepřečteno
   bulk:

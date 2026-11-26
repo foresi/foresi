@@ -292,6 +292,7 @@ ui:
     select_row: 'Select row {label}'
     actions: Actions
     more_actions: 'More actions for {label}'
+    resize: 'Resize the column {label}'
     total: Total
     unread: Unread
   bulk:
