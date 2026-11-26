@@ -40,6 +40,7 @@ nav:
     contacts: Contacts
     projects: Projects
     settings: Settings
+    profile: Profile
   area_caption:
     overview: Running the firm
     sales: From offer to payment
@@ -48,6 +49,7 @@ nav:
     contacts: Customers and suppliers
     projects: Delivering the work
     settings: The firm, people and connections
+    profile: Your own account
   group:
     main: Main
     sales: Sales
@@ -61,8 +63,13 @@ nav:
     billing: Billing
     firm: Firm
     connections: Connections
+    profile: Profile
+    security: Security
+    notifications: Notifications
   item:
     people: People
+    profile: Profile
+    two_factor: Two-factor sign-in
     api: API and MCP
     connected_apps: Connected apps
     webhooks: Webhooks
@@ -337,7 +344,6 @@ shell:
     profile: My profile
     notifications: Notification settings
     language: 'Switch language to {language}'
-    soon: Soon
   worker:
     down: 'The background worker is not running. Mail, recurring invoices and bank mail wait until it runs again.'
     link: Show the status

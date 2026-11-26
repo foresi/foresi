@@ -12,7 +12,7 @@
 <twig:Ui:Menu id="user-menu" buttonId="user-menu-button" :label="'shell.user_menu.label'|trans" :menuLabel="'shell.user_menu.label'|trans" placement="above" align="start" :float="true" menuClass="min-w-60 max-w-[min(340px,calc(100vw-24px))]" class="shell:mt-1.5">
     <twig:block name="trigger">
         <button type="button" id="user-menu-button" data-dropdown-target="button" data-action="dropdown#toggle keydown->dropdown#openFromButton" aria-haspopup="menu" aria-expanded="false" aria-controls="user-menu" title="{{ shell.userName }} · {{ orgName }}" class="group grid size-9 cursor-pointer place-items-center rounded-avatar border-0 bg-transparent p-0 max-shell:size-touch {{ focus }}">
-            <twig:Ui:Avatar :name="shell.userName" :seed="shell.userEmail" size="lg" class="group-hover:ring-2 group-hover:ring-badge-green" />
+            <twig:Ui:Avatar :name="shell.userName" :seed="shell.userEmail" :photo="shell.userPhotoUrl" size="lg" class="group-hover:ring-2 group-hover:ring-badge-green" />
             <span class="sr-only">{{ 'shell.user_menu.label'|trans }}: {{ shell.userName }}, {{ orgName }}</span>
         </button>
     </twig:block>
@@ -28,7 +28,7 @@
         </div>
     </div>
     <twig:Ui:MenuSection>
-        <twig:Ui:MenuItem icon="user" :disabled="true">{{ 'shell.user_menu.profile'|trans }}<span class="ml-auto text-caption font-normal text-muted">{{ 'shell.user_menu.soon'|trans }}</span></twig:Ui:MenuItem>
+        <twig:Ui:MenuItem :href="path('app_account_profile')" icon="user" data-user-menu-profile>{{ 'shell.user_menu.profile'|trans }}</twig:Ui:MenuItem>
         {% for item in slot_items(constant('Foresi\\Ui\\Contract\\Slot\\Slots::USER_MENU'), {shell: shell}) %}{{ include(item.template, item.data|merge({shell: shell})) }}{% endfor %}
     </twig:Ui:MenuSection>
     {% set end = slot_items(constant('Foresi\\Ui\\Contract\\Slot\\Slots::USER_MENU_END'), {shell: shell}) %}

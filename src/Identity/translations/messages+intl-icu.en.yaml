@@ -176,6 +176,7 @@ api_tokens:
     events: Events
     activities: Activities
     calendar: Calendar
+    profile: Your profile
     cashflow: Cash flow
     catalog: Catalog
     sales: Sales
@@ -368,3 +369,34 @@ oauth:
     title: The app cannot be connected
     text: The request of the app is not valid, so Foresi does not send you back to it.
     back: Back to Foresi
+profile:
+  title: Profile
+  edit: Edit profile
+  edit_title: Edit profile
+  change_photo: Change photo
+  photo_title: Profile photo
+  photo_preview: Preview of the photo in the circle of the avatar
+  photo_zoom: Zoom
+  photo_drag: Drag the photo to move it in the circle.
+  remove_photo: Remove photo
+  save: Save
+  save_photo: Save photo
+  cancel: Cancel
+  field:
+    name: Name
+    email: E-mail
+    email_note: The address you sign in with
+    language: Language
+    photo: Photo
+    photo_help: JPEG, PNG or WebP, at most 5 MB
+  flash:
+    saved: Your profile is saved.
+    photo_saved: Your photo is saved.
+    photo_removed: Your photo is removed.
+  error:
+    name_required: Enter your name.
+    name_too_long: A name has at most 255 characters.
+    unsupported_language: Choose one of the languages.
+    photo_type: Choose a JPEG, PNG or WebP image.
+    photo_too_large: The photo is too large. It can have at most 5 MB.
+    photo_dimensions: The photo is too large. It can have at most 16 million pixels.

@@ -138,7 +138,7 @@ final class ApiTokenSignInTest extends WebTestCase
         self::assertSame([], $this->client->getResponse()->headers->getCookies());
         $token = $this->token();
         self::assertSame([
-            'user' => ['id' => $this->user->id(), 'email' => 'testing@example.com'],
+            'user' => ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null],
             'token' => ['id' => $token->id(), 'name' => 'Reporting', 'scopes' => ['read'], 'expires_at' => $token->expiresAt()->format(\DATE_ATOM)],
         ], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
         self::assertNotNull($token->lastUsedAt());
@@ -153,7 +153,10 @@ final class ApiTokenSignInTest extends WebTestCase
         $this->get($secret);
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->json()['user']);
+        self::assertSame(
+            ['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null],
+            $this->json()['user'],
+        );
     }
 
     public function testATokenOfAnyScopeTellsWhatItIs(): void

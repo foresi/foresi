@@ -14,9 +14,11 @@ use Foresi\Identity\Application\Query\CurrentApiIdentity;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Api\ProfileJson;
 use Foresi\Identity\Infrastructure\Mcp\WhoAmITool;
 use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * The whoami tool answers what GET /api/v1/me answers, and takes no arguments.
@@ -41,7 +43,7 @@ final class WhoAmIToolTest extends TestCase
         $output = $this->tool($grant, $user)->call([]);
 
         self::assertSame([
-            'user' => ['id' => $user->id(), 'email' => 'testing@example.com'],
+            'user' => ['id' => $user->id(), 'email' => 'testing@example.com', 'display_name' => 'Testing', 'language' => 'en', 'photo_url' => null],
             'token' => ['id' => '019a0000-0000-7000-8000-0000000000aa', 'name' => 'Claude', 'scopes' => ['read', 'write'], 'expires_at' => '2026-12-01T10:00:00+01:00'],
         ], $output->data);
         self::assertSame('The person and API token of this connection.', $output->summary);
@@ -69,6 +71,6 @@ final class WhoAmIToolTest extends TestCase
         $users = self::createStub(UserRepository::class);
         $users->method('findById')->willReturn($user);
 
-        return new WhoAmITool(new CurrentApiIdentity($tokens, $users));
+        return new WhoAmITool(new CurrentApiIdentity($tokens, $users), new ProfileJson(self::createStub(UrlGeneratorInterface::class)));
     }
 }

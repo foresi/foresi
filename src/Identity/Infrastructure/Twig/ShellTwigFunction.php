@@ -12,8 +12,10 @@ use Foresi\Identity\Application\MembershipDirectory;
 use Foresi\Identity\Application\Organisation;
 use Foresi\Identity\Application\UserRepository;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Infrastructure\Controller\ProfileController;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Ui\Avatar;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Attribute\AsTwigFunction;
 
@@ -23,6 +25,7 @@ final readonly class ShellTwigFunction
         private TokenStorageInterface $tokens,
         private UserRepository $users,
         private MembershipDirectory $memberships,
+        private UrlGeneratorInterface $urls,
     ) {
     }
 
@@ -51,6 +54,7 @@ final readonly class ShellTwigFunction
             $this->otherLocale($user->locale()),
             $organisation instanceof Organisation,
             $organisation,
+            null === $user->photoVersion() ? null : $this->urls->generate(ProfileController::PHOTO_ROUTE, ['id' => $user->id(), 'v' => $user->photoVersion()]),
         );
     }
 

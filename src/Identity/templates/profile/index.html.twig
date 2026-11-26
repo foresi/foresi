@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The person's own profile, the first section of their account: the photo, the name, the e-mail and
+    the language. Edit profile and Change photo open dialogs from the header (GitHub, Google Account).
+    Variables: user (Foresi\Identity\Domain\User).
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'profile.title'|trans}] %}
+{% set photo = user.photoVersion ? path('app_user_photo', {id: user.id, v: user.photoVersion}) : null %}
+
+{% block title %}{{ 'profile.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button icon="upload" :href="path('app_account_profile_photo')" id="profile-photo" data-dialog aria-haspopup="dialog">{{ 'profile.change_photo'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_account_profile_edit')" id="profile-edit" data-dialog aria-haspopup="dialog">{{ 'profile.edit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% for tone in ['success', 'error'] %}
+        {% for message in app.flashes(tone) %}
+            <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
+        {% endfor %}
+    {% endfor %}
+    <div class="grid max-w-2xl gap-4" data-profile>
+        <twig:Ui:Card>
+            <div class="flex flex-wrap items-center gap-5">
+                <twig:Ui:Avatar :name="user.displayName" :seed="user.email" :photo="photo" size="xl" data-profile-avatar />
+                <div class="min-w-0 flex-1">
+                    <twig:Ui:DescriptionList :items="[
+                        {label: 'profile.field.name'|trans, value: user.displayName},
+                        {label: 'profile.field.email'|trans, value: user.email, note: 'profile.field.email_note'|trans},
+                        {label: 'profile.field.language'|trans, value: ('locale.' ~ user.locale)|trans},
+                    ]" />
+                </div>
+            </div>
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

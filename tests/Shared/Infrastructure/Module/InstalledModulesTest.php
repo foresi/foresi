@@ -94,14 +94,14 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());
         self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
         // A guest may change tasks and read projects, and nothing else (ADR 0041).
-        $guest = ['work' => ['projects:read', 'tasks:write']];
+        $guest = ['identity' => ['profile:write'], 'work' => ['projects:read', 'tasks:write']];
         $expected = array_merge([], ...array_values(array_intersect_key($guest, array_flip($this->installed()))));
         self::assertSame($expected, $graph->guestScopes());
     }

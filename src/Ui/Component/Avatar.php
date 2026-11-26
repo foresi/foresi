@@ -16,7 +16,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * A person as a circle with the initials of their name on a colour of the brand that "seed",
  * such as the user id, always picks the same (Foresi\Ui\Avatar). A circle is a person and a
  * square is a project or a firm (Atlassian Avatar); the initials stand in for a photo
- * (Polaris Avatar).
+ * (Polaris Avatar). With "photo" the person's own picture fills the circle instead, cut to it
+ * (object-cover), with an empty alt as the name is beside it or on the circle.
  *
  * The name is usually written next to it, so the avatar is hidden from assistive tech; with
  * "labelled" it stands alone and is an image named by the full name. Without a name it is the
@@ -29,9 +30,11 @@ final class Avatar
         'sm' => 'size-6 text-caption',
         'md' => 'size-8 text-caption',
         'lg' => 'size-9 text-small',
+        // The person on their own profile (GitHub, Google Account: the large circle at the top).
+        'xl' => 'size-24 text-title',
     ];
 
-    private const array ICONS = ['sm' => 'size-3.5', 'md' => 'size-4', 'lg' => 'size-5'];
+    private const array ICONS = ['sm' => 'size-3.5', 'md' => 'size-4', 'lg' => 'size-5', 'xl' => 'size-10'];
 
     /** The full name; empty for nobody. */
     public string $name = '';
@@ -40,6 +43,8 @@ final class Avatar
     public string $size = 'sm';
     /** True when no name is written beside it: the avatar is then an image named by the name. */
     public bool $labelled = false;
+    /** The address of the person's photo, shown in place of the initials; null for none. */
+    public ?string $photo = null;
 
     #[PostMount]
     public function validate(): void
@@ -60,9 +65,11 @@ final class Avatar
     public function classes(): string
     {
         $size = self::SIZES[$this->size] ?? throw new \InvalidArgumentException(sprintf('Unknown avatar size "%s", expected one of: %s.', $this->size, implode(', ', array_keys(self::SIZES))));
-        $look = $this->nobody()
-            ? 'border border-dashed border-container bg-white text-muted'
-            : Initials::tone($this->seed ?? $this->name);
+        $look = match (true) {
+            null !== $this->photo => 'overflow-hidden bg-frame',
+            $this->nobody() => 'border border-dashed border-container bg-white text-muted',
+            default => Initials::tone($this->seed ?? $this->name),
+        };
 
         return 'inline-grid shrink-0 place-items-center rounded-avatar font-semibold leading-none select-none '.$size.' '.$look;
     }

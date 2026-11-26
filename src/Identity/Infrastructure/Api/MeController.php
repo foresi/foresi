@@ -24,7 +24,7 @@ final readonly class MeController
 {
     public const string ROUTE = 'api_v1_me';
 
-    public function __construct(private CurrentApiIdentity $identity)
+    public function __construct(private CurrentApiIdentity $identity, private ProfileJson $profile)
     {
     }
 
@@ -38,7 +38,7 @@ final readonly class MeController
         $identity = $this->identity->get();
 
         return new JsonResponse([
-            'user' => ['id' => $identity->userId, 'email' => $identity->email],
+            'user' => $this->profile->of($identity->user),
             'token' => [
                 'id' => $identity->token->tokenId,
                 'name' => $identity->token->tokenName,

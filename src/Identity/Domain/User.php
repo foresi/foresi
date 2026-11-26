@@ -24,6 +24,9 @@ class User
     /** The shortest password anyone signs in with, chosen on the console or on an invitation. */
     public const int MIN_PASSWORD_LENGTH = 12;
 
+    /** The longest name a person can give themselves, the length of its column. */
+    public const int MAX_DISPLAY_NAME_LENGTH = 255;
+
     #[ORM\Id]
     #[ORM\Column(type: 'guid')]
     private string $id;
@@ -49,6 +52,10 @@ class User
     #[ORM\Column(name: 'trusted_device_version', type: 'integer', options: ['default' => 0])]
     private int $trustedDeviceVersion = 0;
 
+    /** Changes with every new photo, so its address changes too; null without a photo. */
+    #[ORM\Column(name: 'photo_version', type: 'string', length: 32, nullable: true)]
+    private ?string $photoVersion = null;
+
     public function __construct(
         string $email,
         #[ORM\Column(name: 'password_hash', type: 'string', length: 255)]
@@ -64,15 +71,42 @@ class User
         if ('' === $passwordHash) {
             throw new \InvalidArgumentException('A user needs a password hash.');
         }
-        $displayName = trim($displayName);
-        if ('' === $displayName) {
-            throw new \InvalidArgumentException('A user needs a display name.');
-        }
         $this->assertSupported($locale);
 
         $this->email = $email;
-        $this->displayName = $displayName;
+        $this->displayName = $this->usableName($displayName);
         $this->locale = $locale;
+    }
+
+    /**
+     * The person's own name, as everyone in the firm sees it.
+     *
+     * @throws \InvalidArgumentException when it is blank or longer than MAX_DISPLAY_NAME_LENGTH
+     */
+    public function rename(string $displayName): void
+    {
+        $this->displayName = $this->usableName($displayName);
+    }
+
+    /**
+     * A new photo was stored: its address changes, so no browser keeps the old one.
+     */
+    public function changePhoto(): void
+    {
+        $this->photoVersion = bin2hex(random_bytes(8));
+    }
+
+    /**
+     * Back to the initials.
+     */
+    public function removePhoto(): void
+    {
+        $this->photoVersion = null;
+    }
+
+    public function photoVersion(): ?string
+    {
+        return $this->photoVersion;
     }
 
     public function changeLocale(string $locale): void
@@ -167,6 +201,19 @@ class User
     public function locale(): string
     {
         return $this->locale;
+    }
+
+    private function usableName(string $displayName): string
+    {
+        $displayName = trim($displayName);
+        if ('' === $displayName) {
+            throw new \InvalidArgumentException('A user needs a display name.');
+        }
+        if (mb_strlen($displayName) > self::MAX_DISPLAY_NAME_LENGTH) {
+            throw new \InvalidArgumentException(sprintf('A display name has at most %d characters.', self::MAX_DISPLAY_NAME_LENGTH));
+        }
+
+        return $displayName;
     }
 
     private function assertSupported(string $locale): void
