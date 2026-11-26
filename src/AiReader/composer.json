@@ -16,7 +16,7 @@
         "foresi/ui": "self.version",
         "symfony/console": "7.4.*",
         "symfony/dependency-injection": "^7.4 || ^8.0",
-        "symfony/http-client": "^7.4.23",
+        "symfony/http-client": "^7.4.24",
         "symfony/http-client-contracts": "^3.7"
     },
     "autoload": {

@@ -23,8 +23,8 @@
         "symfony/event-dispatcher": "^7.4",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
-        "symfony/lock": "^7.4.23",
-        "symfony/messenger": "^7.4.23",
+        "symfony/lock": "^7.4.24",
+        "symfony/messenger": "^7.4.24",
         "symfony/rate-limiter": "7.4.*",
         "symfony/routing": "^7.4",
         "symfony/scheduler": "7.4.*"
