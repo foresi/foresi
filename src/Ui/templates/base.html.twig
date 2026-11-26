@@ -17,6 +17,14 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         {# Turbo cross-fades the content panel between pages; the shell sets which part moves. #}
         <meta name="view-transition" content="same-origin">
+        {#
+            The icon is the Foresi mark of the rail, the green square with the F, drawn as a path so it
+            needs no font. It is inline: an SVG scales to every size the browser asks for, and img-src
+            of the Content-Security-Policy allows data: URLs. A frame without the product overrides the
+            block "icon".
+        #}
+        {% block icon %}{% set icon %}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="#2f4a3a"/><path fill="#fff" d="M10.5 7.5h11v3.4h-7.2v3.6h6.3v3.3h-6.3v6.7h-3.8z"/></svg>{% endset %}
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,{{ icon|url_encode }}">{% endblock %}
         {# The block "title" is the page's heading; it is defined here and read where it is needed. #}
         {% set heading %}{% block title %}{% endblock %}{% endset %}
         <title>{% if form_invalid|default(false) %}{{ 'form.title_error'|trans }} {% endif %}{% block document_title %}{{ page_title(heading|striptags|html_decode|trim) }}{% endblock %}</title>

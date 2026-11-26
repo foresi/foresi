@@ -48,6 +48,17 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Dashboard');
     }
 
+    public function testEveryPageCarriesTheForesiMarkAsItsIcon(): void
+    {
+        $crawler = $this->client->request('GET', '/login');
+
+        self::assertResponseIsSuccessful();
+        $icon = $crawler->filter('head link[rel="icon"]');
+        self::assertCount(1, $icon);
+        self::assertSame('image/svg+xml', $icon->attr('type'));
+        self::assertStringStartsWith('data:image/svg+xml,%3Csvg', (string) $icon->attr('href'));
+    }
+
     public function testTheNavigationItemOfTheCurrentRouteIsMarked(): void
     {
         $this->browser->seed();
