@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
-use Foresi\Ui\Contract\PersonPhotos;
+use Foresi\Tests\Ui\Support\TestPersonPhotos;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -50,18 +50,12 @@ final class PersonPickerTest extends KernelTestCase
 
     public function testAUserWithAPhotoIsShownByItOnTheTriggerAndInTheMenu(): void
     {
-        self::getContainer()->set(PersonPhotos::class, new class implements PersonPhotos {
-            public function url(string $userId): ?string
-            {
-                return 'user-1' === $userId ? '/people/user-1/photo?v=1' : null;
-            }
-        });
         $picker = $this->picker(['value' => 'm-1', 'people' => [
-            ['value' => 'm-1', 'name' => 'Example Company', 'seed' => 'user-1', 'user' => 'user-1'],
-            ['value' => 'm-2', 'name' => 'Jana Example', 'seed' => 'user-2', 'user' => 'user-2'],
+            ['value' => 'm-1', 'name' => 'Example Company', 'seed' => 'user-1', 'user' => TestPersonPhotos::USER],
+            ['value' => 'm-2', 'name' => 'Jana Example', 'seed' => 'user-2', 'user' => null],
         ]]);
 
-        self::assertSame('/people/user-1/photo?v=1', $picker->filter('[data-person-picker-trigger] img[data-avatar-photo]')->attr('src'));
+        self::assertSame(TestPersonPhotos::URL, $picker->filter('[data-person-picker-trigger] img[data-avatar-photo]')->attr('src'));
         self::assertCount(1, $picker->filter('[data-person-picker-option="m-1"] img[data-avatar-photo]'));
         self::assertCount(0, $picker->filter('[data-person-picker-option="m-2"] img'));
     }

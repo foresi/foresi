@@ -10,6 +10,7 @@ namespace Foresi\Ui\Component;
 
 use Foresi\Ui\Avatar as Initials;
 use Foresi\Ui\Contract\PersonPhotos;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -51,7 +52,10 @@ final class Avatar
     /** The id of the user the avatar shows, whose photo it takes when "photo" is not given. */
     public ?string $user = null;
 
-    public function __construct(private readonly ?PersonPhotos $photos = null)
+    /**
+     * @param iterable<PersonPhotos> $photos
+     */
+    public function __construct(#[AutowireIterator(PersonPhotos::TAG)] private readonly iterable $photos = [])
     {
     }
 
@@ -59,7 +63,9 @@ final class Avatar
     public function validate(): void
     {
         if (null === $this->photo && null !== $this->user && '' !== $this->user && !$this->nobody()) {
-            $this->photo = $this->photos?->url($this->user);
+            foreach ($this->photos as $photos) {
+                $this->photo ??= $photos->url($this->user);
+            }
         }
         $this->classes();
     }

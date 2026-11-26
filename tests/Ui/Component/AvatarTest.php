@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Tests\Ui\Support\TestPersonPhotos;
 use Foresi\Ui\Avatar;
-use Foresi\Ui\Contract\PersonPhotos;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -95,23 +95,16 @@ final class AvatarTest extends KernelTestCase
 
     public function testAUserWithAPhotoIsShownByItAndAUserWithoutOneByTheInitials(): void
     {
-        self::getContainer()->set(PersonPhotos::class, new class implements PersonPhotos {
-            public function url(string $userId): ?string
-            {
-                return 'user-1' === $userId ? '/people/user-1/photo?v=1' : null;
-            }
-        });
-
-        $photo = $this->avatar(['name' => 'Jana Example', 'user' => 'user-1']);
-        self::assertSame('/people/user-1/photo?v=1', $photo->filter('img[data-avatar-photo]')->attr('src'));
+        $photo = $this->avatar(['name' => 'Jana Example', 'user' => TestPersonPhotos::USER]);
+        self::assertSame(TestPersonPhotos::URL, $photo->filter('img[data-avatar-photo]')->attr('src'));
         self::assertNull($photo->attr('user'));
 
-        $initials = $this->avatar(['name' => 'Petr Example', 'user' => 'user-2']);
+        $initials = $this->avatar(['name' => 'Petr Example', 'user' => null]);
         self::assertCount(0, $initials->filter('img'));
         self::assertSame('PE', trim($initials->text()));
 
         // A photo given beats the one of the user; nobody has none.
-        self::assertSame('/own.jpg', $this->avatar(['name' => 'Jana Example', 'user' => 'user-1', 'photo' => '/own.jpg'])->filter('img')->attr('src'));
-        self::assertCount(0, $this->avatar(['name' => '', 'user' => 'user-1'])->filter('img'));
+        self::assertSame('/own.jpg', $this->avatar(['name' => 'Jana Example', 'user' => TestPersonPhotos::USER, 'photo' => '/own.jpg'])->filter('img')->attr('src'));
+        self::assertCount(0, $this->avatar(['name' => '', 'user' => TestPersonPhotos::USER])->filter('img'));
     }
 }
