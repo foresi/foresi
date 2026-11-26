@@ -21,6 +21,7 @@ inbox:
   field:
     state: State
     match: Contact
+    suggestions: Suggestions
   column:
     sender: Sender
     contact: Contact
@@ -170,6 +171,69 @@ inbox:
     apple:
       title: Apple Mail
       steps: Select the mail, choose Message, Forward and enter your inbox address. iCloud Mail can forward on its own.
+  suggestions_filter:
+    with: With suggestions
+    without: Without suggestions
+  suggestion:
+    title: Suggestions
+    steps: Steps
+    select: Include in Accept selected
+    accept: Accept
+    retry: Retry
+    accept_selected: Accept selected
+    edit: Edit
+    save_and_accept: Save and accept
+    edit_intro: Saving stores your changes and accepts the whole suggestion.
+    source: 'Source: e-mail from {sender}, {received}'
+    proposed_by: 'Proposed by {client}, {time}'
+    reference: The record of step {step}
+    reason: 'Reason:'
+    decided_title: Decided
+    state:
+      proposed: Open
+      accepted: Accepted
+      rejected: Rejected
+      superseded: Replaced
+    step_state:
+      pending: Waiting
+      done: Done
+      failed: Failed
+      skipped: Skipped
+    decided:
+      accepted: 'Accepted by you, {time}'
+      rejected: 'Rejected by you, {time}'
+      superseded: 'Replaced by a newer suggestion, {time}'
+    reject:
+      open: Reject
+      title: Reject the suggestion
+      intro: Nothing of this suggestion runs. The agent that proposed it can read your reason.
+      reason: Reason
+      reason_help: Optional, at most 500 characters.
+      too_long: A reason has at most 500 characters.
+      submit: Reject
+    done:
+      title: Suggestions are still open
+      text: '{count, plural, one {A suggestion waits on this mail. Reject it, or keep it on the done item to decide later.} other {# suggestions wait on this mail. Reject them, or keep them on the done item to decide later.}}'
+      reject: Reject them
+      keep: Keep them
+    flash:
+      accepted: '{count, plural, one {Suggestion accepted.} other {# suggestions accepted.}}'
+      failed: '{count, plural, one {A step could not run. Its card says why; edit it or retry.} other {Steps of # suggestions could not run. Their cards say why; edit them or retry.}}'
+      rejected: Suggestion rejected.
+      not_open: This suggestion was decided already; nothing was run.
+      none_selected: Tick the suggestions to accept.
+      none_ticked: Leave at least one step ticked, or reject the suggestion.
+    refused:
+      insufficient_scope: Your token may not run this action.
+      reference_unresolved: The step it needs, an earlier one, did not make a record.
+      internal_error: Something went wrong while running this step. Retry it; if it fails again, edit it or reject the suggestion.
+      invalid_input: A value of this step is not right. Edit it and save.
+      invalid_reference: A value of this step names a step that cannot make its record first.
+      action_not_applicable: This action does not apply to the mail any more.
+      item_trashed: The item is in the trash.
+      email_activity_unavailable: The activity type E-mail is archived, so nothing can be added to this mail. Restore it under Settings, Activities, then retry.
+      not_found: A record this step needs does not exist or is not yours to see.
+      not_open: This suggestion was decided already.
   account:
     title: Inbox addresses
     intro: The address that takes the mail you forward into your inbox. Only you see what arrives there. Keep it private; revoke or replace it if it leaks.

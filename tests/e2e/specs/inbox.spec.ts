@@ -2,13 +2,21 @@
 
 import { expect, test } from '../support/test';
 import { signIn, worldHeader } from '../support/session';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // The world of this spec in tests/e2e/seed/inbox.php: the client Client A s.r.o. (its address is not
 // the sender's below), its deal Roof audit and its one project Warehouse roof. The webhook secret is the one of tests/e2e/serve.sh.
+// The seed writes an agent's token (inbox:read and inbox_suggestions:write only) to var/e2e-inbox-agent.json.
 const OWNER = 'inbox@example.com';
 const WEBHOOK_SECRET = 'e2e-inbound-webhook-secret';
 const CLIENT = 'Client A s.r.o.';
 const PROJECT = 'Warehouse roof';
+const QUOTE = 'could you audit the roof of our warehouse in December?';
+
+function agentToken(): string {
+  return (JSON.parse(readFileSync(resolve(__dirname, '../../../var/e2e-inbox-agent.json'), 'utf8')) as { token: string }).token;
+}
 
 // A synthetic mail as the receiving server hands it on: the server that is trusted in serve.sh vouches for the sender.
 function mailTo(address: string, subject = 'Roof audit for the warehouse', messageId = 'inbox-e2e-1@buyer.example.com'): string {
@@ -146,5 +154,59 @@ test.describe('the inbox', () => {
     await page.goto(`${project}?tab=activities`);
     const email = page.locator('[data-project-section="activities"] [data-activities-done] [data-activity]').filter({ hasText: 'Gutter repair before winter' });
     await expect(email).toHaveCount(1);
+  });
+
+  test('an agent proposes over the API, the card shows the source and the quote, one step is unticked and the rest accepted', async ({ page }) => {
+    expect(address).not.toBe('');
+    const answer = await page.request.post('/inbound/mail', {
+      headers: { ...worldHeader('inbox'), Authorization: `Bearer ${WEBHOOK_SECRET}`, 'Content-Type': 'message/rfc822' },
+      data: mailTo(address, 'Roof audit in December', 'inbox-e2e-suggestion@buyer.example.com'),
+    });
+    expect(answer.status()).toBe(202);
+    await page.goto('/inbox');
+    await page.locator('[data-inbox-list] tbody tr').filter({ hasText: 'Roof audit in December' }).getByRole('link', { name: 'buyer@buyer.example.com' }).click();
+    await expect(page).toHaveURL(/\/inbox\/[0-9a-f-]{36}$/);
+    const item = page.url();
+    const itemId = item.split('/').pop() ?? '';
+    await page.goto('/projects');
+    const projectId = ((await page.getByRole('link', { name: PROJECT }).first().getAttribute('href')) ?? '').split('/').pop() ?? '';
+    expect(projectId).toMatch(/^[0-9a-f-]{36}$/);
+
+    // The agent, whose token may only read the inbox and propose, proposes two tasks.
+    const proposed = await page.request.post(`/api/v1/inbox/items/${itemId}/suggestions`, {
+      headers: { ...worldHeader('inbox'), Authorization: `Bearer ${agentToken()}` },
+      data: {
+        suggestions: [{
+          rationale: 'The buyer asks for a roof audit in December.',
+          quote: QUOTE,
+          steps: [
+            { operation: 'inbox.actions.create_task', input: { project_id: projectId, title: 'Audit the warehouse roof' } },
+            { operation: 'inbox.actions.create_task', input: { project_id: projectId, title: 'Order the roof materials' } },
+          ],
+        }],
+      },
+    });
+    expect(proposed.status()).toBe(201);
+
+    // The card: the steps, the source with the quote marked, and who proposed it.
+    await page.goto(item);
+    const card = page.locator('[data-inbox-suggestion]');
+    await expect(card).toHaveCount(1);
+    await expect(card.locator('[data-inbox-suggestion-rationale]')).toHaveText('The buyer asks for a roof audit in December.');
+    await expect(card.locator('[data-inbox-suggestion-source]')).toContainText('buyer@buyer.example.com');
+    await expect(card.locator('mark[data-inbox-suggestion-quote]')).toHaveText(QUOTE);
+    await expect(card.locator('[data-inbox-suggestion-proposer]')).toContainText('Mail agent');
+    await expect(card.locator('[data-inbox-suggestion-step="1"]')).toContainText('Audit the warehouse roof');
+    await expect(card.locator('[data-inbox-suggestion-step="2"]')).toContainText(PROJECT);
+
+    // The second step unticked, the card accepted: only the first task is made.
+    await card.locator('[data-inbox-suggestion-step="2"] input[type=checkbox]').uncheck();
+    await card.locator('[data-inbox-suggestion-accept]').click();
+    await expect(page).toHaveURL(item);
+    await expect(page.locator('[data-inbox-outputs]')).toContainText('Audit the warehouse roof');
+    await expect(page.locator('[data-inbox-outputs]')).not.toContainText('Order the roof materials');
+    const decided = page.locator('[data-inbox-suggestion][data-state="accepted"]');
+    await expect(decided).toHaveCount(1);
+    await expect(page.locator('[data-inbox-state]')).toHaveText('Hotové');
   });
 });

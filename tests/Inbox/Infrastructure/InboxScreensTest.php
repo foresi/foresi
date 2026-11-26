@@ -143,8 +143,11 @@ final class InboxScreensTest extends InboxScreenTestCase
         $this->em->flush();
 
         $crawler = $this->client->request('GET', '/inbox/'.$id);
-        $token = (string) $crawler->filter('form[data-inbox-done] input[name="_token"]')->attr('value');
-        $this->client->submit($crawler->filter('form[data-inbox-done]')->form());
+        // The page asks in a dialog (InboxSuggestionScreensTest); a Done posted without a choice, from a page
+        // loaded before the suggestion came, is sent back with a warning.
+        self::assertCount(1, $crawler->filter('[data-inbox-done-ask]'));
+        $token = (string) $crawler->filter('form[data-inbox-match-again] input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/inbox/'.$id.'/done', ['_token' => $token]);
         self::assertResponseRedirects('/inbox/'.$id, null, 'Not a server error: the person is asked.');
         $crawler = $this->client->followRedirect();
         self::assertStringContainsString('Suggestions on this mail wait for your decision.', $crawler->text());

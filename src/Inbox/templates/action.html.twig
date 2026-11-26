@@ -5,24 +5,32 @@
     page of its own. Whatever a field starts with may be the sender's words (the subject, the text):
     it is printed escaped as the value of its control, never as markup.
     Variables: id, operation, title, fields (name, id, widget, label, required, value, checked,
-    options, maxLength, error), summary, token.
+    options, maxLength, error), summary, token. The edit of a suggestion's step (SuggestionController)
+    reuses it with formAction, submitLabel and intro, and a field of the widget "reference" (the record
+    of an earlier step), shown but not edited.
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
 {% set form_invalid = summary is not null or fields|filter(field => field.error is not null) is not empty %}
 {% set dialog_size = 'md' %}
+{% set submit_label = submitLabel ?? 'inbox.action_dialog.submit'|trans %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="inbox-action-form" action="{{ path('app_inbox_item_action', {id: id, operation: operation}) }}" class="grid gap-4" novalidate data-inbox-action-form="{{ operation }}">
+    <form method="post" id="inbox-action-form" action="{{ formAction ?? path('app_inbox_item_action', {id: id, operation: operation}) }}" class="grid gap-4" novalidate data-inbox-action-form="{{ operation }}">
         <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        {% if intro ?? null %}
+            <p class="m-0 text-text">{{ intro }}</p>
+        {% endif %}
         {% if summary %}
             <twig:Ui:Alert tone="error" data-inbox-action-error>{{ summary }}</twig:Ui:Alert>
         {% endif %}
         {% for field in fields %}
-            {% if field.widget == 'select' %}
+            {% if field.widget == 'reference' %}
+                <twig:Ui:TextInput :name="field.name" :id="field.id" :label="field.label" :value="field.value" :disabled="true" data-inbox-step-reference />
+            {% elseif field.widget == 'select' %}
                 <twig:Ui:Select :name="field.name" :id="field.id" :label="field.label" :options="field.options" :value="field.value" :required="field.required" :error="field.error" />
             {% elseif field.widget == 'textarea' %}
                 <twig:Ui:Textarea :name="field.name" :id="field.id" :label="field.label" :value="field.value" :required="field.required" :error="field.error" :rows="6" :maxlength="field.maxLength" />
@@ -37,7 +45,7 @@
 
 {% block dialog_footer %}
     <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
-    <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ 'inbox.action_dialog.submit'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ submit_label }}</twig:Ui:Button>
 {% endblock %}
 
 {% block content %}
@@ -48,7 +56,7 @@
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
             <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
-            <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ 'inbox.action_dialog.submit'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-action-form" variant="primary">{{ submit_label }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>
 {% endblock %}
