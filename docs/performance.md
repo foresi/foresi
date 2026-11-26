@@ -95,6 +95,6 @@ Measured on 2026-11-26 on a MacBook M1 Pro (8 cores, 32 GB), PHP 8.4.17, Postgre
 
 **Import of 10,000 contacts:** create 169 rows/s, **update 15 rows/s** (budget 150), so undo was not reached. Measured under heavy load earlier the same day, create ran at 28 rows/s.
 
-**Queries a page:** 120 to 210 on every HTML page, 9 or 10 on the API. Of those, 85 to 117 are the same lookup of the person's membership role. The deals board grows from 189 to 352 queries with ten times the data (`KNOWN_GROWTH`).
+**Queries a page:** 120 to 213 on every HTML page, 9 or 10 on the API. Of those, 85 to 117 are the same lookup of the person's membership role. The deals board grows from 189 to 352 queries with ten times the data (`KNOWN_GROWTH`).
 
 **Seed of the large set, in rows a second, measured under load:** contacts 20, invoices 14, payments 98, received documents 13, tasks 38, deals 56, activities 83, time entries 11,600 (written in bulk). Everything but the time entries goes through the application services. Payments pay what an invoice asks (`payable()`). The invoices are issued in date order over five years, and the seed adds the deal stages and activity types a schema made by Doctrine lacks.
