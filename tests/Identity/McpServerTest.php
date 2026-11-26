@@ -40,7 +40,7 @@ final class McpServerTest extends ApiTestCase
         'party' => ['foresi_add_firm_vat_status', 'foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_remove_firm_vat_status', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
         'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_read_received_document_again', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_set_received_document_lines', 'foresi_trash_received_document', 'foresi_upload_received_document'],
         'sales' => ['foresi_add_deal_line', 'foresi_add_deal_link', 'foresi_archive_deal_stage', 'foresi_archive_lost_reason', 'foresi_change_deal_stage', 'foresi_create_deal', 'foresi_create_deal_stage', 'foresi_create_follow_up_deal', 'foresi_create_lost_reason', 'foresi_get_deal', 'foresi_list_deal_stages', 'foresi_lose_deal', 'foresi_remove_deal_line', 'foresi_remove_deal_link', 'foresi_reopen_deal', 'foresi_reorder_deal_lines', 'foresi_reorder_deal_stages', 'foresi_restore_deal', 'foresi_search_deals', 'foresi_trash_deal', 'foresi_update_deal', 'foresi_update_deal_line', 'foresi_update_deal_stage', 'foresi_update_lost_reason', 'foresi_win_deal'],
-        'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
+        'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_fields', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year', 'foresi_tax_amounts', 'foresi_tax_estimate'],
         'vat' => ['foresi_assign_vat_payment', 'foresi_clear_vat_return_amount', 'foresi_get_vat_period', 'foresi_reopen_vat_period', 'foresi_reset_vat_payment', 'foresi_set_vat_return_amount', 'foresi_set_vat_settings', 'foresi_settle_vat_period', 'foresi_vat_periods'],
         'work' => ['foresi_add_project_budget_change', 'foresi_add_task_comment', 'foresi_archive_project', 'foresi_create_project', 'foresi_create_task', 'foresi_get_project', 'foresi_get_project_budget', 'foresi_get_task', 'foresi_list_labels', 'foresi_list_project_people', 'foresi_list_task_comments', 'foresi_log_time', 'foresi_remove_project_budget_change', 'foresi_restore_project', 'foresi_restore_task', 'foresi_search_projects', 'foresi_search_tasks', 'foresi_search_time_entries', 'foresi_set_project_budget_counting', 'foresi_start_timer', 'foresi_stop_timer', 'foresi_trash_task', 'foresi_trash_task_comment', 'foresi_update_project', 'foresi_update_task', 'foresi_update_task_comment'],
@@ -322,7 +322,7 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        self::assertSame(['foresi_get_contact', 'foresi_get_firm', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+        self::assertSame(['foresi_get_contact', 'foresi_get_firm', 'foresi_list_fields', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
     }
 
     public function testAContactsWriteTokenListsTheContactToolsAlone(): void
@@ -344,6 +344,7 @@ final class McpServerTest extends ApiTestCase
             'foresi_get_contact',
             'foresi_get_firm',
             'foresi_link_contact_person',
+            'foresi_list_fields',
             'foresi_list_modules',
             'foresi_remove_firm_vat_status',
             'foresi_restore_contact',

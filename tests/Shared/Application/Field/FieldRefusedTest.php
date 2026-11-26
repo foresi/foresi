@@ -27,7 +27,7 @@ final class FieldRefusedTest extends TestCase
         $previous = new \InvalidArgumentException('Too long.');
         $wrapped = new FieldRefused('test_fields_code', FieldRefused::INVALID, 'Too long.', $previous);
 
-        self::assertSame(['The custom field "test_fields_code" is refused (ui.custom_fields.error.required).', 0], [$refused->getMessage(), $refused->getCode()]);
+        self::assertSame(['The custom field "test_fields_code" is required.', 0], [$refused->getMessage(), $refused->getCode()]);
         self::assertSame(['Too long.', 0, $previous], [$wrapped->getMessage(), $wrapped->getCode(), $wrapped->getPrevious()]);
     }
 

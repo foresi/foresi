@@ -122,6 +122,22 @@ abstract class ReadToolTestCase extends ApiTestCase
     }
 
     /**
+     * The data of a tool as a client reads it, through JSON: an empty object, such as
+     * custom_fields without a field, reads as an empty array, as the REST answer does.
+     *
+     * @param array<mixed> $data
+     *
+     * @return array<mixed>
+     */
+    protected static function wire(array $data): array
+    {
+        $read = json_decode(json_encode($data, \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($read);
+
+        return $read;
+    }
+
+    /**
      * The data the REST API answers for the path, read with the member's token.
      *
      * @param array<string, string> $query

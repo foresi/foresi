@@ -47,6 +47,7 @@ final class WorkReadApiTest extends WorkApiTestCase
                 'done' => false,
                 'private' => false,
                 'url' => 'http://localhost/tasks/'.$id,
+                'custom_fields' => [],
             ]],
             'next_cursor' => null,
             'applied_view' => null,
@@ -167,6 +168,7 @@ final class WorkReadApiTest extends WorkApiTestCase
             'open_tasks' => 1,
             'nearest_due_on' => null,
             'archived' => false,
+            'custom_fields' => [],
         ]], $this->at('data'));
 
         $this->get('/api/v1/projects/'.$project->id());
