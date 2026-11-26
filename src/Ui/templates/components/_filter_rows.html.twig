@@ -5,8 +5,9 @@
     and Notion's filter rows. Every control is in the markup and the form is a plain GET; with
     JavaScript the controls an operator or a date rule does not use are hidden (filter-bar#sync).
 #}
-{% macro row(field, row, i, prefix, blank, rules) %}
-    {% set name = 'c[' ~ i ~ ']' %}
+{% macro row(field, row, i, prefix, blank, rules, rowsName = 'c') %}
+    {# rowsName: the name of the rows in the address, c on a page's first table and reasons[c] under a list slot. #}
+    {% set name = rowsName ~ '[' ~ i ~ ']' %}
     {% set id = prefix ~ '-c' ~ i %}
     {% set empty = 'is_empty is_not_empty' %}
     <fieldset class="m-0 grid min-w-0 gap-3 rounded-control border border-container p-3" data-filter-row="{{ field.key }}">
@@ -61,5 +62,5 @@
 
 {# The conditions the builder cannot show as rows, sent back as they are. #}
 {% macro kept(builder, start) %}
-    {% for json in builder.kept %}<input type="hidden" name="c[{{ start + loop.index0 }}][raw]" value="{{ json }}">{% endfor %}
+    {% for json in builder.kept %}<input type="hidden" name="{{ builder.name ?? 'c' }}[{{ start + loop.index0 }}][raw]" value="{{ json }}">{% endfor %}
 {% endmacro %}

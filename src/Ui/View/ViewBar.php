@@ -10,6 +10,7 @@ namespace Foresi\Ui\View;
 
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\SavedViewRefused;
@@ -42,14 +43,17 @@ final readonly class ViewBar
      * @param string                $sort        the sort the list shows, as in its address
      * @param string                $defaultSort the list's own order, which a view without a sort shows
      * @param array<string, string> $keep        what Reset keeps of the address: the search
+     * @param ListSlot|null         $slot        where the list keeps its state on a page of several tables; null for the page's one
      *
      * @return array{viewBar: array{modified: bool, canSave: bool, resetHref: string, list: string, ref: string, filter: string, sort: string, display: string, displayChanged: bool, return: string, base: string}, manageViews: array<string, mixed>}
      */
-    public function of(ListDefinition $list, array $views, ListView $view, ViewFilter $working, string $sort, string $defaultSort, WorkingState $display, string $route, array $keep): array
+    public function of(ListDefinition $list, array $views, ListView $view, ViewFilter $working, string $sort, string $defaultSort, WorkingState $display, string $route, array $keep, ?ListSlot $slot = null): array
     {
+        $slot ??= ListSlot::first([]);
         $workingSort = $sort === ViewState::sortParam($view->sort, $defaultSort) ? $view->sort : ViewState::sortOf($sort === $defaultSort ? '' : $sort);
         $modified = ViewState::isModified($view, $working, $workingSort, $display->modified);
         $here = ['view' => $view->isAll() ? null : $view->key] + $keep;
+        $url = fn (array $own): string => $this->urls->generate($route, $slot->with($own));
 
         return [
             'viewBar' => [
@@ -57,17 +61,19 @@ final readonly class ViewBar
                 // All has no conditions and is no one's to change (D7): its changes become a new view.
                 'canSave' => $modified && !$view->isAll() && $this->mayEdit($view, $list),
                 // Everything but the search (D10); an empty density and empty widths name the view's own display, which forgets the one remembered.
-                'resetHref' => $this->urls->generate($route, $here + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
+                'resetHref' => $url($here + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
                 'list' => $list->key,
                 'ref' => $view->ref($list->key),
                 'filter' => WorkingFilter::encode($working),
                 'sort' => json_encode($workingSort, \JSON_THROW_ON_ERROR),
                 'display' => \is_array($display->payload) ? json_encode($display->payload, \JSON_THROW_ON_ERROR) : '',
                 'displayChanged' => $display->modified,
-                'return' => $this->urls->generate($route, $here),
-                'base' => $this->urls->generate($route, $keep),
+                'return' => $url($here),
+                'base' => $url($keep),
+                // The ids of the list's dialogs, apart from those of the page's other tables.
+                'suffix' => $slot->id(''),
             ],
-            'manageViews' => $this->manage($list, $views, $route, $keep, $this->urls->generate($route, $here)),
+            'manageViews' => $this->manage($list, $views, $url, $keep, $url($here)) + ['suffix' => $slot->id('')],
         ];
     }
 
@@ -75,17 +81,18 @@ final readonly class ViewBar
      * The views of the Settings sheet (spec D6, D7): the tabs and the views listed past them in their order, which
      * owners change, and for owners the shipped views they hid, to show again.
      *
-     * @param list<ListView>        $views
-     * @param array<string, string> $keep
-     * @param string                $return the view shown, which a deleted one falls back from to All
+     * @param list<ListView>                         $views
+     * @param \Closure(array<string, mixed>): string $url    the list's address with its own state
+     * @param array<string, string>                  $keep
+     * @param string                                 $return the view shown, which a deleted one falls back from to All
      *
      * @return array<string, mixed>
      */
-    private function manage(ListDefinition $list, array $views, string $route, array $keep, string $return): array
+    private function manage(ListDefinition $list, array $views, \Closure $url, array $keep, string $return): array
     {
         [$tabs, $more] = ListViews::placed($views);
         $owner = $this->actor->isOwner();
-        $row = fn (ListView $view): array => $this->row($list, $view, $route, $keep);
+        $row = fn (ListView $view): array => $this->row($list, $view, $url, $keep);
 
         $all = $tabs[0];
         $hidden = $owner ? array_map($row, $this->listViews->hidden($list)) : [];
@@ -109,11 +116,12 @@ final readonly class ViewBar
     }
 
     /**
-     * @param array<string, string> $keep
+     * @param \Closure(array<string, mixed>): string $url
+     * @param array<string, string>                  $keep
      *
      * @return array<string, mixed>
      */
-    private function row(ListDefinition $list, ListView $view, string $route, array $keep): array
+    private function row(ListDefinition $list, ListView $view, \Closure $url, array $keep): array
     {
         return [
             'ref' => $view->ref($list->key),
@@ -126,7 +134,7 @@ final readonly class ViewBar
             'editable' => $this->mayEdit($view, $list),
             // A view a module ships stays shared and is never deleted, only hidden (D6).
             'shipped' => null !== $view->slug,
-            'href' => $this->urls->generate($route, ['view' => $view->key] + $keep),
+            'href' => $url(['view' => $view->key] + $keep),
         ];
     }
 

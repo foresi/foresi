@@ -241,6 +241,13 @@ sales:
         rename_stage: Přejmenovat fázi
         rename_reason: Přejmenovat důvod prohry
         archived: Archivováno
+        views: 'Pohledy: {list}'
+        search: Hledat podle názvu
+        tab:
+            all: Vše
+        empty:
+            filtered_title: Filtru nic neodpovídá
+            reset: Zrušit filtr
         column:
             name: Název
             key: Klíč

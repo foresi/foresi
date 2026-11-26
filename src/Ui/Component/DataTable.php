@@ -93,6 +93,8 @@ final class DataTable
      * whose view keeps them (WorkingDisplay::WIDTHS), as Airtable, Notion and ABRA Flexi let one do.
      */
     public bool $resizable = false;
+    /** The name a resizable table writes its widths to: widths, or reasons[widths] under a list slot (ListSlot). */
+    public string $widthsParam = 'widths';
 
     /** The count of the footer, such as "12 invoices". */
     public ?string $count = null;

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Component;
 
+use Foresi\Shared\Application\View\ListSlot;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -74,6 +75,8 @@ final class ColumnPicker
     public array $groups = [];
     /** What the list groups by now, one of the groups' values. */
     public ?string $group = null;
+    /** Where the list keeps its state on a page of several tables (ListSlot); null for the page's one. */
+    public ?ListSlot $slot = null;
 
     /** @var list<array{key: string, label: string, visible: bool, locked: bool, id: string}> */
     private array $views = [];
@@ -164,10 +167,19 @@ final class ColumnPicker
         $hidden = [];
         foreach ($this->keep as $name => $value) {
             if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'density', 'pins', 'group', 'page'], true)) {
-                $hidden[$name] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+                $hidden[$this->name($name)] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
             }
         }
 
-        return $hidden;
+        // The other tables of the page keep their state.
+        return $hidden + ($this->slot?->kept() ?? []);
+    }
+
+    /**
+     * The name a field of the sheet sends: cols on a page's first table, reasons[cols] under a slot.
+     */
+    public function name(string $key): string
+    {
+        return $this->slot?->field($key) ?? $key;
     }
 }

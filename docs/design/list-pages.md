@@ -51,9 +51,26 @@ same controls in the same places. A person who learns one list knows them all.
    `f=`.
 7. **Counts only where they help. A tab shows a count only where the list counted before, or where
    a person turns it on. Counts are summed in one query with the page.
-8. **What is not a list.** A board, the time week, a dashboard, a settings hub (firm, people, API
-   tokens) and an import preview keep plain `Ui:Tabs` as navigation. They are places, not lists of
-   records (see [overlays](overlays.md)).
+8. **Every table is a list with views.** Every table of records in Foresi is a list as above: its
+   saved views, a Settings sheet with columns and density, column widths a person drags
+   (`Ui:DataTable :resizable="true"`) and Reset to default. A settings hub (firm, people, API tokens)
+   keeps plain `Ui:Tabs` for its *navigation*, as a board, the time week and a dashboard do; any table
+   inside it is a list. (Martin's decision of 2026-11-26; it replaces "settings hubs and the import
+   preview are not lists".)
+9. **Several tables on one page each keep their own state (list slots).** Each table on a page has
+   its own views, filters, search, columns, density and widths, as each linked or inline database on
+   a Notion page has its own views. The page's first table keeps the bare keys of rule 6 (`view=`,
+   `f=`, `q=`, `sort=`, `cols=`, `density=`, `group=`, `pins=`, `widths=` and the builder's `c[…]`),
+   so old links keep working; every other table keeps the same keys nested under its slot, as
+   `reasons[cols]=name&reasons[widths]=name:240`. A link or form of one table carries the other
+   tables' state unchanged, and each table's dialogs have ids of their own. `ListSlot` does it:
+   `ListSlot::first($page, 'reasons')`, `ListSlot::named('reasons', $page)`.
+10. **A sub-table is keyed per table type; the parent record is context.** A table on a record's
+   page (the contact people of a party, the lines of a deal, subtasks) has one list key for its
+   type, such as `party.contact_people`: its views and each person's remembered display apply on
+   every record of that type, as a HubSpot association table card and a Salesforce dynamic related
+   list are set up once for the object. The record the table belongs to is a fixed condition the
+   query adds, never a condition of a view, as `work.project_tasks` on the project page does.
 
 ## Why
 
@@ -69,6 +86,16 @@ know:
   are named by their field and open its values; Linear's display options sheet holds the columns
   and the ordering. Notion and Attio keep a view's properties, filters and sorts in one view
   settings menu, so the row itself stays tabs and a few icons.
+- Several tables with views on one page (rule 9): Notion keeps views apart per database view on a
+  page. "Each database view has its own settings" ([Notion: views, filters, sorts & groups](https://www.notion.com/help/views-filters-and-sorts)),
+  and in a linked database "filters and views only apply to the linked instance"
+  ([Notion: using linked databases](https://www.notion.com/help/guides/using-linked-databases)).
+- Sub-tables keyed per table type (rule 10): HubSpot's record cards let an admin "select properties
+  to display as columns in the association table", in the object's settings
+  ([HubSpot: create cards to display data on records](https://knowledge.hubspot.com/object-settings/create-cards-on-records)).
+  Salesforce's dynamic related lists let an admin "choose the list's columns, sort order, actions"
+  on the object's record page, the record shown as the parent of the list
+  ([Trailhead: optimize Lightning dynamic related lists](https://trailhead.salesforce.com/content/learn/projects/upgrade-to-dynamic-related-lists/get-started-with-dynamic-related-lists)).
 
 The decisions are D1–D14 and D-display in the spec "Quick filters and saved views".
 
@@ -81,4 +108,9 @@ The decisions are D1–D14 and D-display in the spec "Quick filters and saved vi
 - [ ] The template sets `search`, includes `_list_toolbar` and has the FilterBar with builder, the
       ColumnPicker and the dialogs, as `src/Invoicing/templates/index.html.twig` does.
 - [ ] The list's search (`q=`) runs on the server.
+- [ ] The table passes `:resizable="true"`, and its Reset adds `WorkingDisplay::DENSITY => ''` and
+      `WorkingDisplay::WIDTHS => ''`.
+- [ ] On a page with several tables, each takes its `ListSlot` (rule 9) through `RememberedDisplay`
+      (`$slot->query()`), `ViewBar::of`, `FilterSheet::of`, its picker (`slot`), its FilterBar keep and
+      search name and `Ui:DataTable widthsParam`, as `SalesSettingsController` does.
 - [ ] Tests cover the old URLs, the builder redirect, the dot, Save as new and the `<X>Lists` class.

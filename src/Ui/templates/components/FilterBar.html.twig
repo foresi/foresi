@@ -147,16 +147,16 @@
                         {# Macros imported above are out of reach inside the sheet's block. #}
                         {% import '@Ui/components/_filter_rows.html.twig' as rows %}
                         {% set fields = bar.builderFields %}
-                        <input type="hidden" name="{{ constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
+                        <input type="hidden" name="{{ builder.marker ?? constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
                         <div class="grid gap-3" data-filter-rows>
-                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, formId, false, builder.rules) }}{% endfor %}
+                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, formId, false, builder.rules, builder.name ?? 'c') }}{% endfor %}
                         </div>
                         {{ rows.kept(builder, builder.rows|length) }}
                         <twig:Ui:Menu :id="id ~ '-add-menu'" :label="'ui.view_filter.add_row'|trans" icon="plus" variant="chip" align="start" :menuLabel="'ui.view_filter.add_row'|trans" menuClass="max-h-80 min-w-56 overflow-y-auto" data-filter-add>
                             {% for field in builder.fields %}<twig:Ui:MenuItem type="button" data-action="filter-bar#addRow" data-field="{{ field.key }}">{{ field.label }}</twig:Ui:MenuItem>{% endfor %}
                         </twig:Ui:Menu>
                         {% for field in builder.fields %}
-                            <template data-filter-template="{{ field.key }}">{{ rows.row(field, field.blank|merge({op: field.ops|keys|first}), '__i__', formId, false, builder.rules) }}</template>
+                            <template data-filter-template="{{ field.key }}">{{ rows.row(field, field.blank|merge({op: field.ops|keys|first}), '__i__', formId, false, builder.rules, builder.name ?? 'c') }}</template>
                         {% endfor %}
                     {% endif %}
                 </form>
@@ -171,11 +171,11 @@
                     {% if builder %}
                         {% set fields = bar.builderFields %}
                         {% set start = builder.rows|length + builder.kept|length %}
-                        <input type="hidden" name="{{ constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
+                        <input type="hidden" name="{{ builder.marker ?? constant('Foresi\\Shared\\Application\\View\\FilterRows::MARKER') }}" value="1">
                         {# The conditions set, then one row a field with its operator left empty. #}
                         <div class="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, id ~ '-noscript', true, builder.rules) }}{% endfor %}
-                            {% for field in builder.fields %}{{ rows.row(field, field.blank, start + loop.index0, id ~ '-noscript', true, builder.rules) }}{% endfor %}
+                            {% for row in builder.rows %}{{ rows.row(fields[row.field], row, loop.index0, id ~ '-noscript', true, builder.rules, builder.name ?? 'c') }}{% endfor %}
+                            {% for field in builder.fields %}{{ rows.row(field, field.blank, start + loop.index0, id ~ '-noscript', true, builder.rules, builder.name ?? 'c') }}{% endfor %}
                         </div>
                         {{ rows.kept(builder, builder.rows|length) }}
                     {% endif %}
