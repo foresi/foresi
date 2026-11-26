@@ -617,7 +617,7 @@ final class DecideSuggestionsTest extends InboxTestCase
     public function testAStepThatFailsOnASuggestionDecidedMeanwhileStoresNothing(): void
     {
         $suggestion = $this->proposed([$this->note('First', fail: true)]);
-        $runner = $this->rebuilt(self::getContainer()->get(StepRunner::class), ['transaction' => new ScriptedTransaction(self::getContainer()->get(\Foresi\Inbox\Application\InboxTransaction::class))->before(2, fn (): \Foresi\Inbox\Domain\Suggestion => $this->decide()->reject($suggestion, null))]);
+        $runner = $this->rebuilt(self::getContainer()->get(StepRunner::class), ['transaction' => new ScriptedTransaction(self::getContainer()->get(\Foresi\Inbox\Application\InboxTransaction::class))->before(2, fn (): Suggestion => $this->decide()->reject($suggestion, null))]);
 
         self::assertSame(StepState::Failed, $runner->run($suggestion, 1));
 

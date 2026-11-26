@@ -214,16 +214,16 @@ final class SuggestionTest extends TestCase
         self::assertSame(2000, mb_strlen($this->suggestion(1, str_repeat('a', 2000))->rationale()));
         self::assertSame(1000, mb_strlen($this->suggestion(1, quote: str_repeat('a', 1000))->quote()));
         self::assertCount(10, $this->suggestion(10)->steps());
-        $this->assertRefused(fn (): \Foresi\Inbox\Domain\Suggestion => $this->suggestion(1, str_repeat('é', 2001)), 'A rationale has 1 to 2,000 characters.');
-        $this->assertRefused(fn (): \Foresi\Inbox\Domain\Suggestion => $this->suggestion(1, quote: str_repeat('é', 1001)), 'A quote has 1 to 1,000 characters.');
-        $this->assertRefused(fn (): \Foresi\Inbox\Domain\Suggestion => $this->suggestion(11), 'A suggestion has 1 to 10 steps.');
+        $this->assertRefused(fn (): Suggestion => $this->suggestion(1, str_repeat('é', 2001)), 'A rationale has 1 to 2,000 characters.');
+        $this->assertRefused(fn (): Suggestion => $this->suggestion(1, quote: str_repeat('é', 1001)), 'A quote has 1 to 1,000 characters.');
+        $this->assertRefused(fn (): Suggestion => $this->suggestion(11), 'A suggestion has 1 to 10 steps.');
     }
 
     public function testItNeedsUuidIdsForItselfItsProposerAndItsToken(): void
     {
         $item = $this->suggestion(1)->item();
         foreach ([['bad', Id::generate(), Id::generate()], [Id::generate(), 'bad', Id::generate()], [Id::generate(), Id::generate(), 'bad']] as [$id, $user, $token]) {
-            $this->assertRefused(fn (): \Foresi\Inbox\Domain\Suggestion => new Suggestion($id, $item, [['operation' => 'inbox.actions.fixture_note', 'input' => []]], 'Why', 'Quote', 0, $user, $token, 'Agent', $this->now), 'A suggestion, its proposer and its token have UUIDv7 ids.');
+            $this->assertRefused(fn (): Suggestion => new Suggestion($id, $item, [['operation' => 'inbox.actions.fixture_note', 'input' => []]], 'Why', 'Quote', 0, $user, $token, 'Agent', $this->now), 'A suggestion, its proposer and its token have UUIDv7 ids.');
         }
     }
 
@@ -231,7 +231,7 @@ final class SuggestionTest extends TestCase
     {
         self::assertSame('Mail agent', $this->suggestion(1, client: "  Mail agent \n")->proposedByClient());
         self::assertSame(str_repeat('M', 100), $this->suggestion(1, client: '  '.str_repeat('M', 101))->proposedByClient());
-        $this->assertRefused(fn (): \Foresi\Inbox\Domain\Suggestion => $this->suggestion(1, client: "  \t "), 'A suggestion names the client that proposed it.');
+        $this->assertRefused(fn (): Suggestion => $this->suggestion(1, client: "  \t "), 'A suggestion names the client that proposed it.');
     }
 
     public function testARejectReasonIsCutByCharactersAfterTheTrim(): void
@@ -301,10 +301,10 @@ final class SuggestionTest extends TestCase
             [1, 'Task'], [1, '!task'], [1, 'task!'], [1, 'a b'], [1, ''], [1, str_repeat('a', 101)],
         ];
         foreach ($refused as [$position, $operation]) {
-            $this->assertRefused(static fn (): \Foresi\Inbox\Domain\SuggestionStep => new SuggestionStep(Id::generate(), $suggestion, $position, $operation, []));
+            $this->assertRefused(static fn (): SuggestionStep => new SuggestionStep(Id::generate(), $suggestion, $position, $operation, []));
         }
-        $this->assertRefused(static fn (): \Foresi\Inbox\Domain\SuggestionStep => new SuggestionStep('bad', $suggestion, 1, 'inbox.actions.fixture_note', []), 'A suggestion step has a UUIDv7 id.');
-        $this->assertRefused(static fn (): \Foresi\Inbox\Domain\SuggestionStep => new SuggestionStep(Id::generate(), $suggestion, 1, 'inbox.actions.fixture_note', ['a', 'b']), 'The input of a step is an object of its fields.');
+        $this->assertRefused(static fn (): SuggestionStep => new SuggestionStep('bad', $suggestion, 1, 'inbox.actions.fixture_note', []), 'A suggestion step has a UUIDv7 id.');
+        $this->assertRefused(static fn (): SuggestionStep => new SuggestionStep(Id::generate(), $suggestion, 1, 'inbox.actions.fixture_note', ['a', 'b']), 'The input of a step is an object of its fields.');
     }
 
     public function testARecordKindAndARefusalReasonAreCodes(): void
