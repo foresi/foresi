@@ -22,6 +22,8 @@
 {% set resizable = this.resizable %}
 {% set fixed = this.fixed %}
 {% set filler = resizable and not this.hasActions %}
+{# A header is named by its label alone, never by its grip's label as well. #}
+{% set headerId = resizable ? 'th-' ~ random() : null %}
 {% macro alert(alert, focus) %}{{ ux_icon('lucide:triangle-alert', {class: 'mt-0.5 size-3.5 shrink-0', 'aria-hidden': 'true'}) }}<span>{{ alert.text }}{% if alert.href %} <a href="{{ alert.href }}" data-turbo="false" class="font-medium text-badge-red-text underline {{ focus }}">{{ alert.action }}</a>{% endif %}</span>{% endmacro %}
 {# A table in an overlay (a record in the sheet) asks with confirm-submit: its host posts the form itself, so data-turbo-confirm would never ask. #}
 {% macro confirm(confirm) %}{% if confirm %}{% if confirm.overlay %} data-controller="confirm-submit" data-action="submit->confirm-submit#ask" data-confirm-title="{{ confirm.title }}"{% else %} data-turbo-confirm="{{ confirm.title }}"{% endif %}{% if confirm.text %} data-confirm-text="{{ confirm.text }}"{% endif %}{% if confirm.accept %} data-confirm-accept="{{ confirm.accept }}"{% endif %}{% if confirm.cancel %} data-confirm-cancel="{{ confirm.cancel }}"{% endif %}{% if confirm.tone %} data-confirm-tone="{{ confirm.tone }}"{% endif %}{% endif %}{% endmacro %}
@@ -55,12 +57,14 @@
                                 </th>
                             {% endif %}
                             {% for column in this.columnViews %}
-                                <th scope="col"{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
+                                <th scope="col"{% if headerId %} aria-labelledby="{{ headerId }}-{{ loop.index }}"{% endif %}{% if column.sortable %} aria-sort="{{ this.ariaSort(column.sort) }}"{% endif %} class="h-row whitespace-nowrap border-b border-divider bg-head px-4 text-caption font-medium text-muted {{ this.alignClass(column.align) }}{{ column.phone ? '' : ' max-sm:hidden' }}{{ column.wide ? ' max-xl:hidden' : '' }}{{ column.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ resizable ? ' relative' : '' }}">
                                     {%- if column.sortable -%}
-                                        <a href="{{ column.href }}" class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
+                                        <a href="{{ column.href }}"{% if headerId %} id="{{ headerId }}-{{ loop.index }}"{% endif %} class="inline-flex min-h-6 items-center max-shell:min-h-touch gap-1 text-muted no-underline hover:text-ink {{ focus }}">
                                             {{- column.label -}}
                                             {{- ux_icon('lucide:' ~ (column.sort ? 'chevron-down' : 'chevrons-up-down'), {class: 'size-3.5 shrink-0' ~ (column.sort == 'asc' ? ' rotate-180' : ''), 'aria-hidden': 'true'}) -}}
                                         </a>
+                                    {%- elseif headerId -%}
+                                        <span id="{{ headerId }}-{{ loop.index }}">{{ column.label }}</span>
                                     {%- else -%}
                                         {{- column.label -}}
                                     {%- endif -%}

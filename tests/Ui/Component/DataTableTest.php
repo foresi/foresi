@@ -384,6 +384,9 @@ final class DataTableTest extends KernelTestCase
         self::assertSame('64', $grips->eq(0)->attr('aria-valuenow'), 'a column sized to its text says its minimum until the controller measures it');
         self::assertContains('max-sm:hidden', explode(' ', (string) $grips->eq(0)->attr('class')));
         self::assertCount(3, $html->filter('colgroup col[data-column-resize-target="col"]'));
+        $header = $html->filter('thead th')->eq(2);
+        self::assertSame('Balance', $html->filter('#'.$header->attr('aria-labelledby'))->text(), 'a header is named by its label, not its grip\'s too');
+        self::assertSame('E-mail', $html->filter('#'.$html->filter('thead th')->eq(1)->attr('aria-labelledby'))->text());
         self::assertStringNotContainsString('table-fixed', (string) $html->filter('table')->attr('class'), 'the columns size to their text until each has a width');
     }
 
