@@ -14,7 +14,6 @@ use Foresi\Ui\Column\ListColumnRegistry;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\ResolvedColumn;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +26,6 @@ final class ListColumnRegistryTest extends TestCase
         $display = $this->registry()->display(self::LIST);
 
         self::assertSame(['number', 'customer', 'due_date', 'payable'], $display->keys());
-        self::assertNull($display->density);
         self::assertNull($display->groupBy);
     }
 

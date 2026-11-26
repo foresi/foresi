@@ -33,13 +33,13 @@ final class Version20261127090000 extends AbstractMigration
     public function postUp(Schema $schema): void
     {
         foreach ($this->connection->fetchAllAssociative("SELECT id, display FROM saved_view WHERE CAST(display AS TEXT) LIKE '%\"density\"%'") as $row) {
-            $display = self::withoutDensity($row['display']);
+            $display = $this->withoutDensity($row['display']);
             if (null !== $display) {
                 $this->connection->update('saved_view', ['display' => [] === $display ? null : json_encode($display, \JSON_THROW_ON_ERROR)], ['id' => $row['id']]);
             }
         }
         foreach ($this->connection->fetchAllAssociative("SELECT view_id, user_id, display FROM saved_view_user_state WHERE CAST(display AS TEXT) LIKE '%\"density\"%'") as $row) {
-            $display = self::withoutDensity($row['display']);
+            $display = $this->withoutDensity($row['display']);
             $key = ['view_id' => $row['view_id'], 'user_id' => $row['user_id']];
             if ([] === $display) {
                 $this->connection->delete('saved_view_user_state', $key);
@@ -60,7 +60,7 @@ final class Version20261127090000 extends AbstractMigration
      *
      * @return array<array-key, mixed>|null
      */
-    private static function withoutDensity(mixed $json): ?array
+    private function withoutDensity(mixed $json): ?array
     {
         $display = \is_string($json) ? json_decode($json, true) : null;
         if (!\is_array($display) || !\array_key_exists('density', $display)) {

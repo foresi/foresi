@@ -25,7 +25,6 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;

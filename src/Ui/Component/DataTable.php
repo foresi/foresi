@@ -88,7 +88,7 @@ final class DataTable
      * such as invoice lines, bank movements or the time report. Their heights are the row tokens
      * of the person's density (Profile, Appearance): 56 and 44 px at normal.
      */
-    public string $kind = 'list';
+    public string $rowStyle = 'list';
 
     /**
      * Whether a person drags the columns to the widths they want, from the sm breakpoint up: a list
@@ -113,8 +113,8 @@ final class DataTable
     #[PostMount]
     public function validate(): void
     {
-        if (!isset(self::ROW_HEIGHTS[$this->kind])) {
-            throw new \InvalidArgumentException(\sprintf('Unknown kind of rows "%s", expected one of: %s.', $this->kind, implode(', ', array_keys(self::ROW_HEIGHTS))));
+        if (!isset(self::ROW_HEIGHTS[$this->rowStyle])) {
+            throw new \InvalidArgumentException(\sprintf('Unknown row style "%s", expected one of: %s.', $this->rowStyle, implode(', ', array_keys(self::ROW_HEIGHTS))));
         }
         foreach ($this->columns as $column) {
             $this->columnViews[] = $this->column($column);
@@ -187,7 +187,7 @@ final class DataTable
     /** The height class of a body row. */
     public function rowHeight(): string
     {
-        return self::ROW_HEIGHTS[$this->kind];
+        return self::ROW_HEIGHTS[$this->rowStyle];
     }
 
     public function shareClass(): string

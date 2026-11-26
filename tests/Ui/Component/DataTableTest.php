@@ -475,15 +475,15 @@ final class DataTableTest extends KernelTestCase
             self::assertContains($expected, explode(' ', $header));
         }
 
-        $dense = new Crawler($this->render(['kind' => 'lines']));
+        $dense = new Crawler($this->render(['rowStyle' => 'lines']));
         self::assertContains('h-row', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
         self::assertNotContains('h-row-list', explode(' ', (string) $dense->filter('tbody td')->first()->attr('class')));
     }
 
-    public function testAnUnknownKindOfRowsThrows(): void
+    public function testAnUnknownRowStyleThrows(): void
     {
-        $this->expectExceptionMessageIsOrContains('Unknown kind of rows "roomy", expected one of: list, lines.');
-        $this->render(['kind' => 'roomy']);
+        $this->expectExceptionMessageIsOrContains('Unknown row style "roomy", expected one of: list, lines.');
+        $this->render(['rowStyle' => 'roomy']);
     }
 
     public function testTheFooterShowsTheCountAndTheTotalBeforeWhatThePageAdds(): void
