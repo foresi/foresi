@@ -42,16 +42,16 @@ final class ProjectOrderTest extends TestCase
     public function testTheRowsAreOrderedWithTiesByName(string $sort, bool $descending, array $expected): void
     {
         $rows = [
-            self::row('a', open: 2, overdue: 3, unassigned: 1, due: '2026-12-05'),
-            self::row('b', open: 5, overdue: 0, unassigned: 1, due: null),
-            self::row('c', open: 2, overdue: 1, unassigned: 0, due: '2026-12-01'),
-            self::row('d', open: 0, overdue: 2, unassigned: 4, due: '2026-12-05'),
+            $this->row('a', open: 2, overdue: 3, unassigned: 1, due: '2026-12-05'),
+            $this->row('b', open: 5, overdue: 0, unassigned: 1, due: null),
+            $this->row('c', open: 2, overdue: 1, unassigned: 0, due: '2026-12-01'),
+            $this->row('d', open: 0, overdue: 2, unassigned: 4, due: '2026-12-05'),
         ];
 
         self::assertSame($expected, array_map(static fn (ProjectRow $row): string => $row->id, ProjectOrder::sorted($rows, $sort, $descending)));
     }
 
-    private static function row(string $name, int $open, int $overdue, int $unassigned, ?string $due): ProjectRow
+    private function row(string $name, int $open, int $overdue, int $unassigned, ?string $due): ProjectRow
     {
         return new ProjectRow($name, $name, null, null, WorkflowTemplate::Simple, $open, null === $due ? null : new \DateTimeImmutable($due), false, ProjectVisibility::Organisation, $overdue, $unassigned);
     }

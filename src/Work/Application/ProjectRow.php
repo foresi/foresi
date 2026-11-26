@@ -17,7 +17,7 @@ use Foresi\Work\Domain\WorkflowTemplate;
 final readonly class ProjectRow
 {
     /**
-     * @param int                     $openTasks  tasks, subtasks included, whose status is not finished
+     * @param int                     $openTasks       tasks, subtasks included, whose status is not finished
      * @param \DateTimeImmutable|null $nearestDue      the earliest due date of those tasks
      * @param int                     $overdueTasks    those of them past their due date
      * @param int                     $unassignedTasks those of them with no one responsible

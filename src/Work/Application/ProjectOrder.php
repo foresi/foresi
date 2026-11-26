@@ -32,8 +32,8 @@ final readonly class ProjectOrder
         $direction = $descending ? -1 : 1;
         $at = array_flip(array_map(static fn (ProjectRow $row): string => $row->id, $rows));
         usort($rows, static function (ProjectRow $a, ProjectRow $b) use ($sort, $direction, $at): int {
-            if (self::DUE === $sort && (null === $a->nearestDue) !== (null === $b->nearestDue)) {
-                return null === $a->nearestDue ? 1 : -1;
+            if (self::DUE === $sort && (!$a->nearestDue instanceof \DateTimeImmutable) !== (!$b->nearestDue instanceof \DateTimeImmutable)) {
+                return $a->nearestDue instanceof \DateTimeImmutable ? -1 : 1;
             }
             $by = match ($sort) {
                 self::OPEN => $a->openTasks <=> $b->openTasks,

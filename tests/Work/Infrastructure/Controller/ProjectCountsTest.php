@@ -130,7 +130,7 @@ final class ProjectCountsTest extends WebTestCase
         self::assertSame(['Mobile app'], $this->names($this->filtered(new Condition('open_tasks', 'le', 1), new Condition('open_tasks', 'ne', 0))));
         self::assertSame(['Mobile app', 'Website'], $this->names($this->filtered(new Condition('open_tasks', 'ge', 1), new Condition('unassigned_tasks', 'lt', 3))));
         self::assertSame(['Empty'], $this->names($this->filtered(new Condition('next_due', 'is_empty'))));
-        self::assertSame(['Mobile app'], $this->names($this->filtered(new Condition('next_due', 'after', (new \DateTimeImmutable())->format('Y-m-d')))));
+        self::assertSame(['Mobile app'], $this->names($this->filtered(new Condition('next_due', 'after', new \DateTimeImmutable()->format('Y-m-d')))));
         self::assertSame(['Website'], $this->names($this->filtered(new Condition('unassigned_tasks', 'between', ['from' => 2, 'to' => 2]), new Condition('billable', 'is', true))));
     }
 
