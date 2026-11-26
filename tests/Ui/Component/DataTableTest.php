@@ -396,6 +396,25 @@ final class DataTableTest extends KernelTestCase
         self::assertCount(0, new Crawler($this->render())->filter('[role="separator"]'));
     }
 
+    public function testAResizableTableScrollsInsideItsCardInsteadOfWideningIt(): void
+    {
+        $scroller = static fn (Crawler $html): array => explode(' ', (string) $html->filter('table')->ancestors()->first()->attr('class'));
+
+        $resizable = $scroller(new Crawler($this->render(['columns' => self::COLUMNS, 'resizable' => true])));
+        self::assertContains('overflow-x-auto', $resizable);
+        self::assertContains('[contain:inline-size]', $resizable, 'the widths of its columns never size the card or a group\'s grid track');
+        self::assertNotContains('[contain:inline-size]', $scroller(new Crawler($this->render())), 'a table sized to its text keeps sizing what holds it');
+    }
+
+    public function testAGripIsAFaintDividerUntilThePointerIsOnIt(): void
+    {
+        $classes = explode(' ', (string) new Crawler($this->render(['columns' => self::COLUMNS, 'resizable' => true]))->filter('th [role="separator"]')->first()->attr('class'));
+
+        self::assertContains('after:w-px', $classes);
+        self::assertContains('after:bg-divider', $classes);
+        self::assertContains('hover:after:bg-control-line', $classes);
+    }
+
     public function testOnceEveryColumnHasAWidthTheTableLaysThemOutAtTheirWidths(): void
     {
         $columns = self::COLUMNS;
