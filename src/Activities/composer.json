@@ -45,7 +45,8 @@
             "namespace": "Foresi\\Activities\\",
             "bundle": "Foresi\\Activities\\ActivitiesBundle",
             "optional": [
-                "calendar"
+                "calendar",
+                "inbox"
             ],
             "scopes": [
                 "activities"

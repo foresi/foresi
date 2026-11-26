@@ -70,6 +70,8 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_inbox.items.trash', 'api_v1_operation_inbox.items.restore',
         // The inbox actions of the module only the tests have (tests/Inbox/Fixtures/Action).
         'api_v1_operation_inbox.actions.fixture_note', 'api_v1_operation_inbox.actions.fixture_contact_note',
+        // The inbox actions of Sales and Activities.
+        'api_v1_operation_inbox.actions.create_deal', 'api_v1_operation_inbox.actions.log_activity',
         // The inbox actions of Work.
         'api_v1_operation_inbox.actions.create_task', 'api_v1_operation_inbox.actions.log_time',
         'api_v1_mail_addresses', 'api_v1_operation_mail.addresses.create', 'api_v1_operation_mail.addresses.rename', 'api_v1_operation_mail.addresses.revoke', 'api_v1_operation_mail.addresses.replace',

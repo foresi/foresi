@@ -126,8 +126,9 @@ final class InboxActionsTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $actions = $this->at('data', 'available_actions');
         self::assertIsArray($actions);
-        self::assertSame([self::NOTE], array_column($actions, 'operation'), 'The contact note needs a matched contact.');
-        $note = $actions[0];
+        // Activities' own action (weight 40) is offered beside the fixtures, as its token scope is the same.
+        self::assertSame(['inbox.actions.log_activity', self::NOTE], array_column($actions, 'operation'), 'The contact note needs a matched contact.');
+        $note = $actions[1];
         self::assertIsArray($note);
         self::assertSame('foresi_add_fixture_note_from_email', $note['tool']);
         self::assertSame('inbox_fixture.action.note', $note['label']);
@@ -367,7 +368,7 @@ final class InboxActionsTest extends ApiTestCase
     }
 
     /**
-     * @return list<string> the operations of the item's available actions
+     * @return list<string> the operations of the item's available actions, but Activities' own (offered whenever its module is installed)
      */
     private function offered(string $itemId, ?string $secret = null): array
     {
@@ -376,7 +377,9 @@ final class InboxActionsTest extends ApiTestCase
         $actions = $this->at('data', 'available_actions');
         self::assertIsArray($actions);
 
-        return array_values(array_map(static fn (mixed $action): string => \is_array($action) && \is_string($action['operation'] ?? null) ? $action['operation'] : '', $actions));
+        $operations = array_map(static fn (mixed $action): string => \is_array($action) && \is_string($action['operation'] ?? null) ? $action['operation'] : '', $actions);
+
+        return array_values(array_diff($operations, ['inbox.actions.log_activity']));
     }
 
     private function notes(): FixtureNotes

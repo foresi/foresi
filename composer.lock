@@ -1768,7 +1768,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "52a413fb6eda0bb07feb3347e27ab32951e754a1"
+                "reference": "9c9cc7d7b9c50ae10537bca49d9ce5660a106040"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1800,7 +1800,8 @@
                     "namespace": "Foresi\\Activities\\",
                     "bundle": "Foresi\\Activities\\ActivitiesBundle",
                     "optional": [
-                        "calendar"
+                        "calendar",
+                        "inbox"
                     ],
                     "scopes": [
                         "activities"
@@ -3251,7 +3252,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Sales",
-                "reference": "cabe1e77f0811978c0451694369bebf4337f1831"
+                "reference": "51e4cfea31ca021a515a386b610bf9709dc648ec"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3289,7 +3290,8 @@
                         "documents",
                         "activities",
                         "timesheet",
-                        "work"
+                        "work",
+                        "inbox"
                     ],
                     "scopes": [
                         "sales"
