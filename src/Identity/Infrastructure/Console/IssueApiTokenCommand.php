@@ -25,7 +25,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * sign-in is asked for here: whoever runs the console already holds the
  * installation. The secret is printed once and kept nowhere.
  */
-#[AsCommand(name: 'app:api-token:issue', description: 'Issue a personal API token for a user')]
+#[AsCommand(
+    name: 'app:api-token:issue',
+    description: 'Issue a personal API token for a user',
+    help: <<<'HELP'
+    Issues a personal API token for an existing user who is the owner or a team member. Run it by hand
+    when someone needs the REST API or the MCP server; the token acts as that person with the scopes you
+    give. At least one --scope is required; repeat the option for more. The command writes one token.
+    The secret is printed once and stored nowhere, so copy it from the output. Running it again issues
+    another token. It exits with 1 when the user is unknown or the request is refused, and with 2 for
+    invalid input.
+
+      bin/console app:api-token:issue owner@example.com --name="Reporting" --days=90 --scope=read
+    HELP,
+)]
 final readonly class IssueApiTokenCommand
 {
     public function __construct(

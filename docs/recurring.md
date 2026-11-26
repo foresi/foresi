@@ -73,7 +73,7 @@ For each active template whose next date has come, the run issues every occurren
 
 ### The organisation's time zone
 
-The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see [operations](operations.md#environment-variables)), else the zone of the country of the firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
+The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see the [environment reference](reference/environment.md#app_timezone)), else the zone of the country of the firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
 
 ### Each occurrence exactly once
 

@@ -21,7 +21,21 @@ use Symfony\Component\Console\Output\OutputInterface;
  * whatever the trigger, and writes one JSON line per file. The files are the operator's own and stay where they
  * are; the key never reaches the output.
  */
-#[AsCommand(name: 'ai-reader:measure', description: 'Read the files of a directory with the AI reader and write one JSON line per file')]
+#[AsCommand(
+    name: 'ai-reader:measure',
+    description: 'Read the files of a directory with the AI reader and write one JSON line per file',
+    help: <<<'HELP'
+    Reads every PDF, PNG and JPEG file of a directory with the AI reader and writes one JSON line per
+    file, to the standard output or to the file of --output. Run it by hand to measure how well the
+    reader and a model do on your own documents, whatever the trigger setting. Each file is sent to the
+    AI provider and may cost money. The files stay where they are, nothing is stored in Foresi, and the
+    API key never reaches the output. It exits with 1 when the AI reader is not set up
+    (AI_READER_PROVIDER and AI_READER_API_KEY), and with 2 when the directory or the output file is not
+    usable.
+
+      bin/console ai-reader:measure /path/to/documents --output=measure.jsonl
+    HELP,
+)]
 final readonly class MeasureCommand
 {
     public function __construct(private AiReaderSettings $settings, private Measurement $measurement)

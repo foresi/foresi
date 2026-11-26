@@ -1,0 +1,63 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new meeting, or one changed: its series (new only), title, day, time, attendees and the records it is
+    about, then its custom fields under "Additional details". Choosing a series ticks its default attendees and
+    names the title after it unless one is typed (Fellow's note series). A dialog over the list or the meeting;
+    the URL is a page of its own too. Variables: meeting (null for a new one), action, values, errors,
+    seriesOptions, seriesDefaults, people, projects, linked, customValues, customErrors.
+#}
+{% extends overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = meeting ? 'meetings.meeting.edit'|trans : 'meetings.meeting.new'|trans %}
+{% set back = meeting ? path('app_meetings_meeting', {id: meeting.id}) : path('app_meetings_meetings') %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}]|merge(meeting ? [{label: meeting.title, href: back}] : [])|merge([{label: heading}]) %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
+{% set dialog_size = 'md' %}
+{% set record_fields = true %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="meeting-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="meeting-series" data-meeting-series-defaults-value="{{ seriesDefaults|json_encode }}">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Meetings\\Infrastructure\\Controller\\MeetingController::TOKEN')) }}">
+        {% if not meeting %}
+            <twig:Ui:Select name="seriesId" id="meeting-series" :label="'meetings.meeting.field.series'|trans" :options="seriesOptions" :value="values.seriesId" :error="errors.seriesId|default(null)" data-meeting-series-target="series" data-action="change->meeting-series#chosen" />
+        {% endif %}
+        <twig:Ui:TextInput name="title" id="meeting-title" :label="'meetings.meeting.field.title'|trans" :help="meeting ? null : 'meetings.meeting.field.title_help'|trans" :value="values.title" :error="errors.title|default(null)" :maxlength="constant('Foresi\\Meetings\\Domain\\Meeting::MAX_TITLE')" />
+        <div class="grid gap-4 sm:grid-cols-2">
+            <twig:Ui:TextInput type="date" name="heldOn" id="meeting-held-on" :label="'meetings.meeting.field.held_on'|trans" :value="values.heldOn" :error="errors.heldOn|default(null)" required />
+            <twig:Ui:TextInput type="time" name="startsAt" id="meeting-starts-at" :label="'meetings.meeting.field.starts_at'|trans" :value="values.startsAt" :error="errors.startsAt|default(null)" />
+        </div>
+        {% if people is not empty %}
+            <twig:Ui:ChoiceChips name="attendees[]" id="meeting-attendees" :legend="'meetings.meeting.field.attendees'|trans" :options="people" :values="values.attendees" :error="errors.attendees|default(null)" data-meeting-series-target="attendees" />
+        {% endif %}
+        <fieldset class="m-0 grid min-w-0 gap-3 border-0 p-0" data-meeting-links>
+            <legend class="mb-1.5 p-0 text-small text-ink">{{ 'meetings.meeting.field.links'|trans }}</legend>
+            {% for value, label in linked %}
+                <twig:Ui:Checkbox name="links[]" :id="'meeting-link-' ~ loop.index" :value="value" :checked="true" :label="label" />
+            {% endfor %}
+            <div class="grid gap-4 sm:grid-cols-2">
+                <twig:Ui:Select name="project" id="meeting-project" :label="'meetings.meeting.link.add_project'|trans" :options="projects" value="" />
+                <twig:Ui:Combobox name="contactId" id="meeting-contact" textName="contactQuery" :label="'meetings.meeting.link.add_contact'|trans" :placeholder="'meetings.meeting.link.contact_placeholder'|trans" value="" text="" :url="path('app_meetings_contacts')" :emptyText="'meetings.meeting.link.contact_empty'|trans" />
+            </div>
+            {% if errors.links|default(null) %}<p class="m-0 text-small text-badge-red-text">{{ errors.links }}</p>{% endif %}
+        </fieldset>
+        <twig:Ui:CustomFields :record="constant('Foresi\\Meetings\\Contract\\Field\\MeetingExtension::RECORD')" :id="meeting ? meeting.id : null" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="meeting-form" variant="primary">{{ (meeting ? 'meetings.save' : 'meetings.meeting.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="meeting ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back" data-in-place>{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="meeting-form" variant="primary">{{ (meeting ? 'meetings.save' : 'meetings.meeting.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -25,7 +25,21 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * baselines), 2 when the database is on the global history, 1 otherwise.
  * ops/deploy.sh uses it to leave such a database alone.
  */
-#[AsCommand(name: 'app:migrations:rebase', description: 'Move a database from the global migration history onto the module baselines, without DDL')]
+#[AsCommand(
+    name: 'app:migrations:rebase',
+    description: 'Move a database from the global migration history onto the module baselines, without DDL',
+    help: <<<'HELP'
+    Moves a database from the old global migration history onto the baselines of the modules. It
+    replaces the rows of the executed versions only and changes no table. Run it once, from the live
+    release, on an existing database that the deploy left alone; take a backup first
+    (ops/backup.sh --tag pre-rebase). It refuses and changes nothing when a version is missing or the
+    schema is out of sync. A database already on the baselines needs nothing and exits with 0.
+
+    With --check it changes nothing and reports the state by its exit code: 0 when there is nothing to
+    rebase (a new database, or one already on the baselines), 2 when the database is on the global
+    history, 1 otherwise. ops/deploy.sh uses this.
+    HELP,
+)]
 final readonly class RebaseMigrationsCommand
 {
     public const int PENDING = 2;

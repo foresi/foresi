@@ -20,7 +20,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * migrations: on the full application it finds a table with no owner, on a
  * subset of modules a table of a module that is not installed.
  */
-#[AsCommand(name: 'app:migrations:owners', description: 'Check that every table of the database is created by the migrations of one installed module')]
+#[AsCommand(
+    name: 'app:migrations:owners',
+    description: 'Check that every table of the database is created by the migrations of one installed module',
+    help: <<<'HELP'
+    Checks that every table of the database is created by the migrations of exactly one installed
+    module. Run it after the migrations, in CI and after installing or removing a module. On the full
+    application it finds a table with no owner; on a subset of modules it finds a table of a module that
+    is not installed. It is read-only and safe to repeat. It exits with 1 and prints the problems when a
+    table has no owner. Use --list to print every table with its module.
+    HELP,
+)]
 final readonly class MigrationOwnersCommand
 {
     public function __construct(private TableOwners $owners)

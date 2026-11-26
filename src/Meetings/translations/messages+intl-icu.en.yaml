@@ -1,0 +1,154 @@
+nav:
+  item:
+    meetings: Meetings
+meetings:
+  cancel: Cancel
+  save: Save
+  meetings:
+    title: Meetings
+    views: Views of the meetings
+    search_label: Search the meetings
+    tab:
+      all: All
+      upcoming: Upcoming
+      past: Past
+      mine: My meetings
+    field:
+      series: Series
+      mine: My meetings
+      when: When
+      held_on: Day
+    when:
+      upcoming: Upcoming
+      past: Past
+    column:
+      held_on: Day
+      title: Title
+      series: Series
+      attendees: Attendees
+      links: Linked records
+    empty:
+      title: No meetings yet
+      text: Keep the minutes of your meetings here, with their attendees and the records they are about.
+      view_title: No meeting in this view
+      filtered_title: No meeting matches the filter
+      reset: Clear the filter
+  meeting:
+    new: New meeting
+    create: Create meeting
+    edit: Edit
+    edit_minutes: Edit the minutes
+    trash: Move to trash
+    restore: Restore
+    in_trash: In the trash
+    one_off: One-off meeting
+    nobody: Nobody
+    no_minutes: No minutes yet.
+    history: History
+    field:
+      series: Series
+      title: Title
+      title_help: Left empty in a series, it is the series name and day.
+      held_on: Day
+      starts_at: Time
+      attendees: Attendees
+      links: Linked records
+      minutes: Minutes
+    link:
+      add_project: Link a project
+      no_project: No project
+      add_contact: Link a contact
+      contact_placeholder: Find a contact
+      contact_empty: No contact matches
+      kind:
+        project: Project
+        contact: Contact
+        deal: Deal
+    flash:
+      created: The meeting "{title}" was created.
+      saved: The meeting was saved.
+      minutes_saved: The minutes were saved.
+      trashed: The meeting "{title}" was moved to the trash. It is removed for good after {days} days.
+      restored: The meeting "{title}" was restored.
+    error:
+      title_required: Give the meeting a title.
+      title_too_long: The title is too long.
+      held_on_invalid: Pick the day of the meeting.
+      starts_at_invalid: Write the time as HH:MM, such as 09:30.
+      attendee_unknown: An attendee is no longer in the firm.
+      link_invalid: A linked record is not valid.
+      link_not_found: A linked record cannot be found.
+      series_not_found: The series cannot be found.
+      series_archived: The series is archived and takes no new meetings.
+      minutes_too_long: The minutes are too long.
+      stale_minutes: Someone else changed the minutes. Reload to see their version.
+      trashed: The meeting is in the trash. Restore it first.
+      not_found: The meeting cannot be found.
+      not_trasher: Only the person who created the meeting and the owners move it to the trash.
+      forbidden: Only the owners and members of the firm keep its meetings.
+  series:
+    title: Series
+    views: Views of the series
+    new: New series
+    create: Create series
+    edit: Edit
+    archive: Archive
+    no_project: No project
+    tab:
+      active: Active
+      archived: Archived
+    column:
+      name: Name
+      visibility: Who sees it
+      members: Members
+      meetings: Meetings
+      last: Last meeting
+    visibility:
+      members: Its members and attendees
+      organisation: Everyone in the firm
+    field:
+      name: Name
+      visibility: Who sees it
+      visibility_help: Owners see all, attendees also see their meeting.
+      members: Members
+      defaults: Default attendees
+      defaults_help: They start as attendees of each new meeting of the series.
+      default_project: Default project
+      default_project_help: The project offered first for a task from the minutes.
+      agenda_template: Agenda template
+      agenda_template_help: Copied into the minutes of new meetings only.
+    empty:
+      title: No series yet
+      text: A series groups recurring meetings, such as a weekly production meeting, with their people and agenda.
+    flash:
+      created: The series "{name}" was created.
+      saved: The series was saved.
+      archived: The series "{name}" was archived.
+    error:
+      name_required: Give the series a name.
+      name_too_long: The name is too long.
+      name_taken: Another series has this name.
+      visibility_invalid: Choose who sees the series.
+      template_too_long: The agenda template is too long.
+      project_not_found: The project cannot be found.
+      member_unknown: A member is no longer in the firm.
+      not_series_member: Only the owners and the members of the series change it.
+      not_found: The series cannot be found.
+      forbidden: Only the owners and members of the firm keep its meetings.
+  trash:
+    title: Trash
+    purge: Meetings in the trash are removed for good after {days} days.
+    empty: The trash is empty
+    column:
+      deleted_at: Moved to the trash
+  history:
+    someone: Someone
+    created: "{who} created the meeting"
+    changed: "{who} changed {what}"
+    trashed: "{who} moved the meeting to the trash"
+    restored: "{who} restored the meeting"
+    fields: "{fields}"
+    attendees_added: "added {names}"
+    attendees_removed: "removed {names}"
+    linked: "{count, plural, one {linked a record} other {linked # records}}"
+    unlinked: "{count, plural, one {removed a link} other {removed # links}}"

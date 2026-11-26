@@ -66,6 +66,17 @@ A connection lists only the tools its token's [scopes](api.md#scopes) allow: a t
 | `foresi_create_product` | **Write.** Adds a product: name, unit, optional `unit_price`, and `billing_kind` `one_off`, `recurring` or `time_based` (billed by the hour: unit `h`, `unit_price` is the hourly rate, no recurrence) with, for a recurring one, `recurrence_unit`, `interval` and optional `cycles`. |
 | `foresi_update_product` | **Write.** Changes the fields given of a product (`product_id`); `null` clears an optional one. |
 | `foresi_archive_product` | **Write.** Archives a product (`product_id`): it is no longer offered. |
+| `foresi_list_meeting_series` | The meeting series you see, by name, with their members and default attendees, and `people`: the owners and members of the firm by id, for `member_ids` and `attendee_ids`; archived series only with `archived: true`. |
+| `foresi_create_meeting_series` | **Write.** Adds a series: `name`, `visibility` (`members` or `organisation`), optional `agenda_template`, `default_project_id`, `member_ids` and `default_attendee_ids`. |
+| `foresi_update_meeting_series` | **Write.** Changes the fields given of a series (`series_id`). Owners and its members only. |
+| `foresi_archive_meeting_series` | **Write.** Archives a series (`series_id`): it keeps its meetings and takes no new ones. |
+| `foresi_search_meetings` | The meetings you see, newest first, without their minutes: `query` finds a text in the title or the minutes; `series_id`, `attendee_id`, `from`, `to`, `link_kind` with `link_id`, `trashed`, `view_id` and `filter` narrow them. Takes `limit` and `cursor`. |
+| `foresi_get_meeting` | One meeting (`id`) with its attendees, linked records, minutes in Markdown and their `version`. |
+| `foresi_create_meeting` | **Write.** Adds a meeting held on `held_on`, of a series (`series_id`) or one-off with a `title`; a meeting of a series takes its default attendees, agenda template and a dated title for those left out. |
+| `foresi_update_meeting` | **Write.** Changes the `title`, `held_on`, `starts_at`, `attendee_ids` or `links` of a meeting (`meeting_id`), whichever are given. |
+| `foresi_set_meeting_minutes` | **Write.** Saves the `minutes` of a meeting (`meeting_id`) read at `version`; refused `stale_minutes` with the current version when someone saved them since. |
+| `foresi_trash_meeting` | **Write, destructive.** Moves a meeting (`meeting_id`) to the trash; it is removed for good after 30 days. Its creator and the owners only. |
+| `foresi_restore_meeting` | **Write.** Brings a meeting (`meeting_id`) back from the trash. |
 | `foresi_search_deals` | The deals not in the trash whose title holds `query`, all of them without it, the newest first; narrow them with `status`, `stage_id`, `owner_user_id` and `client_party_id` (the deals of a client). Staff only. |
 | `foresi_get_deal` | One deal (`id`) with its client, owner, stage, status, contacts, lines, value (one-off and monthly per currency, never converted, `approximate` for weekly or daily lines, and `hourly`: the rate of each `time_based` line with its expected hours and amount, never added into the others) and links. Staff only. |
 | `foresi_list_deal_stages` | The stages and the lost reasons, each in its order; archived ones with `include_archived`. Staff only. |
@@ -247,6 +258,8 @@ The cash-flow tools take the fields and parameters of the [REST cash flow](api.m
 
 The catalog tools take the fields of the [REST catalog](api.md#catalog), with the id of a product as `product_id`, and answer what the REST API answers. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden` and `not_found`. See [catalog.md](catalog.md).
 
+The meeting tools take the fields of the [REST meetings](api.md#meetings), with the ids as `series_id` and `meeting_id`, and answer what the REST API answers; the reads need `meetings:read`, the writes `meetings:write`. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and the codes of the rules, such as `stale_minutes`, `series_archived`, `name_taken`, `not_series_member` and `not_trasher`. See [meetings.md](meetings.md).
+
 The deal tools take the fields of the [REST sales](api.md#sales), with the ids as `deal_id`, `line_id`, `link_id`, `stage_id` and `reason_id`, and answer what the REST API answers; the reads need `sales:read`, the writes `sales:write`. They are hidden from a guest. They refuse with `invalid_argument` (it names the argument and the `reason`), `forbidden`, `not_found` and the codes of the rules, such as `deal_not_open`, `link_other_client` and `stage_has_open_deals`. See [sales.md](sales.md).
 
 The tax tools take the fields of the [REST taxes and contributions](api.md#taxes-and-contributions), with the id of a status as `status_id`, and answer what the REST API answers. Only the owner of the organisation may call them; anyone else is refused with `owner_only`. They also refuse with `invalid_argument` (it names the argument and the `reason`), `not_found` and `status_day_taken`. See [taxes-and-contributions.md](taxes-and-contributions.md).
@@ -417,7 +430,7 @@ The HTTP endpoint refuses a request whose `Host` header is not in `MCP_ALLOWED_H
 MCP_ALLOWED_HOSTS=app.example.com
 ```
 
-Put the host of `DEFAULT_URI` there. A request for another host is answered `403` with `Forbidden: Invalid Host header.` The stdio server ignores this setting. See [operations](operations.md#environment-variables).
+Put the host of `DEFAULT_URI` there. A request for another host is answered `403` with `Forbidden: Invalid Host header.` The stdio server ignores this setting. See the [environment reference](reference/environment.md#mcp_allowed_hosts).
 
 ### Sessions
 

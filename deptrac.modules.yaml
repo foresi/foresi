@@ -239,6 +239,22 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Margin\\Integration\\Purchasing\\.*
+    - name: meetings
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Meetings\\(?!Contract\\|Integration\\).*
+    - name: meetings_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Meetings\\Contract\\.*
+    - name: meetings_integration_calendar
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Meetings\\Integration\\Calendar\\.*
+    - name: meetings_integration_sales
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Meetings\\Integration\\Sales\\.*
     - name: party
       collectors:
         - type: classLike
@@ -1112,6 +1128,71 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    meetings:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - meetings_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
+    meetings_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+      - work_contract
+    meetings_integration_calendar:
+      - audit
+      - audit_contract
+      - calendar_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - meetings
+      - meetings_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
+    meetings_integration_sales:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - meetings
+      - meetings_contract
+      - party
+      - party_contract
+      - sales_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
     party:
       - audit
       - audit_contract

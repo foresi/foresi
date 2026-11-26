@@ -42,6 +42,7 @@
         "foresi/invoicing": "dev-main",
         "foresi/mail": "dev-main",
         "foresi/margin": "dev-main",
+        "foresi/meetings": "dev-main",
         "foresi/party": "dev-main",
         "foresi/purchasing": "dev-main",
         "foresi/sales": "dev-main",
@@ -160,6 +161,7 @@
         ],
         "modules:check": "@php bin/console app:modules:deptrac --check",
         "events:check": "@php bin/console app:events --check",
+        "docs:check": "@php bin/docs-reference --check",
         "deptrac": [
             "deptrac analyse --no-progress --ansi",
             "deptrac analyse --config-file=deptrac.modules.yaml --no-progress --ansi"
@@ -252,6 +254,7 @@
                     "foresi/invoicing": "dev-main",
                     "foresi/mail": "dev-main",
                     "foresi/margin": "dev-main",
+                    "foresi/meetings": "dev-main",
                     "foresi/party": "dev-main",
                     "foresi/purchasing": "dev-main",
                     "foresi/sales": "dev-main",

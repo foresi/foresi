@@ -116,6 +116,16 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/catalog/products/{productId}/archive' => ['post' => '200'],
                 '/api/v1/catalog/products/{productId}/restore' => ['post' => '200'],
             ],
+            'meetings' => [
+                '/api/v1/meetings/series' => ['get' => '200', 'post' => '201'],
+                '/api/v1/meetings/series/{seriesId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/meetings/series/{seriesId}/archive' => ['post' => '200'],
+                '/api/v1/meetings' => ['get' => '200', 'post' => '201'],
+                '/api/v1/meetings/{meetingId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/meetings/{meetingId}/minutes' => ['put' => '200'],
+                '/api/v1/meetings/{meetingId}/trash' => ['post' => '200'],
+                '/api/v1/meetings/{meetingId}/restore' => ['post' => '200'],
+            ],
             'calendar' => [
                 '/api/v1/calendar/feeds' => ['get' => '200', 'post' => '201'],
                 '/api/v1/calendar/feeds/{feedId}' => ['patch' => '200'],

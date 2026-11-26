@@ -22,7 +22,16 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
  * Looks at the documents of the last 13 months once, so the documents recorded before pairing existed get their
  * pairings. Idempotent: a document that was decided before is left as it is, and a second run changes nothing.
  */
-#[AsCommand(name: 'cashflow:pairing:backfill', description: 'Pair the documents of the last 13 months with planned occurrences')]
+#[AsCommand(
+    name: 'cashflow:pairing:backfill',
+    description: 'Pair the documents of the last 13 months with planned occurrences',
+    help: <<<'HELP'
+    Pairs the documents dated in the last 13 months with planned occurrences, as if each had just been
+    recorded. Run it once after installing Cash flow next to existing documents. It writes pairings,
+    leaves a pairing a person already decided as it is, and prints the number of pairings per state.
+    It is idempotent: a second run changes nothing.
+    HELP,
+)]
 final readonly class BackfillPairingsCommand
 {
     /**

@@ -540,6 +540,7 @@ A module adds custom fields to a record of another module: a contact, a deal, a 
    | Task | `Foresi\Work\Contract\Field\TaskExtension` | `taskId()` | The task list of a project |
    | Project | `Foresi\Work\Contract\Field\ProjectExtension` | `projectId()` | The projects |
    | Product | `Foresi\Catalog\Contract\Field\ProductExtension` | `productId()` | The products |
+   | Meeting | `Foresi\Meetings\Contract\Field\MeetingExtension` | `meetingId()` | The meetings |
 
 3. Give the entity the record's id as its only id, a `guid` column, and make every other mapped property a field with `#[CustomField]` from `Foresi\Shared\Contract\Field`. An extension has no associations and no other columns.
 4. Map each field to a nullable column of a type its kind allows:
@@ -762,7 +763,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
 | `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, a member of `custom_fields` over REST and MCP (since 1.7), and a field of the import and export and a variable of the document templates (since 1.9). |
-| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Sales\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
+| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Sales\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension`, `Foresi\Meetings\Contract\Field\MeetingExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
 | `Fields` (service), `FieldDefinition`, `FieldExpression` | — | The fields of a record kind, their values read once a request and written in the caller's transaction, and the DQL that reads them. |
 | `FieldSource` | `foresi.shared.field_source` | A source of fields of its own, such as fields defined at runtime. The core's source reads the record extensions. |
 
@@ -818,6 +819,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Import | `ImportTarget` (`foresi.import.target`) and its extension `FieldRecordTarget` (since 1.9), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
+| Meetings | `MeetingTarget` (`foresi.meetings.target`) |
 | Margin | `MarginCostSource` (`foresi.margin.cost_source`), `MarginRevenueSource` (`foresi.margin.revenue_source`) |
 | Party | `BankAccountUsage` (`foresi.party.bank_account_usage`) |
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |

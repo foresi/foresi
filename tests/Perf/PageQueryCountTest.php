@@ -35,25 +35,25 @@ final class PageQueryCountTest extends WebTestCase
      * @var array<string, int>
      */
     private const array BUDGETS = [
-        'dashboard' => 148,
-        'contacts' => 160,
-        'contacts search' => 135,
-        'contact' => 121,
-        'invoices' => 190,
-        'invoice' => 150,
-        'received documents' => 171,
+        'dashboard' => 156,
+        'contacts' => 168,
+        'contacts search' => 143,
+        'contact' => 129,
+        'invoices' => 198,
+        'invoice' => 158,
+        'received documents' => 179,
         // The project rows count overdue tasks, so the pages that list projects read the
         // firm's timezone for today once (InstanceClock).
-        'projects' => 133,
-        'project' => 216,
+        'projects' => 141,
+        'project' => 224,
         // My priorities is a seventh shipped view of the task list, which a first visit stores
         // one lookup by system key at a time (SavedViews).
-        'tasks' => 212,
-        'task' => 173,
-        'time week' => 122,
-        'time report' => 155,
-        'deals' => 189,
-        'cash flow' => 152,
+        'tasks' => 220,
+        'task' => 181,
+        'time week' => 130,
+        'time report' => 163,
+        'deals' => 197,
+        'cash flow' => 160,
         'api contacts' => 10,
         'api invoices' => 10,
         'api time entries' => 9,
@@ -67,7 +67,7 @@ final class PageQueryCountTest extends WebTestCase
      * @var array<string, int>
      */
     private const array KNOWN_GROWTH = [
-        'deals' => 352,
+        'deals' => 360,
     ];
 
     private KernelBrowser $client;

@@ -22,7 +22,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * someone changed or hid is theirs and stays as it is. Running it again changes
  * nothing, so the deploy and the install both run it.
  */
-#[AsCommand(name: 'app:views:sync', description: 'Store the default views of the installed modules, leaving edited and hidden ones alone')]
+#[AsCommand(
+    name: 'app:views:sync',
+    description: 'Store the default views of the installed modules, leaving edited and hidden ones alone',
+    help: <<<'HELP'
+    Stores the default views that the installed modules ship. It adds missing views and brings views
+    that nobody edited or hid up to what the module now declares. A view that someone changed or hid
+    stays as it is. The deploy runs it after the migrations, and the install runs it too; run it by hand
+    after adding a module. It is safe to repeat: a second run changes nothing.
+    HELP,
+)]
 final readonly class SyncViewsCommand
 {
     public function __construct(

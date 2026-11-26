@@ -22,7 +22,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * The personal API tokens of the instance. Only the last four
  * characters of a token are known, so no secret is ever printed.
  */
-#[AsCommand(name: 'app:api-token:list', description: 'List personal API tokens')]
+#[AsCommand(
+    name: 'app:api-token:list',
+    description: 'List personal API tokens',
+    help: <<<'HELP'
+    Lists the personal API tokens of the instance with their user, scopes, expiry, last use and state.
+    Run it by hand to see who holds a token and whether it is still used, for example before revoking
+    one. It is read-only and safe to repeat. Only the last four characters of each token are known, so
+    no secret is printed.
+    HELP,
+)]
 final readonly class ListApiTokensCommand
 {
     public function __construct(

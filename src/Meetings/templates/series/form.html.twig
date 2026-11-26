@@ -1,0 +1,45 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new series, or one changed: its name, who sees it (its members, the default, or everyone in the firm), its
+    members and default attendees, the agenda template copied into each new meeting and the project tasks from
+    its minutes are offered first. A dialog over the series; the URL is a page of its own too. Variables: series
+    (null for a new one), action, values, errors, people, projects, visibilities.
+#}
+{% extends overlay() == 'dialog' ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = series ? 'meetings.series.edit'|trans : 'meetings.series.new'|trans %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.series.title'|trans, href: path('app_meetings_series')}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="series-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Meetings\\Infrastructure\\Controller\\MeetingController::TOKEN')) }}">
+        <twig:Ui:TextInput name="name" id="series-name" :label="'meetings.series.field.name'|trans" :value="values.name" :error="errors.name|default(null)" :maxlength="constant('Foresi\\Meetings\\Domain\\MeetingSeries::MAX_NAME')" required />
+        <twig:Ui:Select name="visibility" id="series-visibility" :label="'meetings.series.field.visibility'|trans" :help="'meetings.series.field.visibility_help'|trans" :options="visibilities" :value="values.visibility" :error="errors.visibility|default(null)" />
+        {% if people is not empty %}
+            <twig:Ui:ChoiceChips name="members[]" id="series-members" :legend="'meetings.series.field.members'|trans" :options="people" :values="values.members" :error="errors.members|default(null)" />
+            <twig:Ui:ChoiceChips name="defaults[]" id="series-defaults" :legend="'meetings.series.field.defaults'|trans" :help="'meetings.series.field.defaults_help'|trans" :options="people" :values="values.defaults" />
+        {% endif %}
+        <twig:Ui:Select name="defaultProjectId" id="series-project" :label="'meetings.series.field.default_project'|trans" :help="'meetings.series.field.default_project_help'|trans" :options="projects" :value="values.defaultProjectId" :error="errors.defaultProjectId|default(null)" />
+        <twig:Ui:MarkdownEditor name="agendaTemplate" id="series-template" :label="'meetings.series.field.agenda_template'|trans" :help="'meetings.series.field.agenda_template_help'|trans" :value="values.agendaTemplate" :error="errors.agendaTemplate|default(null)" :rows="8" :previewUrl="path('app_markdown_preview')" />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="series-form" variant="primary">{{ (series ? 'meetings.save' : 'meetings.series.create')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="series ? 'pencil' : 'plus'" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_meetings_series')">{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="series-form" variant="primary">{{ (series ? 'meetings.save' : 'meetings.series.create')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}
