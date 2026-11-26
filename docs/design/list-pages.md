@@ -52,15 +52,15 @@ same controls in the same places. A person who learns one list knows them all.
 7. **Counts only where they help. A tab shows a count only where the list counted before, or where
    a person turns it on. Counts are summed in one query with the page.
 8. **Every table is a list with views.** Every table of records in Foresi is a list as above: its
-   saved views, a Settings sheet with columns and density, column widths a person drags
+   saved views, a Settings sheet with columns, column widths a person drags
    (`Ui:DataTable :resizable="true"`) and Reset to default. A settings hub (firm, people, API tokens)
    keeps plain `Ui:Tabs` for its *navigation*, as a board, the time week and a dashboard do; any table
    inside it is a list. (Martin's decision of 2026-11-26; it replaces "settings hubs and the import
    preview are not lists".)
 9. **Several tables on one page each keep their own state (list slots).** Each table on a page has
-   its own views, filters, search, columns, density and widths, as each linked or inline database on
+   its own views, filters, search, columns and widths, as each linked or inline database on
    a Notion page has its own views. The page's first table keeps the bare keys of rule 6 (`view=`,
-   `f=`, `q=`, `sort=`, `cols=`, `density=`, `group=`, `pins=`, `widths=` and the builder's `c[…]`),
+   `f=`, `q=`, `sort=`, `cols=`, `group=`, `pins=`, `widths=` and the builder's `c[…]`),
    so old links keep working; every other table keeps the same keys nested under its slot, as
    `reasons[cols]=name&reasons[widths]=name:240`. A link or form of one table carries the other
    tables' state unchanged, and each table's dialogs have ids of their own. `ListSlot` does it:

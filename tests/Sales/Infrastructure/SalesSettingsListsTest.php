@@ -72,7 +72,7 @@ final class SalesSettingsListsTest extends WebTestCase
     public function testTheColumnsOfOneTableLeaveTheOtherAndAnOldLinkStillOpensTheStages(): void
     {
         // An old link of the page names the stages' columns on the bare keys.
-        $crawler = $this->client->request('GET', '/settings/sales?cols=name&density=dense');
+        $crawler = $this->client->request('GET', '/settings/sales?cols=name');
         self::assertResponseIsSuccessful();
         self::assertSame(['name'], $this->columns($crawler, 'stages'));
         self::assertSame(['name', 'key', 'state'], $this->columns($crawler, 'reasons'));
@@ -96,15 +96,15 @@ final class SalesSettingsListsTest extends WebTestCase
 
         // The stages' Reset to default forgets their display, and keeps the reasons'.
         $reset = $this->query((string) $stages->filter('[data-column-picker-reset]')->attr('href'));
-        self::assertSame(['density' => '', 'widths' => '', 'reasons' => ['cols' => 'name,state', 'widths' => 'name:240']], $reset);
+        self::assertSame(['widths' => '', 'reasons' => ['cols' => 'name,state', 'widths' => 'name:240']], $reset);
         // The reasons' Reset forgets theirs, and keeps the stages'.
         $reset = $this->query((string) $reasons->filter('[data-column-picker-reset]')->attr('href'));
-        self::assertSame(['cols' => 'name', 'reasons' => ['density' => '', 'widths' => '']], $reset);
+        self::assertSame(['cols' => 'name', 'reasons' => ['widths' => '']], $reset);
 
         // The forms of the reasons send their fields under the slot and carry the stages' state.
         self::assertCount(1, $reasons->filter('input[type="search"][name="reasons[q]"]'));
         self::assertCount(1, $reasons->filter('form[data-column-picker-form] input[type="hidden"][name="cols"][value="name"]'));
-        self::assertCount(1, $reasons->filter('input[name="reasons[density]"]')->first());
+        self::assertCount(1, $reasons->filter('input[name="reasons[cols][]"]')->first());
         self::assertCount(1, $stages->filter('form[data-filter-search] input[name="reasons[cols]"][value="name,state"]'));
         // Each table drags its widths to its own name, and its dialogs have ids of their own.
         self::assertSame('reasons[widths]', $reasons->filter('[data-column-resize-param-value]')->attr('data-column-resize-param-value'));
