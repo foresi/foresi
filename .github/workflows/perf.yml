@@ -1,0 +1,189 @@
+name: Performance
+
+# The performance baseline (docs/performance.md). None of its jobs is a required check: a
+# broken budget makes the job red and, overnight, opens an issue labelled performance.
+#
+# - Queries: on every pull request, the number of SQL queries of each page on a small data set
+#   and on ten times as much. A count is deterministic, so it can be checked exactly; a count
+#   that grows with the data is an N+1 query.
+# - Baseline: every night and on demand, on PostgreSQL 17 with the large data set: page
+#   latency with k6 (one person, then ten at once), the invoice PDF and the import. Wall time
+#   is measured only here, never on pull requests: the hosted runners vary by more than the
+#   changes worth catching. The numbers are compared with the previous night's, and moves
+#   over 20 % are marked in the job summary as a warning.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+    inputs:
+      size:
+        description: Data set
+        type: choice
+        options: [large, small]
+        default: large
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  queries:
+    name: Queries a page
+    if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Count the queries of each page
+        run: |
+          set -euo pipefail
+          vendor/bin/phpunit --group perf tests/Perf/PageQueryCountTest.php
+          php tests/Perf/report.php --size=small > /dev/null
+
+  baseline:
+    name: Baseline (${{ inputs.size || 'large' }} data set)
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    # The large seed took 62 minutes on an M1 Pro under load; a 4-core runner may need more.
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      # The previous night's results, to compare with.
+      actions: read
+      # The issue that reports a broken budget.
+      issues: write
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: perf
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://app:app@127.0.0.1:5432/perf?serverVersion=17&charset=utf8
+      PGPASSWORD: app
+      SIZE: ${{ inputs.size || 'large' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.4'
+          extensions: ctype, dom, gd, iconv, intl, opcache, pdo_sqlite, pdo_pgsql, zip
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1, max_execution_time=0
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@c47136d33d365efbeb9ae7266908b5dcf98cdece # v1.3.0
+
+      # nginx is on the runner image; PHP-FPM comes from the same PPA as setup-php's PHP.
+      - name: Set up nginx and PHP-FPM
+        run: |
+          set -euo pipefail
+          command -v php-fpm8.4 || sudo apt-get install -y --no-install-recommends php8.4-fpm
+          sudo systemctl stop nginx php8.4-fpm 2>/dev/null || true
+          sudo ln -sf "$(command -v php-fpm8.4)" /usr/local/bin/php-fpm
+          nginx -v
+          php-fpm -v
+
+      - name: Fetch the previous results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow perf.yml --event schedule --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [[ -n "$run" ]]; then
+            gh run download "$run" --repo "$GITHUB_REPOSITORY" --name perf-results --dir var/perf/previous || echo 'No results in the previous run.'
+          fi
+
+      - name: Measure
+        id: measure
+        run: |
+          set -euo pipefail
+          previous=''
+          [[ -f var/perf/previous/results.json ]] && previous='--previous=var/perf/previous/results.json'
+          bin/perf --size="$SIZE" $previous
+
+      - name: Keep the results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: perf-results
+          path: |
+            var/perf/*.json
+            var/perf/summary.md
+            var/import-throughput.txt
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Report a broken budget
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          body="$(printf 'The nightly performance baseline broke a budget: %s\n\n' "$RUN_URL"; cat var/perf/summary.md 2>/dev/null || true)"
+          gh label create performance --repo "$GITHUB_REPOSITORY" --color C5DEF5 --description 'Performance baseline (docs/performance.md)' 2>/dev/null || true
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --label performance --state open --limit 1 --json number --jq '.[0].number // empty')"
+          if [[ -n "$issue" ]]; then
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title 'Performance baseline: a budget is broken' --label performance --body "$body"
+          fi
