@@ -22,7 +22,6 @@ use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\DocumentLanguage;
@@ -31,6 +30,7 @@ use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatId;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Invoicing\Application\AdvanceTestCase;
 use Foresi\Tests\Support\PdfTools;
 

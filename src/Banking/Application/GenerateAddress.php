@@ -13,8 +13,8 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressNotIssued;
 use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownFirmBankAccount;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

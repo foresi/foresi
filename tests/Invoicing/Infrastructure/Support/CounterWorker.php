@@ -14,11 +14,11 @@ use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\TransactionalWork;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

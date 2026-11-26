@@ -10,8 +10,8 @@ namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Invoicing\Application\CancelPayment;
-use Foresi\Invoicing\Application\ConflictRetry;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * Takes a pairing back: the payment is cancelled, its invoices are as unpaid as

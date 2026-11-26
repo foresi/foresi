@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * Takes a contact person off a company or sole trader. Both contacts stay; only

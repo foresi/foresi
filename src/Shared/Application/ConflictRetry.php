@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Application;
+namespace Foresi\Shared\Application;
 
 /**
  * Runs a whole save again when it lost to another one: on a lock error, or on a

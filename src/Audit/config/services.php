@@ -9,6 +9,8 @@ declare(strict_types=1);
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Application\AuditTrail;
 use Foresi\Audit\Infrastructure\Doctrine\DoctrineAuditTrail;
+use Foresi\Audit\Infrastructure\Doctrine\DoctrineConflictRetry;
+use Foresi\Shared\Application\ConflictRetry;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 /*
@@ -25,7 +27,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set(AuditCorrelation::class)
         ->tag('kernel.reset', ['method' => 'reset']);
 
+    // The retrying unit of work carries an audit correlation, so Audit implements the port of Shared.
+    $conflictRetry = $services->alias(ConflictRetry::class, DoctrineConflictRetry::class);
+
     if ('test' === $container->env()) {
+        $conflictRetry->public();
         // The generic audit query; the fake import target answers changedSince()
         // with it, while targets of the application check their own entities.
         $services->alias(AuditTrail::class, DoctrineAuditTrail::class)->public();

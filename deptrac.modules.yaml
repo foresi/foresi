@@ -468,8 +468,6 @@ deptrac:
       - ui_contract
     ai_reader:
       - ai_reader_contract
-      - instance
-      - instance_contract
       - purchasing
       - purchasing_contract
       - shared
@@ -477,8 +475,6 @@ deptrac:
       - ui
       - ui_contract
     ai_reader_contract:
-      - instance
-      - instance_contract
       - purchasing_contract
       - shared
       - shared_contract
@@ -505,14 +501,10 @@ deptrac:
       - shared_contract
     audit:
       - audit_contract
-      - instance
-      - instance_contract
       - shared
       - shared_contract
     audit_contract:
       - audit
-      - instance
-      - instance_contract
       - shared
       - shared_contract
     banking:
@@ -857,8 +849,6 @@ deptrac:
       - identity
       - identity_contract
       - import_contract
-      - instance
-      - instance_contract
       - shared
       - shared_contract
       - ui
@@ -868,8 +858,6 @@ deptrac:
       - audit_contract
       - identity
       - identity_contract
-      - instance
-      - instance_contract
       - shared
       - shared_contract
       - ui_contract
@@ -1537,8 +1525,6 @@ deptrac:
       - ui
       - ui_contract
     timesheet:
-      - audit
-      - audit_contract
       - identity
       - identity_contract
       - instance
@@ -1555,8 +1541,6 @@ deptrac:
       - work
       - work_contract
     timesheet_contract:
-      - audit
-      - audit_contract
       - identity
       - identity_contract
       - instance

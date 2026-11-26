@@ -13,6 +13,7 @@ use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * The contact persons of a company or sole trader, as its Contact persons tab

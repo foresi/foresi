@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Vat\Application;
 
 use Foresi\Audit\Application\AuditActor;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;

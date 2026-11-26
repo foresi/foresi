@@ -51,7 +51,7 @@ The public properties of the class are the facts, and they are thin: `string`, `
 There are two kinds.
 
 * A synchronous listener is a Symfony event-dispatcher listener on the payload class and receives the payload. It runs in the publisher's transaction, right after the row is inserted, and may listen to events of its own module only. A test fails otherwise. Whatever it does is committed or rolled back with the change.
-* An asynchronous listener implements `DomainEventListener` (`listensTo()` returns an event name, `__invoke(RecordedEvent)`); every tagged one is asynchronous. It runs after commit, in `DeliveryWork` (the semantics of `TransactionalWork`, which the Events module may not require from Party), and is the only way to react to another module's events. Releasing billed time on a trashed invoice stays on the synchronous `BilledWorkRelease` port, because restore can refuse when the time was billed elsewhere meanwhile and an asynchronous release could still be queued. `invoice.trashed` and `invoice.restored` are facts, not commands.
+* An asynchronous listener implements `DomainEventListener` (`listensTo()` returns an event name, `__invoke(RecordedEvent)`); every tagged one is asynchronous. It runs after commit, in `DeliveryWork` (the semantics of `TransactionalWork` of the Shared module), and is the only way to react to another module's events. Releasing billed time on a trashed invoice stays on the synchronous `BilledWorkRelease` port, because restore can refuse when the time was billed elsewhere meanwhile and an asynchronous release could still be queued. `invoice.trashed` and `invoice.restored` are facts, not commands.
 
 No production asynchronous listener exists yet; the tests build their own.
 

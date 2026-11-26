@@ -11,7 +11,6 @@ use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Application\BilledWork;
 use Foresi\Invoicing\Application\BilledWorkRelease;
 use Foresi\Invoicing\Application\CancelPayment;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\CustomerCopies;
 use Foresi\Invoicing\Application\CustomerPicker;
 use Foresi\Invoicing\Application\DocumentLinks;
@@ -65,7 +64,6 @@ use Foresi\Invoicing\Contract\InvoicingCountry;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWork;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease;
 use Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease;
-use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments;
@@ -208,7 +206,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias(InvoiceStore::class, DoctrineInvoiceStore::class)->public();
         $services->alias(InvoiceBalances::class, PaymentBalances::class)->public();
         $services->alias('test.invoice_balances', InvoiceBalances::class)->public();
-        $services->alias(ConflictRetry::class, DoctrineConflictRetry::class)->public();
         foreach ([
             IssueInvoice::class, EditInvoice::class, NewInvoiceDefaults::class, CustomerPicker::class, TrashInvoice::class,
             MarkDelivered::class, IssuedDocumentFactory::class, IssueRules::class, CustomerCopies::class, LinePricing::class,

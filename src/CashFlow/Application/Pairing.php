@@ -18,8 +18,8 @@ use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

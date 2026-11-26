@@ -14,8 +14,9 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

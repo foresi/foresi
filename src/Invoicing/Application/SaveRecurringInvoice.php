@@ -17,9 +17,10 @@ use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

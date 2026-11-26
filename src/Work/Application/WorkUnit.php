@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Application;
 
 use Foresi\Audit\Application\AuditCorrelation;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Id;
 
 /**

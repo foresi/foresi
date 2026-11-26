@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Infrastructure\Doctrine;
+namespace Foresi\Audit\Infrastructure\Doctrine;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Foresi\Audit\Application\AuditCorrelation;
-use Foresi\Invoicing\Application\ConflictRetry;
+use Foresi\Shared\Application\ConflictRetry;
 use Foresi\Shared\Domain\Id;
 
 /**

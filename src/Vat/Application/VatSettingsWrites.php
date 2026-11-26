@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Application;
 
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Vat\Domain\VatSettings;
 
 /**

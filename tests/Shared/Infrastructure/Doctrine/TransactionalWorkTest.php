@@ -6,13 +6,14 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Party\Infrastructure;
+namespace Foresi\Tests\Shared\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
-use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyKind;
+use Foresi\Shared\Application\TransactionalWork;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Shared\Fixtures\TestPrice;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class TransactionalWorkTest extends KernelTestCase
@@ -31,12 +32,12 @@ final class TransactionalWorkTest extends KernelTestCase
 
     public function testCaughtDomainErrorLeavesAUsableSession(): void
     {
-        $this->em->persist(new Party(PartyKind::Person, 'Own Person', null, null, ''));
+        $this->em->persist(self::price('1.00'));
         $this->em->flush();
 
         try {
             $this->work()->run(function (): never {
-                $this->em->persist(new Party(PartyKind::Person, 'Rolled Back', null, null, ''));
+                $this->em->persist(self::price('2.00'));
                 $this->em->flush();
 
                 throw new \DomainException('Rejected.');
@@ -45,8 +46,8 @@ final class TransactionalWorkTest extends KernelTestCase
         }
 
         self::assertTrue($this->em->isOpen());
-        $names = $this->em->createQuery('SELECT p.displayName FROM '.Party::class.' p ORDER BY p.id')->getSingleColumnResult();
-        self::assertSame(['Own Person'], $names, 'the failed work is rolled back');
+        $count = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM test_price');
+        self::assertEquals(1, $count, 'the failed work is rolled back');
     }
 
     public function testSuccessfulWorkReturnsItsResult(): void
@@ -54,6 +55,11 @@ final class TransactionalWorkTest extends KernelTestCase
         $marker = new \stdClass();
 
         self::assertSame($marker, $this->work()->run(static fn (): \stdClass => $marker));
+    }
+
+    private static function price(string $amount): TestPrice
+    {
+        return new TestPrice(Money::of($amount, Currency::CZK));
     }
 
     private function work(): TransactionalWork

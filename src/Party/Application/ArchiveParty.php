@@ -12,6 +12,7 @@ use Foresi\Party\Contract\Event\ContactArchived;
 use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\Event\ContactRestored;
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

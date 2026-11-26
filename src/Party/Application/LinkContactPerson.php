@@ -10,6 +10,7 @@ namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * Links a contact person to a company or sole trader. A primary link demotes

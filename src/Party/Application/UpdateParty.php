@@ -17,6 +17,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Shared\Application\Field\CustomFieldWrites;
 use Foresi\Shared\Application\Field\FieldRefused;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**

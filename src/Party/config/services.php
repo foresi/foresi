@@ -15,7 +15,6 @@ use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\Parties;
 use Foresi\Party\Application\RegistrationNumberFactory;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
@@ -32,7 +31,6 @@ use Foresi\Party\Infrastructure\Directory\DoctrineContactPersonWrites;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineContactsByEmail;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
-use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
 use Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability;
@@ -105,7 +103,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $container->parameters()->set('app.firm_image_dir', '%kernel.cache_dir%/firm-images%env(default::TEST_TOKEN)%');
 
         // Public for the tests, which use the ports directly.
-        $services->alias(TransactionalWork::class, DoctrineTransactionalWork::class)->public();
         $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class)->public();
         // With Party alone only ManageFirmBankAccounts takes the accounts, and the container
         // would inline them into it.

@@ -13,7 +13,6 @@
         "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
-        "foresi/instance": "self.version",
         "foresi/module-api": "^1.0",
         "foresi/shared": "self.version",
         "symfony/clock": "^7.4 || ^8.0",

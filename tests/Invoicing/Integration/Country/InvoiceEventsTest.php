@@ -10,7 +10,6 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\BilledWorkRelease;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\InvoiceSends;
 use Foresi\Invoicing\Application\IssueProblem;
@@ -20,8 +19,9 @@ use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;

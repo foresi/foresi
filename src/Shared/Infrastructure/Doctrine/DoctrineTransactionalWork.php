@@ -6,12 +6,12 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Infrastructure\Doctrine;
+namespace Foresi\Shared\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * Doctrine closes the entity manager when a transaction fails. A caller that

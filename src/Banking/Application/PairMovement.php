@@ -13,7 +13,6 @@ use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\InvoicePayments;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\PaymentRefused;
@@ -23,8 +22,9 @@ use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 
 /**
  * Pays invoices from an incoming movement: as a person split it, or by itself when

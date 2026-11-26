@@ -36,10 +36,10 @@ use Foresi\Party\Infrastructure\Doctrine\DoctrineContactLinks;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineParties;
 use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyAddresses;
 use Foresi\Party\Infrastructure\Doctrine\DoctrinePartyBankAccounts;
-use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Application\Field\CustomFieldWrites;
 use Foresi\Shared\Contract\Event\EventRecorder;
+use Foresi\Shared\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class AddressBookPersistenceTest extends KernelTestCase

@@ -559,6 +559,7 @@ deptrac:
       - Contract
       - IdokladDomain
       - SharedDomain
+      - SharedApplication
       - InstanceDomain
       - PartyDomain
       - PartyApplication

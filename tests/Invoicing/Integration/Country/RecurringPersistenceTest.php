@@ -13,7 +13,7 @@ use Foresi\Invoicing\Application\RecurringFilter;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\RecurringState;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 
 final class RecurringPersistenceTest extends RecurringTestCase

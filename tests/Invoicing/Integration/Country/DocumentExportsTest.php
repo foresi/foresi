@@ -9,11 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Banking\Application\Candidates;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\DocumentExports;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Domain\ExportState;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Banking\Support\LockLog;
 use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
