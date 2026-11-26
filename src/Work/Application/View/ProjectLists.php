@@ -53,7 +53,8 @@ final class ProjectLists implements ListDefinitionSource
         yield $this->list();
     }
 
-    private ?ListDefinition $list = null;
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
+    private array $list = [];
 
     public function __construct(private readonly ListFields $fields)
     {
@@ -61,7 +62,7 @@ final class ProjectLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client', 'billable']);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client', 'billable']);
     }
 
     /**

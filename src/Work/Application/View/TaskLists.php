@@ -100,7 +100,8 @@ final class TaskLists implements ListDefinitionSource
     /** The list's own order: by when the task is due, the undated last, then the highest priority. */
     public const string DEFAULT_SORT = self::SORT_DUE;
 
-    private ?ListDefinition $list = null;
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
+    private array $list = [];
 
     public function __construct(private readonly ListFields $fields)
     {
@@ -113,7 +114,7 @@ final class TaskLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, self::ownFields()), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, self::ownFields()), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
     }
 
     /**

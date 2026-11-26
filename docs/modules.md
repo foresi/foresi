@@ -593,12 +593,12 @@ The flags of `#[CustomField]`, all off unless the table says otherwise:
 
 | Flag | What it does |
 | --- | --- |
-| `filterable` | A field of the record's filters, saved views and quick filters, and of the `filter` of its search tool. A contact or a user field compares the id it holds, and the filter sheet picks the contact or the person by name. |
+| `filterable` | A field of the record's filters, saved views and quick filters, and of the `filter` of its search tool. A contact or a user field compares the id it holds, and the filter sheet picks the contact or the person by name. A field the actor does not see (`guests`, `api`) is no filter of theirs: it is not in their filter sheet or list description, a filter that names it is refused as an unknown field, and a saved view that names it is not shown to them. |
 | `sortable` | A sort of the record's list where the list sorts by columns (the address book). Not for a long text or a multi-select. |
 | `searchable` | The record's text search reads it. A text, a long text or a URL only. |
-| `guests` | Guests see it too, and may change it where they may change the record. Without it, a guest gets no column, input or value of it, and a write of it by a guest is refused. |
+| `guests` | Guests see it too, and may change it where they may change the record. Without it, a guest gets no column, input, value or filter of it, a write of it by a guest is refused, and a guest does not see a view that filters by it. |
 | `required` | A new record needs a value: its dialogs mark it and refuse to create the record without one, and the short dialogs (a new contact from a picker, a new task or subtask) show only the required fields. A later change may clear it. |
-| `api` (on) | Part of the REST and MCP payloads (since 1.7). Off, the field is left out of what an API token reads, and a write of it over the API is refused as an unknown field; a required field that is off is not required over the API. |
+| `api` (on) | Part of the REST and MCP payloads (since 1.7). Off, the field is left out of what an API token reads, and a write of it over the API is refused as an unknown field; a required field that is off is not required over the API. Off, it is no filter of an API token either: the `filter` of the REST lists and of the search tools refuses it as an unknown field, and a saved view that filters by it is neither listed for the token nor created or changed by it. |
 | `template` (on) | A variable of the document templates of the record (since 1.9), `{{ client.custom.<key> }}` for a contact and `{{ deal.custom.<key> }}` for a deal. Off, templates do not offer it. |
 | `import` (on) | A field of the record's import and a column of its export (since 1.9), where the record has an import (the contacts). Off, neither offers it. |
 
