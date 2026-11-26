@@ -36,7 +36,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * It works on the whole instance and finds the imports through the connection.
  */
-#[AsCommand(name: 'app:import:health', description: 'Fail imports that stopped moving and start the imports queued behind them')]
+#[AsCommand(
+    name: 'app:import:health',
+    description: 'Fail imports that stopped moving and start the imports queued behind them',
+    help: <<<'HELP'
+    Fails imports that stopped moving and starts the imports queued behind them. An import in
+    Reading, Checking, Running or Undoing that changed neither state nor counters for four hours is
+    marked Failed, and every target with queued imports and none running then starts its oldest queued
+    import. Run it from cron every 15 minutes. It changes imports of the whole instance, it does not
+    re-send lost messages, and a failed import can be uploaded again. It is safe to repeat; a release
+    that failed is repaired by the next run. It exits with 1 when an import could not be failed or a
+    queue not released.
+    HELP,
+)]
 final readonly class ImportHealthCommand
 {
     /** Twice the redeliver_timeout of the async transport (7200 s): a message still being handled is redelivered after one. */

@@ -26,7 +26,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * for a date missed, to check the connection, or to fill another source before
  * the firm switches to it.
  */
-#[AsCommand(name: 'app:exchange-rate:fetch', description: 'Fetch and store the exchange rates valid on a date (default today)')]
+#[AsCommand(
+    name: 'app:exchange-rate:fetch',
+    description: 'Fetch and store the exchange rates valid on a date (default today)',
+    help: <<<'HELP'
+    Fetches the exchange rates valid on a date from a rate source and stores them. The schedule does
+    this every day for the source the firm converts at, so run the command by hand only to fill a missed
+    date, to check the connection, or to fill another installed source before the firm switches to it.
+    It writes rates only and is safe to repeat. It exits with 1 when the source gives no usable answer
+    and stores nothing, and with 2 when the date or the source name is invalid.
+
+      bin/console app:exchange-rate:fetch 2026-11-06 --source=ecb
+    HELP,
+)]
 final readonly class FetchRatesCommand
 {
     public function __construct(

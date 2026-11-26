@@ -20,7 +20,19 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Queues one test mail through the system mailer, so the operator can check
  * SYSTEM_MAILER_DSN and SYSTEM_MAIL_FROM. The worker sends it.
  */
-#[AsCommand(name: 'app:ops:test-mail', description: 'Send a test system mail to check the system mailer')]
+#[AsCommand(
+    name: 'app:ops:test-mail',
+    description: 'Send a test system mail to check the system mailer',
+    help: <<<'HELP'
+    Queues one test mail through the system mailer, to check SYSTEM_MAILER_DSN and SYSTEM_MAIL_FROM.
+    Run it after setting up or changing the system mail. It sends nothing itself: the worker sends the
+    queued mail, so a worker must run, and the mail arrives only when the transport works. Each run
+    queues one more mail. It exits with 1 when the system mailer is not set up or the address is
+    invalid.
+
+      bin/console app:ops:test-mail owner@example.com
+    HELP,
+)]
 final readonly class TestMailCommand
 {
     public function __construct(

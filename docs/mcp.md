@@ -402,7 +402,7 @@ The HTTP endpoint refuses a request whose `Host` header is not in `MCP_ALLOWED_H
 MCP_ALLOWED_HOSTS=app.example.com
 ```
 
-Put the host of `DEFAULT_URI` there. A request for another host is answered `403` with `Forbidden: Invalid Host header.` The stdio server ignores this setting. See [operations](operations.md#environment-variables).
+Put the host of `DEFAULT_URI` there. A request for another host is answered `403` with `Forbidden: Invalid Host header.` The stdio server ignores this setting. See the [environment reference](reference/environment.md#mcp_allowed_hosts).
 
 ### Sessions
 
