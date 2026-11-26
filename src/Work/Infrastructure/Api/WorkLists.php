@@ -54,7 +54,7 @@ final readonly class WorkLists
         $open = TaskLists::KEY === $list->key && $applied->view instanceof SavedView;
         [$rows, $next] = $this->slice(fn (int $limit): array => $this->queries->taskSlice($query->filter($applied->filter, $open), $afterId, $limit), $afterId, $query->limit);
 
-        return new WorkPage(array_map($this->json->task(...), $rows), $next, $this->view($applied));
+        return new WorkPage($this->json->tasks($rows), $next, $this->view($applied));
     }
 
     /**
@@ -87,7 +87,7 @@ final readonly class WorkLists
         $applied = AppliedView::of($this->views, $this->scope, $this->projectLists->list(), $viewId, $filter);
         [$rows, $next] = $this->slice(fn (int $limit): array => $this->queries->projectSlice($query->filter($applied->filter), $afterId, $limit), $afterId, $query->limit);
 
-        return new WorkPage(array_map($this->json->project(...), $rows), $next, $this->view($applied));
+        return new WorkPage($this->json->projects($rows), $next, $this->view($applied));
     }
 
     public function timeEntries(TimeEntryListQuery $query, ?string $afterId): WorkPage

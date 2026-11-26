@@ -14,6 +14,7 @@ use Foresi\Shared\Contract\Mcp\WriteTool;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleNamespace;
 use Foresi\Shared\Infrastructure\Api\Idempotency;
+use Foresi\Shared\Infrastructure\Field\CustomFieldSchema;
 use Foresi\Shared\Infrastructure\Operation\OperationRunner;
 use Foresi\Shared\Infrastructure\Operation\Operations;
 use Foresi\Shared\Infrastructure\Operation\OperationTool;
@@ -53,6 +54,7 @@ final readonly class ReadToolLoader implements LoaderInterface
         private ?Operations $operations = null,
         private ?OperationRunner $runner = null,
         private ?ModuleGraph $modules = null,
+        private ?CustomFieldSchema $fields = null,
     ) {
     }
 
@@ -108,7 +110,7 @@ final readonly class ReadToolLoader implements LoaderInterface
         $tools = [...$this->writeTools];
         if ($this->operations instanceof Operations && $this->runner instanceof OperationRunner) {
             foreach ($this->operations->all() as $definition) {
-                $tools[] = new OperationTool($definition, $this->runner);
+                $tools[] = new OperationTool($definition, $this->runner, $this->fields);
             }
         }
 

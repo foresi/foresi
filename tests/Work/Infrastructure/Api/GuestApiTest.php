@@ -31,13 +31,14 @@ use Psr\Clock\ClockInterface;
  */
 final class GuestApiTest extends WorkApiTestCase
 {
-    /** What a guest's agent sees in tools/list: Work's tasks and projects, and whoami. */
+    /** What a guest's agent sees in tools/list: Work's tasks and projects, the custom fields of those, and whoami. */
     private const array GUEST_TOOLS = [
         'foresi_add_task_comment',
         'foresi_create_task',
         'foresi_get_project',
         'foresi_get_project_budget',
         'foresi_get_task',
+        'foresi_list_fields',
         'foresi_list_labels',
         'foresi_list_project_people',
         'foresi_list_task_comments',

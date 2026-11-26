@@ -8,8 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Sales\Application\Api;
 
+use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
 
 /**
@@ -30,7 +33,8 @@ use Foresi\Shared\Contract\Operation\Operation;
 final readonly class CreateDealInput
 {
     /**
-     * @param list<mixed> $contactPersonIds
+     * @param list<mixed>                  $contactPersonIds
+     * @param array<string, mixed>|Omitted $customFields
      */
     public function __construct(
         #[Field('What is being sold, such as "Roof audit for the warehouse".', maxLength: Deal::MAX_TITLE)]
@@ -45,6 +49,9 @@ final readonly class CreateDealInput
         public string $description = '',
         #[Field('The ids of the client\'s contact persons the deal is talked through with, in order.', items: 'string')]
         public array $contactPersonIds = [],
+        #[Field('The custom fields by key, as foresi_list_fields lists them for deals; required ones need a value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(DealExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

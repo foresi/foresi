@@ -2540,7 +2540,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "9e546f30ba9d06f6a8e7e01401d1cb731cab2690"
+                "reference": "6b1f95f5080aa200f28c3717facd44cc0de8e942"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2584,7 +2584,13 @@
                     "kind": "core",
                     "namespace": "Foresi\\Identity\\",
                     "bundle": "Foresi\\Identity\\IdentityBundle",
-                    "optional": []
+                    "optional": [],
+                    "scopes": [
+                        {
+                            "resource": "profile",
+                            "guest": "write"
+                        }
+                    ]
                 }
             },
             "autoload": {
@@ -3326,7 +3332,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "22a8401c34c47deb0f0ef1622628501b48f7b9db"
+                "reference": "1468c4b1a2647eee5e8f92952c3a0c29014216af"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3381,7 +3387,7 @@
                 "zircote/swagger-php": "^7.5"
             },
             "provide": {
-                "foresi/module-api": "1.6.0"
+                "foresi/module-api": "1.7.0"
             },
             "type": "foresi-module",
             "extra": {

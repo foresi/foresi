@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Catalog\Infrastructure\Api;
 
 use Foresi\Catalog\Application\ProductReads;
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,7 +30,7 @@ final readonly class CatalogApiController
     public const string PRODUCTS = 'api_v1_catalog_products';
     public const string PRODUCT = 'api_v1_catalog_product';
 
-    public function __construct(private ScopeGuard $scope, private ProductReads $products)
+    public function __construct(private ScopeGuard $scope, private ProductReads $products, private CustomFieldPayload $customFields)
     {
     }
 
@@ -44,7 +46,7 @@ final readonly class CatalogApiController
         $this->scope->require(self::READ_SCOPE);
         $products = $this->products->search($request->query->getString('q'), \in_array($request->query->getString('archived'), ['1', 'true'], true));
 
-        return new JsonResponse(['data' => array_map(CatalogJson::product(...), $products)]);
+        return new JsonResponse(['data' => $this->customFields->attach(ProductExtension::RECORD, array_map(CatalogJson::product(...), $products))]);
     }
 
     #[Route('/api/v1/catalog/products/{productId}', name: self::PRODUCT, methods: ['GET'])]
@@ -57,6 +59,6 @@ final readonly class CatalogApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => CatalogJson::product($this->products->one($productId))]);
+        return new JsonResponse(['data' => $this->customFields->attachOne(ProductExtension::RECORD, CatalogJson::product($this->products->one($productId)))]);
     }
 }

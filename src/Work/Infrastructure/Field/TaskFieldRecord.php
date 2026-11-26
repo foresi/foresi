@@ -24,6 +24,11 @@ final readonly class TaskFieldRecord implements FieldRecord
         return TaskExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'tasks:read';
+    }
+
     public function entity(): string
     {
         return Task::class;

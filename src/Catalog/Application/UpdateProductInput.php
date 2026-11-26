@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Application;
 
+use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Catalog\Domain\Product;
+use Foresi\Shared\Application\Field\CustomFieldsOf;
 use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
@@ -30,6 +32,9 @@ use Foresi\Shared\Contract\Operation\Operation;
 )]
 final readonly class UpdateProductInput
 {
+    /**
+     * @param array<string, mixed>|Omitted $customFields
+     */
     public function __construct(
         #[Field('The id of the product.', format: 'uuid')]
         public string $productId,
@@ -51,6 +56,9 @@ final readonly class UpdateProductInput
         public int|Omitted|null $cycles = new Omitted(),
         #[Field('What the product holds.', maxLength: Product::MAX_DESCRIPTION)]
         public string|Omitted $description = new Omitted(),
+        #[Field('The custom fields to change, by key, as foresi_list_fields lists them for products; null clears one, a field left out keeps its value.', items: Field::ONE_OBJECT)]
+        #[CustomFieldsOf(ProductExtension::RECORD)]
+        public array|Omitted $customFields = new Omitted(),
     ) {
     }
 }

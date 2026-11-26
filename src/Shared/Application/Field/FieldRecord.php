@@ -27,6 +27,12 @@ interface FieldRecord
     public function record(): string;
 
     /**
+     * The scope an API token needs to read the record, such as "contacts:read", so
+     * it may read the definitions of its fields too.
+     */
+    public function scope(): string;
+
+    /**
      * @return class-string the entity of the record
      */
     public function entity(): string;

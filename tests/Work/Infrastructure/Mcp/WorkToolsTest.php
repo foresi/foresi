@@ -61,12 +61,12 @@ final class WorkToolsTest extends WorkApiTestCase
         $this->label('Urgent');
         $this->logged($project, $task, 30, $this->user);
 
-        self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'me']), $this->call(SearchTasksTool::class, ['assignee' => 'me'])->data['items']);
-        self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'none', 'priority' => 'none,low', 'sort' => '-title']), $this->call(SearchTasksTool::class, ['assignee' => 'none', 'priority' => ['none', 'low'], 'sort' => '-title'])->data['items']);
-        self::assertSame($this->rest('/api/v1/tasks/'.$task), $this->call(GetTaskTool::class, ['task_id' => $task])->data);
+        self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'me']), self::wire($this->call(SearchTasksTool::class, ['assignee' => 'me'])->data)['items']);
+        self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'none', 'priority' => 'none,low', 'sort' => '-title']), self::wire($this->call(SearchTasksTool::class, ['assignee' => 'none', 'priority' => ['none', 'low'], 'sort' => '-title'])->data)['items']);
+        self::assertSame($this->rest('/api/v1/tasks/'.$task), self::wire($this->call(GetTaskTool::class, ['task_id' => $task])->data));
         self::assertSame($this->rest('/api/v1/tasks/'.$task.'/comments'), $this->call(ListTaskCommentsTool::class, ['task_id' => $task])->data['items']);
-        self::assertSame($this->rest('/api/v1/projects'), $this->call(SearchProjectsTool::class)->data['items']);
-        self::assertSame($this->rest('/api/v1/projects/'.$project->id()), $this->call(GetProjectTool::class, ['project_id' => $project->id()])->data);
+        self::assertSame($this->rest('/api/v1/projects'), self::wire($this->call(SearchProjectsTool::class)->data)['items']);
+        self::assertSame($this->rest('/api/v1/projects/'.$project->id()), self::wire($this->call(GetProjectTool::class, ['project_id' => $project->id()])->data));
         self::assertSame($this->rest('/api/v1/projects/'.$project->id().'/people', ['task_id' => $task]), $this->call(ListProjectPeopleTool::class, ['project_id' => $project->id(), 'task_id' => $task])->data['items']);
         self::assertSame($this->rest('/api/v1/labels'), $this->call(ListLabelsTool::class)->data['items']);
         self::assertSame($this->rest('/api/v1/time-entries'), $this->call(SearchTimeEntriesTool::class)->data['items']);

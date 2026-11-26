@@ -49,7 +49,7 @@ final readonly class SearchTasksTool implements ReadTool
             .'assignee "me" lists the tasks the person is responsible for, "none" those no one is responsible for; with finished false, those still to do. '
             .'priority, label_id, client_id and the created and updated dates narrow further, as the filters of the task list in Foresi do. '
             .'view_id lists what a saved view holds, as the person sees it in Foresi: one of the list work.tasks, such as "work.tasks.mine", "work.tasks.overdue", "work.tasks.unassigned", "work.tasks.high" or "work.tasks.no_due" (these leave out finished tasks unless they ask about the status type), or of work.my_tasks, such as "work.my_tasks.watching"; it needs the views:read scope. filter adds conditions in the format of foresi_list_lists, checked against the list of the view, work.tasks without one. '
-            .'Returns {items, next_cursor, applied_view}: each task has its id, title, project, section_id, parent_id, status {id, name, type}, responsible {id, name}, due_on, priority, labels, subtask_count, done, private and url, the page a person opens. '
+            .'Returns {items, next_cursor, applied_view}: each task has its id, title, project, section_id, parent_id, status {id, name, type}, responsible {id, name}, due_on, priority, labels, subtask_count, done, private, url, the page a person opens, and custom_fields by key; a filterable custom field is a field of filter by its key (see foresi_list_fields). '
             .'When next_cursor is not null, more tasks match: call again with the same arguments and next_cursor as cursor. '
             .'Use foresi_get_task for the description, watchers and subtasks of one task.';
     }

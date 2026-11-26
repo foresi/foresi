@@ -24,6 +24,11 @@ final readonly class ProjectFieldRecord implements FieldRecord
         return ProjectExtension::RECORD;
     }
 
+    public function scope(): string
+    {
+        return 'projects:read';
+    }
+
     public function entity(): string
     {
         return Project::class;
