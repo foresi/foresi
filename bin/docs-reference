@@ -53,6 +53,10 @@ foreach ($pages as $path => $content) {
     }
     if ($check) {
         $stale[] = $path;
+        $expected = tempnam(sys_get_temp_dir(), 'docs-reference');
+        file_put_contents($expected, $content);
+        passthru('diff -u '.escapeshellarg($file).' '.escapeshellarg($expected));
+        unlink($expected);
         continue;
     }
     if (!is_dir(dirname($file))) {
