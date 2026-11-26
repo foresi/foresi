@@ -417,7 +417,7 @@ password:
     after_value_two_factor: Ostatní zařízení se odhlásí, důvěryhodné prohlížeče se znovu zeptají na kód a přijde vám e-mail.
     current: Současné heslo
     new: Nové heslo
-    new_help: 'Aspoň {min} znaků. Žádná pravidla pro symboly ani číslice.'
+    new_help: 'Aspoň {min} znaků, bez pravidel pro symboly a číslice.'
     show: Zobrazit hesla
   flash:
     changed: Heslo je změněné. Ostatní zařízení jsme odhlásili.

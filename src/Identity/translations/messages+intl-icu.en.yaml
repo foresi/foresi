@@ -417,7 +417,7 @@ password:
     after_value_two_factor: Your other devices are signed out, trusted browsers ask for a code again and you get an e-mail.
     current: Current password
     new: New password
-    new_help: 'At least {min} characters. No rules about symbols or numbers.'
+    new_help: 'At least {min} characters, no rules for symbols or digits.'
     show: Show passwords
   flash:
     changed: Your password is changed. Your other devices were signed out.
