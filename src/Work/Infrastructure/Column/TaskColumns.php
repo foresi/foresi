@@ -85,7 +85,7 @@ final readonly class TaskColumns implements DataSource
     {
         $task = $line->task;
 
-        return TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $line->edits->seed($task->responsibleId), 'text' => $task->responsibleName], $line->edits->responsible($task));
+        return TaskEdits::cell(null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $line->edits->seed($task->responsibleId), 'user' => $line->edits->user($task->responsibleId), 'text' => $task->responsibleName], $line->edits->responsible($task));
     }
 
     private function due(MyTaskLine $line): mixed

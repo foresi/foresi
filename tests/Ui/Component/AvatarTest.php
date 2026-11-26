@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Tests\Ui\Support\TestPersonPhotos;
 use Foresi\Ui\Avatar;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -90,5 +91,20 @@ final class AvatarTest extends KernelTestCase
         self::assertStringNotContainsString('JE', $avatar->text());
         self::assertStringContainsString('size-24', (string) $avatar->attr('class'));
         self::assertStringNotContainsString(Avatar::tone('Jana Example'), (string) $avatar->attr('class'));
+    }
+
+    public function testAUserWithAPhotoIsShownByItAndAUserWithoutOneByTheInitials(): void
+    {
+        $photo = $this->avatar(['name' => 'Jana Example', 'user' => TestPersonPhotos::USER]);
+        self::assertSame(TestPersonPhotos::URL, $photo->filter('img[data-avatar-photo]')->attr('src'));
+        self::assertNull($photo->attr('user'));
+
+        $initials = $this->avatar(['name' => 'Petr Example', 'user' => null]);
+        self::assertCount(0, $initials->filter('img'));
+        self::assertSame('PE', trim($initials->text()));
+
+        // A photo given beats the one of the user; nobody has none.
+        self::assertSame('/own.jpg', $this->avatar(['name' => 'Jana Example', 'user' => TestPersonPhotos::USER, 'photo' => '/own.jpg'])->filter('img')->attr('src'));
+        self::assertCount(0, $this->avatar(['name' => '', 'user' => TestPersonPhotos::USER])->filter('img'));
     }
 }

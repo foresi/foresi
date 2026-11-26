@@ -116,7 +116,7 @@
                                             <twig:Ui:Value :value="{badges: cell.badges}" />
                                         {%- elseif cell.avatar -%}
                                             <span class="flex min-w-0 items-center gap-2" data-avatar-cell>
-                                                <twig:Ui:Avatar :name="cell.avatar.name" :seed="cell.avatar.seed" />
+                                                <twig:Ui:Avatar :name="cell.avatar.name" :seed="cell.avatar.seed" :user="cell.avatar.user" />
                                                 {%- if cell.link -%}
                                                     <a href="{{ cell.link }}" data-row-link{% if cell.plain %} data-turbo="false"{% elseif cell.opens != 'page' %} data-{{ cell.opens }} aria-haspopup="dialog"{% endif %}{% if cell.title %} title="{{ cell.title }}"{% endif %} class="block min-w-0 max-w-[32ch] truncate font-medium text-ink no-underline {{ focus }}">{{ cell.text }}</a>
                                                 {%- else -%}

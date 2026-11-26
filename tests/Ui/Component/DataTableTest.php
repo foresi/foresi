@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Tests\Ui\Support\TestPersonPhotos;
 use Foresi\Ui\Avatar;
 use Foresi\Ui\Component\DataTable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -817,10 +818,23 @@ final class DataTableTest extends KernelTestCase
         self::assertContains(Avatar::tone('user-2'), Avatar::TONES);
     }
 
+    public function testAPersonCellOfAUserWithAPhotoShowsThePhoto(): void
+    {
+        $rows = [
+            ['id' => 'a1', 'cells' => ['name' => ['avatar' => 'user-1', 'user' => TestPersonPhotos::USER, 'text' => 'Jana Example'], 'email' => null, 'balance' => '']],
+            ['id' => 'b2', 'cells' => ['name' => ['avatar' => 'user-2', 'user' => null, 'text' => 'Petr Example'], 'email' => null, 'balance' => '']],
+        ];
+
+        $cells = new Crawler($this->render(['rows' => $rows]))->filter('[data-avatar-cell]');
+
+        self::assertSame(TestPersonPhotos::URL, $cells->eq(0)->filter('img[data-avatar-photo]')->attr('src'));
+        self::assertCount(0, $cells->eq(1)->filter('img'));
+    }
+
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function testAPersonCellNeedsANameAndASeed(): void
     {
-        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana'], ['avatar' => 'user-1', 'text' => 5], ['avatar' => 'user-1']] as $cell) {
+        foreach ([['avatar' => 'user-1', 'text' => ''], ['avatar' => 1, 'text' => 'Jana'], ['avatar' => 'user-1', 'text' => 5], ['avatar' => 'user-1'], ['avatar' => 'user-1', 'user' => 5, 'text' => 'Jana']] as $cell) {
             try {
                 $this->mountTwigComponent('Ui:DataTable', ['columns' => self::COLUMNS, 'rows' => [['id' => 'a1', 'cells' => ['name' => $cell]]]]);
                 self::fail('A person cell without a name or seed was accepted.');

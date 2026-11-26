@@ -104,6 +104,9 @@ final class ProfilePageTest extends WebTestCase
         $src = '/people/'.$this->user->id().'/photo?v='.$version;
         self::assertSame($src, $crawler->filter('#user-menu-button img[data-avatar-photo]')->attr('src'));
         self::assertSame($src, $crawler->filter('[data-profile-avatar] img')->attr('src'));
+        // The list of people shows it too.
+        $people = $this->client->request('GET', '/settings/people');
+        self::assertSame($src, $people->filter('[data-avatar-cell] img[data-avatar-photo]')->attr('src'));
 
         $this->client->request('GET', $src);
         self::assertResponseIsSuccessful();

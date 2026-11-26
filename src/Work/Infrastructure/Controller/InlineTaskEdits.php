@@ -60,6 +60,7 @@ final readonly class InlineTaskEdits
                 'value' => $person->id,
                 'name' => $person->name,
                 'seed' => $seeds[$person->id] ?? $person->id,
+                'user' => $seeds[$person->id] ?? null,
             ], $people), $this->queries->assignable(array_map(static fn (TaskRow $task): string => $task->id, $tasks))),
             $seeds,
             $priorities,

@@ -25,6 +25,7 @@ use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskWatcher;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -84,6 +85,39 @@ final class TaskControllerTest extends WebTestCase
 
         $this->client->request('GET', '/tasks/01900000-0000-7000-8000-000000000000');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testThePhotoOfAPersonShowsOnEveryAvatarOfTheirsAndThoseWithoutKeepTheInitials(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $id = $this->taskId('Wireframes');
+        $this->janaComments($id);
+        $src = $this->scoped(function () use ($id): string {
+            $me = $this->em->getRepository(Membership::class)->findOneBy(['role' => Role::Owner]) ?? throw new \LogicException('Membership.');
+            $task = $this->em->find(Task::class, $id) ?? throw new \LogicException('Task.');
+            $me->user()->changePhoto();
+            $this->em->persist(new TaskWatcher($task, $me));
+            $this->em->persist(new TaskComment($task, $me, 'Mine.', false, new \DateTimeImmutable()));
+            $this->em->flush();
+
+            return '/people/'.$me->user()->id().'/photo?v='.$me->user()->photoVersion();
+        });
+
+        $crawler = $this->client->request('GET', '/tasks/'.$id);
+        self::assertResponseIsSuccessful();
+        self::assertSame($src, $crawler->filter('[data-task-property="responsible"] [data-person-picker-trigger] img[data-avatar-photo]')->attr('src'));
+        self::assertSame($src, $crawler->filter('[data-task-watchers] img[data-avatar-photo]')->attr('src'));
+        $comments = $crawler->filter('[data-comment]');
+        self::assertCount(2, $comments);
+        self::assertSame([$src], $comments->filter('img[data-avatar-photo]')->each(static fn (Crawler $img): string => (string) $img->attr('src')));
+        // Jana has no photo: her comment keeps her initials, on the colour of her user id.
+        self::assertSame(['JE', ''], $comments->filter('[data-avatar]')->each(static fn (Crawler $avatar): string => trim($avatar->text())));
+
+        $crawler = $this->client->request('GET', '/projects/'.$project);
+        self::assertSame($src, $crawler->filter('table img[data-avatar-photo]')->first()->attr('src'));
+        $crawler = $this->client->request('GET', '/projects/'.$project.'/board');
+        self::assertSame($src, $crawler->filter('[data-board-card] img[data-avatar-photo]')->first()->attr('src'));
     }
 
     public function testEachPropertySavesOnItsOwnAndTheActivityTellsIt(): void

@@ -621,11 +621,11 @@ final class TaskController extends AbstractController
         // Only someone who sees the task can be responsible for it or follow it.
         $responsibles = [];
         foreach ($task->people as $person) {
-            $responsibles[$person->id] = ['value' => $person->id, 'name' => $person->name, 'seed' => $seeds[$person->id] ?? $person->id];
+            $responsibles[$person->id] = ['value' => $person->id, 'name' => $person->name, 'seed' => $seeds[$person->id] ?? $person->id, 'user' => $seeds[$person->id] ?? null];
         }
         // Someone no longer active stays shown as long as the task is theirs.
         if (null !== $row->responsibleId && !isset($responsibles[$row->responsibleId])) {
-            $responsibles[$row->responsibleId] = ['value' => $row->responsibleId, 'name' => $row->responsibleName ?? '', 'seed' => $seeds[$row->responsibleId] ?? $row->responsibleId];
+            $responsibles[$row->responsibleId] = ['value' => $row->responsibleId, 'name' => $row->responsibleName ?? '', 'seed' => $seeds[$row->responsibleId] ?? $row->responsibleId, 'user' => $seeds[$row->responsibleId] ?? null];
         }
         $candidates = ['' => $this->translator->trans('work.task.watchers.choose')];
         foreach ($task->people as $person) {
@@ -672,6 +672,7 @@ final class TaskController extends AbstractController
             'watchers' => array_map(static fn (Choice $watcher): array => [
                 'name' => $watcher->name,
                 'seed' => $seeds[$watcher->id] ?? $watcher->id,
+                'user' => $seeds[$watcher->id] ?? null,
             ], $task->watchers),
             'watching' => null !== $me && \in_array($me, $watching, true),
             'canWatch' => null !== $me,
@@ -694,7 +695,7 @@ final class TaskController extends AbstractController
                 'active' => $case === $filter,
             ], DiscussionFilter::cases()),
             'discussion' => array_map(fn (DiscussionItem $item): array => $item->comment instanceof CommentView
-                ? ['comment' => $this->commentItem($item->comment)]
+                ? ['comment' => $this->commentItem($item->comment, $seeds)]
                 : ['step' => $this->timelineItem($item->step ?? throw new \LogicException('A step.'))], $discussion),
             'editComment' => [] === $editable ? null : $editComment,
             'createdAt' => $task->createdAt->format($this->translator->trans('format.datetime')),
@@ -764,7 +765,7 @@ final class TaskController extends AbstractController
             'cells' => [
                 'title' => $task->title,
                 'status' => ['text' => $task->statusName, 'tone' => self::STATUS_TONES[$task->statusType->value]],
-                'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'text' => $task->responsibleName],
+                'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : ['avatar' => $seeds[$task->responsibleId] ?? $task->responsibleId, 'user' => $seeds[$task->responsibleId] ?? null, 'text' => $task->responsibleName],
                 'due' => $due,
             ],
         ];
@@ -817,15 +818,21 @@ final class TaskController extends AbstractController
     }
 
     /**
+     * @param array<string, string> $seeds the user ids of the people by membership id
+     *
      * @return array<string, mixed>
      */
-    private function commentItem(CommentView $comment): array
+    private function commentItem(CommentView $comment, array $seeds): array
     {
+        $authorUser = null === $comment->authorId ? null : $seeds[$comment->authorId] ?? null;
+
         $format = $this->translator->trans('format.datetime');
 
         return [
             'id' => $comment->id,
             'author' => $comment->authorName,
+            // The user id of the author, whose photo and colour the avatar shows; null for someone gone.
+            'authorUser' => $authorUser,
             'text' => $comment->text,
             'html' => $comment->html,
             'internal' => $comment->internal,
