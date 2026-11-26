@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Doctrine;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Shared\Contract\UnitOfWork;
 
@@ -20,11 +21,20 @@ final readonly class DoctrineTransactionalWork implements TransactionalWork
 {
     public function __construct(
         private UnitOfWork $work,
+        private EntityManagerInterface $em,
     ) {
     }
 
     public function run(callable $work): mixed
     {
-        return $this->work->run($work);
+        $joined = $this->em->getConnection()->isTransactionActive();
+        $result = $this->work->run($work);
+        if ($joined) {
+            // Flushed into the open transaction, so that its caller (a step of an inbox
+            // suggestion, say) can read back what it made with a query.
+            $this->em->flush();
+        }
+
+        return $result;
     }
 }

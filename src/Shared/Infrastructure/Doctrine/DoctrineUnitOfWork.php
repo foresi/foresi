@@ -22,10 +22,8 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
  * handles the exception (a form error, say) must be able to query on, so the
  * manager is replaced by a fresh one before the exception travels on.
  *
- * A unit inside another one is part of it: it runs inside the outer transaction
- * and flushes into it, so that its caller can read back what it made with a query
- * (an answer that finds the new record by its id, say, in a step of an inbox
- * suggestion); the outermost unit commits or rolls back. Wrapping it would flush the outer unit's
+ * A unit inside another one is part of it: it runs as it is, and the outermost
+ * unit flushes, commits or rolls back. Wrapping it would flush the outer unit's
  * pending changes into a savepoint and, on a failure, close and replace the
  * manager under the outer unit, which then stored nothing it held.
  *
@@ -45,10 +43,7 @@ final readonly class DoctrineUnitOfWork implements UnitOfWork
     public function run(callable $work): mixed
     {
         if ($this->em->getConnection()->isTransactionActive()) {
-            $result = $work();
-            $this->em->flush();
-
-            return $result;
+            return $work();
         }
         try {
             $result = $this->em->wrapInTransaction($work);

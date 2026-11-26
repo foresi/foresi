@@ -546,6 +546,6 @@ final class AddressBookPersistenceTest extends KernelTestCase
             }
         };
 
-        return new DoctrineTransactionalWork(new DoctrineUnitOfWork($this->em, self::getContainer()->get('doctrine'), $outbox));
+        return new DoctrineTransactionalWork(new DoctrineUnitOfWork($this->em, self::getContainer()->get('doctrine'), $outbox), $this->em);
     }
 }
