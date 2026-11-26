@@ -8,10 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Mail\Infrastructure\Doctrine;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Mail\Application\MailTransaction;
-use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Contract\UnitOfWork;
 
 /**
  * One transaction per change, joined when one is already open, with its events
@@ -22,27 +20,12 @@ use Foresi\Shared\Application\Event\EventOutbox;
 final readonly class DoctrineMailTransaction implements MailTransaction
 {
     public function __construct(
-        private EntityManagerInterface $em,
-        private ManagerRegistry $registry,
-        private EventOutbox $outbox,
+        private UnitOfWork $work,
     ) {
     }
 
     public function run(callable $work): mixed
     {
-        if ($this->em->getConnection()->isTransactionActive()) {
-            return $work();
-        }
-        try {
-            $result = $this->em->wrapInTransaction($work);
-        } catch (\Throwable $failure) {
-            $this->outbox->rolledBack();
-            $this->registry->resetManager();
-
-            throw $failure;
-        }
-        $this->outbox->committed();
-
-        return $result;
+        return $this->work->run($work);
     }
 }

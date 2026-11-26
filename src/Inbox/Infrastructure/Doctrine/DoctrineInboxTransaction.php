@@ -9,10 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Inbox\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ManagerRegistry;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Inbox\Application\InboxTransaction;
-use Foresi\Shared\Application\Event\EventOutbox;
+use Foresi\Shared\Contract\UnitOfWork;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -24,8 +23,7 @@ final readonly class DoctrineInboxTransaction implements InboxTransaction
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private ManagerRegistry $registry,
-        private EventOutbox $outbox,
+        private UnitOfWork $work,
         private AuditCorrelation $correlation,
     ) {
     }
@@ -39,17 +37,8 @@ final readonly class DoctrineInboxTransaction implements InboxTransaction
 
                 return $result;
             }
-            try {
-                $result = $this->em->wrapInTransaction($work);
-            } catch (\Throwable $failure) {
-                $this->outbox->rolledBack();
-                $this->registry->resetManager();
 
-                throw $failure;
-            }
-            $this->outbox->committed();
-
-            return $result;
+            return $this->work->run($work);
         });
     }
 }

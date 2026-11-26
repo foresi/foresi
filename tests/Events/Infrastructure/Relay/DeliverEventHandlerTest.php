@@ -23,6 +23,7 @@ use Foresi\Events\Infrastructure\Relay\EventListeners;
 use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Infrastructure\Doctrine\DoctrineUnitOfWork;
 use Foresi\Tests\Events\Fixtures\Listeners\RecordingListener;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
@@ -178,7 +179,7 @@ final class DeliverEventHandlerTest extends KernelTestCase
             new EventListeners(new ServiceLocator(['test.listener' => static fn (): RecordingListener => $listener])),
             EventCatalogue::scan([[ModuleId::of('invoicing'), 'Foresi\Tests\Events\Fixtures\Valid\\', \dirname(__DIR__, 2).'/Fixtures/Valid']]),
             new EventPayloads(),
-            new DeliveryWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $outbox),
+            new DeliveryWork(new DoctrineUnitOfWork($container->get(EntityManagerInterface::class), $container->get(ManagerRegistry::class), $outbox)),
             $this->consumptionRecord(),
             $this->logger,
         );
