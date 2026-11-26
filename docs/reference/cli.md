@@ -144,34 +144,6 @@ bin/console app:api-token:issue [options] [--] <email>
 | `--days` | required | `90` | Days until it expires: 30, 90 or 365. |
 | `--scope` | required, repeatable |  | read, write, or a resource such as contacts:read or contacts:write; repeat for more. |
 
-### app:user:create
-
-Create a user and their membership.
-
-Creates a person who can sign in, together with their membership, in one transaction. Run it once
-after installation to create the first owner, or later to add a user without an invitation. It asks
-for a display name and a password of at least 12 characters.
-A guest must represent an existing contact, so pass --contact with its id.
-It writes one user and one membership. It is not safe to repeat: a second run for the same e-mail
-address fails with exit code 1 and changes nothing.
-
-```
-bin/console app:user:create owner@example.com owner
-```
-
-```
-bin/console app:user:create [options] [--] <email> <role>
-```
-
-| Argument | Required | Default | Description |
-| --- | --- | --- | --- |
-| `email` | yes |  | E-mail address, used to sign in. |
-| `role` | yes |  | owner, member or guest. |
-
-| Option | Value | Default | Description |
-| --- | --- | --- | --- |
-| `--contact` | required |  | Id of the contact the user represents; required for a guest. |
-
 ### app:api-token:list
 
 List personal API tokens.
@@ -201,6 +173,34 @@ bin/console app:api-token:revoke <token-id>
 | --- | --- | --- | --- |
 | `token-id` | yes |  | Id of the token. |
 
+### app:user:create
+
+Create a user and their membership.
+
+Creates a person who can sign in, together with their membership, in one transaction. Run it once
+after installation to create the first owner, or later to add a user without an invitation. It asks
+for a display name and a password of at least 12 characters.
+A guest must represent an existing contact, so pass --contact with its id.
+It writes one user and one membership. It is not safe to repeat: a second run for the same e-mail
+address fails with exit code 1 and changes nothing.
+
+```
+bin/console app:user:create owner@example.com owner
+```
+
+```
+bin/console app:user:create [options] [--] <email> <role>
+```
+
+| Argument | Required | Default | Description |
+| --- | --- | --- | --- |
+| `email` | yes |  | E-mail address, used to sign in. |
+| `role` | yes |  | owner, member or guest. |
+
+| Option | Value | Default | Description |
+| --- | --- | --- | --- |
+| `--contact` | required |  | Id of the contact the user represents; required for a guest. |
+
 ### app:user:reset-2fa
 
 Turn off the two-factor sign-in of a user, who sets it up again on the next sign-in.
@@ -224,19 +224,6 @@ bin/console app:user:reset-2fa <email>
 
 ## Import
 
-### app:import:purge
-
-Delete the files and staged rows of imports that ended more than 30 days ago.
-
-Deletes the source file, the staged rows and the staged missing records of imports that ended
-more than 30 days ago. Imports that never ended and are older than 30 days (waiting for the user)
-are cancelled first. The import record and its counters stay, and an import can no longer be undone
-once purged. Run it from cron once a day. It works on the whole instance and is safe to repeat.
-
-```
-bin/console app:import:purge
-```
-
 ### app:import:health
 
 Fail imports that stopped moving and start the imports queued behind them.
@@ -251,6 +238,19 @@ queue not released.
 
 ```
 bin/console app:import:health
+```
+
+### app:import:purge
+
+Delete the files and staged rows of imports that ended more than 30 days ago.
+
+Deletes the source file, the staged rows and the staged missing records of imports that ended
+more than 30 days ago. Imports that never ended and are older than 30 days (waiting for the user)
+are cancelled first. The import record and its counters stay, and an import can no longer be undone
+once purged. Run it from cron once a day. It works on the whole instance and is safe to repeat.
+
+```
+bin/console app:import:purge
 ```
 
 ## Instance
@@ -309,72 +309,23 @@ bin/console margin:recalculate
 
 ## Shared
 
-### app:ops:test-mail
+### app:migrations:owners
 
-Send a test system mail to check the system mailer.
+Check that every table of the database is created by the migrations of one installed module.
 
-Queues one test mail through the system mailer, to check SYSTEM_MAILER_DSN and SYSTEM_MAIL_FROM.
-Run it after setting up or changing the system mail. It sends nothing itself: the worker sends the
-queued mail, so a worker must run, and the mail arrives only when the transport works. Each run
-queues one more mail. It exits with 1 when the system mailer is not set up or the address is
-invalid.
-
-```
-bin/console app:ops:test-mail owner@example.com
-```
+Checks that every table of the database is created by the migrations of exactly one installed
+module. Run it after the migrations, in CI and after installing or removing a module. On the full
+application it finds a table with no owner; on a subset of modules it finds a table of a module that
+is not installed. It is read-only and safe to repeat. It exits with 1 and prints the problems when a
+table has no owner. Use --list to print every table with its module.
 
 ```
-bin/console app:ops:test-mail <to>
-```
-
-| Argument | Required | Default | Description |
-| --- | --- | --- | --- |
-| `to` | yes |  | The address to send the test mail to. |
-
-### app:views:sync
-
-Store the default views of the installed modules, leaving edited and hidden ones alone.
-
-Stores the default views that the installed modules ship. It adds missing views and brings views
-that nobody edited or hid up to what the module now declares. A view that someone changed or hid
-stays as it is. The deploy runs it after the migrations, and the install runs it too; run it by hand
-after adding a module. It is safe to repeat: a second run changes nothing.
-
-```
-bin/console app:views:sync
-```
-
-### app:ops:test-alert
-
-Log one error to check the error mail to the operator.
-
-Logs one error, to check that it reaches the log file and the operator's mailbox. Run it after
-setting OPERATOR_EMAIL and OPERATOR_MAILER_DSN. The message carries the time, so every run is a
-distinct message and passes the hourly deduplication of error mails. It writes only a log line, and
-it always exits with 0; check the mailbox for the result.
-
-```
-bin/console app:ops:test-alert
-```
-
-### app:modules:deptrac
-
-Generate the module-level Deptrac configuration from the module manifests.
-
-Writes deptrac.modules.yaml, the module-level Deptrac configuration, from the module manifests.
-Run it when a module or a dependency between modules changed, then commit the file. With --check it
-writes nothing and compares only; CI runs it (composer modules:check) and exits with 1 when the file
-differs from the manifests. Writing is safe to repeat. It exits with 1 when the file cannot be
-written.
-
-```
-bin/console app:modules:deptrac [options]
+bin/console app:migrations:owners [options]
 ```
 
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
-| `--check` | none |  | Only compare the file with the manifests; fail when it differs. |
-| `--file` | required |  | The file to write or compare; deptrac.modules.yaml of the project when left out. |
+| `--list` | none |  | Also list each table with its module. |
 
 ### app:migrations:rebase
 
@@ -397,24 +348,6 @@ bin/console app:migrations:rebase [options]
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
 | `--check` | none |  | Only tell the state: exit 0 with nothing to rebase, 2 when a rebase is due, 1 otherwise. |
-
-### app:migrations:owners
-
-Check that every table of the database is created by the migrations of one installed module.
-
-Checks that every table of the database is created by the migrations of exactly one installed
-module. Run it after the migrations, in CI and after installing or removing a module. On the full
-application it finds a table with no owner; on a subset of modules it finds a table of a module that
-is not installed. It is read-only and safe to repeat. It exits with 1 and prints the problems when a
-table has no owner. Use --list to print every table with its module.
-
-```
-bin/console app:migrations:owners [options]
-```
-
-| Option | Value | Default | Description |
-| --- | --- | --- | --- |
-| `--list` | none |  | Also list each table with its module. |
 
 ### app:modules
 
@@ -455,3 +388,70 @@ bin/console app:modules:check [options]
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
 | `--api` | required | `'1.10.0'` | The module API version to check against, such as 2.0; the one this Foresi provides when left out. |
+
+### app:modules:deptrac
+
+Generate the module-level Deptrac configuration from the module manifests.
+
+Writes deptrac.modules.yaml, the module-level Deptrac configuration, from the module manifests.
+Run it when a module or a dependency between modules changed, then commit the file. With --check it
+writes nothing and compares only; CI runs it (composer modules:check) and exits with 1 when the file
+differs from the manifests. Writing is safe to repeat. It exits with 1 when the file cannot be
+written.
+
+```
+bin/console app:modules:deptrac [options]
+```
+
+| Option | Value | Default | Description |
+| --- | --- | --- | --- |
+| `--check` | none |  | Only compare the file with the manifests; fail when it differs. |
+| `--file` | required |  | The file to write or compare; deptrac.modules.yaml of the project when left out. |
+
+### app:ops:test-alert
+
+Log one error to check the error mail to the operator.
+
+Logs one error, to check that it reaches the log file and the operator's mailbox. Run it after
+setting OPERATOR_EMAIL and OPERATOR_MAILER_DSN. The message carries the time, so every run is a
+distinct message and passes the hourly deduplication of error mails. It writes only a log line, and
+it always exits with 0; check the mailbox for the result.
+
+```
+bin/console app:ops:test-alert
+```
+
+### app:ops:test-mail
+
+Send a test system mail to check the system mailer.
+
+Queues one test mail through the system mailer, to check SYSTEM_MAILER_DSN and SYSTEM_MAIL_FROM.
+Run it after setting up or changing the system mail. It sends nothing itself: the worker sends the
+queued mail, so a worker must run, and the mail arrives only when the transport works. Each run
+queues one more mail. It exits with 1 when the system mailer is not set up or the address is
+invalid.
+
+```
+bin/console app:ops:test-mail owner@example.com
+```
+
+```
+bin/console app:ops:test-mail <to>
+```
+
+| Argument | Required | Default | Description |
+| --- | --- | --- | --- |
+| `to` | yes |  | The address to send the test mail to. |
+
+### app:views:sync
+
+Store the default views of the installed modules, leaving edited and hidden ones alone.
+
+Stores the default views that the installed modules ship. It adds missing views and brings views
+that nobody edited or hid up to what the module now declares. A view that someone changed or hid
+stays as it is. The deploy runs it after the migrations, and the install runs it too; run it by hand
+after adding a module. It is safe to repeat: a second run changes nothing.
+
+```
+bin/console app:views:sync
+```

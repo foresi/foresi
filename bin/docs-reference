@@ -96,6 +96,10 @@ function cliPage(string $root): string
         }
     }
     ksort($byModule);
+    foreach ($byModule as &$commands) {
+        ksort($commands);
+    }
+    unset($commands);
 
     $out = [];
     $out[] = '# Console commands';
@@ -109,7 +113,6 @@ function cliPage(string $root): string
     $out[] = 'and the libraries, which are not listed here.';
     $out[] = '';
     foreach ($byModule as $module => $commands) {
-        ksort($commands);
         $out[] = '- '.$module.': '.implode(', ', array_map(
             static fn (string $name): string => '['.code($name).'](#'.slug($name).')',
             array_keys($commands),
