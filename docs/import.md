@@ -105,7 +105,7 @@ stopwaitsecs=3600
 
 Only one import per organisation and target (contacts, for example) runs or undoes at a time. The others wait with the state "queued" and start by themselves, the longest-waiting first. The decision is made under a lock.
 
-By default the lock is a file lock (`LOCK_DSN=flock` in `.env`), which works on a **single host** (the schedule of timed jobs uses the same lock store): the web server and all workers must run on the same machine. If they run on several hosts, two of them could decide at the same moment and start two imports into one target. Set a lock store that all hosts share, in `.env.local`, for example PostgreSQL advisory locks or Redis:
+By default the lock is a file lock in the instance's share directory (`LOCK_DSN` empty in `.env`), which works on a **single host** (the schedule of timed jobs uses the same lock store): the web server and all workers must run on the same machine. If they run on several hosts, two of them could decide at the same moment and start two imports into one target. Set a lock store that all hosts share, in `.env.local`, for example PostgreSQL advisory locks or Redis:
 
 ```
 LOCK_DSN=postgresql+advisory://user:password@db.example.com:5432/foresi

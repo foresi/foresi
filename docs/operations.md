@@ -40,13 +40,13 @@ files. Never put a production secret in a committed file.
 | `APP_SECRET` | **yes** | Signs the public links of sent documents and the links that stop notification e-mails, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
 | `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
-| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`. |
+| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`, `lock`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
 | `WEBHOOK_SECRET_KEYS` | **yes** | Keys that seal the signing secrets of webhook endpoints, in the format of `MAIL_SECRET_KEYS` and rotated apart from it: the first key seals, older ones only open. Empty means no endpoint can be saved. Losing the keys means every endpoint needs a new secret. See [ADR 0031](adr/0031-webhooks.md). |
 | `APP_TIMEZONE` | no | The time zone of the instance's days, such as due dates and the schedule: a canonical name of the tz database such as `Europe/Prague`. Empty (default) follows the country of the firm, else UTC. An offset, an abbreviation or an old alias such as `US/Eastern` stops the instance at start with the reason. |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
-| `LOCK_DSN` | maybe | `flock` (default) works on one host. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
+| `LOCK_DSN` | maybe | Empty (default) or `flock` locks with files in `<APP_SHARE_DIR>/<APP_ENV>/lock`, so each instance has its own locks, also when several instances on one host run as one Unix user. Not the system temp directory: instances would share lock names there, and only one of them would run its schedule. `flock:///path` picks another directory, one per instance. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
 | `SYMFONY_TRUSTED_PROXIES` | no | The addresses of a reverse proxy or load balancer in front of PHP, such as `127.0.0.1,REMOTE_ADDR`. See [web server](#web-server). |
 | `MAIL_INBOUND_*`, `INBOUND_WEBHOOK_SECRET`, `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` | **yes** (`MAIL_INBOUND_PASSWORD`, `INBOUND_WEBHOOK_SECRET`) | Inbound mail, such as bank notices and people's own addresses; empty turns it off. `MAIL_INBOUND_DAILY_LIMIT` is how many mails one address takes per day (500 by default, not a secret). The operator task `mail-purge` runs daily on the existing schedule and needs no setting. The old names `BANK_INBOX_*` still work for one more release, with a deprecation warning in the log. See [docs/mail.md](mail.md#settings) and [docs/bank-pairing.md](bank-pairing.md). |
 | `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
@@ -79,7 +79,8 @@ symlink, so a request never sees half a release:
 ├── shared/
 │   ├── .env.local                       # configuration and secrets (0600)
 │   └── var/
-│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail, idoklad-documents, original-documents, attachments
+│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail, idoklad-documents, original-documents, attachments, mcp-sessions
+│       │   └── lock/                    # the file locks of this instance (schedule, imports, rate limits)
 │       └── imports/                     # uploaded import files
 ├── repo.git/                            # a mirror of the repository, kept by the deploy
 └── deploy.env                           # optional settings of ops/deploy.sh
