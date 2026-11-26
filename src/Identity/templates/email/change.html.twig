@@ -1,0 +1,39 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The new sign-in e-mail, in a dialog over the e-mail page; the same URL is a page of its own.
+    Variables: email (the current address), value, error.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'email.change_title'|trans %}
+{% set crumbs = [{label: 'email.title'|trans, href: path('app_account_email')}, {label: title}] %}
+{% set form_invalid = error is not null %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="email-form" action="{{ path('app_account_email_change') }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\EmailController::TOKEN')) }}">
+        <p class="m-0 text-small text-muted">{{ 'email.change_intro'|trans({email: email, hours: constant('Foresi\\Identity\\Domain\\User::EMAIL_CHANGE_VALID_HOURS')}) }}</p>
+        <twig:Ui:TextInput type="email" name="newEmail" id="new-email" :label="'email.field.new'|trans" :value="value" :error="error" required maxlength="255" autocomplete="email" autocapitalize="off" spellcheck="false" autofocus />
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'email.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="email-form" variant="primary">{{ 'email.send'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="mail" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_account_email')">{{ 'email.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="email-form" variant="primary">{{ 'email.send'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

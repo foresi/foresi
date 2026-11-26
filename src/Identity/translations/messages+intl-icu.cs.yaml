@@ -387,7 +387,7 @@ profile:
   field:
     name: Jméno
     email: E-mail
-    email_note: Adresa, kterou se přihlašujete
+    email_note: Adresa, kterou se přihlašujete; změníte ji v Zabezpečení, Přihlašovací e-mail
     language: Jazyk
     photo: Fotka
     photo_help: JPEG, PNG nebo WebP, nejvýš 5 MB
@@ -452,11 +452,66 @@ password:
     changed: 'Heslo k vašemu účtu {email} v {product} se změnilo {time}.'
     signed_out: Všechna ostatní zařízení, kde jste byli přihlášení, jsme odhlásili a prohlížeče, které jste označili jako důvěryhodné, se znovu zeptají na kód.
     not_you: Pokud jste heslo neměnili vy, hned se obraťte na správce své firmy.
+email:
+  title: Přihlašovací e-mail
+  intro: Touto adresou se přihlašujete a Foresi na ni posílá, co se týká vašeho účtu. Nová adresa začne platit, až otevřete odkaz, který na ni pošleme.
+  change: Změnit e-mail
+  change_title: Změnit přihlašovací e-mail
+  change_intro: 'Teď se přihlašujete adresou {email}. Na novou adresu pošleme odkaz; platí {hours} hodin a dokud ho neotevřete, přihlašujete se dál současnou adresou.'
+  send: Poslat odkaz
+  cancel: Zrušit
+  cancel_change: Zrušit změnu
+  pending: 'Čeká na potvrzení: na {email} jsme poslali odkaz. Dokud ho neotevřete, přihlašujete se současnou adresou. Odkaz platí do {time}.'
+  field:
+    email: Přihlašovací e-mail
+    new: Nový e-mail
+    after: Po změně
+    after_value: Ostatní zařízení se odhlásí a na předchozí adresu přijde upozornění.
+  flash:
+    sent: 'Na {email} jsme poslali odkaz. Změnu dokončíte jeho otevřením.'
+    cancelled: Změna e-mailu je zrušená. Odkaz už neplatí.
+    changed: 'Teď se přihlašujete adresou {email}. Ostatní zařízení jsme odhlásili.'
+  error:
+    invalid: Zadejte platnou e-mailovou adresu.
+    same: Touto adresou se už přihlašujete.
+    taken: Tuto adresu používá jiný účet.
+    mail_unavailable: Na této instalaci není nastavené odesílání e-mailů, takže odkaz nejde poslat. Obraťte se na správce své firmy.
+    not_found: Váš účet nebyl nalezen.
+    throttled: '{minutes, plural, one {Příliš mnoho změn. Zkuste to znovu za # minutu.} few {Příliš mnoho změn. Zkuste to znovu za # minuty.} other {Příliš mnoho změn. Zkuste to znovu za # minut.}}'
+  confirm:
+    confirm:
+      title: Potvrďte nový e-mail
+      text: 'Místo adresou {email} se budete přihlašovat adresou {new}. Ostatní zařízení se odhlásí.'
+      submit: Potvrdit nový e-mail
+    done:
+      title: E-mail je změněný
+      text: 'Od teď se přihlašujete adresou {new}.'
+      submit: Přihlásit se
+    taken:
+      title: Adresa je obsazená
+      text: 'Adresu {new} mezitím začal používat jiný účet, takže váš e-mail zůstává, jak byl. Začněte změnu znovu s jinou adresou.'
+    unknown:
+      title: Tento odkaz už neplatí
+      text: Platnost odkazu vypršela, změna byla zrušená nebo už byl použitý. Začněte změnu znovu ve svém profilu.
+  mail:
+    confirm:
+      subject: 'Potvrďte nový e-mail do {product}'
+      intro: '{name} chce se do {product} přihlašovat adresou {new} místo {email}.'
+      action: Potvrdit nový e-mail
+      validity: '{hours, plural, one {Odkaz platí # hodinu.} few {Odkaz platí # hodiny.} other {Odkaz platí # hodin.}} Dokud ho neotevřete, účet se přihlašuje současnou adresou.'
+      ignore: Pokud jste o změnu nežádali, tento e-mail ignorujte a nic se nezmění.
+    notice:
+      subject: 'Váš přihlašovací e-mail do {product} se změnil'
+      changed: 'Přihlašovací e-mail vašeho účtu v {product} se {time} změnil z {old} na {new}.'
+      signed_out: Všechna ostatní zařízení, kde jste byli přihlášení, jsme odhlásili.
+      not_you: 'Pokud jste ho neměnili vy, hned se obraťte na svou firmu: {owners}.'
+      not_you_admin: Pokud jste ho neměnili vy, hned se obraťte na správce své instalace Foresi.
 reauth:
   title: Potvrďte, že jste to vy
   reason:
     two_factor: Chystáte se nastavit dvoufázové přihlášení, které rozhoduje o tom, kdo se k vašemu účtu přihlásí.
     api_token: Chystáte se vytvořit API token, který může jednat vaším jménem.
+    email: Chystáte se změnit e-mail, kterým se přihlašujete.
     default: Chystáte se změnit něco, co chrání váš účet.
   window: '{minutes, plural, one {Další # minutu se už ptát nebudeme.} few {Další # minuty se už ptát nebudeme.} other {Dalších # minut se už ptát nebudeme.}}'
   password: Heslo
