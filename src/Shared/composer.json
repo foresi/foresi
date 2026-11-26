@@ -17,6 +17,7 @@
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
+        "doctrine/persistence": "^4.2",
         "foresi/module-api": "^1.0",
         "guzzlehttp/psr7": "^3.2",
         "league/commonmark": "^2.10",

@@ -112,6 +112,7 @@ final class ProjectModulesTest extends TestCase
         'Foresi\\Shared\\Application\\Api\\ApiClient -> Foresi\\Identity\\Infrastructure\\Security\\TokenApiClient',
         'Foresi\\Shared\\Application\\Api\\IdempotencyKeys -> Foresi\\Identity\\Infrastructure\\Idempotency\\DbalIdempotencyKeys',
         'Foresi\\Shared\\Application\\Api\\ScopeGuard -> Foresi\\Identity\\Infrastructure\\Security\\TokenScopeGuard',
+        'Foresi\\Shared\\Application\\ConflictRetry -> Foresi\\Audit\\Infrastructure\\Doctrine\\DoctrineConflictRetry',
         'Foresi\\Shared\\Application\\Event\\EventOutbox -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
         'Foresi\\Shared\\Contract\\Event\\EventRecorder -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
         'Foresi\\Shared\\Infrastructure\\Mcp\\ToolCaller -> Foresi\\Identity\\Infrastructure\\Console\\McpStdioSignIn',

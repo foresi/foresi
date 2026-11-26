@@ -3181,13 +3181,12 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "237ae0e3ca5b244f9226cf2028c38ebc52ae356c"
+                "reference": "019b08ff4fbe6376bfc9bb9fb2c07c6d818bd80d"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
-                "doctrine/persistence": "^4.2",
                 "foresi/audit": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/module-api": "^1.0",
@@ -3335,7 +3334,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "007dfc1904f0fc1f4eecf76343ea75d2f73131f4"
+                "reference": "d03296ec6d80ff550402a34c8ffa94eb2d9ddf50"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3346,6 +3345,7 @@
                 "doctrine/doctrine-migrations-bundle": "^4.0.1",
                 "doctrine/migrations": "^3.9",
                 "doctrine/orm": "^3.7.5",
+                "doctrine/persistence": "^4.2",
                 "foresi/module-api": "^1.0",
                 "guzzlehttp/psr7": "^3.2",
                 "league/commonmark": "^2.10",
