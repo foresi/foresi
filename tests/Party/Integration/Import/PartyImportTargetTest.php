@@ -12,7 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Application\AuditCorrelation;
 use Foresi\Audit\Domain\AuditEntry;
-use Foresi\Import\Application\Target\CustomFieldTarget;
+use Foresi\Import\Infrastructure\Target\CustomFieldTarget;
 use Foresi\Import\Application\Target\TargetRegistry;
 use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Contract\FieldDefinition;

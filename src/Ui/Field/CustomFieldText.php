@@ -37,7 +37,7 @@ final readonly class CustomFieldText
 
         return match ($definition->kind) {
             FieldKind::Text, FieldKind::LongText, FieldKind::Url => \is_scalar($value) ? (string) $value : null,
-            FieldKind::Number => is_numeric($value) ? (new \NumberFormatter($this->translator->getLocale(), \NumberFormatter::DECIMAL)->format((float) $value) ?: (string) $value) : null,
+            FieldKind::Number => is_numeric($value) ? $this->number($value) : null,
             FieldKind::Date => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.date')) : null,
             FieldKind::DateTime => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.datetime')) : null,
             FieldKind::Boolean => $this->translator->trans(true === $value ? 'ui.attribute.yes' : 'ui.attribute.no'),
@@ -47,7 +47,7 @@ final readonly class CustomFieldText
         };
     }
 
-    public function option(FieldDefinition $definition, string $option): string
+    private function option(FieldDefinition $definition, string $option): string
     {
         return isset($definition->options[$option]) ? $this->translator->trans($definition->options[$option]) : $option;
     }
@@ -55,10 +55,17 @@ final readonly class CustomFieldText
     /**
      * The name of the contact or person a field points to, or a note that they are no longer there.
      */
-    public function name(FieldDefinition $definition, string $id): string
+    private function name(FieldDefinition $definition, string $id): string
     {
         $names = $this->names->of($definition->kind);
 
         return ($names instanceof FieldReferenceNames ? $names->names([$id])[$id] ?? null : null) ?? $this->translator->trans('ui.custom_fields.unknown');
+    }
+
+    private function number(int|float|string $value): string
+    {
+        $text = new \NumberFormatter($this->translator->getLocale(), \NumberFormatter::DECIMAL)->format((float) $value);
+
+        return false === $text ? (string) $value : $text;
     }
 }

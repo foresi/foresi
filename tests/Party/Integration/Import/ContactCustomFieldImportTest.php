@@ -23,9 +23,11 @@ use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Integration\Import\PartyImportTarget;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -170,7 +172,12 @@ final class ContactCustomFieldImportTest extends KernelTestCase
 
         $before = json_decode(json_encode($result->before->data, \JSON_THROW_ON_ERROR), true, 512, \JSON_THROW_ON_ERROR);
         self::assertIsArray($before);
-        $this->target->revert($id, new \Foresi\Import\Contract\RecordSnapshot($before));
+        $data = [];
+        foreach ($before as $key => $value) {
+            self::assertIsString($key);
+            $data[$key] = $value;
+        }
+        $this->target->revert($id, new \Foresi\Import\Contract\RecordSnapshot($data));
         $this->em->flush();
 
         $due = $this->value($id, 'test_fields_due');
@@ -211,7 +218,70 @@ final class ContactCustomFieldImportTest extends KernelTestCase
         self::assertSame([], $this->target->validate($values));
         $result = $this->update($id, $values, BlankCells::Clear);
         $this->em->flush();
-        self::assertSame([], array_filter($result->before->data['custom_fields'] ?? [], fn (mixed $value, string $key): bool => $value !== \Foresi\Shared\Application\Field\CustomFieldPayload::encoded($this->definition($key), $this->value($id, $key)), \ARRAY_FILTER_USE_BOTH), 'the export imports again without a change');
+        $before = $result->before->data['custom_fields'] ?? null;
+        self::assertIsArray($before);
+        self::assertCount(13, $before, 'with Clear, every column of the export');
+        foreach ($before as $key => $value) {
+            self::assertIsString($key);
+            self::assertEquals($value, CustomFieldPayload::encoded($this->definition($key), $this->value($id, $key)), $key.': the export imports again without a change');
+        }
+    }
+
+    public function testAFieldThatIsNotImportedIsNeitherOfferedNorWrittenNorExported(): void
+    {
+        $this->fields = LentFields::lend(self::getContainer(), ContactExtension::RECORD, offImport: ['test_fields_ratio']);
+
+        self::assertArrayNotHasKey('custom_test_fields_ratio', $this->byKey());
+        $id = $this->create(['display_name' => 'Example Company', 'custom_test_fields_ratio' => '2', 'custom_test_fields_code' => 'A-1'])->id;
+        $this->em->flush();
+        self::assertNull($this->value($id, 'test_fields_ratio'));
+        self::assertSame('A-1', $this->value($id, 'test_fields_code'));
+        self::assertArrayNotHasKey('custom_test_fields_ratio', [...$this->target->export([$id])][0]);
+    }
+
+    public function testAnUpdateWithoutCustomFieldsKeepsTheSnapshotOfTheTarget(): void
+    {
+        $id = $this->create(['display_name' => 'Example Company'])->id;
+        $this->em->flush();
+
+        $result = $this->update($id, ['display_name' => 'Renamed Company', 'custom_test_fields_code' => null], BlankCells::Keep);
+
+        self::assertArrayNotHasKey('custom_fields', $result->before->data);
+        self::assertNotSame([], $result->before->data);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, ?string}>
+     */
+    public static function cells(): iterable
+    {
+        yield 'a moment with seconds' => ['custom_test_fields_seen_at', '2026-11-26 14:30:15', null];
+        yield 'a moment with an offset' => ['custom_test_fields_seen_at', '2026-11-26T14:30:00+01:00', null];
+        yield 'a day that does not exist' => ['custom_test_fields_seen_at', '2026-02-30 10:00', 'import.error.invalid_date_time'];
+        yield 'an hour that does not exist' => ['custom_test_fields_seen_at', '2026-11-26 25:00', 'import.error.invalid_date_time'];
+        yield 'a moment after other text' => ['custom_test_fields_seen_at', 'on 2026-11-26 14:30', 'import.error.invalid_date_time'];
+        yield 'a moment before other text' => ['custom_test_fields_seen_at', '2026-11-26 14:30 or later', 'import.error.invalid_date_time'];
+        yield 'an address in capitals' => ['custom_test_fields_site', 'HTTPS://EXAMPLE.COM', null];
+        yield 'an address without a host' => ['custom_test_fields_site', 'https://', 'import.error.invalid_url'];
+        yield 'an address of another scheme' => ['custom_test_fields_site', 'ftp://example.com', 'import.error.invalid_url'];
+        yield 'an address with a space' => ['custom_test_fields_site', 'https://example.com/a b', 'import.error.invalid_url'];
+        yield 'options named twice' => ['custom_test_fields_tags', 'red, Red; ;test.tag.red', null];
+    }
+
+    #[DataProvider('cells')]
+    public function testACellIsReadByItsKind(string $field, string $cell, ?string $error): void
+    {
+        $errors = $this->target->validate(['display_name' => 'Example Company', $field => $cell]);
+
+        self::assertSame(null === $error ? [] : [[$field, $error, ['value' => $cell]]], array_map(static fn (RowError $found): array => [$found->field, $found->messageKey, $found->parameters], $errors));
+    }
+
+    public function testOptionsNamedTwiceAreWrittenOnce(): void
+    {
+        $id = $this->create(['display_name' => 'Example Company', 'custom_test_fields_tags' => 'red, Red; ;test.tag.blue'])->id;
+        $this->em->flush();
+
+        self::assertSame(['red', 'blue'], $this->value($id, 'test_fields_tags'));
     }
 
     /**
@@ -251,6 +321,9 @@ final class ContactCustomFieldImportTest extends KernelTestCase
         return self::getContainer()->get(AuditCorrelation::class)->within('import:1', fn (): WriteResult => $this->target->update($id, $values, $blankCells));
     }
 
+    /**
+     * @phpstan-impure the value is read again after each write
+     */
     private function value(string $id, string $key): mixed
     {
         return $this->fields->value(ContactExtension::RECORD, $id, $key);

@@ -49,7 +49,6 @@ final readonly class CustomFieldTemplates
         if ([] === $templated) {
             return [];
         }
-        $this->fields->values($record, [$id]);
         $values = [];
         foreach ($templated as $definition) {
             $values[$definition->key] = $this->text->text($definition, $this->fields->value($record, $id, $definition->key)) ?? '';

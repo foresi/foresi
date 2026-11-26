@@ -8,15 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Import\Application\Target;
 
-use Foresi\Import\Contract\FieldRecordTarget;
 use Foresi\Import\Contract\ImportTarget;
-use Foresi\Shared\Application\Field\ReferenceNames;
-use Foresi\Shared\Contract\Field\Fields;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * All import targets, found by their key. A target whose records take custom
- * fields comes wrapped in CustomFieldTarget, which adds them.
+ * fields comes extended with them (TargetExtension).
  */
 final class TargetRegistry
 {
@@ -28,14 +24,10 @@ final class TargetRegistry
      */
     public function __construct(
         iterable $targets,
-        ?Fields $fields = null,
-        ?ReferenceNames $references = null,
-        ?TranslatorInterface $translator = null,
+        ?TargetExtension $extension = null,
     ) {
         foreach ($targets as $target) {
-            if ($target instanceof FieldRecordTarget && $fields instanceof Fields && $translator instanceof TranslatorInterface) {
-                $target = new CustomFieldTarget($target, $target->fieldRecord(), $fields, $references ?? new ReferenceNames(), $translator);
-            }
+            $target = $extension?->extend($target) ?? $target;
             $this->targets[$target->key()] = $target;
         }
     }

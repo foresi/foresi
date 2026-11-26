@@ -32,6 +32,12 @@ final class LentFields implements FieldSource
     /** @var list<string> */
     private array $offApi = [];
 
+    /** @var list<string> */
+    private array $offTemplate = [];
+
+    /** @var list<string> */
+    private array $offImport = [];
+
     public function __construct(private readonly DoctrineFieldSource $fields)
     {
     }
@@ -40,15 +46,19 @@ final class LentFields implements FieldSource
      * Lends the fields to the record kind in this container, before its lists are read.
      *
      * @param list<string> $required the keys of the fields that are required there, such as "test_fields_code"
-     * @param list<string> $offApi   the keys of the fields left out of the REST API and MCP there (api: false)
+     * @param list<string> $offApi      the keys of the fields left out of the REST API and MCP there (api: false)
+     * @param list<string> $offTemplate the keys of the fields left out of the document templates there (template: false)
+     * @param list<string> $offImport   the keys of the fields left out of the import and export there (import: false)
      */
-    public static function lend(ContainerInterface $container, string $record, array $required = [], array $offApi = []): Fields
+    public static function lend(ContainerInterface $container, string $record, array $required = [], array $offApi = [], array $offTemplate = [], array $offImport = []): Fields
     {
         $lent = $container->get(self::class); // @phpstan-ignore symfonyContainer.serviceNotFound (registered in the test environment only, and PHPStan reads the dev container)
         \assert($lent instanceof self);
         $lent->record = $record;
         $lent->required = $required;
         $lent->offApi = $offApi;
+        $lent->offTemplate = $offTemplate;
+        $lent->offImport = $offImport;
 
         return $container->get(Fields::class); // @phpstan-ignore symfonyContainer.privateService (the test container of a KernelTestCase holds the private services)
     }
@@ -61,7 +71,7 @@ final class LentFields implements FieldSource
 
         return array_map(fn (FieldDefinition $field): FieldDefinition => new FieldDefinition(
             $field->key, $record, $field->kind, $field->label, $field->options, $field->module,
-            $field->filterable, $field->sortable, $field->required || \in_array($field->key, $this->required, true), $field->guests, $field->api && !\in_array($field->key, $this->offApi, true), $field->template, $field->import, $field->searchable,
+            $field->filterable, $field->sortable, $field->required || \in_array($field->key, $this->required, true), $field->guests, $field->api && !\in_array($field->key, $this->offApi, true), $field->template && !\in_array($field->key, $this->offTemplate, true), $field->import && !\in_array($field->key, $this->offImport, true), $field->searchable,
         ), $this->fields->definitions(FixtureNoteExtension::RECORD));
     }
 

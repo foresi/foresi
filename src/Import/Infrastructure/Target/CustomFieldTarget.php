@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Import\Application\Target;
+namespace Foresi\Import\Infrastructure\Target;
 
 use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Contract\FieldDefinition;
@@ -49,7 +49,8 @@ final readonly class CustomFieldTarget implements ImportTarget
     /** The languages whose option labels a cell may use. */
     private const array LABEL_LOCALES = ['cs', 'en'];
 
-    private const string LOCAL_DATE_TIME = '/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)$/';
+    /** A date and time in the application's time zone, with or without seconds, or ISO 8601 with an offset. */
+    private const array DATE_TIME_FORMATS = ['Y-m-d H:i', 'Y-m-d H:i:s', \DATE_ATOM];
 
     public function __construct(
         private ImportTarget $target,
@@ -120,7 +121,7 @@ final readonly class CustomFieldTarget implements ImportTarget
     {
         [$own, $custom] = $this->split($values);
         $result = $this->target->create($own);
-        $this->write($result->id, array_filter($this->values($custom), static fn (mixed $value): bool => null !== $value));
+        $this->write($result->id, $this->values($custom));
 
         return $result;
     }
@@ -260,8 +261,7 @@ final readonly class CustomFieldTarget implements ImportTarget
         $own = [];
         $custom = [];
         foreach ($values as $key => $value) {
-            $key = (string) $key;
-            if (str_starts_with($key, self::PREFIX) && $this->fields->definition($this->record, substr($key, \strlen(self::PREFIX))) instanceof CustomFieldDefinition) {
+            if (str_starts_with($key, self::PREFIX)) {
                 $custom[substr($key, \strlen(self::PREFIX))] = $value;
             } else {
                 $own[$key] = $value;
@@ -272,7 +272,7 @@ final readonly class CustomFieldTarget implements ImportTarget
     }
 
     /**
-     * The values as Fields takes them, null for an empty cell; a value that cannot be read is left out.
+     * The values as Fields takes them, null for an empty cell; a value that cannot be read, or of a field that is not imported, is left out.
      *
      * @param array<string, mixed> $custom by field key
      *
@@ -281,10 +281,14 @@ final readonly class CustomFieldTarget implements ImportTarget
     private function values(array $custom): array
     {
         $values = [];
-        foreach ($custom as $key => $value) {
-            $read = $this->read($key, $value);
+        // Only the fields that allow import: a cell of any other is never written.
+        foreach ($this->definitions() as $definition) {
+            if (!\array_key_exists($definition->key, $custom)) {
+                continue;
+            }
+            $read = $this->read($definition->key, $custom[$definition->key]);
             if (!$read instanceof RowError) {
-                $values[$key] = $read;
+                $values[$definition->key] = $read;
             }
         }
 
@@ -314,7 +318,6 @@ final readonly class CustomFieldTarget implements ImportTarget
         $text = \is_scalar($value) ? (string) $value : '';
 
         return match ($definition->kind) {
-            FieldKind::Date => $value instanceof \DateTimeInterface ? new \DateTimeImmutable($value->format('Y-m-d').' 00:00:00') : null,
             FieldKind::DateTime => $this->dateTime($text) ?? new RowError($field, 'import.error.invalid_date_time', ['value' => $text]),
             FieldKind::Url => $this->isUrl($text) ? $text : new RowError($field, 'import.error.invalid_url', ['value' => $text]),
             FieldKind::MultiSelect => $this->options($definition, $text),
@@ -323,24 +326,21 @@ final readonly class CustomFieldTarget implements ImportTarget
         };
     }
 
+    /**
+     * A moment in one of the forms the import reads, the same moment when written back
+     * in that form, so a day or an hour that does not exist is refused.
+     */
     private function dateTime(string $text): ?\DateTimeImmutable
     {
         $zone = new \DateTimeZone(date_default_timezone_get());
-        if (1 === preg_match(self::LOCAL_DATE_TIME, $text, $parts)) {
-            $moment = \DateTimeImmutable::createFromFormat('!Y-m-d H:i'.(5 === \strlen($parts[2]) ? '' : ':s'), $parts[1].' '.$parts[2], $zone);
-
-            return false !== $moment && $moment->format('Y-m-d') === $parts[1] ? $moment : null;
-        }
-        if (1 !== preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/', $text)) {
-            return null;
-        }
-        try {
-            $moment = new \DateTimeImmutable($text);
-        } catch (\Exception) {
-            return null;
+        foreach (self::DATE_TIME_FORMATS as $format) {
+            $moment = \DateTimeImmutable::createFromFormat('!'.$format, $text, $zone);
+            if (false !== $moment && $moment->format($format) === $text) {
+                return $moment->setTimezone($zone);
+            }
         }
 
-        return $moment->format('Y-m-d') === substr($text, 0, 10) ? $moment->setTimezone($zone) : null;
+        return null;
     }
 
     private function isUrl(string $text): bool
@@ -359,7 +359,8 @@ final readonly class CustomFieldTarget implements ImportTarget
     {
         $names = $this->optionNames($definition);
         $keys = [];
-        foreach (preg_split('/[,;]/', $text) ?: [] as $part) {
+        $parts = preg_split('/[,;]/', $text);
+        foreach (false === $parts ? [] : $parts as $part) {
             $part = trim($part);
             if ('' === $part) {
                 continue;
@@ -422,9 +423,16 @@ final readonly class CustomFieldTarget implements ImportTarget
         }
 
         return match ($definition->kind) {
-            FieldKind::Date => \DateTimeImmutable::createFromFormat('!Y-m-d', $value) ?: null,
+            FieldKind::Date => self::date($value),
             FieldKind::DateTime => new \DateTimeImmutable($value)->setTimezone(new \DateTimeZone(date_default_timezone_get())),
             default => $value,
         };
+    }
+
+    private static function date(string $value): ?\DateTimeImmutable
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+
+        return false === $date ? null : $date;
     }
 }

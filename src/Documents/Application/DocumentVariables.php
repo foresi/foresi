@@ -133,9 +133,9 @@ final readonly class DocumentVariables
     /**
      * The values with one set at a variable's name, nested by its path.
      *
-     * @param array<array-key, mixed> $values
+     * @param array<string, mixed> $values
      *
-     * @return array<array-key, mixed>
+     * @return array<string, mixed>
      */
     private static function put(array $values, string $name, mixed $value): array
     {
@@ -145,8 +145,12 @@ final readonly class DocumentVariables
 
             return $values;
         }
-        $inner = \is_array($values[$parts[0]] ?? null) ? $values[$parts[0]] : [];
-        $values[$parts[0]] = self::put($inner, $parts[1], $value);
+        $inner = $values[$parts[0]] ?? null;
+        $keyed = [];
+        foreach (\is_array($inner) ? $inner : [] as $key => $nested) {
+            $keyed[(string) $key] = $nested;
+        }
+        $values[$parts[0]] = self::put($keyed, $parts[1], $value);
 
         return $values;
     }
