@@ -172,9 +172,8 @@ final readonly class CustomFieldForm
     {
         return match (true) {
             FieldKind::MultiSelect === $definition->kind => \is_array($value) ? array_values(array_filter($value, \is_string(...))) : [],
-            null === $value => '',
             $value instanceof \DateTimeInterface => $value->format(FieldKind::DateTime === $definition->kind ? self::DATETIME : self::DATE),
-            \is_bool($value) => $value ? '1' : '',
+            // A ticked box reads "1", an unticked one "".
             \is_scalar($value) => (string) $value,
             default => '',
         };
@@ -207,9 +206,9 @@ final readonly class CustomFieldForm
     private function date(string $format, string $text): ?\DateTimeImmutable
     {
         $date = \DateTimeImmutable::createFromFormat('!'.$format, $text);
-        $problems = \DateTimeImmutable::getLastErrors();
 
-        return false === $date || (false !== $problems && ($problems['warning_count'] > 0 || $problems['error_count'] > 0)) ? null : $date;
+        // The last errors are false when the text had neither a warning nor an error, such as "2027-02-30" has.
+        return false === $date || false !== \DateTimeImmutable::getLastErrors() ? null : $date;
     }
 
     private function url(string $text): bool

@@ -68,7 +68,7 @@ final class CustomFields
     /** The one field to show, by its key, such as a field of a task's sidebar; null for all. */
     public ?string $only = null;
 
-    /** @var list<FieldDefinition> */
+    /** @var array<int, FieldDefinition> in the order the fields are declared */
     private array $definitions = [];
 
     public function __construct(
@@ -93,10 +93,10 @@ final class CustomFields
         if (self::DETAIL === $this->mode && null === $this->id) {
             throw new \InvalidArgumentException('The custom fields of a detail name the record.');
         }
-        $this->definitions = array_values(array_filter(
+        $this->definitions = array_filter(
             $this->visible->definitions($this->record),
             fn (FieldDefinition $definition): bool => (!$this->requiredOnly || $definition->required) && (null === $this->only || $definition->key === $this->only),
-        ));
+        );
     }
 
     public function empty(): bool
@@ -175,7 +175,7 @@ final class CustomFields
         return match ($definition->kind) {
             FieldKind::Text, FieldKind::LongText => \is_scalar($value) ? (string) $value : null,
             FieldKind::Url => \is_string($value) ? ['links' => [['text' => $value, 'href' => $value]]] : null,
-            FieldKind::Number => is_numeric($value) ? (string) new \NumberFormatter($this->translator->getLocale(), \NumberFormatter::DECIMAL)->format((float) $value) : null,
+            FieldKind::Number => is_numeric($value) ? new \NumberFormatter($this->translator->getLocale(), \NumberFormatter::DECIMAL)->format((float) $value) : null,
             FieldKind::Date => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.date')) : null,
             FieldKind::DateTime => $value instanceof \DateTimeInterface ? $value->format($this->translator->trans('format.datetime')) : null,
             FieldKind::Boolean => $this->translator->trans(true === $value ? 'ui.attribute.yes' : 'ui.attribute.no'),

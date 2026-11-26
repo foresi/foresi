@@ -45,7 +45,7 @@ final readonly class VisibleFields
     /**
      * Whether a guest is signed in; nobody signed in, such as a console command, is the application's own work.
      */
-    public function guest(): bool
+    private function guest(): bool
     {
         return null !== $this->actor->userId() && !$this->actor->isStaff();
     }

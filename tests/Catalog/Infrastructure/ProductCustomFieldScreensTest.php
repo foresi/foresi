@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Catalog\Infrastructure;
 
+use Foresi\Catalog\Application\CreateProductInput;
+use Foresi\Catalog\Application\ProductWrites;
+use Foresi\Catalog\Application\UpdateProductInput;
 use Foresi\Catalog\Contract\Field\ProductExtension;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Role;
@@ -15,6 +18,7 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
@@ -88,6 +92,22 @@ final class ProductCustomFieldScreensTest extends WebTestCase
         self::assertStringContainsString('Additional details', $crawler->filter('main')->text());
         self::assertStringContainsString('test.size.small', $card->text());
         self::assertStringContainsString('RA-1', $card->text());
+    }
+
+    public function testTheWritesAskForTheRequiredFieldOnlyOfANewProduct(): void
+    {
+        $writes = self::getContainer()->get(ProductWrites::class);
+        try {
+            $writes->create(new CreateProductInput('Roof audit', unit: 'piece'), []);
+            self::fail('A new product needs its required field.');
+        } catch (FieldRefused $refused) {
+            self::assertSame(['test_fields_code', FieldRefused::REQUIRED], [$refused->key, $refused->translationKey]);
+        }
+
+        $product = $writes->create(new CreateProductInput('Roof audit', unit: 'piece'), ['test_fields_code' => 'RA-1']);
+        $writes->update(new UpdateProductInput($product->id()), ['test_fields_code' => null]);
+
+        self::assertNull($this->fields->value(ProductExtension::RECORD, $product->id(), 'test_fields_code'), 'A change may clear it.');
     }
 
     private function productId(): string

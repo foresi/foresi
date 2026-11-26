@@ -9,8 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Tests\Sales\Infrastructure;
 
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\Sales\Application\Api\CreateDealInput;
+use Foresi\Sales\Application\Api\UpdateDealInput;
+use Foresi\Sales\Application\DealWrites;
 use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Sales\Domain\Deal;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Sales\Support\SalesScreenTestCase;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
@@ -74,6 +78,23 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
         $crawler = $this->client->submit($form, ['custom_fields[test_fields_seats]' => '2.5']);
         self::assertResponseStatusCodeSame(422);
         self::assertSame('This value cannot be saved.', trim($crawler->filter('#custom-field-test-fields-seats-error')->text()), 'A whole number is refused by the write and shown on its field.');
+    }
+
+    public function testTheWritesAskForTheRequiredFieldOnlyOfANewDeal(): void
+    {
+        $this->actAsOwner();
+        $writes = self::getContainer()->get(DealWrites::class);
+        try {
+            $writes->create(new CreateDealInput('Roof audit', $this->company->id(), $this->stage->id()), customFields: []);
+            self::fail('A new deal needs its required field.');
+        } catch (FieldRefused $refused) {
+            self::assertSame(['test_fields_code', FieldRefused::REQUIRED], [$refused->key, $refused->translationKey]);
+        }
+
+        $deal = $writes->create(new CreateDealInput('Roof audit', $this->company->id(), $this->stage->id()), customFields: ['test_fields_code' => 'RA-1']);
+        $writes->update(new UpdateDealInput($deal->id()), customFields: ['test_fields_code' => null]);
+
+        self::assertNull($this->fields->value(DealExtension::RECORD, $deal->id(), 'test_fields_code'), 'A change may clear it.');
     }
 
     public function testTheSideColumnShowsTheValues(): void

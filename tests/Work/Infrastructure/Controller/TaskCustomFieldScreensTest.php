@@ -16,11 +16,13 @@ use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Shared\Fixtures\Field\FixtureNoteFields;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
+use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\WorkShare;
@@ -59,6 +61,13 @@ final class TaskCustomFieldScreensTest extends WebTestCase
         $this->client->submit($crawler->filter('#project-form')->form(['name' => 'Website']));
         self::assertResponseStatusCodeSame(303);
         $this->project = $this->fetchId('SELECT id FROM project WHERE name = ?', ['Website']);
+    }
+
+    public function testTheWritesAskForTheRequiredFieldOfANewTask(): void
+    {
+        $this->expectExceptionObject(new FieldRefused('test_fields_code', FieldRefused::REQUIRED));
+
+        self::getContainer()->get(ManageTasks::class)->create($this->project, 'Brief', customFields: []);
     }
 
     public function testTheNewTaskDialogAsksForTheRequiredFieldsOnly(): void

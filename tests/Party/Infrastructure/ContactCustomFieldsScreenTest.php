@@ -11,6 +11,7 @@ namespace Foresi\Tests\Party\Infrastructure;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\CreateParty;
+use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
@@ -18,6 +19,7 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
@@ -50,6 +52,13 @@ final class ContactCustomFieldsScreenTest extends WebTestCase
         $this->browser->em()->persist(new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), null, new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::NotRegistered, ''));
         $this->browser->em()->flush();
         $this->browser->signIn();
+    }
+
+    public function testTheWritesAskForTheRequiredFieldOfANewContact(): void
+    {
+        $this->expectExceptionObject(new FieldRefused('test_fields_code', FieldRefused::REQUIRED));
+
+        self::getContainer()->get(CreateParty::class)->createFrom(new PartyInput(PartyKind::Person, 'Example Person', null, null, '', '', [PartyRole::Customer], new Address('Example Street 1', 'Example City', '100 00', 'CZ'), customFields: []));
     }
 
     public function testTheWholeFormAsksForEveryFieldByItsKind(): void

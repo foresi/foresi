@@ -11,9 +11,11 @@ namespace Foresi\Tests\Work\Infrastructure\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Role;
+use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
+use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -39,6 +41,22 @@ final class ProjectCustomFieldScreensTest extends WebTestCase
         $this->fields = LentFields::lend(self::getContainer(), ProjectExtension::RECORD, ['test_fields_code']);
         $browser->seed(role: Role::Owner);
         $browser->signIn();
+    }
+
+    public function testTheWritesAskForTheRequiredFieldOnlyOfANewProject(): void
+    {
+        $projects = self::getContainer()->get(ManageProjects::class);
+        try {
+            $projects->create('Website', null, customFields: []);
+            self::fail('A new project needs its required field.');
+        } catch (FieldRefused $refused) {
+            self::assertSame(['test_fields_code', FieldRefused::REQUIRED], [$refused->key, $refused->translationKey]);
+        }
+
+        $project = $projects->create('Website', null, customFields: ['test_fields_code' => 'WEB-1']);
+        $projects->edit($project->id(), 'Website', null, '', ['test_fields_code' => null]);
+
+        self::assertNull($this->fields->value(ProjectExtension::RECORD, $project->id(), 'test_fields_code'), 'A change may clear it.');
     }
 
     public function testTheNewProjectDialogAsksForEveryFieldAndTheRequiredOne(): void
