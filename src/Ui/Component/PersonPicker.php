@@ -20,7 +20,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * Without JavaScript the menu cannot open, so it steps aside for a plain select with a
  * Save button, as the other properties of a task have.
  *
- * "people" is a list of ["value" => id, "name" => full name, "seed" => colour seed]; with
+ * "people" is a list of ["value" => id, "name" => full name, "seed" => colour seed, "user" =>
+ * the user id, whose photo the avatar shows, or null]; with
  * "noneLabel" a first row chooses nobody (the empty value).
  *
  * "compact" is the picker of a row or a card (Ui:InlineEdit): no label above it, the trigger
@@ -36,7 +37,7 @@ final class PersonPicker
     public string $label = '';
     /** The id of the chosen person; empty for nobody. */
     public string $value = '';
-    /** @var array<mixed> list of ["value" => id, "name" => full name, "seed" => colour seed] */
+    /** @var array<mixed> list of ["value" => id, "name" => full name, "seed" => colour seed, "user" => ?user id] */
     public array $people = [];
     /** The row of nobody, such as "Nobody"; null when someone must be chosen. */
     public ?string $noneLabel = null;
@@ -45,7 +46,7 @@ final class PersonPicker
     /** The picker of a row or a card: no label shown, the trigger as the value reads. */
     public bool $compact = false;
 
-    /** @var list<array{value: string, name: string, seed: ?string}> */
+    /** @var list<array{value: string, name: string, seed: ?string, user: ?string}> */
     private array $checked = [];
 
     #[PostMount]
@@ -62,17 +63,18 @@ final class PersonPicker
             $value = \is_array($person) ? $person['value'] ?? null : null;
             $name = \is_array($person) ? $person['name'] ?? null : null;
             $seed = \is_array($person) ? $person['seed'] ?? null : null;
-            if (!\is_string($value) || '' === $value || !\is_string($name) || (null !== $seed && !\is_string($seed))) {
+            $user = \is_array($person) ? $person['user'] ?? null : null;
+            if (!\is_string($value) || '' === $value || !\is_string($name) || (null !== $seed && !\is_string($seed)) || (null !== $user && !\is_string($user))) {
                 throw new \InvalidArgumentException('Each person of a picker needs a value and a name.');
             }
-            $this->checked[] = ['value' => $value, 'name' => $name, 'seed' => $seed];
+            $this->checked[] = ['value' => $value, 'name' => $name, 'seed' => $seed, 'user' => $user];
         }
     }
 
     /**
      * The chosen person, or null for nobody or an id that is not among the people.
      *
-     * @return array{value: string, name: string, seed: ?string}|null
+     * @return array{value: string, name: string, seed: ?string, user: ?string}|null
      */
     public function chosen(): ?array
     {
@@ -88,11 +90,11 @@ final class PersonPicker
     /**
      * The rows of the menu: nobody first when it can be chosen, then the people.
      *
-     * @return list<array{value: string, name: string, seed: ?string}>
+     * @return list<array{value: string, name: string, seed: ?string, user: ?string}>
      */
     public function rows(): array
     {
-        return null === $this->noneLabel ? $this->checked : [['value' => '', 'name' => '', 'seed' => null], ...$this->checked];
+        return null === $this->noneLabel ? $this->checked : [['value' => '', 'name' => '', 'seed' => null, 'user' => null], ...$this->checked];
     }
 
     /**

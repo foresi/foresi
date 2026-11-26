@@ -672,7 +672,7 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.4.0), and `"provide": {"foresi/module-api": "1.4.0"}` of `foresi/shared` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.6.0), and `"provide": {"foresi/module-api": "1.6.0"}` of `foresi/shared` |
 | The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
 | What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
 
@@ -685,11 +685,12 @@ What each minor version added:
 | 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
 | 1.4 | Custom fields on the records' dialogs and details, with `required` and `guests` enforced; `customFields`, the keys of the custom fields that changed, in `party.contact.updated`, `sales.deal.updated`, `catalog.product.updated` and `work.task.updated`; the event `work.project.updated` (`projectId`, `customFields`), recorded on every save of a project's name, client, description or custom fields. A module that reads them requires `^1.4`. |
 | 1.5 | `Foresi\Shared\Contract\Operation\OperationObserver` (`foresi.shared.operation_observer`), told before and after every operation the runner runs; and Inbox's actions (`Foresi\Inbox\Contract\InboxAction`, `InboxActionInput`, `InboxActionCondition` with `foresi.inbox.action_condition`, `InboxPreFill` with `foresi.inbox.prefill`, and `PreFill`), see [Adding an action](inbox.md#adding-an-action). A module that uses them requires `^1.4`. |
+| 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.4.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 1.6.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
@@ -805,7 +806,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
 | Timesheet | `ProjectRateSource` (`foresi.timesheet.project_rate_source`) |
 | VAT | `VatCountryRules`, `VatDocumentSource`, `VatPaymentSource`, `VatPlanSource`, `PlannedVatSource`, `VatScheduleSource` (`foresi.vat.*`) |
-| Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`) |
+| Work | `InvoiceNumbers` (`foresi.work.invoice_numbers`); the services `ProjectDirectory`, `TaskIntake` and `TaskDirectory` (since 1.6), and the slots of `ProjectSlots` and `TaskSlots` (since 1.6) |
 
 Each interface carries its tag as the constant `TAG` with `#[AutoconfigureTag]`, so an implementation never writes the tag. A tag of an interface outside a `Contract\` namespace, such as `foresi.idoklad.import_stage`, is internal.
 

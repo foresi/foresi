@@ -694,6 +694,7 @@ final class ProjectController extends AbstractController
             'responsible' => null === $task->responsibleId || null === $task->responsibleName ? null : [
                 'name' => $task->responsibleName,
                 'seed' => $seeds[$task->responsibleId] ?? $task->responsibleId,
+                'user' => $seeds[$task->responsibleId] ?? null,
             ],
             'due' => $this->taskColumns->due($task),
             'priority' => TaskEdits::priorityBadge($task->priority, $this->translator->trans('work.priority.'.$task->priority->value)),

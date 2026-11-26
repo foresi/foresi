@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 use Foresi\Tests\Ui\Support\ShellProbeController;
 use Foresi\Tests\Ui\Support\TestNavigationProvider;
+use Foresi\Tests\Ui\Support\TestPersonPhotos;
+use Foresi\Ui\Contract\PersonPhotos;
 use Foresi\Ui\Controller\CatalogueController;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -27,6 +29,8 @@ return static function (ContainerConfigurator $container): void {
     if ('test' === $container->env()) {
         // Stands in for a plugin adding a sidebar item.
         $services->set(TestNavigationProvider::class);
+        // Stands in for the module that keeps the people's photos.
+        $services->set(TestPersonPhotos::class)->autoconfigure(false)->tag(PersonPhotos::TAG, ['priority' => 100]);
         $services->set(ShellProbeController::class);
     }
 };

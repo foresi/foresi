@@ -120,6 +120,7 @@ final readonly class ProjectTaskColumns implements DataSource
         $seeds = $context[self::SEEDS] ?? [];
         $person = null === $task->responsibleId || null === $task->responsibleName ? null : [
             'avatar' => \is_array($seeds) && \is_string($seeds[$task->responsibleId] ?? null) ? $seeds[$task->responsibleId] : $task->responsibleId,
+            'user' => \is_array($seeds) && \is_string($seeds[$task->responsibleId] ?? null) ? $seeds[$task->responsibleId] : null,
             'text' => $task->responsibleName,
         ];
 

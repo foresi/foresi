@@ -95,6 +95,21 @@ final class SharingControllerTest extends WebTestCase
         }
     }
 
+    public function testAPersonSharedWithShowsTheirPhoto(): void
+    {
+        $this->signIn();
+        $project = $this->seed();
+        $jana = $this->membershipId('jana@example.com');
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'jana@example.com']) ?? throw new \LogicException('User.');
+        $user->changePhoto();
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/projects/'.$project.'/sharing', server: self::DIALOG);
+        $crawler = $this->client->submit($crawler->filter('[data-sharing-add]')->form(['person' => $jana]), serverParameters: self::DIALOG);
+
+        self::assertSame('/people/'.$user->id().'/photo?v='.$user->photoVersion(), $crawler->filter('[data-sharing-person="'.$jana.'"] img[data-avatar-photo]')->attr('src'));
+    }
+
     public function testAProjectIsSharedWithAPersonAndTakenBackAndTheDialogTellsEachStep(): void
     {
         $this->signIn();
