@@ -96,9 +96,14 @@ final class TaxesEstimateApiTest extends ApiTestCase
 
         $this->get('/api/v1/taxes-and-contributions/estimate?year=2027', secret: $this->owner);
         self::assertSame('year_not_started', $this->at('data', 'to_date_reason'));
-        self::assertSame([null, 'year_not_started', null, null, []], [$this->at('data', 'year_end'), $this->at('data', 'year_end_reason'), $this->at('data', 'forecast'), $this->at('data', 'forecast_by_certainty'), $this->at('data', 'accruals')]);
+        self::assertSame([null, null], [$this->at('data', 'to_date'), $this->at('data', 'year_end_reason')]);
+        self::assertIsArray($this->at('data', 'year_end'), 'Next year ends with the forecast of all its months.');
+        self::assertIsArray($this->at('data', 'forecast'));
+        $months = $this->at('data', 'accruals', 0, 'months');
+        self::assertIsArray($months);
+        self::assertCount(12, $months);
         $next = $this->tool($this->owner, 'foresi_tax_estimate', ['year' => 2027]);
-        self::assertStringContainsString('No estimate to date for 2027: year_not_started. No year end: year_not_started.', $this->text($next));
+        self::assertStringContainsString('No estimate to date for 2027: year_not_started. Year end with the forecast: ', $this->text($next));
         foreach (['2028', '1999', 'last'] as $year) {
             $this->get('/api/v1/taxes-and-contributions/estimate?year='.$year, secret: $this->owner);
             $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'year', 'reason' => 'invalid_year']);

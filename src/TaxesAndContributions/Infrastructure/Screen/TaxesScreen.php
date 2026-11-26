@@ -105,25 +105,29 @@ final readonly class TaxesScreen
 
     /**
      * What the owner keeps to date with the method chosen in the profile, or
-     * the cheaper one when none is chosen; null when "to date" has no result.
+     * the cheaper one when none is chosen; null when neither "to date" nor the
+     * year end has a result.
      *
      * The year end beside it uses the same method, and its numbers open the
-     * steps of the year end.
+     * steps of the year end. Next year has a year end only: its rows have no
+     * "to date" text, and the method follows the year end.
      *
      * The flat-rate tax has its own row in a year with flat-rate months.
      *
-     * @return ?array{method: string, why: string, rows: list<array{key: string, label: string, text: string, href: string, total: bool, yearEnd: ?array{text: string, href: string}}>}
+     * @return ?array{method: string, why: string, rows: list<array{key: string, label: string, text: ?string, href: ?string, total: bool, yearEnd: ?array{text: string, href: string}}>}
      */
     public function summary(EstimateView $estimate, ?ExpenseMethod $chosen): ?array
     {
         $toDate = $estimate->toDate;
-        if (!$toDate instanceof RegimeResult) {
+        $base = $toDate ?? $estimate->yearEnd;
+        if (!$base instanceof RegimeResult) {
             return null;
         }
-        $result = $this->shown($toDate, $chosen);
+        $result = $this->shown($base, $chosen);
+        $shownToDate = $toDate instanceof RegimeResult ? $result : null;
         $yearEnd = $estimate->yearEnd instanceof RegimeResult ? $this->shown($estimate->yearEnd, $result->method) : null;
         $rows = [];
-        $flatRate = $toDate->flatRate instanceof FlatRateResult || $estimate->yearEnd?->flatRate instanceof FlatRateResult;
+        $flatRate = $toDate?->flatRate instanceof FlatRateResult || $estimate->yearEnd?->flatRate instanceof FlatRateResult;
         foreach (self::SUMMARY as $key) {
             if ('flat_rate' === $key && !$flatRate) {
                 continue;
@@ -131,8 +135,8 @@ final readonly class TaxesScreen
             $rows[] = [
                 'key' => $key,
                 'label' => $this->trans('taxes.page.row.'.$key),
-                'text' => $this->amount($this->total($result->totals, $key)),
-                'href' => $this->stepsHref($estimate->year, $result->method, self::OPENS[$key]),
+                'text' => $shownToDate instanceof MethodResult ? $this->amount($this->total($shownToDate->totals, $key)) : null,
+                'href' => $shownToDate instanceof MethodResult ? $this->stepsHref($estimate->year, $shownToDate->method, self::OPENS[$key]) : null,
                 'total' => \in_array($key, ['levies', 'take_home'], true),
                 'yearEnd' => $yearEnd instanceof MethodResult ? [
                     'text' => $this->amount($this->total($yearEnd->totals, $key)),
@@ -300,10 +304,10 @@ final readonly class TaxesScreen
      */
     public function footer(EstimateView $estimate): array
     {
-        $toDate = $estimate->toDate;
+        $result = $estimate->toDate ?? $estimate->yearEnd;
 
         return [
-            'rules' => $toDate instanceof RegimeResult ? $this->trans('taxes.page.footer.rules', ['year' => $toDate->ruleYear, 'status' => $toDate->rules->value]) : null,
+            'rules' => $result instanceof RegimeResult ? $this->trans('taxes.page.footer.rules', ['year' => $result->ruleYear, 'status' => $result->rules->value]) : null,
             'unverified' => $this->notes('unverified', $estimate->unverified),
             'gaps' => $this->notes('gap', $estimate->knownGaps),
         ];
