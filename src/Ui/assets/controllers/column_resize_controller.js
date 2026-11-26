@@ -23,6 +23,16 @@ export default class extends Controller {
     static targets = ['table', 'col', 'grip'];
     static values = { max: { type: Number, default: 1200 }, reserve: { type: Number, default: 0 } };
 
+    // A focusable separator says its value (WAI-ARIA): the width each column has as it is laid out.
+    connect() {
+        this.gripTargets.forEach((grip) => {
+            const width = Math.round(grip.parentElement.getBoundingClientRect().width);
+            if (width > 0) {
+                grip.setAttribute('aria-valuenow', String(width));
+            }
+        });
+    }
+
     disconnect() {
         window.clearTimeout(this.timer);
     }

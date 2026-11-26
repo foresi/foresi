@@ -381,7 +381,7 @@ final class DataTableTest extends KernelTestCase
         self::assertSame('0', $grips->eq(1)->attr('tabindex'));
         self::assertSame('120', $grips->eq(1)->attr('aria-valuemin'));
         self::assertSame('64', $grips->eq(0)->attr('aria-valuemin'));
-        self::assertNull($grips->eq(0)->attr('aria-valuenow'), 'a column sized to its text has no width to say');
+        self::assertSame('64', $grips->eq(0)->attr('aria-valuenow'), 'a column sized to its text says its minimum until the controller measures it');
         self::assertContains('max-sm:hidden', explode(' ', (string) $grips->eq(0)->attr('class')));
         self::assertCount(3, $html->filter('colgroup col[data-column-resize-target="col"]'));
         self::assertStringNotContainsString('table-fixed', (string) $html->filter('table')->attr('class'), 'the columns size to their text until each has a width');
