@@ -35,3 +35,6 @@ if (true === (bool) ($_SERVER['APP_DEBUG'] ?? false)) {
 // the editor on (doctrine.orm.use_schema_editor_api) changes what the schema tool finds to
 // update, which the migration rebase relies on, so the switch waits for its own change.
 Doctrine\Deprecations\Deprecation::ignoreDeprecations('https://github.com/doctrine/orm/pull/12780');
+// DBAL 4.6 deprecates the static type registry (Type::hasType, Type::addType) that the audit
+// normaliser and the event readers still use; moving to the connection's type provider is a change of its own.
+Doctrine\Deprecations\Deprecation::ignoreDeprecations('https://github.com/doctrine/dbal/pull/7342');
