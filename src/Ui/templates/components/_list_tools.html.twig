@@ -8,6 +8,8 @@
       a filter is set;
     - Settings (`settings`), the sheet of the list's views, quick filters and columns
       (Ui:ColumnPicker).
+    All three are outlined controls of one height, so they read as one set, and they stand raised above
+    the rail under the tabs (pb-1.5) instead of sitting on it.
     Takes:
     - toolsFilter: the id of the list's Ui:FilterBar, or null for a list without one;
     - toolsSearch: the search {name, value, label, placeholder?} that bar sends, or null;
@@ -20,7 +22,7 @@
 {% set search = toolsSearch ?? null %}
 {% set columns = toolsColumns ?? null %}
 {% set noJs = '[@media(scripting:none)]:hidden' %}
-<div class="flex shrink-0 items-center gap-1" data-list-tools>
+<div class="flex shrink-0 items-center gap-2 pb-1.5" data-list-tools>
     {% if filters and search %}
         {% set open = (search.value ?? '') != '' %}
         <div class="contents" data-controller="list-search">
@@ -28,14 +30,14 @@
                 <span class="pointer-events-none absolute inset-y-0 left-0 grid w-control-sm place-items-center text-muted">{{ ux_icon('lucide:search', {class: 'size-4', 'aria-hidden': 'true'}) }}</span>
                 <input type="search" name="{{ search.name }}" value="{{ search.value ?? '' }}" form="{{ filters }}-search" aria-label="{{ search.label }}" placeholder="{{ search.placeholder ?? 'ui.list_tools.search'|trans }}" maxlength="{{ search.maxlength ?? 100 }}" autocomplete="off" class="h-control-sm w-full rounded-control border border-control-line bg-white pl-9 pr-3 text-small text-ink placeholder:text-muted transition-colors {{ constant('Foresi\\Ui\\Component\\Style::FIELD_FOCUS') }}" data-list-search-target="input" data-action="keydown->list-search#keydown blur->list-search#blur">
             </div>
-            <twig:Ui:IconButton icon="search" variant="ghost" size="sm" :label="'ui.list_tools.search'|trans" aria-expanded="{{ open ? 'true' : 'false' }}" class="sm:hidden {{ noJs }}" data-list-search-target="button" data-action="list-search#open" data-list-search-open="" />
+            <twig:Ui:IconButton icon="search" variant="secondary" size="sm" :label="'ui.list_tools.search'|trans" aria-expanded="{{ open ? 'true' : 'false' }}" class="sm:hidden {{ noJs }}" data-list-search-target="button" data-action="list-search#open" data-list-search-open="" />
         </div>
     {% endif %}
     {% if filters %}
         <span class="relative inline-flex {{ noJs }}">
-            <twig:Ui:IconButton icon="list-filter" variant="ghost" size="sm" :label="'ui.filter_bar.toggle'|trans"
+            <twig:Ui:IconButton icon="list-filter" variant="secondary" size="sm" :label="'ui.filter_bar.toggle'|trans"
                 aria-controls="{{ filters }}" aria-haspopup="dialog" data-controller="filter-toggle" data-action="filter-toggle#toggle" data-filter-toggle="" />
-            <span class="pointer-events-none absolute right-0.5 top-0.5 size-2 rounded-sm bg-green" aria-hidden="true" hidden data-filter-active></span>
+            <span class="pointer-events-none absolute -right-0.75 -top-0.75 size-2 rounded-sm bg-green ring-2 ring-white" aria-hidden="true" hidden data-filter-active></span>
         </span>
     {% endif %}
     {% if columns %}
