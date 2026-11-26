@@ -82,6 +82,7 @@ nav:
     projects: Projects
     labels: Labels
     my_tasks: My tasks
+    tasks: Tasks
     time: Time
     notifications: Notifications
 ui:
@@ -118,6 +119,7 @@ ui:
     move_down: 'Move {label} down'
     moved: '{label} moved to position {position} of {total}.'
     density: Row density
+    group: Group by
     density_comfortable: Comfortable
     density_comfortable_hint: 56 px
     density_dense: Compact

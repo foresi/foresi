@@ -20,9 +20,9 @@ test.describe('signed in', () => {
   test('the title follows a Turbo visit from one section to another', async ({ page }) => {
     await page.goto('/projects');
     await expect(page).toHaveTitle('Projekty · Foresi');
-    await page.locator('#sidebar').getByRole('link', { name: 'Moje úkoly' }).click();
-    await expect(page).toHaveURL(/\/my-tasks$/);
-    await expect(page).toHaveTitle('Moje úkoly · Foresi');
+    await page.locator('#sidebar').getByRole('link', { name: 'Úkoly' }).click();
+    await expect(page).toHaveURL(/\/tasks$/);
+    await expect(page).toHaveTitle('Úkoly · Foresi');
   });
 });
 

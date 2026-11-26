@@ -1,0 +1,60 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    New task from any page of Work: its title and the project it goes in, then optionally who is
+    responsible, when it is due, its priority and its labels. A dialog over the page it goes back to;
+    the same URL is a page of its own.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.tasks.title'|trans, href: path('app_tasks')}, {label: 'work.task.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'work.task.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {% if hasProjects %}
+        <form method="post" id="quick-task-form" action="{{ path('app_task_new') }}" class="grid gap-4" novalidate data-quick-task>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskCreateController::TOKEN')) }}">
+            <input type="hidden" name="return" value="{{ return }}">
+            {{ include('@Work/_form_errors.html.twig', {prefix: 'quick-task-'}) }}
+            <twig:Ui:TextInput name="title" id="quick-task-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" autofocus />
+            <twig:Ui:Combobox name="project" textName="projectQuery" id="quick-task-project" :label="'work.task.field.project'|trans" :help="'work.tasks.new.project_help'|trans" :value="values.project" :text="values.projectQuery" :url="path('app_task_list_projects', {new: 1})" :minLength="1" :emptyText="'work.tasks.new.project_none'|trans" :error="errors.project|default(null)" required />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <twig:Ui:Select name="responsible" id="quick-task-responsible" :label="'work.task.field.responsible'|trans" :options="people" :value="values.responsible" :error="errors.responsible|default(null)" />
+                <twig:Ui:TextInput type="date" name="due" id="quick-task-due" :label="'work.task.field.due_on'|trans" :value="values.due" :error="errors.due|default(null)" />
+                <twig:Ui:Select name="priority" id="quick-task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="values.priority" :error="errors.priority|default(null)" />
+            </div>
+            {% if labels is not empty %}
+                <fieldset class="m-0 grid min-w-0 gap-2 border-0 p-0" data-quick-task-labels>
+                    <legend class="mb-1 p-0 text-small text-ink">{{ 'work.task.field.labels'|trans }}</legend>
+                    <div class="flex flex-wrap gap-x-4 gap-y-1">
+                        {% for label in labels %}
+                            <twig:Ui:Checkbox name="labels[]" :id="'quick-task-label-' ~ label.id" :value="label.id" :label="label.name" :checked="label.id in values.labels" />
+                        {% endfor %}
+                    </div>
+                </fieldset>
+            {% endif %}
+        </form>
+    {% else %}
+        <p class="m-0 text-muted" data-quick-task-no-project>{{ 'work.tasks.new.no_projects'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    {% if hasProjects %}<twig:Ui:Button type="submit" form="quick-task-form" variant="primary">{{ 'work.task.create'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.task.new'|trans" icon="square-check-big" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="return">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            {% if hasProjects %}<twig:Ui:Button type="submit" form="quick-task-form" variant="primary">{{ 'work.task.create'|trans }}</twig:Ui:Button>{% endif %}
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

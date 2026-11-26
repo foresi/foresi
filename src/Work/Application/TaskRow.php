@@ -17,12 +17,14 @@ use Foresi\Work\Domain\StatusType;
 final readonly class TaskRow
 {
     /**
-     * @param list<LabelBadge> $labels      by name
-     * @param list<TaskRow>    $subtasks    by position; empty where a view does not show them
-     * @param bool             $done        whether its status is finished
-     * @param bool             $deletable   whether the signed-in person may put it in the trash
-     * @param bool             $private     whether only the people it is shared with see it
-     * @param bool             $projectSeen whether the signed-in person sees its project, not only its name
+     * @param list<LabelBadge> $labels          by name
+     * @param list<TaskRow>    $subtasks        by position; empty where a view does not show them
+     * @param bool             $done            whether its status is finished
+     * @param bool             $deletable       whether the signed-in person may put it in the trash
+     * @param bool             $private         whether only the people it is shared with see it
+     * @param bool             $projectSeen     whether the signed-in person sees its project, not only its name
+     * @param int|null         $estimateMinutes the estimate, where the list shows it; null for none or not shown
+     * @param int|null         $loggedMinutes   the time logged on it, where the list shows it; null when not shown
      */
     public function __construct(
         public string $id,
@@ -45,6 +47,13 @@ final readonly class TaskRow
         public bool $deletable = false,
         public bool $private = false,
         public bool $projectSeen = true,
+        public ?string $clientId = null,
+        public ?string $clientName = null,
+        public ?int $estimateMinutes = null,
+        public ?int $loggedMinutes = null,
+        public ?\DateTimeImmutable $createdAt = null,
+        public ?\DateTimeImmutable $updatedAt = null,
+        public ?string $parentTitle = null,
     ) {
     }
 }

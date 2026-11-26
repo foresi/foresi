@@ -14,6 +14,8 @@ const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQD
 async function openTask(page: Page): Promise<void> {
   await page.goto('/projects');
   await page.getByRole('link', { name: 'Website', exact: true }).click();
+  // The projects list has a New task of its own: wait for the project before acting on it.
+  await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
   await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
   // The row opens the task in the sheet; these specs read it as its page.
   await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();

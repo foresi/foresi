@@ -128,6 +128,8 @@ test.describe('projects and tasks', () => {
   test('project list has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await expect(page.locator('[data-section]').first()).toBeVisible();
     await expectNoSeriousViolations(page);
   });
@@ -135,6 +137,8 @@ test.describe('projects and tasks', () => {
   test('project board has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Nástěnka' }).click();
     await expect(page.locator('[data-board-card]').first()).toBeVisible();
     await expectNoSeriousViolations(page);
@@ -143,6 +147,8 @@ test.describe('projects and tasks', () => {
   test('the dialog of a new task has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Nový úkol' }).click();
     await expect(page.getByRole('dialog', { name: 'Nový úkol' }).getByLabel('Název')).toBeFocused();
     await expectNoSeriousViolations(page);
@@ -151,6 +157,8 @@ test.describe('projects and tasks', () => {
   test('task has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('[data-task-details]')).toBeVisible();
@@ -163,6 +171,8 @@ test.describe('projects and tasks', () => {
   test('task with the comment preview open has no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await page.getByRole('dialog').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     const composer = page.locator('[data-comment-composer]');
@@ -175,6 +185,8 @@ test.describe('projects and tasks', () => {
   test('project settings have no serious accessibility violations @a11y', async ({ page }) => {
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await (await openMoreActions(page)).locator('[data-project-settings]').click();
     await expect(page.locator('[data-settings-statuses]')).toBeVisible();
     await expectNoSeriousViolations(page);

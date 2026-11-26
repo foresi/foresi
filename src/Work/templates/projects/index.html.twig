@@ -12,6 +12,7 @@
 {% block title %}{{ 'work.projects.title'|trans }}{% endblock %}
 
 {% block actions %}
+    {{ include('@Work/_new_task.html.twig', {variant: 'secondary'}) }}
     <twig:Ui:Button variant="primary" icon="plus" :href="path('app_project_new')" id="project-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.projects.new'|trans }}</twig:Ui:Button>
 {% endblock %}
 

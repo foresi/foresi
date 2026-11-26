@@ -10,6 +10,7 @@ namespace Foresi\Work\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Shared\Domain\Id;
 
@@ -99,6 +100,11 @@ class Task implements Audited
     #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
     private ?string $deletedBy = null;
 
+    /** When the task or its labels last changed; the history says what changed, so the log leaves it out. */
+    #[AuditExcluded]
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable')]
+    private \DateTimeImmutable $updatedAt;
+
     /**
      * @throws \DomainException when the section, status or parent is of another project, or the parent is a subtask
      */
@@ -120,6 +126,7 @@ class Task implements Audited
         private readonly ?self $parent = null,
     ) {
         $this->id = Id::generate();
+        $this->updatedAt = $createdAt;
         if ($parent instanceof self) {
             if ($parent->isSubtask()) {
                 throw new \DomainException('A subtask cannot have subtasks of its own.');
@@ -323,6 +330,19 @@ class Task implements Audited
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /**
+     * Marks the task as changed now; a flush of any change to it or its labels calls it.
+     */
+    public function touch(\DateTimeImmutable $now): void
+    {
+        $this->updatedAt = $now;
+    }
+
+    public function updatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
     }
 
     private function assertSameProject(Project $project, string $what): void

@@ -41,6 +41,8 @@ test.describe('screens', () => {
     // The homepage is opened by other specs before this one, or not: opened here, its row is read either way.
     await page.goto('/projects');
     await page.getByRole('link', { name: 'Website', exact: true }).click();
+    // The projects list has a New task of its own: wait for the project before acting on it.
+    await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
     await page.getByRole('link', { name: 'Design the homepage', exact: true }).click();
     await expect(page.locator('main h1')).toHaveText('Design the homepage');
     await page.goto('/notifications');

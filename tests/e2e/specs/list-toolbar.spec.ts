@@ -20,6 +20,7 @@ const LISTS: string[] = [
   '/catalog/products',
   '/sales/deals',
   '/projects',
+  '/tasks',
   '/my-tasks',
   '/time/report',
   '/notifications',

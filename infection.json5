@@ -301,7 +301,9 @@
             "Foresi\\Banking\\Application\\MailAuthentication::verdict::86",
             "Foresi\\Banking\\Application\\TrustSettings::names::77",
             "Foresi\\Invoicing\\Application\\InvoiceHistory::of::45",
-            "Foresi\\Invoicing\\Application\\RecordPayment::record::57"
+            "Foresi\\Invoicing\\Application\\RecordPayment::record::57",
+            // Spreading a list into an array literal renumbers its keys, so the groupings are a list either way.
+            "Foresi\\Work\\Application\\View\\TaskLists::groupsOf::132"
         ]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
         // Czechia, at home in CZK, is the only invoicing country, and a template without one is refused for its

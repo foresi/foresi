@@ -37,6 +37,8 @@ async function freezeDates(page: Page, scope: Locator): Promise<void> {
 async function openWebsite(page: Page): Promise<void> {
   await page.goto('/projects');
   await page.getByRole('link', { name: 'Website', exact: true }).click();
+  // The projects list has a New task of its own: wait for the project before acting on it.
+  await expect(page.getByRole('heading', { level: 1, name: 'Website' })).toBeVisible();
   await expect(page.locator('main h1')).toHaveText('Website');
 }
 
@@ -78,6 +80,8 @@ async function expectFree(page: Page): Promise<void> {
 
 test.describe('invoicing time', () => {
   test('bills the ticked time on a new invoice, frees it in the trash and locks it again on restore', async ({ page }) => {
+    // A whole invoice life in one test: about thirty page loads, past the default budget on a CI runner.
+    test.slow();
     const dialog = await openDialog(page);
     await expect(dialog.locator('[data-time-invoice-entry]')).toHaveCount(3);
     // The instance's one firm invoices the time: there is no firm to pick (ADR 0039).
