@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The meetings in the trash that the person sees, the last first, each restored by its button by its creator or
+    an owner; they are purged after the days given. Variables: days, columns, rows.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}, {label: 'meetings.trash.title'|trans}] %}
+
+{% block title %}{{ 'meetings.trash.title'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('@Meetings/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4" data-meetings-trash-page>
+        <p class="m-0 text-small text-muted">{{ 'meetings.trash.purge'|trans({days: days}) }}</p>
+        <twig:Ui:DataTable :caption="'meetings.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Meetings\\Infrastructure\\Controller\\MeetingController::TOKEN'))">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="trash-2" :title="'meetings.trash.empty'|trans" />
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

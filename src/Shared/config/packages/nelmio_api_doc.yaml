@@ -754,6 +754,37 @@ nelmio_api_doc:
                         archived: { type: boolean }
                         archived_at: { type: string, format: date-time, nullable: true }
                         created_at: { type: string, format: date-time }
+                MeetingSeries:
+                    type: object
+                    description: A series of recurring meetings with its people and agenda template.
+                    properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        visibility: { type: string, enum: [members, organisation], description: 'members: its members, the attendees and the owners see its meetings; organisation: everyone in the firm.' }
+                        agenda_template: { type: string, description: 'Markdown copied into the minutes of each new meeting.' }
+                        default_project_id: { type: string, format: uuid, nullable: true }
+                        members: { type: array, items: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, default_attendee: { type: boolean } } } }
+                        meetings: { type: integer, description: 'How many meetings of the series are not in the trash.' }
+                        last_held_on: { type: string, format: date, nullable: true }
+                        archived: { type: boolean }
+                        archived_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
+                Meeting:
+                    type: object
+                    description: A meeting of a series or a one-off, with its attendees, the records it is about and its minutes; a list leaves the minutes out.
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string }
+                        series: { type: object, nullable: true, properties: { id: { type: string, format: uuid }, name: { type: string } } }
+                        held_on: { type: string, format: date }
+                        starts_at: { type: string, nullable: true, description: 'HH:MM in the instance''s zone.' }
+                        attendees: { type: array, items: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string } } } }
+                        links: { type: array, items: { type: object, properties: { kind: { type: string }, id: { type: string, format: uuid }, label: { type: string } } }, description: 'The linked records you see.' }
+                        minutes: { type: string, description: 'Markdown; left out of a list.' }
+                        version: { type: integer, description: 'The version of the minutes, sent back with foresi_set_meeting_minutes.' }
+                        trashed: { type: boolean }
+                        deleted_at: { type: string, format: date-time, nullable: true }
+                        created_at: { type: string, format: date-time }
                 SalesDealSummary:
                     type: object
                     description: A deal with a client as a list shows it, without its lines, links and contact persons.

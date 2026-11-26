@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The meeting series the person sees: name, visibility, members, how many meetings and the last one. A row
+    opens its meetings; its menu has New meeting, Edit and Archive for the owners and its members. New series
+    opens a dialog from the header. Variables: archived, columns, rows, token.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}, {label: 'meetings.series.title'|trans}] %}
+
+{% block title %}{{ 'meetings.series.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_meetings_series_new')" id="series-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'meetings.series.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Meetings/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4" data-series-page>
+        <nav aria-label="{{ 'meetings.series.views'|trans }}">
+            <twig:Ui:Tabs :items="[{label: 'meetings.series.tab.active'|trans, href: path('app_meetings_series'), active: not archived}, {label: 'meetings.series.tab.archived'|trans, href: path('app_meetings_series', {archived: 1}), active: archived}]" />
+        </nav>
+        <twig:Ui:DataTable :caption="'meetings.series.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(token)">
+            <twig:block name="empty">
+                <twig:Ui:EmptyState icon="list" :title="'meetings.series.empty.title'|trans" :text="archived ? null : 'meetings.series.empty.text'|trans">
+                    {% if not archived %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_meetings_series_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'meetings.series.new'|trans }}</twig:Ui:Button>{% endif %}
+                </twig:Ui:EmptyState>
+            </twig:block>
+        </twig:Ui:DataTable>
+    </div>
+{% endblock %}

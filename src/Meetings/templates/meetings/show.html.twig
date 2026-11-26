@@ -1,0 +1,92 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One meeting: the title, the day and the time and the series in the header, Edit (a dialog) and Trash (its
+    menu) as its actions; the attendees and the records it is about under the header, as a project's facts.
+    The minutes are read as Markdown and change in place in the Markdown editor, as a task's description does
+    (Atlassian, Inline edit: kept open when the focus leaves); an empty meeting of a series opens with the
+    series' agenda template. A save made from an older version is refused with the reason and keeps what was
+    typed. The custom fields follow, then the history. Variables: meeting, view, when, editing, draft,
+    minutesError, history.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}, {label: meeting.title}] %}
+{% set token = csrf_token(constant('Foresi\\Meetings\\Infrastructure\\Controller\\MeetingController::TOKEN')) %}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set meetingUrl = path('app_meetings_meeting', {id: meeting.id}) %}
+{% if meeting.trashed %}{% set badge = {label: 'meetings.meeting.in_trash'|trans, tone: 'gray'} %}{% endif %}
+
+{% block title %}{{ meeting.title }}{% endblock %}
+
+{% block actions %}
+    {% if meeting.trashed %}
+        {% if view.trashable %}
+            <form method="post" action="{{ path('app_meetings_meeting_restore', {id: meeting.id}) }}" data-meeting-restore>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <twig:Ui:Button type="submit" variant="primary" icon="archive-restore">{{ 'meetings.meeting.restore'|trans }}</twig:Ui:Button>
+            </form>
+        {% endif %}
+    {% else %}
+        <twig:Ui:MoreActions menuId="meeting-actions">
+            <twig:block name="primary">
+                <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_meetings_meeting_edit', {id: meeting.id})" data-dialog aria-haspopup="dialog" data-meeting-edit>{{ 'meetings.meeting.edit'|trans }}</twig:Ui:Button>
+            </twig:block>
+            <twig:block name="last">
+                {% if view.trashable %}
+                    <form method="post" action="{{ path('app_meetings_meeting_trash', {id: meeting.id}) }}" role="none" data-meeting-trash>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'meetings.meeting.trash'|trans }}</twig:Ui:MenuItem>
+                    </form>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:MoreActions>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {{ include('@Meetings/_flashes.html.twig') }}
+    <div class="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-small text-muted" data-meeting-facts>
+        <p class="m-0" data-meeting-when>{{ 'meetings.meeting.field.held_on'|trans }}: <span class="font-medium text-ink">{{ when }}</span></p>
+        <p class="m-0" data-meeting-series>{{ 'meetings.meeting.field.series'|trans }}: <span class="font-medium text-ink">{{ meeting.series ? meeting.series.name : 'meetings.meeting.one_off'|trans }}</span></p>
+        <p class="m-0" data-meeting-attendees>{{ 'meetings.meeting.field.attendees'|trans }}: <span class="font-medium text-ink">{{ view.attendees is empty ? 'meetings.meeting.nobody'|trans : view.attendees|map(a => a.name)|join(', ') }}</span></p>
+        {% for link in view.links %}
+            <p class="m-0" data-meeting-link>{{ ('meetings.meeting.link.kind.' ~ link.kind)|trans }}: {% if link.url %}<a href="{{ link.url }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ link.label }}</a>{% else %}<span class="font-medium text-ink">{{ link.label }}</span>{% endif %}</p>
+        {% endfor %}
+    </div>
+    <div class="grid min-w-0 content-start gap-6">
+        <section class="grid gap-2" aria-labelledby="meeting-minutes-title" id="meeting-minutes" data-controller="inline-field" data-inline-field-blur-value="keep">
+            <div class="flex items-center gap-1">
+                <h2 id="meeting-minutes-title" class="m-0 text-heading font-semibold text-ink">{{ 'meetings.meeting.field.minutes'|trans }}</h2>
+                {% if not meeting.trashed %}
+                    <twig:Ui:IconButton :href="meetingUrl ~ '?edit=minutes#meeting-minutes-title'" icon="pencil" variant="ghost" size="sm" :label="'meetings.meeting.edit_minutes'|trans" :hidden="editing" data-inline-field-target="pencil" data-action="inline-field#open" data-meeting-edit-minutes />
+                {% endif %}
+            </div>
+            <div class="-mx-[7px] rounded-option border border-transparent px-1.5 py-1{% if not meeting.trashed %} cursor-text transition-colors hover:border-control-line{% endif %}" data-inline-field-target="read"{% if not meeting.trashed %} data-action="click->inline-field#open"{% endif %}{% if editing %} hidden{% endif %}>
+                {% if meeting.minutes is not empty %}
+                    <div class="markdown" data-meeting-minutes>{{ meeting.minutes|markdown }}</div>
+                {% else %}
+                    <p class="m-0 text-muted">{{ 'meetings.meeting.no_minutes'|trans }}</p>
+                {% endif %}
+            </div>
+            {% if not meeting.trashed %}
+                <form method="post" action="{{ path('app_meetings_meeting_minutes', {id: meeting.id}) }}" class="grid gap-3" data-inline-field-target="form" data-action="submit->inline-field#submit" data-meeting-minutes-form{% if not editing %} hidden{% endif %}>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <input type="hidden" name="version" value="{{ meeting.version }}">
+                    {% if minutesError %}<twig:Ui:Alert tone="error" data-meeting-minutes-error>{{ minutesError }}</twig:Ui:Alert>{% endif %}
+                    <twig:Ui:MarkdownEditor name="minutes" id="minutes" :label="'meetings.meeting.field.minutes'|trans" :value="draft" :rows="16" :previewUrl="path('app_markdown_preview')" :autofocus="editing" data-inline-field-target="field" />
+                    <div class="flex flex-wrap gap-2">
+                        <twig:Ui:Button type="submit" variant="primary">{{ 'meetings.save'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button :href="meetingUrl" data-action="inline-field#cancel" data-meeting-minutes-cancel>{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+                    </div>
+                </form>
+            {% endif %}
+        </section>
+
+        <twig:Ui:CustomFields :record="constant('Foresi\\Meetings\\Contract\\Field\\MeetingExtension::RECORD')" mode="detail" :id="meeting.id" />
+
+        <section class="grid gap-2" aria-labelledby="meeting-history-title" data-meeting-history>
+            <h2 id="meeting-history-title" class="m-0 text-heading font-semibold text-ink">{{ 'meetings.meeting.history'|trans }}</h2>
+            <twig:Ui:Timeline :items="history" />
+        </section>
+    </div>
+{% endblock %}
