@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Webhooks\Application\DeliveryNotRedeliverable;
 use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
 use Foresi\Webhooks\Application\InvalidWebhookUrl;

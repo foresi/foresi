@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The time budget in the project's header, for ProjectSlots::HEADER_FACTS (ProjectBudgetFacts): budget,
+    used and left in hours. Over budget is shown in the warning style, never as an error: logging time stays
+    open (Harvest). Variables: budget {budget, used, left, over}.
+#}
+<p class="m-0" data-project-budget{% if budget.over %} data-over-budget{% endif %}>
+    {{- 'work.budget.fact'|trans({budget: budget.budget, used: budget.used, left: budget.left}) -}}
+    {% if budget.over %} <twig:Ui:Badge tone="amber" class="align-middle">{{ 'work.budget.over'|trans }}</twig:Ui:Badge>{% endif %}
+</p>

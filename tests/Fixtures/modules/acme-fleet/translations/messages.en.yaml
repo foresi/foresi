@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+acme_fleet:
+    nav:
+        vehicles: Vehicles
+    vehicles:
+        title: Vehicles
+        name: Name
+        plate: Plate
+        empty: The fleet has no vehicles yet.
+    field:
+        industry: Industry
+        contract_until: Contract until
+        account_code: Account code
+        services: Fleet services
+    industry:
+        logistics: Logistics
+        construction: Construction
+        retail: Retail
+    service:
+        leasing: Leasing
+        servicing: Servicing
+        insurance: Insurance

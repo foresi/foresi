@@ -1,0 +1,11 @@
+# Who reviews what. Foresi has one maintainer today, so code owner review is not
+# required on main (an author cannot approve their own pull request); GitHub
+# still asks the owners for review, and the rule takes effect when there are more.
+* @martin-bezdek
+
+# CI, the release workflow and the licensing metadata decide what a release
+# contains and who can publish one.
+/.github/ @martin-bezdek
+/bin/release-sbom @martin-bezdek
+/REUSE.toml @martin-bezdek
+/LICENSES/ @martin-bezdek

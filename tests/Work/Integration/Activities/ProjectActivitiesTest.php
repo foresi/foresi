@@ -52,8 +52,8 @@ final class ProjectActivitiesTest extends ApiTestCase
         $page = '/projects/'.$project;
         $crawler = $this->client->request('GET', $page);
         self::assertResponseIsSuccessful();
-        // Activities follows List and Board; the list stays the tab shown by default.
-        self::assertSame([$page, $page.'/board', $page.'?tab=activities'], $crawler->filter('[data-project-tabs] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
+        // Activities follows List and Board, before the budget; the list stays the tab shown by default.
+        self::assertSame([$page, $page.'/board', $page.'?tab=activities', $page.'?tab=budget'], $crawler->filter('[data-project-tabs] a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame(['List'], $crawler->filter('[data-project-tabs] a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));
         self::assertCount(0, $crawler->filter('[data-project-section]'));
 

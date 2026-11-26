@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Api\Operation;
 
 use Foresi\Invoicing\Application\Api\CreateRecurringInvoiceInput;
 use Foresi\Invoicing\Application\Api\RecurringWrites;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * recurring-invoices.create: the template with its lines and next issues.

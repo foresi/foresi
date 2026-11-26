@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { SENDING_OWNER_STATE, signIn, worldState } from '../support/session';
 
 const SENDING_QUIET_OWNER = 'sending-quiet@example.com';

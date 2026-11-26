@@ -8,13 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementChannel;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Shared\Domain\Money;
 
 /**
- * A movement to record on an account of a firm, as a bank message stated it. Text
+ * A movement to record on an account of a firm, as a bank stated it, with the
+ * channel and the source that told it and the statement it came in. Text
  * a bank may write long is cut to what is stored; what pairs (amounts, symbols,
  * accounts) is never cut, and a symbol too long for the column is refused.
  */
@@ -23,6 +25,8 @@ final readonly class MovementInput
     /**
      * @param string      $accountId        the firm's bank account it was booked on
      * @param string|null $inboundMessageId the message it came in, or null when it came another way
+     * @param string      $sourceId         the mail parser, statement format or connector that told it
+     * @param string|null $statementId      the stored statement it came in
      */
     public function __construct(
         public string $accountId,
@@ -38,10 +42,13 @@ final readonly class MovementInput
         public ?string $specificSymbol,
         public ?string $message,
         public ?string $bankReference,
+        public MovementChannel $channel = MovementChannel::Mail,
+        public string $sourceId = BankMovement::MAIL_SOURCE,
+        public ?string $statementId = null,
     ) {
     }
 
-    public static function of(ParsedMovement $movement, string $accountId, ?string $inboundMessageId): self
+    public static function of(ParsedMovement $movement, string $accountId, ?string $inboundMessageId, MovementChannel $channel = MovementChannel::Mail, string $sourceId = BankMovement::MAIL_SOURCE, ?string $statementId = null): self
     {
         return new self(
             $accountId,
@@ -57,6 +64,9 @@ final readonly class MovementInput
             $movement->specificSymbol,
             self::cut($movement->message, BankMovement::MAX_MESSAGE),
             self::cut($movement->bankReference, BankMovement::MAX_BANK_REFERENCE),
+            $channel,
+            $sourceId,
+            $statementId,
         );
     }
 

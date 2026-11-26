@@ -11,7 +11,7 @@ namespace Foresi\Purchasing\Application;
 use Foresi\Purchasing\Contract\Event\ReceivedDocumentTrashed;
 use Foresi\Purchasing\Domain\ReceivedDocument;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 
 /**

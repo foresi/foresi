@@ -13,12 +13,12 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * The pages of an import target the import screens link to: the list of its
  * records, narrowed to what one import did with them. A module implements it
- * next to its ImportTarget (tag "app.import_target_pages").
+ * next to its ImportTarget (tag "foresi.import.target_pages").
  */
 #[AutoconfigureTag(self::TAG)]
 interface TargetPages
 {
-    public const string TAG = 'app.import_target_pages';
+    public const string TAG = 'foresi.import.target_pages';
 
     public function targetKey(): string;
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { addStyle, expect, test, type Locator, type Page } from '../support/test';
 import { signIn } from '../support/session';
 
 // This spec changes data. It runs in the "lifecycle" project, after the read-only specs.
@@ -23,7 +23,7 @@ async function expectNoSeriousViolations(page: Page): Promise<void> {
 }
 
 async function undockActionBar(page: Page): Promise<void> {
-  await page.addStyleTag({ content: STATIC_BAR });
+  await addStyle(page, STATIC_BAR);
   await page.locator('[data-action-bar]').evaluate((bar) => bar.removeAttribute('data-stuck'));
 }
 

@@ -11,11 +11,11 @@ namespace Foresi\Documents\Infrastructure\Mcp;
 use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The document templates, as GET /api/v1/document-templates writes them.
@@ -57,7 +57,7 @@ final readonly class ListDocumentTemplatesTool implements ReadTool, StaffOnlyToo
         return [
             'type' => 'object',
             'properties' => [
-                'type_id' => ToolArguments::idSchema('Only the templates of this document type, from foresi_list_document_types.'),
+                'type_id' => ToolSchema::idSchema('Only the templates of this document type, from foresi_list_document_types.'),
                 'include_archived' => ['type' => 'boolean', 'default' => false, 'description' => 'Whether archived templates are listed too.'],
             ],
             'additionalProperties' => false,
@@ -67,7 +67,7 @@ final readonly class ListDocumentTemplatesTool implements ReadTool, StaffOnlyToo
     public function call(array $arguments): ToolOutput
     {
         try {
-            $templates = $this->reads->templates(ToolArguments::text($arguments, 'type_id'), ToolArguments::flag($arguments, 'include_archived'));
+            $templates = $this->reads->templates(ToolSchema::text($arguments, 'type_id'), ToolSchema::flag($arguments, 'include_archived'));
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);
         }

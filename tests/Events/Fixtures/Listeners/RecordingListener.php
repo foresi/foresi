@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Events\Fixtures\Listeners;
 
-use Foresi\Shared\Application\Event\DomainEventListener;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\DomainEventListener;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 
 /**
  * An async listener that remembers what it was given. It can be told to fail a

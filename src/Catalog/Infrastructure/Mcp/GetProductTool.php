@@ -11,11 +11,11 @@ namespace Foresi\Catalog\Infrastructure\Mcp;
 use Foresi\Catalog\Application\CatalogRefused;
 use Foresi\Catalog\Application\ProductReads;
 use Foresi\Catalog\Infrastructure\Api\CatalogJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One product, as GET /api/v1/catalog/products/{productId} writes it.
@@ -58,7 +58,7 @@ final readonly class GetProductTool implements ReadTool, StaffOnlyTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the product, as foresi_search_products returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the product, as foresi_search_products returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -67,7 +67,7 @@ final readonly class GetProductTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $product = $this->products->one(ToolArguments::text($arguments, 'id') ?? '');
+            $product = $this->products->one(ToolSchema::text($arguments, 'id') ?? '');
         } catch (CatalogRefused $refused) {
             throw ToolRefusal::of($refused);
         }

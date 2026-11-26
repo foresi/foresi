@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Where the owner pays an authority, so the payments of its advances are

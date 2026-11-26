@@ -16,7 +16,7 @@ use Foresi\Margin\Application\LineAllocationView;
 use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Screen\MappingForm;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

@@ -40,18 +40,21 @@ files. Never put a production secret in a committed file.
 | `APP_SECRET` | **yes** | Signs the public links of sent documents and the links that stop notification e-mails, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
 | `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
 | `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
-| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`. |
+| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `mcp-sessions`, `lock`. |
 | `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
 | `WEBHOOK_SECRET_KEYS` | **yes** | Keys that seal the signing secrets of webhook endpoints, in the format of `MAIL_SECRET_KEYS` and rotated apart from it: the first key seals, older ones only open. Empty means no endpoint can be saved. Losing the keys means every endpoint needs a new secret. See [ADR 0031](adr/0031-webhooks.md). |
 | `APP_TIMEZONE` | no | The time zone of the instance's days, such as due dates and the schedule: a canonical name of the tz database such as `Europe/Prague`. Empty (default) follows the country of the firm, else UTC. An offset, an abbreviation or an old alias such as `US/Eastern` stops the instance at start with the reason. |
 | `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
 | `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
-| `LOCK_DSN` | maybe | `flock` (default) works on one host. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
+| `LOCK_DSN` | maybe | Empty (default) or `flock` locks with files in `<APP_SHARE_DIR>/<APP_ENV>/lock`, so each instance has its own locks, also when several instances on one host run as one Unix user. Not the system temp directory: instances would share lock names there, and only one of them would run its schedule. `flock:///path` picks another directory, one per instance. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
 | `SYMFONY_TRUSTED_PROXIES` | no | The addresses of a reverse proxy or load balancer in front of PHP, such as `127.0.0.1,REMOTE_ADDR`. See [web server](#web-server). |
 | `MAIL_INBOUND_*`, `INBOUND_WEBHOOK_SECRET`, `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` | **yes** (`MAIL_INBOUND_PASSWORD`, `INBOUND_WEBHOOK_SECRET`) | Inbound mail, such as bank notices and people's own addresses; empty turns it off. `MAIL_INBOUND_DAILY_LIMIT` is how many mails one address takes per day (500 by default, not a secret). The operator task `mail-purge` runs daily on the existing schedule and needs no setting. The old names `BANK_INBOX_*` still work for one more release, with a deprecation warning in the log. See [docs/mail.md](mail.md#settings) and [docs/bank-pairing.md](bank-pairing.md). |
 | `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
 | `SYSTEM_MAILER_DSN` | **yes** (password) | The mailer of the installation's own mail, such as invitations, for example `smtp://user:pass@smtp.example.com:587`. Never a firm's server, which sends only that firm's documents. The mail is queued on the `mail` transport with its retries, so the existing worker sends it. Empty sends no such mail: the screens say the installation cannot send e-mail yet and `/health` reports `system_mail` as degraded. Check it with `bin/console app:ops:test-mail you@example.com`. |
 | `SYSTEM_MAIL_FROM` | no | The sender of that mail, an address with an optional name: `Foresi <noreply@example.com>`. Empty, or not an address, sends none. |
+| `HSTS_MAX_AGE` | no | How long browsers keep to HTTPS after a response over HTTPS, in seconds: `31536000` (one year) by default, `0` in the dev environment. `0` sends no `Strict-Transport-Security`. See [security headers](#security-headers). |
+| `HSTS_INCLUDE_SUBDOMAINS` | no | `1` (default) adds `includeSubDomains` to it; `0` leaves it out when a subdomain of the application's host still serves plain HTTP. |
+| `CSP_REPORT_URI` | no | An address that receives the browser's reports of Content-Security-Policy violations (`report-uri`), such as the endpoint of an error tracker. Empty (default) sends none. |
 | `MCP_ALLOWED_HOSTS` | no | The host names, without port, that the MCP endpoint at `/mcp` answers for, comma separated; a request for another host gets `403`. The default `localhost,127.0.0.1` does not match a public address, so in production set the host of `DEFAULT_URI`, such as `app.example.com`. See [docs/mcp.md](mcp.md#mcp_allowed_hosts). |
 
 Optionally compile the files into `.env.local.php` for speed with
@@ -76,7 +79,8 @@ symlink, so a request never sees half a release:
 ├── shared/
 │   ├── .env.local                       # configuration and secrets (0600)
 │   └── var/
-│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail, idoklad-documents, original-documents, attachments
+│       ├── share/prod/                  # firm-images, sent-documents, inbound-mail, idoklad-documents, original-documents, attachments, mcp-sessions
+│       │   └── lock/                    # the file locks of this instance (schedule, imports, rate limits)
 │       └── imports/                     # uploaded import files
 ├── repo.git/                            # a mirror of the repository, kept by the deploy
 └── deploy.env                           # optional settings of ops/deploy.sh
@@ -229,33 +233,48 @@ when the result is failed or the time is older than a day (backup) or eight days
 
 ## Exchange rates
 
-Received documents in a foreign currency are converted at the rate of the Czech
-National Bank (see [received documents](purchasing.md#foreign-currency)). The
-rates are fetched by a timed job of the worker, `exchange-rates`: it ticks every
-ten minutes and does nothing before 14:35 Prague time, when the bank has
-published the day's rates (around 14:30), or once the day has rates, so a missed
-tick, a late publication and a failed fetch are all made up by the next tick.
-The worker therefore must run all the time and reach `www.cnb.cz` over HTTPS; a
-fetch is one request with a 5 second timeout, and a failure is logged as a
-warning and retried. On a day without a publication (a weekend, a holiday) the
-rates of the previous publication are stored under that day once it is settled at
-15:00, so asking for it later is a read.
+Documents in a foreign currency are converted at the rate of the source the firm
+converts at (see [received documents](purchasing.md#foreign-currency)): the one
+chosen in Settings → Exchange rates, else the default of the firm's country (the
+Czech National Bank for a Czech firm), else the first installed source. The
+choice and what each country allows are in [ADR 0046](adr/0046-exchange-rate-sources-and-the-legal-rate.md).
+An instance where nobody chose keeps the ČNB, as before.
 
-The rates are global to the installation, kept in the database, and need no
-backup of their own. A document keeps the rate it was saved with, so fetching
-later never changes a recorded document.
+| Source | Host | Published | The task fetches from |
+| --- | --- | --- | --- |
+| `cnb`, the Czech National Bank (Czech country module) | `www.cnb.cz` | business days around 14:30 Prague time | 14:35, settled at 15:00 |
+| `ecb`, the ECB euro reference rates (built in) | `www.ecb.europa.eu` | TARGET working days around 16:00 CET | 16:10, settled at 17:00 |
 
-To fetch by hand, for a date missed or to check the connection:
+The rates are fetched by a timed job of the worker, `exchange-rates`: it ticks
+every ten minutes and fetches only the source in use. It does nothing before that
+source's time, or once the day has rates, so a missed tick, a late publication and
+a failed fetch are all made up by the next tick. The worker therefore must run all
+the time and reach the host of the source over HTTPS; a fetch is one request with
+a 5 second timeout, and a failure is logged as a warning and retried. Foresi never
+switches to another source when one is down. On a day without a publication (a
+weekend, a holiday) the rates of the previous publication are stored under that
+day once it is settled, so asking for it later is a read. The ECB quotes per 1 EUR;
+the rate to CZK is the cross rate through the euro. It reads today from its daily
+file and an earlier date from its history of the last 90 days, so a date older
+than that has no ECB rate.
+
+The rates are global to the installation, kept in the database per source, and
+need no backup of their own. A document keeps the rate it was saved with, so
+fetching later or switching the source never changes a recorded document.
+
+To fetch by hand, for a date missed, to check the connection, or to fill another
+source before the firm switches to it:
 
 ```bash
-bin/console app:exchange-rate:fetch              # today
-bin/console app:exchange-rate:fetch 2026-11-06   # a date, as YYYY-MM-DD
+bin/console app:exchange-rate:fetch                     # today, the source in use
+bin/console app:exchange-rate:fetch 2026-11-06          # a date, as YYYY-MM-DD
+bin/console app:exchange-rate:fetch --source=ecb        # any installed source
 ```
 
-It stores the rates of the date and prints how many it stored and the day they
-were published; it exits non-zero when the bank gave no usable answer, and
-nothing is stored then. Without the fetch, a document in a foreign currency takes
-no rate on its own and a rate has to be typed by hand.
+It stores the rates of the date and prints how many it stored, of which source
+and the day they were published; it exits non-zero when the source gave no usable
+answer, and nothing is stored then. Without the fetch, a document in a foreign
+currency takes no rate on its own and a rate has to be typed by hand.
 
 ## Web server
 
@@ -271,7 +290,12 @@ no rate on its own and a rate has to be typed by hand.
       root /srv/foresi/current/public;
       client_max_body_size 50m;
 
-      location / { try_files $uri /index.php$is_args$args; }
+      # Files served by nginx itself, such as /assets/; PHP sets these headers on its own answers.
+      location / {
+          try_files $uri /index.php$is_args$args;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      }
       location ~ ^/index\.php(/|$) {
           fastcgi_pass unix:/run/php/php8.4-fpm-foresi.sock;
           fastcgi_split_path_info ^(.+\.php)(/.*)$;
@@ -297,13 +321,56 @@ no rate on its own and a rate has to be typed by hand.
   close the archive); the web server and PHP-FPM must not cut it off first. Ten
   minutes (`fastcgi_read_timeout 600s`, `request_terminate_timeout = 600`) suit a
   few hundred documents; raise both for more.
-- **HTTPS only.** Redirect plain HTTP, and add
-  `Strict-Transport-Security: max-age=31536000` once HTTPS works. Public
-  document links and the sign-in assume https.
+- **HTTPS only.** Redirect plain HTTP. The application sends
+  `Strict-Transport-Security` itself on every answer over HTTPS (see
+  [security headers](#security-headers)); the files nginx serves get it from
+  the `location /` above. Public document links and the sign-in assume https.
 - **Trusted proxies.** Behind a reverse proxy or load balancer (or Cloudflare),
   set `SYMFONY_TRUSTED_PROXIES` to its addresses so the application sees the
   client's address (for throttling and `/health` limits) and the https scheme.
   Do not trust every address unless PHP is reachable only through the proxy.
+
+### Security headers
+
+The application sets the security headers on every answer it gives (OWASP
+Secure Headers Project, OWASP ASVS 5.0 chapter 3.4), so the web server does not
+add them again: a second `Content-Security-Policy` would apply as well, and the
+stricter of the two would win.
+
+| Header | Value |
+| --- | --- |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'nonce-…' 'strict-dynamic'; style-src 'self' 'nonce-…'; style-src-attr 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'` |
+| `X-Frame-Options` | `SAMEORIGIN`, for browsers that do not read `frame-ancestors` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `same-origin`: no referrer to other sites, while the application's own requests keep the `Origin` its CSRF check reads |
+| `Permissions-Policy` | camera, microphone, location, payment, USB and the other device APIs off |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains`, over HTTPS only (`HSTS_MAX_AGE`, `HSTS_INCLUDE_SUBDOMAINS`) |
+
+- **Scripts run only with the nonce** of the answer, a new random value each
+  time: the importmap scripts carry it, and Turbo gives it to what it adds. No
+  inline script, `eval` or script from another host runs. Style attributes are
+  allowed, as the components size and colour with them; style elements need the
+  nonce.
+- **Pages with stricter rules keep their own.** The public document links, the
+  attachments and the calendar feeds set their own policy and referrer policy,
+  and those win. In debug, Symfony's error page gets no policy, as it inlines
+  its scripts.
+- **HTTPS is detected per request.** Behind a reverse proxy that ends TLS, set
+  `SYMFONY_TRUSTED_PROXIES`, or the application sees plain HTTP and sends no
+  `Strict-Transport-Security`. HSTS is on by default; keep `HSTS_MAX_AGE=0`
+  until every address of the host answers over HTTPS, as browsers then refuse
+  plain HTTP for the whole `max-age`. Foresi does not ask for HSTS preloading.
+- **A module that loads from another host** (an API it calls from the browser,
+  a payment form it posts to) adds that host in code, by implementing
+  `Foresi\Shared\Application\Http\ContentSecurityPolicySource`; the core
+  policy is never edited. It adds `https://` or `wss://` hosts, `'self'`, and
+  `data:` or `blob:` for images, media, fonts and workers, to `connect-src`,
+  `font-src`, `form-action`, `frame-src`, `img-src`, `media-src`, `script-src`,
+  `style-src` or `worker-src`. Keywords such as `'unsafe-inline'`, `*` and bare
+  schemes are refused when the container starts.
+- **Violations** show in the browser console. To collect them, set
+  `CSP_REPORT_URI`. The end-to-end tests fail on any violation.
 
 ## Deploy
 
@@ -316,7 +383,8 @@ sudo -u www-data /srv/foresi/current/ops/deploy.sh v0.5.0
 
 It fetches the ref into a mirror, exports it into `releases/<timestamp>`, links
 the shared files, runs `composer install --no-dev --optimize-autoloader`,
-`importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
+checks that every installed module is written for this release's module API
+(`app:modules:check`, which names each one that is not), `importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
 warms the prod cache, dumps the database with `ops/backup.sh --tag pre-migrate`
 when migrations are pending, migrates (unless the database is still on the
 global migration history, see [the module baselines](#the-module-baselines)),
@@ -591,7 +659,7 @@ time too, if the schema has changed since ([rollback](#rollback)).
 - [ ] PHP 8.4 with every extension of the [requirements](#requirements); `composer check-platform-reqs --no-dev` passes in the release.
 - [ ] PostgreSQL 17; `DATABASE_URL` uses a role that owns only the Foresi database.
 - [ ] `APP_SECRET`, `MAIL_SECRET_KEYS`, `WEBHOOK_SECRET_KEYS` and `.env.local` stored in a password manager, outside the server.
-- [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; HSTS is on.
+- [ ] `DEFAULT_URI` is the public https address; HTTP redirects to HTTPS; an answer over HTTPS carries `Strict-Transport-Security` (behind a proxy: `SYMFONY_TRUSTED_PROXIES` is set).
 - [ ] Upload limits of 50M in PHP and the web server; timeouts of ten minutes for the accountant pack.
 - [ ] `SYMFONY_TRUSTED_PROXIES` set when a proxy is in front.
 - [ ] `MCP_ALLOWED_HOSTS` holds the public host (such as `app.example.com`) if assistants connect to `/mcp`.

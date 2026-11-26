@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ForecastAmountSource
 {
-    public const string TAG = 'app.taxes_forecast_source';
+    public const string TAG = 'foresi.taxes_and_contributions.forecast_source';
 
     /**
      * The amounts expected on the days from $from, today at the earliest, to

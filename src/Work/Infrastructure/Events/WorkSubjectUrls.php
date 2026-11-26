@@ -9,12 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Events;
 
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
+use Foresi\Work\Infrastructure\Api\ProjectApiController;
 use Foresi\Work\Infrastructure\Api\TaskApiController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Where a task can be read in the API.
+ * Where a task or a project can be read in the API.
  */
 final readonly class WorkSubjectUrls implements EventSubjectUrl
 {
@@ -29,6 +30,10 @@ final readonly class WorkSubjectUrls implements EventSubjectUrl
 
     public function url(EventSubject $subject): ?string
     {
-        return 'task' === $subject->type ? $this->urls->generate(TaskApiController::SHOW, ['taskId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH) : null;
+        return match ($subject->type) {
+            'task' => $this->urls->generate(TaskApiController::SHOW, ['taskId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH),
+            'project' => $this->urls->generate(ProjectApiController::SHOW, ['projectId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH),
+            default => null,
+        };
     }
 }

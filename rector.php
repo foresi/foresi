@@ -16,6 +16,8 @@ return RectorConfig::configure()
         __DIR__.'/tests/bootstrap.php',
         __DIR__.'/tests/object-manager.php',
         __DIR__.'/tests/e2e/node_modules',
+        // A module of another vendor, not installed here (the External module workflow installs it).
+        __DIR__.'/tests/Fixtures/modules',
         // Conflicts with phpstan-strict-rules (staticMethod.dynamicCall).
         PreferPHPUnitThisCallRector::class,
         // MicroKernelTrait passes the configurator, the loader and the builder by position.

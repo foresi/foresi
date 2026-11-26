@@ -5,6 +5,8 @@
 [![Licence: AGPL-3.0-only](https://img.shields.io/badge/licence-AGPL--3.0--only-blue)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/foresi/foresi)](https://github.com/foresi/foresi/releases)
 [![CI](https://github.com/foresi/foresi/actions/workflows/ci.yml/badge.svg)](https://github.com/foresi/foresi/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/foresi/foresi/badge)](https://scorecard.dev/viewer/?uri=github.com/foresi/foresi)
+[![REUSE](https://github.com/foresi/foresi/actions/workflows/reuse.yml/badge.svg)](https://github.com/foresi/foresi/actions/workflows/reuse.yml)
 
 Website: [foresi.app](https://foresi.app) · [Releases](https://github.com/foresi/foresi/releases) · [Roadmap](ROADMAP.md) · [Discussions](https://github.com/foresi/foresi/discussions)
 
@@ -24,7 +26,9 @@ Owners of small firms who want one system for the whole run of the business, fro
 | Recurring invoices | Templates that issue invoices on a schedule | [recurring.md](docs/recurring.md) |
 | Payments | Payments recorded by hand or paired from the bank's payment e-mails | [bank-pairing.md](docs/bank-pairing.md) |
 | Mail | Inbound mail: the operator mailbox and the webhook, personal addresses with daily limits, who sent a message, and the raw files it is kept in | [mail.md](docs/mail.md) |
+| Inbox | Your own e-mail address in Foresi: mail you forward there becomes an item matched to the sender's contact, for you alone | [inbox.md](docs/inbox.md) |
 | Received documents | Supplier invoices, receipts and credit notes beside the original file, with VAT treatments and foreign currencies | [purchasing.md](docs/purchasing.md) |
+| AI Reader | An optional reader that fills the header of a received document with an AI model, only for files the structured readers could not read | [ai-reader.md](docs/ai-reader.md) |
 | Catalog | Products with their unit, price and a one-off or recurring way of billing | [catalog.md](docs/catalog.md) |
 | Sales | Deals with stages, lines copied from the catalog, a value per currency, won or lost with a reason, and follow-up deals, on the client's page | [sales.md](docs/sales.md) |
 | Cash flow | How much money the firm will have, by weeks and months, twelve months ahead | [cash-flow.md](docs/cash-flow.md) |
@@ -52,6 +56,7 @@ The interface is in Czech and English. Tax rules are subject to professional tax
 
 - Run it on your machine: [docs/development.md](docs/development.md)
 - Run it on a server: [docs/operations.md](docs/operations.md)
+- Write a module of your own: [docs/modules.md](docs/modules.md)
 
 ## Community
 

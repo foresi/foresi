@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Instance\Application\Schedule\DailyPeriod;
-use Foresi\Instance\Application\Schedule\ScheduledJob;
+use Foresi\Instance\Contract\ScheduledJob;
 
 /**
  * Once a day from midnight in the instance's zone, the firm takes the VAT

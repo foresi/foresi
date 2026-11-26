@@ -9,14 +9,18 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Contract;
 
 use Foresi\Shared\Domain\Currency;
+use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 /**
  * What a country decides about a document: its home currency and time zone, its
  * VAT rates by date, how much it writes off on a payment, its legal notes, its
  * supply codes, its payment code and its electronic file. A country module implements this and is tagged automatically.
  */
+#[AutoconfigureTag(self::TAG)]
 interface InvoicingCountry
 {
+    public const string TAG = 'foresi.invoicing.country';
+
     public function supports(string $countryCode): bool;
 
     public function homeCurrency(): Currency;

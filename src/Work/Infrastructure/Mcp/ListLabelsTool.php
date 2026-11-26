@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Infrastructure\Api\WorkJson;
 

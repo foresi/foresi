@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../support/test';
 import { signIn } from '../support/session';
 
 // The world of this spec in tests/e2e/seed/margin.php: Client A has an invoice of 8,000 with the tax

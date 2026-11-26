@@ -88,6 +88,12 @@ interface ContactPersonWrites
 - `ContactPersonRefused` names each field that is wrong (`name`, `email`, `position`, `person`) with its reason (`required`, `too_long`, `email_invalid`, `person_invalid`); nothing is written.
 - `candidatesOf()` of a person, or of an unknown id, is an empty list. A write joins the unit of work it is called in, and acts as the person signed in, with the address book's own access rules.
 
+### Finding and creating contacts for incoming mail
+
+`Foresi\Party\Contract\ContactsByEmail` matches an e-mail address to the address book for a module that receives mail (Inbox): `byAddress()` returns the contacts that have the address among their e-mails (compared without regard to case), `byDomain()` the companies and sole traders, never persons, with an e-mail of exactly that domain (`sub.example.com` is not `example.com`), and `companiesOfPerson()` the companies a person is linked to, in the order linked, archived ones flagged. Archived contacts are left out of the first two. Unlike `PartyDirectory` it does not read as the person signed in, as mail arrives with nobody signed in; it returns summaries only, and the caller restricts what it shows to whom.
+
+`Foresi\Party\Contract\ContactCreation::create(NewContact)` creates a contact for such a module (a person, sole trader or company with its billing address, and an optional registration number, VAT id, e-mail and phone) through the address book's own create, so the same rules, staff check, audit, events and duplicate refusal apply. The address book's refusal reaches the caller unchanged: a missing street is `required` on `street`, a registration number or VAT id the organisation has already is `duplicate` with `existing_ids` in its details.
+
 ### Adding a tab to a contact
 
 A module that keeps something of a contact, such as its deals, adds a tab after the contact's own five (Overview, Contact persons, Addresses, Bank accounts, History). It implements `Foresi\Ui\Contract\Slot\SlotProvider` and answers the slot `Foresi\Party\Contract\ContactTabs::SLOT` (`party.contact_tabs`), whose context holds `contactId`, with a `SlotItem` whose data holds:

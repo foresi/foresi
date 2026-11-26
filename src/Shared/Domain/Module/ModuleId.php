@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Shared\Domain\Module;
 
 /**
- * The id of a module, such as "timesheet": kebab case, the package name
- * without the "foresi/" vendor.
+ * The id of a module, such as "timesheet" or "acme-fleet": kebab case, as its
+ * namespace gives it (ModuleNamespace).
  */
 final readonly class ModuleId
 {

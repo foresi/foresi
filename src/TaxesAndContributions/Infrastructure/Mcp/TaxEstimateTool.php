@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\TaxesAndContributions\Infrastructure\Mcp;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
 use Foresi\TaxesAndContributions\Contract\FlatRateResult;

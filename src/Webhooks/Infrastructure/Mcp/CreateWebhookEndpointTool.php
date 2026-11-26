@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
+use Foresi\Shared\Contract\Mcp\WriteTool;
 use Foresi\Webhooks\Application\ManageWebhookEndpoints;
 use Foresi\Webhooks\Infrastructure\Api\EndpointView;
 
@@ -71,7 +71,7 @@ final readonly class CreateWebhookEndpointTool implements WriteTool
     {
         $url = WebhookToolArguments::required($arguments, 'url');
         $eventTypes = WebhookToolArguments::eventTypes($arguments) ?? [];
-        $description = ToolArguments::text($arguments, 'description');
+        $description = ToolSchema::text($arguments, 'description');
         $version = WebhookToolArguments::integer($arguments, 'version') ?? 1;
 
         $created = WebhookToolErrors::refuse(fn (): \Foresi\Webhooks\Application\CreatedEndpoint => $this->manage->create($url, $description, $eventTypes, $version));

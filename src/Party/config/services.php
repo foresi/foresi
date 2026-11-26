@@ -19,14 +19,18 @@ use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
+use Foresi\Party\Contract\ContactCreation;
 use Foresi\Party\Contract\ContactPersonWrites;
+use Foresi\Party\Contract\ContactsByEmail;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
+use Foresi\Party\Infrastructure\Directory\DoctrineContactCreation;
 use Foresi\Party\Infrastructure\Directory\DoctrineContactPersonWrites;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
+use Foresi\Party\Infrastructure\Doctrine\DoctrineContactsByEmail;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
@@ -57,21 +61,21 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $container->parameters()->set('app.firm_image_dir', '%kernel.share_dir%/firm-images');
 
     // Country modules plug into the core through tagged interfaces.
-    $builder->registerForAutoconfiguration(RegistrationNumberValidator::class)->addTag('app.registration_number_validator');
-    $builder->registerForAutoconfiguration(DomesticBankAccount::class)->addTag('app.domestic_bank_account');
+    $builder->registerForAutoconfiguration(RegistrationNumberValidator::class)->addTag(RegistrationNumberValidator::TAG);
+    $builder->registerForAutoconfiguration(DomesticBankAccount::class)->addTag(DomesticBankAccount::TAG);
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    $builder->registerForAutoconfiguration(CompanyRegistry::class)->addTag('app.company_registry');
-    $builder->registerForAutoconfiguration(VatPayerReliability::class)->addTag('app.vat_payer_reliability');
+    $builder->registerForAutoconfiguration(CompanyRegistry::class)->addTag(CompanyRegistry::TAG);
+    $builder->registerForAutoconfiguration(VatPayerReliability::class)->addTag(VatPayerReliability::TAG);
     $builder->registerForAutoconfiguration(ContactImports::class)->addTag(ContactImports::TAG);
 
     $services->set(RegistrationNumberFactory::class)
-        ->arg('$validators', tagged_iterator('app.registration_number_validator'));
+        ->arg('$validators', tagged_iterator(RegistrationNumberValidator::TAG));
     $services->set(ImportPartyValues::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     $services->set(ManageFirmBankAccounts::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     $services->set(AccountNumbers::class)
-        ->arg('$domesticAccounts', tagged_iterator('app.domestic_bank_account'));
+        ->arg('$domesticAccounts', tagged_iterator(DomesticBankAccount::TAG));
     // Modules that record movements, such as Banking, fix an account's currency.
     $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class);
     // Country modules offer their registers; without one, lookups come back empty.
@@ -83,6 +87,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class);
     // Sales adds a contact person to a deal's client through the contract.
     $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class);
+    // Inbox matches a sender to the address book, with nobody signed in, and creates a contact from a message.
+    $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class);
+    $services->alias(ContactCreation::class, DoctrineContactCreation::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));
@@ -110,6 +117,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->set(ExampleContactTab::class);
         $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class)->public();
         $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class)->public();
+        $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class)->public();
+        $services->alias(ContactCreation::class, DoctrineContactCreation::class)->public();
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();

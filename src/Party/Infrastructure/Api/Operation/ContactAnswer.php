@@ -11,7 +11,7 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Infrastructure\Api\ContactApiController;
 use Foresi\Party\Infrastructure\Api\ContactJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

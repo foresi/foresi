@@ -15,7 +15,7 @@ namespace Foresi\Shared\Application\View;
  */
 interface ListDefinitionSource
 {
-    public const string TAG = 'foresi.list_definitions';
+    public const string TAG = 'foresi.shared.list_definitions';
 
     /**
      * @return iterable<ListDefinition>

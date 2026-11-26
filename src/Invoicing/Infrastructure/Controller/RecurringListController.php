@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Controller;
 
 use Foresi\Identity\Application\OwnerCheck;
-use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Application\DeliverRecurringInvoice;
 use Foresi\Invoicing\Application\IssueAfterTodaysRun;

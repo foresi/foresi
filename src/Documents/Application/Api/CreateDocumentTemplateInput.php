@@ -10,8 +10,8 @@ namespace Foresi\Documents\Application\Api;
 
 use Foresi\Documents\Domain\DocumentTemplate;
 use Foresi\Documents\Domain\TemplateVersion;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
     name: 'documents.templates.create',

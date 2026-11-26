@@ -17,8 +17,8 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  * module has three kinds of layer:
  *
  * - "<id>": the module's own code, everything but Contract and Integration;
- * - "<id>_contract": Foresi\<Module>\Contract\, what other modules may use;
- * - "<id>_integration_<other>": Foresi\<Module>\Integration\<Other>\, the code
+ * - "<id>_contract": <namespace>Contract\, what other modules may use;
+ * - "<id>_integration_<other>": <namespace>Integration\<Other>\, the code
  *   for one optional dependency, loaded only when <other> is installed.
  *
  * A module may use the modules it requires, whole, as before contracts
@@ -27,9 +27,12 @@ use Foresi\Shared\Domain\Module\ModuleKind;
  * module that dependency requires and the module lists as optional too (Country
  * reads Banking's parser contract, which hands it Mail's InboundMail). A
  * contract may use the contracts of the required modules and the core it
- * requires.
+ * requires, and the contract of a core module its own module: deptrac.yaml
+ * narrows that to the module's domain, such as the payload of an event in
+ * Shared's contract (ADR 0044).
  *
- * Ids and namespaces are validated, so they are written unquoted. A layer is
+ * <namespace> is the module's own, from its manifest, whichever vendor it
+ * belongs to. Ids and namespaces are validated, so they are written unquoted. A layer is
  * named by the module id with "_" for "-", as Deptrac reads the ruleset
  * through Symfony Config, which normalizes "-" in keys to "_".
  */
@@ -60,7 +63,7 @@ final readonly class DeptracModulesConfig
                 $requiredContracts[] = $this->layer($id).'_contract';
             }
             $rules[$own] = [$contract, ...$requiredLayers];
-            $rules[$contract] = $requiredContracts;
+            $rules[$contract] = ModuleKind::Core === $module->kind ? [$own, ...$requiredContracts] : $requiredContracts;
 
             $optional = $module->optional;
             usort($optional, static fn (ModuleId $a, ModuleId $b): int => $a->value <=> $b->value);
@@ -107,7 +110,7 @@ final readonly class DeptracModulesConfig
     }
 
     /**
-     * "Foresi\Invoicing\" as the start of a pattern, "^Foresi\\Invoicing\\".
+     * A module's namespace as the start of a pattern, "Acme\Fleet\" as "^Acme\\Fleet\\".
      */
     private function pattern(string $namespace): string
     {

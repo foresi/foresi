@@ -51,10 +51,10 @@ abstract class ReceivedDocumentApiTestCase extends ApiTestCase
      * @param array<string, array{string|int|array<mixed>, string}> $found   field => [value, source] the reading found
      * @param list<ReadField>                                       $applied
      */
-    protected function draft(DocumentSource $source = DocumentSource::Upload, bool $file = true, array $found = [], array $applied = [], ?string $failure = null): string
+    protected function draft(DocumentSource $source = DocumentSource::Upload, bool $file = true, array $found = [], array $applied = [], ?string $failure = null, ?string $mail = null): string
     {
         $now = \DateTimeImmutable::createFromInterface(self::getContainer()->get(ClockInterface::class)->now());
-        $document = new ReceivedDocument(ReceivedDocumentContent::blank($now), $this->user->id(), $now, $source);
+        $document = new ReceivedDocument(ReceivedDocumentContent::blank($now), $this->user->id(), $now, $source, $mail);
         if ($file) {
             $document->attachOriginal(Id::generate());
         }

@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Purchasing\Application\Api;
 
 use Foresi\Purchasing\Domain\ReceivedDocument;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Moves a received document to the trash over the API and MCP.

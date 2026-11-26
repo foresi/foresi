@@ -14,7 +14,7 @@ use Foresi\Activities\Contract\RecordActivities;
 use Foresi\Activities\Domain\Activity;
 use Foresi\Activities\Infrastructure\Screen\ActivityScreen;
 use Foresi\Attachment\Infrastructure\Controller\AttachmentController;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

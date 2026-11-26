@@ -11,11 +11,11 @@ namespace Foresi\Sales\Infrastructure\Mcp;
 use Foresi\Sales\Application\DealReads;
 use Foresi\Sales\Application\SalesRefused;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One deal, as GET /api/v1/sales/deals/{dealId} writes it.
@@ -59,7 +59,7 @@ final readonly class GetDealTool implements ReadTool, StaffOnlyTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the deal, as foresi_search_deals returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the deal, as foresi_search_deals returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -68,7 +68,7 @@ final readonly class GetDealTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $detail = $this->reads->deal(ToolArguments::text($arguments, 'id') ?? '');
+            $detail = $this->reads->deal(ToolSchema::text($arguments, 'id') ?? '');
         } catch (SalesRefused $refused) {
             throw ToolRefusal::of($refused);
         }

@@ -27,7 +27,7 @@ use Foresi\Ui\Contract\Guard;
  */
 final readonly class NavigationArea
 {
-    public const string TAG = 'app.navigation_area';
+    public const string TAG = 'foresi.ui.navigation_area';
 
     public const string SETTINGS = 'settings';
 

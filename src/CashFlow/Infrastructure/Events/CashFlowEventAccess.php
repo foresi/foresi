@@ -10,7 +10,7 @@ namespace Foresi\CashFlow\Infrastructure\Events;
 
 use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\CashFlowRefused;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**

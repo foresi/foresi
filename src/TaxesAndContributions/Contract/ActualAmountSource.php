@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ActualAmountSource
 {
-    public const string TAG = 'app.taxes_actual_source';
+    public const string TAG = 'foresi.taxes_and_contributions.actual_source';
 
     /**
      * A stable key, such as "invoicing.payments".
@@ -42,7 +42,8 @@ interface ActualAmountSource
 
     /**
      * The net-to-gross ratio of each document asked for that the source knows,
-     * by its id, for what is still open on it.
+     * by its id, for what is still open on it. An id the source does not know,
+     * or one that is not an id at all, is left out.
      *
      * @param list<string> $subjectIds
      *

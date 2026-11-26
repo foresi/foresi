@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../support/test';
 import { OWNER_STATE } from '../support/session';
 
 // The document title runs from the page to the product: "Page · Section · Foresi". The spec only reads.

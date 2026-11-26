@@ -8,30 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application;
 
-/**
- * What a use case refuses, in a form every surface answers alike (ADR 0032): a
- * stable reason code such as "duplicate" or "name_required", a kind that
- * decides the status, the field the refusal is about and details a program can
- * act on, such as the ids of the duplicates. The message is for people and
- * agents; it never quotes text written by third parties.
- */
-interface Refused extends \Throwable
-{
-    /**
-     * A stable code in snake case, one of the reasons the use case documents.
-     */
-    public function reason(): string;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" interface is deprecated, use "%s" instead.', Refused::class, \Foresi\Shared\Contract\Refused::class);
 
-    public function kind(): RefusalKind;
+class_alias(\Foresi\Shared\Contract\Refused::class, Refused::class);
 
+if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * The input field the refusal is about, as the use case's input names it
-     * (camel case, such as "displayName"); null when it is about no one field.
+     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Refused instead
      */
-    public function field(): ?string;
-
-    /**
-     * @return array<string, scalar|list<scalar>|null> members a program can act on, such as ['existing_ids' => [...]]
-     */
-    public function details(): array;
+    interface Refused extends \Foresi\Shared\Contract\Refused
+    {
+    }
 }

@@ -16,7 +16,7 @@ use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Domain\DocumentAllocation;
 use Foresi\Margin\Domain\LineAllocation;
 use Foresi\Margin\Domain\MarginRefused;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 
 /**

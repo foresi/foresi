@@ -14,7 +14,7 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\FileSize;

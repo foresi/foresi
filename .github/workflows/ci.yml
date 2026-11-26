@@ -279,6 +279,27 @@ jobs:
           php -d memory_limit=-1 vendor/bin/phpcov merge --xml var/coverage/coverage-xml var/coverage-shard
           php bin/test-shard junit var/coverage/junit.xml "${TEST_SHARD_COUNT}" var/coverage-shard/junit-*.xml
 
+      # The seconds the mutants of each file took in the last full run, which the mutation
+      # shards are split by (bin/infection-shard). They travel with the coverage, so that every
+      # shard of a run splits by the same times. Without a cache, the times measured when the
+      # split by time was introduced stand in (.github/mutation-times.json).
+      - name: Restore the times of the last full run
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/mutation-times/
+          key: mutation-times-${{ github.run_id }}
+          restore-keys: mutation-times-
+
+      - name: Times of the mutants
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ -f var/mutation-times/times.json ]; then
+            cp var/mutation-times/times.json var/coverage/mutation-times.json
+          else
+            cp .github/mutation-times.json var/coverage/mutation-times.json
+          fi
+
       - name: Upload the coverage
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -290,11 +311,11 @@ jobs:
   # Mutation testing, on the coverage above, with no initial test run. A pull request
   # mutates only the lines it adds or modifies, and must reach the minimum scores on them
   # (shard 0). The merge queue does not repeat that: the lines are the same. A push to main
-  # does not either: the full run of ten shards after every merge held the runners that pull
+  # does not either: the full run of all shards after every merge held the runners that pull
   # requests wait for, so it runs every night instead. Every night on main and when started by
   # hand the whole code is mutated in parallel shards: Infection has no sharding of its own, so a
-  # shard is a set of source files (bin/infection-shard), balanced by size, and the quality
-  # gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
+  # shard is a set of source files (bin/infection-shard), balanced by the time their mutants
+  # took in the last full run, and the quality gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
   # that is missing fails the gate.
   mutation:
     name: ${{ matrix.shard == 0 && 'Mutation testing (changed lines)' || format('Mutation testing (shard {0})', matrix.shard) }}
@@ -302,16 +323,20 @@ jobs:
     if: ${{ github.event_name != 'merge_group' && github.event_name != 'push' }}
     runs-on: ubuntu-latest
     # Generous on purpose: a mutant may wait up to 30 minutes for slow covering tests
-    # (infection.json5), and no shard may be cut short.
+    # (infection.json5), and no shard may be cut short. A full shard stops Infection itself
+    # at 105 minutes, so that the times of what it did measure are kept for the next split.
     timeout-minutes: 120
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]') }}
+        # Sixteen shards: with ten, a shard of about 3,000 mutants took 60 to 115 minutes and some
+        # ran into the job timeout as the code grew (November 2026).
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]') }}
     env:
-      SHARD_COUNT: '10'
+      SHARD_COUNT: '16'
+      INFECTION_SHARD_TIMES: var/coverage/mutation-times.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -326,7 +351,11 @@ jobs:
           extensions: ctype, dom, gd, iconv, intl, pdo_sqlite, pdo_pgsql, zip
           coverage: none
           tools: composer:v2
-          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0
+          # The PHPUnit process of each mutant gets this php.ini, not the -d options below, and
+          # setup-php leaves memory unlimited. A mutant that makes a loop grow without end then
+          # took all the runner's memory and the runner was shut down; with a limit, the mutant
+          # fails on it and counts as killed. Four threads of 2G fit the runner's 16G.
+          ini-values: upload_max_filesize=64M, post_max_size=64M, max_execution_time=0, memory_limit=2G
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -434,14 +463,20 @@ jobs:
           INFECTION_SHARD_MANIFEST="var/shard/shard-${SHARD}.files.json" php bin/infection-shard files "$SHARD" "$SHARD_COUNT" > "var/shard/files-${SHARD}.txt"
           mapfile -t files < "var/shard/files-${SHARD}.txt"
           echo "Shard ${SHARD} of ${SHARD_COUNT}: ${#files[@]} files"
-          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
+          # --teamcity prints each mutant with its duration; the times of the files are taken
+          # from that output, also when the time limit stops the shard.
+          status=0
+          timeout 105m php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
             --coverage=var/coverage --skip-initial-tests \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
             --only-covering-test-cases \
             --min-msi=0 --min-covered-msi=0 \
             --logger-summary-json="var/shard/shard-${SHARD}.json" \
-            --show-mutations --no-progress \
-            "${files[@]}"
+            --teamcity \
+            "${files[@]}" | tee var/shard/teamcity.log || status=$?
+          php bin/infection-shard times var/shard/teamcity.log "var/shard/files-${SHARD}.txt" "${INFECTION_SHARD_TIMES}" > "var/shard/times-${SHARD}.json"
+          [ "${status}" != 124 ] || echo "The shard did not finish in 105 minutes; the next split takes the time it measured."
+          exit "${status}"
 
       - name: Upload the result of the shard
         if: ${{ !cancelled() && matrix.shard != 0 }}
@@ -570,27 +605,42 @@ jobs:
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         with:
           persist-credentials: false
 
       - name: Set up PHP
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
 
       - name: Download the results of the shards
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: infection-shard-*
           path: var/shards/
           merge-multiple: true
 
+      # The times of this run split the shards of the next one (see the coverage job), also
+      # when a shard failed or ran out of time: that is when the split needs them most.
+      - name: Times of the mutants
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        run: |
+          mkdir -p var/mutation-times
+          php bin/infection-shard collect var/shards > var/mutation-times/times.json
+
+      - name: Keep the times for the next full run
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: var/mutation-times/
+          key: mutation-times-${{ github.run_id }}
+
       - name: Mutation score of all shards
-        if: ${{ env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
         run: php bin/infection-shard merge var/shards
 
   # PostgreSQL leg. Static analysis does not depend on the database, so only
@@ -600,14 +650,19 @@ jobs:
   # The PostgreSQL and PHP 8.5 legs run after each merge to main, every night and when
   # started by hand, not on a pull request. A failure on main is fixed by the next pull
   # request. On a pull request they are skipped, and a skipped job counts as passed for
-  # the required check.
-  postgres:
-    name: Tests (postgres)
+  # the required check. Each leg runs in two shards (bin/test-shard): in one job the suite
+  # alone took about 30 minutes on PostgreSQL and ran into the 45-minute timeout (November 2026).
+  postgres-shards:
+    name: Tests (postgres, shard ${{ matrix.shard }})
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:17
@@ -624,6 +679,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://app:app@127.0.0.1:5432/app?serverVersion=17&charset=utf8
+      TEST_SHARD_COUNT: '2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -734,24 +790,52 @@ jobs:
           REQUIRE_VERAPDF: '1'
           REQUIRE_ISDOC_SCHEMA: '1'
           REQUIRE_POPPLER: '1'
-        run: composer phpunit
+          SHARD: ${{ matrix.shard }}
+        run: |
+          php bin/test-shard config "${SHARD}" "${TEST_SHARD_COUNT}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.shard.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"
 
       # Real worker processes claiming one period at once, left out of the suite
       # for their run time. In this job they race on a file SQLite database and
       # on this PostgreSQL, so both databases are covered by one run.
       - name: Claim race (SQLite and PostgreSQL)
+        if: ${{ matrix.shard == 1 }}
         run: vendor/bin/phpunit --group claim-race
+
+  # "Tests (postgres)" is a required check of main, so one job of that name reports the
+  # result of the shards. On a pull request the shards are skipped and it passes.
+  postgres:
+    name: Tests (postgres)
+    needs: postgres-shards
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: The shards passed
+        env:
+          SHARDS: ${{ needs.postgres-shards.result }}
+        run: |
+          echo "PostgreSQL shards: ${SHARDS}"
+          [ "${SHARDS}" = success ] || [ "${SHARDS}" = skipped ]
 
   # The next PHP release. composer.json allows it (>=8.4), so the test suite
   # runs on it too, on the in-memory SQLite database of the test environment.
-  # Skipped on a pull request like the PostgreSQL leg above.
+  # Skipped on a pull request and sharded like the PostgreSQL leg above.
   php85:
-    name: Tests (php 8.5, sqlite)
+    name: Tests (php 8.5, sqlite, shard ${{ matrix.shard }})
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      TEST_SHARD_COUNT: '2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -797,4 +881,9 @@ jobs:
         run: composer isdoc:schema
 
       - name: Tests
-        run: composer phpunit
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          php bin/test-shard config "${SHARD}" "${TEST_SHARD_COUNT}"
+          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/paratest -c phpunit.shard.xml \
+            --passthru-php="'-d' 'max_execution_time=0' '-d' 'memory_limit=2G'"

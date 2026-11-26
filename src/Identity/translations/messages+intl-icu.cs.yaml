@@ -181,6 +181,7 @@ api_tokens:
     sales: Obchod
     taxes: Daně a odvody
     vat: DPH
+    exchange_rates: Kurzy měn
     margin: Marže
     received_documents: Přijaté doklady
     views: Uložené pohledy

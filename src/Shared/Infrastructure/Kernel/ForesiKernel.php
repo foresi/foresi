@@ -10,6 +10,7 @@ namespace Foresi\Shared\Infrastructure\Kernel;
 
 use Foresi\Shared\Domain\Module\InvalidManifest;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
+use Foresi\Shared\Infrastructure\Module\ModuleApiCheck;
 use Foresi\Shared\Infrastructure\Module\ModuleBundle;
 use Foresi\Shared\Infrastructure\Module\ModuleIntegrations;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -26,6 +27,8 @@ use Symfony\Component\HttpKernel\Bundle\BundleInterface;
  * It registers the bundle of every installed module and the integration code
  * of every installed optional dependency, on top of the MicroKernelTrait's
  * config/ of the application.
+ *
+ * @api part of the module API (ADR 0044): an application uses it, and it changes only as the module API allows
  */
 trait ForesiKernel
 {
@@ -71,14 +74,17 @@ trait ForesiKernel
      * The configuration files, then the integration code of each module whose
      * optional dependency is installed (ADR 0033). The container is rebuilt
      * when Composer installs or removes a package, so adding a module turns
-     * its integrations on.
+     * its integrations on. It is not built when a module is not written for
+     * this Foresi's module API (ADR 0044).
      */
     private function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void
     {
-        $this->configureContainerFromFiles($container);
-
         $projectDir = $this->getProjectDir();
-        new ModuleIntegrations()->register(new InstalledModules($projectDir)->graph(), $container);
+        $graph = new InstalledModules($projectDir)->graph();
+        ModuleApiCheck::assertCompatible($graph);
+
+        $this->configureContainerFromFiles($container);
+        new ModuleIntegrations()->register($graph, $container);
         $installed = $projectDir.'/vendor/composer/installed.php';
         if (is_file($installed)) {
             $builder->addResource(new FileResource($installed));

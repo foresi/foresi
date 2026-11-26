@@ -12,7 +12,7 @@ use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\View\BankMovementLists;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\View\ListRecordCounter;
 use Foresi\Shared\Application\View\ViewFilter;
 

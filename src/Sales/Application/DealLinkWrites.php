@@ -14,7 +14,7 @@ use Foresi\Sales\Contract\Event\DealUpdated;
 use Foresi\Sales\Domain\Deal;
 use Foresi\Sales\Domain\DealLink;
 use Foresi\Sales\Domain\DealLinkType;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * The links between deals: two deals of the same client, never a deal to

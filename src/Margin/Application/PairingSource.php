@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface PairingSource
 {
-    public const string TAG = 'app.margin_pairing_source';
+    public const string TAG = 'foresi.margin.pairing_source';
 
     /**
      * The occurrence the document is paired with (auto or confirmed), or null.

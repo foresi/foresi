@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\View\Mcp;
 
 use Foresi\Shared\Application\View\ListDefinitions;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Infrastructure\View\Api\ViewJson;
 
 /**

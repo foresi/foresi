@@ -16,7 +16,7 @@ use Foresi\Party\Domain\RegistrationNumber;
  */
 interface CompanyRegistry
 {
-    public const string TAG = 'app.company_registry';
+    public const string TAG = 'foresi.party.company_registry';
 
     public function lookupByRegistrationNumber(RegistrationNumber $number): ?RegistryRecord;
 

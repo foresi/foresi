@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Api\Operation;
 
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\Work\Application\Api\UpdateTaskInput;
 use Foresi\Work\Application\Api\WorkWrites;
 

@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ActivityTarget
 {
-    public const string TAG = 'app.activity_target';
+    public const string TAG = 'foresi.activities.target';
 
     /**
      * @return list<string> the record kinds this target answers for, such as ["contact"]

@@ -30,7 +30,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Domain\VatStatusPeriod;
-use Foresi\Shared\Application\Api\Omitted;
+use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;

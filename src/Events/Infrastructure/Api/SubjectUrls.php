@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Events\Infrastructure\Api;
 
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
@@ -22,7 +22,7 @@ final readonly class SubjectUrls
      * @param iterable<EventSubjectUrl> $providers
      */
     public function __construct(
-        #[AutowireIterator('app.event_subject_url')]
+        #[AutowireIterator(EventSubjectUrl::SUBJECT_URL_TAG)]
         private iterable $providers,
     ) {
     }

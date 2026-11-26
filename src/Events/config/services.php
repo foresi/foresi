@@ -9,7 +9,7 @@ declare(strict_types=1);
 use Foresi\Events\Application\EventSink;
 use Foresi\Events\Infrastructure\Dbal\DbalEventRecorder;
 use Foresi\Shared\Application\Event\EventOutbox;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -23,7 +23,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../EventsBundle.php']);
 
     // Takes each event the relay numbers, in its transaction, such as the webhooks.
-    $builder->registerForAutoconfiguration(EventSink::class)->addTag('app.event_sink');
+    $builder->registerForAutoconfiguration(EventSink::class)->addTag(EventSink::TAG);
     // Events serves the outbox of the shared kernel: modules record events, the relay numbers them.
     $services->alias(EventRecorder::class, DbalEventRecorder::class);
     $services->alias(EventOutbox::class, DbalEventRecorder::class);

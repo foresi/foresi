@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Infrastructure\Api\TaskApiController;
 use Foresi\Work\Infrastructure\Api\WorkJson;
@@ -48,7 +48,7 @@ final readonly class ListTaskCommentsTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['task_id' => ToolArguments::idSchema('The id of the task, as foresi_search_tasks returns it.')],
+            'properties' => ['task_id' => ToolSchema::idSchema('The id of the task, as foresi_search_tasks returns it.')],
             'required' => ['task_id'],
             'additionalProperties' => false,
         ];
@@ -56,7 +56,7 @@ final readonly class ListTaskCommentsTool implements ReadTool
 
     public function call(array $arguments): ToolOutput
     {
-        $comments = $this->pages->read(fn (): array => TaskApiController::commentsOf($this->queries, ToolArguments::text($arguments, 'task_id') ?? ''));
+        $comments = $this->pages->read(fn (): array => TaskApiController::commentsOf($this->queries, ToolSchema::text($arguments, 'task_id') ?? ''));
         $count = \count($comments);
 
         return new ToolOutput(['items' => array_map(WorkJson::comment(...), $comments)], 0 === $count ? 'No comments.' : (1 === $count ? '1 comment, oldest first.' : \sprintf('%d comments, oldest first.', $count)));

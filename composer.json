@@ -22,6 +22,7 @@
         "doctrine/doctrine-migrations-bundle": "^4.0.1",
         "doctrine/orm": "^3.7.5",
         "foresi/activities": "dev-main",
+        "foresi/ai-reader": "dev-main",
         "foresi/attachment": "dev-main",
         "foresi/audit": "dev-main",
         "foresi/banking": "dev-main",
@@ -36,6 +37,7 @@
         "foresi/identity": "dev-main",
         "foresi/idoklad": "dev-main",
         "foresi/import": "dev-main",
+        "foresi/inbox": "dev-main",
         "foresi/instance": "dev-main",
         "foresi/invoicing": "dev-main",
         "foresi/mail": "dev-main",
@@ -62,30 +64,30 @@
         "symfony/asset-mapper": "7.4.*",
         "symfony/cache": "7.4.*",
         "symfony/console": "7.4.*",
-        "symfony/doctrine-messenger": "^7.4.23",
+        "symfony/doctrine-messenger": "^7.4.24",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2.12",
         "symfony/framework-bundle": "7.4.*",
         "symfony/html-sanitizer": "7.4.*",
-        "symfony/http-client": "^7.4.23",
-        "symfony/lock": "^7.4.23",
+        "symfony/http-client": "^7.4.24",
+        "symfony/lock": "^7.4.24",
         "symfony/mailer": "7.4.*",
         "symfony/mcp-bundle": "^0.15",
-        "symfony/messenger": "^7.4.23",
+        "symfony/messenger": "^7.4.24",
         "symfony/monolog-bundle": "^4.1",
         "symfony/rate-limiter": "7.4.*",
         "symfony/runtime": "7.4.*",
         "symfony/scheduler": "7.4.*",
         "symfony/security-bundle": "7.4.*",
         "symfony/serializer": "7.4.*",
-        "symfony/stimulus-bundle": "^3.6",
+        "symfony/stimulus-bundle": "^3.7",
         "symfony/translation": "7.4.*",
         "symfony/twig-bundle": "7.4.*",
         "symfony/uid": "7.4.*",
         "symfony/ux-icons": "^3.8.1",
         "symfony/ux-live-component": "^3.8.1",
-        "symfony/ux-turbo": "^3.6",
-        "symfony/ux-twig-component": "^3.6",
+        "symfony/ux-turbo": "^3.7",
+        "symfony/ux-twig-component": "^3.7",
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
         "symfonycasts/tailwind-bundle": "^1.0",
@@ -100,7 +102,8 @@
             "symfony/flex": true,
             "symfony/runtime": true,
             "infection/extension-installer": true,
-            "phpstan/extension-installer": true
+            "phpstan/extension-installer": true,
+            "cyclonedx/cyclonedx-php-composer": true
         },
         "bump-after-update": true,
         "sort-packages": true
@@ -116,7 +119,10 @@
     "autoload-dev": {
         "psr-4": {
             "Foresi\\Tests\\": "tests/"
-        }
+        },
+        "exclude-from-classmap": [
+            "tests/Fixtures/modules/"
+        ]
     },
     "replace": {
         "symfony/polyfill-ctype": "*",
@@ -194,6 +200,7 @@
     },
     "require-dev": {
         "brianium/paratest": "^7.29",
+        "cyclonedx/cyclonedx-php-composer": "^6.2",
         "deptrac/deptrac": "^4.7.2",
         "friendsofphp/php-cs-fixer": "^3.95.27",
         "infection/infection": "^0.35.8",
@@ -227,6 +234,7 @@
                 "symlink": true,
                 "versions": {
                     "foresi/activities": "dev-main",
+                    "foresi/ai-reader": "dev-main",
                     "foresi/attachment": "dev-main",
                     "foresi/audit": "dev-main",
                     "foresi/banking": "dev-main",
@@ -240,6 +248,7 @@
                     "foresi/identity": "dev-main",
                     "foresi/idoklad": "dev-main",
                     "foresi/import": "dev-main",
+                    "foresi/inbox": "dev-main",
                     "foresi/invoicing": "dev-main",
                     "foresi/mail": "dev-main",
                     "foresi/margin": "dev-main",

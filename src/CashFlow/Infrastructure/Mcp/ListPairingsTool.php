@@ -12,9 +12,9 @@ use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\PairingReads;
 use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Infrastructure\Api\PairingAnswers;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
 
 /**
  * The pairings of documents with planned occurrences, as GET /api/v1/cash-flow/pairings writes them.

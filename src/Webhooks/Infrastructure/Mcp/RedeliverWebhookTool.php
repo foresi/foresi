@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\WriteTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
+use Foresi\Shared\Contract\Mcp\WriteTool;
 use Foresi\Webhooks\Application\ManageWebhookEndpoints;
 
 /**
@@ -51,8 +51,8 @@ final readonly class RedeliverWebhookTool implements WriteTool
         return [
             'type' => 'object',
             'properties' => [
-                'endpoint_id' => ToolArguments::idSchema('The id of the endpoint, as foresi_list_webhook_endpoints returns it.'),
-                'delivery_id' => ToolArguments::idSchema('The id of the delivery, as foresi_list_webhook_deliveries returns it.'),
+                'endpoint_id' => ToolSchema::idSchema('The id of the endpoint, as foresi_list_webhook_endpoints returns it.'),
+                'delivery_id' => ToolSchema::idSchema('The id of the delivery, as foresi_list_webhook_deliveries returns it.'),
             ],
             'required' => ['endpoint_id', 'delivery_id'],
             'additionalProperties' => false,

@@ -11,7 +11,7 @@ namespace Foresi\Invoicing\Infrastructure\Events;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceApiController;
 use Foresi\Invoicing\Infrastructure\Api\PaymentApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

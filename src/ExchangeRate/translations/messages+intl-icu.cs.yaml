@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    exchange_rates: Kurzy měn
+exchange_rate:
+  cancel: Zrušit
+  save: Uložit
+  source:
+    ecb:
+      label: Evropská centrální banka
+      text: Referenční kurzy eura, vyhlašované v pracovní dny kolem 16:00 SEČ a přepočtené na Kč přes euro.
+  settings:
+    title: Kurzy měn
+    source_title: Zdroj kurzů
+    sources_title: Nainstalované zdroje
+    intro: Doklady v cizí měně berou kurz tohoto zdroje ke dni zdanitelného plnění a ponechají si ho. Změna zdroje mění jen kurzy převzaté od teď.
+    in_use: Používá se
+    default: Výchozí pro vaši zemi
+    chosen: Zvoleno v tomto nastavení
+    default_applies: Výchozí pro vaši zemi, nikdo zatím nevybral
+    none_installed: Není nainstalovaný žádný zdroj kurzů. Kurz každého dokladu zadejte ručně.
+    not_allowed: ve vaší zemi nepovolený
+    no_fallback: Když zdroj není dostupný, platí dál poslední kurzy, které vyhlásil, denní stahování to každých deset minut zkusí znovu a doklad může mít kurz zadaný ručně. Foresi nikdy samo nepřejde na jiný zdroj.
+    change: Změnit zdroj
+    flash:
+      source: 'Kurzy teď pocházejí ze zdroje {source}.'
+    form:
+      description: Vyberte, odkud se berou kurzy dokladů v cizí měně. Dříve uložené doklady si kurzy ponechají.
+      source: Zdroj
+      single: Vaše země povoluje jen jeden zdroj.
+    error:
+      source_unknown: Tento zdroj není nainstalovaný.
+      source_not_allowed: Vaše země nepovoluje přepočet kurzy tohoto zdroje.

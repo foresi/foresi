@@ -8,17 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\Event;
 
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" interface is deprecated, use "%s" instead.', EventRecorder::class, \Foresi\Shared\Contract\Event\EventRecorder::class);
 
-/**
- * Records a contract event in the transaction that makes its fact true, so the
- * event exists exactly when the change is committed. Recording outside an
- * active transaction is a programming error.
- */
-interface EventRecorder
-{
+class_alias(\Foresi\Shared\Contract\Event\EventRecorder::class, EventRecorder::class);
+
+if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @throws \LogicException when no transaction is active
+     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Event\EventRecorder instead
      */
-    public function record(DomainEventPayload $event): void;
+    interface EventRecorder extends \Foresi\Shared\Contract\Event\EventRecorder
+    {
+    }
 }

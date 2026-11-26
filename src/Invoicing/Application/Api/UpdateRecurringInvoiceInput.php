@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Application\Api;
 
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * Changes a recurring template over the API and MCP, with the rules of the

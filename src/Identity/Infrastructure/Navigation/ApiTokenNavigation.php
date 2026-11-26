@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Identity\Infrastructure\Navigation;
 
 use Foresi\Identity\Application\GuestCheck;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Infrastructure\Controller\ApiTokenController;
 use Foresi\Ui\Contract\Navigation\CoreNavigationAreas;
 use Foresi\Ui\Contract\Navigation\NavigationArea;

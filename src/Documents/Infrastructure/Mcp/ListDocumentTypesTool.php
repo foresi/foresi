@@ -11,11 +11,11 @@ namespace Foresi\Documents\Infrastructure\Mcp;
 use Foresi\Documents\Application\DocumentReads;
 use Foresi\Documents\Application\DocumentsRefused;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The document types, as GET /api/v1/document-types writes them.
@@ -64,7 +64,7 @@ final readonly class ListDocumentTypesTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $types = $this->reads->types(ToolArguments::flag($arguments, 'include_archived'));
+            $types = $this->reads->types(ToolSchema::flag($arguments, 'include_archived'));
         } catch (DocumentsRefused $refused) {
             throw ToolRefusal::of($refused);
         }

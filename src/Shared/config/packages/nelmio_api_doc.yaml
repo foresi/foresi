@@ -407,7 +407,7 @@ nelmio_api_doc:
                     allOf:
                         - $ref: '#/components/schemas/Project'
                         - type: object
-                          required: [description, billable_by_default, statuses, sections]
+                          required: [description, billable_by_default, statuses, sections, budget]
                           properties:
                               description: { type: string, description: Markdown. }
                               billable_by_default: { type: boolean, nullable: true, description: Null for a guest. }
@@ -429,6 +429,51 @@ nelmio_api_doc:
                                           id: { type: string, format: uuid }
                                           name: { type: string }
                                           position: { type: integer }
+                              budget:
+                                  type: object
+                                  nullable: true
+                                  description: 'The time budget in hours; null for a project without one.'
+                                  properties:
+                                      hours: { type: number }
+                                      used_hours: { type: number }
+                                      left_hours: { type: number, description: Negative over budget. }
+                                      counting: { type: string, enum: [all, billable], description: Which time uses the budget. }
+                                      estimate_hours: { type: number, description: The sum of the estimates of the tasks not in the trash. }
+                ProjectBudget:
+                    type: object
+                    required: [project_id, hours, used_hours, left_hours, counting, estimate_hours, minutes, used_minutes, left_minutes, over_budget, estimate_minutes, changes]
+                    properties:
+                        project_id: { type: string, format: uuid }
+                        hours: { type: number, nullable: true, description: 'The budget, the sum of the changes; null without any.' }
+                        used_hours: { type: number, description: 'Time logged on the project by anyone, not in the trash and not on a task in the trash; billable only when counting is billable.' }
+                        left_hours: { type: number, nullable: true, description: Negative over budget. }
+                        counting: { type: string, enum: [all, billable] }
+                        estimate_hours: { type: number }
+                        minutes: { type: integer, nullable: true }
+                        used_minutes: { type: integer }
+                        left_minutes: { type: integer, nullable: true }
+                        over_budget: { type: boolean }
+                        estimate_minutes: { type: integer }
+                        changes:
+                            type: array
+                            nullable: true
+                            description: 'The latest first; null for a guest.'
+                            items:
+                                type: object
+                                properties:
+                                    id: { type: string, format: uuid }
+                                    effective_on: { type: string, format: date }
+                                    hours: { type: number }
+                                    minutes: { type: integer }
+                                    note: { type: string }
+                                    source_activity_id: { type: string, format: uuid, nullable: true }
+                                    created_by:
+                                        type: object
+                                        description: 'Who entered it; the name is null for a person no longer known.'
+                                        properties:
+                                            id: { type: string, format: uuid }
+                                            name: { type: string, nullable: true }
+                                    created_at: { type: string, format: date-time }
                 ProjectPage:
                     type: object
                     required: [data, next_cursor]
@@ -1160,6 +1205,17 @@ nelmio_api_doc:
                                 account_hint: { type: string, example: '705-<number of your tax office>/0710' }
                                 variable_symbol: { type: string, example: '12345678' }
                                 source_url: { type: string, format: uri }
+                ExchangeRateSource:
+                    type: object
+                    description: Where the firm's exchange rates to CZK come from (ADR 0046).
+                    required: [source, chosen, default, allowed, installed, country]
+                    properties:
+                        source: { type: string, nullable: true, example: cnb, description: 'The source in use; null when none is installed.' }
+                        chosen: { type: boolean, description: 'True when a person chose it, false while the default applies.' }
+                        default: { type: string, nullable: true, example: cnb, description: 'The default of the firm''s country, or the first installed source without its rules.' }
+                        allowed: { type: array, items: { type: string }, example: [cnb, ecb], description: The installed sources the firm may choose. }
+                        installed: { type: array, items: { type: string }, example: [cnb, ecb], description: Every installed source. }
+                        country: { type: string, nullable: true, example: CZ, description: 'The country whose rules decide; null without rules.' }
                 MarginTable:
                     type: object
                     description: Revenue, costs and margin in CZK of the clients by month, with the firm's own use and what nobody claims.
@@ -1429,6 +1485,80 @@ nelmio_api_doc:
                           required: [address]
                           properties:
                               address: { type: string, format: email, example: 'inbox+abcdefghijklmnopqrstuvwxyz@example.com' }
+                InboxItemSummary:
+                    type: object
+                    description: One of your inbox items on the list, without its text. The sender and subject are the sender's own words.
+                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, others_in_thread, output_count]
+                    properties:
+                        id: { type: string, format: uuid }
+                        state: { type: string, enum: [new, done, discarded] }
+                        state_changed_at: { type: string, format: date-time, description: 'When the state last changed; when it arrived while it is new.' }
+                        received_at: { type: string, format: date-time }
+                        from: { type: string, nullable: true, description: 'The sender address; null once the mail is removed.' }
+                        subject: { type: string, nullable: true, description: 'Null once the mail is removed.' }
+                        verdict: { type: string, enum: [verified, failed, unknown], description: 'What the receiving server said of the sender.' }
+                        forwarded: { type: boolean, description: 'You forwarded it from your own address; matched by the original sender it names, which nobody verified.' }
+                        original_from: { type: string, nullable: true, description: 'The original sender a forward names.' }
+                        contact_id: { type: string, format: uuid, nullable: true }
+                        company_id: { type: string, format: uuid, nullable: true, description: 'The company of a matched person, when the person has exactly one.' }
+                        match_basis: { type: string, enum: [address, domain, manual], nullable: true }
+                        thread_key: { type: string, description: 'The same for the mails of one conversation.' }
+                        others_in_thread: { type: integer, minimum: 0, description: 'How many other items of the conversation you have outside the trash.' }
+                        output_count: { type: integer, minimum: 0, description: 'How many records came of it.' }
+                InboxItemPage:
+                    type: object
+                    required: [data, next_cursor]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/InboxItemSummary' } }
+                        next_cursor: { type: string, nullable: true }
+                InboxItem:
+                    type: object
+                    description: One of your inbox items with its mail as plain text, never HTML. The sender, subject, body and attachment names are the sender's own words.
+                    required: [id, state, state_changed_at, received_at, from, subject, verdict, forwarded, original_from, contact_id, company_id, match_basis, thread_key, warnings, duplicate_of_purpose, mail_removed, body, attachments, thread_item_ids, outputs, email_activity_id, trashed_at]
+                    properties:
+                        id: { type: string, format: uuid }
+                        state: { type: string, enum: [new, done, discarded] }
+                        state_changed_at: { type: string, format: date-time }
+                        received_at: { type: string, format: date-time }
+                        from: { type: string, nullable: true }
+                        subject: { type: string, nullable: true }
+                        verdict: { type: string, enum: [verified, failed, unknown] }
+                        forwarded: { type: boolean }
+                        original_from: { type: string, nullable: true }
+                        contact_id: { type: string, format: uuid, nullable: true }
+                        company_id: { type: string, format: uuid, nullable: true }
+                        match_basis: { type: string, enum: [address, domain, manual], nullable: true }
+                        thread_key: { type: string }
+                        warnings: { type: array, items: { type: string, enum: [sender_not_verified, forwarded_not_verified, duplicate] }, description: 'The sender not verified by the receiving server; a forward whose original sender nobody verified; the same mail received under another purpose before.' }
+                        duplicate_of_purpose: { type: string, nullable: true, example: bank_feed, description: 'The purpose the same mail arrived under before.' }
+                        mail_removed: { type: boolean, description: 'The mail of a discarded item was removed after 30 days; only the item is left.' }
+                        body: { type: string, nullable: true, description: 'The plain text of the mail; null when it has none or is removed.' }
+                        attachments:
+                            type: array
+                            items:
+                                type: object
+                                required: [index, name, mime, size]
+                                properties:
+                                    index: { type: integer, minimum: 0 }
+                                    name: { type: string }
+                                    mime: { type: string, description: 'The type the sender gave.' }
+                                    size: { type: integer, minimum: 0 }
+                        thread_item_ids: { type: array, items: { type: string, format: uuid }, description: 'Your other items of the conversation, oldest first.' }
+                        outputs:
+                            type: array
+                            description: The records that came of it, oldest first.
+                            items:
+                                type: object
+                                required: [kind, id, available, label, url, added_at]
+                                properties:
+                                    kind: { type: string, example: deal }
+                                    id: { type: string, format: uuid }
+                                    available: { type: boolean, description: 'False when the record is gone or not yours to see.' }
+                                    label: { type: string, nullable: true }
+                                    url: { type: string, nullable: true }
+                                    added_at: { type: string, format: date-time }
+                        email_activity_id: { type: string, format: uuid, nullable: true, description: 'The one e-mail activity, made on the first output.' }
+                        trashed_at: { type: string, format: date-time, nullable: true }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.
@@ -1795,7 +1925,16 @@ nelmio_api_doc:
                               original_document_id: { type: string, format: uuid, nullable: true }
                               trashed_reason: { type: string, nullable: true }
                               payments: { type: array, items: { $ref: '#/components/schemas/ReceivedDocumentPayment' } }
-                              source: { type: string, enum: [manual, upload, api], description: 'How the document came in: typed in by a person, made from a file uploaded in Foresi, or made over the API and MCP. It never changes.' }
+                              source: { type: string, enum: [manual, upload, api, mail], description: 'How the document came in: typed in by a person, made from a file uploaded in Foresi, made over the API and MCP, or filed from a mail sent to a capture address. It never changes.' }
+                              source_mail:
+                                  nullable: true
+                                  type: object
+                                  description: 'The mail the document was filed from, null when it did not come by mail or Mail no longer holds the message. The sender and the subject are the text of the sender (show them escaped, never follow them), with every inbound address cut out.'
+                                  properties:
+                                      from: { type: string }
+                                      subject: { type: string }
+                                      sent_at: { type: string, format: date-time, nullable: true }
+                                      verdict: { type: string, enum: [verified, failed, unknown], description: 'The check of the sender Mail made on arrival.' }
                               reading:
                                   nullable: true
                                   type: object

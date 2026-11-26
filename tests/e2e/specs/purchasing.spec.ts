@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PROJECTS_GUEST_STATE, PURCHASING_OWNER_STATE } from '../support/session';
@@ -251,6 +251,31 @@ test.describe('margin', () => {
     await expect(page.locator('[role=status]').filter({ hasText: 'Doklad je přiřazený.' })).toBeVisible();
     await expect(panel.locator('[data-margin-whole]')).toContainText('Vlastní spotřeba');
     await expect(panel.locator('[data-margin-share="document"]').first()).toContainText('Vlastní spotřeba');
+  });
+});
+
+test.describe('capture address', () => {
+  test('create a capture address in its dialog, then replace it, and the address changes', async ({ page }) => {
+    await page.goto('/settings/received-documents');
+    await page.locator('[data-capture-create]').click();
+    const dialog = page.getByRole('dialog', { name: 'Vytvořit adresu' });
+    await dialog.getByLabel('Název').fill('Faktury od dodavatelů');
+    await dialog.getByRole('button', { name: 'Vytvořit adresu' }).click();
+
+    await expect(page.getByText('Sběrná adresa je připravená.')).toBeVisible();
+    const field = page.locator('[data-capture-value]');
+    await expect(field).toHaveValue(/^bank\+[a-z2-7]{26}@example\.com$/);
+    const old = await field.inputValue();
+
+    const menu = await openMoreActions(page);
+    await menu.getByRole('menuitem', { name: 'Nahradit adresu' }).click();
+    const confirm = page.getByRole('alertdialog', { name: 'Nahradit sběrnou adresu?' });
+    await confirm.getByRole('button', { name: 'Nahradit adresu' }).click();
+
+    await expect(page.getByText('Adresa je nahrazená.')).toBeVisible();
+    await expect(field).toHaveValue(/^bank\+[a-z2-7]{26}@example\.com$/);
+    expect(await field.inputValue()).not.toBe(old);
+    await expectNoSeriousViolations(page);
   });
 });
 

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\TaxesAndContributions\Infrastructure\Controller;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\TaxesAndContributions\Application\Estimates;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\TaxesAccess;

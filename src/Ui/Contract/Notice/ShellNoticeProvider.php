@@ -13,12 +13,12 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 /**
  * Implemented by modules that have something to tell the signed-in user on
  * every page. Every implementation is picked up automatically (tag
- * "app.shell_notice"). Providers are asked only for a signed-in person with an active membership.
+ * "foresi.ui.shell_notice"). Providers are asked only for a signed-in person with an active membership.
  */
 #[AutoconfigureTag(self::TAG)]
 interface ShellNoticeProvider
 {
-    public const string TAG = 'app.shell_notice';
+    public const string TAG = 'foresi.ui.shell_notice';
 
     /**
      * @return iterable<ShellNotice>

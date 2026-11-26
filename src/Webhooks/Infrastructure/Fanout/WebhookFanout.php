@@ -18,7 +18,7 @@ use Foresi\Events\Infrastructure\Api\EventView;
 use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
-use Foresi\Shared\Domain\Event\EventSubject;
+use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Shared\Domain\Id;
 use Foresi\Webhooks\Application\AttemptTrigger;
 use Foresi\Webhooks\Application\SendWebhook;
@@ -65,11 +65,11 @@ final class WebhookFanout implements EventSink, ResetInterface
         private readonly EventView $view,
         private readonly MessageBusInterface $bus,
         private readonly ClockInterface $clock,
-        #[AutowireIterator('app.event_read_access')]
+        #[AutowireIterator(EventReadAccess::READ_ACCESS_TAG)]
         private readonly iterable $access,
         private readonly EndpointDisabledMailer $mailer,
         private readonly LoggerInterface $logger,
-        #[AutowireIterator('app.event_subject_access')]
+        #[AutowireIterator(EventSubjectAccess::SUBJECT_ACCESS_TAG)]
         private readonly iterable $subjects = [],
     ) {
     }

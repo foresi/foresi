@@ -11,10 +11,10 @@ namespace Foresi\Margin\Infrastructure\Mcp;
 use Foresi\Margin\Application\AllocationReads;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The margin of one received document, as GET /api/v1/margin/documents/{documentId} writes it.
@@ -50,7 +50,7 @@ final readonly class DocumentAllocationTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['document_id' => ToolArguments::idSchema('The id of the received document, as foresi_search_received_documents returns it.')],
+            'properties' => ['document_id' => ToolSchema::idSchema('The id of the received document, as foresi_search_received_documents returns it.')],
             'required' => ['document_id'],
             'additionalProperties' => false,
         ];
@@ -59,7 +59,7 @@ final readonly class DocumentAllocationTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $view = $this->reads->document(ToolArguments::text($arguments, 'document_id') ?? '');
+            $view = $this->reads->document(ToolSchema::text($arguments, 'document_id') ?? '');
         } catch (MarginRefused $refused) {
             throw ToolRefusal::of($refused);
         }

@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Vat\Application\VatPeriods;
 use Foresi\Vat\Application\VatRefused;
 use Foresi\Vat\Application\VatSettingsReads;
@@ -67,7 +67,7 @@ final readonly class VatPeriodsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $list = $this->periods->list(ToolArguments::text($arguments, 'from'), ToolArguments::text($arguments, 'to'));
+            $list = $this->periods->list(ToolSchema::text($arguments, 'from'), ToolSchema::text($arguments, 'to'));
             $settings = $this->settings->current();
         } catch (VatRefused $refused) {
             throw ToolRefusal::of($refused);

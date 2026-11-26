@@ -9,10 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Contract\BankMessageParser;
+use Foresi\Banking\Contract\BankStatement;
+use Foresi\Banking\Contract\MovementProvenance;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseFailed;
+use Foresi\Banking\Contract\StatementIntake;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\SenderCheck;
@@ -35,8 +38,9 @@ use Psr\Clock\ClockInterface;
  * unread; the parser reads it; every
  * movement must be booked on an active account of the firm the message came to
  * (another account of that firm is fine, as a bank may send all notices to one
- * address); then the movements are recorded and each incoming one paired when
- * the rules leave one answer. An unverified message is recorded and never pays
+ * address); then the movements go to the StatementIntake, as every channel's do,
+ * which records them, or confirms what another channel recorded, and pairs each
+ * when the rules leave one answer. An unverified message is recorded and never pays
  * anything by itself.
  *
  * Failures a later parser may fix, or that a person decides on, are stored as
@@ -62,9 +66,7 @@ final readonly class ProcessMessage
         private Messages $mail,
         private BankMessageParsers $parsers,
         private FirmBankAccounts $accounts,
-        private RecordMovement $record,
-        private PairMovement $pairing,
-        private PendingChanges $pending,
+        private StatementIntake $intake,
         private TransactionalWork $work,
         private ConflictRetry $retry,
         private ClockInterface $clock,
@@ -93,7 +95,7 @@ final readonly class ProcessMessage
      */
     public function processAccepted(string $messageId): InboundStatus
     {
-        return $this->run($messageId, [InboundStatus::Rejected], self::UNTRUSTED, new TrustVerdict(MessageTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
+        return $this->run($messageId, [InboundStatus::Rejected], self::UNTRUSTED, new TrustVerdict(MovementTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
     }
 
     /**
@@ -143,7 +145,7 @@ final readonly class ProcessMessage
         }
 
         $verdict = $accepted ?? $this->trustOf($message->mailMessageId, $parser);
-        if (MessageTrust::Failed === $verdict->trust) {
+        if (MovementTrust::Failed === $verdict->trust) {
             return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::UNTRUSTED, $verdict->basis);
         }
         try {
@@ -155,16 +157,16 @@ final readonly class ProcessMessage
             return ProcessingResult::parsedBy(InboundStatus::Ignored, $parser, $verdict, detail: $parsed->ignoredReason());
         }
 
-        $accountIds = [];
+        $accounts = [];
         foreach ($parsed->movements() as $movement) {
             $account = $this->activeAccount($movement->ownAccount);
             if (!$account instanceof FirmBankAccount) {
                 return ProcessingResult::parsedBy(InboundStatus::Rejected, $parser, $verdict, self::ACCOUNT_MISMATCH, 'A movement is booked on an account that is not an active account of the firm.');
             }
-            $accountIds[] = $account->id();
+            $accounts[] = $account;
         }
 
-        $this->recordAndPair($message->id, $parsed->movements(), $accountIds, $verdict);
+        $this->submit($message->id, $parser, $parsed->movements(), $accounts, $verdict);
 
         return ProcessingResult::parsedBy(InboundStatus::Processed, $parser, $verdict);
     }
@@ -178,37 +180,60 @@ final readonly class ProcessMessage
     {
         $domains = $parser->senderDomains();
         if ([] === $domains) {
-            return new TrustVerdict(MessageTrust::Failed, TrustVerdict::SENDER);
+            return new TrustVerdict(MovementTrust::Failed, TrustVerdict::SENDER);
         }
         $verdict = $this->mail->verdict($mailMessageId, $domains);
         $trust = match ($verdict->verdict) {
-            SenderCheck::VERIFIED => MessageTrust::Verified,
-            SenderCheck::FAILED => MessageTrust::Failed,
-            default => MessageTrust::Unverified,
+            SenderCheck::VERIFIED => MovementTrust::Verified,
+            SenderCheck::FAILED => MovementTrust::Failed,
+            default => MovementTrust::Unverified,
         };
 
         return new TrustVerdict($trust, $verdict->basis);
     }
 
     /**
-     * Records every movement first, so the second of two equal ones in one
-     * message is told from a duplicate the same way as on its own, then pairs.
-     * Each step is stored before the next reads it back by plain statements.
+     * Hands the movements to the intake, one statement per account they were booked
+     * on, in the order the message lists them. The intake records every movement of
+     * a statement first, so the second of two equal ones in one message is told from
+     * a duplicate the same way as on its own, then pairs.
      *
-     * @param list<ParsedMovement> $movements
-     * @param list<string>         $accountIds by the index of the movement
+     * @param non-empty-list<ParsedMovement> $movements
+     * @param list<FirmBankAccount>          $accounts  by the index of the movement
      */
-    private function recordAndPair(string $messageId, array $movements, array $accountIds, TrustVerdict $verdict): void
+    private function submit(string $messageId, BankMessageParser $parser, array $movements, array $accounts, TrustVerdict $verdict): void
     {
-        $recorded = [];
+        $byAccount = [];
         foreach ($movements as $index => $movement) {
-            $recorded[] = $this->record->record(MovementInput::of($movement, $accountIds[$index], $messageId), $verdict)->id();
-            $this->pending->store();
+            $account = $accounts[$index];
+            $byAccount[$account->id()] ??= [$account, []];
+            $byAccount[$account->id()][1][] = $this->onAccount($movement, $account->iban());
         }
-        foreach ($recorded as $movementId) {
-            $this->pairing->auto($movementId);
-            $this->pending->store();
+        $provenance = MovementProvenance::mail($parser->id(), $verdict->trust, $verdict->basis, $messageId);
+        foreach ($byAccount as [$account, $entries]) {
+            $this->intake->submit(new BankStatement($account->iban(), $entries[0]->amount->currency(), $entries), $provenance);
         }
+    }
+
+    /**
+     * The entry booked on the account as the firm writes its IBAN; the bank may write it with spaces.
+     */
+    private function onAccount(ParsedMovement $entry, string $iban): ParsedMovement
+    {
+        return $entry->ownAccount === $iban ? $entry : new ParsedMovement(
+            $entry->direction,
+            $entry->amount,
+            $iban,
+            $entry->counterAccount,
+            $entry->counterIban,
+            $entry->counterName,
+            $entry->bookedOn,
+            $entry->variableSymbol,
+            $entry->constantSymbol,
+            $entry->specificSymbol,
+            $entry->message,
+            $entry->bankReference,
+        );
     }
 
     private function activeAccount(string $iban): ?FirmBankAccount

@@ -11,11 +11,11 @@ namespace Foresi\Activities\Infrastructure\Mcp;
 use Foresi\Activities\Application\ActivitiesRefused;
 use Foresi\Activities\Application\ActivityReads;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 final readonly class ListPlannedActivitiesTool implements ReadTool, StaffOnlyTool
 {
@@ -61,7 +61,7 @@ final readonly class ListPlannedActivitiesTool implements ReadTool, StaffOnlyToo
     public function call(array $arguments): ToolOutput
     {
         try {
-            $activities = $this->reads->myPlanned(ToolArguments::text($arguments, 'from'), ToolArguments::text($arguments, 'to'));
+            $activities = $this->reads->myPlanned(ToolSchema::text($arguments, 'from'), ToolSchema::text($arguments, 'to'));
 
             return new ToolOutput(['items' => array_map($this->json->activity(...), $activities)], \sprintf('%d planned activities.', \count($activities)));
         } catch (ActivitiesRefused $refused) {

@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface BankAccountUsage
 {
-    public const string TAG = 'app.bank_account_usage';
+    public const string TAG = 'foresi.party.bank_account_usage';
 
     /**
      * Whether bank movements of the account are recorded, which fixes its currency.

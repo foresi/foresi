@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Application\Api;
 
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A new recurring invoice over the API and MCP, as the form saves it: from

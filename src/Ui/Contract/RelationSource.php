@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface RelationSource
 {
-    public const string TAG = 'app.relation_source';
+    public const string TAG = 'foresi.ui.relation_source';
 
     /**
      * @return iterable<Relation> nothing for a list the source does not relate

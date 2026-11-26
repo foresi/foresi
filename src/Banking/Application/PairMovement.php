@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Application;
 
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
@@ -245,8 +245,8 @@ final readonly class PairMovement
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
             // A failed message is never paid, whatever reason the movement stands for now; recorded anyway, it is unverified.
-            UnmatchedReason::Rejected === $movement->unmatchedReason(), MessageTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
-            MessageTrust::Verified !== $movement->trust() && !$checkedInBank => PairingRefused::NOT_CHECKED_IN_BANK,
+            UnmatchedReason::Rejected === $movement->unmatchedReason(), MovementTrust::Failed === $movement->trust() => PairingRefused::REJECTED,
+            MovementTrust::Verified !== $movement->trust() && !$checkedInBank => PairingRefused::NOT_CHECKED_IN_BANK,
             default => null,
         };
         if (null !== $refusal) {

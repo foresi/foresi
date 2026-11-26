@@ -65,6 +65,9 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_received_documents.remove_payment', 'api_v1_operation_received_documents.lines.set',
         'api_v1_operation_received_documents.read_again', 'api_v1_operation_received_documents.upload',
         'api_v1_calendar_feeds', 'api_v1_operation_calendar.feeds.create', 'api_v1_operation_calendar.feeds.rename', 'api_v1_operation_calendar.feeds.revoke',
+        'api_v1_inbox_items', 'api_v1_inbox_item', 'api_v1_operation_inbox.items.match', 'api_v1_operation_inbox.items.match_again', 'api_v1_operation_inbox.items.create_contact',
+        'api_v1_operation_inbox.items.done', 'api_v1_operation_inbox.items.discard', 'api_v1_operation_inbox.items.reopen', 'api_v1_operation_inbox.items.link',
+        'api_v1_operation_inbox.items.trash', 'api_v1_operation_inbox.items.restore',
         'api_v1_mail_addresses', 'api_v1_operation_mail.addresses.create', 'api_v1_operation_mail.addresses.rename', 'api_v1_operation_mail.addresses.revoke', 'api_v1_operation_mail.addresses.replace',
         'documents_api_documents', 'documents_api_document', 'documents_api_document_file', 'documents_api_types', 'documents_api_templates', 'documents_api_template',
         'api_v1_operation_documents.types.create', 'api_v1_operation_documents.types.update', 'api_v1_operation_documents.types.archive', 'api_v1_operation_documents.templates.create', 'api_v1_operation_documents.templates.save_version', 'api_v1_operation_documents.templates.archive', 'api_v1_operation_documents.create', 'api_v1_operation_documents.update', 'api_v1_operation_documents.generate', 'api_v1_operation_documents.mark_sent', 'api_v1_operation_documents.attach_signed_copy', 'api_v1_operation_documents.cancel', 'api_v1_operation_documents.trash', 'api_v1_operation_documents.restore', 'api_v1_operation_documents.generate_again', 'api_v1_operation_documents.signers.add', 'api_v1_operation_documents.signers.update', 'api_v1_operation_documents.signers.remove', 'api_v1_operation_documents.signers.mark_signed', 'api_v1_operation_documents.signers.mark_declined',
@@ -75,15 +78,17 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_margin_document', 'api_v1_operation_margin.documents.assign', 'api_v1_operation_margin.line_allocations.set',
         'api_v1_margin_planned_item_allocation', 'api_v1_margin_supplier_default', 'api_v1_margin_table', 'api_v1_margin_cell', 'api_v1_operation_margin.planned_allocations.set', 'api_v1_operation_margin.supplier_defaults.set', 'api_v1_margin_unrebilled', 'api_v1_operation_margin.rebill_links.set', 'api_v1_operation_margin.rebill_pairings.pair', 'api_v1_operation_margin.rebill_pairings.unpair',
         'api_v1_vat_periods', 'api_v1_vat_period', 'api_v1_vat_settings', 'api_v1_operation_vat.settings.set',
+        'api_v1_exchange_rate_source', 'api_v1_operation_exchange-rate.source.set',
         'api_v1_operation_vat.period.return_amount.set', 'api_v1_operation_vat.period.return_amount.clear', 'api_v1_operation_vat.period.settle', 'api_v1_operation_vat.period.reopen', 'api_v1_operation_vat.payment.assign', 'api_v1_operation_vat.payment.reset',
         'api_v1_operation_invoices.create', 'api_v1_operation_invoices.update', 'api_v1_operation_invoices.trash', 'api_v1_operation_invoices.restore', 'api_v1_operation_invoices.mark_sent',
         'api_v1_recurring_invoices', 'api_v1_recurring_invoice', 'api_v1_recurring_invoice_preview',
         'api_v1_operation_recurring-invoices.create', 'api_v1_operation_recurring-invoices.update', 'api_v1_operation_recurring-invoices.pause', 'api_v1_operation_recurring-invoices.resume', 'api_v1_operation_recurring-invoices.end',
         'api_v1_lists', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
-        'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
+        'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_project_budget', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',
         'api_v1_operation_projects.create', 'api_v1_operation_projects.update', 'api_v1_operation_projects.archive', 'api_v1_operation_projects.restore',
+        'api_v1_operation_work.project_budget.add_change', 'api_v1_operation_work.project_budget.remove_change', 'api_v1_operation_work.project_budget.set_counting',
         'api_v1_operation_time_entries.log', 'api_v1_operation_time_entries.start_timer', 'api_v1_operation_time_entries.stop_timer',
         'api_v1_operation_views.create', 'api_v1_operation_views.update', 'api_v1_operation_views.delete', 'api_v1_operation_views.restore_defaults',
         // The OpenAPI document, which describes the API and holds no data.
@@ -187,9 +192,14 @@ final class GuestAccessTest extends WebTestCase
         $parameters = [];
         foreach ($route->compile()->getPathVariables() as $variable) {
             self::assertIsString($variable);
-            // A parameter of a few words, such as the kind of a shared item, takes the first.
+            // A parameter of a few words, such as the kind of a shared item, takes the first; a number, such as
+            // the position of an attachment, takes 1.
             $requirement = $route->getRequirement($variable) ?? '';
-            $parameters[$variable] = 1 === preg_match('/^[a-z_]+(\|[a-z_]+)*$/', $requirement) ? explode('|', $requirement)[0] : Id::generate();
+            $parameters[$variable] = match (true) {
+                1 === preg_match('/^[a-z_]+(\|[a-z_]+)*$/', $requirement) => explode('|', $requirement)[0],
+                str_starts_with($requirement, '\\d') => '1',
+                default => Id::generate(),
+            };
         }
         $router = self::getContainer()->get(RouterInterface::class);
         $words = array_filter($parameters, static fn (string $value): bool => 1 === preg_match('/^[a-z_]+$/', $value));

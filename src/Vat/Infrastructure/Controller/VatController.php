@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Vat\Infrastructure\Controller;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
 use Foresi\Vat\Application\AssignPaymentInput;
 use Foresi\Vat\Application\ClearReturnAmountInput;

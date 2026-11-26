@@ -17,6 +17,8 @@ use Foresi\Attachment\Domain\Attachment;
  */
 interface AttachmentAccess
 {
+    public const string TAG = 'foresi.attachment.access';
+
     /**
      * The owner kinds this module answers for, such as "task".
      *

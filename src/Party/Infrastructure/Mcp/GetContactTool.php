@@ -12,10 +12,10 @@ use Foresi\Party\Application\PartyNotAllowed;
 use Foresi\Party\Application\Query\ContactDetails;
 use Foresi\Party\Application\UnknownParty;
 use Foresi\Party\Infrastructure\Api\ContactJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One contact of the address book, as GET /api/v1/contacts/{id} writes it.
@@ -52,7 +52,7 @@ final readonly class GetContactTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the contact, as foresi_search_contacts returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the contact, as foresi_search_contacts returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -61,7 +61,7 @@ final readonly class GetContactTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $detail = $this->details->of(ToolArguments::text($arguments, 'id') ?? '');
+            $detail = $this->details->of(ToolSchema::text($arguments, 'id') ?? '');
         } catch (PartyNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its contacts.');
         } catch (UnknownParty) {

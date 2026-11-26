@@ -13,8 +13,8 @@ use Foresi\CashFlow\Application\CashFlowAccess;
 use Foresi\CashFlow\Application\PlannedItemWrites;
 use Foresi\CashFlow\Application\SetMinimumBalanceInput;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class SetMinimumBalanceHandler implements OperationHandler
 {

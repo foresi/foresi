@@ -35,6 +35,7 @@ use Foresi\Purchasing\Contract\Reading\ReadValue;
 use Foresi\Purchasing\Domain\DocumentReading;
 use Foresi\Tests\Purchasing\Application\PurchasingTestCase;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -413,6 +414,7 @@ final class SupplierMatchingTest extends PurchasingTestCase
             $container->get(PurchasingUnit::class),
             $container->get(AuditCorrelation::class),
             $container->get(ClockInterface::class),
+            $container->get(LoggerInterface::class),
         );
     }
 }

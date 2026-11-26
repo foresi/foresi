@@ -12,8 +12,8 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Application\AddressWrites;
 use Foresi\Mail\Application\ReplaceAddressInput;
 use Foresi\Mail\Infrastructure\Api\MailJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * The other answer that holds a full address: the new one.

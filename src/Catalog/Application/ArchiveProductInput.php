@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Catalog\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A product archived over the API and MCP (ADR 0032). Doing it twice changes nothing.

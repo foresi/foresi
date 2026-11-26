@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Contract\Operation\Field;
 
 /**
  * Turns what a client sent, by the names it sends them under, into the input

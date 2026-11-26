@@ -16,6 +16,8 @@ namespace Foresi\Idoklad\Application\Import;
  */
 interface ImportStage
 {
+    public const string TAG = 'foresi.idoklad.import_stage';
+
     /** The stage in the report. */
     public function key(): string;
 

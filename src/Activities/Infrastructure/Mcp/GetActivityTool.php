@@ -11,11 +11,11 @@ namespace Foresi\Activities\Infrastructure\Mcp;
 use Foresi\Activities\Application\ActivitiesRefused;
 use Foresi\Activities\Application\ActivityReads;
 use Foresi\Activities\Infrastructure\Api\ActivitiesJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 final readonly class GetActivityTool implements ReadTool, StaffOnlyTool
 {
@@ -52,7 +52,7 @@ final readonly class GetActivityTool implements ReadTool, StaffOnlyTool
     {
         return [
             'type' => 'object',
-            'properties' => ['activity_id' => ToolArguments::idSchema('The id of the activity.')],
+            'properties' => ['activity_id' => ToolSchema::idSchema('The id of the activity.')],
             'required' => ['activity_id'],
             'additionalProperties' => false,
         ];
@@ -61,7 +61,7 @@ final readonly class GetActivityTool implements ReadTool, StaffOnlyTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $activity = $this->reads->activity((string) ToolArguments::text($arguments, 'activity_id'));
+            $activity = $this->reads->activity((string) ToolSchema::text($arguments, 'activity_id'));
 
             return new ToolOutput($this->json->activity($activity), \sprintf('The activity "%s" is %s.', $activity->subject(), $activity->isDone() ? 'done' : 'planned'));
         } catch (ActivitiesRefused $refused) {

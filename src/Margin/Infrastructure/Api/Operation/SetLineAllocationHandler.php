@@ -11,8 +11,8 @@ namespace Foresi\Margin\Infrastructure\Api\Operation;
 use Foresi\Margin\Application\AllocationWrites;
 use Foresi\Margin\Application\SetLineAllocationInput;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * margin.line_allocations.set: the document with its lines and shares.

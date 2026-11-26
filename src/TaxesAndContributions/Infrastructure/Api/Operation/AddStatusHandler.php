@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Infrastructure\Api\Operation;
 
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\ProfileWrites;
 use Foresi\TaxesAndContributions\Infrastructure\Api\TaxesJson;

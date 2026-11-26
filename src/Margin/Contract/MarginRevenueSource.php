@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface MarginRevenueSource
 {
-    public const string TAG = 'app.margin_revenue_source';
+    public const string TAG = 'foresi.margin.revenue_source';
 
     /**
      * The revenue documents whose tax point falls between two days, both days

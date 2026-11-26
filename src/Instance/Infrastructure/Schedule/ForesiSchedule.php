@@ -36,7 +36,7 @@ final readonly class ForesiSchedule implements ScheduleProviderInterface
         #[Autowire(service: 'cache.app')]
         private CacheInterface $state,
         private LockFactory $locks,
-        #[AutowireIterator('app.operator_task')]
+        #[AutowireIterator(OperatorTask::TAG)]
         private iterable $operatorTasks,
     ) {
     }

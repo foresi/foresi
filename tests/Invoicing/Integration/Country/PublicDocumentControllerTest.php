@@ -213,6 +213,9 @@ final class PublicDocumentControllerTest extends WebTestCase
             self::assertSame(self::CSP, $headers->get('Content-Security-Policy'), $path);
             self::assertSame('nosniff', $headers->get('X-Content-Type-Options'), $path);
             self::assertSame('SAMEORIGIN', $headers->get('X-Frame-Options'), $path);
+            // The headers of every response, which the link does not set itself.
+            self::assertSame('same-origin', $headers->get('Cross-Origin-Opener-Policy'), $path);
+            self::assertStringContainsString('camera=()', (string) $headers->get('Permissions-Policy'), $path);
         }
     }
 

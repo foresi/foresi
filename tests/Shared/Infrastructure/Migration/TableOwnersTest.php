@@ -55,6 +55,8 @@ final class TableOwnersTest extends KernelTestCase
         'time_entry' => 'work',
         'released_time' => 'timesheet',
         'documents_document' => 'documents',
+        'exchange_rate' => 'exchange-rate',
+        'exchange_rate_setting' => 'exchange-rate',
         'vat_settings' => 'vat',
         'vat_period_entry' => 'vat',
         'vat_payment_assignment' => 'vat',

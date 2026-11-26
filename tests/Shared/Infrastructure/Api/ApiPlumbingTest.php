@@ -160,8 +160,23 @@ final class ApiPlumbingTest extends ApiTestCase
             'events' => [
                 '/api/v1/events' => ['get' => '200'],
             ],
+            'exchange-rate' => [
+                '/api/v1/exchange-rate/source' => ['get' => '200', 'put' => '200'],
+            ],
             'identity' => [
                 '/api/v1/me' => ['get' => '200'],
+            ],
+            'inbox' => [
+                '/api/v1/inbox/items' => ['get' => '200'],
+                '/api/v1/inbox/items/{itemId}' => ['get' => '200'],
+                '/api/v1/inbox/items/{itemId}/contact' => ['put' => '200', 'post' => '201'],
+                '/api/v1/inbox/items/{itemId}/match-again' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/done' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/discard' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/reopen' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/outputs' => ['post' => '201'],
+                '/api/v1/inbox/items/{itemId}/trash' => ['post' => '200'],
+                '/api/v1/inbox/items/{itemId}/restore' => ['post' => '200'],
             ],
             'invoicing' => [
                 '/api/v1/invoices' => ['get' => '200', 'post' => '201'],
@@ -271,6 +286,10 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/projects/{projectId}/people' => ['get' => '200'],
                 '/api/v1/projects/{projectId}/archive' => ['post' => '200'],
                 '/api/v1/projects/{projectId}/restore' => ['post' => '200'],
+                '/api/v1/projects/{projectId}/budget' => ['get' => '200'],
+                '/api/v1/projects/{projectId}/budget-changes' => ['post' => '201'],
+                '/api/v1/projects/{projectId}/budget-changes/{changeId}' => ['delete' => '200'],
+                '/api/v1/projects/{projectId}/budget-counting' => ['put' => '200'],
                 '/api/v1/tasks' => ['get' => '200', 'post' => '201'],
                 '/api/v1/tasks/{taskId}' => ['get' => '200', 'patch' => '200'],
                 '/api/v1/tasks/{taskId}/comments' => ['get' => '200', 'post' => '201'],

@@ -12,9 +12,9 @@ use Doctrine\DBAL\Connection;
 use Foresi\Events\Infrastructure\Api\PositionCursor;
 use Foresi\Events\Infrastructure\Mcp\ListEventsTool;
 use Foresi\Events\Infrastructure\Relay\EventRelay;
-use Foresi\Shared\Application\Event\EventRecorder;
+use Foresi\Shared\Contract\Event\EventRecorder;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Domain\Id;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Tests\Events\Support\RecordedEvents;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 

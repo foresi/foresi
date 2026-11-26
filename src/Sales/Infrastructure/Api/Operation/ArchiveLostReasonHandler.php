@@ -10,8 +10,8 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 
 use Foresi\Sales\Application\Api\ArchiveLostReasonInput;
 use Foresi\Sales\Application\LostReasonWrites;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class ArchiveLostReasonHandler implements OperationHandler
 {

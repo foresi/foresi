@@ -13,8 +13,8 @@ use Foresi\Banking\Application\MatchDecision;
 use Foresi\Banking\Application\Matcher;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Contract\MovementDirection;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
-use Foresi\Banking\Domain\MessageTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
@@ -72,7 +72,7 @@ final class MatcherTest extends BankingTestCase
 
     public function testAnUnverifiedRefundKeepsItsInvoiceAsASuggestion(): void
     {
-        $decision = $this->decide($this->movement('484.00', trust: MessageTrust::Unverified, direction: MovementDirection::Outgoing), $this->candidates([['A', '484.00', '2026-11-15']]), new PairingRules(true, false));
+        $decision = $this->decide($this->movement('484.00', trust: MovementTrust::Unverified, direction: MovementDirection::Outgoing), $this->candidates([['A', '484.00', '2026-11-15']]), new PairingRules(true, false));
 
         self::assertSame(UnmatchedReason::Unverified, $decision->reason);
         self::assertSame(['A'], array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions));
@@ -121,8 +121,8 @@ final class MatcherTest extends BankingTestCase
     {
         $candidates = $this->candidates([['A', '1210.00', '2026-11-15']]);
 
-        $unverified = $this->decide($this->movement('1210.00', trust: MessageTrust::Unverified), $candidates, new PairingRules(true, false));
-        $failed = $this->decide($this->movement('1210.00', trust: MessageTrust::Failed), $candidates, new PairingRules(true, false));
+        $unverified = $this->decide($this->movement('1210.00', trust: MovementTrust::Unverified), $candidates, new PairingRules(true, false));
+        $failed = $this->decide($this->movement('1210.00', trust: MovementTrust::Failed), $candidates, new PairingRules(true, false));
 
         self::assertSame([UnmatchedReason::Unverified, ['A']], [$unverified->reason, array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $unverified->suggestions)]);
         self::assertSame(UnmatchedReason::Rejected, $failed->reason);
@@ -134,7 +134,7 @@ final class MatcherTest extends BankingTestCase
         $eur = new Candidate('A', '2026-0001', new \DateTimeImmutable('2026-11-15'), Money::of('1210.00', Currency::EUR), 'Example Customer a.s.', new \DateTimeImmutable('2026-11-01'));
 
         $decision = $this->decide($this->movement('1210.00', Currency::EUR, account: $this->account), [$eur], new PairingRules(true, false));
-        $failed = $this->decide($this->movement('1210.00', Currency::EUR, trust: MessageTrust::Failed, account: $this->account), [$eur], new PairingRules(true, false));
+        $failed = $this->decide($this->movement('1210.00', Currency::EUR, trust: MovementTrust::Failed, account: $this->account), [$eur], new PairingRules(true, false));
 
         self::assertSame([UnmatchedReason::AccountCurrency, ['A']], [$decision->reason, array_map(static fn (Candidate $candidate): string => $candidate->invoiceId, $decision->suggestions)], 'the CZK account says the bank booked something else');
         self::assertSame(UnmatchedReason::Rejected, $failed->reason, 'a rejected message stays rejected');
@@ -183,7 +183,7 @@ final class MatcherTest extends BankingTestCase
     /**
      * On an account in the currency of the movement, unless one is given.
      */
-    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MessageTrust $trust = MessageTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
+    private function movement(string $amount, Currency $currency = Currency::CZK, ?string $vs = '20260001', MovementTrust $trust = MovementTrust::Verified, ?FirmBankAccount $account = null, MovementDirection $direction = MovementDirection::Incoming): BankMovement
     {
         if (!$account instanceof FirmBankAccount) {
             $account = $currency === $this->account->currency() ? $this->account : ($this->foreign ??= FirmAccounts::add($this->em, 'DE89370400440532013000', $currency));

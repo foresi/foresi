@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Work\Infrastructure\Api\ProjectListQuery;
 use Foresi\Work\Infrastructure\Api\WorkLists;
 
@@ -54,10 +55,10 @@ final readonly class SearchProjectsTool implements ReadTool
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'Text looked for in the name.'],
                 'archived' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the archived projects, false only those that are not.'],
-                'client_id' => ToolArguments::idSchema('Only the projects for this client, a contact as foresi_search_contacts returns it.'),
+                'client_id' => ToolSchema::idSchema('Only the projects for this client, a contact as foresi_search_contacts returns it.'),
                 'view_id' => ['type' => 'string', 'description' => 'Only the projects a saved view of the list work.projects holds: its id as foresi_list_views gives it, or a system key such as "work.projects.archived".'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all projects meet, {"conditions": [{"field", "op", "value"}]}, checked against the list work.projects; its fields and operators are in foresi_list_lists.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -65,15 +66,15 @@ final readonly class SearchProjectsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         $query = new ProjectListQuery(
-            ToolArguments::text($arguments, 'query') ?? '',
-            ToolArguments::flag($arguments, 'archived'),
-            ToolArguments::text($arguments, 'client_id'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'query') ?? '',
+            ToolSchema::flag($arguments, 'archived'),
+            ToolSchema::text($arguments, 'client_id'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
-        $viewId = ToolArguments::text($arguments, 'view_id');
+        $viewId = ToolSchema::text($arguments, 'view_id');
         $page = $this->pages->read(fn (): \Foresi\Work\Infrastructure\Api\WorkPage => $this->lists->projects($query, $viewId, $arguments['filter'] ?? null, $afterId), $viewId);
 
         return WorkToolPages::page($page, 'project', 'projects');

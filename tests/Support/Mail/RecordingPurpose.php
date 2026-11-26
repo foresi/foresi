@@ -21,6 +21,7 @@ final class RecordingPurpose implements InboundPurpose
     public const string KEY = 'test';
     public const string RESHOWABLE_KEY = 'test_reshowable';
     public const string OWNED_KEY = 'test_owned';
+    public const string OWNED_RESHOWABLE_KEY = 'test_owned_reshowable';
 
     /** @var list<array{string, string}> message id and address id, in order */
     private static array $accepted = [];

@@ -15,7 +15,7 @@ use Foresi\Calendar\Application\IcsWriter;
 use Foresi\Calendar\Contract\CalendarEntry;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Domain\FeedToken;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;

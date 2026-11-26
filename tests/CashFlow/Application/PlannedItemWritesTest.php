@@ -17,7 +17,7 @@ use Foresi\CashFlow\Application\SkipPlannedOccurrenceInput;
 use Foresi\CashFlow\Contract\FlowCategory;
 use Foresi\CashFlow\Contract\FlowDirection;
 use Foresi\CashFlow\Domain\PlannedItem;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurrenceUnit;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Application;
 
-use Foresi\Shared\Application\RefusalKind;
-use Foresi\Shared\Application\Refused;
+use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * What a change of the firm's VAT statuses refuses (ADR 0032), with a stable

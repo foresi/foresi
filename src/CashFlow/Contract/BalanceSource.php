@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface BalanceSource
 {
-    public const string TAG = 'app.cash_flow_balance_source';
+    public const string TAG = 'foresi.cash_flow.balance_source';
 
     public function key(): string;
 

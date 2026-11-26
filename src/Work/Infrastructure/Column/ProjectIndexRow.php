@@ -10,7 +10,8 @@ namespace Foresi\Work\Infrastructure\Column;
 
 /**
  * One project of the index as its row shows it, every cell already in words; the
- * client's address is null for internal work, which has no client.
+ * client's address is null for internal work, which has no client. The id reads the
+ * project's custom fields.
  */
 final readonly class ProjectIndexRow
 {
@@ -20,6 +21,7 @@ final readonly class ProjectIndexRow
         public ?string $clientHref,
         public int $openTasks,
         public ?string $due,
+        public string $id = '',
     ) {
     }
 }

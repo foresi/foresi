@@ -10,8 +10,8 @@ namespace Foresi\CashFlow\Infrastructure\Api\Operation;
 
 use Foresi\CashFlow\Application\ChangePlannedItemInput;
 use Foresi\CashFlow\Application\PlannedItemWrites;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class ChangePlannedItemHandler implements OperationHandler
 {

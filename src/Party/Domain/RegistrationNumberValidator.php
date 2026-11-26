@@ -10,10 +10,12 @@ namespace Foresi\Party\Domain;
 
 /**
  * Country-specific rules for company registration numbers. Implementations
- * are registered through the container tag "app.registration_number_validator".
+ * are registered through the container tag "foresi.party.registration_number_validator".
  */
 interface RegistrationNumberValidator
 {
+    public const string TAG = 'foresi.party.registration_number_validator';
+
     /**
      * @param string $countryCode ISO 3166-1 alpha-2, upper case
      */

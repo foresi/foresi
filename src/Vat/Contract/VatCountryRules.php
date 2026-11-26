@@ -22,7 +22,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface VatCountryRules
 {
-    public const string TAG = 'app.vat_country_rules';
+    public const string TAG = 'foresi.vat.country_rules';
 
     /**
      * The ISO 3166-1 alpha-2 code of the country, such as "CZ".

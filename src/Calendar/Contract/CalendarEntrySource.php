@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface CalendarEntrySource
 {
-    public const string TAG = 'app.calendar_entry_source';
+    public const string TAG = 'foresi.calendar.entry_source';
 
     /**
      * The source's key, stable and unique, such as "activities.planned"; it is part of the uid of each entry.

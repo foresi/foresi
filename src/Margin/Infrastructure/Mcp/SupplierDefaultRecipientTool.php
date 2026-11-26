@@ -11,10 +11,10 @@ namespace Foresi\Margin\Infrastructure\Mcp;
 use Foresi\Margin\Application\AllocationReads;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Api\MarginJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The versions of a supplier's default recipient, as GET /api/v1/margin/suppliers/{contactId}/default-recipient writes them.
@@ -50,7 +50,7 @@ final readonly class SupplierDefaultRecipientTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['contact_id' => ToolArguments::idSchema('The id of the supplier, a contact, as foresi_search_contacts returns it.')],
+            'properties' => ['contact_id' => ToolSchema::idSchema('The id of the supplier, a contact, as foresi_search_contacts returns it.')],
             'required' => ['contact_id'],
             'additionalProperties' => false,
         ];
@@ -59,7 +59,7 @@ final readonly class SupplierDefaultRecipientTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $view = $this->reads->supplierDefault(ToolArguments::text($arguments, 'contact_id') ?? '');
+            $view = $this->reads->supplierDefault(ToolSchema::text($arguments, 'contact_id') ?? '');
         } catch (MarginRefused $refused) {
             throw ToolRefusal::of($refused);
         }

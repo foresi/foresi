@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Shared\Infrastructure\Operation;
 
 use Foresi\Shared\Application\Api\ScopeGuard;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * Runs an operation the same way for REST and MCP (ADR 0032): the scope, then
@@ -24,10 +25,10 @@ final readonly class OperationRunner
     /**
      * @param array<mixed> $sent the fields by wire name
      *
-     * @throws \DomainException                   when the token lacks the scope
+     * @throws \DomainException                when the token lacks the scope
      * @throws ConfirmationRequired
      * @throws InvalidInput
-     * @throws \Foresi\Shared\Application\Refused when the use case refuses
+     * @throws \Foresi\Shared\Contract\Refused when the use case refuses
      */
     public function run(OperationDefinition $definition, array $sent): OperationOutput
     {

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Shared\Domain\Money;
@@ -36,7 +36,7 @@ final readonly class MovementRow
         public ?string $message,
         public MovementState $state,
         public ?UnmatchedReason $reason,
-        public MessageTrust $trust,
+        public MovementTrust $trust,
         public ?string $inboundMessageId,
         public array $invoices,
     ) {
@@ -54,6 +54,6 @@ final readonly class MovementRow
      */
     public function isPairable(): bool
     {
-        return (MovementState::Unmatched === $this->state || (!$this->isIncoming() && MovementState::Recorded === $this->state)) && UnmatchedReason::Rejected !== $this->reason && MessageTrust::Failed !== $this->trust;
+        return (MovementState::Unmatched === $this->state || (!$this->isIncoming() && MovementState::Recorded === $this->state)) && UnmatchedReason::Rejected !== $this->reason && MovementTrust::Failed !== $this->trust;
     }
 }

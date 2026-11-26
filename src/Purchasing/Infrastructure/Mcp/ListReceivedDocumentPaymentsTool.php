@@ -12,10 +12,10 @@ use Foresi\Purchasing\Application\PurchasingNotAllowed;
 use Foresi\Purchasing\Application\Query\ReceivedDocumentBalances;
 use Foresi\Purchasing\Application\UnknownReceivedDocument;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * List the payments of a received document, as the REST API writes it.
@@ -50,7 +50,7 @@ final readonly class ListReceivedDocumentPaymentsTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the received document, as foresi_search_received_documents returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the received document, as foresi_search_received_documents returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -59,7 +59,7 @@ final readonly class ListReceivedDocumentPaymentsTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $paid = $this->balances->of(ToolArguments::text($arguments, 'id') ?? '');
+            $paid = $this->balances->of(ToolSchema::text($arguments, 'id') ?? '');
         } catch (PurchasingNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its received documents.');
         } catch (UnknownReceivedDocument $unknown) {

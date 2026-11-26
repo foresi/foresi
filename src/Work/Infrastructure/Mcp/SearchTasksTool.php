@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Mcp;
 
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Infrastructure\Api\TaskListQuery;
 use Foresi\Work\Infrastructure\Api\WorkLists;
@@ -56,14 +57,14 @@ final readonly class SearchTasksTool implements ReadTool
             'type' => 'object',
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'Text looked for in the title.'],
-                'project_id' => ToolArguments::idSchema('Only the tasks of this project, an archived one too; find it with foresi_search_projects.'),
+                'project_id' => ToolSchema::idSchema('Only the tasks of this project, an archived one too; find it with foresi_search_projects.'),
                 'assignee' => ['type' => 'string', 'description' => 'Only the tasks this person is responsible for: "me", or their id as foresi_list_project_people gives it.'],
-                'status_type' => ToolArguments::choiceSchema(array_column(StatusType::cases(), 'value'), 'Only the tasks in a status of this type.'),
+                'status_type' => ToolSchema::choiceSchema(array_column(StatusType::cases(), 'value'), 'Only the tasks in a status of this type.'),
                 'finished' => ['type' => 'boolean', 'description' => 'True for the tasks in a finished status (done or closed), false for the others; left out for both.'],
-                'due' => ToolArguments::choiceSchema(['overdue', 'today', 'next_7_days', 'none'], 'Only the tasks due so: overdue and not finished, today, today or in the next seven days, or without a due date.'),
+                'due' => ToolSchema::choiceSchema(['overdue', 'today', 'next_7_days', 'none'], 'Only the tasks due so: overdue and not finished, today, today or in the next seven days, or without a due date.'),
                 'view_id' => ['type' => 'string', 'description' => 'Only the tasks a saved view of the list work.my_tasks holds: its id as foresi_list_views gives it, or a system key such as "work.my_tasks.assigned".'],
                 'filter' => ['type' => 'object', 'description' => 'Conditions all tasks meet, {"conditions": [{"field", "op", "value"}]}, checked against the list work.my_tasks; its fields and operators are in foresi_list_lists.'],
-            ] + ToolArguments::pagingSchema(),
+            ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];
     }
@@ -72,18 +73,18 @@ final readonly class SearchTasksTool implements ReadTool
     {
         $finished = $arguments['finished'] ?? null;
         $query = new TaskListQuery(
-            ToolArguments::text($arguments, 'query') ?? '',
-            ToolArguments::text($arguments, 'project_id'),
-            ToolArguments::text($arguments, 'assignee'),
-            ToolArguments::text($arguments, 'status_type'),
-            null === $finished ? null : ToolArguments::flag($arguments, 'finished'),
-            ToolArguments::text($arguments, 'due'),
-            ToolArguments::limit($arguments),
-            ToolArguments::text($arguments, 'cursor'),
+            ToolSchema::text($arguments, 'query') ?? '',
+            ToolSchema::text($arguments, 'project_id'),
+            ToolSchema::text($arguments, 'assignee'),
+            ToolSchema::text($arguments, 'status_type'),
+            null === $finished ? null : ToolSchema::flag($arguments, 'finished'),
+            ToolSchema::text($arguments, 'due'),
+            ToolSchema::limit($arguments),
+            ToolSchema::text($arguments, 'cursor'),
         );
         $this->arguments->validate($query);
         $afterId = ToolArguments::afterId($query->cursor);
-        $viewId = ToolArguments::text($arguments, 'view_id');
+        $viewId = ToolSchema::text($arguments, 'view_id');
         $page = $this->pages->read(fn (): \Foresi\Work\Infrastructure\Api\WorkPage => $this->lists->tasks($query, $viewId, $arguments['filter'] ?? null, $afterId), $viewId);
 
         return WorkToolPages::page($page, 'task', 'tasks');

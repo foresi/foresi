@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\CashFlow\Application;
 
 use Foresi\CashFlow\Domain\PlannedItem;
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A new planned item over the API and MCP (ADR 0032): one-off on its day, or

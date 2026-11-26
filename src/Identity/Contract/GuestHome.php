@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface GuestHome
 {
-    public const string TAG = 'app.guest_home';
+    public const string TAG = 'foresi.identity.guest_home';
 
     /** The route a guest is sent to from the dashboard; it takes no parameters. */
     public function route(): string;

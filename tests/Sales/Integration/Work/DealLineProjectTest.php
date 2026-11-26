@@ -25,7 +25,7 @@ use Foresi\Sales\Domain\DealLine;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
 use Foresi\Sales\Integration\Timesheet\DealLineRates;
 use Foresi\Sales\Integration\Work\DealProjectFacts;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Sales\Support\SalesTestCase;

@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Settings → Exchange rates: the source the firm converts foreign currencies at, whether a person chose it or the
+    default of the firm's country applies, and the installed sources with those the firm may choose. Changing the
+    source opens a dialog from the page header. Variables: view (RateSourceView), source (the label of the source in
+    use, or null), details, sources (each with label, text and allowed).
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'exchange_rate.settings.title'|trans}] %}
+
+{% block title %}{{ 'exchange_rate.settings.title'|trans }}{% endblock %}
+
+{% block actions %}
+    {% if view.allowed|length > 1 %}
+        <twig:Ui:Button icon="pencil" :href="path('app_exchange_rate_settings_source')" data-dialog aria-haspopup="dialog" data-exchange-rate-change>{{ 'exchange_rate.settings.change'|trans }}</twig:Ui:Button>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% for message in app.flashes('success') %}
+        <twig:Ui:Alert tone="success" class="mb-4" role="status">{{ message }}</twig:Ui:Alert>
+    {% endfor %}
+    <div class="grid gap-4">
+        <twig:Ui:Card :title="'exchange_rate.settings.source_title'|trans" icon="banknote" data-exchange-rate-source>
+            <div class="grid gap-3">
+                <p class="m-0 text-small text-muted">{{ 'exchange_rate.settings.intro'|trans }}</p>
+                <twig:Ui:DescriptionList :items="details" />
+            </div>
+        </twig:Ui:Card>
+        <twig:Ui:Card :title="'exchange_rate.settings.sources_title'|trans" icon="list" data-exchange-rate-sources>
+            {% if sources is empty %}
+                <p class="m-0 text-small text-muted">{{ 'exchange_rate.settings.none_installed'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-3 p-0">
+                    {% for item in sources %}
+                        <li class="grid gap-0.5">
+                            <span class="font-medium text-ink">{{ item.label }}{% if not item.allowed %} <span class="text-small font-normal text-muted">({{ 'exchange_rate.settings.not_allowed'|trans }})</span>{% endif %}</span>
+                            {% if item.text %}<span class="text-small text-text">{{ item.text }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <p class="m-0 mt-3 text-small text-muted">{{ 'exchange_rate.settings.no_fallback'|trans }}</p>
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

@@ -14,7 +14,7 @@ use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowApiController;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**

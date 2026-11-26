@@ -16,9 +16,11 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
  * and whether a given person may, for work done on their behalf, such as the
  * webhooks they own.
  */
-#[AutoconfigureTag('app.event_read_access')]
+#[AutoconfigureTag(self::READ_ACCESS_TAG)]
 interface EventReadAccess
 {
+    public const string READ_ACCESS_TAG = 'foresi.shared.event_read_access';
+
     /**
      * The id of the module whose events this decides on.
      */

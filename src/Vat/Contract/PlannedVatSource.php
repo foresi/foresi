@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface PlannedVatSource
 {
-    public const string TAG = 'app.vat_planned_item_source';
+    public const string TAG = 'foresi.vat.planned_item_source';
 
     /**
      * The active planned items in the category vat.

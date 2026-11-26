@@ -15,8 +15,8 @@ use Foresi\CashFlow\Application\PlannedItemVatRule;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
 
 /**
  * The planned items of the firm, as GET /api/v1/cash-flow/planned-items writes them.

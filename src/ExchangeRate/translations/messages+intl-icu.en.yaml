@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+nav:
+  item:
+    exchange_rates: Exchange rates
+exchange_rate:
+  cancel: Cancel
+  save: Save
+  source:
+    ecb:
+      label: European Central Bank
+      text: The euro reference rates, published on working days around 16:00 CET and converted to CZK through the euro.
+  settings:
+    title: Exchange rates
+    source_title: Source of the rates
+    sources_title: Installed sources
+    intro: Documents in a foreign currency take the rate of this source for their tax point and keep it. Changing the source changes only the rates taken from now on.
+    in_use: In use
+    default: Default of your country
+    chosen: Chosen in these settings
+    default_applies: The default of your country, nobody has chosen yet
+    none_installed: No source of exchange rates is installed. Type the rate of each document by hand.
+    not_allowed: not allowed in your country
+    no_fallback: When the source cannot be reached, the last rates it published still hold, the daily fetch tries again every ten minutes, and a document can take a rate typed by hand. Foresi never switches to another source on its own.
+    change: Change source
+    flash:
+      source: 'The exchange rates now come from {source}.'
+    form:
+      description: Choose where the rates of documents in a foreign currency come from. Documents saved before keep their rates.
+      source: Source
+      single: Your country allows one source only.
+    error:
+      source_unknown: This source is not installed.
+      source_not_allowed: Your country does not allow converting at the rates of this source.

@@ -218,7 +218,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
 
         // The pairing event comes again after the unpairing: the shares follow the stored state.
         $this->handler()(new DeliverEvent($first, RecalculateOnPairing::class));
-        $this->listener->__invoke(new \Foresi\Shared\Application\Event\RecordedEvent(Id::generate(), RecalculateOnPairing::EVENT, 1, new \DateTimeImmutable(), null, $this->event(self::EARLIER, 'auto', '2026-05-01')));
+        $this->listener->__invoke(new \Foresi\Shared\Contract\Event\RecordedEvent(Id::generate(), RecalculateOnPairing::EVENT, 1, new \DateTimeImmutable(), null, $this->event(self::EARLIER, 'auto', '2026-05-01')));
 
         self::assertSame([self::EARLIER.' - 67200 unassigned'], $this->shares());
     }

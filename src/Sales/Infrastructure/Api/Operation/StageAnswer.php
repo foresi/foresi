@@ -11,7 +11,7 @@ namespace Foresi\Sales\Infrastructure\Api\Operation;
 use Foresi\Sales\Application\StageNames;
 use Foresi\Sales\Domain\Stage;
 use Foresi\Sales\Infrastructure\Api\SalesJson;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
  * The answer of a write to the stages: the stage, or all of them in their

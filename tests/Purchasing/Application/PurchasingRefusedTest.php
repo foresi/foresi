@@ -10,7 +10,7 @@ namespace Foresi\Tests\Purchasing\Application;
 
 use Foresi\Purchasing\Application\PurchasingRefused;
 use Foresi\Purchasing\Domain\ReceivedDocumentRefused;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use PHPUnit\Framework\TestCase;
 
 /**

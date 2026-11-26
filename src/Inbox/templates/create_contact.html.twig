@@ -1,0 +1,61 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Create a contact for the sender of an inbox item: the address book's fields, the name and e-mail taken
+    from the sender (the forwarded mail's original sender for a forward) and the rest to fill in. The new
+    contact is matched to the item. A dialog over the item; the same URL is a page of its own.
+    Variables: id, values, errors, summary, existing, kinds, countries, token.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'inbox.create_contact.title'|trans %}
+{% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
+{% set form_invalid = errors is not empty or summary is not null %}
+{% set dialog_size = 'lg' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="inbox-contact-form" action="{{ path('app_inbox_item_contact_new', {id: id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(token) }}">
+        {% if summary is not null %}
+            <twig:Ui:Alert tone="error" data-inbox-contact-refused>{{ summary }}</twig:Ui:Alert>
+        {% endif %}
+        {% if existing is not empty %}
+            <twig:Ui:Alert tone="warning" data-inbox-contact-existing>
+                {{ 'inbox.create_contact.existing'|trans }}
+                {% for contact in existing %}<a href="{{ contact.href }}" data-turbo="false" class="font-medium underline">{{ contact.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+            </twig:Ui:Alert>
+        {% endif %}
+        <p class="m-0 text-text">{{ 'inbox.create_contact.intro'|trans }}</p>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <twig:Ui:Select name="kind" id="kind" :label="'inbox.create_contact.kind'|trans" :options="kinds" :value="values.kind" :error="errors.kind|default(null)" required />
+            <twig:Ui:TextInput name="displayName" id="displayName" :label="'inbox.create_contact.display_name'|trans" :value="values.displayName" :error="errors.displayName|default(null)" maxlength="200" required autocomplete="off" />
+            <twig:Ui:TextInput name="email" id="email" type="email" :label="'inbox.create_contact.email'|trans" :value="values.email" :error="errors.email|default(null)" maxlength="320" autocomplete="off" />
+            <twig:Ui:TextInput name="phone" id="phone" :label="'inbox.create_contact.phone'|trans" :value="values.phone" :error="errors.phone|default(null)" maxlength="40" autocomplete="off" />
+            <div class="sm:col-span-2"><twig:Ui:TextInput name="street" id="street" :label="'inbox.create_contact.street'|trans" :value="values.street" :error="errors.street|default(null)" maxlength="200" required autocomplete="off" /></div>
+            <twig:Ui:TextInput name="city" id="city" :label="'inbox.create_contact.city'|trans" :value="values.city" :error="errors.city|default(null)" maxlength="120" required autocomplete="off" />
+            <twig:Ui:TextInput name="postalCode" id="postalCode" :label="'inbox.create_contact.postal_code'|trans" :value="values.postalCode" :error="errors.postalCode|default(null)" maxlength="20" required autocomplete="off" />
+            <div class="sm:col-span-2"><twig:Ui:Select name="countryCode" id="countryCode" :label="'inbox.create_contact.country'|trans" :options="{'': ''}|merge(countries)" :value="values.countryCode" :error="errors.countryCode|default(null)" required /></div>
+            <twig:Ui:TextInput name="registrationNumber" id="registrationNumber" :label="'inbox.create_contact.registration_number'|trans" :value="values.registrationNumber" :error="errors.registrationNumber|default(null)" maxlength="40" autocomplete="off" />
+            <twig:Ui:TextInput name="vatId" id="vatId" :label="'inbox.create_contact.vat_id'|trans" :value="values.vatId" :error="errors.vatId|default(null)" maxlength="40" autocomplete="off" />
+        </div>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="inbox-contact-form" variant="primary">{{ 'inbox.create_contact.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="user-plus" class="max-w-3xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-3xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_inbox_item', {id: id})">{{ 'inbox.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="inbox-contact-form" variant="primary">{{ 'inbox.create_contact.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

@@ -63,7 +63,7 @@ The bundled PDF fonts (Inter, SIL Open Font License) are committed under `src/Sh
 
 `composer infection` runs the whole mutation test locally and enforces a minimum MSI of 80 and a covered MSI of 90. No mutant is skipped (see `infection.json5`), so it is slow.
 
-CI splits the run so that it takes minutes, with the same thresholds. The suite runs once with coverage, in four `Tests with coverage (sqlite, shard N)` jobs side by side: `bin/test-shard config INDEX COUNT` gives each one a share of the test files, balanced by size, and each shard writes its coverage in PHP format. The `Tests with coverage (sqlite)` job merges the shards with phpcov into the XML report and one JUnit log, and fails if a shard is missing. Locally, `composer phpunit:coverage` gives the same report in one run. On a pull request, `Mutation testing (changed lines)` mutates only the lines the pull request adds or modifies. Every night on main and when started by hand, `Mutation testing` runs ten shards in parallel; a push to main does not run it, so the full run does not hold the runners that pull requests wait for. Every mutation job uses `--skip-initial-tests` on that coverage and `--only-covering-test-cases`, so a mutant runs only the test cases that cover its line, not every test in their files. Infection has no sharding option, so a shard is a set of source files chosen by `bin/infection-shard files INDEX COUNT`, balanced by file size. The `Quality gate (sqlite)` job, the required check, runs `bin/infection-shard merge`: it checks that every shard is present and enforces the minimums over the total of all shards, not per shard. If the shards drift apart in time, change the matrix and `SHARD_COUNT` in `.github/workflows/ci.yml` together.
+CI splits the run so that it takes minutes, with the same thresholds. The suite runs once with coverage, in four `Tests with coverage (sqlite, shard N)` jobs side by side: `bin/test-shard config INDEX COUNT` gives each one a share of the test files, balanced by size, and each shard writes its coverage in PHP format. The `Tests with coverage (sqlite)` job merges the shards with phpcov into the XML report and one JUnit log, and fails if a shard is missing. Locally, `composer phpunit:coverage` gives the same report in one run. On a pull request, `Mutation testing (changed lines)` mutates only the lines the pull request adds or modifies. Every night on main and when started by hand, `Mutation testing` runs sixteen shards in parallel; a push to main does not run it, so the full run does not hold the runners that pull requests wait for. Every mutation job uses `--skip-initial-tests` on that coverage and `--only-covering-test-cases`, so a mutant runs only the test cases that cover its line, not every test in their files. Infection has no sharding option, so a shard is a set of source files chosen by `bin/infection-shard files INDEX COUNT`, balanced by file size. The `Quality gate (sqlite)` job, the required check, runs `bin/infection-shard merge`: it checks that every shard is present and enforces the minimums over the total of all shards, not per shard. If the shards drift apart in time, change the matrix and `SHARD_COUNT` in `.github/workflows/ci.yml` together. Each mutant runs with a PHP memory limit of 2G, so a mutant whose loop never ends fails on the limit instead of taking the runner's memory. The PostgreSQL and PHP 8.5 legs, which run after each merge to main and every night, split the suite in two shards with `bin/test-shard` as well.
 
 ### Module subsets
 
@@ -73,7 +73,9 @@ A module declares the third-party libraries its own code uses in its `composer.j
 
 ## Rules for code
 
+<!-- REUSE-IgnoreStart -->
 - PHP 8.4 and Symfony 7.4 LTS. Every PHP file starts with `declare(strict_types=1);` and starts with the block header comment `/* SPDX-License-Identifier: AGPL-3.0-only */`, laid out over three lines as `composer cs:fix` writes it (the fixer enforces it).
+<!-- REUSE-IgnoreEnd -->
 - Everything is written in English: identifiers, comments, documentation, commit messages and test names.
 - Country-specific terms get international names in the core. Country-specific rules live in country modules.
 - Money is never a `float`.
@@ -94,6 +96,7 @@ A module declares the third-party libraries its own code uses in its `composer.j
   gh pr merge <number> --auto --squash
   ```
 
+- Every file states its licence for [REUSE](https://reuse.software): PHP files in their SPDX header, other files through `REUSE.toml`. A new third-party file (an icon set, a font) gets an entry there and its licence text in `LICENSES/`; `reuse lint` checks it.
 - Judge a pull request by its required checks only: `Quality gate (sqlite)`, the E2E checks and `Conventional Commits`. Jobs run side by side, so one job can be red while the others and the Quality gate still run. Take a red job as the hint to start fixing, not as the verdict, and let the run finish: it shows every failure of the round at once.
 
   ```bash
@@ -108,11 +111,25 @@ Do not open a public issue. Follow [SECURITY.md](SECURITY.md).
 
 ## Releases
 
-Every merge to `main` that users notice is a release; there is no release branch and no release day. The Release workflow publishes a GitHub release and its tag for each merged pull request whose title is a `feat`, `fix` or `perf` commit, or breaking (`!`), with the pull request's Release notes as the notes. Other types publish nothing.
+Every merge to `main` that users notice is a release; there is no release branch and no release day. The Release workflow publishes a GitHub release and its tag for each merged pull request whose title is a `feat`, `fix` or `perf` commit, or breaking (`!`), with the pull request's Release notes as the notes. Other types publish nothing. Each release carries its source archive, its SBOM (`bin/release-sbom`, CycloneDX) and the signed build provenance of both; [SECURITY.md](SECURITY.md#verifying-a-release) explains how to check them. The repository has release immutability turned on, so a published release's tag and files cannot change.
 
 The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
 
 After the release, the `Split packages` job pushes every `src/<Module>/` and `packages/core/` to its read-only repository `foresi/<name>`, and Packagist publishes the tag from there (ADR 0034).
+
+### The extension contract
+
+What other modules, including those of other vendors, may rely on is the extension contract ([ADR 0044](docs/adr/0044-public-extension-contract.md)). It covers the `Contract\` namespaces, the few classes marked `@api`, the manifest, the `foresi.*` service tags, the contract events and the Ui slots. Everything else is internal. The contract has a version of its own, the module API version, which `foresi/shared` provides as the virtual package `foresi/module-api`. [docs/modules.md](docs/modules.md) teaches module authors how to use it and lists every extension point.
+
+* A change to the contract follows these rules in the same pull request:
+  * An addition raises the module API's minor version.
+  * Removing something or changing it incompatibly raises the major version.
+  * Code that is deprecated keeps working until the next major version. Its docblock says `@deprecated since module API x.y, removed in z.0, use X instead`, and it calls `trigger_deprecation()` when it runs.
+  * The pull request's Release notes say what changed for module authors.
+* Never deprecate code in the same change that adds it, and never remove code that no release has shipped as deprecated.
+* A renamed class keeps its old name as an alias, and a renamed tag keeps its old name in the map of old tags in Shared, until the next major version.
+* Every module, Foresi's own and others', requires a range of the module API in its `composer.json`, such as `"foresi/module-api": "^1.0"`. The container is not built with a module whose range the version in `Foresi\Shared\Contract\ModuleApi::VERSION` does not satisfy, or that requires none. `bin/console app:modules:check --api=2.0` tells before an upgrade which modules a version would leave behind; the deployment runs `app:modules:check` before the migrations.
+* A module of another vendor is any package of type `foresi-module`: its namespace, such as `Acme\Fleet\`, gives its id (`acme-fleet`), its bundle (`Acme\Fleet\AcmeFleetBundle`) and the prefix of its MCP tools (`acme_fleet_`). `tests/Fixtures/modules/acme-fleet` is such a module, built on the contract only; the External module workflow installs it and runs its tests, so a change that breaks it fails there.
 
 ### A new module
 

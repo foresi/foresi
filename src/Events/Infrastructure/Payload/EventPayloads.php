@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Events\Infrastructure\Payload;
 
 use Foresi\Events\Infrastructure\Catalogue\EventType;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
 
 /**
  * Turns the facts of a contract event into the JSON that is stored and

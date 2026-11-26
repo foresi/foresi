@@ -53,7 +53,7 @@ final class ReceivedDocumentListsTest extends KernelTestCase
         self::assertSame('purchasing.kind.credit_note', $fields['kind']->optionLabels['credit_note']);
         self::assertSame('purchasing.treatment.eu_service', $fields['treatment']->optionLabels['eu_service']);
         self::assertSame(['reading', 'read', 'nothing_found', 'failed'], $fields['reading']->options);
-        self::assertSame(['manual', 'upload', 'api'], $fields['source']->options);
+        self::assertSame(['manual', 'upload', 'api', 'mail'], $fields['source']->options);
         self::assertSame(FieldType::Reference, $fields['supplier']->type);
         self::assertSame('contact', $fields['supplier']->source);
         self::assertSame(['is', 'is_not', 'is_any_of', 'is_empty', 'is_not_empty'], $fields['supplier']->operators);

@@ -16,7 +16,7 @@ namespace Foresi\Party\Application;
  */
 interface ContactImports
 {
-    public const string TAG = 'app.party_contact_imports';
+    public const string TAG = 'foresi.party.contact_imports';
 
     /** The name of the imported file; null when there is no such import. */
     public function fileName(string $importId): ?string;

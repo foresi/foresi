@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Vat\Infrastructure\Events;
 
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Vat\Application\VatAccess;
 use Foresi\Vat\Application\VatRefused;

@@ -10,8 +10,8 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 
 use Foresi\Party\Application\RemoveVatStatusInput;
 use Foresi\Party\Application\VatStatusWrites;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class RemoveVatStatusHandler implements OperationHandler
 {

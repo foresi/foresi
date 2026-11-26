@@ -15,8 +15,8 @@ use Foresi\Party\Contract\Event\ContactCreated;
 use Foresi\Party\Contract\Event\ContactKind;
 use Foresi\Party\Contract\Event\ContactRestored;
 use Foresi\Party\Contract\Event\ContactUpdated;
-use Foresi\Shared\Application\Event\EventRecorder;
-use Foresi\Shared\Domain\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\DomainEventPayload;
+use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**
  * Real contract events recorded as a use case records them, and numbered by

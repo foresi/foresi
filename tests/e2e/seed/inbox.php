@@ -1,0 +1,22 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+use Foresi\Party\Domain\PartyKind;
+use Foresi\Party\Domain\PartyRole;
+use Foresi\Sales\Domain\Deal;
+use Foresi\Sales\Domain\Stage;
+
+// The world of the inbox spec: a client the spec matches a mail to by hand (its address is not the
+// sender's), and a deal of that client the spec links the mail to. The inbox address and the mail
+// are made by the spec itself.
+\assert(isset($owner));
+$inboxClient = $createParty->createFrom($party(PartyKind::Company, 'Client A s.r.o.', [PartyRole::Customer], 'billing@example.com', 8, '12345679', 'CZ12345679'));
+$stages = $entityManager->getRepository(Stage::class)->findBy([], ['position' => 'ASC']);
+$firstStage = $stages[0] ?? throw new LogicException('The migration seeds the stages of a deal.');
+$entityManager->persist(new Deal('Roof audit', '', (string) $inboxClient->id(), (string) $owner->id(), $firstStage->id(), new DateTimeImmutable()));
+$entityManager->flush();

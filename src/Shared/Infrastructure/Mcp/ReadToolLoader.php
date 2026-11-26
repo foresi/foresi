@@ -8,6 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\WriteTool;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleNamespace;
 use Foresi\Shared\Infrastructure\Api\Idempotency;
 use Foresi\Shared\Infrastructure\Operation\OperationRunner;
 use Foresi\Shared\Infrastructure\Operation\Operations;
@@ -23,13 +28,17 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * Puts every read and write tool of the modules into the MCP server's registry.
+ * A tool's name starts with the prefix of its module, found by the tool's class
+ * (an operation's by its input class): "foresi_" for the packages foresi/*,
+ * the module id in snake case for others, such as "acme_fleet_" (ADR 0044).
  * The annotations of a read tool say it only reads, the same answer every time,
  * from Foresi alone; a write tool says it changes things, and whether it
  * destroys, and takes an idempotency_key. They are hints for the client, the scope check decides.
  */
 final readonly class ReadToolLoader implements LoaderInterface
 {
-    public const string NAME_PREFIX = 'foresi_';
+    /** The prefix of a tool of no installed module, such as a test's. */
+    public const string NAME_PREFIX = ModuleNamespace::OWN_VENDOR.'_';
 
     /**
      * @param iterable<ReadTool>  $tools
@@ -43,6 +52,7 @@ final readonly class ReadToolLoader implements LoaderInterface
         private iterable $writeTools = [],
         private ?Operations $operations = null,
         private ?OperationRunner $runner = null,
+        private ?ModuleGraph $modules = null,
     ) {
     }
 
@@ -128,11 +138,28 @@ final readonly class ReadToolLoader implements LoaderInterface
         return $schema;
     }
 
+    /**
+     * The prefix of the module the tool belongs to; of the longest namespace, should one module's sit in another's.
+     */
+    private function prefixOf(ReadTool|WriteTool $tool): string
+    {
+        $class = $tool instanceof OperationTool ? $tool->input() : $tool::class;
+        $owner = null;
+        foreach ($this->modules?->all() ?? [] as $module) {
+            if ($module->owns($class) && \strlen($module->namespace) > \strlen($owner->namespace ?? '')) {
+                $owner = $module;
+            }
+        }
+
+        return $owner?->toolPrefix() ?? self::NAME_PREFIX;
+    }
+
     private function register(RegistryInterface $registry, ReadTool|WriteTool $tool, ToolAnnotations $annotations): void
     {
         $name = $tool->name();
-        if (!str_starts_with($name, self::NAME_PREFIX)) {
-            throw new \LogicException(\sprintf('The MCP tool "%s" must be named with the prefix "%s".', $name, self::NAME_PREFIX));
+        $prefix = $this->prefixOf($tool);
+        if (!str_starts_with($name, $prefix)) {
+            throw new \LogicException(\sprintf('The MCP tool "%s" must be named with the prefix "%s".', $name, $prefix));
         }
         if ($registry->hasTool($name)) {
             throw new \LogicException(\sprintf('Two MCP tools are named "%s".', $name));

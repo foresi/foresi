@@ -19,8 +19,8 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Sales\Infrastructure\Mcp\GetDealTool;
 use Foresi\Sales\Infrastructure\Mcp\ListDealStagesTool;
 use Foresi\Sales\Infrastructure\Mcp\SearchDealsTool;
-use Foresi\Shared\Application\Api\Operation;
-use Foresi\Shared\Infrastructure\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Operation\Operation;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**

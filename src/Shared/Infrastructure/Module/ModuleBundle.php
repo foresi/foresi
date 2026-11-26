@@ -10,16 +10,19 @@ namespace Foresi\Shared\Infrastructure\Module;
 
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
-use Symfony\Component\DependencyInjection\Container;
+use Foresi\Shared\Domain\Module\ModuleNamespace;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
- * The bundle of a module: Foresi\<Module>\<Module>Bundle at the module's
- * root, named in extra.foresi.bundle of its composer.json. The kernel
- * registers the bundle of every installed module, so being installed is
- * still the only switch.
+ * The bundle of a module: <namespace><Module>Bundle at the module's root,
+ * such as Foresi\CashFlow\CashFlowBundle or Acme\Fleet\AcmeFleetBundle, named
+ * in extra.foresi.bundle of its composer.json. The kernel registers the
+ * bundle of every installed module, so being installed is still the only
+ * switch. The bundle knows its module's namespace, id and names from its own
+ * class (ModuleNamespace): the extension alias foresi_cash_flow or acme_fleet,
+ * the asset namespace @foresi/cash-flow or @acme-fleet.
  *
  * The bundle loads the module's own services from config/services.php and
  * prepends what the module owns in the configuration of other bundles: the
@@ -34,6 +37,8 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  * namespace (@<Module>), so a screen keeps its template names wherever it
  * lives, the translations in the messages domain, and the controllers like
  * the module's own (ADR 0038).
+ *
+ * @api part of the module API (ADR 0044): every module extends it, and it and its protected hooks change only as the module API allows
  */
 abstract class ModuleBundle extends AbstractBundle
 {
@@ -41,25 +46,32 @@ abstract class ModuleBundle extends AbstractBundle
 
     public function __construct()
     {
-        $this->extensionAlias = 'foresi_'.Container::underscore($this->module());
+        $this->extensionAlias = $this->namespace()->alias();
     }
 
     /**
-     * The module's directory and namespace segment, such as "CashFlow".
+     * The module's id in StudlyCase, such as "CashFlow" or "AcmeFleet": the
+     * name of its Doctrine mapping and of its templates (@CashFlow).
      */
     final public function module(): string
     {
-        $namespace = substr(static::class, 0, (int) strrpos(static::class, '\\'));
-
-        return substr($namespace, (int) strrpos($namespace, '\\') + 1);
+        return $this->id()->directory();
     }
 
     /**
-     * The module's id, such as "cash-flow" for CashFlow.
+     * The module's id, such as "cash-flow" for Foresi\CashFlow\ or "acme-fleet" for Acme\Fleet\.
      */
     final public function id(): ModuleId
     {
-        return ModuleId::of(str_replace('_', '-', Container::underscore($this->module())));
+        return $this->namespace()->id();
+    }
+
+    /**
+     * The module's namespace, where the bundle class sits.
+     */
+    final public function namespace(): ModuleNamespace
+    {
+        return ModuleNamespace::ofBundle(static::class);
     }
 
     /**
@@ -82,12 +94,13 @@ abstract class ModuleBundle extends AbstractBundle
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $module = $this->module();
+        $namespace = $this->namespace()->value;
         if ($this->hasEntities('Domain')) {
             $builder->prependExtensionConfig('doctrine', ['orm' => ['mappings' => [$module => [
                 'type' => 'attribute',
                 'is_bundle' => false,
                 'dir' => $this->getPath().'/Domain',
-                'prefix' => 'Foresi\\'.$module.'\\Domain',
+                'prefix' => $namespace.'Domain',
                 'alias' => $module,
             ]]]]);
         }
@@ -97,7 +110,7 @@ abstract class ModuleBundle extends AbstractBundle
                 'type' => 'attribute',
                 'is_bundle' => false,
                 'dir' => $this->getPath().'/Contract',
-                'prefix' => 'Foresi\\'.$module.'\\Contract',
+                'prefix' => $namespace.'Contract',
                 'alias' => $module.'Contract',
             ]]]]);
         }
@@ -105,7 +118,7 @@ abstract class ModuleBundle extends AbstractBundle
         $migrations = $this->getPath().'/migrations';
         if (is_dir($migrations) && $builder->hasExtension('doctrine_migrations')) {
             $builder->prependExtensionConfig('doctrine_migrations', ['migrations_paths' => [
-                'Foresi\\'.$module.'\\Migrations' => $migrations,
+                $namespace.'Migrations' => $migrations,
             ]]);
         }
         $this->prependControllers($builder, $this->getPath().'/assets/controllers', '');
@@ -187,9 +200,9 @@ abstract class ModuleBundle extends AbstractBundle
     }
 
     /**
-     * Maps Stimulus controllers under the asset namespace @foresi/<module>
-     * (the module's own) or @foresi/<module>/<other> (an integration's), and
-     * adds the directory to the controllers Stimulus loads. A controller
+     * Maps Stimulus controllers under the module's asset namespace, the
+     * module's own such as "@foresi/cash-flow" or "@acme-fleet", followed by
+     * "/<other>" for an integration's, and adds the directory to the controllers Stimulus loads. A controller
      * keeps the name its file gives it, so board_controller.js is still
      * "board".
      */
@@ -198,7 +211,7 @@ abstract class ModuleBundle extends AbstractBundle
         if (!is_dir($controllers) || !$builder->hasExtension('stimulus')) {
             return;
         }
-        $namespace = '@foresi/'.str_replace('_', '-', Container::underscore($this->module())).$suffix;
+        $namespace = $this->namespace()->assets().$suffix;
         $builder->prependExtensionConfig('framework', ['asset_mapper' => ['paths' => [$controllers => $namespace]]]);
         $builder->prependExtensionConfig('stimulus', ['controller_paths' => [$controllers]]);
     }

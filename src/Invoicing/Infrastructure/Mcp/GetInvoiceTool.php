@@ -13,10 +13,10 @@ use Foresi\Invoicing\Application\Query\InvoiceDetails;
 use Foresi\Invoicing\Application\UnknownInvoice;
 use Foresi\Invoicing\Infrastructure\Api\InvoiceJson;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * One sales document of the organisation, as GET /api/v1/invoices/{invoiceId} writes it.
@@ -55,7 +55,7 @@ final readonly class GetInvoiceTool implements ReadTool
     {
         return [
             'type' => 'object',
-            'properties' => ['id' => ToolArguments::idSchema('The id of the document, as foresi_search_invoices returns it.')],
+            'properties' => ['id' => ToolSchema::idSchema('The id of the document, as foresi_search_invoices returns it.')],
             'required' => ['id'],
             'additionalProperties' => false,
         ];
@@ -64,7 +64,7 @@ final readonly class GetInvoiceTool implements ReadTool
     public function call(array $arguments): ToolOutput
     {
         try {
-            $detail = $this->details->of(ToolArguments::text($arguments, 'id') ?? '');
+            $detail = $this->details->of(ToolSchema::text($arguments, 'id') ?? '');
         } catch (InvoicingNotAllowed) {
             throw ToolRefusal::forbidden('Only the owners and members of the organisation read its invoices.');
         } catch (UnknownInvoice) {

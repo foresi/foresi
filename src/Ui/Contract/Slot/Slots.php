@@ -14,7 +14,7 @@ namespace Foresi\Ui\Contract\Slot;
  */
 final class Slots
 {
-    public const string TAG = 'app.slot_provider';
+    public const string TAG = 'foresi.ui.slot_provider';
 
     /** Widgets above the page header of every shell page, such as the running timer. Context: member (bool). */
     public const string SHELL_WIDGETS = 'ui.shell_widgets';

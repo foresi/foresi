@@ -40,7 +40,7 @@ use Foresi\Margin\Integration\Invoicing\DropRebillOnInvoiceTrashed;
 use Foresi\Margin\Integration\Invoicing\PairRebillOnInvoiceIssued;
 use Foresi\Margin\Integration\Invoicing\PairRebillOnInvoiceRestored;
 use Foresi\Party\Application\TransactionalWork;
-use Foresi\Shared\Application\Event\RecordedEvent;
+use Foresi\Shared\Contract\Event\RecordedEvent;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 use Foresi\Tests\Margin\Support\FixedPairings;

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Application;
 
-use Foresi\Shared\Application\Api\Field;
-use Foresi\Shared\Application\Api\Operation;
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
 
 /**
  * A VAT status of the firm removed, so the one before it holds again.

@@ -10,6 +10,7 @@ namespace Foresi\Tests\Banking\Support;
 
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\MovementFilter;
+use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Domain\BankMovement;
 
 /**
@@ -47,9 +48,19 @@ final class LoggingBankMovements implements BankMovements
         $this->movements->add($movement);
     }
 
-    public function fingerprintTakenByOther(string $fingerprint, ?string $inboundMessageId): bool
+    public function fingerprintTakenByOther(string $fingerprint, string $sourceId, ?string $inboundMessageId, ?string $statementId = null): bool
     {
-        return $this->movements->fingerprintTakenByOther($fingerprint, $inboundMessageId);
+        return $this->movements->fingerprintTakenByOther($fingerprint, $sourceId, $inboundMessageId, $statementId);
+    }
+
+    public function referenceKnown(string $accountId, string $sourceId, string $reference): bool
+    {
+        return $this->movements->referenceKnown($accountId, $sourceId, $reference);
+    }
+
+    public function corroborationCandidates(MovementInput $input): array
+    {
+        return $this->movements->corroborationCandidates($input);
     }
 
     public function hasLivePayment(string $movementId): bool

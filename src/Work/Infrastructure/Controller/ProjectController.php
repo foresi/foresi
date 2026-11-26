@@ -13,7 +13,7 @@ use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
-use Foresi\Identity\Application\StaffCheck;
+use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
@@ -917,6 +917,7 @@ final class ProjectController extends AbstractController
                 null === $project->clientId ? null : $this->generateUrl('app_contact_show', ['id' => $project->clientId]),
                 $project->openTasks,
                 $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
+                $project->id,
             )),
         ];
     }

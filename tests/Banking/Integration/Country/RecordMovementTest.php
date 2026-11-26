@@ -15,7 +15,7 @@ use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Application\RecordMovement;
 use Foresi\Banking\Application\View\BankMovementLists;
 use Foresi\Banking\Contract\MovementDirection;
-use Foresi\Banking\Domain\MessageTrust;
+use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Country\CzechRepublic\Party\CzechBankAccount;
@@ -28,8 +28,8 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\BankAccountUsage;
-use Foresi\Shared\Application\Event\EventRecorder;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\Banking\Support\BankingTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
@@ -70,7 +70,7 @@ final class RecordMovementTest extends BankingTestCase
         self::assertNull($this->pairing->auto($movement->id()));
 
         $stored = $this->storedMovement($movement->id());
-        self::assertSame([MovementState::Unmatched, UnmatchedReason::Unverified, MessageTrust::Unverified, 'no-results', null], [$stored->state(), $stored->unmatchedReason(), $stored->trust(), $stored->trustBasis(), $stored->paymentId()]);
+        self::assertSame([MovementState::Unmatched, UnmatchedReason::Unverified, MovementTrust::Unverified, 'no-results', null], [$stored->state(), $stored->unmatchedReason(), $stored->trust(), $stored->trustBasis(), $stored->paymentId()]);
         self::assertSame([$invoice->id()], array_map(static fn (\Foresi\Banking\Application\Candidate $candidate): string => $candidate->invoiceId, $this->matcher->candidates($stored)));
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
         self::assertSame(0, $this->paymentCount());

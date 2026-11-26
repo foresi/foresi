@@ -8,9 +8,13 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Mcp;
 
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Domain\Module\ModuleGraph;
+use Foresi\Shared\Domain\Module\ModuleId;
+use Foresi\Shared\Domain\Module\ModuleKind;
+use Foresi\Shared\Domain\Module\ModuleManifest;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolLoader;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
 use Mcp\Capability\Registry;
 use Mcp\Schema\Request\CallToolRequest;
 use Mcp\Schema\Request\PingRequest;
@@ -104,6 +108,33 @@ final class ReadToolLoaderTest extends TestCase
         $this->loader(new FakeReadTool('whoami'))->load(new Registry());
     }
 
+    public function testAToolOfAnotherVendorsModuleIsNamedAfterTheModule(): void
+    {
+        $registry = new Registry();
+
+        new ReadToolLoader([new FakeReadTool('acme_tools_list')], ToolCalls::create(), modules: $this->acmeTools())->load($registry);
+
+        self::assertTrue($registry->hasTool('acme_tools_list'));
+    }
+
+    public function testAToolOfAnotherVendorsModuleCannotTakeForesisPrefix(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('The MCP tool "foresi_list" must be named with the prefix "acme_tools_".');
+
+        new ReadToolLoader([new FakeReadTool('foresi_list')], ToolCalls::create(), modules: $this->acmeTools())->load(new Registry());
+    }
+
+    public function testAToolOfForesisOwnModuleTakesForesisPrefix(): void
+    {
+        $graph = new ModuleGraph([new ModuleManifest(ModuleId::of('mcp'), ModuleKind::Module, 'foresi/mcp', __NAMESPACE__.'\\', [], [])]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageIsOrContains('The MCP tool "acme_list" must be named with the prefix "foresi_".');
+
+        new ReadToolLoader([new FakeReadTool('acme_list')], ToolCalls::create(), modules: $graph)->load(new Registry());
+    }
+
     public function testTwoToolsOfOneNameAreRefused(): void
     {
         $registry = new Registry();
@@ -114,6 +145,14 @@ final class ReadToolLoaderTest extends TestCase
         } catch (\LogicException $refused) {
             self::assertSame('Two MCP tools are named "foresi_one".', $refused->getMessage());
         }
+    }
+
+    /**
+     * A module of another vendor that the fake tools belong to.
+     */
+    private function acmeTools(): ModuleGraph
+    {
+        return new ModuleGraph([new ModuleManifest(ModuleId::of('acme-tools'), ModuleKind::Module, 'acme/tools', __NAMESPACE__.'\\', [], [])]);
     }
 
     private function loader(FakeReadTool ...$tools): ReadToolLoader

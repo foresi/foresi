@@ -351,3 +351,22 @@ bank:
       failed: '{count, plural, one {E-mail z banky se nepodařilo zpracovat.} few {# e-maily z banky se nepodařilo zpracovat.} other {# e-mailů z banky se nepodařilo zpracovat.}} Zkontrolujte je a zkuste to znovu.'
       unmatched: '{count, plural, one {Příchozí platba není spárovaná s fakturou.} few {# příchozí platby nejsou spárované s fakturou.} other {# příchozích plateb není spárovaných s fakturou.}}'
       link: Zobrazit
+  statement:
+    title: Bankovní výpisy
+    tab: Výpisy
+    caption: 'Výpisy účtu {account}, {source}'
+    none: '–'
+    empty_title: Zatím žádné výpisy
+    empty_text: Bankovní výpisy načtené ze souboru nebo z API banky se tu zobrazí po účtech.
+    notice: '{count, plural, one {Bankovní výpisy jednoho účtu na sebe nenavazují.} few {Bankovní výpisy # účtů na sebe nenavazují.} other {Bankovní výpisy # účtů na sebe nenavazují.}}'
+    column:
+      number: Číslo
+      period: Období
+      opening: Počáteční zůstatek
+      closing: Konečný zůstatek
+      entries: Pohyby
+      received: Přijato
+    gap:
+      number: 'Chybí výpis mezi {previous} a {current}.'
+      balance: 'Počáteční zůstatek {actual} se liší od konečného zůstatku předchozího výpisu {expected} o {difference}, nebo chybí dřívější výpis.'
+      inner: 'Pohyby dávají konečný zůstatek {expected}, výpis uvádí {actual}: soubor může být useknutý.'

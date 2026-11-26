@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Tests\Shared\Application\View;
 
 use Foresi\Shared\Application\ActorRole;
-use Foresi\Shared\Application\Api\Field as ApiField;
-use Foresi\Shared\Application\RefusalKind;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\CreateViewInput;
 use Foresi\Shared\Application\View\DefaultView;
@@ -26,6 +24,8 @@ use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewStore;
 use Foresi\Shared\Application\View\UpdateViewInput;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Operation\Field as ApiField;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Shared\Domain\View\SavedView;
 use Foresi\Shared\Domain\View\Visibility;

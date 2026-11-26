@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface VatDocumentSource
 {
-    public const string TAG = 'app.vat_document_source';
+    public const string TAG = 'foresi.vat.document_source';
 
     /**
      * A stable key, such as "invoicing.issued_vat".

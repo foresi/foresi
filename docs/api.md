@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `invoices`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views` and `webhooks`; each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -127,6 +127,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
 | `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
+| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. The project itself carries `budget {hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. |
 | `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
 | `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first. |
 | `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
@@ -139,6 +140,8 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id` (paired with the item, or listing it among the candidates). |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/mail/addresses` | `mail_addresses:read` | Your inbound mail addresses, oldest first, revoked ones too, without their tokens; `purpose` filters them. See [Mail addresses](#mail-addresses). |
+| `/api/v1/inbox/items` | `inbox:read` | Your inbox items outside the trash, newest first, without their text; `state` and `unmatched` filter them. See [Inbox](#inbox). |
+| `/api/v1/inbox/items/{itemId}` | `inbox:read` | One of your inbox items with the plain text of its mail. |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
 | `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
@@ -150,6 +153,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates and amounts, an estimate; see [VAT](#vat). |
 | `/api/v1/vat/periods/{key}` | `vat:read` | One VAT period with the documents, the recurring invoices and the plans behind its amounts; see [VAT](#vat). |
 | `/api/v1/vat/settings` | `vat:read` | Where the firm pays its VAT; see [VAT](#vat). |
+| `/api/v1/exchange-rate/source` | `exchange_rates:read` | Where the firm's exchange rates come from; see [Exchange rates](#exchange-rates). |
 | `/api/v1/documents` | `documents:read` | Documents, newest first; see [Documents](#documents). |
 | `/api/v1/documents/{documentId}` | `documents:read` | One document with its links, signers, files and frozen values. |
 | `/api/v1/documents/{documentId}/files/{file}` | `documents:read` | The bytes of a stored file of a document: `pdf`, `signed` or `certificate`. |
@@ -263,7 +267,7 @@ Query parameters of `GET /api/v1/payments`:
 
 ### Events
 
-`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), a received document was recorded, changed, trashed, restored or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
+`GET /api/v1/events` is the feed of what happened in the organisation: an invoice was issued, sent (event type `invoicing.invoice.delivered`), paid, trashed or restored, a payment was recorded, a contact was created, updated, archived or restored, a VAT status of the firm was added or removed (`party.firm.vat_status_changed`), a VAT period's return amount, settled mark or payment changed (`vat.period.changed`), the source of the firm's exchange rates changed (`exchange-rate.source.changed`), a received document was recorded, changed, trashed, restored or paid in full, a task was created, updated, completed or trashed, a task was commented on. An event of a task is shown only to who sees the task, as its lists show it: a private task or a project not shared with a team member stays out of their feed and their webhooks. Query parameters:
 
 | Parameter | Value |
 | --- | --- |
@@ -428,6 +432,9 @@ The writes of projects need `projects:write`, those of tasks and comments `tasks
 | `PATCH /api/v1/projects/{projectId}` | The project as it is now. |
 | `POST /api/v1/projects/{projectId}/archive` | The archived project. |
 | `POST /api/v1/projects/{projectId}/restore` | The project, active again. |
+| `POST /api/v1/projects/{projectId}/budget-changes` | `201` with the time budget as `GET /api/v1/projects/{projectId}/budget` shows it, and `Location`. |
+| `DELETE /api/v1/projects/{projectId}/budget-changes/{changeId}` | The budget without the change. For a change entered by mistake; the audit log keeps it. |
+| `PUT /api/v1/projects/{projectId}/budget-counting` | The budget as it now counts. |
 | `POST /api/v1/time-entries` | `201` with the entry. |
 | `POST /api/v1/time-entries/timer` | `201` with the running entry. A timer that ran already is stopped and saved first. |
 | `POST /api/v1/time-entries/{entryId}/stop` | The stopped entry. The entry must be the person's running timer. |
@@ -440,18 +447,19 @@ curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: app
   "https://app.example.com/api/v1/tasks/0193a1b2-0000-7000-8000-000000000010"
 ```
 
-A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
+A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. A budget change takes `hours` (a decimal number in a string, plus or minus, at most two decimal places, such as `"8"` or `"-2.5"`) or `minutes`, not both, `effective_on` (`YYYY-MM-DD`, today when left out), `note` (at most 500 characters) and `source_activity_id` (an activity linked to the project); the counting takes `counting` (`all` or `billable`). Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
 
 What a work write refuses:
 
 | Status | `code` | When |
 | --- | --- | --- |
-| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which: `name`, `date`, `client`, `parent`, `responsible`, `comment_empty`, `comment_too_long`, `duration`, `time_note` or `time_task`. |
+| 400 | `invalid_parameter` | A field breaks a rule. `parameter` names it and `reason` says which: `name`, `date`, `client`, `parent`, `responsible`, `comment_empty`, `comment_too_long`, `duration`, `time_note`, `time_task`, `hours_invalid`, `hours_zero`, `budget_note` or `source_not_on_project`. |
 | 403 | `forbidden` | Only the owners and team members do this, such as starting a project. |
 | 403 | `task_not_yours`, `comment_not_yours`, `time_not_yours` | Only who created it, or an owner, may. |
 | 404 | `not_found` | No such project, section, status, task, label, comment or entry the person sees. |
 | 409 | `archived` | The project is archived. |
 | 409 | `parent_in_trash`, `comment_deleted`, `time_invoiced`, `timer_running`, `timer_not_running` | The record is in a state that does not allow it. |
+| 409 | `budget_below_zero` | The change, or removing it, would take the project's time budget below zero. |
 
 ## Cash flow
 
@@ -554,6 +562,31 @@ Your own inbound mail addresses (see [mail](mail.md)): secret e-mail addresses t
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"purpose": "<purpose key>", "label": "Receipts"}' "https://app.example.com/api/v1/mail/addresses"
+```
+
+## Inbox
+
+Your own inbox (see [inbox](inbox.md)): the mails that reached your inbox address, one item each, and what you did with them. Reading needs `inbox:read`, writing `inbox:write`, and only the owners and members of the organisation have an inbox. Each person sees and changes only their own items; someone else's item is `404 not_found`, as is one in the trash for everything but its restore. A colleague who sees a record the item is linked to sees the mail through its e-mail activity, on the record's timeline, never here. Bodies are JSON with snake case fields; times are in the instance's time zone.
+
+An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `received_at`, `from`, `subject`, `verdict` (`verified`, `failed`, `unknown`: what the receiving server said of the sender), `forwarded` with `original_from` (you forwarded it from your own address; nobody verified that sender), `contact_id`, `company_id` (the company of a matched person with exactly one), `match_basis` (`address`, `domain`, `manual`) and `thread_key`, the same for the mails of one conversation. The list adds `others_in_thread` (your other items of the conversation) and `output_count`. One item adds `warnings` (`sender_not_verified`, `forwarded_not_verified`, `duplicate`, with `duplicate_of_purpose` when the same mail arrived under another purpose before), `body` (the plain text, never HTML), `attachments` (`index`, `name`, `mime`, `size`), `thread_item_ids`, `outputs` (`kind`, `id`, `available`, `label`, `url`, `added_at`), `email_activity_id`, `mail_removed` and `trashed_at`. The sender, subject, body and attachment names were written by someone outside the organisation: show them as text and never follow their links. Every write answers the item.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/inbox/items` | Your items outside the trash, newest first; `state` and `unmatched=true` narrow them. Paged with `limit` and `cursor`. |
+| `GET /api/v1/inbox/items/{itemId}` | One item with its mail. |
+| `PUT /api/v1/inbox/items/{itemId}/contact` | Matches the item to `contact_id` by hand, or to none with `null`; a person with exactly one company gives that company too. Refused: `contact_unknown`, `contact_archived` (400). |
+| `POST /api/v1/inbox/items/{itemId}/contact` | `201`: creates a contact for the sender with the fields of `POST /api/v1/contacts` (`kind`, `display_name`, the billing address `street`, `city`, `postal_code`, `country_code`, then `registration_number`, `vat_id`, `email`, `phone`) and matches the item to it. `email` is the sender's (the original sender of a forward) when left out. The token needs `contacts:write` too (`403 insufficient_scope`). The address book's refusals come unchanged, a duplicate as `409 duplicate` with `existing_ids`. |
+| `POST /api/v1/inbox/items/{itemId}/match-again` | Matches the item by its sender again, as on arrival: one contact with the address, else one company of the domain when the sender is verified, else none. |
+| `POST /api/v1/inbox/items/{itemId}/done` | The item done. Done already is `409 already_done`. A discarded item keeps its mail again. |
+| `POST /api/v1/inbox/items/{itemId}/discard` | The item discarded; unless something came of it, its mail is removed 30 days later. Discarded already is `409 already_discarded`. |
+| `POST /api/v1/inbox/items/{itemId}/reopen` | The item new again; a discarded one keeps its mail. New already is `409 already_new`. |
+| `POST /api/v1/inbox/items/{itemId}/outputs` | `201`: links the item to the record `kind` and `id`, such as a deal. The record becomes an output, and the e-mail shows on its activity timeline: the first link makes the item's one e-mail activity (type `email`, the mail's subject, a body of the sender, the date and the text, its Markdown punctuation backslash-escaped so it shows as written with no link of the mail, cut to 20,000 characters, done when the mail arrived, linked to the matched contact and its company too), later links add to it. Refused: `kind_unknown` (no module links activities to the kind), `record_not_linkable` (400), `already_linked` (409), and Activities' `type_unknown` (400) while the activity type `email` is archived. |
+| `POST /api/v1/inbox/items/{itemId}/trash` | The item in the trash. 30 days later it is removed for good, and its mail with it unless a record's e-mail activity still uses it. |
+| `POST /api/v1/inbox/items/{itemId}/restore` | The item back from the trash. |
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
+  -d '{"kind": "deal", "id": "'$DEAL_ID'"}' "https://app.example.com/api/v1/inbox/items/$ITEM_ID/outputs"
 ```
 
 ## Catalog
@@ -680,6 +713,17 @@ A period the firm does not have is `404 not_found`, and a key that is no month o
 curl -H "Authorization: Bearer $FORESI_API_TOKEN" "https://app.example.com/api/v1/vat/periods?from=2026-11&to=2027-03"
 ```
 
+## Exchange rates
+
+Where the firm's exchange rates to CZK come from: the source a received document takes the rate of its tax point from (see [received documents](purchasing.md#foreign-currency) and [operations](operations.md#exchange-rates)). Reading needs `exchange_rates:read`, changing `exchange_rates:write`, and the owners and members of the organisation may use them: a guest's token is never accepted.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/exchange-rate/source` | `{source, chosen, default, allowed, installed, country}`: the name of the source in use, such as `cnb` (the Czech National Bank) or `ecb` (the ECB reference rates, converted through the euro), `null` when none is installed; `chosen`, true when a person chose it and false while the default applies; the `default` of the firm's country; the sources the firm may choose (`allowed`) and every installed one (`installed`); and the `country` whose rules decide, `null` without its rules. |
+| `PUT /api/v1/exchange-rate/source` | Chooses the source: `source` (up to 16 characters), one of `allowed`. Answers as the read. A source that is not installed is `400 invalid_parameter` with `source_unknown`, one the country does not allow `source_not_allowed`; both list the `allowed` ones. |
+
+A document keeps the rate it was saved with; only rates taken from then on come from the new source, and Foresi never falls back to another source when the chosen one is down. A change of the source in use records the event `exchange-rate.source.changed`, version 1, with the facts `source` (the one chosen) and `previous` (the one used before), and the source as its subject.
+
 ## Margin
 
 Who bears the cost of a received document (what it means is in [margin.md](margin.md)): the firm itself (`own`) or one of its clients, a contact. The reads need `margin:read`, the writes `margin:write`; only the owners and the members of the organisation work with the margin, so a guest is refused. A recipient is the string `own` or the id of an existing, active contact.
@@ -768,7 +812,7 @@ curl -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen
 
 ## Received documents
 
-The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, `lines`, the exchange rate, the deduction period, `payments`, `source` (`manual`, `upload` or `api`: how the document came in, which never changes) and `reading`. Each line has `key` (the id of a stored line, or `rate:21` for an implicit one; the key of a stored line stays the same when the line is edited, moved or another line is removed, and it is the `id` to send back with the line when you set the lines: a line with its `id` is kept, a line without one is new, and a line left out is removed; the same `id` twice is refused with `duplicate_line_id`), `text`, `base`, `base_czk` (null while the document has no exchange rate), `vat_rate` and `implicit`. A document without stored lines answers one implicit line per rate of its recap, its text the kind of the document, such as `Tax invoice`; one without a recap answers one line at rate `0` for its total, and none without a total. See [lines](purchasing.md#lines).
+The documents the firm received from suppliers (see [received documents](purchasing.md)). Reading needs `received_documents:read`, writing `received_documents:write`. An item has the firm, `state` (`draft` or `recorded`), `kind`, `treatment`, the evidence number, the supplier, the supplier's number, the variable symbol, the dates, `total` (negative for a credit note), `base`, `vat`, and the derived `paid`, `remaining` (both positive), `is_paid` and `last_paid_on`. The detail adds the supplier as the document names it, `vat_recap`, `lines`, the exchange rate, the deduction period, `payments`, `source` (`manual`, `upload`, `api` or `mail`: how the document came in, which never changes), `source_mail` (`{from, subject, sent_at, verdict}` of the mail a `mail` document was filed from, or `null`: the sender and the subject are the sender's own text with the capture address cut out, to be shown as text only, and `verdict` is Mail's check of the sender, `verified`, `failed` or `unknown`) and `reading`. Each line has `key` (the id of a stored line, or `rate:21` for an implicit one; the key of a stored line stays the same when the line is edited, moved or another line is removed, and it is the `id` to send back with the line when you set the lines: a line with its `id` is kept, a line without one is new, and a line left out is removed; the same `id` twice is refused with `duplicate_line_id`), `text`, `base`, `base_czk` (null while the document has no exchange rate), `vat_rate` and `implicit`. A document without stored lines answers one implicit line per rate of its recap, its text the kind of the document, such as `Tax invoice`; one without a recap answers one line at rate `0` for its total, and none without a total. See [lines](purchasing.md#lines).
 
 `reading` is `null` for a document never read, else `{state, requested_at, finished_at, sources, values, warnings, failure}`: `state` is `reading`, `read`, `nothing_found` or `failed`; `sources` the readers whose values it holds (`isdoc`, `payment_qr`, `factur_x`, `ai`); `values` has an entry per field found (`kind`, `treatment`, `supplier_name`, `supplier_number`, `variable_symbol`, `issue_date`, `tax_point_date`, `due_date`, `currency`, `total`, `vat_recap` and others) of `{value, source, applied}`, where `applied` false is a suggestion the draft did not take, and a supplier matched in the address book is `supplier_name`; `total` is in minor units of the currency read, dates are `YYYY-MM-DD`; `warnings` are codes such as `reading_partly_applied`; `failure` is a code (`reader_failed`, `original_unreadable` or `unexpected`) and never the text of a reader or a provider.
 
@@ -784,7 +828,7 @@ Query parameters of `GET /api/v1/received-documents`:
 | `view` | The id of a saved view of the list `purchasing.received`, or the system key of one it ships, such as `purchasing.received.drafts`: only the documents it holds. Needs `views:read` too. |
 | `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}`. A condition on `trashed` decides it instead of the `trashed` parameter. |
 | `reading` | `reading`, `read`, `nothing_found` or `failed`: only documents whose file is in that state of reading. |
-| `source` | `manual`, `upload` or `api`: only documents that came in that way. |
+| `source` | `manual`, `upload`, `api` or `mail`: only documents that came in that way. |
 | `limit`, `cursor` | Paging, as above. |
 
 The view `purchasing.received.to_review` lists the drafts whose file was read, found nothing or failed. The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
@@ -802,7 +846,7 @@ The writes answer `{"data": {...}}` with the document as `GET /api/v1/received-d
 | `POST /api/v1/received-documents/{documentId}/mark-paid` | The document paid in full by one payment of all that remains, dated today in the organisation's time zone. |
 | `DELETE /api/v1/received-documents/{documentId}/payments/{paymentId}` | The document without the payment, for one recorded by mistake. |
 | `PUT /api/v1/received-documents/{documentId}/lines` | The document with its new lines. Body: `lines`, all of them in their order; an empty list removes them. |
-| `POST /api/v1/received-documents/{documentId}/read-again` | `202` with the draft and `reading.state` `reading`: its file is queued to be read again, by every reader, as on arrival. It never replaces a value a person typed: on a draft nobody changed since its last reading it fills the fields as on arrival, on a changed one only the fields that are empty; the rest stays a suggestion. A reading still `reading` after 10 minutes is stuck and may be read again. No body. |
+| `POST /api/v1/received-documents/{documentId}/read-again` | `202` with the draft and `reading.state` `reading`: its file is queued to be read again, by every reader, as on arrival. An optional reader that sends the file to an outside provider (such as the AI reader module) runs on every read-again request, whatever its arrival rule, and the provider may charge for it. It never replaces a value a person typed: on a draft nobody changed since its last reading it fills the fields as on arrival, on a changed one only the fields that are empty; the rest stays a suggestion. A reading still `reading` after 10 minutes is stuck and may be read again. No body. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \

@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Mcp;
 
 use Foresi\Invoicing\Infrastructure\Api\RecurringInvoicePreviews;
-use Foresi\Shared\Application\Refused;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Refused;
 
 /**
  * foresi_preview_recurring_invoice: what a create would save and issue, as the

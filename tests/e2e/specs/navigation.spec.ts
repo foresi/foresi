@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { INVOICING_OWNER_STATE } from '../support/session';
 
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -68,7 +68,7 @@ test.describe('navigation', () => {
       await expect(sidebar.getByRole('heading', { level: 2, name: 'Přehled' })).toBeVisible();
     }
     // The inbox sits under the start page: where a person begins, not a part of the projects.
-    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Přehled/, /Oznámení/]);
+    await expect(sidebar.locator('[data-nav-area="overview"] [data-nav-section]').getByRole('link')).toHaveText([/Přehled/, /Schránka/, /Oznámení/]);
     await shot(page, 'sidebar');
 
     for (const [label, area, links] of [
@@ -76,7 +76,7 @@ test.describe('navigation', () => {
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
-      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
+      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Kurzy měn', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);

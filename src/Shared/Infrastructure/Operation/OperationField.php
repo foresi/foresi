@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Operation;
 
-use Foresi\Shared\Application\Api\Field;
+use Foresi\Shared\Contract\Operation\Field;
 
 /**
  * One field of an operation's input, read from a constructor parameter of the

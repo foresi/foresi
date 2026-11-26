@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface VatScheduleSource
 {
-    public const string TAG = 'app.vat_schedule_source';
+    public const string TAG = 'foresi.vat.schedule_source';
 
     /**
      * A stable key, such as "invoicing.recurring_vat".

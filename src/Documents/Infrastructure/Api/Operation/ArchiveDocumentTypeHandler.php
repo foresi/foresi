@@ -11,8 +11,8 @@ namespace Foresi\Documents\Infrastructure\Api\Operation;
 use Foresi\Documents\Application\Api\ArchiveDocumentTypeInput;
 use Foresi\Documents\Application\DocumentTypeWrites;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class ArchiveDocumentTypeHandler implements OperationHandler
 {

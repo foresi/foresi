@@ -19,7 +19,7 @@ use Foresi\CashFlow\Application\SetMinimumBalanceInput;
 use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\ExpectedDate;
 use Foresi\CashFlow\Domain\MinimumBalance;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\CashFlow\Support\CashFlowTestCase;
 

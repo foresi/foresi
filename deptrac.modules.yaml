@@ -15,6 +15,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Activities\\Integration\\Calendar\\.*
+    - name: ai_reader
+      collectors:
+        - type: classLike
+          value: ^Foresi\\AiReader\\(?!Contract\\|Integration\\).*
+    - name: ai_reader_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\AiReader\\Contract\\.*
     - name: attachment
       collectors:
         - type: classLike
@@ -155,6 +163,14 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Import\\Contract\\.*
+    - name: inbox
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Inbox\\(?!Contract\\|Integration\\).*
+    - name: inbox_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Inbox\\Contract\\.*
     - name: instance
       collectors:
         - type: classLike
@@ -410,6 +426,23 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    ai_reader:
+      - ai_reader_contract
+      - instance
+      - instance_contract
+      - purchasing
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    ai_reader_contract:
+      - instance
+      - instance_contract
+      - purchasing_contract
+      - shared
+      - shared_contract
+      - ui_contract
     attachment:
       - attachment_contract
       - audit
@@ -421,6 +454,7 @@ deptrac:
       - shared
       - shared_contract
     attachment_contract:
+      - attachment
       - audit
       - audit_contract
       - identity
@@ -436,6 +470,7 @@ deptrac:
       - shared
       - shared_contract
     audit_contract:
+      - audit
       - instance
       - instance_contract
       - shared
@@ -632,6 +667,7 @@ deptrac:
       - country
       - country_contract
       - exchange_rate_contract
+      - mail_contract
       - party
       - party_contract
       - purchasing_contract
@@ -692,21 +728,37 @@ deptrac:
     events_contract:
       - audit
       - audit_contract
+      - events
       - instance
       - instance_contract
       - shared
       - shared_contract
     exchange_rate:
+      - audit
+      - audit_contract
       - exchange_rate_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
+      - party
+      - party_contract
       - shared
       - shared_contract
+      - ui
+      - ui_contract
     exchange_rate_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
       - instance
       - instance_contract
+      - party
+      - party_contract
       - shared
       - shared_contract
+      - ui_contract
     identity:
       - audit
       - audit_contract
@@ -722,6 +774,7 @@ deptrac:
     identity_contract:
       - audit
       - audit_contract
+      - identity
       - instance
       - instance_contract
       - party
@@ -780,11 +833,44 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
+    inbox:
+      - activities
+      - activities_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - inbox_contract
+      - instance
+      - instance_contract
+      - mail
+      - mail_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    inbox_contract:
+      - activities_contract
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - mail_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
     instance:
       - instance_contract
       - shared
       - shared_contract
     instance_contract:
+      - instance
       - shared
       - shared_contract
     invoicing:
@@ -985,6 +1071,7 @@ deptrac:
       - audit_contract
       - instance
       - instance_contract
+      - party
       - shared
       - shared_contract
       - ui_contract
@@ -1035,6 +1122,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing_contract
@@ -1052,6 +1141,7 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail_contract
       - party
       - party_contract
       - shared
@@ -1069,6 +1159,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
@@ -1088,6 +1180,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - margin_contract
       - party
       - party_contract
@@ -1108,6 +1202,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
@@ -1128,6 +1224,8 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
+      - mail
+      - mail_contract
       - party
       - party_contract
       - purchasing
@@ -1241,7 +1339,8 @@ deptrac:
       - work_contract
     shared:
       - shared_contract
-    shared_contract: []
+    shared_contract:
+      - shared
     taxes_and_contributions:
       - audit
       - audit_contract
@@ -1473,6 +1572,7 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
+      - webhooks
     work:
       - attachment
       - attachment_contract

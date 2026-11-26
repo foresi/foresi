@@ -1,0 +1,32 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Inbox\Application\Api;
+
+use Foresi\Shared\Contract\Operation\Field;
+use Foresi\Shared\Contract\Operation\Operation;
+
+#[Operation(
+    name: 'inbox.items.done',
+    method: 'POST',
+    path: '/api/v1/inbox/items/{itemId}/done',
+    tool: 'foresi_mark_inbox_item_done',
+    scope: 'inbox:write',
+    title: 'Mark an inbox item done',
+    description: 'Marks one of your inbox items done: dealt with. A discarded item marked done keeps its mail again. Refused with already_done when it is done. Take it back with foresi_reopen_inbox_item.',
+    response: 'InboxItem',
+    staffOnly: true,
+)]
+final readonly class MarkItemDoneInput
+{
+    public function __construct(
+        #[Field('The id of the inbox item.', format: 'uuid')]
+        public string $itemId,
+    ) {
+    }
+}

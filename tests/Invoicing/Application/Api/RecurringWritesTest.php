@@ -11,7 +11,7 @@ namespace Foresi\Tests\Invoicing\Application\Api;
 use Foresi\Invoicing\Application\Api\CreateRecurringInvoiceInput;
 use Foresi\Invoicing\Application\Api\InvoicingRefused;
 use Foresi\Invoicing\Application\Api\RecurringWrites;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Tests\Invoicing\Application\Query\InvoicingReadTestCase;
 
 /**

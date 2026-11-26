@@ -45,6 +45,7 @@ use Foresi\Shared\Domain\Money;
 #[ORM\Index(name: 'idx_received_document_deduction', columns: ['deduction_period'])]
 #[ORM\Index(name: 'idx_received_document_supplier', columns: ['supplier_id'])]
 #[ORM\Index(name: 'idx_received_document_original', columns: ['original_document_id'])]
+#[ORM\Index(name: 'idx_received_document_source_mail', columns: ['source_mail_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_received_document_evidence', columns: ['evidence_number'])]
 class ReceivedDocument implements Audited
 {
@@ -190,6 +191,9 @@ class ReceivedDocument implements Audited
         private readonly \DateTimeImmutable $createdAt,
         #[ORM\Column(type: 'string', length: 16, enumType: DocumentSource::class, options: ['default' => 'manual'])]
         private readonly DocumentSource $source = DocumentSource::Manual,
+        // The Mail message a draft was filed from, set with the source Mail and never changed.
+        #[ORM\Column(name: 'source_mail_id', type: 'guid', nullable: true)]
+        private readonly ?string $sourceMailId = null,
     ) {
         $this->id = Id::generate();
         $this->lines = new ArrayCollection();
@@ -554,6 +558,11 @@ class ReceivedDocument implements Audited
     public function source(): DocumentSource
     {
         return $this->source;
+    }
+
+    public function sourceMailId(): ?string
+    {
+        return $this->sourceMailId;
     }
 
     /**

@@ -21,7 +21,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ProjectRateSource
 {
-    public const string TAG = 'app.timesheet_project_rate_source';
+    public const string TAG = 'foresi.timesheet.project_rate_source';
 
     /**
      * @return Money|null the rate per hour; null when this source sets none for the project

@@ -8,13 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Infrastructure\Mcp;
 
-/**
- * A read or write tool that may say it is for the organisation's own people
- * only (ADR 0041): a guest's token neither sees it in tools/list nor calls it,
- * whatever its scopes. For tools whose scope a guest may hold, or that every
- * token may call, but whose answer or change is never a guest's.
- */
-interface StaffOnlyTool
-{
-    public function staffOnly(): bool;
+trigger_deprecation('foresi/shared', '0.11', 'The "%s" interface is deprecated, use "%s" instead.', StaffOnlyTool::class, \Foresi\Shared\Contract\Mcp\StaffOnlyTool::class);
+
+class_alias(\Foresi\Shared\Contract\Mcp\StaffOnlyTool::class, StaffOnlyTool::class);
+
+if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
+    /**
+     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Mcp\StaffOnlyTool instead
+     */
+    interface StaffOnlyTool extends \Foresi\Shared\Contract\Mcp\StaffOnlyTool
+    {
+    }
 }

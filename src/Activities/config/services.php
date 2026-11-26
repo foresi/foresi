@@ -7,7 +7,11 @@
 declare(strict_types=1);
 
 use Foresi\Activities\Application\ActivityTargets;
+use Foresi\Activities\Application\LinkableRecordsForOtherModules;
+use Foresi\Activities\Application\RecordsForOtherModules;
+use Foresi\Activities\Contract\ActivityRecorder;
 use Foresi\Activities\Contract\ActivityTarget;
+use Foresi\Activities\Contract\LinkableRecords;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -26,4 +30,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $builder->registerForAutoconfiguration(ActivityTarget::class)->addTag(ActivityTarget::TAG);
     $services->set(ActivityTargets::class)
         ->arg('$targets', tagged_iterator(ActivityTarget::TAG));
+    // Other modules record an activity through the contract (Inbox).
+    $services->alias(ActivityRecorder::class, RecordsForOtherModules::class);
+    $services->alias(LinkableRecords::class, LinkableRecordsForOtherModules::class);
 };

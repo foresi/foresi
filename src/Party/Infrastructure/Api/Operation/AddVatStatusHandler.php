@@ -11,8 +11,8 @@ namespace Foresi\Party\Infrastructure\Api\Operation;
 use Foresi\Party\Application\AddVatStatusInput;
 use Foresi\Party\Application\VatStatusWrites;
 use Foresi\Party\Infrastructure\Api\FirmJson;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 
 final readonly class AddVatStatusHandler implements OperationHandler
 {

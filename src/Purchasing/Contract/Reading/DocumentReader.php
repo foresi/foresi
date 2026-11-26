@@ -16,6 +16,8 @@ namespace Foresi\Purchasing\Contract\Reading;
  */
 interface DocumentReader
 {
+    public const string TAG = 'foresi.purchasing.document_reader';
+
     /** The lowercase key of the source (`isdoc`, `factur_x`, `payment_qr`, `ai`); the translation key is `purchasing.reading.source.<key>`. */
     public function source(): string;
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../support/test';
 import { PROJECTS_GUEST_STATE, PROJECTS_OWNER_STATE } from '../support/session';
 import { openMoreActions } from '../support/header';
 

@@ -14,7 +14,7 @@ use Foresi\Margin\Application\MarginRanges;
 use Foresi\Margin\Application\MarginTable;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Infrastructure\Screen\MarginScreen;
-use Foresi\Shared\Application\RefusalKind;
+use Foresi\Shared\Contract\RefusalKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

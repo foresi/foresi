@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Instance\Contract\ScheduledJob;
 use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Application\BilledWork;
 use Foresi\Invoicing\Application\BilledWorkRelease;
@@ -124,14 +125,13 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $parameters->set('app.original_documents_dir', '%kernel.share_dir%/original-documents');
 
     // A country module plugs into invoicing with its rules.
-    $builder->registerForAutoconfiguration(InvoicingCountry::class)->addTag('app.invoicing_country');
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    $builder->registerForAutoconfiguration(BilledWork::class)->addTag('app.billed_work');
-    $builder->registerForAutoconfiguration(BilledWorkRelease::class)->addTag('app.billed_work_release');
-    $builder->registerForAutoconfiguration(PaymentSourceRelease::class)->addTag('app.payment_source_release');
+    $builder->registerForAutoconfiguration(BilledWork::class)->addTag(BilledWork::TAG);
+    $builder->registerForAutoconfiguration(BilledWorkRelease::class)->addTag(BilledWorkRelease::TAG);
+    $builder->registerForAutoconfiguration(PaymentSourceRelease::class)->addTag(PaymentSourceRelease::TAG);
 
     $services->set(InvoicingCountries::class)
-        ->arg('$countries', tagged_iterator('app.invoicing_country'));
+        ->arg('$countries', tagged_iterator(InvoicingCountry::TAG));
     $services->set(PdfEngine::class)
         ->arg('$logoDirectories', [param('app.firm_image_dir')]);
 
@@ -218,7 +218,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ] as $service) {
             $services->set($service)->public();
         }
-        $services->set(IssueRecurringInvoices::class)->public()->tag('app.scheduled_job');
+        $services->set(IssueRecurringInvoices::class)->public()->tag(ScheduledJob::TAG);
         $services->alias(RecurringInvoices::class, DoctrineRecurringInvoices::class)->public();
 
         // Sending, for the tests that drive it directly.

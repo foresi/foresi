@@ -19,6 +19,7 @@ use Foresi\Purchasing\Domain\ReceivedDocumentPayment;
 use Foresi\Purchasing\Domain\ReceivedDocumentState;
 use Foresi\Purchasing\Infrastructure\Api\ReceivedDocumentApiController;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Contract\ActualAmount;
 use Foresi\TaxesAndContributions\Contract\ActualAmountSource;
@@ -133,6 +134,7 @@ final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 
     public function sharesOf(array $subjectIds): array
     {
+        $subjectIds = Id::onlyUuids($subjectIds);
         /** @var list<array{id: string, treatment: PurchaseTaxTreatment, vat: int, total: int|null}> $documents */
         $documents = $this->entityManager->createQuery('SELECT d.id AS id, d.treatment AS treatment, d.vatMinor AS vat, d.totalMinor AS total FROM '.ReceivedDocument::class.' d WHERE d.id IN (:ids) AND d.state = :state')
             ->setParameter('ids', $subjectIds)

@@ -12,8 +12,8 @@ use Foresi\Documents\Application\Api\CreateDocumentTypeInput;
 use Foresi\Documents\Application\DocumentTypeWrites;
 use Foresi\Documents\Infrastructure\Api\DocumentsJson;
 use Foresi\Documents\Infrastructure\Api\DocumentsRoutes;
-use Foresi\Shared\Infrastructure\Operation\OperationHandler;
-use Foresi\Shared\Infrastructure\Operation\OperationOutput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class CreateDocumentTypeHandler implements OperationHandler

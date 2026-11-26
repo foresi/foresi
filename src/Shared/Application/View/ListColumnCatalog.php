@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface ListColumnCatalog
 {
-    public const string TAG = 'app.list_column_catalog';
+    public const string TAG = 'foresi.shared.list_column_catalog';
 
     /**
      * Every column of a list in its default order: its key, its label in English,

@@ -13,10 +13,10 @@ use Foresi\CashFlow\Application\CashFlowRefused;
 use Foresi\CashFlow\Application\Forecasts;
 use Foresi\CashFlow\Contract\FlowCertainty;
 use Foresi\CashFlow\Infrastructure\Api\CashFlowJson;
-use Foresi\Shared\Infrastructure\Mcp\ReadTool;
-use Foresi\Shared\Infrastructure\Mcp\ToolArguments;
-use Foresi\Shared\Infrastructure\Mcp\ToolOutput;
-use Foresi\Shared\Infrastructure\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The cash-flow forecast of the firm, as GET /api/v1/cash-flow/forecast writes it.
@@ -57,9 +57,9 @@ final readonly class CashFlowForecastTool implements ReadTool
         return [
             'type' => 'object',
             'properties' => [
-                'from' => ToolArguments::dateSchema('The first day, today or later; today when left out.'),
+                'from' => ToolSchema::dateSchema('The first day, today or later; today when left out.'),
                 'months' => ['type' => 'integer', 'minimum' => 1, 'maximum' => Forecasts::MAX_MONTHS, 'description' => 'How many calendar months the forecast covers; 12 when left out.'],
-                'weeks_until' => ToolArguments::dateSchema('Weeks are used up to the week that holds this day, then months; the end of next month when left out.'),
+                'weeks_until' => ToolSchema::dateSchema('Weeks are used up to the week that holds this day, then months; the end of next month when left out.'),
                 'certainty' => ['type' => 'array', 'items' => ['type' => 'string', 'enum' => FlowCertainty::values()], 'uniqueItems' => true, 'description' => 'The certainties counted; all when left out. The balance today is never filtered.'],
             ],
             'additionalProperties' => false,
@@ -77,7 +77,7 @@ final readonly class CashFlowForecastTool implements ReadTool
             throw ToolRefusal::invalidArgument('The argument "certainty" must be a list.');
         }
         try {
-            $forecast = $this->forecasts->of(ToolArguments::text($arguments, 'from'), $months, ToolArguments::text($arguments, 'weeks_until'), null === $certainty ? null : Forecasts::certainties(array_values($certainty)));
+            $forecast = $this->forecasts->of(ToolSchema::text($arguments, 'from'), $months, ToolSchema::text($arguments, 'weeks_until'), null === $certainty ? null : Forecasts::certainties(array_values($certainty)));
         } catch (CashFlowRefused $refused) {
             throw CashFlowToolRefusal::of($refused);
         }

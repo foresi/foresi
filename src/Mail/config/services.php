@@ -17,16 +17,20 @@ use Foresi\Mail\Application\MailMessages;
 use Foresi\Mail\Application\MailParts;
 use Foresi\Mail\Application\MailReader;
 use Foresi\Mail\Application\MailTransaction;
+use Foresi\Mail\Application\PersonalAddresses;
 use Foresi\Mail\Application\PollFailures;
 use Foresi\Mail\Application\ReceiveMail;
+use Foresi\Mail\Application\StoredAddressOwners;
 use Foresi\Mail\Application\StoredMessages;
 use Foresi\Mail\Application\StoredRetention;
 use Foresi\Mail\Application\TrustSettings;
 use Foresi\Mail\Contract\AddressIssuer;
+use Foresi\Mail\Contract\AddressOwners;
 use Foresi\Mail\Contract\CrossPurposeDuplicates;
 use Foresi\Mail\Contract\InboundPurpose;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
+use Foresi\Mail\Contract\OwnAddresses;
 use Foresi\Mail\Infrastructure\CachePollFailures;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineCrossPurposeDuplicates;
 use Foresi\Mail\Infrastructure\Doctrine\DoctrineInboundAddresses;
@@ -56,9 +60,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->exclude(['../config/', '../Integration/', '../migrations/', '../MailBundle.php']);
 
     // A module takes the mail of its own addresses by registering a purpose.
-    $builder->registerForAutoconfiguration(InboundPurpose::class)->addTag('app.mail_inbound_purpose');
+    $builder->registerForAutoconfiguration(InboundPurpose::class)->addTag(InboundPurpose::TAG);
     $services->set(InboundPurposes::class)
-        ->arg('$purposes', tagged_iterator('app.mail_inbound_purpose'));
+        ->arg('$purposes', tagged_iterator(InboundPurpose::TAG));
 
     $services->alias(MailMessages::class, DoctrineMailMessages::class);
     $services->alias(InboundAddressStore::class, DoctrineInboundAddresses::class);
@@ -68,6 +72,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(AddressIssuer::class, IssueAddresses::class);
     $services->alias(CrossPurposeDuplicates::class, DoctrineCrossPurposeDuplicates::class);
     $services->alias(MessageRetention::class, StoredRetention::class);
+    $services->alias(OwnAddresses::class, PersonalAddresses::class);
+    $services->alias(AddressOwners::class, StoredAddressOwners::class);
 
     // Raw mail as it arrived; never below public/. Back it up with the database.
     $container->parameters()->set('app.inbound_mail_dir', '%kernel.share_dir%/inbound-mail');
@@ -84,7 +90,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // The inbound address template; empty means inbound mail is not set up here.
     $services->set(InboundAddresses::class)
         ->arg('$template', '%env(string:mail_inbound:ADDRESS)%');
-    // How many mails one address takes in an instance day; the rest is dropped.
+    // How many mails one address takes in an instance day; the rest is dropped. The default
+    // keeps an installation whose own .env predates the setting running.
+    $container->parameters()->set('env(MAIL_INBOUND_DAILY_LIMIT)', '500');
     $services->set(DailyLimit::class)
         ->arg('$limit', '%env(int:MAIL_INBOUND_DAILY_LIMIT)%');
     // The operator mailbox mail is polled from; none when MAIL_INBOUND_HOST is empty.
@@ -125,6 +133,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         // One that belongs to a person, as the addresses people manage themselves do.
         $services->set('test.mail_purpose_owned', RecordingPurpose::class)
             ->args([RecordingPurpose::OWNED_KEY, false, true]);
+        $services->set('test.mail_purpose_owned_reshowable', RecordingPurpose::class)
+            ->args([RecordingPurpose::OWNED_RESHOWABLE_KEY, true, true]);
     }
 
     if ('e2e' === $container->env()) {
