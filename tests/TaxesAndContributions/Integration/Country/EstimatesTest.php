@@ -193,7 +193,7 @@ final class EstimatesTest extends TaxesTestCase
         self::assertSame(121_000, $complete->forecast->totalOf(AmountKind::Income)->counted->minor());
     }
 
-    public function testAPastYearEndsWithWhatWasPaidAndNextYearHasNoYearEnd(): void
+    public function testAPastYearEndsWithWhatWasPaid(): void
     {
         Clock::set(new MockClock('2027-02-01 10:00:00', 'UTC'));
         $forecast = new FakeForecastSource([$this->expected('a', '2027-03-01', 605_000)]);
@@ -204,11 +204,47 @@ final class EstimatesTest extends TaxesTestCase
         self::assertNull($past->forecast);
         self::assertSame([], $forecast->asked);
         self::assertCount(12, $past->accruals['actual'] ?? []);
+    }
 
-        $next = $this->estimates([], [$forecast])->of(2028);
-        self::assertNull($next->yearEnd);
-        self::assertSame(EstimateView::TO_DATE_YEAR_NOT_STARTED, $next->yearEndReason);
-        self::assertSame([], $forecast->asked);
+    public function testNextYearEndsWithTheForecastOfAllItsMonths(): void
+    {
+        $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
+        $forecast = new FakeForecastSource([
+            $this->expected('a', '2027-03-01', 60_000_000, ForecastCertainty::Schedule),
+            $this->expected('b', '2027-11-01', 60_000_000, ForecastCertainty::Schedule),
+            $this->expected('c', '2027-05-01', 10_000_000, ForecastCertainty::Plan, AmountKind::Cost),
+        ]);
+
+        $next = $this->estimates([], [$forecast])->of(2027);
+
+        self::assertNull($next->toDate);
+        self::assertSame(EstimateView::TO_DATE_YEAR_NOT_STARTED, $next->toDateReason);
+        self::assertSame([['2027-01-01', '2027-12-31']], $forecast->asked, 'Every month of next year is read, none of this one.');
+        self::assertInstanceOf(RegimeResult::class, $next->yearEnd);
+        self::assertNull($next->yearEndReason);
+        self::assertSame(120_000_000, $next->forecast?->totalOf(AmountKind::Income)->counted->minor());
+        $actual = $next->yearEnd->methods[0];
+        self::assertSame(120_000_000, $actual->totals->income->minor());
+        self::assertSame(10_000_000, $actual->totals->costs->minor());
+        self::assertGreaterThan(0, $actual->totals->levies->minor());
+        self::assertCount(12, $next->accruals['actual'] ?? []);
+        self::assertContains('2027', array_map(static fn (DuePayment $payment): string => (string) $payment->taxYear(), $next->payments));
+
+        self::assertNotContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $next->warnings);
+
+        $stated = new ForecastAmount('cash-flow.planned', null, AmountKind::Income, new \DateTimeImmutable('2027-04-01', new \DateTimeZone('Europe/Prague')), Money::ofMinor(12_100_000, Currency::CZK), ForecastCertainty::Plan, Money::ofMinor(2_100_000, Currency::CZK));
+        $partial = $this->estimates([], [new FakeForecastSource([$stated], ['invoicing.invoices'])])->of(2027);
+        self::assertContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $partial->warnings);
+        self::assertInstanceOf(ForecastView::class, $partial->forecast);
+        self::assertNotSame([], $partial->forecast->unverified);
+        foreach ($partial->forecast->unverified as $note) {
+            self::assertContains($note, $partial->unverified, 'What the forecast could not verify is passed on.');
+        }
+
+        $without = $this->estimates([])->of(2027);
+        self::assertNull($without->yearEnd);
+        self::assertSame(EstimateView::YEAR_END_CASH_FLOW_NOT_INSTALLED, $without->yearEndReason);
+        self::assertNotSame([], $without->payments, 'Without the forecast next year still has its advances.');
     }
 
     public function testAccrualMonthsSumToTheYear(): void

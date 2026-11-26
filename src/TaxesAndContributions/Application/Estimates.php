@@ -34,7 +34,8 @@ use Psr\Log\NullLogger;
  * today, as the rules and statuses of each month make them. It computes
  * "year end" from the same amounts plus the Cash flow forecast from today to
  * 31 December, over every month of the year. Both are kept apart, and the
- * forecast part is split by certainty. Without Cash flow, the year end of
+ * forecast part is split by certainty. Next year has nothing to date; its
+ * year end is the forecast of all its months. Without Cash flow, the year end of
  * this year is null and says why. The payments of the year come with it, each
  * matched to the bank, and the same payments not yet paid feed the estimate
  * flows of the cash flow. When the year before has its expense method
@@ -136,7 +137,7 @@ final readonly class Estimates
         $lastDay = $today->setDate($year, 12, 31);
         $regime = $this->regimeOf($year, $profile);
         if ($year > $thisYear) {
-            return new EstimateView($year, $today, null, EstimateView::TO_DATE_YEAR_NOT_STARTED, null, EstimateView::TO_DATE_YEAR_NOT_STARTED, null, [], [], [], payments: $this->advancesOf($regime, $year, $profile, $today));
+            return $this->nextYear($regime, $year, $profile, $today, $lastDay);
         }
         $amounts = $this->amounts->yearOf($year, $profile);
         $warnings = [] === $amounts->unavailableSources ? [] : [EstimateView::WARNING_SOURCES_UNAVAILABLE];
@@ -193,6 +194,54 @@ final readonly class Estimates
             $yearEnd instanceof RegimeResult ? Accruals::of($yearEnd, $combined) : [],
             // The year end adds the settlement; without it, "to date" has every advance of the year.
             ($yearEnd ?? $toDate)->payments,
+        );
+    }
+
+    /**
+     * Next year, which has not started: nothing to date, and its year end
+     * from the Cash flow forecast of every month of it, the recurring
+     * invoices and the plans, so the owner sees what it may bring. Without
+     * the forecast, or without its rules, it has its advances only.
+     */
+    private function nextYear(Regime $regime, int $year, ProfileView $profile, \DateTimeImmutable $today, \DateTimeImmutable $lastDay): EstimateView
+    {
+        $advances = $this->advancesOf($regime, $year, $profile, $today);
+        $notStarted = static fn (string $reason): EstimateView => new EstimateView($year, $today, null, EstimateView::TO_DATE_YEAR_NOT_STARTED, null, $reason, null, [], [], [], payments: $advances);
+        $source = $this->forecastSource();
+        if (!$source instanceof ForecastAmountSource) {
+            return $notStarted(EstimateView::YEAR_END_CASH_FLOW_NOT_INSTALLED);
+        }
+        $firstDay = $today->setDate($year, 1, 1);
+        try {
+            $forecast = $this->yearEnd->of($source, $profile, $firstDay, $lastDay);
+        } catch (\DomainException $refused) {
+            $this->logger->warning('The forecast for the next year could not be read.', ['exception' => $refused]);
+
+            return $notStarted(EstimateView::YEAR_END_FORECAST_UNAVAILABLE);
+        }
+        $combined = YearEndForecast::combined(AmountsView::none($firstDay, $firstDay), $forecast);
+        $before = $this->yearBefore($year, $profile);
+        try {
+            $yearEnd = $regime->compute(new RegimeInput($year, $profile, $combined, $today, $lastDay, $before));
+        } catch (RulesNotAvailable) {
+            return $notStarted(EstimateView::TO_DATE_RULES_NOT_AVAILABLE);
+        }
+        $warnings = [...$yearEnd->warnings, ...($forecast->incomplete ? [EstimateView::WARNING_FORECAST_INCOMPLETE] : [])];
+
+        return new EstimateView(
+            $year,
+            $today,
+            null,
+            EstimateView::TO_DATE_YEAR_NOT_STARTED,
+            $yearEnd,
+            null,
+            null,
+            $this->distinct($warnings),
+            $this->distinct([...$forecast->unverified, ...$yearEnd->unverified]),
+            $this->distinct($yearEnd->knownGaps),
+            $forecast,
+            Accruals::of($yearEnd, $combined),
+            $yearEnd->payments,
         );
     }
 

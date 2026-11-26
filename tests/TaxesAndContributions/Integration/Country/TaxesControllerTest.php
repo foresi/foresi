@@ -69,8 +69,9 @@ final class TaxesControllerTest extends WebTestCase
         self::assertStringContainsString('Social insurance · Actual costs', $crawler->filter('dialog#sheet-page')->text());
         self::assertStringContainsString('Months of main activity 11', $this->text($crawler, '[data-taxes-step="social"] [data-taxes-step-input]'));
 
-        $this->client->request('GET', '/taxes-and-contributions/steps/2027/actual/social?part=year_end');
-        self::assertResponseStatusCodeSame(404);
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/steps/2027/actual/social?part=year_end', server: [$this->dialogHeader() => DialogRequest::SHEET]);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Social insurance at the year end · Actual costs', $crawler->filter('dialog#sheet-page')->text());
     }
 
     public function testNextYearAndAYearWithoutRulesSayWhy(): void
@@ -80,8 +81,12 @@ final class TaxesControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/taxes-and-contributions?year=2027');
         self::assertResponseIsSuccessful();
         self::assertSame('2027', trim($crawler->filter('[data-taxes-years] a[aria-current="page"]')->text()));
-        self::assertStringContainsString('The year 2027 has not started yet', $this->text($crawler, '[data-taxes-empty="year_not_started"]'));
-        self::assertCount(0, $crawler->filter('[data-taxes-summary], [data-taxes-comparison], [data-taxes-credits], [data-taxes-rules]'));
+        // Next year has nothing to date: the column says why, and the year end is the forecast of all its months.
+        self::assertCount(0, $crawler->filter('[data-taxes-empty]'));
+        self::assertStringContainsString('The year 2027 has not started yet', $this->text($crawler, '[data-taxes-summary] [data-taxes-to-date-empty="year_not_started"]'));
+        self::assertCount(1, $crawler->filter('[data-taxes-year-end-cell="levies"] a[data-sheet]'));
+        self::assertCount(1, $crawler->filter('[data-taxes-forecast-badge]'));
+        self::assertCount(0, $crawler->filter('[data-taxes-comparison], [data-taxes-credits]'));
         self::assertStringContainsString('An estimate, not a basis for the tax return.', $this->text($crawler, '[data-taxes-footer]'));
 
         $crawler = $this->client->request('GET', '/taxes-and-contributions?year=2025');
