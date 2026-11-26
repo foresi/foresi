@@ -689,3 +689,55 @@ work:
     subtasks: '{done} of {total} subtasks done'
   tasks:
     search_label: Search tasks
+    title: Tasks
+    views: Views of the tasks
+    total: '{count, plural, one {# task} other {# tasks}}'
+    tab:
+      all: All open
+      mine: Mine
+      overdue: Overdue
+      unassigned: Unassigned
+      high: High and urgent
+      no_due: No due date
+    field:
+      client: Client
+      status_type: Status type
+      due_on: Due date
+      created_by: Created by
+      created: Created
+      updated: Updated
+      logged: Logged
+    group_by:
+      none: No grouping
+      client: Client
+      project: Project
+      responsible: Responsible
+      priority: Priority
+      status_type: Status type
+      due: Due date
+    group:
+      no_client: No client
+      no_responsible: Unassigned
+    empty:
+      all_title: No unfinished tasks
+      all_text: The unfinished tasks of every project you see show here.
+      mine_title: You have no unfinished tasks
+      mine_text: The tasks you are responsible for show here.
+      overdue_title: Nothing is overdue
+      overdue_text: Unfinished tasks past their due date show here.
+      unassigned_title: Every task has someone responsible
+      unassigned_text: Unfinished tasks with no one responsible show here.
+      high_title: No high or urgent tasks
+      high_text: Unfinished tasks of high or urgent priority show here.
+      no_due_title: Every task has a due date
+      no_due_text: Unfinished tasks with no due date show here.
+      filtered_title: Nothing matches
+      filtered: No task matches these conditions.
+      reset: Reset the view
+    new:
+      project_help: The projects you last added a task to come first.
+      project_none: No project matches.
+      project_required: Choose the project the task goes in.
+      due_invalid: Enter the due date as a date.
+      priority_invalid: Choose a priority.
+      no_projects: There is no project a task of yours can go in yet.

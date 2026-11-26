@@ -55,8 +55,10 @@ use Foresi\Work\Application\TaskDetail;
 use Foresi\Work\Application\TaskFilter;
 use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskHistory;
+use Foresi\Work\Application\TaskIndex;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\Tasks;
+use Foresi\Work\Application\TaskSearch;
 use Foresi\Work\Application\TaskSliceFilter;
 use Foresi\Work\Application\TrashedLabel;
 use Foresi\Work\Application\TrashedTask;
@@ -65,6 +67,7 @@ use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
+use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
@@ -79,6 +82,7 @@ use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskLabel;
 use Foresi\Work\Domain\TaskWatcher;
+use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 
 /**
@@ -109,6 +113,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private const string TRASHED = 't.project = :project AND t.deletedAt IS NOT NULL AND (pa.id IS NULL OR pa.deletedAt IS NULL OR pa.deletedAt <> t.deletedAt)';
 
     public function __construct(private ProjectLists $projectLists,
+        private TaskLists $taskLists,
         private EntityManagerInterface $entityManager,
         private WorkVisibility $visibility,
         private Projects $projects,
@@ -124,7 +129,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private VisibleAttachments $attachments,
         private OwnerCheck $owner,
         private TrashPermission $trash,
-        private ProjectTaskLists $taskLists,
+        private ProjectTaskLists $projectTaskLists,
         private Fields $fields,
     ) {
     }
@@ -617,6 +622,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 return [];
             }
             $where .= ' AND '.self::RESPONSIBLE;
+            $parameters['me'] = [$me->id(), null];
         } elseif (null !== $filter->responsible) {
             if (!Id::isValid($filter->responsible)) {
                 return [];
@@ -648,34 +654,171 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $where .= ' AND LOWER(t.title) LIKE :text ESCAPE \'!\'';
             $parameters['text'] = ['%'.$this->like(mb_strtolower(mb_substr($text, 0, self::MAX_TEXT))).'%', null];
         }
-        if ($filter->view instanceof ViewFilter && [] !== $filter->view->conditions) {
-            if (!$me instanceof Membership) {
-                return [];
-            }
-            // Each condition's subquery has an alias of its own.
-            $derived = static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, [MyTaskLists::RESPONSIBLE => self::RESPONSIBLE, MyTaskLists::WATCHER => self::watched('w'.$name)]), []];
-            [$condition, $bound] = new DqlConditions(MyTaskLists::list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter->view, $this->clock->today(...), 'view');
+        $view = $filter->view ?? new ViewFilter();
+        if ([] !== $view->conditions || $filter->open) {
+            [$condition, $bound] = new TaskListDql($this->taskLists->list(), $me, $this->clock->today())->where($view, $filter->open, 'view');
             $where .= ' AND '.$condition;
             $parameters += $bound;
+        }
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+        if ('' !== $filter->sort) {
+            return $this->sortedSlice($where, $parameters, $seen, $filter->sort, $afterId, $limit);
         }
         if (null !== $afterId) {
             $where .= ' AND t.id < :after';
             $parameters['after'] = [$afterId, null];
         }
-        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         $query = $seen->apply($this->entityManager
-            ->createQuery(self::TASKS.$seen->joins.' WHERE '.$where.$seen->where.' ORDER BY t.id DESC'))
+            ->createQuery('SELECT t, s, r, u, p, c'.TaskListDql::FROM.$seen->joins.' WHERE '.$where.$seen->where.' ORDER BY t.id DESC'))
             ->setMaxResults($limit);
-        if ($me instanceof Membership && str_contains($where, ':me')) {
-            $query->setParameter('me', $me->id());
-        }
-        foreach ($parameters as $name => [$value, $type]) {
-            $query->setParameter($name, $value, $type);
-        }
+        $this->bind($query, $parameters);
         /** @var list<Task> $tasks */
         $tasks = $query->getResult();
 
         return $this->flat($tasks);
+    }
+
+    /**
+     * A slice in a sort: the ids of every task that matches in order, then the tasks of the
+     * slice after the one the cursor names. The ids are read whole, as the sort leaves no
+     * key to continue from; a cursor of a task no longer listed starts over.
+     *
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
+     *
+     * @return list<TaskRow>
+     */
+    private function sortedSlice(string $where, array $parameters, ScopedDql $seen, string $sort, ?string $afterId, int $limit): array
+    {
+        [$hidden, $order] = $this->ordered(TaskListDql::order(TaskLists::sort($sort, TaskLists::DEFAULT_SORT)));
+        $query = $seen->apply($this->entityManager
+            ->createQuery('SELECT t.id'.$hidden.TaskListDql::FROM.$seen->joins.' WHERE '.$where.$seen->where.$order));
+        $this->bind($query, $parameters);
+        /** @var list<string> $ids */
+        $ids = array_column($query->getScalarResult(), 'id');
+        $at = null === $afterId ? false : array_search($afterId, $ids, true);
+        $ids = \array_slice($ids, false === $at ? 0 : $at + 1, $limit);
+        if ([] === $ids) {
+            return [];
+        }
+        /** @var list<Task> $tasks */
+        $tasks = $this->entityManager
+            ->createQuery('SELECT t, s, r, u, p, c'.TaskListDql::FROM.' WHERE t.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getResult();
+        $byId = [];
+        foreach ($tasks as $task) {
+            $byId[$task->id()] = $task;
+        }
+
+        return $this->flat(array_values(array_filter(array_map(static fn (string $id): ?Task => $byId[$id] ?? null, $ids))));
+    }
+
+    public function taskIndex(TaskSearch $search, int $offset, int $limit): TaskIndex
+    {
+        $me = $this->me();
+        $dql = new TaskListDql($this->taskLists->list(), $me, $this->clock->today());
+        [$where, $parameters] = $dql->where($search->filter, true);
+        $where = 't.deletedAt IS NULL AND p.archivedAt IS NULL AND '.$where;
+        $text = trim(mb_substr($search->text, 0, self::MAX_TEXT));
+        if ('' !== $text) {
+            $where .= " AND (LOWER(t.title) LIKE :tl_text ESCAPE '!' OR LOWER(p.name) LIKE :tl_text ESCAPE '!')";
+            $parameters['tl_text'] = ['%'.$this->like(mb_strtolower($text)).'%', null];
+        }
+        $parameters += $dql->dueParameters();
+        $seen = ScopedDql::tasks($this->visibility->scope(), 't');
+        [$hidden, $order] = $this->ordered([...TaskListDql::groupOrder($search->group), ...TaskListDql::order(TaskLists::sort($search->sort, TaskLists::DEFAULT_SORT))]);
+        $query = $seen->apply($this->entityManager
+            ->createQuery('SELECT t, s, r, u, p, c, pa'.$hidden.TaskListDql::FROM.$seen->joins.' WHERE '.$where.$seen->where.$order))
+            ->setFirstResult(max(0, $offset))
+            ->setMaxResults($limit);
+        $this->bind($query, $parameters);
+        /** @var list<Task> $tasks */
+        $tasks = $query->getResult();
+
+        $key = TaskListDql::groupKey($search->group);
+        $counts = $seen->apply($this->entityManager
+            ->createQuery('SELECT '.(null === $key ? "'' AS g" : $key.' AS g').', COUNT(t.id) AS n'.TaskListDql::FROM.$seen->joins.' WHERE '.$where.$seen->where.(null === $key ? '' : ' GROUP BY g')));
+        $this->bind($counts, $parameters);
+        $groups = [];
+        /** @var list<array{g: mixed, n: int|string}> $rows */
+        $rows = $counts->getScalarResult();
+        foreach ($rows as $count) {
+            $group = $count['g'];
+            $group = TaskLists::GROUP_DUE === $search->group ? (TaskListDql::DUE_GROUPS[\is_numeric($group) ? (int) $group : -1] ?? '') : (\is_scalar($group) ? (string) $group : '');
+            $groups[$group] = ($groups[$group] ?? 0) + (int) $count['n'];
+        }
+
+        return new TaskIndex($this->flat($tasks, true), array_sum($groups), $groups);
+    }
+
+    public function taskableProjects(string $text = '', int $limit = 20): array
+    {
+        $text = mb_strtolower(trim(mb_substr($text, 0, self::MAX_TEXT)));
+        $userId = $this->actor->userId();
+        $last = [];
+        if (null !== $userId) {
+            /** @var list<array{project: string, last: mixed}> $used */
+            $used = $this->entityManager
+                ->createQuery('SELECT IDENTITY(t.project) AS project, MAX(t.createdAt) AS last FROM '.Task::class.' t WHERE t.createdBy = :user GROUP BY t.project')
+                ->setParameter('user', $userId)
+                ->getScalarResult();
+            foreach ($used as $row) {
+                $last[$row['project']] = \is_scalar($row['last']) ? (string) $row['last'] : '';
+            }
+        }
+        $projects = [];
+        foreach ($this->projects() as $row) {
+            $haystack = mb_strtolower($row->name.' '.($row->clientName ?? ''));
+            $project = $this->projects->project($row->id);
+            if (('' === $text || str_contains($haystack, $text)) && $project instanceof Project && $this->summary($project)->taskable) {
+                $projects[] = $row;
+            }
+        }
+        // The last used first, then by name, as projects() lists them.
+        $order = array_flip(array_map(static fn (ProjectRow $row): string => $row->id, $projects));
+        usort($projects, static fn (ProjectRow $a, ProjectRow $b): int => [isset($last[$a->id]) ? 0 : 1, $last[$b->id] ?? '', $order[$a->id]] <=> [isset($last[$b->id]) ? 0 : 1, $last[$a->id] ?? '', $order[$b->id]]);
+
+        return \array_slice($projects, 0, max(1, $limit));
+    }
+
+    /**
+     * The HIDDEN fields a list of order expressions needs and its ORDER BY: an expression
+     * other than a path is selected under a name of its own, as DQL orders by those.
+     *
+     * @param list<array{string, string}> $order
+     *
+     * @return array{string, string}
+     */
+    private function ordered(array $order): array
+    {
+        $hidden = '';
+        $by = [];
+        foreach ($order as $index => [$expression, $dir]) {
+            if (1 === preg_match('/^[a-z]+\.[A-Za-z]+$/', $expression)) {
+                $by[] = $expression.' '.$dir;
+            } else {
+                $hidden .= ', '.$expression.' AS HIDDEN o'.$index;
+                $by[] = 'o'.$index.' '.$dir;
+            }
+        }
+
+        return [$hidden, ' ORDER BY '.implode(', ', $by)];
+    }
+
+    /**
+     * Binds the parameters the query's DQL names, and only those: DQL refuses one it does not use.
+     *
+     * @param Query<mixed, mixed>                                         $query
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
+     */
+    private function bind(Query $query, array $parameters): void
+    {
+        $dql = (string) $query->getDQL();
+        foreach ($parameters as $name => [$value, $type]) {
+            if (1 === preg_match('/:'.preg_quote($name, '/').'(?!\w)/', $dql)) {
+                $query->setParameter($name, $value, $type);
+            }
+        }
     }
 
     public function projectSlice(ProjectSliceFilter $filter, ?string $afterId, int $limit): array
@@ -855,10 +998,10 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     {
         $conditions = $filter->conditions;
         if ($conditions instanceof TaskConditions) {
-            $others = $conditions->others($this->taskLists->list());
+            $others = $conditions->others($this->projectTaskLists->list());
             if ([] !== $others->conditions) {
                 $derived = static fn (): never => throw new \LogicException('A field of the tasks the query matches has its expression.');
-                [$where, $parameters] = new DqlConditions($this->taskLists->list(), [], $derived(...))->compile($others, $this->clock->today(...), 'v');
+                [$where, $parameters] = new DqlConditions($this->projectTaskLists->list(), [], $derived(...))->compile($others, $this->clock->today(...), 'v');
                 $conditions = $conditions->matching($this->taskIds($project, $where, $parameters));
             }
         }
@@ -965,7 +1108,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
      *
      * @return list<TaskRow>
      */
-    private function flat(array $tasks): array
+    private function flat(array $tasks, bool $wide = false): array
     {
         if ([] === $tasks) {
             return [];
@@ -981,7 +1124,47 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $deletable = $this->trash->rule();
         $scope = $this->visibility->scope();
 
-        return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+        if (!$wide) {
+            return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+        }
+        // The estimate and the time sit in the time block of a task, which a guest never sees.
+        $manage = $this->visibility->canManage();
+        $logged = $manage ? $this->logged($tasks) : [];
+
+        return array_map(function (Task $task) use ($labels, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
+            $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0));
+            $client = $task->project()->client();
+
+            return new TaskRow(
+                $row->id, $row->projectId, $row->projectName, $row->sectionId, $row->parentId, $row->title, $row->statusId, $row->statusName, $row->statusType,
+                $row->responsibleId, $row->responsibleName, $row->dueOn, $row->priority, $row->labels, $row->subtaskCount, $row->done, [], $row->deletable, $row->private, $row->projectSeen,
+                $client?->id(),
+                $client?->displayName(),
+                $manage ? $task->estimateMinutes() : null,
+                $manage ? ($logged[$task->id()] ?? 0) : null,
+                $task->createdAt(),
+                $task->updatedAt(),
+                $task->parent()?->title(),
+            );
+        }, $tasks);
+    }
+
+    /**
+     * The minutes logged on each task, the time in the trash and a running timer left out.
+     *
+     * @param list<Task> $tasks
+     *
+     * @return array<string, int> by task id
+     */
+    private function logged(array $tasks): array
+    {
+        /** @var list<array{task: string, minutes: int|string|null}> $sums */
+        $sums = $this->entityManager
+            ->createQuery('SELECT IDENTITY(e.task) AS task, SUM(e.minutes) AS minutes FROM '.TimeEntry::class.' e WHERE e.task IN (:tasks) AND e.deletedAt IS NULL GROUP BY e.task')
+            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
+            ->getScalarResult();
+
+        return array_map(static fn (int|string|null $minutes): int => (int) $minutes, array_column($sums, 'minutes', 'task'));
     }
 
     /**

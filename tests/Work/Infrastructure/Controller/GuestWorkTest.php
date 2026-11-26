@@ -74,7 +74,7 @@ final class GuestWorkTest extends WebTestCase
         // The project of the task is known by its name only: no link to it anywhere.
         self::assertCount(0, $crawler->filter('main a[href="/projects/'.$this->projectId('Office move').'"]'));
         self::assertStringNotContainsString('Hidden', $crawler->filter('main')->text());
-        self::assertSame(['/shared', '/notifications', '/connected-apps', '/my-tasks'], $crawler->filter('#sidebar [data-nav-area]:not([data-nav-area="extensions"]) [data-nav-section] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/connected-apps', '/tasks'], $crawler->filter('#sidebar [data-nav-area]:not([data-nav-area="extensions"]) [data-nav-section] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
     }
 
     public function testAGuestWithNothingSharedSeesTheEmptyStartPage(): void
@@ -318,6 +318,28 @@ final class GuestWorkTest extends WebTestCase
         self::assertCount(1, $row);
         self::assertStringContainsString('Office move', $row->text());
         self::assertCount(0, $row->filter('a[href^="/projects/"]'));
+    }
+
+    public function testTheListOfAllTasksOfAGuestHoldsOnlyWhatIsSharedWithThem(): void
+    {
+        $this->seed();
+
+        $crawler = $this->client->request('GET', '/tasks?view=all');
+
+        self::assertResponseIsSuccessful();
+        $main = $crawler->filter('main')->text();
+        foreach (['Design the homepage', 'Sign the lease'] as $shared) {
+            self::assertStringContainsString($shared, $main);
+        }
+        foreach (['Fix the contact form', 'Brief', 'Price offer', 'Pack the boxes', 'Secret plan'] as $hidden) {
+            self::assertStringNotContainsString($hidden, $main);
+        }
+
+        // The project picker of the filters and of a new task offers only the projects they see.
+        $this->client->request('GET', '/tasks/projects?q=');
+        $projects = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Website', $projects);
+        self::assertStringNotContainsString('Hidden', $projects);
     }
 
     public function testTheStaffOpeningTheGuestStartPageGoToTheProjects(): void

@@ -70,6 +70,10 @@ final class ColumnPicker
     public string $resetHref = '';
     /** Whether the list shows other columns or density than its view. */
     public bool $modified = false;
+    /** @var list<array{value: string, label: string}> what the list can group by, as group=; none for a list that does not group */
+    public array $groups = [];
+    /** What the list groups by now, one of the groups' values. */
+    public ?string $group = null;
 
     /** @var list<array{key: string, label: string, visible: bool, locked: bool, id: string}> */
     private array $views = [];
@@ -159,7 +163,7 @@ final class ColumnPicker
     {
         $hidden = [];
         foreach ($this->keep as $name => $value) {
-            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'density', 'pins', 'page'], true)) {
+            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'density', 'pins', 'group', 'page'], true)) {
                 $hidden[$name] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
             }
         }

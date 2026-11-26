@@ -11,6 +11,8 @@
 
 {% block title %}{{ 'work.my_tasks.title'|trans }}{% endblock %}
 
+{% block actions %}{{ include('@Work/_new_task.html.twig') }}{% endblock %}
+
 {# A change made in a row comes back to this page: Turbo morphs it in place and keeps the scroll. #}
 {% block head %}{{ include('@Work/_morph_refresh.html.twig') }}{% endblock %}
 

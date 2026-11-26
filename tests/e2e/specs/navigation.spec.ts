@@ -75,7 +75,7 @@ test.describe('navigation', () => {
       ['Prodej', 'sales', ['Obchody', 'Dokumenty', /Produkty/, /Faktury/, /Zálohové faktury/, /Daňové doklady/, /Opravné doklady/, /Pravidelné faktury/, /Odeslané e-maily/]],
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
-      ['Projekty', 'projects', [/Projekty/, /Moje úkoly/, /Čas/]],
+      ['Projekty', 'projects', [/Úkoly/, /Projekty/, /Čas/]],
       ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Kurzy měn', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
     ] as const) {
       await openArea(page, label);

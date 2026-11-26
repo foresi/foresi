@@ -63,10 +63,11 @@ final class MyTasksControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'My tasks');
         self::assertSelectorTextContains('main', 'You have no unfinished tasks');
-        $link = $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a[href="/my-tasks"]');
+        // My tasks stays at its address; the area's first item, all tasks, carries my count.
+        $link = $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a[href="/tasks"]');
         self::assertCount(1, $link);
         self::assertCount(0, $link->filter('[data-nav-count]'));
-        self::assertSame(['/projects', '/my-tasks', '/time'], $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['/tasks', '/projects', '/time'], $crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
     }
 
     public function testAGuestWithNothingSharedHasNoTasks(): void
@@ -104,7 +105,7 @@ final class MyTasksControllerTest extends WebTestCase
         // Nothing without a date: the group is left out.
         self::assertCount(0, $crawler->filter('[data-task-group="no_date"]'));
         // Overdue and today, in the sidebar.
-        self::assertSame('3', trim($crawler->filter('#sidebar a[href="/my-tasks"] [data-nav-count]')->text()));
+        self::assertSame('3', trim($crawler->filter('#sidebar a[href="/tasks"] [data-nav-count]')->text()));
     }
 
     public function testAllHoldsTheTasksIAmResponsibleForAndThoseIWatch(): void

@@ -129,7 +129,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
 | `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. The project itself carries `budget {hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. |
 | `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
-| `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first. |
+| `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first or in the `sort` asked for. |
 | `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
 | `/api/v1/tasks/{taskId}/comments` | `tasks:read` | The comments of a task, oldest first, without paging. |
 | `/api/v1/labels` | `tasks:read` | The labels of the organisation, by name. |
@@ -288,15 +288,21 @@ Query parameters of `GET /api/v1/tasks`:
 | --- | --- |
 | `q` | Text to search for in the title. |
 | `project_id` | Only the tasks of one project. Without it, the tasks of archived projects are left out. |
-| `assignee` | `me` for the tasks the token's person is responsible for, or the id of a person. |
+| `assignee` | `me` for the tasks the token's person is responsible for, `none` for those no one is responsible for, or the id of a person. |
+| `priority` | Priorities, comma separated, such as `high,urgent`: a task of any of them. |
+| `label_id` | Label ids, comma separated: a task with any of these labels. |
+| `client_id` | Only the tasks of the projects of this client. |
+| `created_from`, `created_to` | Only the tasks created on or after, on or before a day, `YYYY-MM-DD`. |
+| `updated_from`, `updated_to` | Only the tasks last changed on or after, on or before a day. A task changes when one of its fields or labels does; its comments and time do not change it. |
 | `status_type` | `open`, `active`, `done` or `closed`. |
 | `finished` | `true` for tasks in a status of type `done` or `closed`, `false` for the others. |
 | `due` | `overdue` (before today and not finished), `today`, `next_7_days` (today and the seven days after) or `none`. |
-| `view` | A saved view of the list `work.my_tasks`, such as `work.my_tasks.assigned` or `work.my_tasks.watching`. Needs `views:read` too. |
-| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), checked against `work.my_tasks`. |
+| `view` | A saved view of the list `work.tasks`, such as `work.tasks.mine`, `work.tasks.overdue`, `work.tasks.unassigned`, `work.tasks.high` or `work.tasks.no_due`, or of `work.my_tasks`, such as `work.my_tasks.watching`. A view of `work.tasks` leaves out the finished tasks unless it asks about the status type, as the list does on the screen. Needs `views:read` too. |
+| `filter` | Conditions as JSON in the format of [Saved views](#saved-views), checked against the list of the view, `work.tasks` without one. `work.tasks` has every field of `work.my_tasks` too. |
+| `sort` | `due` (the undated last), `priority`, `created`, `updated`, `project` or `title`; a minus first for backwards, such as `-priority`. Ties go by due date, then the highest priority. Without it, the newest first. The cursor of a sorted list goes on after the task it names. |
 | `limit`, `cursor` | Paging, as above. |
 
-"My tasks" in an instance is `GET /api/v1/tasks?assignee=me&finished=false`. The order is by id, newest first, so a client that wants the tasks by due date sorts them by `due_on` itself.
+"My tasks" in an instance is `GET /api/v1/tasks?view=work.tasks.mine&sort=due`, or `GET /api/v1/tasks?assignee=me&finished=false`.
 
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 

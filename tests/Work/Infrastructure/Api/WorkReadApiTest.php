@@ -10,6 +10,8 @@ namespace Foresi\Tests\Work\Infrastructure\Api;
 
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Api\Cursor;
+use Foresi\Work\Application\ManageTasks;
+use Foresi\Work\Domain\Priority;
 
 /**
  * The reads of projects, tasks, comments, labels and time over REST: what the
@@ -55,8 +57,8 @@ final class WorkReadApiTest extends WorkApiTestCase
     {
         $project = $this->project();
         $id = $this->task($project, 'Launch');
-        $subtask = $this->as(fn (): string => $this->service(\Foresi\Work\Application\ManageTasks::class)->create($project->id(), 'Check links', parentId: $id)->id());
-        $this->as(fn () => $this->service(\Foresi\Work\Application\ManageTasks::class)->describe($id, 'All **pages**.'));
+        $subtask = $this->as(fn (): string => $this->service(ManageTasks::class)->create($project->id(), 'Check links', parentId: $id)->id());
+        $this->as(fn () => $this->service(ManageTasks::class)->describe($id, 'All **pages**.'));
 
         $this->get('/api/v1/tasks/'.$id);
 
@@ -91,6 +93,39 @@ final class WorkReadApiTest extends WorkApiTestCase
         self::assertSame([], $this->ids());
 
         $this->get('/api/v1/tasks', ['assignee' => 'somebody']);
+        $this->assertProblem(400, 'invalid_parameter');
+    }
+
+    public function testTasksAreNarrowedAndSortedAsTheListOfAllTasksDoes(): void
+    {
+        $project = $this->project();
+        $me = $this->membershipOf($this->user)->id();
+        $create = fn (string $title, Priority $priority, ?string $responsible = null): string => $this->as(fn (): string => $this->service(ManageTasks::class)->create($project->id(), $title, responsibleId: $responsible, priority: $priority)->id());
+        $urgent = $create('Urgent', Priority::Urgent, $me);
+        $none = $create('Whenever', Priority::None);
+        $high = $create('High', Priority::High);
+        $label = $this->label('Design');
+        $this->as(fn () => $this->service(ManageTasks::class)->setLabels($none, [$label]));
+
+        $this->get('/api/v1/tasks', ['priority' => 'high,urgent']);
+        self::assertSame([$high, $urgent], $this->ids());
+        $this->get('/api/v1/tasks', ['sort' => '-priority']);
+        self::assertSame([$urgent, $high, $none], $this->ids());
+        $this->get('/api/v1/tasks', ['sort' => '-priority', 'limit' => '1', 'cursor' => Cursor::encode($urgent)]);
+        self::assertSame([$high], $this->ids());
+        $this->get('/api/v1/tasks', ['assignee' => 'none']);
+        self::assertSame([$high, $none], $this->ids());
+        $this->get('/api/v1/tasks', ['label_id' => $label]);
+        self::assertSame([$none], $this->ids());
+        $this->get('/api/v1/tasks', ['created_from' => '2099-01-01']);
+        self::assertSame([], $this->ids());
+        $this->get('/api/v1/tasks', ['view' => 'work.tasks.high', 'sort' => 'title']);
+        self::assertSame([$high, $urgent], $this->ids());
+        self::assertSame('work.tasks', $this->at('applied_view', 'list'));
+        $this->get('/api/v1/tasks', ['filter' => json_encode(['conditions' => [['field' => 'priority', 'op' => 'is', 'value' => 'none']]], \JSON_THROW_ON_ERROR)]);
+        self::assertSame([$none], $this->ids());
+
+        $this->get('/api/v1/tasks', ['sort' => 'colour']);
         $this->assertProblem(400, 'invalid_parameter');
     }
 

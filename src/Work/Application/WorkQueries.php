@@ -76,6 +76,22 @@ interface WorkQueries
      */
     public function myTaskList(ViewFilter $filter, string $text = ''): array;
 
+    /**
+     * A page of the list of all tasks (TaskLists): the tasks the person sees in the active
+     * projects, subtasks among them, that the search holds, in its groups and its order, with
+     * the counts of the whole list. A finished task is left out unless a condition asks about
+     * the status type. The estimate and the time logged are on a row only for whom manages work.
+     */
+    public function taskIndex(TaskSearch $search, int $offset, int $limit): TaskIndex;
+
+    /**
+     * The active projects a new task of the person can go in, those they last added a task
+     * to first, then by name; a text narrows them to those whose name or client's name holds it.
+     *
+     * @return list<ProjectRow>
+     */
+    public function taskableProjects(string $text = '', int $limit = 20): array;
+
     public function task(string $taskId): ?TaskDetail;
 
     /**
@@ -139,13 +155,13 @@ interface WorkQueries
     public function labelTrash(): array;
 
     /**
-     * The tasks the person sees, newest first, those after the id, at most
-     * limit of them: a slice of the API. A task of an archived project is in
-     * it only when the filter names its project.
+     * The tasks the person sees, newest first or in the filter's sort, those after
+     * the id, at most limit of them: a slice of the API. A task of an archived
+     * project is in it only when the filter names its project.
      *
      * @param string|null $afterId the id of the last task of the slice before
      *
-     * @return list<TaskRow> by id, the newest first, each with the number of its subtasks
+     * @return list<TaskRow> by id, the newest first, or in the sort; each with the number of its subtasks
      */
     public function taskSlice(TaskSliceFilter $filter, ?string $afterId, int $limit): array;
 

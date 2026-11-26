@@ -30,7 +30,7 @@ final class WorkToolsTest extends WorkApiTestCase
             SearchProjectsTool::class => ['foresi_search_projects', 'projects:read', ['query', 'archived', 'client_id', 'view_id', 'filter', 'limit', 'cursor']],
             GetProjectTool::class => ['foresi_get_project', 'projects:read', ['project_id']],
             ListProjectPeopleTool::class => ['foresi_list_project_people', 'tasks:read', ['project_id', 'task_id']],
-            SearchTasksTool::class => ['foresi_search_tasks', 'tasks:read', ['query', 'project_id', 'assignee', 'status_type', 'finished', 'due', 'view_id', 'filter', 'limit', 'cursor']],
+            SearchTasksTool::class => ['foresi_search_tasks', 'tasks:read', ['query', 'project_id', 'assignee', 'priority', 'label_id', 'client_id', 'created_from', 'created_to', 'updated_from', 'updated_to', 'sort', 'status_type', 'finished', 'due', 'view_id', 'filter', 'limit', 'cursor']],
             GetTaskTool::class => ['foresi_get_task', 'tasks:read', ['task_id']],
             ListTaskCommentsTool::class => ['foresi_list_task_comments', 'tasks:read', ['task_id']],
             ListLabelsTool::class => ['foresi_list_labels', 'tasks:read', []],
@@ -62,6 +62,7 @@ final class WorkToolsTest extends WorkApiTestCase
         $this->logged($project, $task, 30, $this->user);
 
         self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'me']), $this->call(SearchTasksTool::class, ['assignee' => 'me'])->data['items']);
+        self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'none', 'priority' => 'none,low', 'sort' => '-title']), $this->call(SearchTasksTool::class, ['assignee' => 'none', 'priority' => ['none', 'low'], 'sort' => '-title'])->data['items']);
         self::assertSame($this->rest('/api/v1/tasks/'.$task), $this->call(GetTaskTool::class, ['task_id' => $task])->data);
         self::assertSame($this->rest('/api/v1/tasks/'.$task.'/comments'), $this->call(ListTaskCommentsTool::class, ['task_id' => $task])->data['items']);
         self::assertSame($this->rest('/api/v1/projects'), $this->call(SearchProjectsTool::class)->data['items']);

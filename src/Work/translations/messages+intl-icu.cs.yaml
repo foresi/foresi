@@ -689,3 +689,55 @@ work:
     subtasks: 'Hotové podúkoly: {done} z {total}'
   tasks:
     search_label: Hledat v úkolech
+    title: Úkoly
+    views: Pohledy na úkoly
+    total: '{count, plural, one {# úkol} few {# úkoly} other {# úkolů}}'
+    tab:
+      all: Vše otevřené
+      mine: Moje
+      overdue: Po termínu
+      unassigned: Bez řešitele
+      high: Vysoká a urgentní
+      no_due: Bez termínu
+    field:
+      client: Klient
+      status_type: Typ stavu
+      due_on: Datum termínu
+      created_by: Autor
+      created: Vytvořeno
+      updated: Změněno
+      logged: Odpracováno
+    group_by:
+      none: Neseskupovat
+      client: Klient
+      project: Projekt
+      responsible: Odpovědná osoba
+      priority: Priorita
+      status_type: Typ stavu
+      due: Termín
+    group:
+      no_client: Bez klienta
+      no_responsible: Bez řešitele
+    empty:
+      all_title: Žádné nehotové úkoly
+      all_text: Tady uvidíte nehotové úkoly všech projektů, které vidíte.
+      mine_title: Nemáte žádné nehotové úkoly
+      mine_text: Tady uvidíte úkoly, za které odpovídáte.
+      overdue_title: Nic není po termínu
+      overdue_text: Tady uvidíte nehotové úkoly po termínu.
+      unassigned_title: Každý úkol má odpovědnou osobu
+      unassigned_text: Tady uvidíte nehotové úkoly, za které nikdo neodpovídá.
+      high_title: Žádné úkoly s vysokou ani urgentní prioritou
+      high_text: Tady uvidíte nehotové úkoly s vysokou nebo urgentní prioritou.
+      no_due_title: Každý úkol má termín
+      no_due_text: Tady uvidíte nehotové úkoly bez termínu.
+      filtered_title: Nic tomu neodpovídá
+      filtered: Těmto podmínkám neodpovídá žádný úkol.
+      reset: Obnovit pohled
+    new:
+      project_help: Projekty, kam jste naposledy přidali úkol, jsou nahoře.
+      project_none: Žádný projekt neodpovídá.
+      project_required: Vyberte projekt, do kterého úkol patří.
+      due_invalid: Zadejte termín jako datum.
+      priority_invalid: Vyberte prioritu.
+      no_projects: Zatím není projekt, do kterého byste mohli přidat úkol.
