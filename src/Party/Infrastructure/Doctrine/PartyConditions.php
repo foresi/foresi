@@ -13,11 +13,13 @@ use Doctrine\ORM\Query;
 use Foresi\Party\Application\ContactImports;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\View\ContactLists;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Psr\Clock\ClockInterface;
 
@@ -30,7 +32,7 @@ use Psr\Clock\ClockInterface;
  */
 final readonly class PartyConditions
 {
-    public function __construct(private ContactImports $imports, private ClockInterface $clock, private ContactLists $lists)
+    public function __construct(private ContactImports $imports, private ClockInterface $clock, private ContactLists $lists, private Fields $fields)
     {
     }
 
@@ -144,6 +146,8 @@ final readonly class PartyConditions
             $parameters['key'] = '%'.$this->like($key).'%';
         }
         $conditions[] = 'EXISTS (SELECT 1 FROM '.PartyEmail::class.' e WHERE e.party = p AND LOWER(e.address) LIKE :email ESCAPE \'!\')';
+        // The custom fields that say they are searched (ADR 0045).
+        $conditions = [...$conditions, ...$this->fields->searched(ContactExtension::RECORD, 'p', 'name')];
         $parameters['email'] = '%'.$this->like(mb_strtolower($text)).'%';
 
         return [' AND ('.implode(' OR ', $conditions).')', $this->untyped($parameters)];

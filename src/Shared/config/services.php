@@ -12,6 +12,7 @@ use Foresi\Shared\Application\Sealer;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Infrastructure\Crypto\SodiumSealer;
+use Foresi\Shared\Infrastructure\Field\DoctrineFieldSource;
 use Foresi\Shared\Infrastructure\Http\ContentSecurityPolicy;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolLoader;
 use Foresi\Shared\Infrastructure\Migration\ModuleVersionComparator;
@@ -66,6 +67,18 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     // The MCP tools are named after the module each belongs to.
     $services->set(ReadToolLoader::class)
         ->arg('$modules', inline_service(ModuleGraph::class)->factory([service(InstalledModules::class), 'graph']));
+
+    // The custom fields are keyed by the module that declares them (ADR 0045).
+    $services->set(DoctrineFieldSource::class)
+        ->arg('$modules', inline_service(ModuleGraph::class)->factory([service(InstalledModules::class), 'graph']));
+    if ('test' === $container->env()) {
+        // A record kind only the tests have, with custom fields of every kind of a module only
+        // the tests have (tests/Shared/Fixtures/Field), so they change no list of the application.
+        $services->set(Foresi\Tests\Shared\Fixtures\Field\FixtureNoteRecord::class);
+        $services->set(Foresi\Tests\Shared\Fixtures\Field\LentFields::class)->public();
+        $services->set(DoctrineFieldSource::class)
+            ->arg('$modules', inline_service(ModuleGraph::class)->factory(Foresi\Tests\Shared\Fixtures\Field\FixtureModules::graph(...))->args([service(InstalledModules::class)]));
+    }
 
     // The order of the migrations of all modules (config/packages/doctrine_migrations.yaml).
     $services->set(ModuleVersionComparator::class)

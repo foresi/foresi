@@ -9,7 +9,7 @@
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
         "foresi/identity": "*",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^1.3",
         "foresi/party": "*",
         "foresi/shared": "*",
         "foresi/ui": "*",

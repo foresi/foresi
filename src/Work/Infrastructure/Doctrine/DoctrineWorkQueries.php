@@ -22,6 +22,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\Markdown;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Infrastructure\View\DqlConditions;
 use Foresi\Ui\Avatar;
@@ -62,10 +63,13 @@ use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\TrashPermission;
 use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\View\ProjectLists;
+use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkScope;
 use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Contract\Field\ProjectExtension;
+use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -120,6 +124,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private VisibleAttachments $attachments,
         private OwnerCheck $owner,
         private TrashPermission $trash,
+        private ProjectTaskLists $taskLists,
+        private Fields $fields,
     ) {
     }
 
@@ -148,7 +154,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
         $direction = $descending ? 'DESC' : 'ASC';
         $text = trim(mb_substr($text, 0, self::MAX_TEXT));
-        $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!')";
+        $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!'"
+            .implode('', array_map(static fn (string $field): string => ' OR '.$field, $this->fields->searched(ProjectExtension::RECORD, 'p', 'text'))).')';
         $query = $seen->apply($this->entityManager
             ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
         if ('' !== $text) {
@@ -176,6 +183,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         if ([] === $projects) {
             return [];
         }
+        // The custom fields of the rows, read once for their columns (ADR 0045).
+        $this->fields->values(ProjectExtension::RECORD, array_map(static fn (Project $project): string => $project->id(), $projects));
         $tasks = ScopedDql::tasks($scope, 't');
         /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
         $counts = $tasks->apply($this->entityManager
@@ -207,7 +216,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         if (!$project instanceof Project) {
             return null;
         }
-        $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
+        $rows = $this->filtered($this->tree($this->projectTasks($project)), $this->withFields($project, $filter));
         $sections = [new SectionTasks(null, null, array_values(array_filter($rows, static fn (TaskRow $row): bool => null === $row->sectionId)))];
         foreach ($this->sections($project) as $section) {
             $sections[] = new SectionTasks($section->id(), $section->name(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->sectionId === $section->id())), $section->isPrivate());
@@ -222,7 +231,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         if (!$project instanceof Project) {
             return null;
         }
-        $rows = $this->filtered($this->tree($this->projectTasks($project)), $filter);
+        $rows = $this->filtered($this->tree($this->projectTasks($project)), $this->withFields($project, $filter));
         $columns = [];
         foreach ($this->projects->statuses($project) as $status) {
             $columns[] = new StatusTasks($status->id(), $status->name(), $status->type(), array_values(array_filter($rows, static fn (TaskRow $row): bool => $row->statusId === $status->id())));
@@ -838,6 +847,47 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     }
 
     /**
+     * The filter with what the query matches of the custom fields (ADR 0045): the tasks of
+     * the project that hold the view's conditions on them, and those whose searched fields
+     * hold the text. The rest of the filter is matched on the rows.
+     */
+    private function withFields(Project $project, TaskFilter $filter): TaskFilter
+    {
+        $conditions = $filter->conditions;
+        if ($conditions instanceof TaskConditions) {
+            $others = $conditions->others($this->taskLists->list());
+            if ([] !== $others->conditions) {
+                $derived = static fn (): never => throw new \LogicException('A field of the tasks the query matches has its expression.');
+                [$where, $parameters] = new DqlConditions($this->taskLists->list(), [], $derived(...))->compile($others, $this->clock->today(...), 'v');
+                $conditions = $conditions->matching($this->taskIds($project, $where, $parameters));
+            }
+        }
+        $found = [];
+        $text = mb_strtolower(trim(mb_substr($filter->text, 0, self::MAX_TEXT)));
+        $searched = $this->fields->searched(TaskExtension::RECORD, 't', 'text');
+        if ('' !== $text && [] !== $searched) {
+            $found = $this->taskIds($project, '('.implode(' OR ', $searched).')', ['text' => ['%'.$this->like($text).'%', null]]);
+        }
+
+        return new TaskFilter($filter->responsibleId, $filter->statusType, $filter->due, $filter->finished, $conditions, $filter->text, $found);
+    }
+
+    /**
+     * @param array<string, array{mixed, string|ArrayParameterType|null}> $parameters
+     *
+     * @return list<string> the tasks of the project that hold the condition
+     */
+    private function taskIds(Project $project, string $where, array $parameters): array
+    {
+        $query = $this->entityManager->createQuery('SELECT t.id FROM '.Task::class.' t WHERE t.project = :project AND '.$where)->setParameter('project', $project->id());
+        foreach ($parameters as $name => [$value, $type]) {
+            $query->setParameter($name, $value, $type);
+        }
+
+        return array_values(array_filter($query->getSingleColumnResult(), \is_string(...)));
+    }
+
+    /**
      * @return list<Task> top-level tasks and subtasks the person sees, by position
      */
     private function projectTasks(Project $project): array
@@ -848,6 +898,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ->createQuery(self::TASKS.$seen->joins.' WHERE t.project = :project AND t.deletedAt IS NULL'.$seen->where.self::ORDER))
             ->setParameter('project', $project->id())
             ->getResult();
+        // The custom fields of the rows, read once for their columns (ADR 0045).
+        $this->fields->values(TaskExtension::RECORD, array_map(static fn (Task $task): string => $task->id(), $tasks));
 
         return $tasks;
     }
@@ -1018,7 +1070,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             if ($filter->conditions instanceof TaskConditions && !$filter->conditions->matches($row)) {
                 return false;
             }
-            if ('' !== $text && !self::titled($row, $text)) {
+            if ('' !== $text && !self::titled($row, $text) && !\in_array($row->id, $filter->found, true)) {
                 return false;
             }
             $due = $row->dueOn?->format('Y-m-d');

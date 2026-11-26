@@ -16,6 +16,7 @@ use Foresi\Party\Application\PartyCounts;
 use Foresi\Party\Application\PartyPage;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\EmailPurpose;
@@ -27,6 +28,7 @@ use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Domain\Id;
 
 /**
@@ -41,7 +43,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     private const int MAX_TEXT = 100;
 
-    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSource $source)
+    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSource $source, private Fields $fields)
     {
     }
 
@@ -108,13 +110,31 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         $page = max(1, min($page, $pages));
         // By the expression the data source gives the attribute (spec DS10), then by the name.
         $descending = str_starts_with($sort, '-');
-        $order = array_values(array_unique([$this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_NAME, self::ORDER_NAME]));
+        // A sortable custom field sorts by its column in the row of its extension (ADR 0045).
+        [$join, $by] = $this->fieldSort(ltrim($sort, '-'));
+        $order = array_values(array_unique([$by ?? $this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_NAME, self::ORDER_NAME]));
         $ids = PartyConditions::bind($this->em->createQuery(
-            'SELECT p.id FROM '.Party::class.' p WHERE '.$where.' ORDER BY '
+            'SELECT p.id FROM '.Party::class.' p '.$join.' WHERE '.$where.' ORDER BY '
             .implode(', ', array_map(static fn (string $column, int $index): string => $column.($descending && 0 === $index ? ' DESC' : ''), $order, array_keys($order))).', p.id',
         ), $parameters)->setFirstResult(($page - 1) * self::PER_PAGE)->setMaxResults(self::PER_PAGE);
 
         return new PartyPage($this->rows(array_values(array_filter($ids->getSingleColumnResult(), \is_string(...)))), $total, $page, $pages, $counts);
+    }
+
+    /**
+     * The join and the column of a sortable custom field the sort names; nothing for any other sort.
+     *
+     * @return array{string, ?string}
+     */
+    private function fieldSort(string $key): array
+    {
+        $definition = $this->fields->definition(ContactExtension::RECORD, $key);
+        if (!$definition instanceof \Foresi\Shared\Contract\Field\FieldDefinition || !$definition->sortable) {
+            return ['', null];
+        }
+        $expression = $this->fields->expression(ContactExtension::RECORD, $key, 'p');
+
+        return [$expression->join(), $expression->column];
     }
 
     public function find(string $id): ?Party
@@ -175,6 +195,8 @@ final readonly class DoctrinePartyQuery implements PartyQuery
             $billing[$address->party()->id()] = $address->address();
         }
 
+        // The custom fields of the page, read once for its columns (ADR 0045).
+        $this->fields->values(ContactExtension::RECORD, $ids);
         $byId = [];
         foreach ($this->findMany($ids) as $party) {
             $id = $party->id();

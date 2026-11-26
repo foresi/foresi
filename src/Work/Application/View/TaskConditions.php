@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Work\Application\View;
 
 use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\TaskRow;
@@ -26,13 +27,36 @@ use Foresi\Work\Application\TaskRow;
  */
 final readonly class TaskConditions
 {
+    /** The fields matched here; the query matches the others, such as the custom fields. */
+    private const array OWN = [ProjectTaskLists::RESPONSIBLE, ProjectTaskLists::STATUS, ProjectTaskLists::DUE, ProjectTaskLists::TITLE, ProjectTaskLists::PRIORITY];
+
     /**
-     * @param ViewFilter         $filter the view's conditions, all of which hold
-     * @param string|null        $me     the membership of the person looking; null matches no task as theirs
-     * @param \DateTimeImmutable $today  today in the instance's time zone
+     * @param ViewFilter               $filter  the view's conditions, all of which hold
+     * @param string|null              $me      the membership of the person looking; null matches no task as theirs
+     * @param \DateTimeImmutable       $today   today in the instance's time zone
+     * @param array<string, true>|null $matched the tasks that hold the conditions the query matches (others()), by id; null when it matched none
      */
-    public function __construct(private ViewFilter $filter, private ?string $me, private \DateTimeImmutable $today)
+    public function __construct(private ViewFilter $filter, private ?string $me, private \DateTimeImmutable $today, private ?array $matched = null)
     {
+    }
+
+    /**
+     * The conditions on fields with an expression that are not matched here, such as
+     * those on custom fields (ADR 0045): the query matches them.
+     */
+    public function others(ListDefinition $list): ViewFilter
+    {
+        return new ViewFilter(array_values(array_filter($this->filter->conditions, static fn (Condition $condition): bool => !\in_array($condition->field, self::OWN, true) && null !== $list->field($condition->field)?->expression)));
+    }
+
+    /**
+     * The same conditions, with the tasks that hold the others.
+     *
+     * @param list<string> $ids
+     */
+    public function matching(array $ids): self
+    {
+        return new self($this->filter, $this->me, $this->today, array_fill_keys($ids, true));
     }
 
     public function matches(TaskRow $task): bool
@@ -47,7 +71,7 @@ final readonly class TaskConditions
                 ProjectTaskLists::DUE => $this->any($condition, $this->buckets($task)),
                 ProjectTaskLists::TITLE => $this->text($condition, $task->title),
                 ProjectTaskLists::PRIORITY => $this->any($condition, [$task->priority->value]),
-                default => true,
+                default => null === $this->matched || isset($this->matched[$task->id]),
             };
             if (!$holds) {
                 return false;

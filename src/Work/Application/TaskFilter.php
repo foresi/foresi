@@ -20,6 +20,7 @@ final readonly class TaskFilter
      * @param bool|null           $finished   only the tasks whose status is finished (true) or not (false)
      * @param TaskConditions|null $conditions the conditions of the list's view, which the tasks also hold
      * @param string              $text       a text the title of the task or of one of its subtasks holds, whatever its case; empty for none
+     * @param list<string>        $found      the tasks whose searched custom fields hold the text, which match it too (ADR 0045)
      */
     public function __construct(
         public ?string $responsibleId = null,
@@ -28,6 +29,7 @@ final readonly class TaskFilter
         public ?bool $finished = null,
         public ?TaskConditions $conditions = null,
         public string $text = '',
+        public array $found = [],
     ) {
     }
 }
