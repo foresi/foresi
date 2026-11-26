@@ -45,6 +45,8 @@ final readonly class FixtureNoteInput implements InboxActionInput
         public bool $markDone = true,
         #[Field('Make the note, then fail while Inbox adds it to the item.')]
         public bool $failRecording = false,
+        #[Field('A record the note is about, such as the task an earlier step of a suggestion made.', format: 'uuid')]
+        public ?string $aboutId = null,
     ) {
     }
 

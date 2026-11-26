@@ -1675,6 +1675,50 @@ nelmio_api_doc:
                     required: [suggestions]
                     properties:
                         suggestions: { type: array, items: { $ref: '#/components/schemas/InboxSuggestion' } }
+                InboxSuggestionDecision:
+                    type: object
+                    description: 'What came of deciding one suggestion: its state and its steps'' states, without the agent''s text.'
+                    required: [id, item_id, state, refusal, steps]
+                    properties:
+                        id: { type: string, format: uuid }
+                        item_id: { type: string, format: uuid, nullable: true, description: 'Null for a suggestion you do not have.' }
+                        state: { type: string, enum: [proposed, accepted, rejected, superseded], nullable: true, description: 'Proposed while a step failed or waits; null for a suggestion you do not have.' }
+                        refusal:
+                            type: object
+                            nullable: true
+                            description: 'Why the suggestion itself was not decided; null when its steps ran.'
+                            required: [reason, field]
+                            properties:
+                                reason: { type: string, enum: [not_found, not_open, item_trashed] }
+                                field: { type: string, nullable: true }
+                        steps:
+                            type: array
+                            items:
+                                type: object
+                                required: [position, state, record, refusal]
+                                properties:
+                                    position: { type: integer, minimum: 1 }
+                                    state: { type: string, enum: [pending, done, failed, skipped] }
+                                    record:
+                                        type: object
+                                        nullable: true
+                                        required: [kind, id]
+                                        properties:
+                                            kind: { type: string, example: task }
+                                            id: { type: string, format: uuid }
+                                    refusal:
+                                        type: object
+                                        nullable: true
+                                        description: 'Why its action refused it: the reason code and the field in the step, such as input.projectId.'
+                                        required: [reason, field]
+                                        properties:
+                                            reason: { type: string, example: insufficient_scope }
+                                            field: { type: string, nullable: true }
+                InboxSuggestionDecisionList:
+                    type: object
+                    required: [suggestions]
+                    properties:
+                        suggestions: { type: array, items: { $ref: '#/components/schemas/InboxSuggestionDecision' } }
                 TaxProfile:
                     type: object
                     description: The owner profile; only the owner reads it.

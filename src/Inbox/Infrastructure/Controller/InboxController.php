@@ -235,7 +235,19 @@ final class InboxController extends AbstractController
     public function done(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
-        $this->refused(fn (): InboxItem => $this->writes->done(new MarkItemDoneInput($id)));
+        // What becomes of open suggestions, when the person was asked (reject or keep).
+        $suggestions = $request->request->getString('suggestions');
+        try {
+            $this->writes->done(new MarkItemDoneInput($id, \in_array($suggestions, MarkItemDoneInput::SUGGESTIONS, true) ? $suggestions : null));
+        } catch (Refused $refused) {
+            if ('open_suggestions' !== $refused->reason()) {
+                throw $this->httpError($refused);
+            }
+            // The item page asks whether to reject or keep them.
+            $this->addFlash('warning', $this->translator->trans('inbox.flash.open_suggestions'));
+
+            return $this->redirectToRoute(self::ITEM_ROUTE, ['id' => $id]);
+        }
         $this->addFlash('success', $this->translator->trans('inbox.flash.done'));
 
         return $this->afterAction($request, $id, toList: true);

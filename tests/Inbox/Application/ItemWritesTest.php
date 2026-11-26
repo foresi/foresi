@@ -28,6 +28,7 @@ use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Application\ItemWrites;
 use Foresi\Inbox\Application\PurgeTrashedItems;
 use Foresi\Inbox\Application\SenderMatching;
+use Foresi\Inbox\Application\SuggestionStore;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxOutput;
@@ -413,7 +414,7 @@ final class ItemWritesTest extends InboxTestCase
         };
         $this->em->clear();
         $c = self::getContainer();
-        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(ContactCreation::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class));
+        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(ContactCreation::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class), $c->get(SuggestionStore::class));
 
         $this->assertRefused('already_linked', fn (): InboxItem => $writes->link(new LinkItemInput($itemId, 'contact', $person)));
     }

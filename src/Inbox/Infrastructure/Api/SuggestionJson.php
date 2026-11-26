@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Infrastructure\Api;
 
+use Foresi\Inbox\Application\Decision;
 use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Domain\SuggestionStep;
 use Foresi\Instance\Application\InstanceClock;
@@ -45,6 +46,31 @@ final readonly class SuggestionJson
             'reject_reason' => $suggestion->rejectReason(),
             'superseded_by' => $suggestion->supersededBy(),
             'steps' => array_map($this->step(...), $suggestion->steps()),
+        ];
+    }
+
+    /**
+     * What came of deciding one suggestion: its state and its steps' states,
+     * records and refusals, without the agent's text; refusal is why the
+     * suggestion itself was not decided, null when its steps ran.
+     *
+     * @return array<string, mixed>
+     */
+    public function decision(Decision $decision): array
+    {
+        $suggestion = $decision->suggestion;
+
+        return [
+            'id' => $decision->suggestionId,
+            'item_id' => $suggestion?->itemId(),
+            'state' => $suggestion?->state()->value,
+            'refusal' => null === $decision->refused ? null : ['reason' => $decision->refused, 'field' => null],
+            'steps' => $suggestion instanceof Suggestion ? array_map(static fn (SuggestionStep $step): array => [
+                'position' => $step->position(),
+                'state' => $step->state()->value,
+                'record' => null !== $step->recordKind() && null !== $step->recordId() ? ['kind' => $step->recordKind(), 'id' => $step->recordId()] : null,
+                'refusal' => $step->refusal(),
+            ], $suggestion->steps()) : [],
         ];
     }
 

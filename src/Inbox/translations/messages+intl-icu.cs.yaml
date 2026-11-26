@@ -79,6 +79,7 @@ inbox:
     action_done: Uloženo a přidáno k tomu, co z e-mailu vzešlo.
     action_not_linked: Záznam vznikl, ale s e-mailem se ho nepodařilo propojit. Propojte ho přes Propojit…
     action_not_added: Záznam vznikl, ale k tomu, co z e-mailu vzešlo, ho nešlo přidat. Je uložený ve své sekci, neukládejte ho znovu.
+    open_suggestions: Návrhy k tomuto e-mailu čekají na vaše rozhodnutí. Nejdřív je přijměte nebo odmítněte, nebo při označení jako hotové řekněte, jestli je odmítnout, nebo ponechat.
   item:
     no_subject: (bez předmětu)
     mail_removed: Samotný e-mail už byl odstraněn. Zůstalo jen to, co jste s ním udělali.

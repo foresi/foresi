@@ -178,6 +178,30 @@ final class InboxRefused extends \DomainException implements Refused
         return self::invalid('not_yours', $field, 'Another client proposed this suggestion; you may replace only your own.');
     }
 
+    /**
+     * A suggestion named in the path that does not exist or is on another person's item.
+     */
+    public static function noSuggestion(): self
+    {
+        return new self('not_found', RefusalKind::NotFound, null, 'You have no inbox suggestion with this id; foresi_get_inbox_item lists the suggestions of an item.');
+    }
+
+    /**
+     * A suggestion named in the path that is accepted, rejected or superseded already.
+     */
+    public static function suggestionClosed(): self
+    {
+        return self::conflict('not_open', 'The suggestion is accepted, rejected or superseded already.');
+    }
+
+    /**
+     * Marking an item done while suggestions on it wait for a decision: say what becomes of them.
+     */
+    public static function openSuggestions(int $open): self
+    {
+        return new self('open_suggestions', RefusalKind::Conflict, null, 'Suggestions on the inbox item wait for a decision; send suggestions "reject" to reject them or "keep" to keep them on the done item.', ['open' => $open]);
+    }
+
     public function reason(): string
     {
         return $this->reason;
