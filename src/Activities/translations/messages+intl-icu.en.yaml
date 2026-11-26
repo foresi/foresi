@@ -116,6 +116,13 @@ activities:
         new_type: 'New type'
         edit_type: 'Edit {name}'
         archived: Archived
+        views: Views of the activity types
+        search: Search by name
+        tab:
+            all: All
+        empty:
+            filtered_title: Nothing matches the filter
+            reset: Clear the filter
         column:
             name: Name
             timing: Timing

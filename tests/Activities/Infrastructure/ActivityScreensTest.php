@@ -10,6 +10,7 @@ namespace Foresi\Tests\Activities\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Activities\Application\ActivitiesStore;
+use Foresi\Activities\Application\View\ActivityTypeLists;
 use Foresi\Activities\Domain\Activity;
 use Foresi\Activities\Domain\ActivitySchedule;
 use Foresi\Activities\Domain\ActivityTiming;
@@ -21,8 +22,10 @@ use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -33,6 +36,8 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 final class ActivityScreensTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private string $contactId;
@@ -184,6 +189,22 @@ final class ActivityScreensTest extends WebTestCase
         self::assertFalse($this->activity($activity)->isTrashed());
     }
 
+    public function testTheTypesAreAListWithViews(): void
+    {
+        self::assertListWithViews(self::getContainer()->get(ActivityTypeLists::class)->list(), 'activities.types', ['all']);
+        $types = fn (Crawler $crawler): array => $crawler->filter('[data-activity-types] tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->text()));
+
+        $crawler = $this->client->request('GET', '/settings/activities?cols=name,key');
+        self::assertSame(['name', 'key'], $crawler->filter('[data-activity-types] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-activity-types]', ['widths' => '']);
+
+        // A type is found by its translated name, and the timing is a field of the filter.
+        self::assertSame(['Meeting'], $types($this->client->request('GET', '/settings/activities?q=meet')));
+        self::assertSame(['Note'], $types(self::applyBuilder($this->client, '/settings/activities', 'name', 'No')));
+        $this->client->request('GET', '/settings/activities?'.http_build_query(['conditions' => '1', 'c' => [['field' => 'timing', 'op' => 'is', 'values' => ['date']]]]));
+        self::assertSame(['Task'], $types($this->client->followRedirect()));
+    }
+
     public function testTheTypesUnderSettings(): void
     {
         $crawler = $this->client->request('GET', '/settings/activities');
@@ -249,7 +270,7 @@ final class ActivityScreensTest extends WebTestCase
         return substr($location, \strlen('/activities/'));
     }
 
-    private function timeline(): \Symfony\Component\DomCrawler\Crawler
+    private function timeline(): Crawler
     {
         $crawler = $this->client->request('GET', '/activities/for/contact/'.$this->contactId.'?return='.rawurlencode($this->return));
         self::assertResponseIsSuccessful();

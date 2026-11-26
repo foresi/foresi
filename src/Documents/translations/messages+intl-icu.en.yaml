@@ -200,6 +200,13 @@ documents:
         example: 'Example: {example}'
         preview: Preview
         preview_help: The template filled with the examples of the variables.
+        views: 'Views of {list}'
+        search: Search by name
+        tab:
+            all: All
+        empty:
+            filtered_title: Nothing matches the filter
+            reset: Clear the filter
         column:
             name: Name
             code: Code

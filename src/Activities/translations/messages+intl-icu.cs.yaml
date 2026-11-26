@@ -116,6 +116,13 @@ activities:
         new_type: 'Nový typ'
         edit_type: 'Upravit {name}'
         archived: Archivovaný
+        views: Pohledy na typy aktivit
+        search: Hledat podle názvu
+        tab:
+            all: Vše
+        empty:
+            filtered_title: Filtru nic neodpovídá
+            reset: Zrušit filtr
         column:
             name: Název
             timing: Čas

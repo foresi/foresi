@@ -9,12 +9,18 @@ declare(strict_types=1);
 namespace Foresi\Inbox\Infrastructure\Controller;
 
 use Foresi\Inbox\Application\InboxPurpose;
+use Foresi\Inbox\Application\View\InboxAddressLists;
+use Foresi\Inbox\Infrastructure\Column\InboxAddressColumns;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Contract\IssuedAddress;
 use Foresi\Mail\Contract\OwnAddress;
 use Foresi\Mail\Contract\OwnAddresses;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Contract\Refused;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,7 +38,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * shows the full address once, and Rename, Replace and Revoke in each row's
  * menu. They go through Mail's OwnAddresses contract, the same use cases as the API and MCP tools. The
  * page also tells how to forward mail from Gmail, Outlook and Apple Mail, with
- * the providers' own help pages. The staff only.
+ * the providers' own help pages. The addresses are a list with views
+ * (docs/design/list-pages.md, rule 8). The staff only.
  */
 final class AccountInboxController extends AbstractController
 {
@@ -53,22 +60,27 @@ final class AccountInboxController extends AbstractController
         private readonly OwnAddresses $addresses,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly InboxAddressLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/account/inbox', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $address = $this->mine();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
+        $page = $this->listTable->of($slot, $list, InboxAddressColumns::LIST, self::ROUTE, 'inbox-addresses', $address instanceof OwnAddress ? [$address] : [], $this->row(...), $this->valueOf(...), static fn (OwnAddress $one): string => $one->label, $this->translator->trans('inbox.account.search'));
 
         return $this->render('@Inbox/account/index.html.twig', [
-            'columns' => [
-                ['key' => 'label', 'label' => $this->translator->trans('inbox.account.column.label'), 'truncate' => true],
-                ['key' => 'address', 'label' => $this->translator->trans('inbox.account.column.address'), 'phone' => false],
-                ['key' => 'created', 'label' => $this->translator->trans('inbox.account.column.created'), 'phone' => false],
-                ['key' => 'dropped', 'label' => $this->translator->trans('inbox.account.column.dropped')],
-            ],
-            'rows' => $address instanceof OwnAddress ? [$this->row($address)] : [],
+            'addresses' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
             'canCreate' => !$address instanceof OwnAddress,
             'help' => self::HELP,
         ]);
@@ -199,21 +211,13 @@ final class AccountInboxController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(OwnAddress $address): array
+    private function row(OwnAddress $address, WorkingState $working): array
     {
-        $zone = $this->clock->timezone();
-        $created = $address->createdAt->setTimezone($zone)->format($this->translator->trans('format.datetime'));
-
         return [
             'id' => $address->id,
             'label' => $address->label,
-            'secondary' => $created,
-            'cells' => [
-                'label' => $address->label,
-                'address' => $address->maskedAddress,
-                'created' => $created,
-                'dropped' => $this->translator->trans('inbox.account.dropped', ['count' => $address->droppedToday]),
-            ],
+            'secondary' => $address->createdAt->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
+            'cells' => $working->display->cells($address),
             'actions' => [
                 ['label' => $this->translator->trans('inbox.account.action.rename'), 'href' => $this->generateUrl(self::RENAME_ROUTE, ['id' => $address->id]), 'method' => 'GET', 'dialog' => true],
                 ['label' => $this->translator->trans('inbox.account.action.replace'), 'href' => $this->generateUrl(self::REPLACE_ROUTE, ['id' => $address->id]), 'method' => 'GET', 'dialog' => true],
@@ -225,6 +229,18 @@ final class AccountInboxController extends AbstractController
                 ]],
             ],
         ];
+    }
+
+    /**
+     * The value of a field of the list on an address, as RowConditions compares it.
+     */
+    private function valueOf(OwnAddress $address, string $field): mixed
+    {
+        return match ($field) {
+            InboxAddressLists::LABEL => $address->label,
+            InboxAddressLists::DROPPED => $address->droppedToday,
+            default => null,
+        };
     }
 
     private function formError(Refused $refused): string

@@ -20,16 +20,23 @@ use Foresi\Documents\Application\DocumentsStore;
 use Foresi\Documents\Application\DocumentTypeWrites;
 use Foresi\Documents\Application\DocumentVariables;
 use Foresi\Documents\Application\TemplateWrites;
+use Foresi\Documents\Application\View\DocumentTemplateLists;
+use Foresi\Documents\Application\View\DocumentTypeLists;
 use Foresi\Documents\Domain\DocumentTemplate;
 use Foresi\Documents\Domain\DocumentType;
 use Foresi\Documents\Domain\PageSettings;
 use Foresi\Documents\Domain\PaperSize;
 use Foresi\Documents\Domain\SignatureLevel;
-use Foresi\Documents\Domain\TemplateVersion;
+use Foresi\Documents\Infrastructure\Column\DocumentSettingsColumns;
+use Foresi\Documents\Infrastructure\Column\TemplateRow;
 use Foresi\Documents\Infrastructure\Screen\DocumentScreen;
 use Foresi\Documents\Infrastructure\Screen\TemplatePreview;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -49,12 +56,17 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * click putting the placeholder at the cursor, and a preview filled with the
  * variables' examples. Saving changes the latest version until a document is
  * generated from it, and makes the next version after that, as Odoo opens a
- * used template read-only and edits a copy. Only staff see these pages.
+ * used template read-only and edits a copy. Each of the two tables is a list
+ * with views, columns and widths of its own (list-pages.md, rules 8 and 9): the
+ * types on the address's bare keys, the templates under their list slot. Only
+ * staff see these pages.
  */
 final class DocumentSettingsController extends AbstractController
 {
     public const string ROUTE = 'app_document_settings';
     public const string TEMPLATE_ROUTE = 'app_document_template';
+    /** The slot of the templates in the page's address (ListSlot). */
+    public const string TEMPLATES = 'templates';
 
     public function __construct(
         private readonly DocumentsAccess $access,
@@ -65,32 +77,41 @@ final class DocumentSettingsController extends AbstractController
         private readonly DocumentScreen $screen,
         private readonly TemplatePreview $preview,
         private readonly TranslatorInterface $translator,
+        private readonly DocumentTypeLists $typeLists,
+        private readonly DocumentTemplateLists $templateLists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/documents', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
+        $page = $request->query->all();
+        // Two tables on one page (list-pages.md, rule 9): the types keep the bare keys, the templates theirs under a slot.
+        $slots = [ListSlot::first($page, self::TEMPLATES), ListSlot::named(self::TEMPLATES, $page)];
+        $lists = [$this->typeLists->list(), $this->templateLists->list()];
+        foreach ($slots as $at => $slot) {
+            // The builder's rows (spec D11) become the table's working filter, in its part of the address.
+            $built = $this->listTable->built($slot, $lists[$at]);
+            if (null !== $built) {
+                return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+            }
+        }
         $types = $this->store->types(true);
         $names = [];
         foreach ($types as $type) {
             $names[$type->id()] = $type->name();
         }
+        $templates = array_map(fn (DocumentTemplate $template): TemplateRow => new TemplateRow($template, $names[$template->typeId()] ?? '', $this->store->latestVersion($template->id())), $this->store->templates(null, true));
+        $search = $this->trans('documents.settings.search');
+        $typeTable = $this->listTable->of($slots[0], $lists[0], DocumentSettingsColumns::TYPES, self::ROUTE, 'document-types', $types, $this->typeRow(...), $this->typeValue(...), static fn (DocumentType $type): string => $type->name(), $search);
+        $templateTable = $this->listTable->of($slots[1], $lists[1], DocumentSettingsColumns::TEMPLATES, self::ROUTE, 'document-templates', $templates, $this->templateRow(...), $this->templateValue(...), static fn (TemplateRow $row): string => $row->template->name(), $search);
 
         return $this->render('@Documents/settings/index.html.twig', [
-            'typeColumns' => [
-                ['key' => 'name', 'label' => $this->trans('documents.settings.column.name'), 'truncate' => true],
-                ['key' => 'code', 'label' => $this->trans('documents.settings.column.code'), 'phone' => false],
-                ['key' => 'signing', 'label' => $this->trans('documents.settings.column.signing')],
-            ],
-            'typeRows' => array_map($this->typeRow(...), $types),
-            'templateColumns' => [
-                ['key' => 'name', 'label' => $this->trans('documents.settings.column.name'), 'truncate' => true],
-                ['key' => 'type', 'label' => $this->trans('documents.settings.column.type'), 'phone' => false],
-                ['key' => 'version', 'label' => $this->trans('documents.settings.column.version')],
-            ],
-            'templateRows' => array_map(fn (DocumentTemplate $template): array => $this->templateRow($template, $names), $this->store->templates(null, true)),
+            'types' => $typeTable->with($this->filterSheet->of($lists[0], $typeTable->shown, $typeTable->href, pinned: $typeTable->pinned, slot: $slots[0])),
+            'templates' => $templateTable->with($this->filterSheet->of($lists[1], $templateTable->shown, $templateTable->href, pinned: $templateTable->pinned, slot: $slots[1])),
             'hasTypes' => [] !== $this->screen->typeOptions(),
         ]);
     }
@@ -287,16 +308,9 @@ final class DocumentSettingsController extends AbstractController
     /**
      * @return array<string, mixed> a row of the types' Ui:DataTable
      */
-    private function typeRow(DocumentType $type): array
+    private function typeRow(DocumentType $type, WorkingState $working): array
     {
         $edit = $this->generateUrl('app_document_type_edit', ['id' => $type->id()]);
-        $signing = $type->needsSigning()
-            ? ['label' => $this->trans('documents.settings.level.'.$type->signatureLevel()->value), 'tone' => 'gray']
-            : ['label' => $this->trans('documents.settings.not_signed'), 'tone' => 'outline'];
-        $badges = [$signing];
-        if ($type->isArchived()) {
-            $badges[] = ['label' => $this->trans('documents.settings.archived'), 'tone' => 'gray'];
-        }
 
         return [
             'id' => $type->id(),
@@ -304,7 +318,7 @@ final class DocumentSettingsController extends AbstractController
             // A type is a small record: it opens in a modal over the list (docs/design/overlays.md).
             'opens' => Opens::DIALOG,
             'label' => $type->name(),
-            'cells' => ['name' => $type->name(), 'code' => $type->code(), 'signing' => ['badges' => $badges]],
+            'cells' => $working->display->cells($type),
             'actions' => $type->isArchived() ? [] : [
                 ['label' => $this->trans('documents.settings.action.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true],
                 ['label' => $this->trans('documents.settings.action.archive'), 'href' => $this->generateUrl('app_document_type_archive', ['id' => $type->id()]), 'method' => 'POST',
@@ -314,21 +328,12 @@ final class DocumentSettingsController extends AbstractController
     }
 
     /**
-     * @param array<string, string> $typeNames
-     *
      * @return array<string, mixed> a row of the templates' Ui:DataTable
      */
-    private function templateRow(DocumentTemplate $template, array $typeNames): array
+    private function templateRow(TemplateRow $row, WorkingState $working): array
     {
-        $version = $this->store->latestVersion($template->id());
+        $template = $row->template;
         $editor = $this->generateUrl(self::TEMPLATE_ROUTE, ['id' => $template->id()]);
-        $badges = [];
-        if ($version instanceof TemplateVersion) {
-            $badges[] = ['label' => $this->trans('documents.settings.version', ['number' => $version->number()]), 'tone' => $version->isFrozen() ? 'green' : 'gray'];
-        }
-        if ($template->isArchived()) {
-            $badges[] = ['label' => $this->trans('documents.settings.archived'), 'tone' => 'gray'];
-        }
 
         return [
             'id' => $template->id(),
@@ -336,13 +341,40 @@ final class DocumentSettingsController extends AbstractController
             // The editor is a place to work in, a page of its own (docs/design/overlays.md).
             'opens' => Opens::PAGE,
             'label' => $template->name(),
-            'cells' => ['name' => $template->name(), 'type' => $typeNames[$template->typeId()] ?? '', 'version' => ['badges' => $badges]],
+            'cells' => $working->display->cells($row),
             'actions' => $template->isArchived() ? [] : [
                 ['label' => $this->trans('documents.settings.action.edit_template'), 'href' => $editor, 'icon' => 'pencil'],
                 ['label' => $this->trans('documents.settings.action.archive'), 'href' => $this->generateUrl('app_document_template_archive', ['id' => $template->id()]), 'method' => 'POST',
                     'confirm' => ['title' => $this->trans('documents.settings.confirm.archive_template', ['name' => $template->name()]), 'text' => $this->trans('documents.settings.confirm.archive_template_text'), 'accept' => $this->trans('documents.settings.action.archive'), 'cancel' => $this->trans('documents.keep'), 'tone' => 'danger']],
             ],
         ];
+    }
+
+    /**
+     * The value of a field of the types' list on a type, as RowConditions compares it.
+     */
+    private function typeValue(DocumentType $type, string $field): mixed
+    {
+        return match ($field) {
+            DocumentTypeLists::NAME => $type->name(),
+            DocumentTypeLists::CODE => $type->code(),
+            DocumentTypeLists::SIGNED => $type->needsSigning(),
+            DocumentTypeLists::ARCHIVED => $type->isArchived(),
+            default => null,
+        };
+    }
+
+    /**
+     * The value of a field of the templates' list on a template, as RowConditions compares it.
+     */
+    private function templateValue(TemplateRow $row, string $field): mixed
+    {
+        return match ($field) {
+            DocumentTemplateLists::NAME => $row->template->name(),
+            DocumentTemplateLists::TYPE => $row->type,
+            DocumentTemplateLists::ARCHIVED => $row->template->isArchived(),
+            default => null,
+        };
     }
 
     /**
