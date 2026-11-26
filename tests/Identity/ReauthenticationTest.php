@@ -140,7 +140,12 @@ final class ReauthenticationTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('dialog [data-reauthenticate]');
-        self::assertSame(self::TOKEN_PROMPT, urldecode((string) $crawler->filter('#reauth-form')->attr('action')));
+        // Back to the page that asked, so it answers in the same request, behind its own checks.
+        self::assertSame('/settings/api/new', $crawler->filter('#reauth-form')->attr('action'));
+        self::assertSelectorNotExists('#api-token-form');
+
+        $crawler = $this->client->submit($crawler->filter('#reauth-form')->form(['secret' => '000000']), serverParameters: ['HTTP_X_FORESI_DIALOG' => '1']);
+        self::assertSelectorExists('dialog [data-reauthenticate]');
         self::assertSelectorNotExists('#api-token-form');
 
         $this->client->submit($crawler->filter('#reauth-form')->form(['secret' => $this->code()]), serverParameters: ['HTTP_X_FORESI_DIALOG' => '1']);

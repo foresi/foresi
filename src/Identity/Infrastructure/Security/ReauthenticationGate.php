@@ -14,10 +14,13 @@ use Scheb\TwoFactorBundle\Security\Authentication\Token\TwoFactorTokenInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ControllerArgumentsEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 
 /**
@@ -35,6 +38,7 @@ final readonly class ReauthenticationGate
         private Security $security,
         private UrlGeneratorInterface $urls,
         private ReauthenticationController $prompt,
+        private CsrfTokenManagerInterface $csrf,
     ) {
     }
 
@@ -46,7 +50,8 @@ final readonly class ReauthenticationGate
             return;
         }
         $request = $event->getRequest();
-        if (!$this->security->getUser() instanceof SecurityUser || $this->reauthentication->isFresh($request->getSession())) {
+        $user = $this->security->getUser();
+        if (!$user instanceof SecurityUser || $this->reauthentication->isFresh($request->getSession())) {
             return;
         }
         if (!$event->isMainRequest()) {
@@ -55,7 +60,27 @@ final readonly class ReauthenticationGate
         $reason = $attributes[0]->reason;
         $target = $request->getRequestUri();
         if (DialogRequest::is($request)) {
-            $event->setController(fn (): \Symfony\Component\HttpFoundation\Response => $this->prompt->prompt($reason, $target), []);
+            // The prompt posts back to this page, so the page answers in the same dialog, in this
+            // request, behind every check it has; a redirect would take the person out of the dialog.
+            if ($request->isMethod('POST') && $request->request->has('_reauthenticate')) {
+                if (!$this->csrf->isTokenValid(new CsrfToken(ReauthenticationController::TOKEN, $request->request->getString('_token')))) {
+                    throw new AccessDeniedHttpException('Invalid CSRF token.');
+                }
+                try {
+                    $this->reauthentication->confirm($user, $request->request->getString('secret'), $request->getSession());
+                } catch (ReauthenticationFailed $failed) {
+                    $event->setController(fn (): Response => $this->prompt->refused($reason, $target, $failed), []);
+                    $event->setArguments([]);
+
+                    return;
+                }
+                // Confirmed: the page opens as it was asked for, not as a submitted form.
+                $request->setMethod('GET');
+                $request->request->replace([]);
+
+                return;
+            }
+            $event->setController(fn (): Response => $this->prompt->prompt($reason, $target), []);
             $event->setArguments([]);
 
             return;

@@ -13,12 +13,10 @@ use Foresi\Identity\Infrastructure\Security\Reauthentication;
 use Foresi\Identity\Infrastructure\Security\ReauthenticationFailed;
 use Foresi\Identity\Infrastructure\Security\RequiresReauthentication;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
-use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -59,12 +57,18 @@ final class ReauthenticationController extends AbstractController
         try {
             $this->reauthentication->confirm($me, $request->request->getString('secret'), $request->getSession());
         } catch (ReauthenticationFailed $failed) {
-            $error = $this->translator->trans('reauth.error.'.$failed->reason, ['minutes' => $failed->minutes]);
-
-            return $this->prompt($reason, $target, $error);
+            return $this->refused($reason, $target, $failed);
         }
 
-        return DialogRequest::is($request) ? $this->show($request, $target) : $this->redirect($target);
+        return $this->redirect($target);
+    }
+
+    /**
+     * The prompt again, saying why the answer was refused.
+     */
+    public function refused(string $reason, string $target, ReauthenticationFailed $failed): Response
+    {
+        return $this->prompt($reason, $target, $this->translator->trans('reauth.error.'.$failed->reason, ['minutes' => $failed->minutes]));
     }
 
     /**
@@ -89,20 +93,6 @@ final class ReauthenticationController extends AbstractController
                 default => self::FALLBACK,
             }),
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
-    }
-
-    /**
-     * The page that asked, into the same dialog: a redirect would reach the browser as the
-     * dialog's last answer and close it, so the person would have to open it again.
-     */
-    private function show(Request $request, string $target): Response
-    {
-        $page = Request::create($target, 'GET', [], $request->cookies->all(), [], $request->server->all());
-        if ($request->hasSession()) {
-            $page->setSession($request->getSession());
-        }
-
-        return $this->container->get('http_kernel')->handle($page, HttpKernelInterface::SUB_REQUEST);
     }
 
     private function reason(string $reason): string

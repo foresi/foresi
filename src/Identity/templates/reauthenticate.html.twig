@@ -15,8 +15,10 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="reauth-form" action="{{ path('app_reauthenticate', {reason: reason, target: target}) }}" class="grid gap-4" novalidate data-reauthenticate>
+    <form method="post" id="reauth-form" action="{{ in_dialog() ? target : path('app_reauthenticate', {reason: reason, target: target}) }}" class="grid gap-4" novalidate data-reauthenticate>
         <p class="m-0 text-small text-muted">{{ ('reauth.reason.' ~ reason)|trans }} {{ 'reauth.window'|trans({minutes: minutes}) }}</p>
+        {# In a dialog the form goes back to the page that asked, so that page answers in the same dialog. #}
+        <input type="hidden" name="_reauthenticate" value="1">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\ReauthenticationController::TOKEN')) }}">
         {# For password managers: the account the password belongs to. #}
         <input type="hidden" name="username" autocomplete="username" value="{{ app.user.userIdentifier }}">
