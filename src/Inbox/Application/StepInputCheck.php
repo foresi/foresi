@@ -19,7 +19,7 @@ use Foresi\Shared\Infrastructure\Operation\InvalidInput;
  * placeholder id while the action's input mapper checks it.
  *
  * A refusal names the field by its path in the call, such as
- * suggestions.0.steps.1.input.projectId, and never quotes the input.
+ * suggestions.0.steps.1.input.projectId (input.project_id on the wire), and never quotes the input.
  */
 final class StepInputCheck
 {

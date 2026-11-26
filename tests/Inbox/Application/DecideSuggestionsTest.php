@@ -354,6 +354,25 @@ final class DecideSuggestionsTest extends InboxTestCase
         self::assertSame([], $this->eventData('inbox.item.done'));
     }
 
+    public function testAddToBudgetRunsAsAStep(): void
+    {
+        $client = $this->contact('person', 'Client A', self::CLIENT);
+        $project = self::getContainer()->get(ManageProjects::class)->create('Office move', $client);
+        // Received after the contact exists: matched, so the client's active project offers the action.
+        $itemId = $this->receive(InboxMail::plain($this->address, messageId: 'offer-5@client-a.example.com', body: "Hello,\r\nplease find our offer again.\r\n"));
+        $suggestion = $this->proposeOn($itemId, [['operation' => 'inbox.actions.add_to_budget', 'input' => ['project_id' => $project->id(), 'hours' => '8', 'note' => 'Approved by Client A']]]);
+
+        $this->accept([$suggestion]);
+
+        $step = $this->stored($suggestion)->step(1);
+        self::assertSame([StepState::Done, null, 'project_budget_change'], [$step->state(), $step->refusal(), $step->recordKind()], 'The link the step adds is seen by the check that follows it.');
+        $activityId = $this->item($itemId)->emailActivityId();
+        self::assertIsString($activityId);
+        self::assertSame($activityId, $this->scalar('SELECT source_activity_id FROM project_budget_change WHERE id = ?', [$step->recordId()]));
+        self::assertSame(1, (int) $this->scalar('SELECT COUNT(*) FROM project_budget_change'));
+        self::assertSame(1, (int) $this->scalar("SELECT COUNT(*) FROM activities_activity_link WHERE activity_id = ? AND kind = 'project' AND target_id = ?", [$activityId, $project->id()]));
+    }
+
     public function testCreateDealRunsAsAStep(): void
     {
         // The stage the sales migration seeds, which a schema built from the mapping lacks.

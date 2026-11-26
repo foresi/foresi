@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     tool: 'foresi_reject_inbox_suggestion',
     scope: 'inbox_decisions:write',
     title: 'Reject a suggestion on your inbox item',
-    description: 'Rejects an open suggestion on one of your inbox items, with an optional reason: none of its steps runs. Refused with not_open when it is accepted, rejected or superseded already. '
+    description: 'Rejects an open suggestion on one of your inbox items, with an optional reason: no further step of it runs; steps already done keep what they made. Refused with not_open when it is accepted, rejected or superseded already. '
         .'Rejecting the last open suggestion of a new item marks the item done when another of its suggestions was accepted. Needs inbox:read too.',
     response: 'InboxSuggestionDecision',
     staffOnly: true,

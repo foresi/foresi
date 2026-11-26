@@ -33,7 +33,7 @@ use Foresi\Shared\Domain\Id;
  * locked after the item and checked again once locked.
  *
  * A refusal names its field by its path in the call, such as
- * suggestions.0.steps.1.input.projectId, and never quotes the mail or the input.
+ * suggestions.0.steps.1.input.projectId (input.project_id on the wire), and never quotes the mail or the input.
  */
 final readonly class ProposeSuggestions
 {

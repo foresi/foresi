@@ -249,6 +249,11 @@ final readonly class SuggestionCards
         if (StepReferences::isReference($value) && \is_array($value) && \is_int($value[StepReferences::STEP] ?? null)) {
             return $this->translator->trans('inbox.suggestion.reference', ['step' => $value[StepReferences::STEP]]);
         }
+        // A value of a field picked from a list that the list does not hold, such as another
+        // client's project: marked, so the person sees the step would act on something not offered.
+        if ([] !== $choices && (\is_string($value) || \is_int($value)) && !\array_key_exists($value, $choices)) {
+            return $this->translator->trans('inbox.suggestion.not_offered', ['value' => mb_substr((string) $value, 0, self::MAX_VALUE)]);
+        }
         $text = match (true) {
             \is_bool($value) => $this->translator->trans($value ? 'inbox.action_dialog.yes' : 'inbox.action_dialog.no'),
             \is_string($value), \is_int($value) => $choices[$value] ?? (string) $value,

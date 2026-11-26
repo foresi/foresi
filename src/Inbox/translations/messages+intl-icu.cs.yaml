@@ -190,6 +190,7 @@ inbox:
     source: 'Zdroj: e-mail od {sender}, {received}'
     proposed_by: 'Navrhl {client}, {time}'
     reference: Záznam z kroku {step}
+    not_offered: '{value} (tento e-mail ho nenabízí)'
     reason: 'Důvod:'
     decided_title: Rozhodnuté
     state:

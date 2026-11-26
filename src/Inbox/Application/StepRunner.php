@@ -44,7 +44,7 @@ use Psr\Log\LoggerInterface;
  * A refusal rolls the whole step back and stores, in a transaction of its
  * own, the step failed with the refusal's reason and field only, never its
  * message, which could quote the input. A field is named by its path in the
- * step, such as input.projectId. Any other failure is stored as internal_error
+ * step, such as input.projectId (input.project_id on the wire). Any other failure is stored as internal_error
  * and logged by ids and class.
  *
  * Call it outside a transaction: it must own the one the step runs in.

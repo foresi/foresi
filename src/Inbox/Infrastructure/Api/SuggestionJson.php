@@ -12,6 +12,7 @@ use Foresi\Inbox\Application\Decision;
 use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Domain\SuggestionStep;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Infrastructure\Operation\OperationField;
 
 /**
  * A suggestion as REST and MCP answer it, the schema InboxSuggestion: its
@@ -65,11 +66,11 @@ final readonly class SuggestionJson
             'item_id' => $suggestion?->itemId(),
             'state' => $suggestion?->state()->value,
             'refusal' => null === $decision->refused ? null : ['reason' => $decision->refused, 'field' => null],
-            'steps' => $suggestion instanceof Suggestion ? array_map(static fn (SuggestionStep $step): array => [
+            'steps' => $suggestion instanceof Suggestion ? array_map(fn (SuggestionStep $step): array => [
                 'position' => $step->position(),
                 'state' => $step->state()->value,
                 'record' => null !== $step->recordKind() && null !== $step->recordId() ? ['kind' => $step->recordKind(), 'id' => $step->recordId()] : null,
-                'refusal' => $step->refusal(),
+                'refusal' => $this->refusal($step),
             ], $suggestion->steps()) : [],
         ];
     }
@@ -91,7 +92,7 @@ final readonly class SuggestionJson
             'selected' => $step->isSelected(),
             'state' => $step->state()->value,
             'record' => null !== $recordKind && null !== $recordId ? ['kind' => $recordKind, 'id' => $recordId] : null,
-            'refusal' => $step->refusal(),
+            'refusal' => $this->refusal($step),
         ];
     }
 
@@ -105,6 +106,19 @@ final readonly class SuggestionJson
     private function object(array $input): array|\stdClass
     {
         return [] === $input ? new \stdClass() : $input;
+    }
+
+    /**
+     * A step's refusal with its field as the client sends it: input.taskId is input.task_id, as
+     * every refusal of a call names its field.
+     *
+     * @return array{reason: string, field: string|null}|null
+     */
+    private function refusal(SuggestionStep $step): ?array
+    {
+        $refusal = $step->refusal();
+
+        return null === $refusal ? null : ['reason' => $refusal['reason'], 'field' => null === $refusal['field'] ? null : OperationField::wireName($refusal['field'])];
     }
 
     private function time(?\DateTimeImmutable $time): ?string

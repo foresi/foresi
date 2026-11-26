@@ -37,6 +37,6 @@ final readonly class RejectSuggestionHandler implements OperationHandler
         }
         $suggestion = $this->decide->reject($input->suggestionId, $input->reason);
 
-        return new OperationOutput($this->json->decision(new Decision($suggestion->id(), $suggestion)), 'Rejected the suggestion; none of its steps runs.');
+        return new OperationOutput($this->json->decision(new Decision($suggestion->id(), $suggestion)), 'Rejected the suggestion; no further step of it runs, and steps already done keep what they made.');
     }
 }

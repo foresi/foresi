@@ -190,6 +190,7 @@ inbox:
     source: 'Source: e-mail from {sender}, {received}'
     proposed_by: 'Proposed by {client}, {time}'
     reference: The record of step {step}
+    not_offered: '{value} (not one this mail offers)'
     reason: 'Reason:'
     decided_title: Decided
     state:

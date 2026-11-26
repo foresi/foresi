@@ -16,8 +16,11 @@ use Foresi\Shared\Application\Event\EventOutbox;
 use Foresi\Shared\Domain\Id;
 
 /**
- * One transaction per change, joined when one is already open, with its events
- * handed to the outbox once it is committed and dropped when it rolls back.
+ * One transaction per change, with its events handed to the outbox once it is
+ * committed and dropped when it rolls back. When one is already open the change
+ * joins it and is flushed into it, so that its caller can read back with a query
+ * what it made (a link checked right after it is added, say), as the inbox's and
+ * Party's joined units do; the outermost one commits or rolls back.
  */
 final readonly class DoctrineActivitiesTransaction implements ActivitiesTransaction
 {
@@ -33,7 +36,10 @@ final readonly class DoctrineActivitiesTransaction implements ActivitiesTransact
     {
         return $this->correlation->within($this->correlation->current() ?? 'activities:'.Id::generate(), function () use ($work): mixed {
             if ($this->em->getConnection()->isTransactionActive()) {
-                return $work();
+                $result = $work();
+                $this->em->flush();
+
+                return $result;
             }
             try {
                 $result = $this->em->wrapInTransaction($work);

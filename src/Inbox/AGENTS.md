@@ -40,7 +40,7 @@ A refusal names a reason; on a wrong field it also names the path, such as `sugg
 
 | Reason | Meaning |
 |---|---|
-| `invalid_input` | A field does not fit: the path says which (a step's input is checked by the action's own rules) |
+| `invalid_input` | A field does not fit: the path says which (a step's input is checked against the action's input schema; the action's own rules apply when the step runs) |
 | `too_many` | More than 10 suggestions in a call, or 10 steps in a suggestion |
 | `action_not_applicable` | The step's operation is no action of this item (`available_actions` lists them) |
 | `invalid_reference` | A `$step` names no earlier step of the same suggestion, or is not `{"$step": n, "field": "id"}` |

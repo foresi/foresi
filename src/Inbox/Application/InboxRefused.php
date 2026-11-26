@@ -99,7 +99,7 @@ final class InboxRefused extends \DomainException implements Refused
 
     /**
      * A field of a suggestion, or of a step's input, that does not fit: named by
-     * its path, such as suggestions.0.steps.1.input.projectId.
+     * its path, such as suggestions.0.steps.1.input.projectId (input.project_id on the wire).
      */
     public static function invalidInput(string $field, string $message): self
     {

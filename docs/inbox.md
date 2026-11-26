@@ -93,7 +93,7 @@ A suggestion holds:
 
 A call proposes 1 to 10 suggestions and is stored whole or not at all: if one field of one step is wrong, nothing is stored, and the refusal names the path, such as `suggestions.0.steps.1.input.project_id`. Only a **new** item takes suggestions; a done or discarded item is refused `item_closed`, one in the trash `item_trashed`.
 
-Every step is checked as the action's own input is, with the action's rules, when it is proposed and again when it runs. An agent sees every action that applies to the item, also one its token may not run (`allowed: false` in `available_actions`), so it can propose what it cannot do itself.
+Every step is checked against the action's input schema when it is proposed; the action's own rules (an archived project, a budget below zero) apply when it runs, and a step they refuse fails with their reason. An agent sees every action that applies to the item, also one its token may not run (`allowed: false` in `available_actions`), so it can propose what it cannot do itself.
 
 ### The states
 
@@ -131,7 +131,7 @@ Every record a step makes is audited under the correlation id `inbox:suggestion:
 | `inbox_suggestions:write` | Propose suggestions (also needs `inbox:read`). Nothing else: a token with only `inbox:read` and this scope cannot run an action, link, match, mark done or decide |
 | `inbox_decisions:write` | Accept and reject suggestions (also needs `inbox:read`) |
 
-Over the API, accepting a suggestion also needs, for each step, the scope of that step's action (`tasks:write` for Create task, and so on); a step without it fails `insufficient_scope` and the other steps still run. On the screens you decide with your own rights. Give an agent `inbox:read` and `inbox_suggestions:write` and nothing more; the decision is yours.
+Over the API, accepting a suggestion also needs, for each step, the scope of that step's action (`tasks:write` for Create task, and so on); a step without it fails `insufficient_scope`; the later steps of that suggestion stay pending, and the other suggestions of the call still run. On the screens you decide with your own rights. Give an agent `inbox:read` and `inbox_suggestions:write` and nothing more; the decision is yours.
 
 ### Refusals
 
@@ -211,7 +211,7 @@ Other modules reach Inbox only through `Foresi\Inbox\Contract`:
 - `RecordSuggester` (tag `foresi.inbox.record_suggester`, by autoconfiguration) lets a module offer the record an item most likely leads to, from its contact and company.
 - `InboxAction`, `InboxActionInput`, `InboxActionCondition` and `InboxPreFill` let a module add an action to the item, below.
 - The events above.
-- A suggestion step is an action of the list above: a module that [adds an action](#adding-an-action) makes it available to suggestions with no further work. Its input is checked when proposed and when run, and its handler runs inside the transaction of the step, with the step's "done", and a module's unit of work joins that transaction instead of opening its own. A failure after the record is made rolls the whole step back.
+- A suggestion step is an action of the list above: a module that [adds an action](#adding-an-action) makes it available to suggestions with no further work. Its input is checked when proposed and when run, and its handler runs inside the transaction of the step, with the step's "done", and a module's unit of work joins that transaction instead of opening its own. A module's unit of work must flush into a transaction it joins, so that what it made can be read back by a query in the same step. A failure after the record is made rolls the whole step back.
 
 ### Adding an action
 
