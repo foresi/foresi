@@ -14,9 +14,26 @@ A person may belong to several organisations, with a different role in each.
 
 ## Profile
 
-Every person, guests included, has a **Profile** behind the avatar menu. It gathers their own account in one place: the profile itself (photo, name, e-mail and language), security (two-factor sign-in), notifications, and connections (calendar feeds, inbox addresses, API tokens, or a guest's connected apps). The pages keep their addresses; each module adds its own to the profile's sidebar.
+Every person, guests included, has a **Profile** behind the avatar menu. It gathers their own account in one place: the profile itself (photo, name, e-mail and language), security (the password and two-factor sign-in), notifications, and connections (calendar feeds, inbox addresses, API tokens, or a guest's connected apps). The pages keep their addresses; each module adds its own to the profile's sidebar.
 
 The name and the language are edited in a dialog. A photo is a JPEG, PNG or WebP of at most 5 MB, cropped to a square in the browser; the server draws it anew as a 512 px JPEG, which drops all metadata such as the location. A new photo replaces the old one and Remove photo deletes it. The photo is shown only to people signed in, at `/people/{id}/photo`. The name and the language can also be changed with `PATCH /api/v1/me` or the MCP tool `foresi_update_profile` (see [the API](api.md)).
+
+### Password
+
+**Profile > Password** changes the password in a dialog: the current password, then the new one once, with **Show passwords** to check what was typed. Pasting works, so a password manager can fill both. A password has at least 12 characters and no rules about symbols or numbers; one that appears in a known data breach is refused (`APP_PASSWORD_BREACH_CHECK`, see [operations](operations.md)). Five wrong current passwords in five minutes block further attempts for a while.
+
+After the change:
+
+- This browser stays signed in with a new session id.
+- Every other session of the person ends on its next request. API tokens and connected apps are not affected; they are revoked under Connections.
+- Browsers trusted to skip the two-factor code ask for it again.
+- The person gets an e-mail saying when the password was changed and to contact the firm's administrator if it was not them. Without system mail the change still takes effect.
+
+The password, the e-mail and two-factor sign-in are changed only here, never through the API or MCP.
+
+### Confirm it's you
+
+Before the two-factor enrolment and before a new API token, Foresi asks the person to confirm it is them: with their password, or with a code from their authenticator app when two-factor sign-in is on. A code the sign-in has just used is refused until the next one. A confirmation, or a completed sign-in, holds for 15 minutes in that browser. The prompt says why it asks, and in a dialog it shows the page that asked once it is confirmed. Five failed attempts in five minutes block further attempts for a while, counted together with wrong current passwords of a password change.
 
 ## Invitations
 
