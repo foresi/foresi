@@ -34,6 +34,7 @@ final class CustomFieldPayloadTest extends TestCase
     private const string RECORD = 'lent_record';
     private const string RECORD_ID = '0192f1a4-0000-7000-8000-000000000101';
     private const string CONTACT = '0192f1a4-0000-7000-8000-0000000000c1';
+    private const string USER = '0192f1a4-0000-7000-8000-0000000000e1';
 
     public function testEachKindIsWrittenInItsJsonShape(): void
     {
@@ -60,9 +61,10 @@ final class CustomFieldPayloadTest extends TestCase
             'size' => 'large',
             'tags' => ['red', 'blue'],
             'contact' => self::CONTACT,
+            'owner' => null,
             'secret' => null,
         ], $payload->of(self::RECORD, self::RECORD_ID));
-        self::assertSame(['id' => 'x', 'custom_fields' => array_fill_keys(['code', 'seats', 'weight', 'due', 'seen', 'flag', 'site', 'size', 'tags', 'contact', 'secret'], null)], $payload->attachOne(self::RECORD, ['id' => 'x']));
+        self::assertSame(['id' => 'x', 'custom_fields' => array_fill_keys(['code', 'seats', 'weight', 'due', 'seen', 'flag', 'site', 'size', 'tags', 'contact', 'owner', 'secret'], null)], $payload->attachOne(self::RECORD, ['id' => 'x']));
         self::assertEquals(new \stdClass(), $payload->of('other_record', self::RECORD_ID), 'A record kind without fields has an empty object.');
     }
 
@@ -79,6 +81,7 @@ final class CustomFieldPayloadTest extends TestCase
             'size' => 'large',
             'tags' => ['red'],
             'contact' => strtoupper(self::CONTACT),
+            'owner' => strtoupper(self::USER),
         ], false);
 
         self::assertIsArray($read);
@@ -86,7 +89,8 @@ final class CustomFieldPayloadTest extends TestCase
         self::assertSame(new \DateTimeImmutable('2026-11-26T14:30:00+01:00')->getTimestamp(), $this->date($read['seen'])->getTimestamp());
         self::assertSame(date_default_timezone_get(), $this->date($read['seen'])->getTimezone()->getName());
         unset($read['due'], $read['seen']);
-        self::assertSame(['code' => 'A-1', 'seats' => 4, 'weight' => 12.5, 'flag' => true, 'site' => 'https://example.com/a', 'size' => 'large', 'tags' => ['red'], 'contact' => self::CONTACT], $read);
+        self::assertSame(['code' => 'A-1', 'seats' => 4, 'weight' => 12.5, 'flag' => true, 'site' => 'https://example.com/a', 'size' => 'large', 'tags' => ['red'], 'contact' => self::CONTACT, 'owner' => self::USER], $read);
+        self::assertSame(['site' => 'HTTPS://example.com/a'], $this->payload()->read(self::RECORD, ['site' => 'HTTPS://example.com/a'], false), 'The scheme is read in any case.');
         self::assertSame(['due' => null, 'site' => null, 'contact' => null], $this->payload()->read(self::RECORD, ['due' => '', 'site' => null, 'contact' => ''], false));
     }
 
@@ -103,11 +107,17 @@ final class CustomFieldPayloadTest extends TestCase
     {
         yield 'a date of another shape' => ['due', '01.12.2026'];
         yield 'a date that does not exist' => ['due', '2026-02-30'];
+        yield 'a date that is no text' => ['due', 20261201];
         yield 'a date-time without an offset' => ['seen', '2026-11-26T14:30:00'];
+        yield 'a date-time on a day that does not exist' => ['seen', '2026-02-30T14:30:00+01:00'];
         yield 'a number as text' => ['seats', '4'];
         yield 'an address of another scheme' => ['site', 'ftp://example.com'];
         yield 'a contact that is no id' => ['contact', 'Example Customer'];
         yield 'a contact of no one' => ['contact', '0192f1a4-0000-7000-8000-0000000000c2'];
+        yield 'a user that is no id' => ['owner', 'Example User'];
+        yield 'a user id after other text' => ['owner', 'x0192f1a4-0000-7000-8000-0000000000e1'];
+        yield 'a user id before other text' => ['owner', '0192f1a4-0000-7000-8000-0000000000e1x'];
+        yield 'a user that is no text' => ['owner', 1];
         yield 'options that are no list' => ['tags', ['a' => 'red']];
     }
 
@@ -127,6 +137,50 @@ final class CustomFieldPayloadTest extends TestCase
         $this->expectExceptionObject(new FieldRefused('nope', FieldRefused::UNKNOWN));
 
         $this->payload()->read(self::RECORD, ['nope' => 1], true);
+    }
+
+    public function testAListInPlaceOfAnObjectIsAKeyOfNoField(): void
+    {
+        $this->expectExceptionObject(new FieldRefused('0', FieldRefused::UNKNOWN));
+
+        $this->payload()->read(self::RECORD, ['A-1'], true);
+    }
+
+    public function testAReferenceRefusalNamesWhatItTakes(): void
+    {
+        foreach (['contact' => 'the id of a contact.', 'owner' => 'the id of a user.'] as $key => $what) {
+            try {
+                $this->payload()->read(self::RECORD, [$key => 'Example'], false);
+                self::fail('The value is refused.');
+            } catch (FieldRefused $refused) {
+                self::assertStringEndsWith($what, $refused->getMessage());
+            }
+        }
+    }
+
+    public function testAStoredValueIsEncodedOnlyAsItsKindWritesIt(): void
+    {
+        $fields = array_column(array_map(static fn (FieldDefinition $definition): array => [$definition->key, $definition], $this->definitions()), 1, 0);
+        $moment = new \DateTimeImmutable('2026-11-26T14:30:00+01:00');
+
+        self::assertSame([4, -3, 1000.0, 12.5], array_map(static fn (string $number): mixed => CustomFieldPayload::encoded($fields['seats'], $number), ['4', '-3', '1E3', '12.50']));
+        self::assertSame('2026-11-26T14:30:00', CustomFieldPayload::encoded($fields['seen'], '2026-11-26T14:30:00'), 'A text of a date-time field stays as it is.');
+        self::assertSame($moment, CustomFieldPayload::encoded($fields['code'], $moment), 'A text field does not format a moment.');
+        self::assertSame('red', CustomFieldPayload::encoded($fields['tags'], 'red'), 'A multi-select with one option as text keeps it.');
+        self::assertSame([2 => 'x'], CustomFieldPayload::encoded($fields['code'], [2 => 'x']), 'Only a multi-select is made a list.');
+        self::assertNull(CustomFieldPayload::encoded($fields['due'], null));
+    }
+
+    public function testTheValuesOfTheRowsAreReadInOneGo(): void
+    {
+        $loads = $this->loads();
+        $payload = new CustomFieldPayload($fields = new StoredFields($this->definitions(), [], null, $loads), new VisibleFields($fields, FixedActor::staff(), $this->scopes(false)), new ReferenceNames([]));
+
+        $payload->attach(self::RECORD, [['id' => 'b'], ['name' => 'no id'], ['id' => 7], ['id' => 'a']]);
+        $payload->attach(self::RECORD, [['name' => 'no id']]);
+        $payload->attach(self::RECORD, []);
+
+        self::assertSame([['b', 'a']], $loads->getArrayCopy());
     }
 
     public function testATokenSeesNoFieldOffTheApiAndAGuestOnlyThoseOpenToGuests(): void
@@ -198,6 +252,7 @@ final class CustomFieldPayloadTest extends TestCase
             $field('size', FieldKind::Select, ['small' => 'test.size.small', 'large' => 'test.size.large'], guests: true),
             $field('tags', FieldKind::MultiSelect, ['red' => 'test.tag.red', 'blue' => 'test.tag.blue']),
             $field('contact', FieldKind::Contact),
+            $field('owner', FieldKind::User),
             $field('secret', FieldKind::Text, api: false),
         ];
     }
@@ -208,6 +263,14 @@ final class CustomFieldPayloadTest extends TestCase
     private function field(string $key, FieldKind $kind, array $options = [], bool $guests = false, bool $api = true): FieldDefinition
     {
         return new FieldDefinition($key, self::RECORD, $kind, 'test.field.'.$key, $options, 'test-fields', guests: $guests, api: $api);
+    }
+
+    /**
+     * @return \ArrayObject<int, list<string>>
+     */
+    private function loads(): \ArrayObject
+    {
+        return new \ArrayObject();
     }
 
     private function scopes(bool $token): ScopeGuard

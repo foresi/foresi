@@ -16,15 +16,17 @@ use Foresi\Shared\Contract\Field\Fields;
  * Fields held in memory for a test: the given definitions of one record kind and the
  * values each record holds as they are given, even those no field source would store,
  * such as a list with gaps or a date as a text. A write refuses with the given message
- * when one is given, as a field source refuses a value its kind does not take.
+ * when one is given, as a field source refuses a value its kind does not take. The ids
+ * that values() is asked for are kept in $loads when one is given.
  */
 final readonly class StoredFields implements Fields
 {
     /**
-     * @param list<FieldDefinition>               $definitions
-     * @param array<string, array<string, mixed>> $values      by record id, then by field key
+     * @param list<FieldDefinition>                $definitions
+     * @param array<string, array<string, mixed>>  $values      by record id, then by field key
+     * @param \ArrayObject<int, list<string>>|null $loads       the ids of each call of values()
      */
-    public function __construct(private array $definitions, private array $values = [], private ?string $refusal = null)
+    public function __construct(private array $definitions, private array $values = [], private ?string $refusal = null, private ?\ArrayObject $loads = null)
     {
     }
 
@@ -46,6 +48,8 @@ final readonly class StoredFields implements Fields
 
     public function values(string $record, array $ids): array
     {
+        $this->loads?->append($ids);
+
         return array_intersect_key($this->values, array_flip($ids));
     }
 

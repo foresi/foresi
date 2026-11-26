@@ -106,7 +106,6 @@ final readonly class CustomFieldPayload
     public static function encoded(FieldDefinition $definition, mixed $value): mixed
     {
         return match (true) {
-            null === $value => null,
             FieldKind::Date === $definition->kind && $value instanceof \DateTimeInterface => $value->format('Y-m-d'),
             FieldKind::DateTime === $definition->kind && $value instanceof \DateTimeInterface => $value->format(\DATE_ATOM),
             FieldKind::Number === $definition->kind && \is_string($value) && is_numeric($value) => str_contains($value, '.') || str_contains(strtolower($value), 'e') ? (float) $value : (int) $value,
@@ -145,7 +144,8 @@ final readonly class CustomFieldPayload
         if ('' === $value) {
             return null;
         }
-        $date = \is_string($value) && 1 === preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? \DateTimeImmutable::createFromFormat('!Y-m-d', $value) : false;
+        // The round trip refuses any other shape, such as 2026-2-3 or a date that does not exist.
+        $date = \is_string($value) ? \DateTimeImmutable::createFromFormat('!Y-m-d', $value) : false;
         if (false === $date || $date->format('Y-m-d') !== $value) {
             throw new FieldRefused($key, FieldRefused::INVALID, \sprintf('The custom field "%s" takes a date as YYYY-MM-DD.', $key));
         }

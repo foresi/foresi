@@ -29,6 +29,8 @@ final class FieldRefusedTest extends TestCase
 
         self::assertSame(['The custom field "test_fields_code" is required.', 0], [$refused->getMessage(), $refused->getCode()]);
         self::assertSame(['Too long.', 0, $previous], [$wrapped->getMessage(), $wrapped->getCode(), $wrapped->getPrevious()]);
+        self::assertSame('The custom field "test_fields_code" does not take this value.', new FieldRefused('test_fields_code', FieldRefused::INVALID)->getMessage());
+        self::assertSame('There is no custom field "test_fields_code".', new FieldRefused('test_fields_code', FieldRefused::UNKNOWN)->getMessage());
     }
 
     public function testTheSourceOfAReferenceNamesItsKindAndBack(): void
