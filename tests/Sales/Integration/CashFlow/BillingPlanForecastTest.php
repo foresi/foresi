@@ -67,7 +67,7 @@ final class BillingPlanForecastTest extends CashFlowTestCase
         $last = $this->last($table['columns']);
         self::assertSame([ForecastScreen::UNDATED, true], [$last['key'], $last['undated']]);
         $in = array_values(array_filter($table['rows'], static fn (array $row): bool => 'total' === $row['kind']))[0];
-        self::assertStringContainsString('10', $this->last($in['cells'])['text']);
+        self::assertMatchesRegularExpression('/^10\D000\D/u', $this->last($in['cells'])['text']);
         self::assertNotNull($this->last($in['cells'])['href']);
         $tiles = $screen->kpis($forecast);
         self::assertCount(5, $tiles);

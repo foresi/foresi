@@ -276,8 +276,8 @@ sales:
         not_invoiced: 'Nevyfakturováno: {amount}'
         empty_title: Nic naplánováno
         empty_text: Naplánujte, kdy obchod vyfakturujete, najednou nebo po částech, třeba zálohu a doplatek.
-        value_help: 'Obchod má jednorázovou hodnotu {value}; z ní zbývá naplánovat {left}.'
-        recurring_help: 'Řídí se řádkem {line}, který určuje částku a období.'
+        value_help: 'Jednorázově {value}, zbývá naplánovat {left}.'
+        recurring_help: 'Částku a období bere z řádku {line}.'
         kind:
             one_off: Jednorázová
             recurring: Opakovaná
@@ -298,14 +298,14 @@ sales:
             amount: Částka
         field:
             plan: Co naplánovat
-            plan_help: Částku, nebo opakovaný řádek, který ještě nemá plánovanou fakturu.
+            plan_help: Částku, nebo opakovaný řádek bez plánované faktury.
             amount: Částka
             amount_help: Bez DPH.
             currency: Měna
             percent: Nebo procento z obchodu
-            percent_help: Z jeho jednorázové hodnoty; uloží se částka, kterou dává.
+            percent_help: Z jednorázové hodnoty; uloží se výsledná částka.
             expected_on: Den fakturace
-            expected_on_help: Pokud ho ještě nevíte, nechte ho prázdný; předpověď ho pak ukáže ve sloupci Bez data, mimo zůstatek.
+            expected_on_help: Prázdný den jde do sloupce Bez data, mimo zůstatek.
             text: Text faktury
             text_help: Může zůstat prázdný.
         action:

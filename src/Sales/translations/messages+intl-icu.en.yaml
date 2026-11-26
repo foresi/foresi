@@ -276,8 +276,8 @@ sales:
         not_invoiced: 'Not invoiced: {amount}'
         empty_title: Nothing planned
         empty_text: Plan when the deal is invoiced, in one part or several, such as a deposit and the rest.
-        value_help: 'The deal is worth {value} once; {left} of it is not planned yet.'
-        recurring_help: 'It follows the line {line}, which gives its amount and period.'
+        value_help: 'One-off value {value}; {left} not planned yet.'
+        recurring_help: 'Amount and period come from the line {line}.'
         kind:
             one_off: One-off
             recurring: Recurring
@@ -298,14 +298,14 @@ sales:
             amount: An amount
         field:
             plan: What to plan
-            plan_help: An amount, or a recurring line that has no planned invoice yet.
+            plan_help: An amount, or a recurring line not planned yet.
             amount: Amount
             amount_help: Without VAT.
             currency: Currency
             percent: Or a percentage of the deal
             percent_help: Of its one-off value; the amount it makes is kept.
             expected_on: Invoicing day
-            expected_on_help: Leave it empty if you do not know yet; the forecast then shows it under No date, outside the balance.
+            expected_on_help: Empty goes to No date in the forecast, outside the balance.
             text: Text of the invoice
             text_help: May stay empty.
         action:
