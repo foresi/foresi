@@ -16,7 +16,6 @@ use Foresi\Party\Application\FirmImages;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Contract\PartyDirectory;
-use Foresi\Ui\Field\CustomFieldTemplates;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
@@ -29,6 +28,7 @@ use Foresi\Party\Integration\Documents\ClientVariables;
 use Foresi\Party\Integration\Documents\FirmVariables;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\Party\Application\Query\ContactTestCase;
+use Foresi\Ui\Field\CustomFieldTemplates;
 
 /**
  * The firm and the client as a document template reads them: {{ firm.* }} from

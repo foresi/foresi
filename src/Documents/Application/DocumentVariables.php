@@ -77,7 +77,7 @@ final readonly class DocumentVariables
         foreach ($this->sources as $source) {
             $prefix = $source->prefix();
             foreach ($source->definitions() as $definition) {
-                $value = self::at($values[$prefix] ?? [], $definition->name);
+                $value = $this->at($values[$prefix] ?? [], $definition->name);
                 if (!$definition->image || !\is_string($value)) {
                     continue;
                 }
@@ -117,7 +117,7 @@ final readonly class DocumentVariables
      *
      * @param array<array-key, mixed> $values
      */
-    private static function at(array $values, string $name): mixed
+    private function at(array $values, string $name): mixed
     {
         $value = $values;
         foreach (explode('.', $name) as $part) {

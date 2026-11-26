@@ -78,8 +78,8 @@ final readonly class CustomFieldTarget implements ImportTarget
                 self::PREFIX.$definition->key,
                 $definition->label,
                 $this->type($definition),
-                group: self::GROUP,
                 choices: FieldKind::Select === $definition->kind ? array_keys($definition->options) : [],
+                group: self::GROUP,
                 choiceNames: FieldKind::Select === $definition->kind ? $this->optionNames($definition) : [],
             );
         }
@@ -169,7 +169,7 @@ final readonly class CustomFieldTarget implements ImportTarget
                 // A field that is no longer installed has nothing to put back.
                 $definition = $this->fields->definition($this->record, (string) $key);
                 if ($definition instanceof CustomFieldDefinition) {
-                    $values[$definition->key] = self::decoded($definition, $value);
+                    $values[$definition->key] = $this->decoded($definition, $value);
                 }
             }
             $this->write($id, $values);
@@ -415,7 +415,7 @@ final readonly class CustomFieldTarget implements ImportTarget
     /**
      * A value an undo snapshot keeps (CustomFieldPayload::encoded()) as Fields takes it.
      */
-    private static function decoded(CustomFieldDefinition $definition, mixed $value): mixed
+    private function decoded(CustomFieldDefinition $definition, mixed $value): mixed
     {
         if (!\is_string($value)) {
             return $value;

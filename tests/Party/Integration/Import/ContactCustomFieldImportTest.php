@@ -56,7 +56,7 @@ final class ContactCustomFieldImportTest extends KernelTestCase
         $fields = $this->byKey();
         $custom = array_filter($fields, static fn (FieldDefinition $field): bool => 'custom' === $field->group);
 
-        self::assertSame(13, \count($custom));
+        self::assertCount(13, $custom);
         self::assertSame([
             'custom_test_fields_code' => FieldType::Text,
             'custom_test_fields_long_note' => FieldType::Text,
