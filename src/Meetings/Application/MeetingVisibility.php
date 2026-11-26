@@ -116,11 +116,16 @@ final class MeetingVisibility
         $me = $this->people->me() ?? '';
         $user = $this->actor->userId() ?? '';
 
+        $terms = [
+            "%2\$s.visibility = '%5\$s'",
+            'EXISTS (SELECT 1 FROM %6$s %4$s WHERE %4$s.series = %2$s AND %4$s.membershipId = :visibility_me)',
+            'EXISTS (SELECT 1 FROM %7$s %3$s WHERE %3$s.meeting = %1$s AND %3$s.membershipId = :visibility_me)',
+            '(%2$s.id IS NULL AND %1$s.createdBy = :visibility_user)',
+        ];
+
         return [
             \sprintf(
-                "(%2\$s.visibility = '%5\$s' OR EXISTS (SELECT 1 FROM %6\$s %4\$s WHERE %4\$s.series = %2\$s AND %4\$s.membershipId = :visibility_me)"
-                .' OR EXISTS (SELECT 1 FROM %7$s %3$s WHERE %3$s.meeting = %1$s AND %3$s.membershipId = :visibility_me)'
-                .' OR (%2$s.id IS NULL AND %1$s.createdBy = :visibility_user))',
+                '('.implode(' OR ', $terms).')',
                 $meeting,
                 $series,
                 $attendee,

@@ -215,14 +215,14 @@ final readonly class MeetingWrites
     }
 
     /**
-     * @return list<string> the membership ids of the default attendees of the series who are still in the firm
+     * @return array<int, string> the membership ids of the default attendees of the series who are still in the firm
      */
     private function defaultAttendees(MeetingSeries $series): array
     {
-        return array_values(array_filter(array_map(
+        return array_filter(array_map(
             static fn (SeriesMember $member): ?string => $member->isDefaultAttendee() ? $member->membershipId() : null,
             $this->store->members($series),
-        ), fn (?string $id): bool => null !== $id && $this->people->isStaff($id)));
+        ), fn (?string $id): bool => null !== $id && $this->people->isStaff($id));
     }
 
     /**
@@ -328,10 +328,10 @@ final readonly class MeetingWrites
      * The attendees as they will be: people of the firm, once each. An attendee who
      * left the firm may stay on the meeting; nobody new may.
      *
-     * @param list<mixed>  $ids
+     * @param array<mixed> $ids
      * @param list<string> $kept
      *
-     * @return list<string>
+     * @return array<string, string> the membership ids, each by itself
      *
      * @throws MeetingsRefused
      */
@@ -345,7 +345,7 @@ final readonly class MeetingWrites
             $attendees[$id] = $id;
         }
 
-        return array_values($attendees);
+        return $attendees;
     }
 
     /**
@@ -355,7 +355,7 @@ final readonly class MeetingWrites
      * @param list<mixed>       $links
      * @param list<MeetingLink> $kept
      *
-     * @return list<array{string, string}>
+     * @return array<string, array{string, string}> the kind and id of each, by "kind:id"
      *
      * @throws MeetingsRefused
      */
@@ -378,6 +378,6 @@ final readonly class MeetingWrites
             $result[$kind.':'.$id] = [$kind, $id];
         }
 
-        return array_values($result);
+        return $result;
     }
 }
