@@ -131,15 +131,10 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
             return null;
         }
         $widths = [];
-        foreach (\array_slice(explode(',', $value), 0, self::MAX_COLUMNS) as $pair) {
-            [$key, $px] = array_pad(explode(':', trim($pair), 2), 2, '');
-            $key = trim($key);
-            if ('' === $key || 1 !== preg_match('/^\d{1,4}$/', trim($px)) || isset($widths[$key])) {
-                continue;
-            }
-            $px = (int) trim($px);
-            if ($px > 0) {
-                $widths[$key] = min($px, self::MAX_WIDTH);
+        foreach (explode(',', $value) as $pair) {
+            // A key, then a whole number of px from 1 to 9999; the first of a key counts.
+            if (1 === preg_match('/^\s*([^\s:]+)\s*:\s*([1-9]\d{0,3})\s*$/', $pair, $match) && !isset($widths[$match[1]])) {
+                $widths[$match[1]] = min((int) $match[2], self::MAX_WIDTH);
             }
         }
 

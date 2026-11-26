@@ -261,7 +261,7 @@ final class DataTable
      */
     public function fixedWidth(): int
     {
-        $sum = array_sum(array_map(static fn (array $column): int => $column['width'] ?? 0, $this->columnViews));
+        $sum = array_sum(array_map(static fn (array $column): int => (int) $column['width'], $this->columnViews));
 
         return $sum + ($this->selectable ? 48 : 0) + ($this->hasActions() ? 48 : 0);
     }

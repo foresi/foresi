@@ -410,6 +410,29 @@ final class DataTableTest extends KernelTestCase
         self::assertCount(0, $html->filter('[data-column-filler]'), 'the actions column takes the room left');
     }
 
+    public function testAFixedTableKeepsRoomForTheCheckboxesToo(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 200;
+        $columns[1]['width'] = 300;
+        $columns[2]['width'] = 100;
+        $columns[2]['minWidth'] = 0;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true, 'selectable' => true]));
+
+        self::assertSame('--table-w: 648px', $html->filter('table')->attr('style'));
+        self::assertSame('64', $html->filter('th [role="separator"]')->eq(2)->attr('aria-valuemin'), 'a minimum of no px is the default');
+    }
+
+    public function testATableNotResizableKeepsItsLayoutWhateverTheWidths(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[0]['width'] = 200;
+        $columns[1]['width'] = 300;
+        $columns[2]['width'] = 100;
+
+        self::assertStringNotContainsString('table-fixed', (string) new Crawler($this->render(['columns' => $columns]))->filter('table')->attr('class'));
+    }
+
     public function testWithoutActionsAnEmptyLastColumnTakesTheRoomLeft(): void
     {
         $columns = self::COLUMNS;

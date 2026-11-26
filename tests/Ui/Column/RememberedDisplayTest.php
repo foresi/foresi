@@ -34,7 +34,7 @@ final class RememberedDisplayTest extends TestCase
 
     public function testWhatTheDisplayLeavesOutIsTheViewsOwn(): void
     {
-        self::assertSame(['cols' => 'name', 'density' => '', 'widths' => ''], $this->queryOf(['columns' => [['key' => 'name']], 'pinned' => 'not a list', 'group_by' => 7]));
+        self::assertSame(['cols' => 'name,kind', 'density' => '', 'widths' => ''], $this->queryOf(['columns' => [['key' => 'name'], ['key' => 'kind', 'width' => 0]], 'pinned' => 'not a list', 'group_by' => 7]), 'A width of no px is none.');
         self::assertSame(['cols' => '', 'density' => '', 'widths' => '', 'pins' => ''], $this->queryOf(['pinned' => []]), 'A display that pins none pins none.');
     }
 

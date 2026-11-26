@@ -370,6 +370,28 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertNull(RegistryWorkingDisplay::widths(['name' => 200]), 'only text names widths');
     }
 
+    public function testAWidthIsAKeyAndAWholeNumberOfPxAloneInItsPair(): void
+    {
+        self::assertSame(['kind' => 300, 'email' => 140], RegistryWorkingDisplay::widths(' kind : 300 ,phone name:200,name:2000x,email:140,phone:12345,phone:0,phone:05,email:160'));
+        self::assertNull(RegistryWorkingDisplay::widths(''), 'empty widths are the view\'s own');
+    }
+
+    public function testDroppingAColumnWithAWidthChangesOnlyTheColumns(): void
+    {
+        $saved = ['columns' => [['key' => 'name'], ['key' => 'kind'], ['key' => 'email', 'width' => 180]]];
+        $state = $this->working()->read(self::LIST, [], $saved, ['cols' => 'name,kind']);
+
+        self::assertTrue($state->modified);
+        self::assertSame(['cols' => 'name,kind'], $state->query);
+    }
+
+    public function testEverythingAskedAtOnceGoesInThePayload(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['cols' => 'name,email', 'density' => 'dense', 'group' => 'email', 'pins' => 'city', 'widths' => 'email:250'], groups: ['kind', 'email'], pins: self::PINS);
+
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 250]], 'density' => 'dense', 'group_by' => 'email', 'pinned' => ['city']], $state->payload);
+    }
+
     public function working(): RegistryWorkingDisplay
     {
         $provider = new class implements DataSource {
