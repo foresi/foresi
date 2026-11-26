@@ -211,7 +211,7 @@ final readonly class Estimates
         if (!$source instanceof ForecastAmountSource) {
             return $notStarted(EstimateView::YEAR_END_CASH_FLOW_NOT_INSTALLED);
         }
-        $firstDay = $today->setDate($year, 1, 1)->setTime(0, 0);
+        $firstDay = $today->setDate($year, 1, 1);
         try {
             $forecast = $this->yearEnd->of($source, $profile, $firstDay, $lastDay);
         } catch (\DomainException $refused) {
@@ -227,9 +227,6 @@ final readonly class Estimates
             return $notStarted(EstimateView::TO_DATE_RULES_NOT_AVAILABLE);
         }
         $warnings = [...$yearEnd->warnings, ...($forecast->incomplete ? [EstimateView::WARNING_FORECAST_INCOMPLETE] : [])];
-        if ($before instanceof YearBefore && [] !== $before->open->unavailableSources) {
-            $warnings[] = EstimateView::WARNING_SOURCES_UNAVAILABLE;
-        }
 
         return new EstimateView(
             $year,

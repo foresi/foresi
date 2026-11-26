@@ -230,6 +230,17 @@ final class EstimatesTest extends TaxesTestCase
         self::assertCount(12, $next->accruals['actual'] ?? []);
         self::assertContains('2027', array_map(static fn (DuePayment $payment): string => (string) $payment->taxYear(), $next->payments));
 
+        self::assertNotContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $next->warnings);
+
+        $stated = new ForecastAmount('cash-flow.planned', null, AmountKind::Income, new \DateTimeImmutable('2027-04-01', new \DateTimeZone('Europe/Prague')), Money::ofMinor(12_100_000, Currency::CZK), ForecastCertainty::Plan, Money::ofMinor(2_100_000, Currency::CZK));
+        $partial = $this->estimates([], [new FakeForecastSource([$stated], ['invoicing.invoices'])])->of(2027);
+        self::assertContains(EstimateView::WARNING_FORECAST_INCOMPLETE, $partial->warnings);
+        self::assertInstanceOf(ForecastView::class, $partial->forecast);
+        self::assertNotSame([], $partial->forecast->unverified);
+        foreach ($partial->forecast->unverified as $note) {
+            self::assertContains($note, $partial->unverified, 'What the forecast could not verify is passed on.');
+        }
+
         $without = $this->estimates([])->of(2027);
         self::assertNull($without->yearEnd);
         self::assertSame(EstimateView::YEAR_END_CASH_FLOW_NOT_INSTALLED, $without->yearEndReason);
