@@ -61,7 +61,13 @@ final readonly class NavigationRegistry
             }
         }
         // Sorting is stable, so areas of equal weight keep their registration order.
-        uasort($areas, static fn (NavigationArea $a, NavigationArea $b): int => [NavigationArea::SETTINGS === $a->id, $a->weight] <=> [NavigationArea::SETTINGS === $b->id, $b->weight]);
+        // Settings, then the person's own profile, come after every business area, whatever their weight.
+        $tier = static fn (NavigationArea $area): int => match ($area->id) {
+            NavigationArea::SETTINGS => 1,
+            NavigationArea::PROFILE => 2,
+            default => 0,
+        };
+        uasort($areas, static fn (NavigationArea $a, NavigationArea $b): int => [$tier($a), $a->weight] <=> [$tier($b), $b->weight]);
 
         $byArea = array_fill_keys(array_keys($areas), []);
         foreach ($this->entries($currentRoute, $member) as $entry) {

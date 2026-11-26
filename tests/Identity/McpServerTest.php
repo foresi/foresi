@@ -31,7 +31,7 @@ final class McpServerTest extends ApiTestCase
         'documents' => ['foresi_add_document_signer', 'foresi_archive_document_template', 'foresi_archive_document_type', 'foresi_attach_signed_document_copy', 'foresi_cancel_document', 'foresi_create_document', 'foresi_create_document_template', 'foresi_create_document_type', 'foresi_generate_document', 'foresi_generate_document_again', 'foresi_get_document', 'foresi_get_document_template', 'foresi_list_document_templates', 'foresi_list_document_types', 'foresi_list_documents', 'foresi_mark_document_sent', 'foresi_mark_document_signer_declined', 'foresi_mark_document_signer_signed', 'foresi_remove_document_signer', 'foresi_restore_document', 'foresi_save_document_template_version', 'foresi_trash_document', 'foresi_update_document', 'foresi_update_document_signer', 'foresi_update_document_type'],
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
         'exchange-rate' => ['foresi_get_exchange_rate_source', 'foresi_set_exchange_rate_source'],
-        'identity' => ['foresi_whoami'],
+        'identity' => ['foresi_update_profile', 'foresi_whoami'],
         // With the inbox actions of the module only the tests have (tests/Inbox/Fixtures/Action) and those of Work, Sales and Activities (they exist only where the inbox is installed).
         'inbox' => ['foresi_add_fixture_contact_note_from_email', 'foresi_add_fixture_note_from_email', 'foresi_create_contact_from_inbox_item', 'foresi_create_deal_from_email', 'foresi_create_task_from_email', 'foresi_log_activity_from_email', 'foresi_log_time_from_email', 'foresi_discard_inbox_item', 'foresi_get_inbox_item', 'foresi_link_inbox_item', 'foresi_list_inbox_items', 'foresi_mark_inbox_item_done', 'foresi_match_inbox_item', 'foresi_match_inbox_item_again', 'foresi_reopen_inbox_item', 'foresi_restore_inbox_item', 'foresi_trash_inbox_item'],
         'invoicing' => ['foresi_create_invoice', 'foresi_create_recurring_invoice', 'foresi_end_recurring_invoice', 'foresi_get_invoice', 'foresi_get_payment', 'foresi_get_recurring_invoice', 'foresi_list_recurring_invoices', 'foresi_mark_invoice_sent', 'foresi_pause_recurring_invoice', 'foresi_preview_recurring_invoice', 'foresi_restore_invoice', 'foresi_resume_recurring_invoice', 'foresi_search_invoices', 'foresi_search_payments', 'foresi_trash_invoice', 'foresi_update_invoice', 'foresi_update_recurring_invoice'],
@@ -199,6 +199,7 @@ final class McpServerTest extends ApiTestCase
         'foresi_update_invoice' => false,
         'foresi_update_lost_reason' => false,
         'foresi_update_product' => false,
+        'foresi_update_profile' => false,
         'foresi_update_project' => false,
         'foresi_update_recurring_invoice' => false,
         'foresi_update_task' => false,
@@ -254,7 +255,7 @@ final class McpServerTest extends ApiTestCase
         $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_whoami', 'arguments' => new \stdClass()]), 'result');
         self::assertFalse($this->in($call, 'isError'));
         self::assertSame(ReadToolCall::UNTRUSTED_TEXT_NOTICE, $this->in($call, 'structuredContent', 'untrusted_text_notice'));
-        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com'], $this->in($call, 'structuredContent', 'data', 'user'));
+        self::assertSame(['id' => $this->user->id(), 'email' => 'testing@example.com', 'display_name' => $this->user->displayName(), 'language' => $this->user->locale(), 'photo_url' => null], $this->in($call, 'structuredContent', 'data', 'user'));
         self::assertSame('Reporting', $this->in($call, 'structuredContent', 'data', 'token', 'name'));
         self::assertSame(['read', 'write'], $this->in($call, 'structuredContent', 'data', 'token', 'scopes'));
         $text = $this->text($call, 'content', '0', 'text');

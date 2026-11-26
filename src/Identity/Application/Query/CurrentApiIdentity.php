@@ -39,6 +39,6 @@ final readonly class CurrentApiIdentity
             throw new InsufficientScope(ApiScope::read());
         }
 
-        return new ApiIdentity($user->id(), $user->email(), $grant);
+        return new ApiIdentity($user->id(), $user->email(), $grant, $user);
     }
 }

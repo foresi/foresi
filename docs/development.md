@@ -35,7 +35,7 @@ The built CSS is not committed, and tests and `composer qa` do not need it. Inte
 
 The default configuration in `.env` uses a local SQLite database in `var/data.db`. Put local overrides, including `APP_SECRET`, in `.env.local`, which is never committed.
 
-Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`, which is `var/share/prod/firm-images` by default, outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files.
+Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`, which is `var/share/prod/firm-images` by default, outside the web root. Keep that directory on persistent storage and include it in backups: documents refer to these files. The people's profile photos sit next to them in `user-photos`, one 512 px JPEG per person, drawn anew on upload so no metadata stays.
 
 ## Background worker
 

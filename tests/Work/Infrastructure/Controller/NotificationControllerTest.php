@@ -359,7 +359,7 @@ final class NotificationControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-view-actions]'));
         $crawler = $this->client->request('GET', '/notifications');
         self::assertStringContainsString('Example Company: Shared the task with you', $crawler->filter('[data-notifications] tbody tr')->text());
-        self::assertSame(['/shared', '/notifications', '/connected-apps'], $crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
+        self::assertSame(['/shared', '/notifications'], $crawler->filter('#sidebar [data-nav-area="overview"] [data-nav-section] li > a')->each(static fn (Crawler $a): string => (string) $a->attr('href')));
         self::assertSame('1', trim($crawler->filter('#sidebar a[href="/notifications"] [data-nav-count]')->text()));
 
         // The row of the owner is not theirs.

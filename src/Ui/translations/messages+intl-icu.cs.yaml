@@ -40,6 +40,7 @@ nav:
     contacts: Kontakty
     projects: Projekty
     settings: Nastavení
+    profile: Profil
   area_caption:
     overview: Řízení firmy
     sales: Od nabídky po zaplacení
@@ -48,6 +49,7 @@ nav:
     contacts: Zákazníci a dodavatelé
     projects: Dodání práce
     settings: Firma, lidé a napojení
+    profile: Váš vlastní účet
   group:
     main: Hlavní
     sales: Prodej
@@ -61,8 +63,13 @@ nav:
     billing: Fakturace
     firm: Firma
     connections: Napojení
+    profile: Profil
+    security: Zabezpečení
+    notifications: Oznámení
   item:
     people: Lidé
+    profile: Profil
+    two_factor: Dvoufázové přihlášení
     api: API a MCP
     connected_apps: Připojené aplikace
     webhooks: Webhooky
@@ -337,7 +344,6 @@ shell:
     profile: Můj profil
     notifications: Nastavení oznámení
     language: 'Přepnout jazyk na {language}'
-    soon: Brzy
   worker:
     down: 'Proces na pozadí neběží. E-maily, pravidelné faktury a bankovní pošta počkají, než se znovu spustí.'
     link: Zobrazit stav

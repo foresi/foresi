@@ -163,18 +163,18 @@ final class NavigationRegistryTest extends TestCase
         new NavigationItem('overview', 'a', 'plus', '');
     }
 
-    public function testCoreProvidesSixBusinessAreasAndSettings(): void
+    public function testCoreProvidesSixBusinessAreasSettingsAndProfile(): void
     {
         $areas = iterator_to_array(new CoreNavigationAreas()->areas(), false);
 
-        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings'], array_map(static fn (NavigationArea $a): string => $a->id, $areas));
-        self::assertSame(['layout-grid', 'trending-up', 'shopping-bag', 'landmark', 'users', 'square-kanban', 'settings'], array_map(static fn (NavigationArea $a): string => $a->icon, $areas));
-        self::assertSame([10, 20, 30, 40, 50, 60, 1000], array_map(static fn (NavigationArea $a): int => $a->weight, $areas));
+        self::assertSame(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings', 'profile'], array_map(static fn (NavigationArea $a): string => $a->id, $areas));
+        self::assertSame(['layout-grid', 'trending-up', 'shopping-bag', 'landmark', 'users', 'square-kanban', 'settings', 'user'], array_map(static fn (NavigationArea $a): string => $a->icon, $areas));
+        self::assertSame([10, 20, 30, 40, 50, 60, 1000, 2000], array_map(static fn (NavigationArea $a): int => $a->weight, $areas));
         self::assertSame('nav.area.sales', $areas[1]->labelKey);
         self::assertSame('nav.area_caption.sales', $areas[1]->captionKey);
     }
 
-    public function testSalesAndSettingsHaveTwoSectionsAndTheOtherAreasOne(): void
+    public function testSalesSettingsAndProfileHaveSeveralSectionsAndTheOtherAreasOne(): void
     {
         $sections = array_map(
             static fn (NavigationArea $a): array => array_map(static fn (NavigationSection $s): string => $s->key.' '.$s->labelKey, $a->sections),
@@ -189,12 +189,13 @@ final class NavigationRegistryTest extends TestCase
             ['main nav.area.contacts'],
             ['main nav.area.projects'],
             ['firm nav.section.firm', 'connections nav.section.connections'],
+            ['profile nav.section.profile', 'security nav.section.security', 'notifications nav.section.notifications', 'connections nav.section.connections'],
         ], $sections);
         $weights = array_map(
             static fn (NavigationArea $a): array => array_map(static fn (NavigationSection $s): int => $s->weight, $a->sections),
             iterator_to_array(new CoreNavigationAreas()->areas(), false),
         );
-        self::assertSame([[100], [10, 20], [100], [100], [100], [100], [10, 20]], $weights);
+        self::assertSame([[100], [10, 20], [100], [100], [100], [100], [10, 20], [10, 20, 30, 40]], $weights);
     }
 
     public function testAnAreaOrdersItsSectionsByWeightThenTheOrderGiven(): void

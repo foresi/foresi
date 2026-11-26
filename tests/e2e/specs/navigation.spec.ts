@@ -57,9 +57,9 @@ test.describe('navigation', () => {
     await openMenuOnPhone(page);
     const sidebar = page.locator('#sidebar');
 
-    // Only areas that hold something are shown, in the fixed order, and Settings is last.
+    // Only areas that hold something are shown, in the fixed order, Settings and then the person's own account last.
     const areas = await sidebar.locator('section[data-nav-area]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-nav-area')));
-    expect(areas).toEqual(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings']);
+    expect(areas).toEqual(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'settings', 'profile']);
     if (!isPhone()) {
       const rail = page.locator('#rail');
       await expect(rail.locator('a[data-nav-area]')).toHaveText([/Přehled/, 'Prodej', 'Nákup', 'Peníze', 'Kontakty', 'Projekty', 'Nastavení']);
@@ -76,7 +76,7 @@ test.describe('navigation', () => {
       ['Nákup', 'purchasing', [/Náklady/]],
       ['Kontakty', 'contacts', [/Adresář/]],
       ['Projekty', 'projects', [/Úkoly/, /Projekty/, /Čas/]],
-      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Kurzy měn', 'Aktivity', 'Obchody', 'Import a export', 'API a MCP', 'Webhooky']],
+      ['Nastavení', 'settings', ['Firma', 'Lidé', 'Štítky', 'Dokumenty', 'Přijaté doklady', 'Kurzy měn', 'Aktivity', 'Obchody', 'Import a export', 'Webhooky']],
     ] as const) {
       await openArea(page, label);
       await openMenuOnPhone(page);

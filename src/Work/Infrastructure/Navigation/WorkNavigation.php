@@ -17,6 +17,7 @@ use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
 use Foresi\Work\Infrastructure\Controller\LabelController;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;
 use Foresi\Work\Infrastructure\Controller\NotificationController;
+use Foresi\Work\Infrastructure\Controller\NotificationSettingsController;
 use Foresi\Work\Infrastructure\Controller\SharedWorkController;
 use Foresi\Work\Infrastructure\Controller\TaskListController;
 use Foresi\Work\Infrastructure\Controller\TimeWeekController;
@@ -49,6 +50,8 @@ final readonly class WorkNavigation implements NavigationItemProvider
         yield new NavigationItem(CoreNavigationAreas::OVERVIEW, 'nav.item.notifications', 'inbox', NotificationController::ROUTE, $this->notifications, weight: 20, routePrefixes: ['app_notification'], countCap: self::NOTIFICATIONS_CAP, marksArea: true);
         // All tasks lead the area, opening on Mine, so the count of my tasks due goes with them; My tasks stays at its address.
         $tasks = new NavigationItem(CoreNavigationAreas::PROJECTS, 'nav.item.tasks', 'square-check-big', TaskListController::ROUTE, $this->count, weight: 5, routePrefixes: [TaskListController::ROUTE, MyTasksController::ROUTE]);
+        // How the person is told: their own setting, in their account.
+        yield new NavigationItem(NavigationArea::PROFILE, 'shell.user_menu.notifications', 'bell-ring', NotificationSettingsController::ROUTE, weight: 10, section: CoreNavigationAreas::SECTION_NOTIFICATIONS);
         if (!$this->staff->isStaff()) {
             yield $tasks;
 

@@ -9,6 +9,8 @@
 #}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set settings = constant('Foresi\\Ui\\Contract\\Navigation\\NavigationArea::SETTINGS') %}
+{# The person's own account has no rail entry: the avatar menu is its way in. #}
+{% set profile = constant('Foresi\\Ui\\Contract\\Navigation\\NavigationArea::PROFILE') %}
 {% set commands = [] %}
 {# The palette groups the items by the sections the sidebar shows: an area with headings by its sections, every other one under "Go to". #}
 {% for entry in areas %}
@@ -36,7 +38,7 @@
 <twig:Ui:IconButton icon="menu" :label="'shell.menu.open'|trans" variant="ghost" class="max-shell:h-touch max-shell:w-touch shell:hidden" data-sidebar-target="toggle" data-action="sidebar#toggle" aria-controls="navigation" aria-expanded="false" />
 <span class="font-semibold text-ink shell:hidden">{{ product_name }}</span>
 <a href="{{ path('app_dashboard') }}" class="grid size-9 shrink-0 place-items-center rounded-control bg-green text-heading font-bold text-white no-underline shell:mb-3 max-shell:hidden {{ focus }}" aria-label="{{ product_name }}">{{ product_name|first|upper }}</a>
-{% for entry in areas|filter(a => a.area.id != settings) %}{{ _self.area(entry, focus) }}{% endfor %}
+{% for entry in areas|filter(a => a.area.id not in [settings, profile]) %}{{ _self.area(entry, focus) }}{% endfor %}
 <div class="flex-1"></div>
 <twig:Ui:CommandPalette :commands="commands" trigger="rail" />
 {% for entry in areas|filter(a => a.area.id == settings) %}{{ _self.area(entry, focus) }}{% endfor %}
