@@ -13,6 +13,11 @@
 #}
 {% set rowHeight = this.rowHeight %}
 {#
+    A value one edits in the row reads where the header and every other value start: its trigger's
+    frame (px-1.5 and a 1 px border) shows on hover outside the text, in the cell's padding, as
+    Notion's and Airtable's cells do, so a badge or a name never sits 7 px in from its header.
+#}
+{#
     A resizable table (column-resize) has a grip on the right edge of each header from the sm
     breakpoint up, marked by a faint 1 px divider in the header's own line colour that grows to the
     full height and darkens only under the pointer, and turns green on focus or while dragged
@@ -98,7 +103,7 @@
                                     </td>
                                 {% endif %}
                                 {% for cell in row.cells %}
-                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}">
+                                    <td class="{{ rowHeight }} whitespace-nowrap border-b border-divider px-4 text-text group-last:border-b-0 group-hover:bg-frame group-focus-within:bg-frame group-data-[selected=true]:bg-green-tint {{ this.alignClass(cell.align) }}{{ cell.phone ? '' : ' max-sm:hidden' }}{{ cell.wide ? ' max-xl:hidden' : '' }}{{ cell.truncate ? ' sm:max-w-0 ' ~ share : '' }}{{ (row.secondary or row.alert) and loop.first ? ' max-sm:w-full max-sm:max-w-0 max-sm:py-2' : '' }}{{ row.alert and cell.key == row.alert.column ? ' py-2' : '' }}{{ row.child and loop.first ? ' pl-10' : '' }}{{ cell.edit ? ' ' ~ this.editInset : '' }}">
                                         {%- set unreadMark = loop.first and row.unread is not null -%}
                                         {%- if unreadMark %}<span class="flex min-w-0 items-center gap-2 [&>*]:min-w-0 {{ row.unread ? '[&_a]:font-semibold' : '[&_a]:font-normal' }}" data-unread="{{ row.unread ? 'true' : 'false' }}"><span class="size-2 shrink-0 rounded-sm{{ row.unread ? ' bg-green' : '' }}" aria-hidden="true"></span>{% if row.unread %}<span class="sr-only">{{ 'ui.table.unread'|trans }}: </span>{% endif %}{% endif -%}
                                         {%- if cell.edit -%}

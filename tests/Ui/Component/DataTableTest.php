@@ -879,6 +879,12 @@ final class DataTableTest extends KernelTestCase
         // A text alone reads as text; an edit alone as no value.
         self::assertSame('Status: Open', preg_replace('/\s+/', ' ', trim($crawler->filter('#edit-t2-email-button')->text())));
         self::assertSame('Nezadáno', $crawler->filter('#edit-t1-balance-button [data-empty-value]')->text());
+
+        // The trigger's padding and border lie outside the text, so the value starts where its header does.
+        $cell = explode(' ', (string) $status->closest('td')?->attr('class'));
+        self::assertContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', $cell);
+        self::assertContains('[&_[data-person-picker-trigger]]:-mx-[7px]', $cell);
+        self::assertNotContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', explode(' ', (string) $crawler->filter('tbody tr')->eq(1)->filter('td')->last()->attr('class')), 'a cell without an edit keeps its place');
     }
 
     public function testAnEditOfACellMustBeAnArray(): void
