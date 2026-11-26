@@ -59,9 +59,11 @@ final class SalesSettingsListsTest extends WebTestCase
         $all = self::getContainer()->get(ListDefinitions::class);
         foreach (['sales.deal_stages' => $stages->list(), 'sales.lost_reasons' => $reasons->list()] as $key => $list) {
             self::assertSame($key, $list->key);
-            self::assertSame([ListDefinition::ALL], array_map(static fn (DefaultView $view): string => $view->slug, $list->defaults));
+            self::assertSame([[ListDefinition::ALL, false, 0]], array_map(static fn (DefaultView $view): array => [$view->slug, $view->showCount, $view->position], $list->defaults));
             self::assertArrayHasKey('name', $list->fields);
             self::assertArrayHasKey('archived', $list->fields);
+            // Built once, so its fields are asked once.
+            self::assertSame($list, ('sales.deal_stages' === $key ? $stages : $reasons)->list());
             // app:views:sync stores the views of every list it finds.
             self::assertArrayHasKey($key, $all->all());
         }
@@ -109,6 +111,8 @@ final class SalesSettingsListsTest extends WebTestCase
         self::assertSame('widths', $stages->filter('[data-column-resize-param-value]')->attr('data-column-resize-param-value'));
         self::assertCount(1, $crawler->filter('#view-save-as'));
         self::assertCount(1, $crawler->filter('#view-save-as-reasons'));
+        self::assertCount(1, $crawler->filter('#settings-views'));
+        self::assertCount(1, $crawler->filter('#settings-views-reasons'));
     }
 
     public function testTheBuildersRowsOfTheReasonsBecomeTheirFilterAndTheStagesKeepTheirs(): void

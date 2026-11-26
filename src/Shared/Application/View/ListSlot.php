@@ -27,7 +27,7 @@ final readonly class ListSlot
 
     /**
      * @param array<array-key, mixed> $page   the page's whole query
-     * @param list<string>            $others the slots of the page's other tables, for the first
+     * @param array<string>           $others the slots of the page's other tables, for the first
      */
     private function __construct(public string $name, private array $page, private array $others)
     {
@@ -43,7 +43,7 @@ final readonly class ListSlot
     {
         array_map(self::check(...), $others);
 
-        return new self('', $page, array_values($others));
+        return new self('', $page, $others);
     }
 
     /**
@@ -58,7 +58,7 @@ final readonly class ListSlot
         return new self($name, $page, []);
     }
 
-    public function isFirst(): bool
+    private function isFirst(): bool
     {
         return '' === $this->name;
     }
@@ -83,12 +83,8 @@ final readonly class ListSlot
      */
     public function input(): InputBag
     {
-        $query = [];
-        foreach ($this->query() as $key => $value) {
-            $query[(string) $key] = $value;
-        }
-
-        return new InputBag($query);
+        // A list's state is under names; a bare number is no key of it.
+        return new InputBag(array_filter($this->query(), \is_string(...), \ARRAY_FILTER_USE_KEY));
     }
 
     /**
@@ -142,7 +138,7 @@ final readonly class ListSlot
      */
     public function kept(): array
     {
-        $others = $this->isFirst() ? array_intersect_key($this->page, array_flip($this->others)) : array_diff_key($this->page, [$this->name => true]);
+        $others = $this->isFirst() ? array_intersect_key($this->page, array_flip($this->others)) : array_diff_key($this->page, array_flip([$this->name]));
 
         return self::flatten($others, '');
     }
@@ -156,11 +152,11 @@ final readonly class ListSlot
     {
         $fields = [];
         foreach ($values as $key => $value) {
-            $name = '' === $prefix ? (string) $key : $prefix.'['.$key.']';
+            $name = '' === $prefix ? "{$key}" : "{$prefix}[{$key}]";
             if (\is_array($value)) {
                 $fields += self::flatten($value, $name);
             } elseif (\is_scalar($value)) {
-                $fields[$name] = (string) $value;
+                $fields[$name] = "{$value}";
             }
         }
 

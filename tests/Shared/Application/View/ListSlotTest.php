@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Shared\Application\View;
 
 use Foresi\Shared\Application\View\ListSlot;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -48,9 +49,40 @@ final class ListSlotTest extends TestCase
         self::assertSame(['reasons[cols]' => 'name', 'reasons[widths]' => 'name:240'], $first->kept());
     }
 
-    public function testASlotIsNoKeyOfAListsState(): void
+    public function testTheInputHoldsTheNamedKeysOfTheTable(): void
+    {
+        self::assertSame(['view' => 'mine'], ListSlot::first(['view' => 'mine', 0 => 'stray'])->input()->all());
+        self::assertSame('name', ListSlot::named('reasons', self::PAGE)->input()->getString('cols'));
+    }
+
+    public function testEveryOtherTableIsKeptWhole(): void
+    {
+        $page = ['cols' => 'name', 'reasons' => ['cols' => 'name', 'n' => 5], 'lines' => ['q' => 'roof']];
+        self::assertSame(['reasons[cols]' => 'name', 'reasons[n]' => '5', 'lines[q]' => 'roof'], ListSlot::first($page, 'reasons', 'lines')->kept());
+        self::assertSame(['cols' => 'name', 'lines[q]' => 'roof'], ListSlot::named('reasons', $page)->kept());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function badNames(): iterable
+    {
+        yield 'a key of a list' => ['cols'];
+        yield 'a digit first' => ['1reasons'];
+        yield 'a dash after' => ['reasons-x'];
+        yield 'empty' => [''];
+    }
+
+    #[DataProvider('badNames')]
+    public function testASlotIsAShortNameThatIsNoKeyOfAListsState(string $name): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        ListSlot::named('cols', []);
+        ListSlot::named($name, []);
+    }
+
+    public function testTheFirstTableChecksTheNamesOfTheOthers(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        ListSlot::first([], 'reasons', 'q');
     }
 }
