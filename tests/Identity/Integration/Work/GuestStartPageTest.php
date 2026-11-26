@@ -42,7 +42,7 @@ final class GuestStartPageTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Nothing is shared with you yet');
         // The sidebar offers what is shared, their inbox and their tasks, then their profile area (profile, password, two-factor,
         // notification settings, connected apps), nothing else of the modules (the extensions group holds the test environment's own probe item).
-        self::assertSame(['/shared', '/notifications', '/tasks', '/account/profile', '/account/password', '/account/two-factor', '/account/notifications', '/connected-apps'], $crawler->filter('#sidebar [data-nav-area]:not([data-nav-area="extensions"]) [data-nav-section] li > a')->each(static fn ($link): string => (string) $link->attr('href')));
+        self::assertSame(['/shared', '/notifications', '/tasks', '/account/profile', '/account/password', '/account/email', '/account/two-factor', '/account/notifications', '/connected-apps'], $crawler->filter('#sidebar [data-nav-area]:not([data-nav-area="extensions"]) [data-nav-section] li > a')->each(static fn ($link): string => (string) $link->attr('href')));
     }
 
     private function signIn(Role $role): void

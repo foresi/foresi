@@ -36,6 +36,8 @@ final class GuestAccessTest extends WebTestCase
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Their password, and the prompt that confirms it is them before a sensitive page.
         'app_account_password', 'app_account_password_change', 'app_reauthenticate',
+        // Their sign-in e-mail, and the link that confirms a new one.
+        'app_account_email', 'app_account_email_change', 'app_account_email_cancel', 'app_account_email_confirm',
         // Machines: the uptime monitor, the bank mail relay and calendar apps fetching a feed, on firewalls without a session.
         'app_health', 'app_inbound_mail', 'app_calendar_feed',
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and

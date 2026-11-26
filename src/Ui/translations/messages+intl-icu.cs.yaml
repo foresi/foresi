@@ -70,6 +70,7 @@ nav:
     people: Lidé
     profile: Profil
     password: Heslo
+    email: Přihlašovací e-mail
     two_factor: Dvoufázové přihlášení
     api: API a MCP
     connected_apps: Připojené aplikace

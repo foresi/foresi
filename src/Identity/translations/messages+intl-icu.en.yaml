@@ -387,7 +387,7 @@ profile:
   field:
     name: Name
     email: E-mail
-    email_note: The address you sign in with
+    email_note: The address you sign in with; change it under Security, Sign-in e-mail
     language: Language
     photo: Photo
     photo_help: JPEG, PNG or WebP, at most 5 MB
@@ -452,11 +452,66 @@ password:
     changed: 'The password of your {product} account {email} was changed on {time}.'
     signed_out: Every other device where you were signed in has been signed out, and browsers you had marked as trusted will ask for a code again.
     not_you: If you did not change it, contact your firm's administrator right away.
+email:
+  title: Sign-in e-mail
+  intro: You sign in with this address, and Foresi sends to it what concerns your account. A new address works once you open the link we send to it.
+  change: Change e-mail
+  change_title: Change sign-in e-mail
+  change_intro: 'You sign in with {email} now. We send a link to the new address; it works for {hours} hours, and until you open it you keep signing in with the current one.'
+  send: Send link
+  cancel: Cancel
+  cancel_change: Cancel change
+  pending: 'Waiting for confirmation: we sent a link to {email}. Until you open it, you sign in with your current address. The link works until {time}.'
+  field:
+    email: Sign-in e-mail
+    new: New e-mail
+    after: After a change
+    after_value: Your other devices are signed out and your previous address gets a notice.
+  flash:
+    sent: 'We sent a link to {email}. Open it to finish the change.'
+    cancelled: The change of your e-mail is cancelled. The link no longer works.
+    changed: 'You now sign in with {email}. Your other devices were signed out.'
+  error:
+    invalid: Enter a valid e-mail address.
+    same: This is the address you sign in with already.
+    taken: Another account uses this address.
+    mail_unavailable: E-mail sending is not set up on this installation, so the link cannot be sent. Ask your firm's administrator.
+    not_found: Your account was not found.
+    throttled: '{minutes, plural, one {Too many changes. Try again in # minute.} other {Too many changes. Try again in # minutes.}}'
+  confirm:
+    confirm:
+      title: Confirm your new e-mail
+      text: 'You will sign in with {new} instead of {email}. Your other devices will be signed out.'
+      submit: Confirm new e-mail
+    done:
+      title: Your e-mail is changed
+      text: 'From now on you sign in with {new}.'
+      submit: Sign in
+    taken:
+      title: The address is taken
+      text: 'Another account started using {new} in the meantime, so your e-mail stays as it was. Start the change again with another address.'
+    unknown:
+      title: This link no longer works
+      text: The link has expired, was cancelled or has been used already. Start the change again from your profile.
+  mail:
+    confirm:
+      subject: 'Confirm your new {product} e-mail'
+      intro: '{name} asked to sign in to {product} with {new} instead of {email}.'
+      action: Confirm the new e-mail
+      validity: '{hours, plural, one {The link works for # hour.} other {The link works for # hours.}} Until you open it, the account keeps signing in with the current address.'
+      ignore: If you did not ask for this, ignore this e-mail and nothing changes.
+    notice:
+      subject: 'Your {product} sign-in e-mail was changed'
+      changed: 'The sign-in e-mail of your {product} account was changed from {old} to {new} on {time}.'
+      signed_out: Every other device where you were signed in has been signed out.
+      not_you: 'If you did not change it, contact your firm right away: {owners}.'
+      not_you_admin: If you did not change it, contact the administrator of your Foresi installation right away.
 reauth:
   title: Confirm it's you
   reason:
     two_factor: You are about to set up two-factor sign-in, which decides who can sign in to your account.
     api_token: You are about to create an API token, which can act as you.
+    email: You are about to change the e-mail you sign in with.
     default: You are about to change something that protects your account.
   window: '{minutes, plural, one {You will not be asked again for # minute.} other {You will not be asked again for # minutes.}}'
   password: Password

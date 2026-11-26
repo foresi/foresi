@@ -28,6 +28,11 @@ final readonly class DoctrineUserRepository implements UserRepository
         return $this->entityManager->find(User::class, $id);
     }
 
+    public function findByPendingEmailToken(string $tokenHash): ?User
+    {
+        return $this->entityManager->getRepository(User::class)->findOneBy(['pendingEmailTokenHash' => $tokenHash]);
+    }
+
     public function namesOf(array $ids): array
     {
         if ([] === $ids) {
