@@ -27,7 +27,7 @@
             :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="rows is empty" data-inbox-filter>
         </twig:Ui:FilterBar>
 
-        <twig:Ui:DataTable :caption="'inbox.title'|trans" :columns="columns" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Inbox\\Infrastructure\\Controller\\InboxController::TOKEN'))" data-inbox-list data-turbo-prefetch="false">
+        <twig:Ui:DataTable :caption="'inbox.title'|trans" :columns="columns" :resizable="true" :rows="rows" :density="density" :actionToken="csrf_token(constant('Foresi\\Inbox\\Infrastructure\\Controller\\InboxController::TOKEN'))" data-inbox-list data-turbo-prefetch="false">
             <twig:block name="empty">
                 {% if filtered %}
                     <twig:Ui:EmptyState icon="search" :title="emptyState.title" :text="'inbox.empty.filtered'|trans" data-inbox-empty>

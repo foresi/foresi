@@ -307,7 +307,7 @@ final class TaskListController extends AbstractController
             'keep' => $kept,
             'columns' => $working->picker(),
             'density' => $working->density,
-            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '']),
+            'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::DENSITY => '', WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
             'group' => $group,
             'groups' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.group_by.'.$key)], TaskLists::groupsOf($view->slug)),

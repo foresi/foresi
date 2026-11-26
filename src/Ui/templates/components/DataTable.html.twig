@@ -14,7 +14,8 @@
 {% set rowHeight = this.rowHeight %}
 {#
     A resizable table (column-resize) has a grip on the right edge of each header from the sm
-    breakpoint up, a separator one drags, moves with the arrow keys or double-clicks to size the
+    breakpoint up, always marked by a short notch so one sees where to take it (AG Grid's header
+    resize handle, Google Sheets' column edge), a separator one drags, moves with the arrow keys or double-clicks to size the
     column to its text again (WAI-ARIA APG Window Splitter; Excel, Google Sheets). Once every column
     has a width the table lays them out at those widths alone, at least as wide as its frame: the
     actions column, or an empty last column when there is none, takes the room the others leave.
@@ -69,7 +70,7 @@
                                         {{- column.label -}}
                                     {%- endif -%}
                                     {%- if resizable -%}
-                                        <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden"></span>
+                                        <span role="separator" aria-orientation="vertical" tabindex="0" aria-label="{{ 'ui.table.resize'|trans({label: column.label}) }}" aria-valuemin="{{ column.minWidth }}" aria-valuemax="{{ constant('Foresi\\Ui\\Component\\DataTable::MAX_WIDTH') }}" aria-valuenow="{{ column.width ?? column.minWidth }}" data-column-resize-target="grip" data-key="{{ column.key }}" data-min="{{ column.minWidth }}" data-action="pointerdown->column-resize#grab keydown->column-resize#key dblclick->column-resize#fit" class="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize touch-none bg-transparent transition-colors hover:bg-container focus-visible:bg-green focus-visible:outline-none data-[resizing]:bg-green max-sm:hidden after:absolute after:inset-y-[30%] after:right-0.5 after:w-0.5 after:rounded-sm after:bg-control-line after:transition-colors hover:after:bg-muted focus-visible:after:bg-transparent data-[resizing]:after:bg-transparent"></span>
                                     {%- endif -%}
                                 </th>
                             {% endfor %}

@@ -32,11 +32,11 @@
             {% if grouped %}
                 <section class="grid gap-2" aria-labelledby="group-{{ loop.index }}-title" data-task-group="{{ group.key }}">
                     <h2 id="group-{{ loop.index }}-title" class="m-0 text-heading font-semibold text-ink">{{ group.name }} <span class="num font-normal text-muted">({{ group.count }})</span></h2>
-                    <twig:Ui:DataTable :caption="group.name" :columns="columns" :rows="group.rows" :density="density" />
+                    <twig:Ui:DataTable :caption="group.name" :columns="columns" :resizable="true" :rows="group.rows" :density="density" />
                 </section>
             {% else %}
                 <div data-task-group="all">
-                    <twig:Ui:DataTable :caption="'work.tasks.title'|trans" :columns="columns" :rows="group.rows" :density="density" />
+                    <twig:Ui:DataTable :caption="'work.tasks.title'|trans" :columns="columns" :resizable="true" :rows="group.rows" :density="density" />
                 </div>
             {% endif %}
         {% else %}
