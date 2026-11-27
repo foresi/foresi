@@ -617,9 +617,6 @@ firm:
       email: Zadejte platný e-mail.
       save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
 # The footer of mail the installation sends itself, such as invitations.
-system_mail:
-  footer: 'Odesláno systémem {product}'
-  footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
 saved_view:
   save: Uložit
   save_to_view: Uložit do pohledu

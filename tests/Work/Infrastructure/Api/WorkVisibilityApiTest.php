@@ -15,6 +15,7 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Webhooks\Domain\EndpointUrl;
 use Foresi\Webhooks\Domain\EventTypes;
 use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\WebhooksBundle;
 use Foresi\Work\Infrastructure\Mcp\GetTaskTool;
 use Foresi\Work\Infrastructure\Mcp\SearchProjectsTool;
 use Foresi\Work\Infrastructure\Mcp\SearchTasksTool;
@@ -101,6 +102,9 @@ final class WorkVisibilityApiTest extends WorkApiTestCase
 
     public function testAWebhookOfAMemberIsNotSentTheEventsOfTasksTheyDoNotSee(): void
     {
+        if (!class_exists(WebhooksBundle::class)) {
+            self::markTestSkipped('The webhooks module is not installed (it is no longer in the core).');
+        }
         $endpoint = $this->flushed(function (): string {
             $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/work'), null, EventTypes::of(['work.*']), 1, 'sealed', $this->user->id(), new \DateTimeImmutable('2026-11-19 10:00:00'));
             $this->em()->persist($endpoint);

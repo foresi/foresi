@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\ReceivedDocuments\Infrastructure\Api;
 
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Operation\InputSchema;
 use Foresi\Shared\Infrastructure\Operation\Operations;
@@ -342,7 +343,10 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         yield 'not JSON' => [['filter' => '{conditions'], 'filter'];
         yield 'an unknown field' => [['filter' => '{"conditions": [{"field": "colour", "op": "is", "value": "red"}]}'], 'filter.conditions[0].field'];
         yield 'an unknown kind' => [['filter' => '{"conditions": [{"field": "kind", "op": "is", "value": "receipt"}]}'], 'filter.conditions[0].value'];
-        yield 'a view of another list' => [['view' => 'party.contacts.suppliers'], 'view'];
+        // The address book's list is the other list there is, when it is installed.
+        if (class_exists(ContactsBundle::class)) {
+            yield 'a view of another list' => [['view' => 'party.contacts.suppliers'], 'view'];
+        }
     }
 
     /**
@@ -387,8 +391,8 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         self::assertResponseStatusCodeSame(403);
         $this->get('/api/v1/received-documents/'.$id, secret: $this->secret);
         self::assertResponseStatusCodeSame(200);
-        $contacts = $this->issued([ApiScope::from('contacts:read')]);
-        $this->get('/api/v1/received-documents', secret: $contacts);
+        $firm = $this->issued([ApiScope::from('firm:read')]);
+        $this->get('/api/v1/received-documents', secret: $firm);
         self::assertResponseStatusCodeSame(403);
     }
 

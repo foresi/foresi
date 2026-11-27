@@ -1139,6 +1139,8 @@ deptrac:
     idoklad:
       - audit
       - audit_contract
+      - contacts
+      - contacts_contract
       - identity
       - identity_contract
       - idoklad_contract
@@ -1155,6 +1157,7 @@ deptrac:
     idoklad_contract:
       - audit
       - audit_contract
+      - contacts_contract
       - identity
       - identity_contract
       - import_contract

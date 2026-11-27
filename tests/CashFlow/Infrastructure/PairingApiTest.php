@@ -258,7 +258,7 @@ final class PairingApiTest extends ApiTestCase
     {
         $this->client->request('POST', '/api/v1/cash-flow/pairings', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->reader, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: '{}');
         $this->assertProblem(403, 'insufficient_scope');
-        $this->get('/api/v1/cash-flow/pairings', [], $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/cash-flow/pairings', [], $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
     }
 

@@ -617,9 +617,6 @@ firm:
       email: Enter a valid e-mail address.
       save_failed: The settings could not be saved. Try it again.
 # The footer of mail the installation sends itself, such as invitations.
-system_mail:
-  footer: 'Sent by {product}'
-  footer_organisation: 'Sent by {product} on behalf of {organisation}'
 saved_view:
   save: Save
   save_to_view: Save to view

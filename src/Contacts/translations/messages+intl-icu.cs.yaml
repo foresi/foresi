@@ -22,6 +22,7 @@ contacts:
     changed_after_import: 'Kontakty z importu souboru {name}, které někdo po importu změnil.'
     summary: Souhrn importu
   title: Adresář
+  primary: Hlavní
   new: Nový kontakt
   edit: Upravit
   archive: Archivovat

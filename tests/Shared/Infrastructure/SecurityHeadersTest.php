@@ -10,6 +10,7 @@ namespace Foresi\Tests\Shared\Infrastructure;
 
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Ui\UiBundle;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 final class SecurityHeadersTest extends ApiTestCase
@@ -20,8 +21,9 @@ final class SecurityHeadersTest extends ApiTestCase
 
     public function testASignedInScreenRunsOnlyTheScriptsOfItsNonce(): void
     {
+        self::needsTheScreens();
         $this->client->loginUser(new SecurityUser($this->user->id(), $this->user->email(), $this->user->passwordHash()), 'main');
-        $crawler = $this->client->request('GET', '/contacts');
+        $crawler = $this->client->request('GET', '/account/profile');
 
         self::assertResponseIsSuccessful();
         $headers = $this->client->getResponse()->headers;
@@ -33,17 +35,21 @@ final class SecurityHeadersTest extends ApiTestCase
         $this->assertCommonHeaders($headers);
 
         // Every response has a nonce of its own.
-        $again = $this->client->request('GET', '/contacts');
+        $again = $this->client->request('GET', '/account/profile');
         self::assertNotSame($nonce, $again->filter('meta[name="csp-nonce"]')->attr('nonce'));
     }
 
-    public function testThePublicPagesAndErrorsCarryTheHeaders(): void
+    public function testThePublicPagesCarryTheHeaders(): void
     {
+        self::needsTheScreens();
         $this->client->request('GET', '/login');
         $headers = $this->client->getResponse()->headers;
         self::assertStringStartsWith("default-src 'self'; script-src 'self' 'nonce-", (string) $headers->get('Content-Security-Policy'));
         $this->assertCommonHeaders($headers);
+    }
 
+    public function testTheErrorsCarryTheHeaders(): void
+    {
         // In debug an error is Symfony's exception page, which inlines its scripts: no policy, the rest stays.
         $this->client->request('GET', '/nothing-here');
         $headers = $this->client->getResponse()->headers;
@@ -54,7 +60,7 @@ final class SecurityHeadersTest extends ApiTestCase
 
     public function testTheApiCarriesTheHeadersWithAPolicyThatRunsNoInlineScript(): void
     {
-        foreach (['/api/v1/contacts', '/api/v1/openapi.json'] as $url) {
+        foreach (['/api/v1/me', '/api/v1/openapi.json'] as $url) {
             $this->get($url);
             self::assertResponseIsSuccessful();
             $headers = $this->client->getResponse()->headers;
@@ -70,6 +76,16 @@ final class SecurityHeadersTest extends ApiTestCase
 
         $this->client->request('GET', '/login', server: ['HTTPS' => 'on']);
         self::assertSame('max-age=31536000; includeSubDomains', $this->client->getResponse()->headers->get('Strict-Transport-Security'));
+    }
+
+    /**
+     * The screens, the sign-in page among them, come with Ui; the core runs without it (ADR 0038).
+     */
+    private static function needsTheScreens(): void
+    {
+        if (!class_exists(UiBundle::class)) {
+            self::markTestSkipped('Ui is not installed, so there are no screens.');
+        }
     }
 
     private function assertCommonHeaders(ResponseHeaderBag $headers, string $url = ''): void

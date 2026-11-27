@@ -549,7 +549,7 @@ final class PartyController extends AbstractController
                 'cells' => [
                     'name' => $other->displayName(),
                     'position' => $link->position(),
-                    'primary' => $link->isPrimary() ? ['label' => $this->translator->trans('party.contact.primary'), 'tone' => 'green'] : null,
+                    'primary' => $link->isPrimary() ? ['label' => $this->translator->trans('contacts.primary'), 'tone' => 'green'] : null,
                 ],
                 'actions' => $actions,
             ];
@@ -631,7 +631,7 @@ final class PartyController extends AbstractController
                     'iban' => $iban,
                     'bic' => $account->bic(),
                     'label' => $account->label(),
-                    'primary' => $account->isPrimary() ? ['label' => $this->translator->trans('party.contact.primary'), 'tone' => 'green'] : null,
+                    'primary' => $account->isPrimary() ? ['label' => $this->translator->trans('contacts.primary'), 'tone' => 'green'] : null,
                 ],
                 'actions' => $actions,
             ];

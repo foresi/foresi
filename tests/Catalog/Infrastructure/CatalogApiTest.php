@@ -115,8 +115,8 @@ final class CatalogApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/catalog/products', self::RETAINER, $this->secret);
         $this->assertProblem(403, 'insufficient_scope');
 
-        $contacts = $this->issued([ApiScope::from('contacts:read')]);
-        $this->get('/api/v1/catalog/products', [], $contacts);
+        $firm = $this->issued([ApiScope::from('firm:read')]);
+        $this->get('/api/v1/catalog/products', [], $firm);
         $this->assertProblem(403, 'insufficient_scope');
     }
 

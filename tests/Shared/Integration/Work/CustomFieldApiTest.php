@@ -215,8 +215,8 @@ final class CustomFieldApiTest extends WorkApiTestCase
 
         $this->get('/api/v1/fields', [], $this->writer);
         self::assertResponseIsSuccessful();
-        // The fields of every record kind the token reads: the contacts', and those of the test-only record.
-        self::assertSame([...array_fill(0, 13, 'contact'), ...array_fill(0, 13, 'fixture_note')], $this->column('record', 'data'));
+        // The fields of every record kind the token reads: the contacts', those of the test-only record, and the one Timesheet gives a project.
+        self::assertSame([...array_fill(0, 13, 'contact'), ...array_fill(0, 13, 'fixture_note'), 'project'], $this->column('record', 'data'));
         self::assertSame([
             'key' => 'test_fields_size',
             'record' => 'contact',

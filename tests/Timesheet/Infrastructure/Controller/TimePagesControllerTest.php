@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Timesheet\Infrastructure\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
@@ -271,9 +272,12 @@ final class TimePagesControllerTest extends WebTestCase
         self::assertSame('All, unsaved changes', $this->reportTabs($crawler)[0]);
         self::assertSame('All', trim($crawler->filter('#report-range')->text()), 'a day that is no period shows the view');
 
-        $this->client->request('GET', '/time/report?'.http_build_query(['view' => 'this_month', 'conditions' => '1', 'c' => [['field' => 'client', 'op' => 'is', 'value' => $this->clientId()]]]));
-        $crawler = $this->client->followRedirect();
-        self::assertStringContainsString('Example Client', $crawler->filter('main')->text(), 'the chip names the client');
+        // The address book names a contact; without it the chip says the client is unknown.
+        if (class_exists(ContactsBundle::class)) {
+            $this->client->request('GET', '/time/report?'.http_build_query(['view' => 'this_month', 'conditions' => '1', 'c' => [['field' => 'client', 'op' => 'is', 'value' => $this->clientId()]]]));
+            $crawler = $this->client->followRedirect();
+            self::assertStringContainsString('Example Client', $crawler->filter('main')->text(), 'the chip names the client');
+        }
         $this->client->request('GET', '/time/report?'.http_build_query(['view' => 'this_month', 'conditions' => '1', 'c' => [['field' => 'person', 'op' => 'is', 'value' => $this->membershipId(self::JANA)], ['field' => 'project', 'op' => 'is', 'value' => $this->projectId('Secret')]]]));
         $crawler = $this->client->followRedirect();
         self::assertStringContainsString('Jana Example', $crawler->filter('main')->text(), 'the chip names the person');

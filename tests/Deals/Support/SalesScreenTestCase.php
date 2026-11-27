@@ -9,12 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Tests\Deals\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
@@ -58,9 +58,10 @@ abstract class SalesScreenTestCase extends WebTestCase
         foreach ([$this->company, $this->petra, $this->karel] as $party) {
             $this->em()->persist($party);
         }
+        // The links the address book makes; the deals run without the contacts module.
+        $this->em()->persist(new ContactLink($this->company, $this->petra));
+        $this->em()->persist(new ContactLink($this->company, $this->karel));
         $this->em()->flush();
-        self::getContainer()->get(LinkContactPerson::class)->link($this->company, $this->petra, '', false);
-        self::getContainer()->get(LinkContactPerson::class)->link($this->company, $this->karel, '', false);
         $this->browser->signIn();
     }
 

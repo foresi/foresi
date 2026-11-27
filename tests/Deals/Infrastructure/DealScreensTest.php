@@ -10,7 +10,7 @@ namespace Foresi\Tests\Deals\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Catalog\Domain\Product;
-use Foresi\Contacts\Application\LinkContactPerson;
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Deals\Application\View\DealLists;
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Domain\DealLine;
@@ -20,6 +20,7 @@ use Foresi\Deals\Domain\LostReason;
 use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Domain\Address;
+use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
@@ -76,8 +77,8 @@ final class DealScreensTest extends WebTestCase
         $petra = new Party(PartyKind::Person, 'Petra Example', null, null, '');
         $this->em()->persist($this->company);
         $this->em()->persist($petra);
+        $this->em()->persist(new ContactLink($this->company, $petra));
         $this->em()->flush();
-        self::getContainer()->get(LinkContactPerson::class)->link($this->company, $petra, '', false);
     }
 
     public function testTheListGroupsTheDealsByStageOnSavedViews(): void
@@ -157,6 +158,9 @@ final class DealScreensTest extends WebTestCase
 
     public function testANewDealFromAContactHasItsClientAndContactPersons(): void
     {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('The contact persons of a client come from the contacts module, which is not installed.');
+        }
         $crawler = $this->client->request('GET', '/deals/new?client='.$this->company->id(), server: [self::HEADER => '1']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('dialog#dialog-page [data-deal-client]', 'Alpha Example s.r.o.');

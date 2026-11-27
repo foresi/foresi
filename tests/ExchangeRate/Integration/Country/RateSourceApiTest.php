@@ -77,7 +77,7 @@ final class RateSourceApiTest extends ApiTestCase
 
     public function testATokenWithoutTheScopeIsRefused(): void
     {
-        $this->get('/api/v1/exchange-rate/source', secret: $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/exchange-rate/source', secret: $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
         $this->send('PUT', '/api/v1/exchange-rate/source', ['source' => 'ecb'], $this->issued([ApiScope::from('exchange_rates:read')]));
         $this->assertProblem(403, 'insufficient_scope');

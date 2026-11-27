@@ -30,7 +30,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
 {
     public function testCreateAnswers201WithSecretAndQueuesPing(): void
     {
-        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['contacts.contact.archived', 'party.*']]);
+        $this->send('POST', self::ENDPOINTS, ['url' => 'https://hooks.example.com/foresi', 'description' => 'Accounting sync', 'event_types' => ['party.firm.vat_status_changed', 'party.*']]);
 
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
@@ -38,7 +38,7 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         self::assertResponseHeaderSame('Location', self::ENDPOINTS.'/'.$id);
         self::assertSame('https://hooks.example.com/foresi', $this->at('data', 'url'));
         self::assertSame('Accounting sync', $this->at('data', 'description'));
-        self::assertSame(['contacts.contact.archived', 'party.*'], $this->at('data', 'event_types'));
+        self::assertSame(['party.firm.vat_status_changed', 'party.*'], $this->at('data', 'event_types'));
         self::assertSame(1, $this->at('data', 'version'));
         self::assertTrue($this->at('data', 'active'));
         self::assertNull($this->at('data', 'disabled_reason'));
@@ -307,9 +307,9 @@ final class WebhookEndpointApiControllerTest extends WebhookApiTestCase
         $id = $this->at('data', 'id');
         self::assertIsString($id);
 
-        $this->send('PATCH', self::ENDPOINTS.'/'.$id, ['event_types' => ['contacts.contact.archived'], 'version' => 2]);
+        $this->send('PATCH', self::ENDPOINTS.'/'.$id, ['event_types' => ['party.firm.vat_status_changed'], 'version' => 2]);
         self::assertResponseStatusCodeSame(200);
-        self::assertSame(['contacts.contact.archived'], $this->at('data', 'event_types'));
+        self::assertSame(['party.firm.vat_status_changed'], $this->at('data', 'event_types'));
         self::assertSame(2, $this->at('data', 'version'));
         self::assertSame('Accounting sync', $this->at('data', 'description'));
         self::assertSame('https://hooks.example.com/foresi', $this->at('data', 'url'));

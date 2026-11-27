@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Deals\Infrastructure;
 
-use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Infrastructure\Mcp\GetDealTool;
 use Foresi\Deals\Infrastructure\Mcp\ListDealStagesTool;
 use Foresi\Deals\Infrastructure\Mcp\SearchDealsTool;
@@ -17,6 +16,7 @@ use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Role;
+use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
@@ -43,8 +43,8 @@ final class SalesApiTest extends ApiTestCase
             self::assertInstanceOf(Party::class, $client);
             $person = new Party(PartyKind::Person, 'Petra Example', null, null, '');
             $this->em()->persist($person);
+            $this->em()->persist(new ContactLink($client, $person));
             $this->em()->flush();
-            self::getContainer()->get(LinkContactPerson::class)->link($client, $person, '', false);
 
             return $person->id();
         });
@@ -232,9 +232,9 @@ final class SalesApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId], $reader);
         $this->assertProblem(403, 'insufficient_scope');
 
-        $contacts = $this->issued([ApiScope::from('contacts:read')]);
+        $firm = $this->issued([ApiScope::from('firm:read')]);
         foreach (['/api/v1/deals', '/api/v1/deal-stages', '/api/v1/lost-reasons'] as $path) {
-            $this->get($path, [], $contacts);
+            $this->get($path, [], $firm);
             $this->assertProblem(403, 'insufficient_scope');
         }
     }

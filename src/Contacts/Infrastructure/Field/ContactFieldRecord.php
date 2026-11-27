@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Party\Infrastructure\Field;
+namespace Foresi\Contacts\Infrastructure\Field;
 
 use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Contract\Contacts;
@@ -15,7 +15,9 @@ use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\Field\FieldRecord;
 
 /**
- * Contacts take custom fields (ADR 0045) through ContactExtension.
+ * Contacts take custom fields (ADR 0045) through Party's ContactExtension. The
+ * record is the address book's, as its scope contacts:read is: without the
+ * contacts module there are no contact screens or API to show the fields on.
  */
 final readonly class ContactFieldRecord implements FieldRecord
 {

@@ -269,7 +269,7 @@ final class DocumentsApiTest extends ApiTestCase
 
         $this->get('/api/v1/document-types', secret: $reader);
         self::assertResponseIsSuccessful();
-        $this->get('/api/v1/documents', secret: $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/documents', secret: $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
     }
 

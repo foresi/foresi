@@ -1,7 +1,8 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The bank settings of a firm, one tab of the firm: its accounts, and how payments pair with
-    invoices, with the inbound address of each account. Adding and editing an account and the setup
+    invoices (only when a module pays documents from movements), with the inbound address of each
+    account. Adding and editing an account and the setup
     steps of an address open as dialogs; their URLs are pages too.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
@@ -41,19 +42,21 @@
                 {% endif %}
             </twig:Ui:Card>
         {% else %}
-            <form id="bank-pairing" method="post" action="{{ pairingAction }}" class="grid grid-cols-1 gap-4" novalidate>
-                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::PAIRING_TOKEN')) }}">
-                <twig:Ui:Card :title="'bank.account.pairing.card'|trans" icon="link-2">
-                    <div class="grid gap-4">
-                        <twig:Ui:Checkbox name="autoPairing" id="autoPairing" value="1" :checked="autoPairing" :label="'bank.account.pairing.auto'|trans" :help="'bank.account.pairing.auto_help'|trans" />
-                        <twig:Ui:Checkbox name="smallDifference" id="smallDifference" value="1" :checked="smallDifference" :label="'bank.account.pairing.small'|trans" :help="'bank.account.pairing.small_help'|trans" />
-                    </div>
-                </twig:Ui:Card>
-                <twig:Ui:ActionBar>
-                    <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
-                    <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
-                </twig:Ui:ActionBar>
-            </form>
+            {% if pairs %}
+                <form id="bank-pairing" method="post" action="{{ pairingAction }}" class="grid grid-cols-1 gap-4" novalidate>
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::PAIRING_TOKEN')) }}">
+                    <twig:Ui:Card :title="'bank.account.pairing.card'|trans" icon="link-2">
+                        <div class="grid gap-4">
+                            <twig:Ui:Checkbox name="autoPairing" id="autoPairing" value="1" :checked="autoPairing" :label="'bank.account.pairing.auto'|trans" :help="'bank.account.pairing.auto_help'|trans" />
+                            <twig:Ui:Checkbox name="smallDifference" id="smallDifference" value="1" :checked="smallDifference" :label="'bank.account.pairing.small'|trans" :help="'bank.account.pairing.small_help'|trans" />
+                        </div>
+                    </twig:Ui:Card>
+                    <twig:Ui:ActionBar>
+                        <twig:Ui:Button :href="cancel">{{ 'party.cancel'|trans }}</twig:Ui:Button>
+                        <twig:Ui:Button type="submit" variant="primary">{{ 'party.save'|trans }}</twig:Ui:Button>
+                    </twig:Ui:ActionBar>
+                </form>
+            {% endif %}
 
             <twig:Ui:Card :title="'bank.account.address.card'|trans" icon="inbox">
                 <p class="m-0 mb-3 text-small text-muted">{{ 'bank.account.address.intro'|trans }}</p>

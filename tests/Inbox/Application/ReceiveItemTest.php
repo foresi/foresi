@@ -30,6 +30,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\NeedsTheAddressBook;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -39,6 +40,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class ReceiveItemTest extends KernelTestCase
 {
+    use NeedsTheAddressBook;
+
     private const string OWNER = 'owner@example.com';
     private const string CLIENT = 'client.a@client-a.example.com';
 
@@ -215,6 +218,8 @@ final class ReceiveItemTest extends KernelTestCase
 
     private function contact(string $kind, string $name, string $email, string $registrationNumber = ''): string
     {
+        self::needsTheAddressBook();
+
         return self::getContainer()->get(ContactCreation::class)->create(new NewContact($kind, $name, 'Example Street 2', 'Example City', '110 00', 'CZ', $registrationNumber, email: $email));
     }
 

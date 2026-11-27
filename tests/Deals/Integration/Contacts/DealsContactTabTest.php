@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Deals\Infrastructure;
+namespace Foresi\Tests\Deals\Integration\Contacts;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Deals\Domain\Deal;

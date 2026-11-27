@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Timesheet\Infrastructure\Api;
 
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Tests\Work\Infrastructure\Api\WorkApiTestCase;
 
 /**
@@ -22,6 +23,7 @@ final class ProjectBillableByDefaultApiTest extends WorkApiTestCase
 
     public function testAProjectWithAClientBillsByDefault(): void
     {
+        self::needsClients();
         $this->send('POST', '/api/v1/projects', ['name' => 'Launch', 'client_id' => $this->customerId]);
 
         self::assertResponseStatusCodeSame(201);
@@ -38,6 +40,7 @@ final class ProjectBillableByDefaultApiTest extends WorkApiTestCase
 
     public function testAnExplicitFalseStaysFalse(): void
     {
+        self::needsClients();
         $this->send('POST', '/api/v1/projects', ['name' => 'Pro bono', 'client_id' => $this->customerId, 'custom_fields' => [self::FIELD => false]]);
 
         self::assertResponseStatusCodeSame(201);
@@ -50,6 +53,16 @@ final class ProjectBillableByDefaultApiTest extends WorkApiTestCase
 
         self::assertResponseStatusCodeSame(201);
         self::assertTrue($this->billable());
+    }
+
+    /**
+     * A project has a client only from the address book (the contacts module).
+     */
+    private static function needsClients(): void
+    {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('The contacts module is not installed, so a project has no client.');
+        }
     }
 
     /**

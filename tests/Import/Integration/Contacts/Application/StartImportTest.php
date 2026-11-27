@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Import\Application;
+namespace Foresi\Tests\Import\Integration\Contacts\Application;
 
 use Foresi\Contacts\Integration\Import\PartyImportTarget;
 use Foresi\Import\Application\ImportFiles;

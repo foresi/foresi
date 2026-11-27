@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Events\Support;
+namespace Foresi\Tests\Events\Integration\Contacts\Support;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Contacts\Contract\Event\ContactArchived;
@@ -21,7 +21,8 @@ use Foresi\Shared\Contract\Event\EventRecorder;
 /**
  * Real contract events recorded as a use case records them, and numbered by
  * the relay, for the tests of the feed. They are the events of the address
- * book, which is in the core, so the tests run without any other module.
+ * book, which has several types with a subject each; the core alone has one
+ * event of the firm, so the tests of the feed need the contacts module.
  */
 final readonly class RecordedEvents
 {

@@ -71,7 +71,7 @@ final class ProjectModulesTest extends TestCase
             foreach ((array) ($composer['require'] ?? []) as $dependency => $constraint) {
                 // The module API has a version of its own, not the release's (ADR 0044).
                 if (ModuleApi::PACKAGE === $dependency) {
-                    self::assertSame('^1.0', $constraint, \sprintf('%s must require %s at ^1.0, the major this Foresi provides.', $package, $dependency));
+                    self::assertSame('^2.0', $constraint, \sprintf('%s must require %s at ^2.0, the major this Foresi provides.', $package, $dependency));
                 } elseif (str_starts_with((string) $dependency, 'foresi/')) {
                     self::assertSame('self.version', $constraint, \sprintf('%s must require %s at self.version.', $package, $dependency));
                 }

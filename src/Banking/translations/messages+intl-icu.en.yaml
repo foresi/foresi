@@ -16,6 +16,7 @@ bank:
     tab:
       accounts: Accounts
       pairing: Payment pairing
+      addresses: Bank e-mail
     card:
       accounts: Bank accounts
     intro: The accounts your customers pay to. New invoices get the primary one.

@@ -140,7 +140,7 @@ final class InstalledModulesTest extends TestCase
         yield 'a namespace the autoload does not declare' => [array_replace($composer, ['autoload' => ['psr-4' => ['Foresi\\Time\\' => '']]])];
         yield 'an id the namespace does not give' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['module' => 'hours']], 'name' => 'foresi/hours'])];
         yield 'a package name that is not one' => [array_replace($composer, ['name' => 'Foresi Timesheet'])];
-        yield 'the module API without a range' => [array_replace_recursive($composer, ['require' => ['foresi/module-api' => ['^1.0']]])];
+        yield 'the module API without a range' => [array_replace_recursive($composer, ['require' => ['foresi/module-api' => ['^2.0']]])];
         yield 'another vendor in the Foresi namespace' => [self::acme(['extra' => ['foresi' => ['namespace' => 'Foresi\\Garage\\', 'module' => 'garage', 'bundle' => 'Foresi\\Garage\\GarageBundle']], 'autoload' => ['psr-4' => ['Foresi\\Garage\\' => '']]])];
         yield 'another vendor with an id its namespace does not give' => [self::acme(['extra' => ['foresi' => ['module' => 'garage']]])];
         yield 'another vendor with a bundle not named after the id' => [self::acme(['extra' => ['foresi' => ['bundle' => 'Acme\\Garage\\FleetBundle']]])];
@@ -178,7 +178,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame('Acme\\Garage\\', $manifest->namespace);
         self::assertSame('Acme\\Garage\\AcmeGarageBundle', $manifest->bundle);
         self::assertSame(['shared', 'party'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
-        self::assertSame('^1.0', $manifest->moduleApi);
+        self::assertSame('^2.0', $manifest->moduleApi);
     }
 
     public function testARequiredModuleIsFoundByItsPackageWhateverItsVendor(): void
@@ -198,7 +198,7 @@ final class InstalledModulesTest extends TestCase
     public function testEveryModuleRequiresTheModuleApi(): void
     {
         foreach ($this->modules()->graph()->all() as $module) {
-            self::assertSame('^1.0', $module->moduleApi, $module->id->value);
+            self::assertSame('^2.0', $module->moduleApi, $module->id->value);
         }
     }
 
@@ -261,7 +261,7 @@ final class InstalledModulesTest extends TestCase
         return array_replace_recursive([
             'name' => 'acme/garage',
             'type' => 'foresi-module',
-            'require' => ['foresi/module-api' => '^1.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
+            'require' => ['foresi/module-api' => '^2.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
             'autoload' => ['psr-4' => ['Acme\\Garage\\' => '']],
             'extra' => ['foresi' => [
                 'module' => 'acme-garage',

@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+system_mail:
+  footer: 'Odesláno systémem {product}'
+  footer_organisation: 'Odesláno systémem {product} jménem {organisation}'

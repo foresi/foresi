@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Webhooks\Infrastructure\Fanout;
+namespace Foresi\Tests\Webhooks\Integration\Contacts\Fanout;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -21,7 +21,7 @@ use Foresi\Identity\Domain\User;
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
-use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Events\Integration\Contacts\Support\RecordedEvents;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Webhooks\Application\AttemptTrigger;
 use Foresi\Webhooks\Application\SendWebhook;

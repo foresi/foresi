@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Activities\Infrastructure;
+namespace Foresi\Tests\Activities\Integration\Contacts;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Activities\Application\ActivitiesStore;

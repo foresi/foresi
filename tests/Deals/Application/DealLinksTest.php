@@ -16,6 +16,7 @@ use Foresi\Deals\Application\DealLinkView;
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Domain\DealLine;
 use Foresi\Deals\Domain\DealLink;
+use Foresi\Party\Domain\ContactLink;
 use Foresi\Tests\Deals\Support\SalesTestCase;
 
 /**
@@ -64,7 +65,11 @@ final class DealLinksTest extends SalesTestCase
     public function testFollowUpTakesOnlyTheContactPersonsStillLinked(): void
     {
         $audit = $this->deal('Roof audit', contactPersonIds: [$this->petra->id(), $this->karel->id()]);
-        self::getContainer()->get(\Foresi\Contacts\Application\UnlinkContactPerson::class)->unlink($this->client, $this->petra);
+        // The address book unlinks the person; the deals run without the contacts module.
+        $link = $this->em->getRepository(ContactLink::class)->findOneBy(['company' => $this->client, 'person' => $this->petra]);
+        self::assertInstanceOf(ContactLink::class, $link);
+        $this->em->remove($link);
+        $this->em->flush();
 
         $followUp = $this->deals()->createFollowUp(new CreateFollowUpDealInput($audit->id(), 'Roof maintenance'));
 

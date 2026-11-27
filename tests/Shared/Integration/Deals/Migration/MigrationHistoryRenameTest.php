@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Shared\Infrastructure\Migration;
+namespace Foresi\Tests\Shared\Integration\Deals\Migration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\Version\Direction;
@@ -22,7 +22,9 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * A module that changed its name keeps its executed migrations: the version
- * rows get the new namespace and nothing else changes.
+ * rows get the new namespace and nothing else changes. The renamed modules
+ * (deals, received documents, document templates) are installed together
+ * only in the full application.
  */
 final class MigrationHistoryRenameTest extends KernelTestCase
 {
@@ -159,7 +161,7 @@ final class MigrationHistoryRenameTest extends KernelTestCase
      */
     private function versions(): array
     {
-        $versions = array_map('strval', $this->db->fetchFirstColumn('SELECT version FROM doctrine_migration_versions'));
+        $versions = array_map(static fn (mixed $version): string => \is_string($version) ? $version : '', $this->db->fetchFirstColumn('SELECT version FROM doctrine_migration_versions'));
         sort($versions);
 
         return $versions;
@@ -170,7 +172,9 @@ final class MigrationHistoryRenameTest extends KernelTestCase
      */
     private function console(string $command, array $input = []): CommandTester
     {
-        $tester = new CommandTester(new Application(self::$kernel)->find($command));
+        $kernel = self::$kernel;
+        self::assertNotNull($kernel);
+        $tester = new CommandTester(new Application($kernel)->find($command));
         $tester->execute($input);
 
         return $tester;

@@ -163,7 +163,7 @@ final class ApiTokenSignInTest extends WebTestCase
     public function testATokenOfAnyScopeTellsWhatItIs(): void
     {
         $this->start();
-        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
+        $secret = $this->issued(scopes: [ApiScope::from('firm:write')]);
 
         $this->get($secret);
 
@@ -173,7 +173,7 @@ final class ApiTokenSignInTest extends WebTestCase
     public function testATokenWithoutTheScopeIsForbiddenAndToldWhichOne(): void
     {
         $this->start();
-        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
+        $secret = $this->issued(scopes: [ApiScope::from('firm:write')]);
 
         $this->client->request('GET', '/api/v1/events', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret]);
 

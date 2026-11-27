@@ -38,7 +38,7 @@ A module is a Composer package of type `foresi-module`, and its `composer.json` 
     "license": "AGPL-3.0-only",
     "require": {
         "php": ">=8.4",
-        "foresi/module-api": "^1.7",
+        "foresi/module-api": "^2.0",
         "foresi/contacts": "*",
         "foresi/identity": "*",
         "foresi/party": "*",
@@ -73,7 +73,7 @@ The real file also requires the Doctrine and Symfony packages that the code impo
 
 What matters here:
 
-- `"foresi/module-api": "^1.7"` says which versions of the module API the module is written for: 1.7, which brought custom fields to the REST API and MCP, up to but not including 2.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
+- `"foresi/module-api": "^2.0"` says which versions of the module API the module is written for: 2.0, which gave the modules their current names, up to but not including 3.0. Foresi provides the module API as a virtual package, so Composer refuses to install the module into a Foresi that does not provide a version in the range. A module without the range does not boot.
 - The namespace `Acme\Fleet\` gives everything else its name. The module id is `acme-fleet`, and the bundle is `Acme\Fleet\AcmeFleetBundle`. `extra.foresi.module` and `extra.foresi.bundle` must say exactly that, and `autoload.psr-4` must declare the same namespace. See [Names](#names).
 - The modules you need are ordinary Composer requirements: the module uses Identity, Party, Shared and Ui, so it requires them. A module you can work without goes in `extra.foresi.optional` instead (see [Integrate with an optional module](#integrate-with-an-optional-module)).
 - `scopes` declares the resources an API token can be given: `acme_fleet_vehicles` gives the scopes `acme_fleet_vehicles:read` and `acme_fleet_vehicles:write`.
@@ -431,7 +431,7 @@ vendor/bin/phpunit -c tests/Fixtures/modules/acme-fleet/phpunit.xml.dist
 
 The tests of acme/fleet cover each step of this tutorial: [`tests/`](../tests/Fixtures/modules/acme-fleet/tests). They use test support classes of this repository (`Foresi\Tests\…`, such as `ApiTestCase` and `SignedInBrowser`), which are not part of the contract and are not published as a package yet. A module outside this repository writes its own helpers for now; see [Not in the contract yet](#not-in-the-contract-yet).
 
-That is the whole module. The [External module workflow](../.github/workflows/external-module.yml) runs these steps on every pull request to Foresi: it installs the package from a path repository, runs `app:modules:check` (and `--api=2.0`, which must fail), migrates an empty PostgreSQL 17 database and runs the tests.
+That is the whole module. The [External module workflow](../.github/workflows/external-module.yml) runs these steps on every pull request to Foresi: it installs the package from a path repository, runs `app:modules:check` (and `--api=3.0`, which must fail), migrates an empty PostgreSQL 17 database and runs the tests.
 
 ## How-to guides
 
@@ -528,7 +528,7 @@ Foresi has no settings screen for modules. A setting that the people of a firm c
 
 A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field in the card "Additional details" of the record's dialogs and detail, as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, keeps its changes in the record's history under the field's label, and names it in the record's update event when its value changes.
 
-1. Require the record's module and module API 1.7 in `composer.json`, such as `"foresi/party": "*"` and `"foresi/module-api": "^1.7"` for a contact.
+1. Require the record's module and module API 2.0 in `composer.json`, such as `"foresi/contacts": "*"` and `"foresi/module-api": "^2.0"` for a contact (its extension interface, `ContactExtension`, is Party's, but the record and its screens are the address book's).
 2. Write an entity in `Domain/` that implements the record's extension interface:
 
    | Record | Extension interface | Its id accessor | The list that shows the fields |
@@ -630,7 +630,7 @@ The manifest is the module's `composer.json`.
 | --- | --- |
 | `name` | Any `vendor/name`. A package of the `foresi` vendor is named `foresi/<id>`. |
 | `type` | `foresi-module`. |
-| `require` | The modules the module cannot work without, and the range of the module API, such as `"foresi/module-api": "^1.0"`. Required; a module without it does not boot. |
+| `require` | The modules the module cannot work without, and the range of the module API, such as `"foresi/module-api": "^2.0"`. Required; a module without it does not boot. |
 | `autoload.psr-4` | The module's namespace, pointing to the package root. It must be the namespace in `extra.foresi.namespace`. |
 | `autoload.exclude-from-classmap` | `migrations/`, and `tests/` if the package has tests. |
 | `extra.foresi.module` | The module id. It must be the id that the namespace gives. |
@@ -676,11 +676,11 @@ Give a module of your own an id that starts with your vendor, such as `acme-flee
 
 | What | Where |
 | --- | --- |
-| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (1.8.0), and `"provide": {"foresi/module-api": "1.8.0"}` of `foresi/shared` |
-| The range a module works with | `"require": {"foresi/module-api": "^1.0"}` of the module |
-| What blocks an upgrade | `composer why-not foresi/module-api 2.0` |
+| The version that Foresi provides | `Foresi\Shared\Contract\ModuleApi::VERSION` (2.0.0), and `"provide": {"foresi/module-api": "2.0.0"}` of `foresi/shared` |
+| The range a module works with | `"require": {"foresi/module-api": "^2.0"}` of the module |
+| What blocks an upgrade | `composer why-not foresi/module-api 3.0` |
 
-What each minor version added:
+What each version brought:
 
 | Version | Added |
 | --- | --- |
@@ -692,19 +692,20 @@ What each minor version added:
 | 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
 | 1.7 | Custom fields over the REST API and MCP: `custom_fields` in the payloads of contacts, deals, tasks, projects and products and in their create and update operations, with the `api` flag honoured; `GET /api/v1/fields` and the MCP tool `foresi_list_fields`; the OpenAPI schemas of the fields, generated from the definitions. A module whose fields must reach the API requires `^1.7`. |
 | 1.8 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.deals.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `deals.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.8`. |
+| 2.0 | The modules got the names they keep (a major version: every name below moved, and a module written for 1.x must change). Contacts: the address book is the module `contacts`; `ContactTabs`, `ContactListActions`, `ContactCards`, `ContactColumns`, `ContactImportColumns`, `ContactCreation`, `NewContact`, `ContactsByEmail`, `ContactPersonWrites` and `ContactPersonRefused` moved from `Foresi\Party\Contract` to `Foresi\Contacts\Contract`, the events `contacts.contact.*` (were `party.contact.*`) to `Foresi\Contacts\Contract\Event`, and `ContactKind` of the summaries to `Foresi\Party\Contract\ContactKind`; the scope `contacts` is the contacts module's, and the firm has its own scope `firm`. Deals, received documents and document templates: `Foresi\Sales\` is `Foresi\Deals\`, `Foresi\Purchasing\` is `Foresi\ReceivedDocuments\` and `Foresi\Documents\` is `Foresi\DocumentTemplates\`, with their tags (`foresi.deals.*`, `foresi.received_documents.*`, `foresi.document_templates.*`), slots (`deals.*`, `received_documents.*`), list keys and events (`deals.*`, `received-documents.*`, `document-templates.*`). Timesheet: time, the project budget and the time settings of a project are the module `timesheet`, apart from Work. Invoicing publishes what other modules bill and pay through (`BilledWork`, `BilledWorkOrigin`, `BilledWorkRelease`, `InvoiceNumbers`, `PayableInvoices`, `BankPayments`, `BankPaymentRelease`, `PartyInvoicingDefaults`, `DocumentLanguage`, `PaymentMethod`, `InvoicingDefaults`), and Webhooks is a module of its own, outside the core. Work's `InvoiceNumbers` (`foresi.work.invoice_numbers`, before that `app.invoice_numbers`) left the contract: the billing of time is Timesheet's own. A module written for 1.x moves to the new names, requires `^2.0` and, for a module it used through the old names, that module's package, such as `foresi/contacts`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
 
 ```
-This Foresi provides the module API 1.8.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^2.0. Update them, or remove them with composer remove.
+This Foresi provides the module API 2.0.0, which these modules are not written for: acme-fleet (acme/fleet) requires foresi/module-api ^3.0. Update them, or remove them with composer remove.
 ```
 
 `bin/console app:modules:check` runs the same check and exits non-zero when it fails. With `--api=<version>` it checks against another version, such as the one an upgrade brings:
 
 ```
-$ bin/console app:modules:check --api=2.0
- [ERROR] These modules are not written for the module API 2.0:
- * acme-fleet (acme/fleet) requires foresi/module-api ^1.7.
+$ bin/console app:modules:check --api=3.0
+ [ERROR] These modules are not written for the module API 3.0:
+ * acme-fleet (acme/fleet) requires foresi/module-api ^2.0.
 ```
 
 The deployment (`ops/deploy.sh`) runs `app:modules:check` after `composer install` and before the migrations, so an incompatible module never touches the database.
@@ -833,7 +834,7 @@ These are known gaps. They will change, so do not build on them as if they were 
 - **`Money` and `Currency`** (`Foresi\Shared\Domain`) appear in some contracts of business modules, but are not part of the contract themselves. How Foresi models currencies is being settled, and these classes will change. Read them, but do not extend them or rely on their constructors.
 - **Response schemas in the OpenAPI document.** An operation's `response` names a schema of the document, and a module cannot add schemas to it yet. Leave `response` out: the endpoint works, and the document shows its answer without a schema of its data. A later module API version will let modules add schemas.
 - **Events wait for the relay.** An event that a module records is delivered to listeners and webhooks when the relay next runs, at most five minutes later, unless another change commits first. Foresi's own modules can hand events to the relay at once; that service is not in the contract yet.
-- **Custom fields in import, export and templates.** Since module API 1.7 a record's custom fields are in its dialogs, detail, lists, filters, saved views, text search, history, update event, REST and MCP. The import and export and the document templates do not show them yet; a later 1.x version adds them, without a change to an extension.
+- **Custom fields in import, export and templates.** Since module API 1.7 a record's custom fields are in its dialogs, detail, lists, filters, saved views, text search, history, update event, REST and MCP. The import and export and the document templates do not show them yet; a later 2.x version adds them, without a change to an extension.
 - **No test kit.** The test support of acme/fleet (`ApiTestCase`, `SignedInBrowser`, `IdentityFixtures`) is part of this repository's tests, not a published package.
 - **Required modules' internals.** A module that requires a business module and uses its `Domain\` or `Application\` classes is not protected by the contract. Use only the other module's `Contract\` namespace.
 
@@ -852,11 +853,11 @@ Symfony does it the other way round: all code is public unless it is marked `@in
 The contract has a version of its own, the module API version, apart from the release version of Foresi:
 
 - A new interface, a new method of a value, a new tag or a new slot raises its minor version (1.0 to 1.1).
-- Removing any of them, or changing one incompatibly, raises its major version (1.x to 2.0).
+- Removing any of them, or changing one incompatibly, raises its major version (1.x to 2.0, as the module renames did).
 
-The release version follows CONTRIBUTING: before Foresi 1.0, a breaking change to anything, the REST API or an internal included, raises the release's minor version. A module that followed the release version would need a release of its own after each of those, although nothing it uses changed. With the module API version a module breaks only when the contract does, so `^1.0` keeps working across many releases of Foresi.
+The release version follows CONTRIBUTING: before Foresi 1.0, a breaking change to anything, the REST API or an internal included, raises the release's minor version. A module that followed the release version would need a release of its own after each of those, although nothing it uses changed. With the module API version a module breaks only when the contract does, so `^2.0` keeps working across many releases of Foresi.
 
-A module requires the range it was written for, as `"foresi/module-api": "^1.0"`. Composer refuses to install it into a Foresi that provides another major version, the kernel refuses to boot with it, and `app:modules:check --api=<version>` says so before an upgrade.
+A module requires the range it was written for, as `"foresi/module-api": "^2.0"`. Composer refuses to install it into a Foresi that provides another major version, the kernel refuses to boot with it, and `app:modules:check --api=<version>` says so before an upgrade.
 
 ### Deprecation
 
@@ -867,4 +868,4 @@ Something leaves the contract in two steps:
 
 Something new is never deprecated from its start.
 
-Module API 1.0 still carries the old names from before the contract had namespaces. The interfaces that moved into `Foresi\Shared\Contract\` and `Foresi\Instance\Contract\` keep their old names, such as `Foresi\Shared\Infrastructure\Operation\OperationHandler` or `Foresi\Shared\Domain\Event\DomainEvent`, as deprecated aliases. A service that still carries an old `app.*` tag gets its new `foresi.*` tag added, with a deprecation that names the service. Both go in module API 2.0. A new module uses only the new names.
+Module API 1.0 still carries the old names from before the contract had namespaces. The interfaces that moved into `Foresi\Shared\Contract\` and `Foresi\Instance\Contract\` keep their old names, such as `Foresi\Shared\Infrastructure\Operation\OperationHandler` or `Foresi\Shared\Domain\Event\DomainEvent`, as deprecated aliases. A service that still carries an old `app.*` tag gets its new `foresi.*` tag added, with a deprecation that names the service. Module API 2.0 still carries both, so that a module moving from 1.x meets one change at a time; they go in module API 3.0. A new module uses only the new names.

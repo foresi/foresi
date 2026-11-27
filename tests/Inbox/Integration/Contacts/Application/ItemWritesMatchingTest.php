@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Inbox\Application;
+namespace Foresi\Tests\Inbox\Integration\Contacts\Application;
 
 use Foresi\Inbox\Application\Api\CreateContactFromItemInput;
 use Foresi\Inbox\Application\Api\LinkItemInput;

@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *
  * Only the tags of interfaces in a Contract namespace are here: the tags of
  * internal interfaces were renamed without an old name. The map is kept as long
- * as the aliases of the classes that moved into Contract, until module API 2.0.
+ * as the aliases of the classes that moved into Contract, until module API 3.0.
  */
 final class DeprecatedTagsPass implements CompilerPassInterface
 {
@@ -46,7 +46,6 @@ final class DeprecatedTagsPass implements CompilerPassInterface
         'app.import_preset' => 'foresi.import.preset',
         'app.import_target' => 'foresi.import.target',
         'app.import_target_pages' => 'foresi.import.target_pages',
-        'app.invoice_numbers' => 'foresi.work.invoice_numbers',
         'app.invoicing_country' => 'foresi.invoicing.country',
         'app.mail_inbound_purpose' => 'foresi.mail.inbound_purpose',
         'app.margin_cost_source' => 'foresi.margin.cost_source',
@@ -85,7 +84,7 @@ final class DeprecatedTagsPass implements CompilerPassInterface
                         $definition->addTag($new, \is_array($attributes) ? $attributes : []);
                     }
                 }
-                trigger_deprecation('foresi/shared', '0.11', 'The service "%s" is tagged "%s", which is deprecated since module API 1.0 and removed in 2.0. Tag it "%s" instead, or let its interface tag it by autoconfiguration.', $id, $old, $new);
+                trigger_deprecation('foresi/shared', '0.11', 'The service "%s" is tagged "%s", which is deprecated since module API 1.0 and removed in 3.0. Tag it "%s" instead, or let its interface tag it by autoconfiguration.', $id, $old, $new);
             }
         }
     }

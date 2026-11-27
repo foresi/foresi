@@ -10,6 +10,7 @@ namespace Foresi\Tests\Ui\Component;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Application\Field\ReferenceNames;
@@ -51,6 +52,9 @@ final class CustomFieldsTest extends KernelTestCase
 
     public function testADetailShowsEachValueAsAPersonReadsIt(): void
     {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('A contact links to its page in the contacts module, which is not installed.');
+        }
         $contact = $this->contact('Example Haulage');
         $due = new \DateTimeImmutable('2027-01-31');
         $seen = new \DateTimeImmutable('2026-11-25 10:30:00');

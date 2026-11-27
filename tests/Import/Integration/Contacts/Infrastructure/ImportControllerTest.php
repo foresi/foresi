@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Import\Infrastructure;
+namespace Foresi\Tests\Import\Integration\Contacts\Infrastructure;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Contacts\Application\CreateParty;
@@ -42,7 +42,7 @@ final class ImportControllerTest extends WebTestCase
 {
     use ClockSensitiveTrait;
 
-    private const string FIXTURE = __DIR__.'/../../Contacts/Fixtures/idoklad-contacts.csv';
+    private const string FIXTURE = __DIR__.'/../../../../Contacts/Fixtures/idoklad-contacts.csv';
 
     private KernelBrowser $client;
     private RunMessages $worker;

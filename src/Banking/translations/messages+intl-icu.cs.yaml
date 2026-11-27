@@ -16,6 +16,7 @@ bank:
     tab:
       accounts: Účty
       pairing: Párování plateb
+      addresses: E-maily z banky
     card:
       accounts: Bankovní účty
     intro: Účty, na které vám zákazníci platí. Hlavní účet dostanou nové faktury.

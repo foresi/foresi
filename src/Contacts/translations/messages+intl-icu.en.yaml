@@ -22,6 +22,7 @@ contacts:
     changed_after_import: 'Contacts of the import of {name} that someone changed after the import.'
     summary: Import summary
   title: Address book
+  primary: Primary
   new: New contact
   edit: Edit
   archive: Archive

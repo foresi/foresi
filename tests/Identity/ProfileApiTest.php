@@ -101,7 +101,7 @@ final class ProfileApiTest extends ApiTestCase
 
     public function testATokenWithoutTheProfileScopeIsRefused(): void
     {
-        $this->writer = $this->issued([ApiScope::from('contacts:write')]);
+        $this->writer = $this->issued([ApiScope::from('firm:write')]);
 
         $this->send('PATCH', '/api/v1/me', ['display_name' => 'Jane Example']);
 

@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Events\Infrastructure\Api;
+namespace Foresi\Tests\Events\Integration\Contacts\Api;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Events\Infrastructure\Api\PositionCursor;
@@ -18,7 +18,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Id;
-use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Events\Integration\Contacts\Support\RecordedEvents;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**

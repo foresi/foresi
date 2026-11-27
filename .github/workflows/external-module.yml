@@ -6,9 +6,9 @@ name: External module
 # module outside this repository fails here, without anything under src/ knowing it.
 #
 # The job adds the package from a path repository, checks it against the module API (and
-# against 2.0, which it must not suit), migrates an empty PostgreSQL database with its
+# against 3.0, which it must not suit), migrates an empty PostgreSQL database with its
 # migration among Foresi's, and runs the package's own tests: its screen, REST, MCP, its
-# event, its listener of a Party event and its setting.
+# event, its listener of a contact event and its setting.
 #
 # Not a required check: one job, on pull requests and on main.
 
@@ -92,13 +92,13 @@ jobs:
       - name: Module API
         run: |
           bin/console app:modules:check
-          # Module API 2.0 would leave every module behind, acme/fleet too: the check must fail.
-          if bin/console app:modules:check --api=2.0 > api-2.0.log 2>&1; then
-            cat api-2.0.log
-            echo "app:modules:check --api=2.0 passed, but no installed module is written for 2.0."
+          # Module API 3.0 would leave every module behind, acme/fleet too: the check must fail.
+          if bin/console app:modules:check --api=3.0 > api-3.0.log 2>&1; then
+            cat api-3.0.log
+            echo "app:modules:check --api=3.0 passed, but no installed module is written for 3.0."
             exit 1
           fi
-          grep -F 'acme-fleet (acme/fleet) requires foresi/module-api ^1.7.' api-2.0.log
+          grep -F 'acme-fleet (acme/fleet) requires foresi/module-api ^2.0.' api-3.0.log
 
       - name: Container and routes
         run: |

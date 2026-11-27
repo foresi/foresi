@@ -43,7 +43,7 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertResponseHeaderSame('RateLimit-Remaining', '599');
         self::assertResponseHeaderSame('RateLimit-Reset', '0');
 
-        $this->get('/api/v1/contacts/nothing');
+        $this->get('/api/v1/views/nothing');
 
         $this->assertProblem(404, 'not_found');
         self::assertResponseHeaderSame('RateLimit-Remaining', '598');
@@ -133,6 +133,14 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/cash-flow/minimum-balance' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
+            ],
+            'contacts' => [
+                '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
+                '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
             ],
             'document-templates' => [
                 '/api/v1/document-types' => ['get' => '200', 'post' => '201'],
@@ -225,12 +233,6 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/firm' => ['get' => '200'],
                 '/api/v1/firm/vat-statuses' => ['post' => '201'],
                 '/api/v1/firm/vat-statuses/{vatStatusId}' => ['delete' => '200'],
-                '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
-                '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
-                '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
             ],
             'received-documents' => [
                 '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],

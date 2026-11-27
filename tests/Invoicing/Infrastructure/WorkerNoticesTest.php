@@ -40,11 +40,11 @@ final class WorkerNoticesTest extends WebTestCase
         self::getContainer()->get(Heartbeats::class)->beat(Heartbeats::WORKER);
 
         self::mockTime('2026-11-06 10:03:00');
-        $this->client->request('GET', '/contacts');
+        $this->client->request('GET', '/invoices');
         self::assertSelectorNotExists('[data-shell-notices]');
 
         self::mockTime('2026-11-06 10:03:01');
-        $crawler = $this->client->request('GET', '/contacts');
+        $crawler = $this->client->request('GET', '/invoices');
         self::assertSelectorTextContains('[data-shell-notices]', 'The background worker is not running.');
         self::assertSelectorExists('[data-shell-notices] [role="alert"]');
         self::assertSame('/health', $crawler->filter('[data-shell-notices] a')->attr('href'));
@@ -54,7 +54,7 @@ final class WorkerNoticesTest extends WebTestCase
     {
         $this->seed(Role::Owner);
 
-        $this->client->request('GET', '/contacts');
+        $this->client->request('GET', '/invoices');
 
         self::assertSelectorNotExists('[data-shell-notices]');
     }
@@ -65,7 +65,7 @@ final class WorkerNoticesTest extends WebTestCase
         self::getContainer()->get(Heartbeats::class)->beat(Heartbeats::WORKER);
 
         self::mockTime('2026-11-06 11:00:00');
-        $this->client->request('GET', '/contacts');
+        $this->client->request('GET', '/invoices');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[data-shell-notices]');

@@ -43,6 +43,8 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  */
 abstract class InboxTestCase extends KernelTestCase
 {
+    use NeedsTheAddressBook;
+
     protected const string OWNER = 'owner@example.com';
     protected const string CLIENT = 'client.a@client-a.example.com';
 
@@ -115,6 +117,8 @@ abstract class InboxTestCase extends KernelTestCase
 
     protected function contact(string $kind, string $name, string $email, string $registrationNumber = ''): string
     {
+        self::needsTheAddressBook();
+
         return self::getContainer()->get(ContactCreation::class)->create(new NewContact($kind, $name, 'Example Street 2', 'Example City', '110 00', 'CZ', $registrationNumber, email: $email));
     }
 

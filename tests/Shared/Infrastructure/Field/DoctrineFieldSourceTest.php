@@ -15,8 +15,8 @@ use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Shared\Application\Field\FieldRecords;
 use Foresi\Shared\Contract\Field\FieldDefinition;
 use Foresi\Shared\Contract\Field\FieldKind;
-use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Infrastructure\Field\DoctrineFieldSource;
+use Foresi\Shared\Infrastructure\Module\InstalledModules;
 use Foresi\Tests\Shared\Fixtures\Field\FixtureModules;
 use Foresi\Tests\Shared\Fixtures\Field\FixtureNote;
 use Foresi\Tests\Shared\Fixtures\Field\FixtureNoteExtension;
@@ -178,7 +178,8 @@ final class DoctrineFieldSourceTest extends KernelTestCase
     public function testTheDefinitionsAreKeptInTheCacheOutsideDebug(): void
     {
         $cache = new ArrayAdapter();
-        $modules = new ModuleGraph([FixtureModules::manifest()]);
+        // The installed modules too: their extensions, such as Timesheet's of a project, are mapped as well.
+        $modules = FixtureModules::graph(self::getContainer()->get(InstalledModules::class));
         $records = self::getContainer()->get(FieldRecords::class);
         $source = new DoctrineFieldSource($this->em, $records, $modules, $cache);
 

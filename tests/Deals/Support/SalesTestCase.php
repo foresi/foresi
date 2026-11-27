@@ -10,7 +10,6 @@ namespace Foresi\Tests\Deals\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
-use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Application\Api\AddDealLineInput;
 use Foresi\Deals\Application\Api\CreateDealInput;
 use Foresi\Deals\Application\Api\CreateDealStageInput;
@@ -32,6 +31,7 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
+use Foresi\Party\Domain\ContactLink;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
@@ -47,7 +47,7 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
  * An organisation on a fresh database on Monday 23 November 2026 at 10:00
  * UTC, with an owner signed in, a member and a guest; the four stages and two
  * lost reasons the module seeds, made through its own writes; and a client
- * company with two contact persons, made in the address book itself.
+ * company with two contact persons, linked as the address book links them.
  */
 abstract class SalesTestCase extends KernelTestCase
 {
@@ -175,7 +175,9 @@ abstract class SalesTestCase extends KernelTestCase
         $person = new Party(PartyKind::Person, $name, null, null, '');
         $this->em->persist($person);
         $this->em->flush();
-        self::getContainer()->get(LinkContactPerson::class)->link($company, $person, '', false);
+        // The link the address book makes; the deals run without the contacts module.
+        $this->em->persist(new ContactLink($company, $person));
+        $this->em->flush();
 
         return $person;
     }

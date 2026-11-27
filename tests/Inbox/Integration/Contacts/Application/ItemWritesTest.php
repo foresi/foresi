@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Inbox\Application;
+namespace Foresi\Tests\Inbox\Integration\Contacts\Application;
 
 use Foresi\Activities\Application\ActivityTargets;
 use Foresi\Activities\Contract\LinkableRecords;

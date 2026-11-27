@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Events\Infrastructure\Mcp;
+namespace Foresi\Tests\Events\Integration\Contacts\Mcp;
 
 use Doctrine\DBAL\Connection;
 use Foresi\Events\Infrastructure\Api\PositionCursor;
@@ -15,7 +15,7 @@ use Foresi\Events\Infrastructure\Relay\EventRelay;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Mcp\ToolOutput;
 use Foresi\Shared\Domain\Id;
-use Foresi\Tests\Events\Support\RecordedEvents;
+use Foresi\Tests\Events\Integration\Contacts\Support\RecordedEvents;
 use Foresi\Tests\Shared\Infrastructure\Mcp\ReadToolTestCase;
 
 /**
