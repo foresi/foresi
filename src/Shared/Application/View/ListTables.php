@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Ui\Contract;
+namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListSlot;
@@ -16,7 +16,9 @@ use Foresi\Shared\Application\View\ViewFilter;
 /**
  * A short table of records a page holds in memory as a list with views
  * (docs/design/list-pages.md, rules 8 and 9), for a module's own pages and the pages an
- * integration of a module adds to the interface; Ui\View\ListTable builds it.
+ * integration of a module adds to the interface; Foresi\Ui\View\ListTable builds it.
+ *
+ * @template TState of object the display state each row is built with
  */
 interface ListTables
 {
@@ -36,7 +38,7 @@ interface ListTables
      * @param string                                          $route    the page's route, which has no parameters
      * @param string                                          $id       the table's id among the page's, for its filter and columns sheets
      * @param list<T>                                         $records  every record the table can show, in their order
-     * @param \Closure(T, WorkingState): array<string, mixed> $row      a row of Ui:DataTable
+     * @param \Closure(T, TState): array<string, mixed> $row      a row of Ui:DataTable
      * @param \Closure(T, string): mixed                      $valueOf  the value of a field of the list on a record, as RowConditions compares it
      * @param \Closure(T): string                             $searched the text the search looks in
      * @param string|null                                     $hidden   a boolean field whose records show only while the filter names it, as a trash view does

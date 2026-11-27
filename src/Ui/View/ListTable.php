@@ -19,8 +19,8 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Ui\Column\RememberedDisplay;
-use Foresi\Ui\Contract\ListTablePage;
-use Foresi\Ui\Contract\ListTables;
+use Foresi\Shared\Application\View\ListTablePage;
+use Foresi\Shared\Application\View\ListTables;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -34,6 +34,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the table's slot of the page's address. The records keep their own order: no column sorts.
  * The filter sheet is the caller's to add (ListTablePage::with()), as it lives in the shared
  * infrastructure.
+ *
+ * @implements ListTables<WorkingState>
  */
 final readonly class ListTable implements ListTables
 {

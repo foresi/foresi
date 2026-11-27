@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Ui\Contract;
+namespace Foresi\Shared\Application\View;
 
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ViewFilter;

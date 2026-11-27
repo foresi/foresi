@@ -28,7 +28,7 @@ use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\WorkingState;
-use Foresi\Ui\Contract\ListTables;
+use Foresi\Shared\Application\View\ListTables;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,6 +58,9 @@ final class FirmVatController extends AbstractController
         'identified_person' => [VatStatus::IdentifiedPerson, null],
     ];
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly InstanceFirm $instanceFirm,
         private readonly FirmVatStatuses $statuses,

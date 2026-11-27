@@ -28,7 +28,7 @@ use Foresi\Identity\Integration\Ui\Security\RequiresReauthentication;
 use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\WorkingState;
-use Foresi\Ui\Contract\ListTables;
+use Foresi\Shared\Application\View\ListTables;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -68,6 +68,9 @@ final class ApiTokenController extends AbstractController
     public const string OTHERS_SLOT = 'others';
     public const string OTHERS_CONNECTIONS_SLOT = 'others_apps';
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly ManageApiTokens $tokens,
         private readonly People $people,

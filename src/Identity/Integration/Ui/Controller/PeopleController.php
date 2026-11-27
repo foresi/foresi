@@ -37,7 +37,7 @@ use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Contract\WorkingState;
-use Foresi\Ui\Contract\ListTables;
+use Foresi\Shared\Application\View\ListTables;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -66,6 +66,9 @@ final class PeopleController extends AbstractController
     private const int MAX_NAME = 255;
     private const string LINK_KEY = 'identity.invitation_link.';
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly People $people,
         private readonly Invitations $invitations,
