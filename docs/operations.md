@@ -2,7 +2,8 @@
 
 How to run Foresi on a server of your own: requirements, configuration, the
 layout of releases, the worker and scheduled jobs, deploys and rollbacks,
-monitoring, backups and restores, and a checklist for going live. The scripts
+monitoring, backups and restores, and a checklist for going live. Upgrades
+are in [docs/upgrading.md](upgrading.md). The scripts
 named here are in [`ops/`](../ops). Logging is described in
 [docs/logging.md](logging.md).
 
@@ -387,7 +388,7 @@ checks that every installed module is written for this release's module API
 (`app:modules:check`, which names each one that is not), `importmap:install`, `tailwind:build --minify`, `asset-map:compile`, clears and
 warms the prod cache, dumps the database with `ops/backup.sh --tag pre-migrate`
 when migrations are pending, migrates (unless the database is still on the
-global migration history, see [the module baselines](#the-module-baselines)),
+global migration history, see [the module baselines](upgrading.md#the-module-baselines)),
 switches `current` atomically, reloads
 PHP-FPM, tells the workers to restart and keeps the last five releases. A
 failed build is removed and the live release keeps running. Deploying the
@@ -440,78 +441,20 @@ whatever was written since is lost.
 
 ## Upgrades
 
-1. Read the "Upgrading" section of the [release notes](https://github.com/foresi/foresi/releases)
-   of every version in between (up to 0.5.0, the [changelog](../CHANGELOG.md)):
-   new environment variables, PHP extensions, one-way migrations. Each merged
-   change is its own release, so skipping versions is normal; the migrations
-   run in order whatever the gap.
-2. Pick a quiet time. Check that the queues are drained: `bin/console
-   messenger:stats` shows no waiting `mail` or `async` messages, no import is
-   running, and `bin/console messenger:failed:show` holds nothing new.
-3. Take a backup (`ops/backup.sh --tag pre-upgrade`) and confirm
-   `/var/lib/foresi/backup.status` says `result=ok`.
-4. Deploy the new tag. The deploy dumps again before the migrations, migrates
-   with `doctrine:migrations:migrate`, stores the default views of the lists
-   with `app:views:sync`, and ends with `messenger:stop-workers`, so the
-   supervisor starts the workers on the new code.
-   When a release adds a module next to existing data, the release notes name
-   the one-time command that fills it from what is already stored, for example
-   `bin/console margin:recalculate` after installing Margin or
-   `bin/console cashflow:pairing:backfill` after installing Cash flow. Both are
-   idempotent.
-5. Check `/health`, sign in, and watch the log and the `failed` queue for an
-   hour.
+The steps of an upgrade, the one stop to make when skipping versions, and the
+upgrade notes of every release are in [upgrading](upgrading.md).
 
 ### The module baselines
 
-Up to 0.8.0 every migration was global, in `migrations/`. From 0.9.0 each
-module has its own, starting with one baseline that creates its tables as the
-global history left them ([ADR 0034](adr/0034-module-packages.md)). A database
-migrated before moves onto the baselines once, by its version rows alone:
-
-1. If the instance runs a release older than 0.8.0, deploy 0.8.0 first and
-   let it migrate.
-2. Take a backup: `ops/backup.sh --tag pre-rebase`.
-3. Deploy 0.9.0 or newer. The deploy sees the global history, runs no
-   migration and switches to the new release; the schema is already the one it
-   expects.
-4. From the live release, run `bin/console app:migrations:rebase`. It checks
-   that every global migration has been executed and that the schema matches
-   the mapping, then replaces the 108 version rows with the baselines of the
-   installed modules in one transaction. No table changes. On any other state
-   it refuses and changes nothing.
-5. `bin/console doctrine:migrations:up-to-date` must report no pending
-   migration. The next deploys migrate as before.
-
-`app:migrations:rebase --check` changes nothing and tells the state by its
-exit code: 0 for a new database or one on the baselines, 2 for one on the
-global history, 1 otherwise.
+Moved to [upgrading](upgrading.md#the-module-baselines).
 
 ### Modules that change their name
 
-A migration is known by its class name, so a module that moves to another
-namespace would run its migrations again. `app:migrations:rename` gives the
-executed versions of such a module the new namespace, by their rows alone: in
-one transaction, with no DDL, and with no effect when nothing is left to
-rename. The map is `MigrationHistoryRename::RENAMES`: `Purchasing` became
-`ReceivedDocuments`, `Sales` became `Deals` and `Documents` became
-`DocumentTemplates`. `ops/deploy.sh` runs it before it looks at the
-migrations. `--check` changes nothing and tells the state by its exit code: 0
-when nothing is left to rename, 2 when a rename is due, 1 when the old and the
-new row of one version both exist (the deploy stops).
+Moved to [upgrading](upgrading.md#modules-that-change-their-name).
 
 ### The address book as its own module
 
-The address book (the contact screens, their API and MCP tools) is the module
-`foresi/contacts`; Party, in the core, keeps the record of a contact and the
-firm. An instance that shows contacts installs `foresi/contacts`
-(`composer require foresi/contacts`); one without it keeps every stored
-contact, but has no Contacts item, no client on its projects and no contact
-link on its records. No table moves. A Party migration renames the stored
-events of a contact from `party.contact.*` to `contacts.contact.*` in the event
-log and the webhook deliveries, and gives an endpoint that took `party.*` the
-events of `contacts.*` too, on every instance. The token scope `contacts` stays
-Party's, so the firm's tools keep working without the address book.
+Moved to [upgrading](upgrading.md#the-address-book-as-its-own-module).
 
 ## Monitoring
 

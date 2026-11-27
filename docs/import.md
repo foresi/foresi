@@ -157,6 +157,6 @@ Run the database migrations (`bin/console doctrine:migrations:migrate`) and star
 
 ### Upgrading to 0.4.0
 
-Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps in the changelog](../CHANGELOG.md#upgrading).
+Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps of 0.4.0](upgrading.md#040-from-the-changelog).
 
 Links to imports (`/imports/<number>`) and to contacts that were saved or sent before the upgrade stop working; open them again from the lists.
