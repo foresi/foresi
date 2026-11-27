@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Shared\Application\View;
 
-use Foresi\Shared\Application\View\ListView;
-use Foresi\Shared\Application\View\ViewFilter;
-
 /**
  * One table ListTable built, still without its filter sheet: what the template takes of it,
  * and what FilterSheet::of() needs to add the sheet.
