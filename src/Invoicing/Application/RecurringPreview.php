@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Invoicing\Domain\PeriodText;
+use Foresi\Shared\Domain\Schedule\PeriodText;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Shared\Domain\Schedule\RecurringSchedule;

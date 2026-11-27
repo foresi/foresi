@@ -93,6 +93,7 @@ nav:
     my_tasks: Moje úkoly
     tasks: Úkoly
     time: Čas
+    recurring_tasks: Opakované úkoly
     notifications: Oznámení
 ui:
   code_block:

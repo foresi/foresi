@@ -1000,6 +1000,7 @@ recurring:
     help: Goes into the last field – description, text or item.
   variable:
     day: Day
+    week: Week
     month: Month
     year: Year
     quarter: Quarter

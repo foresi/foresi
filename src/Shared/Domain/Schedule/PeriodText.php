@@ -6,15 +6,15 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Invoicing\Domain;
-
-use Foresi\Shared\Domain\Schedule\RecurringSchedule;
+namespace Foresi\Shared\Domain\Schedule;
 
 /**
- * Period variables in the texts of a recurring invoice, resolved against the
- * occurrence date: {day}, {month}, {year}, {quarter} and {month/year}, each with
- * an optional offset such as {month+1} or {year-1}. Numbers have no leading
- * zero, so {month/year} gives "3/2027".
+ * Period variables in the texts of a recurring invoice or task, resolved against
+ * the occurrence date: {day}, {week}, {month}, {year}, {quarter} and {month/year},
+ * each with an optional offset such as {month+1}, {week-1} or {year-1}. Numbers
+ * have no leading zero, so {month/year} gives "3/2027". {week} is the ISO 8601
+ * week, which starts on Monday: 1 January 2027 is in week 53 of 2026, so next to
+ * it {year} still gives 2027.
  *
  * Tokens are independent, as in iDoklad: each moves the occurrence date by its
  * own offset only and shows its own part of the result, and no offset carries
@@ -28,9 +28,9 @@ use Foresi\Shared\Domain\Schedule\RecurringSchedule;
  */
 final class PeriodText
 {
-    public const array TOKENS = ['{day}', '{month}', '{year}', '{quarter}', '{month/year}'];
+    public const array TOKENS = ['{day}', '{week}', '{month}', '{year}', '{quarter}', '{month/year}'];
 
-    private const string PATTERN = '~\{(day|month/year|month|year|quarter)(?:([+-])(\d{1,4}))?\}~';
+    private const string PATTERN = '~\{(day|week|month/year|month|year|quarter)(?:([+-])(\d{1,4}))?\}~';
 
     public static function resolve(string $text, \DateTimeImmutable $occurrence): string
     {
@@ -62,6 +62,7 @@ final class PeriodText
 
         return match ($token) {
             'day' => RecurringSchedule::calendarDay($zone, $year, $month, $day + $offset),
+            'week' => RecurringSchedule::calendarDay($zone, $year, $month, $day + 7 * $offset),
             'quarter' => RecurringSchedule::inMonth($zone, $year, $month + 3 * $offset, $day),
             'year' => RecurringSchedule::inMonth($zone, $year + $offset, $month, $day),
             default => RecurringSchedule::inMonth($zone, $year, $month + $offset, $day),
@@ -72,6 +73,7 @@ final class PeriodText
     {
         return match ($token) {
             'day' => $date->format('j'),
+            'week' => (string) (int) $date->format('W'),
             'month' => $date->format('n'),
             'year' => $date->format('Y'),
             'quarter' => (string) (intdiv((int) $date->format('n') - 1, 3) + 1),

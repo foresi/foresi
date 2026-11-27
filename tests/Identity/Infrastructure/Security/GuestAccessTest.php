@@ -103,6 +103,10 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
         // Their own My priorities: a star is the person's own, on a task they see (plan 37.2).
         'api_v1_operation_tasks.star', 'api_v1_operation_tasks.unstar', 'api_v1_operation_tasks.starred.reorder',
+        // Recurring tasks (plan 37.4).
+        'api_v1_recurring_tasks', 'api_v1_recurring_task', 'api_v1_recurring_task_preview',
+        'api_v1_operation_recurring-tasks.create', 'api_v1_operation_recurring-tasks.update', 'api_v1_operation_recurring-tasks.pause',
+        'api_v1_operation_recurring-tasks.resume', 'api_v1_operation_recurring-tasks.end', 'api_v1_operation_recurring-tasks.skip',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',
         'api_v1_operation_projects.create', 'api_v1_operation_projects.update', 'api_v1_operation_projects.archive', 'api_v1_operation_projects.restore',
         'api_v1_operation_work.project_budget.add_change', 'api_v1_operation_work.project_budget.remove_change', 'api_v1_operation_work.project_budget.set_counting',

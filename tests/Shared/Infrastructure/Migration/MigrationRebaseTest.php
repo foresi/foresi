@@ -183,8 +183,13 @@ final class MigrationRebaseTest extends KernelTestCase
             }
         }
         foreach ($dropColumns as [$table, $column]) {
-            // An index on the column goes first, as a column that an index uses cannot be dropped.
+            // A foreign key and an index on the column go first, as a column that one of them uses cannot be dropped.
             $manager = $this->db->createSchemaManager();
+            foreach ($manager->listTableForeignKeys($table) as $foreignKey) {
+                if (\in_array($column, $foreignKey->getLocalColumns(), true)) {
+                    $manager->dropForeignKey($foreignKey->getName(), $table);
+                }
+            }
             foreach ($manager->listTableIndexes($table) as $index) {
                 if (!$index->isPrimary() && \in_array($column, $index->getColumns(), true)) {
                     $manager->dropIndex($index->getName(), $table);

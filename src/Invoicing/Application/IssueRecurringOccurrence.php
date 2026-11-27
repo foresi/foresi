@@ -11,10 +11,10 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Invoicing\Domain\PeriodText;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
 use Foresi\Invoicing\Domain\RecurringState;
+use Foresi\Shared\Domain\Schedule\PeriodText;
 
 /**
  * Issues the invoice of one occurrence of a recurring template, at most once

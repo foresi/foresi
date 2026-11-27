@@ -1,0 +1,108 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new recurring task or a change of one, in a dialog over the list or its page; the same URL is a page
+    of its own. A new one from the list asks for its project first, as its sections and people are the
+    project's. The form holds what each task gets and the schedule together, as the form of a recurring
+    invoice does: the title may hold period variables, shown under it, and a task is due at the end of its
+    period unless a number of days is chosen.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = recurring ? 'work.recurring.edit_title'|trans : 'work.recurring.new'|trans %}
+{% set back = recurring ? path('app_work_recurring_task', {id: recurring.id}) : path('app_work_recurring_tasks') %}
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.recurring.title'|trans, href: path('app_work_recurring_tasks')}, {label: heading}] %}
+{% set action = recurring ? path('app_work_recurring_task_edit', {id: recurring.id}) : path('app_work_recurring_task_new') %}
+{% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
+{% set dialog_size = 'lg' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    {% if not project %}
+        <form method="post" id="recurring-task-form" action="{{ action }}" class="grid gap-4" novalidate data-recurring-task-project>
+            <input type="hidden" name="step" value="project">
+            <p class="m-0 text-small text-muted">{{ 'work.recurring.project_first'|trans }}</p>
+            <twig:Ui:Select name="project" id="recurring-task-project" :label="'work.recurring.field.project'|trans" :options="projects" value="" required />
+        </form>
+    {% else %}
+        <form method="post" id="recurring-task-form" action="{{ action }}" class="grid gap-4" novalidate data-recurring-task-form>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\RecurringTaskController::TOKEN')) }}">
+            <input type="hidden" name="project" value="{{ project.id }}">
+            {{ include('@Work/_form_errors.html.twig', {prefix: 'recurring-task-'}) }}
+            {% if not recurring %}<p class="m-0 text-small text-muted">{{ 'work.recurring.in_project'|trans({project: project.name}) }}</p>{% endif %}
+
+            <fieldset class="m-0 grid gap-4 border-0 p-0" data-recurring-task-what>
+                <legend class="mb-2 text-heading font-semibold text-ink">{{ 'work.recurring.card.task'|trans }}</legend>
+                <twig:Ui:TextInput name="title" id="recurring-task-title" :label="'work.recurring.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off"
+                    :help="'work.recurring.variables_help'|trans({example: '{week+1}', tokens: variables|map(v => v.token ~ ' ' ~ v.label|lower)|join(', ')})" />
+                <twig:Ui:Textarea name="description" id="recurring-task-description" :label="'work.task.field.description'|trans" :value="values.description" :rows="3" />
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <twig:Ui:Select name="section" id="recurring-task-section" :label="'work.task.field.section'|trans" :options="sections" :value="values.section" :error="errors.section|default(null)" />
+                    <twig:Ui:Select name="responsible" id="recurring-task-responsible" :label="'work.task.field.responsible'|trans" :options="people" :value="values.responsible" :error="errors.responsible|default(null)" />
+                    <twig:Ui:Select name="priority" id="recurring-task-priority" :label="'work.task.field.priority'|trans" :options="priorities" :value="values.priority" />
+                    <twig:Ui:TextInput name="estimate" id="recurring-task-estimate" :label="'work.recurring.field.estimate'|trans" :value="values.estimate" :error="errors.estimate|default(null)" :help="'work.recurring.estimate_help'|trans" inputmode="decimal" autocomplete="off" />
+                </div>
+                {% if labels is not empty %}
+                    <fieldset class="m-0 border-0 p-0">
+                        <legend class="mb-1 text-small font-medium text-ink">{{ 'work.task.field.labels'|trans }}</legend>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2" data-recurring-task-labels>
+                            {% for label in labels %}
+                                <twig:Ui:Checkbox name="labels[]" :id="'recurring-task-label-' ~ label.id" :label="label.name" :value="label.id" :checked="label.id in values.labels" />
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                {% endif %}
+                {% if watchers is not empty %}
+                    <fieldset class="m-0 border-0 p-0">
+                        <legend class="mb-1 text-small font-medium text-ink">{{ 'work.task.field.watchers'|trans }}</legend>
+                        <div class="flex flex-wrap gap-x-4 gap-y-2" data-recurring-task-watchers>
+                            {% for id, name in watchers %}
+                                <twig:Ui:Checkbox name="watchers[]" :id="'recurring-task-watcher-' ~ id" :label="name" :value="id" :checked="id in values.watchers" />
+                            {% endfor %}
+                        </div>
+                        {% if errors.watchers is defined %}<p class="m-0 mt-1 text-small text-badge-red-text">{{ errors.watchers }}</p>{% endif %}
+                    </fieldset>
+                {% endif %}
+                <twig:Ui:Textarea name="subtasks" id="recurring-task-subtasks" :label="'work.recurring.field.subtasks'|trans" :value="values.subtasks" :error="errors.subtasks|default(null)" :rows="3" :help="'work.recurring.subtasks_help'|trans" />
+                <twig:Ui:Checkbox name="private" id="recurring-task-private" :label="'work.recurring.field.private'|trans" :checked="values.private" :help="'work.recurring.private_help'|trans" />
+                <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\TaskExtension::RECORD')" :values="customValues" :errors="customErrors|default({})" :card="false" />
+            </fieldset>
+
+            <fieldset class="m-0 grid gap-4 border-0 p-0" data-recurring-task-schedule>
+                <legend class="mb-2 text-heading font-semibold text-ink">{{ 'work.recurring.card.schedule'|trans }}</legend>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <twig:Ui:TextInput type="date" name="first_on" id="recurring-task-first-on" :label="'work.recurring.field.first_on'|trans" :value="values.first_on" :error="errors.first_on|default(null)" required />
+                    <twig:Ui:TextInput type="number" name="every" id="recurring-task-every" :label="'work.recurring.field.every'|trans" :value="values.every" :error="errors.every|default(null)" min="1" max="99" required />
+                    <twig:Ui:Select name="repeat" id="recurring-task-repeat" :label="'work.recurring.field.repeat'|trans" :options="units" :value="values.repeat" />
+                </div>
+                <twig:Ui:Checkbox name="last_day" id="recurring-task-last-day" :label="'work.recurring.last_day_field'|trans" :checked="values.last_day" :help="'work.recurring.last_day_help'|trans" />
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <twig:Ui:Select name="end" id="recurring-task-end" :label="'work.recurring.field.end'|trans" :options="ends" :value="values.end" />
+                    <twig:Ui:TextInput type="date" name="ends_on" id="recurring-task-ends-on" :label="'work.recurring.field.ends_on'|trans" :value="values.ends_on" :help="'work.recurring.ends_on_help'|trans" />
+                    <twig:Ui:TextInput type="number" name="ends_after" id="recurring-task-ends-after" :label="'work.recurring.field.ends_after'|trans" :value="values.ends_after" :error="errors.ends_after|default(null)" min="1" max="999" :help="'work.recurring.ends_after_help'|trans" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <twig:Ui:TextInput type="number" name="create_days_before" id="recurring-task-create-days-before" :label="'work.recurring.field.create_days_before'|trans" :value="values.create_days_before" :error="errors.create_days_before|default(null)" min="0" max="90" :help="'work.recurring.create_help'|trans" />
+                    <twig:Ui:Select name="due" id="recurring-task-due" :label="'work.recurring.field.due'|trans" :options="dues" :value="values.due" />
+                    <twig:Ui:TextInput type="number" name="due_days" id="recurring-task-due-days" :label="'work.recurring.field.due_days'|trans" :value="values.due_days" :error="errors.due_days|default(null)" min="0" max="365" :help="'work.recurring.due_days_help'|trans" />
+                </div>
+            </fieldset>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="recurring-task-form" variant="primary">{{ (project ? (recurring ? 'work.recurring.save' : 'work.recurring.create') : 'work.recurring.continue')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="refresh-cw" class="max-w-3xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-3xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="back">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="recurring-task-form" variant="primary">{{ (project ? (recurring ? 'work.recurring.save' : 'work.recurring.create') : 'work.recurring.continue')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

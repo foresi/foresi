@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), recurring tasks under [Recurring tasks](#recurring-tasks), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -475,6 +475,24 @@ curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: app
 ```
 
 A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. A budget change takes `hours` (a decimal number in a string, plus or minus, at most two decimal places, such as `"8"` or `"-2.5"`) or `minutes`, not both, `effective_on` (`YYYY-MM-DD`, today when left out), `note` (at most 500 characters) and `source_activity_id` (an activity linked to the project); the counting takes `counting` (`all` or `billable`). Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
+
+### Recurring tasks
+
+A recurring task creates an ordinary task of its project on each date of its schedule, as **Projects, Recurring tasks** keeps them (see [projects.md](projects.md#recurring-tasks)). Reading needs `tasks:read`, the writes `tasks:write`, and only the owners and team members use them; a guest's token is refused with `forbidden`. Each answers `{"data": {...}}` with the recurring task as `GET /api/v1/recurring-tasks/{recurringTaskId}` shows it: its `state`, `next_on`, what each task gets, its `schedule`, `skipped_on`, `next_tasks` (each with `on`, `create_on`, `due_on` and `title`) and the `tasks` it created.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/recurring-tasks` | The recurring tasks of the projects the person sees, the active ones first, the soonest next date first; `state` (`active`, `paused`, `ended`) and `project_id`. |
+| `GET /api/v1/recurring-tasks/{recurringTaskId}` | One recurring task. |
+| `GET /api/v1/recurring-tasks/{recurringTaskId}/preview` | Its next tasks; `count` 1 to 24, 5 by default. |
+| `POST /api/v1/recurring-tasks` | Creates one. `201` with `Location`. |
+| `PATCH /api/v1/recurring-tasks/{recurringTaskId}` | Changes the fields given; the tasks to come follow them, those created stay. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/pause` | Pauses it; the dates that pass meanwhile are skipped. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/resume` | Resumes it from the first date on or after today. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/skip` | Leaves out the task of the date `on`, one it falls on whose task is not created yet. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/end` | Ends it for good; the tasks it created stay. |
+
+The fields of a create: `project_id` and `title` (required; the title and `description` may hold the [period variables](recurring.md#variables-in-the-texts), such as `{week}`), `first_on` (required, `YYYY-MM-DD`), `repeat` (`day`, `week` by default, `month`, `year`), `every` (1 to 99), `last_day_of_month`, `end` (`never`, `on_date` with `ends_on`, or `after_count` with `ends_after`, 1 to 999), `create_days_before` (0 to 90, 0 by default: on the day), `due_days_after` (0 to 365; left out or `null`, a task is due at the end of its period), and what each task gets: `section_id`, `responsible_id`, `priority`, `private`, `estimate_minutes`, `label_ids`, `watcher_ids`, `subtasks` (at most 50 titles, created as new open subtasks) and `custom_fields`. Besides the refusals below it answers `400 invalid_parameter` with the reasons `schedule`, `create_days_before`, `due_days_after`, `subtasks`, `not_an_occurrence` and `no_date`, and `409` with `recurring_ended` (an ended one stays ended) and `occurrence_created` (the task of that date exists already, or its date has passed).
 
 What a work write refuses:
 

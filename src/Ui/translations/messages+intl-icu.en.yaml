@@ -93,6 +93,7 @@ nav:
     my_tasks: My tasks
     tasks: Tasks
     time: Time
+    recurring_tasks: Recurring tasks
     notifications: Notifications
 ui:
   code_block:

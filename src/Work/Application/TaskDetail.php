@@ -39,6 +39,8 @@ final readonly class TaskDetail
         public bool $manageable = false,
         public bool $projectOpen = false,
         public ?int $estimateMinutes = null,
+        public ?Choice $recurringTask = null,
+        public ?\DateTimeImmutable $occurrenceOn = null,
     ) {
     }
 }

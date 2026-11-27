@@ -1,5 +1,5 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The header actions of a project's list and board: a new task first, time and sharing as buttons, billing (from the module that bills time) and settings in "⋯". #}
+{# The header actions of a project's list and board: a new task first, time and sharing as buttons, billing (from the module that bills time), a new recurring task and settings in "⋯". #}
 {% set shareHref = path('app_sharing', {kind: 'projects', id: project.id, return: app.request.requestUri}) %}
 <twig:Ui:MoreActions menuId="project-actions">
     <twig:block name="primary">{% if not project.archivedAt and project.taskable %}{{ newTask }}{% endif %}</twig:block>
@@ -12,5 +12,6 @@
         {% if project.shareable %}<twig:Ui:MenuItem icon="share-2" :href="shareHref" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.sharing.open'|trans }}</twig:Ui:MenuItem>{% endif %}
     </twig:block>
     {% if timeBilling %}{% for item in slot_items(constant('Foresi\\Work\\Contract\\TimeBillingActions::PROJECT'), {projectId: project.id}) %}{{ include(item.template, item.data) }}{% endfor %}{% endif %}
+    {% if project.manageable and not project.archivedAt %}<twig:Ui:MenuItem icon="refresh-cw" :href="path('app_work_recurring_task_new', {project: project.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-project-recurring-task>{{ 'work.recurring.new'|trans }}</twig:Ui:MenuItem>{% endif %}
     {% if project.manageable %}<twig:Ui:MenuItem icon="settings" :href="path('app_project_settings', {id: project.id})" data-project-settings>{{ 'work.settings.title'|trans }}</twig:Ui:MenuItem>{% endif %}
 </twig:Ui:MoreActions>

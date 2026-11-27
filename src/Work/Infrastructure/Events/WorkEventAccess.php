@@ -15,6 +15,7 @@ use Foresi\Shared\Application\Event\EventReadAccess;
 use Foresi\Shared\Application\Event\EventSubjectAccess;
 use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Work\Application\Projects;
+use Foresi\Work\Application\RecurringTasks;
 use Foresi\Work\Application\Tasks;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Domain\Project;
@@ -26,11 +27,11 @@ use Foresi\Work\Domain\Task;
  * or a project not shared with a member stays out of their feed and their
  * webhooks, as it stays out of their lists. A task in the trash counts as it
  * would out of it. A project's events, such as a change of its budget, are
- * read by who sees the project.
+ * read by who sees the project, and so are those of a recurring task.
  */
 final readonly class WorkEventAccess implements EventReadAccess, EventSubjectAccess
 {
-    public function __construct(private WorkVisibility $visibility, private ActorRole $role, private Tasks $tasks, private People $people, private Projects $projects)
+    public function __construct(private WorkVisibility $visibility, private ActorRole $role, private Tasks $tasks, private People $people, private Projects $projects, private RecurringTasks $recurring)
     {
     }
 
@@ -77,7 +78,11 @@ final readonly class WorkEventAccess implements EventReadAccess, EventSubjectAcc
 
     private function project(EventSubject $subject): ?Project
     {
-        return 'project' === $subject->type ? $this->projects->project($subject->id) : null;
+        return match ($subject->type) {
+            'project' => $this->projects->project($subject->id),
+            'recurring_task' => $this->recurring->find($subject->id)?->project(),
+            default => null,
+        };
     }
 
     private function task(EventSubject $subject): ?Task

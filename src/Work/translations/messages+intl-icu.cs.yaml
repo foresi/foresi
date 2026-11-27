@@ -46,7 +46,7 @@ work:
       task: Úkol
     no_description: Bez popisu.
     no_subtasks: Zatím žádné podúkoly.
-    subtasks: Podúkoly
+    subtasks: 'Podúkoly'
     new: Nový úkol
     create: Přidat úkol
     added: 'Úkol „{title}“ je přidaný.'
@@ -120,6 +120,15 @@ work:
     source_not_on_project: Zdrojem musí být aktivita tohoto projektu.
     star_finished: Hotový úkol se do priorit nepřidává.
     star_order: Seřaďte všechny úkoly z Mých priorit, každý jednou.
+    schedule: 'Opakování nedává smysl: zkontrolujte první datum, interval a konec.'
+    create_days_before: 'Úkol jde založit 0 až 90 dní předem.'
+    due_days_after: 'Termín může být 0 až 365 dní po datu, nebo na konci období.'
+    subtasks: 'Nejvýš 50 podúkolů, každý s názvem do 500 znaků.'
+    recurring_ended: 'Opakovaný úkol skončil a už skončený zůstane. Založte nový.'
+    not_an_occurrence: 'Na tento den opakovaný úkol nepřipadá.'
+    occurrence_created: 'Úkol pro tento den už je založený nebo jeho datum minulo.'
+    no_date: 'Opakování už nedává žádné další datum.'
+    custom_fields: 'Vlastní pole nejdou uložit: zkontrolujte jejich hodnoty.'
   time:
     title: Čas
     log: Zapsat čas
@@ -240,7 +249,7 @@ work:
     labels_removed: '{count, plural, one {Odebrán štítek} other {Odebrány štítky}}: {names}'
     due: 'Termín {from} → {to}'
     priority: 'Priorita {from} → {to}'
-    no_date: nezadáno
+    no_date: 'nezadáno'
     shared: 'Sdíleno s: {names}'
     unshared: 'Sdílení odebráno: {names}'
     private:
@@ -663,6 +672,124 @@ work:
     simple_text: K udělání, Probíhá, Hotovo
     development: Vývoj
     development_text: Otevřeno, Probíhá, Kontrola, Testování, Blokováno, Hotovo, Uzavřeno
+  recurring:
+    title: Opakované úkoly
+    new: Nový opakovaný úkol
+    edit_title: Upravit opakovaný úkol
+    views: Pohledy na opakované úkoly
+    search: Hledat v opakovaných úkolech
+    created: 'Opakovaný úkol {title} je nastavený.'
+    saved: Opakovaný úkol je uložený. Další úkoly se založí podle něj, ty založené zůstávají.
+    paused: Opakovaný úkol je pozastavený.
+    resumed: Opakovaný úkol pokračuje. Data z doby pozastavení se vynechala.
+    ended: Opakovaný úkol skončil. Úkoly, které založil, zůstávají.
+    skipped: Úkol pro toto datum se nezaloží.
+    create: Nastavit
+    save: Uložit
+    continue: Pokračovat
+    project_first: Úkoly se zakládají do jednoho projektu. Vyberte ho, nabídnou se pak jeho sekce a lidé.
+    in_project: 'Úkoly se budou zakládat do projektu {project}.'
+    nobody: Nikdo
+    private: Soukromý
+    failing: Nezaložil úkol
+    done: Hotovo
+    last_day: poslední den v měsíci
+    last_day_field: Poslední den v měsíci
+    last_day_help: U měsíčního a ročního opakování.
+    until: 'do {date}'
+    times: '{count, plural, one {# úkol} few {# úkoly} other {# úkolů}}'
+    every: '{count, plural, one {Každý} few {Každé #} other {Každých #}} {unit, select, day {{count, plural, one {den} few {dny} other {dní}}} week {{count, plural, one {týden} few {týdny} other {týdnů}}} month {{count, plural, one {měsíc} few {měsíce} other {měsíců}}} other {{count, plural, one {rok} few {roky} other {let}}}}'
+    variables_help: 'Proměnné vloží datum úkolu: {tokens}, posun třeba {example}.'
+    estimate_help: 'Hodiny, třeba 2 nebo 1:30.'
+    subtasks_help: Podúkol na řádek. Každý úkol je dostane nové, nehotové.
+    private_help: Úkol uvidí jen jeho autor, odpovědná osoba a sledující.
+    create_help: 0 = v den data, třeba v pondělí.
+    due_days_help: Jen když termín není na konci období.
+    ends_on_help: Jen při konci k datu.
+    ends_after_help: Jen při konci po počtu úkolů.
+    next_none: Další úkol se už nezaloží.
+    next_paused: Pozastaveno. Po obnovení naváže od prvního data od dneška.
+    next_ended: Skončeno, další úkoly se nezaloží.
+    skipped_list: 'Vynecháno: {dates}'
+    tasks_none: Zatím nezaložil žádný úkol.
+    end_title: Ukončit opakovaný úkol
+    end_text: 'Opakovaný úkol {title} už nezaloží žádný další úkol a nejde obnovit. Úkoly, které založil, zůstávají.'
+    tab:
+      all: Vše
+    state:
+      active: Aktivní
+      paused: Pozastavený
+      ended: Skončený
+    unit:
+      day: den
+      week: týden
+      month: měsíc
+      year: rok
+    end:
+      never: Nikdy nekončí
+      on_date: K datu
+      after_count: Po počtu úkolů
+    due:
+      period: Na konci období
+      days: Počet dní po datu
+      days_text: '{days, plural, =0 {V den data} one {# den po datu} few {# dny po datu} other {# dní po datu}}'
+    lead:
+      on_the_day: V den data
+      days_text: '{days, plural, one {# den předem} few {# dny předem} other {# dní předem}}'
+    variable:
+      day: den
+      week: týden
+      month: měsíc
+      year: rok
+      quarter: čtvrtletí
+      month_year: měsíc/rok
+    action:
+      edit: Upravit
+      pause: Pozastavit
+      resume: Obnovit
+      end: Ukončit
+      skip: Vynechat
+      skip_date: 'Vynechat {date}'
+    card:
+      task: Každý úkol dostane
+      schedule: Opakování
+      next: Další úkoly
+      tasks: Založené úkoly
+    column:
+      on: Datum
+      title: Název
+      created: Založí se
+      due: Termín
+      actions: Akce
+    field:
+      title: Název
+      project: Projekt
+      state: Stav
+      schedule: Opakování
+      next: Další úkol
+      created_count: Založeno
+      priority: Priorita
+      estimate: Odhad
+      due: Termín
+      due_days: Dní po datu
+      create_days_before: Založit dní předem
+      watchers: Sledující
+      subtasks: Podúkoly
+      private: Soukromý úkol
+      first_on: První datum
+      every: Každých
+      repeat: Jednotka
+      end: Konec
+      ends_on: Poslední datum
+      ends_after: Počet úkolů
+    failure:
+      archived: Úkol se nezaložil, protože projekt je archivovaný. Obnovte projekt, další běh ho doplní.
+      custom_fields: Úkol se nezaložil, protože vlastní pole nejdou uložit. Opravte je v opakovaném úkolu.
+      no_status: Úkol se nezaložil, protože projekt nemá žádný stav.
+    empty:
+      title: Zatím žádné opakované úkoly
+      text: Úkol, který se má vracet, třeba týdenní slot na drobné úpravy, nastavte jednou a Foresi ho bude zakládat sám.
+      filtered: Filtrům neodpovídá žádný opakovaný úkol.
   priority:
     none: Bez priority
     low: Nízká
