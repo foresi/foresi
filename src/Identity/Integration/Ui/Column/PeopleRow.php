@@ -40,22 +40,22 @@ final readonly class PeopleRow
 
     public function id(): string
     {
-        return $this->person->membershipId ?? $this->invitation?->id() ?? '';
+        return $this->invitation instanceof Invitation ? $this->invitation->id() : $this->held()->membershipId;
     }
 
     public function name(): string
     {
-        return $this->person->name ?? $this->invitation?->displayName() ?? '';
+        return $this->invitation instanceof Invitation ? $this->invitation->displayName() : $this->held()->name;
     }
 
     public function email(): string
     {
-        return $this->person->email ?? $this->invitation?->email() ?? '';
+        return $this->invitation instanceof Invitation ? $this->invitation->email() : $this->held()->email;
     }
 
     public function role(): Role
     {
-        return $this->person->role ?? $this->invitation?->role() ?? Role::Member;
+        return $this->invitation instanceof Invitation ? $this->invitation->role() : $this->held()->role;
     }
 
     /**
@@ -63,11 +63,23 @@ final readonly class PeopleRow
      */
     public function contact(): ?array
     {
-        if ($this->person instanceof Person) {
-            return null === $this->person->contactId ? null : ['id' => $this->person->contactId, 'name' => $this->person->contactName ?? ''];
-        }
-        $party = $this->invitation?->party();
+        if ($this->invitation instanceof Invitation) {
+            $party = $this->invitation->party();
 
-        return $party instanceof Party ? ['id' => $party->id(), 'name' => $party->displayName()] : null;
+            return $party instanceof Party ? ['id' => $party->id(), 'name' => $party->displayName()] : null;
+        }
+        $person = $this->held();
+
+        return null === $person->contactId ? null : ['id' => $person->contactId, 'name' => $person->contactName ?? ''];
+    }
+
+    /**
+     * The person of a row that is no invitation: the constructor keeps exactly one of the two.
+     */
+    private function held(): Person
+    {
+        \assert($this->person instanceof Person);
+
+        return $this->person;
     }
 }
