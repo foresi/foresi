@@ -21,6 +21,7 @@ use Foresi\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -101,7 +102,7 @@ final class EmailChangeTest extends WebTestCase
             self::assertSame('true', $this->client->getCrawler()->filter('#new-email')->attr('aria-invalid'));
             self::assertSame($email, $this->client->getCrawler()->filter('#new-email')->attr('value'));
         }
-        self::assertNull($this->user()->pendingEmail(new \DateTimeImmutable()));
+        self::assertNull($this->user()->pendingEmail(Clock::get()->now()));
         self::assertSame([], $this->mails);
     }
 
@@ -114,7 +115,7 @@ final class EmailChangeTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#email-form', 'E-mail sending is not set up');
-        self::assertNull($this->user()->pendingEmail(new \DateTimeImmutable()));
+        self::assertNull($this->user()->pendingEmail(Clock::get()->now()));
     }
 
     public function testStartsAreLimitedPerHour(): void
@@ -129,7 +130,7 @@ final class EmailChangeTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#email-form', 'Too many changes. Try again in');
-        self::assertSame('new4@example.com', $this->user()->pendingEmail(new \DateTimeImmutable()));
+        self::assertSame('new4@example.com', $this->user()->pendingEmail(Clock::get()->now()));
     }
 
     public function testAStartedChangeWaitsForItsLinkAndCanBeCancelled(): void

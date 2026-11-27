@@ -301,7 +301,7 @@ final class DecideSuggestionsTest extends InboxTestCase
         $this->assertNothingRemains($events);
         // The same contact made outside a step is stored with its event, so the zero above means something.
         self::getContainer()->get(\Foresi\Contacts\Contract\ContactCreation::class)->create(new \Foresi\Contacts\Contract\NewContact('person', \Foresi\Tests\Inbox\Fixtures\Action\FixtureNoteHandler::MADE_BEFORE_FAILING, 'Example Street 2', 'Example City', '110 00', 'CZ', '', email: 'made.before@example.com'));
-        self::assertSame([1, 1], [$this->partiesNamed(), $this->eventsNamedLike('party.contact')]);
+        self::assertSame([1, 1], [$this->partiesNamed(), $this->eventsNamedLike('contacts.contact')]);
     }
 
     public function testAStepThatMadeItsRecordAndThenFailedLeavesNothingAndTheNextSuggestionRuns(): void
@@ -321,7 +321,7 @@ final class DecideSuggestionsTest extends InboxTestCase
         // Only the next suggestion's output and events were committed: none of the contact's.
         self::assertSame(1, (int) $this->scalar('SELECT COUNT(*) FROM inbox_item_output'));
         self::assertGreaterThan($events, $this->eventCount());
-        self::assertSame(0, $this->eventsNamedLike('party.contact'));
+        self::assertSame(0, $this->eventsNamedLike('contacts.contact'));
     }
 
     public function testAFailedThenRetriedSuggestionRunsItsDoneStepOnce(): void

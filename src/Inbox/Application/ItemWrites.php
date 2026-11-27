@@ -144,7 +144,7 @@ final readonly class ItemWrites
     {
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->own($input->itemId);
-            if (!$this->addressBook instanceof \Foresi\Inbox\Application\InboxAddressBook) {
+            if (!$this->addressBook instanceof InboxAddressBook) {
                 throw InboxRefused::addressBookMissing();
             }
             $id = $this->addressBook->create(

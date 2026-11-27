@@ -406,7 +406,7 @@ final readonly class DealWrites
      */
     private function withNewPerson(string $clientId, array $persons, ContactPersonDraft $draft): array
     {
-        if (!$this->clientPersons instanceof \Foresi\Deals\Application\ClientPersons) {
+        if (!$this->clientPersons instanceof ClientPersons) {
             // Without the address book there is no person to add to the client.
             throw new ClientPersonRefused([$draft->isExisting() ? 'person' : 'name' => ClientPersonRefused::PERSON]);
         }

@@ -35,9 +35,8 @@ class ProjectTimeFields implements ProjectExtension
         private readonly string $id,
         #[ORM\Column(name: 'billable_by_default', type: 'boolean', nullable: true)]
         #[CustomField(FieldKind::Boolean, 'timesheet.project.field.billable', filterable: true, sortable: true)]
-        private ?bool $billableByDefault = null
-    )
-    {
+        private ?bool $billableByDefault = null,
+    ) {
     }
 
     public function projectId(): string
