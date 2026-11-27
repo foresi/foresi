@@ -4,7 +4,9 @@
     toolbar and, given a mentions URL, the people after "@" in a listbox (WAI-ARIA combobox).
     The tabs and the toolbar are hidden until the controller connects: without JavaScript only
     the text area shows. The controller gives the text area its combobox role. Given an upload URL,
-    a pasted image or dropped files are uploaded and linked in the text (as on GitHub).
+    a pasted image or dropped files are uploaded and linked in the text (as on GitHub). Given a task URL,
+    Create task (enabled for a selection on one line outside a token) opens it as a dialog through a
+    hidden link; the focus comes back to the text area.
 #}
 {% set ctl = this %}
 {# Captured here: inside the Field block "attributes" would be the Field's own. #}
@@ -19,7 +21,7 @@
     {format: 'quote', icon: 'text-quote', label: 'ui.markdown_editor.quote', keys: null},
 ] %}
 <twig:Ui:Field :id="id" :label="label" :help="help" :error="error" :required="required" :row="row" :width="width">
-    <div class="grid gap-2" data-controller="markdown-editor" data-markdown-editor-preview-url-value="{{ previewUrl }}" data-markdown-editor-token-value="{{ csrf_token(constant('Foresi\\Ui\\Component\\MarkdownEditor::TOKEN')) }}"{% if previewFields is not empty %} data-markdown-editor-preview-fields-value="{{ previewFields|json_encode }}"{% endif %}{% if mentionsUrl %} data-markdown-editor-mentions-url-value="{{ mentionsUrl }}"{% endif %}{% if uploadUrl %} data-markdown-editor-upload-url-value="{{ uploadUrl }}" data-markdown-editor-upload-token-value="{{ csrf_token('attachment_upload') }}" data-markdown-editor-upload-kind-value="{{ uploadKind }}" data-markdown-editor-upload-owner-value="{{ uploadOwner }}" data-markdown-editor-uploading-value="{{ 'attachment.uploading'|trans({name: '__NAME__'}) }}" data-markdown-editor-upload-failed-value="{{ 'attachment.error.failed'|trans }}"{% endif %} data-markdown-editor-found-value="{{ 'ui.combobox.found'|trans({count: '__COUNT__'}) }}" data-markdown-editor>
+    <div class="grid gap-2" data-controller="markdown-editor" data-markdown-editor-preview-url-value="{{ previewUrl }}" data-markdown-editor-token-value="{{ csrf_token(constant('Foresi\\Ui\\Component\\MarkdownEditor::TOKEN')) }}"{% if previewFields is not empty %} data-markdown-editor-preview-fields-value="{{ previewFields|json_encode }}"{% endif %}{% if mentionsUrl %} data-markdown-editor-mentions-url-value="{{ mentionsUrl }}"{% endif %}{% if taskUrl %} data-markdown-editor-task-url-value="{{ taskUrl }}"{% endif %}{% if uploadUrl %} data-markdown-editor-upload-url-value="{{ uploadUrl }}" data-markdown-editor-upload-token-value="{{ csrf_token('attachment_upload') }}" data-markdown-editor-upload-kind-value="{{ uploadKind }}" data-markdown-editor-upload-owner-value="{{ uploadOwner }}" data-markdown-editor-uploading-value="{{ 'attachment.uploading'|trans({name: '__NAME__'}) }}" data-markdown-editor-upload-failed-value="{{ 'attachment.error.failed'|trans }}"{% endif %} data-markdown-editor-found-value="{{ 'ui.combobox.found'|trans({count: '__COUNT__'}) }}" data-markdown-editor>
         <div hidden class="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 inset-shadow-rail" data-markdown-editor-target="bar" data-markdown-editor-bar>
             <div role="tablist" aria-label="{{ label }}" class="flex gap-x-5" data-action="keydown->markdown-editor#tabKey">
                 <button type="button" role="tab" id="{{ id }}-write-tab" aria-selected="true" aria-controls="{{ id }}-write" class="{{ tabClass }}" data-markdown-editor-target="writeTab" data-action="markdown-editor#write">{{ 'ui.markdown_editor.write'|trans }}</button>
@@ -29,6 +31,10 @@
                 {% for tool in tools %}
                     <twig:Ui:IconButton :icon="tool.icon" :label="tool.label|trans" variant="ghost" size="sm" :aria-keyshortcuts="tool.keys" aria-controls="{{ id }}" data-action="markdown-editor#format" data-markdown-editor-format-param="{{ tool.format }}" data-markdown-editor-tool="{{ tool.format }}" />
                 {% endfor %}
+                {% if taskUrl %}
+                    <twig:Ui:IconButton icon="square-check-big" :label="'ui.markdown_editor.task'|trans" variant="ghost" size="sm" aria-keyshortcuts="Control+Shift+K Meta+Shift+K" aria-controls="{{ id }}" aria-haspopup="dialog" disabled data-action="markdown-editor#createTask" data-markdown-editor-target="taskTool" data-markdown-editor-tool="task" />
+                    <a hidden href="{{ taskUrl }}" data-dialog data-dialog-focus="#{{ id }}" data-markdown-editor-target="taskLink"></a>
+                {% endif %}
             </div>
         </div>
         <div id="{{ id }}-write" class="relative" data-markdown-editor-target="writePanel">

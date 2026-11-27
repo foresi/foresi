@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Tasks of a meeting, one per line: the title, then its pill. Variables: tasks (list of
+    Foresi\Work\Contract\TaskSummary), today (YYYY-MM-DD).
+#}
+<ul class="m-0 grid list-none gap-1.5 p-0">
+    {% for task in tasks %}
+        <li class="min-w-0 [overflow-wrap:anywhere]" data-meeting-task="{{ task.id }}"><span class="text-ink">{{ task.title }}</span>{{ include('@Meetings/meetings/_task_pill.html.twig', {task: task, today: today}) }}</li>
+    {% endfor %}
+</ul>

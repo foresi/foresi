@@ -5,8 +5,10 @@
     The minutes are read as Markdown and change in place in the Markdown editor, as a task's description does
     (Atlassian, Inline edit: kept open when the focus leaves); an empty meeting of a series opens with the
     series' agenda template. A save made from an older version is refused with the reason and keeps what was
-    typed. The custom fields follow, then the history. Variables: meeting, view, when, editing, draft,
-    minutesError, history.
+    typed. A reference to a task in the minutes shows its pill; the editor's Create task makes one from the
+    selection. The action items follow (every task made from the meeting, its token in the text or not), then
+    the open tasks of earlier meetings of the series (the carry-over, rule M2a), the custom fields and the
+    history. Variables: meeting, view, when, editing, draft, minutesError, minutesHtml, tasks, today, history.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -63,7 +65,7 @@
             </div>
             <div class="-mx-[7px] rounded-option border border-transparent px-1.5 py-1{% if not meeting.trashed %} cursor-text transition-colors hover:border-control-line{% endif %}" data-inline-field-target="read"{% if not meeting.trashed %} data-action="click->inline-field#open"{% endif %}{% if editing %} hidden{% endif %}>
                 {% if meeting.minutes is not empty %}
-                    <div class="markdown" data-meeting-minutes>{{ meeting.minutes|markdown }}</div>
+                    <div class="markdown" data-meeting-minutes>{{ minutesHtml|raw }}</div>
                 {% else %}
                     <p class="m-0 text-muted">{{ 'meetings.meeting.no_minutes'|trans }}</p>
                 {% endif %}
@@ -73,7 +75,7 @@
                     <input type="hidden" name="_token" value="{{ token }}">
                     <input type="hidden" name="version" value="{{ meeting.version }}">
                     {% if minutesError %}<twig:Ui:Alert tone="error" data-meeting-minutes-error>{{ minutesError }}</twig:Ui:Alert>{% endif %}
-                    <twig:Ui:MarkdownEditor name="minutes" id="minutes" :label="'meetings.meeting.field.minutes'|trans" :value="draft" :rows="16" :previewUrl="path('app_markdown_preview')" :autofocus="editing" data-inline-field-target="field" />
+                    <twig:Ui:MarkdownEditor name="minutes" id="minutes" :label="'meetings.meeting.field.minutes'|trans" :value="draft" :rows="16" :previewUrl="path('app_meetings_minutes_preview', {id: meeting.id})" :taskUrl="path('app_meetings_action_item_new', {id: meeting.id})" :autofocus="editing" data-inline-field-target="field" />
                     <div class="flex flex-wrap gap-2">
                         <twig:Ui:Button type="submit" variant="primary">{{ 'meetings.save'|trans }}</twig:Ui:Button>
                         <twig:Ui:Button :href="meetingUrl" data-action="inline-field#cancel" data-meeting-minutes-cancel>{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
@@ -81,6 +83,29 @@
                 </form>
             {% endif %}
         </section>
+
+        <section class="grid gap-2" aria-labelledby="meeting-action-items-title" data-meeting-action-items>
+            <h2 id="meeting-action-items-title" class="m-0 text-heading font-semibold text-ink">{{ 'meetings.action_item.title'|trans }}</h2>
+            {% if tasks.actionItems is not empty %}
+                {{ include('@Meetings/meetings/_task_list.html.twig', {tasks: tasks.actionItems, today: today}) }}
+            {% else %}
+                <p class="m-0 text-muted">{{ 'meetings.action_item.none'|trans }}</p>
+            {% endif %}
+        </section>
+
+        {% if meeting.series %}
+            <section class="grid gap-3" aria-labelledby="meeting-carry-over-title" data-meeting-carry-over>
+                <h2 id="meeting-carry-over-title" class="m-0 text-heading font-semibold text-ink">{{ 'meetings.carry_over.title'|trans }}</h2>
+                {% for group in tasks.carryOver %}
+                    {{ include('@Meetings/meetings/_task_group.html.twig', {group: group, today: today}) }}
+                {% else %}
+                    <p class="m-0 text-muted">{{ 'meetings.carry_over.none'|trans }}</p>
+                {% endfor %}
+                {% if tasks.seriesOpen > 0 %}
+                    <p class="m-0"><a href="{{ path('app_meetings_series_open_tasks', {id: meeting.series.id}) }}" class="text-small font-medium text-ink underline underline-offset-2 {{ focus }}" data-meeting-series-open>{{ 'meetings.carry_over.all'|trans({count: tasks.seriesOpen}) }}</a></p>
+                {% endif %}
+            </section>
+        {% endif %}
 
         <twig:Ui:CustomFields :record="constant('Foresi\\Meetings\\Contract\\Field\\MeetingExtension::RECORD')" mode="detail" :id="meeting.id" />
 

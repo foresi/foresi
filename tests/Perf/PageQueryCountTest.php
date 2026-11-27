@@ -52,7 +52,9 @@ final class PageQueryCountTest extends WebTestCase
         // My priorities is a seventh shipped view of the task list, which a first visit stores
         // one lookup by system key at a time (SavedViews).
         'tasks' => 227,
-        'task' => 192,
+        // The task page asks Meetings whether the task came from a meeting (MeetingTaskFacts):
+        // the module check and one lookup of its action items.
+        'task' => 194,
         'time week' => 136,
         'time report' => 170,
         'deals' => 205,

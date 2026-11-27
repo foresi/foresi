@@ -706,6 +706,7 @@ Meeting series and meetings with their minutes. What each field means, and who s
 | `POST /api/v1/meetings` | `201` with the new meeting: `held_on`, and `series_id`, `title`, `starts_at`, `attendee_ids`, `links` (`[{"kind": "project", "id": "…"}]`) and `minutes`. A meeting of a series takes the series' default attendees, its agenda template as the minutes and a title of the series name and the day for those left out; a one-off meeting needs a `title`. |
 | `PATCH /api/v1/meetings/{meetingId}` | The meeting as it is now: `title`, `held_on`, `starts_at`, `attendee_ids` and `links`, whichever are given. |
 | `PUT /api/v1/meetings/{meetingId}/minutes` | The meeting with the new minutes: `minutes` and the `version` they were read at. If someone saved them since, `409 stale_minutes` with `current_version`, and nothing changes. |
+| `POST /api/v1/meetings/{meetingId}/action-items` | `201` with the meeting: a task made in a project (`project_id`, `title`, `responsible_id`, `due_on`, `private`) with Work's own checks, linked to the meeting, and its token `[text](task:id)` in the minutes, in place of the first exact occurrence of `quote` (on one line, outside another token; `422 quote_not_found` when there is none) or appended as a list item without it. The version of the minutes goes up by one. |
 | `POST /api/v1/meetings/{meetingId}/trash` | The meeting in the trash; it is removed for good after 30 days. Only its creator and the owners (`403 not_trasher`). |
 | `POST /api/v1/meetings/{meetingId}/restore` | The meeting, out of the trash. |
 

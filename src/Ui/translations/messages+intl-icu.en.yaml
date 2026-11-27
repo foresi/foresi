@@ -275,6 +275,7 @@ ui:
     code: Code
     quote: Quote
     mentions: People
+    task: Create task
     no_match: No one matches
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.

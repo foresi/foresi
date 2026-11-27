@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Meetings\Infrastructure\Api\Operation;
 
+use Foresi\Meetings\Application\ActionItemReads;
 use Foresi\Meetings\Application\MeetingReads;
 use Foresi\Meetings\Application\SeriesReads;
 use Foresi\Meetings\Domain\Meeting;
@@ -23,7 +24,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class MeetingAnswer
 {
-    public function __construct(private UrlGeneratorInterface $urls, private SeriesReads $series, private MeetingReads $meetings)
+    public function __construct(private UrlGeneratorInterface $urls, private SeriesReads $series, private MeetingReads $meetings, private ActionItemReads $tasks)
     {
     }
 
@@ -39,7 +40,7 @@ final readonly class MeetingAnswer
     public function meeting(Meeting $meeting, string $summary, bool $created = false): OperationOutput
     {
         return new OperationOutput(
-            MeetingsJson::meeting($this->meetings->viewOf($meeting)),
+            MeetingsJson::meeting($this->meetings->viewOf($meeting), $this->tasks->page($meeting, $meeting->minutes())),
             \sprintf($summary, MeetingsJson::summary($meeting)),
             $created ? $this->urls->generate(MeetingsApiController::MEETING, ['meetingId' => $meeting->id()]) : null,
         );
