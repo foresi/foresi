@@ -12,8 +12,8 @@ use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\SavedViews;
-use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Shared\Application\View\SavedViewUserStates;
+use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 
@@ -35,11 +35,11 @@ final readonly class RememberedDisplay
     }
 
     /**
-     * @param string                  $columns the list's key in the column registry
-     * @param array<string, mixed>    $context the list's context, as ListColumnRegistry::display() takes it
-     * @param string                  $list    the list's key among the saved views' lists
-     * @param array<array-key, mixed> $query   the list's query
-     * @param list<string>            $groups  what the list can group by, its default first (WorkingDisplay::read())
+     * @param string                  $columns  the list's key in the column registry
+     * @param array<string, mixed>    $context  the list's context, as ListColumnRegistry::display() takes it
+     * @param string                  $list     the list's key among the saved views' lists
+     * @param array<array-key, mixed> $query    the list's query
+     * @param list<string>            $groups   what the list can group by, its default first (WorkingDisplay::read())
      * @param ListDefinition|null     $filters  the list's filter fields, whose quick filters the view pins; null for a list without
      * @param bool                    $calendar whether the list can be laid out as a calendar (WorkingDisplay::read())
      */
@@ -91,7 +91,7 @@ final readonly class RememberedDisplay
      *
      * @return array<string, string>
      */
-    private function query(array $display, bool $calendar = false): array
+    private function query(array $display, bool $calendar): array
     {
         $keys = [];
         $widths = [];

@@ -223,7 +223,7 @@ final class TaskListController extends AbstractController
             $byDay[$day][] = $this->entry($task, $today);
         }
         $locale = $request->getLocale();
-        $format = static fn (string $pattern, \DateTimeImmutable $day): string => (string) (new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, $day->getTimezone(), null, $pattern))->format($day);
+        $format = static fn (string $pattern, \DateTimeImmutable $day): string => (string) new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, $day->getTimezone(), null, $pattern)->format($day);
         $weeks = array_map(fn (array $days): array => array_map(fn (\DateTimeImmutable $day): array => [
             'date' => $day->format('Y-m-d'),
             'number' => $day->format('j'),

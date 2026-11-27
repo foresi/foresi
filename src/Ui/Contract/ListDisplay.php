@@ -19,7 +19,7 @@ final readonly class ListDisplay
      * @param list<ResolvedColumn> $columns
      * @param array<string, mixed> $context the list's context, which the cells are rendered in
      */
-    public function __construct(public array $columns, public array $context = [], public ?string $groupBy = null, public ?string $layout = null, public bool $weekends = true)
+    public function __construct(public array $columns, public array $context, public ?string $groupBy, public ?string $layout, public bool $weekends)
     {
     }
 

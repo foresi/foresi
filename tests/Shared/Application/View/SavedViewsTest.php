@@ -332,6 +332,17 @@ final class SavedViewsTest extends TestCase
         self::assertSame(['columns' => [['key' => 'number']]], $view->display());
     }
 
+    public function testTheLayoutAndTheWeekendsAreKeptWithTheDisplayEachOnItsOwn(): void
+    {
+        $view = $this->views->create(new CreateViewInput('test.items', 'Calendar', groupBy: 'customer', layout: 'calendar'));
+        self::assertSame(['group_by' => 'customer', 'layout' => 'calendar'], $view->display());
+
+        $this->views->update(new UpdateViewInput($view->id(), weekends: false));
+        self::assertSame(['group_by' => 'customer', 'layout' => 'calendar', 'weekends' => false], $view->display(), 'Hiding the weekends keeps the layout.');
+        $this->views->update(new UpdateViewInput($view->id(), layout: 'list'));
+        self::assertSame(['group_by' => 'customer', 'weekends' => false], $view->display(), 'A table is the default, left out; the weekends stay.');
+    }
+
     public function testAViewKeepsItsQuickFiltersWithItsDisplayUnderTheirKeys(): void
     {
         $view = $this->views->create(new CreateViewInput('test.items', 'Pinned', columns: ['number'], pinned: ['due', 'paid']));

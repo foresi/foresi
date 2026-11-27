@@ -44,10 +44,10 @@ interface WorkingDisplay
     public const int MAX_PINNED = 4;
 
     /**
-     * @param array<string, mixed>                                    $context the list's context, as the registry of the list's columns takes it
-     * @param array<array-key, mixed>|null                            $saved   the view's stored display payload; null for the registry's defaults
-     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
-     * @param list<string>                                            $groups  what the list can group by, its default first; none for a list that does not group
+     * @param array<string, mixed>                                    $context  the list's context, as the registry of the list's columns takes it
+     * @param array<array-key, mixed>|null                            $saved    the view's stored display payload; null for the registry's defaults
+     * @param array<array-key, mixed>                                 $query    the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
+     * @param list<string>                                            $groups   what the list can group by, its default first; none for a list that does not group
      * @param array{fields: list<string>, default: list<string>}|null $pins     the fields a quick filter can be pinned for and those pinned by default; null for a list without quick filters
      * @param bool                                                    $calendar whether the list can be laid out as a calendar (layout, weekends)
      */

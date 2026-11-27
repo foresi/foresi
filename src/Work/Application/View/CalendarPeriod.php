@@ -57,7 +57,7 @@ final readonly class CalendarPeriod
     public function weeks(): array
     {
         $weeks = [];
-        for ($monday = $this->from; $monday <= $this->to; $monday = $monday->modify('+7 days')) {
+        foreach (new \DatePeriod($this->from, new \DateInterval('P7D'), $this->to) as $monday) {
             $days = [];
             for ($at = 0; $at < ($this->weekends ? 7 : 5); ++$at) {
                 $days[] = $monday->modify(\sprintf('+%d days', $at));
@@ -79,7 +79,7 @@ final readonly class CalendarPeriod
 
     public static function isWeekend(\DateTimeImmutable $day): bool
     {
-        return (int) $day->format('N') >= 6;
+        return \in_array($day->format('N'), ['6', '7'], true);
     }
 
     /**
@@ -100,6 +100,6 @@ final readonly class CalendarPeriod
 
     private static function monday(\DateTimeImmutable $day): \DateTimeImmutable
     {
-        return $day->modify(\sprintf('-%d days', (int) $day->format('N') - 1));
+        return $day->modify('monday this week');
     }
 }

@@ -77,4 +77,12 @@ final class CalendarPeriodTest extends TestCase
             self::assertSame(['month', '2026-11-01'], [$period->period, $period->anchor->format('Y-m-d')], $name.' '.$on);
         }
     }
+
+    public function testTheCalendarOpensOnTheStartOfTodayWhateverTheTime(): void
+    {
+        $period = CalendarPeriod::of('week', '', new \DateTimeImmutable('2026-11-25 15:30:00'));
+
+        self::assertSame('2026-11-25 00:00:00', $period->anchor->format('Y-m-d H:i:s'));
+        self::assertSame('2026-11-23 00:00:00', $period->from->format('Y-m-d H:i:s'));
+    }
 }
