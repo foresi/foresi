@@ -44,7 +44,7 @@ class ProjectTimeSetting implements Audited, AuditRooted
 
     public function __construct(
         #[ORM\OneToOne(targetEntity: Project::class)]
-        #[ORM\JoinColumn(name: 'project_id', nullable: false, unique: true, onDelete: 'CASCADE')]
+        #[ORM\JoinColumn(name: 'project_id', unique: true, nullable: false, onDelete: 'CASCADE')]
         private readonly Project $project,
     ) {
         $this->id = Id::generate();

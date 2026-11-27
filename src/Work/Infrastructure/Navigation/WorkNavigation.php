@@ -18,6 +18,7 @@ use Foresi\Work\Infrastructure\Controller\LabelController;
 use Foresi\Work\Infrastructure\Controller\MyTasksController;
 use Foresi\Work\Infrastructure\Controller\NotificationController;
 use Foresi\Work\Infrastructure\Controller\NotificationSettingsController;
+use Foresi\Work\Infrastructure\Controller\RecurringTaskController;
 use Foresi\Work\Infrastructure\Controller\SharedWorkController;
 use Foresi\Work\Infrastructure\Controller\TaskListController;
 
@@ -26,6 +27,9 @@ use Foresi\Work\Infrastructure\Controller\TaskListController;
  * tasks with how many are due by today, and the labels of the organisation in
  * the settings. A guest gets my tasks alone: what is shared with them is their
  * start page, which holds their projects and tasks.
+ *
+ * The recurring tasks, the series that create a project's tasks on a schedule, are the
+ * staff's.
  *
  * The inbox with how many rows are unread is everyone's, right under the start
  * page at the top: it is where a person begins, as the Inbox under Home in
@@ -56,6 +60,7 @@ final readonly class WorkNavigation implements NavigationItemProvider
         }
         yield $tasks;
         yield new NavigationItem(CoreNavigationAreas::PROJECTS, 'nav.item.projects', 'columns-3', 'app_projects', weight: 10, routePrefixes: ['app_project', 'app_task']);
+        yield new NavigationItem(CoreNavigationAreas::PROJECTS, 'nav.item.recurring_tasks', 'refresh-cw', RecurringTaskController::ROUTE, weight: 25, routePrefixes: ['app_work_recurring']);
         yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.labels', 'tag', LabelController::ROUTE, weight: 15, routePrefixes: ['app_label'], section: CoreNavigationAreas::SECTION_FIRM);
     }
 }

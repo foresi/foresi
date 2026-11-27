@@ -11,6 +11,7 @@ namespace Foresi\Work\Application;
 use Foresi\Work\Domain\ProjectStatus;
 use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\Task;
+use Foresi\Work\Domain\TaskStar;
 
 /**
  * Dense positions from 0: only what actually moves is written, so a reorder
@@ -21,17 +22,17 @@ final class Positions
     /**
      * Puts the item at the index among the others, then numbers them all.
      *
-     * @param list<ProjectStatus|Section|Task> $items in order, with or without the item
+     * @param list<ProjectStatus|Section|Task|TaskStar> $items in order, with or without the item
      */
-    public static function place(array $items, ProjectStatus|Section|Task $item, int $index): void
+    public static function place(array $items, ProjectStatus|Section|Task|TaskStar $item, int $index): void
     {
-        $others = array_values(array_filter($items, static fn (ProjectStatus|Section|Task $other): bool => $other->id() !== $item->id()));
+        $others = array_filter($items, static fn (ProjectStatus|Section|Task|TaskStar $other): bool => $other->id() !== $item->id());
         array_splice($others, max(0, min($index, \count($others))), 0, [$item]);
         self::renumber($others);
     }
 
     /**
-     * @param list<ProjectStatus|Section|Task> $items in order
+     * @param list<ProjectStatus|Section|Task|TaskStar> $items in order
      */
     public static function renumber(array $items): void
     {

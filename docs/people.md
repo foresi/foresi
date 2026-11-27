@@ -8,13 +8,13 @@ Every person has one role in an organisation (see [ADR 0025](adr/0025-roles-owne
 
 - **Owner**: everything a team member can do, plus the firms, the import and the people of the organisation.
 - **Team member**: the staff. Sees the modules of the organisation and the list of its people. A team member may be linked to their own contact.
-- **Guest**: someone the organisation shares work with, such as a client, a supplier or a subcontractor. What a guest sees comes from what is shared with them, never from a contact: they see only that, never the people screen or any module. With the address book (the Contacts module) installed, the owner may link the contact a guest represents; it is never required ([ADR 0048](adr/0048-optional-guest-contact.md)).
+- **Guest**: someone the organisation shares work with, such as a client, a supplier or a subcontractor. What a guest sees comes from what is shared with them, never from a contact: they see only that, never the people screen or any module. With the address book (the Contacts module) installed, the owner may link the contact a guest represents; it is never required ([ADR 0049](adr/0049-optional-guest-contact.md)).
 
 A person may belong to several organisations, with a different role in each.
 
 ## Profile
 
-Every person, guests included, has a **Profile** behind the avatar menu. It gathers their own account in one place: the profile itself (photo, name, e-mail and language), security (the password and two-factor sign-in), notifications, and connections (calendar feeds, inbox addresses, API tokens, or a guest's connected apps). The pages keep their addresses; each module adds its own to the profile's sidebar.
+Every person, guests included, has a **Profile** behind the avatar menu. It gathers their own account in one place: the profile itself (photo, name, e-mail and language), security (the password, the sign-in e-mail and two-factor sign-in), notifications, and connections (calendar feeds, inbox addresses, API tokens, or a guest's connected apps). The pages keep their addresses; each module adds its own to the profile's sidebar.
 
 The name and the language are edited in a dialog. A photo is a JPEG, PNG or WebP of at most 5 MB, cropped to a square in the browser; the server draws it anew as a 512 px JPEG, which drops all metadata such as the location. A new photo replaces the old one and Remove photo deletes it. The photo is shown only to people signed in, at `/people/{id}/photo`, wherever the person appears with an avatar: the avatar menu, the people list, who is responsible for a task, its watchers and comments, board cards and sharing. Contacts who are not users keep their initials. The name and the language can also be changed with `PATCH /api/v1/me` or the MCP tool `foresi_update_profile` (see [the API](api.md)).
 
@@ -38,11 +38,27 @@ After the change:
 - Browsers trusted to skip the two-factor code ask for it again.
 - The person gets an e-mail saying when the password was changed and to contact the firm's administrator if it was not them. Without system mail the change still takes effect.
 
+### Sign-in e-mail
+
+**Profile > Sign-in e-mail** changes the address the person signs in with. After **Confirm it's you**, a dialog takes the new address and Foresi sends a link to it. The link works for 24 hours and once. Until it is opened the person keeps signing in with the current address, and the page shows the change waiting, with **Cancel change** in the header. A new start replaces the waiting change and its link; five starts an hour are allowed.
+
+- An address that another account uses is refused, both when the change starts and when the link is opened.
+- Without system mail no change starts, as the link could not be sent.
+- The link asks to confirm before it changes anything, so a mail scanner that opens it does no harm. It works in any browser, also one that is not signed in.
+
+After the link is confirmed:
+
+- The person signs in with the new address. The browser that confirmed stays signed in with a new session id, if it was theirs.
+- Every other session of the person ends on its next request, even if the address is later changed back. API tokens and connected apps are not affected.
+- The previous address gets a notice: when the address changed and to which one, and, if it was not them, the names of the firm's other owners to contact (or the installation's administrator when there are none).
+
+The old address is not asked to confirm too, so a person who lost that mailbox can still change it.
+
 The password, the e-mail and two-factor sign-in are changed only here, never through the API or MCP.
 
 ### Confirm it's you
 
-Before the two-factor enrolment and before a new API token, Foresi asks the person to confirm it is them: with their password, or with a code from their authenticator app when two-factor sign-in is on. A code the sign-in has just used is refused until the next one. A confirmation, or a completed sign-in, holds for 15 minutes in that browser. The prompt says why it asks, and in a dialog it shows the page that asked once it is confirmed. Five failed attempts in five minutes block further attempts for a while, counted together with wrong current passwords of a password change.
+Before the two-factor enrolment, a new API token and a change of the sign-in e-mail, Foresi asks the person to confirm it is them: with their password, or with a code from their authenticator app when two-factor sign-in is on. A code the sign-in has just used is refused until the next one. A confirmation, or a completed sign-in, holds for 15 minutes in that browser. The prompt says why it asks, and in a dialog it shows the page that asked once it is confirmed. Five failed attempts in five minutes block further attempts for a while, counted together with wrong current passwords of a password change.
 
 ## Invitations
 

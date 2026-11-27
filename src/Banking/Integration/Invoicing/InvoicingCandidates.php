@@ -31,17 +31,17 @@ final readonly class InvoicingCandidates implements Candidates
 
     public function withSymbol(string $variableSymbol): array
     {
-        return self::candidates($this->invoices->withSymbol($variableSymbol));
+        return $this->candidates($this->invoices->withSymbol($variableSymbol));
     }
 
     public function open(Currency $currency, string $text, array $ids, int $limit): array
     {
-        return self::candidates($this->invoices->open($currency, $text, $ids, $limit));
+        return $this->candidates($this->invoices->open($currency, $text, $ids, $limit));
     }
 
     public function refunds(?string $variableSymbol): array
     {
-        return self::candidates($this->invoices->refunds($variableSymbol));
+        return $this->candidates($this->invoices->refunds($variableSymbol));
     }
 
     public function paidFrom(?string $counterIban, ?string $counterAccount): array
@@ -63,7 +63,7 @@ final readonly class InvoicingCandidates implements Candidates
      *
      * @return list<Candidate>
      */
-    private static function candidates(array $invoices): array
+    private function candidates(array $invoices): array
     {
         return array_map(static fn (PayableInvoice $invoice): Candidate => new Candidate($invoice->invoiceId, $invoice->number, $invoice->dueDate, $invoice->remaining, $invoice->customerName, $invoice->issueDate), $invoices);
     }

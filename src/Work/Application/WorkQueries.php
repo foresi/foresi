@@ -28,9 +28,12 @@ interface WorkQueries
      *
      * A text narrows them to those whose name or client's name contains it, whatever its case.
      *
-     * @return list<ProjectRow> by name, or by name backwards
+     * The counts of the view's conditions are those the rows show (open, overdue,
+     * unassigned and the next due date), the sort one of ProjectOrder's.
+     *
+     * @return list<ProjectRow> in the order of the sort, or backwards
      */
-    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = ''): array;
+    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = '', string $sort = ProjectOrder::NAME): array;
 
     public function projectList(string $projectId, TaskFilter $filter = new TaskFilter()): ?ProjectList;
 

@@ -44,7 +44,7 @@ final class Version20261127120000 extends AbstractMigration
     {
         // Work's migrations create the project before this runs; a reader of the migrations alone may not have it.
         $project = $schema->hasTable('project') ? $schema->getTable('project') : null;
-        $this->projectColumns = null === $project ? [] : array_values(array_filter(self::PROJECT_COLUMNS, $project->hasColumn(...)));
+        $this->projectColumns = $project instanceof \Doctrine\DBAL\Schema\Table ? array_values(array_filter(self::PROJECT_COLUMNS, $project->hasColumn(...))) : [];
         if (!$schema->hasTable('time_entry')) {
             $this->timeEntry($schema);
         }

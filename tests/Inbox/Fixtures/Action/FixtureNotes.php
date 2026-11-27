@@ -20,10 +20,19 @@ final class FixtureNotes
     /** @var array<string, string> id => text */
     public array $made = [];
 
-    public function make(string $text): string
+    /** @var array<string, string> id => the record it is about */
+    public array $about = [];
+
+    /** @var list<bool> the mark_done each note was made with */
+    public array $markDone = [];
+
+    public function make(string $text, ?string $aboutId = null): string
     {
         $id = Id::generate();
         $this->made[$id] = $text;
+        if (null !== $aboutId) {
+            $this->about[$id] = $aboutId;
+        }
 
         return $id;
     }

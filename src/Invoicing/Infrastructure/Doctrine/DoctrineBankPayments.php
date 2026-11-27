@@ -54,7 +54,7 @@ final readonly class DoctrineBankPayments implements BankPayments
         try {
             $this->store->lock($invoiceId);
         } catch (UnknownInvoice) {
-            throw self::unknown();
+            throw $this->unknown();
         }
     }
 
@@ -63,7 +63,7 @@ final readonly class DoctrineBankPayments implements BankPayments
         try {
             $invoice = $this->store->get($invoiceId);
         } catch (UnknownInvoice) {
-            throw self::unknown();
+            throw $this->unknown();
         }
 
         return ($refund ? $this->payments->toRefundOf($invoice) : $this->payments->remainingOf($invoice))->minor() <= 0;
@@ -85,7 +85,7 @@ final readonly class DoctrineBankPayments implements BankPayments
         } catch (PaymentRefused $refused) {
             throw new BankPaymentRefused($refused->reason, 'invoice.payment.refused.'.$refused->reason, ['max' => Payment::MAX_NOTE]);
         } catch (UnknownInvoice) {
-            throw self::unknown();
+            throw $this->unknown();
         }
     }
 
@@ -129,7 +129,7 @@ final readonly class DoctrineBankPayments implements BankPayments
         }
     }
 
-    private static function unknown(): BankPaymentRefused
+    private function unknown(): BankPaymentRefused
     {
         return new BankPaymentRefused(BankPaymentRefused::UNKNOWN_INVOICE, null);
     }

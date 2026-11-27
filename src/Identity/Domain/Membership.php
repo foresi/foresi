@@ -18,7 +18,7 @@ use Foresi\Shared\Domain\Money;
 /**
  * Links a user to the organisation with a role. Any membership may point at a
  * contact (party): the one a guest represents, or a member's own person record;
- * none is required (ADR 0048). A deactivated membership keeps its history but
+ * none is required (ADR 0049). A deactivated membership keeps its history but
  * no longer lets the person into the organisation.
  *
  * The person's hourly rate is what their time is billed at when neither the

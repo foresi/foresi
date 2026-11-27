@@ -17,8 +17,10 @@ use Foresi\Work\Domain\WorkflowTemplate;
 final readonly class ProjectRow
 {
     /**
-     * @param int                     $openTasks  tasks, subtasks included, whose status is not finished
-     * @param \DateTimeImmutable|null $nearestDue the earliest due date of those tasks
+     * @param int                     $openTasks       tasks, subtasks included, whose status is not finished
+     * @param \DateTimeImmutable|null $nearestDue      the earliest due date of those tasks
+     * @param int                     $overdueTasks    those of them past their due date
+     * @param int                     $unassignedTasks those of them with no one responsible
      */
     public function __construct(
         public string $id,
@@ -29,7 +31,9 @@ final readonly class ProjectRow
         public int $openTasks,
         public ?\DateTimeImmutable $nearestDue,
         public bool $archived,
-        public ProjectVisibility $visibility = ProjectVisibility::Organisation,
+        public ProjectVisibility $visibility,
+        public int $overdueTasks,
+        public int $unassignedTasks,
     ) {
     }
 }

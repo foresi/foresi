@@ -71,7 +71,8 @@ final class TaskListControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Tasks');
-        self::assertSame(['All open', 'Mine', 'Overdue', 'Unassigned', 'High and urgent', 'No due date'], $this->tabs($crawler));
+        // My priorities right after Mine; No due date moves under the other views of the Settings sheet.
+        self::assertSame(['All open', 'Mine', 'My priorities', 'Overdue', 'Unassigned', 'High and urgent'], $this->tabs($crawler));
         self::assertSame('Mine', trim($crawler->filter('nav[aria-label="Views of the tasks"] a[aria-current="page"]')->text()));
         self::assertSame(['Overdue (1)', 'Today (1)', 'Later (1)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
         // By priority within a group, so the urgent one of today leads.
@@ -196,6 +197,51 @@ final class TaskListControllerTest extends WebTestCase
         self::assertSame(['Sort the inbox'], $this->titles($this->filtered(new Condition(TaskLists::UPDATED, 'on_or_after', '2026-11-21'))));
     }
 
+    public function testAStarredTaskIsOnMyPrioritiesInTheOrderGiven(): void
+    {
+        $this->seed();
+        $crawler = $this->client->request('GET', '/tasks?view=all');
+        foreach (['Plan the launch', 'Fix the form', 'Sort the inbox'] as $title) {
+            $this->client->submit($this->starOf($crawler, $title)->form());
+            self::assertResponseRedirects('/tasks?view=all', 303);
+        }
+
+        $crawler = $this->client->request('GET', '/tasks?view=priorities');
+        self::assertSame(['Plan the launch', 'Fix the form', 'Sort the inbox'], $this->titles($crawler));
+        self::assertCount(3, $crawler->filter('[data-row-reorder-handle]'));
+        self::assertSame('true', $this->starOf($crawler, 'Fix the form')->filter('button')->attr('aria-pressed'));
+        // Move up and Move down in each row's menu: the first has no way up, the last none down.
+        self::assertSame(['Move down', 'Move up', 'Move down', 'Move up'], $crawler->filter('[data-row-actions] button[type="submit"]')->each(static fn (Crawler $item): string => trim($item->text())));
+
+        // A row dropped by its grip before another.
+        $sort = $this->em->getRepository(Task::class)->findOneBy(['title' => 'Sort the inbox']) ?? throw new \LogicException('Task.');
+        $plan = $this->em->getRepository(Task::class)->findOneBy(['title' => 'Plan the launch']) ?? throw new \LogicException('Task.');
+        $token = (string) $crawler->filter('tbody[data-controller="row-reorder"]')->attr('data-row-reorder-token-value');
+        $this->client->request('POST', '/tasks/'.$sort->id().'/star/move', ['_token' => $token, 'beforeTaskId' => $plan->id()], server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame(['Sort the inbox', 'Plan the launch', 'Fix the form'], $this->titles($this->client->request('GET', '/tasks?view=priorities')));
+
+        // Grouped, the list keeps the order but drags nothing.
+        self::assertCount(0, $this->client->request('GET', '/tasks?view=priorities&group=project')->filter('[data-row-reorder-handle]'));
+
+        // The task page says it is on My priorities, and takes it off.
+        $crawler = $this->client->request('GET', '/tasks/'.$plan->id());
+        $star = $crawler->filter('form[data-task-star]');
+        self::assertStringContainsString('Remove from My priorities', $star->text());
+        $this->client->submit($star->form());
+        self::assertSame(['Sort the inbox', 'Fix the form'], $this->titles($this->client->request('GET', '/tasks?view=priorities')));
+    }
+
+    /**
+     * The star of a task's row.
+     */
+    private function starOf(Crawler $crawler, string $title): Crawler
+    {
+        $rows = $crawler->filter('[data-task-group] tbody tr')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $title));
+
+        return $rows->filter('form[data-cell-toggle]');
+    }
+
     private function filtered(Condition $condition): Crawler
     {
         return $this->client->request('GET', '/tasks?view=all&'.WorkingFilter::PARAM.'='.rawurlencode((string) WorkingFilter::param(ViewFilter::all($condition), new ViewFilter())));
@@ -267,6 +313,6 @@ final class TaskListControllerTest extends WebTestCase
      */
     private function titles(Crawler $crawler): array
     {
-        return $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
+        return $crawler->filter('[data-task-group] tbody tr [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
     }
 }

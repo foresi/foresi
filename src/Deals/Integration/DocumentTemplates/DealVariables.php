@@ -11,12 +11,14 @@ namespace Foresi\Deals\Integration\DocumentTemplates;
 use Foresi\Deals\Application\DealDetail;
 use Foresi\Deals\Application\DealReads;
 use Foresi\Deals\Application\SalesRefused;
+use Foresi\Deals\Contract\Field\DealExtension;
 use Foresi\Deals\Contract\SalesRecords;
 use Foresi\Deals\Domain\DealLine;
 use Foresi\Deals\Infrastructure\Screen\DealScreen;
 use Foresi\DocumentTemplates\Contract\DocumentVariableSource;
 use Foresi\DocumentTemplates\Contract\VariableDefinition;
 use Foresi\Shared\Domain\Money;
+use Foresi\Ui\Field\CustomFieldTemplates;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -28,11 +30,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * writes them, in the language of the person generating the document:
  * "12 000,00 Kč", "Every month, no end". The totals hold one row per currency,
  * never converted; a monthly total that had to put a weekly or daily line on a
- * month's terms starts with "≈".
+ * month's terms starts with "≈". The deal's custom fields that allow templates
+ * are under deal.custom.
  */
 final readonly class DealVariables implements DocumentVariableSource
 {
-    public function __construct(private DealReads $reads, private DealScreen $screen, private TranslatorInterface $translator)
+    public function __construct(private DealReads $reads, private DealScreen $screen, private TranslatorInterface $translator, private CustomFieldTemplates $custom)
     {
     }
 
@@ -55,6 +58,7 @@ final readonly class DealVariables implements DocumentVariableSource
             $this->definition('one_off_totals', [['currency' => 'CZK', 'amount' => '12 000,00 Kč']]),
             $this->definition('monthly_totals', [['currency' => 'CZK', 'amount' => '1 500,00 Kč']]),
             $this->definition('hourly_lines', [['name' => 'Consulting', 'rate' => '1 200,00 Kč', 'expected_hours' => '40', 'expected_amount' => '48 000,00 Kč']]),
+            ...array_map(static fn (array $field): VariableDefinition => new VariableDefinition($field['name'], $field['label'], $field['example']), $this->custom->definitions(DealExtension::RECORD)),
         ];
     }
 
@@ -87,7 +91,7 @@ final readonly class DealVariables implements DocumentVariableSource
             'one_off_totals' => $this->totals($detail->value->oneOff, ''),
             'monthly_totals' => $this->totals($detail->value->monthly, $detail->value->approximate ? '≈ ' : ''),
             'hourly_lines' => $this->hourlyLines($detail),
-        ];
+        ] + $this->custom->values(DealExtension::RECORD, $deal->id());
     }
 
     private function detail(string $id): ?DealDetail

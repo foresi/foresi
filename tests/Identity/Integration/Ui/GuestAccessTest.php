@@ -36,6 +36,8 @@ final class GuestAccessTest extends WebTestCase
         'app_account_language', 'app_two_factor_setup', 'app_two_factor_recovery_codes',
         // Their password, and the prompt that confirms it is them before a sensitive page.
         'app_account_password', 'app_account_password_change', 'app_reauthenticate',
+        // Their sign-in e-mail, and the link that confirms a new one.
+        'app_account_email', 'app_account_email_change', 'app_account_email_cancel', 'app_account_email_confirm',
         // Machines: the uptime monitor, the bank mail relay and calendar apps fetching a feed, on firewalls without a session.
         'app_health', 'app_inbound_mail', 'app_calendar_feed',
         // OAuth for MCP clients (ADR 0036): metadata, registration and the token endpoint hold no data and
@@ -61,6 +63,10 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_operation_cashflow.planned_items.delete', 'api_v1_operation_cashflow.planned_items.end', 'api_v1_operation_cashflow.planned_items.skip',
         'api_v1_catalog_products', 'api_v1_catalog_product', 'api_v1_operation_catalog.products.create', 'api_v1_operation_catalog.products.update',
         'api_v1_operation_catalog.products.archive', 'api_v1_operation_catalog.products.restore',
+        'api_v1_meetings_series', 'api_v1_meetings_one_series', 'api_v1_meetings_meetings', 'api_v1_meetings_meeting',
+        'api_v1_operation_meetings.series.create', 'api_v1_operation_meetings.series.update', 'api_v1_operation_meetings.series.archive',
+        'api_v1_operation_meetings.meetings.create', 'api_v1_operation_meetings.meetings.update', 'api_v1_operation_meetings.meetings.set_minutes',
+        'api_v1_operation_meetings.meetings.trash', 'api_v1_operation_meetings.meetings.restore',
         'api_v1_deals', 'api_v1_deal', 'api_v1_deal_stages', 'api_v1_lost_reasons', 'api_v1_operation_deals.lines.add', 'api_v1_operation_deals.links.add', 'api_v1_operation_deals.stages.archive', 'api_v1_operation_deals.lost_reasons.archive', 'api_v1_operation_deals.change_stage', 'api_v1_operation_deals.create', 'api_v1_operation_deals.stages.create', 'api_v1_operation_deals.create_follow_up', 'api_v1_operation_deals.lost_reasons.create', 'api_v1_operation_deals.lose', 'api_v1_operation_deals.lines.remove', 'api_v1_operation_deals.links.remove', 'api_v1_operation_deals.reopen', 'api_v1_operation_deals.lines.reorder', 'api_v1_operation_deals.stages.reorder', 'api_v1_operation_deals.restore', 'api_v1_operation_deals.trash', 'api_v1_operation_deals.update', 'api_v1_operation_deals.lines.update', 'api_v1_operation_deals.stages.update', 'api_v1_operation_deals.lost_reasons.update', 'api_v1_operation_deals.win', 'api_v1_operation_deals.billing_entries.create', 'api_v1_operation_deals.billing_entries.update', 'api_v1_operation_deals.billing_entries.delete', 'api_v1_operation_deals.billing_entries.link', 'api_v1_operation_deals.billing_entries.unlink',
         'api_v1_received_documents', 'api_v1_received_document', 'api_v1_received_document_payments',
         'api_v1_operation_received_documents.record', 'api_v1_operation_received_documents.trash',
@@ -70,7 +76,7 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_calendar_feeds', 'api_v1_operation_calendar.feeds.create', 'api_v1_operation_calendar.feeds.rename', 'api_v1_operation_calendar.feeds.revoke',
         'api_v1_inbox_items', 'api_v1_inbox_item', 'api_v1_operation_inbox.items.match', 'api_v1_operation_inbox.items.match_again', 'api_v1_operation_inbox.items.create_contact',
         'api_v1_operation_inbox.items.done', 'api_v1_operation_inbox.items.discard', 'api_v1_operation_inbox.items.reopen', 'api_v1_operation_inbox.items.link',
-        'api_v1_operation_inbox.items.trash', 'api_v1_operation_inbox.items.restore',
+        'api_v1_operation_inbox.items.trash', 'api_v1_operation_inbox.items.restore', 'api_v1_operation_inbox.suggestions.propose', 'api_v1_operation_inbox.suggestions.accept', 'api_v1_operation_inbox.suggestions.reject',
         // The inbox actions of the module only the tests have (tests/Inbox/Fixtures/Action).
         'api_v1_operation_inbox.actions.fixture_note', 'api_v1_operation_inbox.actions.fixture_contact_note',
         // The inbox actions of Sales and Activities.
@@ -95,6 +101,12 @@ final class GuestAccessTest extends WebTestCase
         'api_v1_lists', 'api_v1_fields', 'api_v1_views', 'api_v1_view', 'api_v1_view_count',
         'api_v1_projects', 'api_v1_project', 'api_v1_project_people', 'api_v1_project_budget', 'api_v1_tasks', 'api_v1_task', 'api_v1_task_comments', 'api_v1_labels', 'api_v1_time_entries',
         'api_v1_operation_tasks.create', 'api_v1_operation_tasks.update', 'api_v1_operation_tasks.trash', 'api_v1_operation_tasks.restore', 'api_v1_operation_tasks.comment',
+        // Their own My priorities: a star is the person's own, on a task they see (plan 37.2).
+        'api_v1_operation_tasks.star', 'api_v1_operation_tasks.unstar', 'api_v1_operation_tasks.starred.reorder',
+        // Recurring tasks (plan 37.4).
+        'api_v1_recurring_tasks', 'api_v1_recurring_task', 'api_v1_recurring_task_preview',
+        'api_v1_operation_recurring-tasks.create', 'api_v1_operation_recurring-tasks.update', 'api_v1_operation_recurring-tasks.pause',
+        'api_v1_operation_recurring-tasks.resume', 'api_v1_operation_recurring-tasks.end', 'api_v1_operation_recurring-tasks.skip',
         'api_v1_operation_task_comments.update', 'api_v1_operation_task_comments.trash',
         'api_v1_operation_projects.create', 'api_v1_operation_projects.update', 'api_v1_operation_projects.archive', 'api_v1_operation_projects.restore',
         'api_v1_operation_work.project_budget.add_change', 'api_v1_operation_work.project_budget.remove_change', 'api_v1_operation_work.project_budget.set_counting',
@@ -116,7 +128,7 @@ final class GuestAccessTest extends WebTestCase
         'app_tasks', 'app_task_list_projects', 'app_task_list_labels', 'app_task_new',
         'app_task', 'app_task_comment_add', 'app_task_comment_edit', 'app_task_comment_delete', 'app_task_comment_restore', 'app_task_mention_candidates',
         'app_task_title', 'app_task_description', 'app_task_status', 'app_task_responsible', 'app_task_due', 'app_task_priority', 'app_task_custom_field',
-        'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_watchers', 'app_task_subtask_new',
+        'app_task_labels', 'app_task_section', 'app_task_watch', 'app_task_unwatch', 'app_task_star', 'app_task_unstar', 'app_task_star_move', 'app_task_watchers', 'app_task_subtask_new',
         'app_markdown_preview', 'app_attachment', 'app_attachment_upload', 'app_attachment_delete', 'app_attachment_restore',
         // Their own inbox, which holds only the tasks they see.
         'app_notifications', 'app_notifications_read_all', 'app_notification_done', 'app_notification_undone',

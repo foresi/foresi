@@ -34,29 +34,11 @@ Defaults are in `.env`, which is committed. Set the values of an installation in
 environment of PHP-FPM and the worker; real environment variables win over the
 files. Never put a production secret in a committed file.
 
-| Variable | Secret | What it is |
-| --- | --- | --- |
-| `APP_ENV` | no | `prod` on a server. |
-| `APP_SECRET` | **yes** | Signs the public links of sent documents and the links that stop notification e-mails, the remember-me and trusted-browser cookies and CSRF tokens. 32 random bytes in hex: `php -r 'echo bin2hex(random_bytes(32)), "\n";'`. **Never change it once documents have been sent**: every link already in a customer's mailbox stops working. Keep it in the backups of the configuration. |
-| `DATABASE_URL` | **yes** (password) | For PostgreSQL `postgresql://foresi:PASSWORD@127.0.0.1:5432/foresi?serverVersion=17&charset=utf8`. |
-| `DEFAULT_URI` | no | The public https address, such as `https://foresi.example.com`; links in mail lead there. |
-| `APP_SHARE_DIR` | no | The data directory, `var/share` by default (relative to the release). The layout below links it to `shared/var/share`. The application uses `<APP_SHARE_DIR>/<APP_ENV>/`: `firm-images`, `sent-documents`, `inbound-mail`, `idoklad-documents`, `original-documents`, `attachments`, `user-photos`, `mcp-sessions`, `lock`. |
-| `MAIL_SECRET_KEYS` | **yes** | Keys that seal the firms' mail server passwords and the TOTP secrets of two-factor sign-in. See [rotation](sending.md#passwords-mail_secret_keys). Losing them means every firm enters its mail password again and every user enrols two-factor sign-in again. |
-| `WEBHOOK_SECRET_KEYS` | **yes** | Keys that seal the signing secrets of webhook endpoints, in the format of `MAIL_SECRET_KEYS` and rotated apart from it: the first key seals, older ones only open. Empty means no endpoint can be saved. Losing the keys means every endpoint needs a new secret. See [ADR 0031](adr/0031-webhooks.md). |
-| `APP_TIMEZONE` | no | The time zone of the instance's days, such as due dates and the schedule: a canonical name of the tz database such as `Europe/Prague`. Empty (default) follows the country of the firm, else UTC. An offset, an abbreviation or an old alias such as `US/Eastern` stops the instance at start with the reason. |
-| `APP_REQUIRE_2FA` | no | `true` (default): every user sets up an authenticator app. Keep it on in production. |
-| `APP_PASSWORD_BREACH_CHECK` | no | `true` (default): a new password is refused when it appears in a known data breach, checked with Have I Been Pwned; only the first five characters of the password's SHA-1 hash leave the server, never the password. Set `false` on an installation that cannot reach `api.pwnedpasswords.com`. When the service does not answer, the password is accepted. |
-| `MESSENGER_TRANSPORT_DSN` | no | `doctrine://default?auto_setup=0` (default): the queues live in the database. |
-| `LOCK_DSN` | maybe | Empty (default) or `flock` locks with files in `<APP_SHARE_DIR>/<APP_ENV>/lock`, so each instance has its own locks, also when several instances on one host run as one Unix user. Not the system temp directory: instances would share lock names there, and only one of them would run its schedule. `flock:///path` picks another directory, one per instance. With several hosts use a shared store; see [docs/import.md](import.md#one-import-at-a-time-per-target). |
-| `SYMFONY_TRUSTED_PROXIES` | no | The addresses of a reverse proxy or load balancer in front of PHP, such as `127.0.0.1,REMOTE_ADDR`. See [web server](#web-server). |
-| `MAIL_INBOUND_*`, `INBOUND_WEBHOOK_SECRET`, `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` | **yes** (`MAIL_INBOUND_PASSWORD`, `INBOUND_WEBHOOK_SECRET`) | Inbound mail, such as bank notices and people's own addresses; empty turns it off. `MAIL_INBOUND_DAILY_LIMIT` is how many mails one address takes per day (500 by default, not a secret). The operator task `mail-purge` runs daily on the existing schedule and needs no setting. The old names `BANK_INBOX_*` still work for one more release, with a deprecation warning in the log. See [docs/mail.md](mail.md#settings) and [docs/bank-pairing.md](bank-pairing.md). |
-| `HEALTH_DISK_MIN_FREE_PERCENT` | no | `/health` is degraded below this free share of the data disk, `5` by default. |
-| `SYSTEM_MAILER_DSN` | **yes** (password) | The mailer of the installation's own mail, such as invitations, for example `smtp://user:pass@smtp.example.com:587`. Never a firm's server, which sends only that firm's documents. The mail is queued on the `mail` transport with its retries, so the existing worker sends it. Empty sends no such mail: the screens say the installation cannot send e-mail yet and `/health` reports `system_mail` as degraded. Check it with `bin/console app:ops:test-mail you@example.com`. |
-| `SYSTEM_MAIL_FROM` | no | The sender of that mail, an address with an optional name: `Foresi <noreply@example.com>`. Empty, or not an address, sends none. |
-| `HSTS_MAX_AGE` | no | How long browsers keep to HTTPS after a response over HTTPS, in seconds: `31536000` (one year) by default, `0` in the dev environment. `0` sends no `Strict-Transport-Security`. See [security headers](#security-headers). |
-| `HSTS_INCLUDE_SUBDOMAINS` | no | `1` (default) adds `includeSubDomains` to it; `0` leaves it out when a subdomain of the application's host still serves plain HTTP. |
-| `CSP_REPORT_URI` | no | An address that receives the browser's reports of Content-Security-Policy violations (`report-uri`), such as the endpoint of an error tracker. Empty (default) sends none. |
-| `MCP_ALLOWED_HOSTS` | no | The host names, without port, that the MCP endpoint at `/mcp` answers for, comma separated; a request for another host gets `403`. The default `localhost,127.0.0.1` does not match a public address, so in production set the host of `DEFAULT_URI`, such as `app.example.com`. See [docs/mcp.md](mcp.md#mcp_allowed_hosts). |
+Every variable, its default and whether it is a secret are listed in the
+[environment reference](reference/environment.md), which is generated from the
+comments in `.env`. On a server set at least `APP_ENV=prod`, `APP_SECRET`,
+`DATABASE_URL`, `DEFAULT_URI` and `MAIL_SECRET_KEYS`. The console commands are in
+the [CLI reference](reference/cli.md).
 
 Optionally compile the files into `.env.local.php` for speed with
 `composer dump-env prod` in each release; the deploy script does not do it, so

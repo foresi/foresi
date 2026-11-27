@@ -33,10 +33,11 @@ final class TaskListsTest extends TestCase
             [
                 ['all', 'work.tasks.tab.all', [], 0],
                 ['mine', 'work.tasks.tab.mine', [['field' => 'responsible', 'op' => 'is', 'value' => 'me']], 1],
-                ['overdue', 'work.tasks.tab.overdue', [['field' => 'due', 'op' => 'is', 'value' => 'overdue']], 2],
-                ['unassigned', 'work.tasks.tab.unassigned', [['field' => 'responsible', 'op' => 'is_empty']], 3],
-                ['high', 'work.tasks.tab.high', [['field' => 'priority', 'op' => 'is_any_of', 'value' => ['high', 'urgent']]], 4],
-                ['no_due', 'work.tasks.tab.no_due', [['field' => 'due', 'op' => 'is', 'value' => 'none']], 5],
+                ['priorities', 'work.tasks.tab.priorities', [['field' => 'starred', 'op' => 'is', 'value' => true]], 2],
+                ['overdue', 'work.tasks.tab.overdue', [['field' => 'due', 'op' => 'is', 'value' => 'overdue']], 3],
+                ['unassigned', 'work.tasks.tab.unassigned', [['field' => 'responsible', 'op' => 'is_empty']], 4],
+                ['high', 'work.tasks.tab.high', [['field' => 'priority', 'op' => 'is_any_of', 'value' => ['high', 'urgent']]], 5],
+                ['no_due', 'work.tasks.tab.no_due', [['field' => 'due', 'op' => 'is', 'value' => 'none']], 6],
             ],
             array_map(static fn (DefaultView $view): array => [$view->slug, $view->name, $view->filter->toArray()['conditions'], $view->position], $list->defaults),
         );
@@ -80,6 +81,7 @@ final class TaskListsTest extends TestCase
                 'created_by' => 'work.tasks.field.created_by',
                 'created' => 'work.tasks.field.created',
                 'updated' => 'work.tasks.field.updated',
+                'starred' => 'work.tasks.field.starred',
             ],
             array_map(static fn (Field $field): string => $field->label, $fields),
         );
@@ -98,6 +100,7 @@ final class TaskListsTest extends TestCase
                 'created_by' => [FieldType::Reference, 'person'],
                 'created' => [FieldType::Date, null],
                 'updated' => [FieldType::Date, null],
+                'starred' => [FieldType::Boolean, null],
             ],
             array_map(static fn (Field $field): array => [$field->type, $field->source], $fields),
         );
@@ -153,13 +156,13 @@ final class TaskListsTest extends TestCase
 
     private function lists(): TaskLists
     {
-        return new TaskLists(new ListFields([]), self::clients());
+        return new TaskLists(new ListFields([]), $this->clients());
     }
 
     /**
      * The address book as Work's Contacts integration answers it, without its pages.
      */
-    private static function clients(): ProjectClients
+    private function clients(): ProjectClients
     {
         return new class implements ProjectClients {
             public function pickerUrl(): string

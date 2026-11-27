@@ -35,6 +35,23 @@ Existing records are found by a key you choose. For contacts the keys are the Fo
 - A file exported before identifiers became UUIDs has an `id` column of whole numbers. A row with such a value is a row error, because it names no record. Either do not map that column or delete it from the file and match by another key, such as the registration number or the e-mail address.
 - Registry checks (ARES, VIES, the unreliable VAT payer register) never run inside the import. New and changed records that have a VAT ID are checked later in the background, respecting the rate limits.
 
+### Custom fields
+
+The custom fields that modules add to contacts ([modules.md](modules.md#add-fields-to-a-record)) are fields of the import too, in the group "Additional details", unless a field says it is not imported. A column is matched to one by the field's label. A cell is read by the field's kind:
+
+| Kind | A cell such as |
+|---|---|
+| Text, long text, web address | `Example`, `https://www.example.com` (a web address starts with http:// or https://) |
+| Number | `1250` or `12,50`, read with the decimal separator of the options |
+| Date | `31. 1. 2027` or `2027-01-31`, read with the date order of the options |
+| Date and time | `2027-01-31 14:30` in the instance's time zone, or `2027-01-31T14:30:00+01:00` |
+| Yes or no | `ano`, `yes`, `ne`, `no` |
+| Select | the option's label in Czech or English, or its key; other values are mapped once for the whole file |
+| Multi-select | such options separated by commas or semicolons, such as `Leasing, Insurance` |
+| Contact, person | the identifier (UUID) of a contact or of a person of the organisation |
+
+The import does not ask for a value of a required field. An empty cell keeps or clears the value as the option says, and an undo puts the earlier value back.
+
 ### Undo
 
 An import can be undone for 30 days after it ended, from the import's page. Created records are archived, updated records get their previous values back and archived records are restored. A record that someone changed after the import is not reverted; it is listed instead. An import that failed after it started writing (its worker died, for example) can be undone the same way: rows that were never written are passed over. An undo that failed can be started again; it skips the records it already put back. An import that failed while the file was read or checked wrote nothing and has no undo. After 30 days the file and the staged rows are deleted, undo is no longer possible, and the import record with its counts stays in the history.
@@ -52,7 +69,7 @@ An import stops itself when more than half of the rows of the first chunks fail,
 
 ### Export
 
-The address book exports all or the filtered contacts as CSV (UTF-8 with a byte order mark, `;` as the delimiter) or XLSX, using the same fields as the import, so an export can be imported again. Formulas in cells are neutralised.
+The address book exports all or the filtered contacts as CSV (UTF-8 with a byte order mark, `;` as the delimiter) or XLSX, using the same fields as the import, so an export can be imported again. Formulas in cells are neutralised. A custom field is one more column: an option by its label in your language, a date as `2027-01-31`, a date and time as `2027-01-31 14:30`, a number with a decimal point, yes or no in your language, and a contact or a person by identifier.
 
 ## Running the worker
 

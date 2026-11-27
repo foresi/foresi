@@ -1,0 +1,127 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A recurring task: its schedule, what each of its tasks gets, its next tasks, each of which can be
+    skipped as a planned item's occurrence is, and the tasks it created. Edit opens the form in a
+    dialog; pause or resume and end sit in the header's "⋯", as on a recurring invoice.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.recurring.title'|trans, href: path('app_work_recurring_tasks')}, {label: recurring.title}] %}
+{% set doc = {id: recurring.id} %}
+{% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\RecurringTaskController::TOKEN')) %}
+
+{% block title %}{{ recurring.title }}{% endblock %}
+
+{% block actions %}
+    {% if state != 'ended' %}
+        <twig:Ui:MoreActions menuId="recurring-task-more">
+            <twig:block name="primary">
+                <twig:Ui:Button variant="primary" icon="pencil" :href="path('app_work_recurring_task_edit', doc)" data-dialog aria-haspopup="dialog" data-recurring-task-edit>{{ 'work.recurring.action.edit'|trans }}</twig:Ui:Button>
+            </twig:block>
+            <twig:block name="content">
+                {% if state == 'active' %}
+                    <form method="post" action="{{ path('app_work_recurring_task_pause', doc) }}" role="none" data-recurring-task-pause>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:MenuItem type="submit">{{ 'work.recurring.action.pause'|trans }}</twig:Ui:MenuItem>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ path('app_work_recurring_task_resume', doc) }}" role="none" data-recurring-task-resume>
+                        <input type="hidden" name="_token" value="{{ token }}">
+                        <twig:Ui:MenuItem type="submit" icon="play">{{ 'work.recurring.action.resume'|trans }}</twig:Ui:MenuItem>
+                    </form>
+                {% endif %}
+            </twig:block>
+            <twig:block name="last">
+                <twig:Ui:MenuItem :href="path('app_work_recurring_task_end', doc)" tone="danger" data-dialog aria-haspopup="dialog" data-recurring-task-end>{{ 'work.recurring.action.end'|trans }}</twig:Ui:MenuItem>
+            </twig:block>
+        </twig:Ui:MoreActions>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-4" data-recurring-task>
+        {{ include('@Work/_flashes.html.twig') }}
+        {% if failure %}<twig:Ui:Alert tone="error" role="alert">{{ failure }}</twig:Ui:Alert>{% endif %}
+
+        <div class="flex flex-wrap items-center gap-2" data-recurring-task-state>
+            <twig:Ui:Badge :tone="{active: 'green', paused: 'amber', ended: 'gray'}[state]">{{ ('work.recurring.state.' ~ state)|trans }}</twig:Ui:Badge>
+            {% if private %}<twig:Ui:Badge tone="gray">{{ 'work.recurring.private'|trans }}</twig:Ui:Badge>{% endif %}
+        </div>
+
+        <twig:Ui:FactsGrid :items="facts" />
+
+        <twig:Ui:Card :title="'work.recurring.card.task'|trans" icon="square-check-big">
+            <div class="grid gap-3">
+                <twig:Ui:FactsGrid :items="task" />
+                {% if labels is not empty %}
+                    <div class="flex flex-wrap gap-1.5" data-recurring-task-labels>
+                        {% for label in labels %}<twig:Ui:Badge :tone="label.colour.value">{{ label.name }}</twig:Ui:Badge>{% endfor %}
+                    </div>
+                {% endif %}
+                {% if description %}<p class="m-0 whitespace-pre-line text-text [overflow-wrap:anywhere]">{{ description }}</p>{% endif %}
+                {% if subtasks is not empty %}
+                    <div>
+                        <h3 class="m-0 mb-1 text-small font-semibold text-muted">{{ 'work.recurring.field.subtasks'|trans }}</h3>
+                        <ul class="m-0 grid gap-1 pl-5 text-small" data-recurring-task-subtasks>
+                            {% for subtask in subtasks %}<li>{{ subtask }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'work.recurring.card.next'|trans" icon="calendar">
+            {% if next is empty %}
+                <p class="m-0 text-small text-muted">{{ (state == 'active' ? 'work.recurring.next_none' : 'work.recurring.next_' ~ state)|trans }}</p>
+            {% else %}
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse text-small" data-recurring-task-next>
+                        <thead>
+                            <tr class="border-b border-divider text-left text-muted">
+                                <th scope="col" class="py-2 pr-3 font-medium">{{ 'work.recurring.column.on'|trans }}</th>
+                                <th scope="col" class="py-2 pr-3 font-medium">{{ 'work.recurring.column.title'|trans }}</th>
+                                <th scope="col" class="py-2 pr-3 font-medium">{{ 'work.recurring.column.created'|trans }}</th>
+                                <th scope="col" class="py-2 pr-3 font-medium">{{ 'work.recurring.column.due'|trans }}</th>
+                                <th scope="col" class="py-2 text-right font-medium"><span class="sr-only">{{ 'work.recurring.column.actions'|trans }}</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-divider">
+                            {% for one in next %}
+                                <tr data-recurring-task-occurrence="{{ one.on }}">
+                                    <td class="whitespace-nowrap py-2 pr-3">{{ one.date }}</td>
+                                    <td class="py-2 pr-3 text-ink [overflow-wrap:anywhere]">{{ one.title }}</td>
+                                    <td class="whitespace-nowrap py-2 pr-3">{{ one.createDate }}</td>
+                                    <td class="whitespace-nowrap py-2 pr-3">{{ one.dueDate }}</td>
+                                    <td class="py-2 text-right">
+                                        <form method="post" action="{{ path('app_work_recurring_task_skip', doc) }}">
+                                            <input type="hidden" name="_token" value="{{ token }}">
+                                            <input type="hidden" name="on" value="{{ one.on }}">
+                                            <twig:Ui:Button type="submit" size="sm" variant="ghost" :aria-label="'work.recurring.action.skip_date'|trans({date: one.date})">{{ 'work.recurring.action.skip'|trans }}</twig:Ui:Button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+            {% if skipped is not empty %}<p class="m-0 mt-2 text-small text-muted" data-recurring-task-skipped>{{ 'work.recurring.skipped_list'|trans({dates: skipped|join(', ')}) }}</p>{% endif %}
+        </twig:Ui:Card>
+
+        <twig:Ui:Card :title="'work.recurring.card.tasks'|trans" icon="list">
+            {% if tasks is empty %}
+                <p class="m-0 text-small text-muted">{{ 'work.recurring.tasks_none'|trans }}</p>
+            {% else %}
+                <ul class="m-0 grid list-none gap-1 p-0 text-small" data-recurring-task-created>
+                    {% for task in tasks %}
+                        <li class="flex flex-wrap items-baseline gap-2">
+                            <span class="w-24 shrink-0 text-muted">{{ task.on }}</span>
+                            <a href="{{ path('app_task', {id: task.id}) }}" class="text-ink underline-offset-2 hover:underline [overflow-wrap:anywhere]">{{ task.title }}</a>
+                            {% if task.done %}<twig:Ui:Badge tone="green">{{ 'work.recurring.done'|trans }}</twig:Ui:Badge>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </twig:Ui:Card>
+    </div>
+{% endblock %}

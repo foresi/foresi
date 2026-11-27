@@ -17,9 +17,9 @@ use Foresi\Contacts\Application\UpdateParty;
 use Foresi\Contacts\Contract\ContactImportColumns;
 use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Contract\FieldDefinition;
+use Foresi\Import\Contract\FieldRecordTarget;
 use Foresi\Import\Contract\FieldType;
 use Foresi\Import\Contract\HeaderName;
-use Foresi\Import\Contract\ImportTarget;
 use Foresi\Import\Contract\RecordMatch;
 use Foresi\Import\Contract\RecordSnapshot;
 use Foresi\Import\Contract\RowError;
@@ -34,6 +34,7 @@ use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\RecheckRegistry;
+use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\ContactLink;
@@ -60,7 +61,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * what the write added. The public registers are never asked during an
  * import; a party with a new VAT id is rechecked in the background.
  */
-final readonly class PartyImportTarget implements ImportTarget
+final readonly class PartyImportTarget implements FieldRecordTarget
 {
     public const string KEY = 'party';
 
@@ -109,6 +110,12 @@ final readonly class PartyImportTarget implements ImportTarget
     public function labelKey(): string
     {
         return 'import.target.party';
+    }
+
+    /** The custom fields of the contacts come with the target's own (CustomFieldTarget). */
+    public function fieldRecord(): string
+    {
+        return ContactExtension::RECORD;
     }
 
     public function fields(): array

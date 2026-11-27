@@ -108,8 +108,11 @@ The decisions are D1–D14 and D-display in the spec "Quick filters and saved vi
 - [ ] The template sets `search`, includes `_list_toolbar` and has the FilterBar with builder, the
       ColumnPicker and the dialogs, as `src/Invoicing/templates/index.html.twig` does.
 - [ ] The list's search (`q=`) runs on the server.
-- [ ] The table passes `:resizable="true"`, and its Reset adds `WorkingDisplay::DENSITY => ''` and
-      `WorkingDisplay::WIDTHS => ''`.
+- [ ] The table passes `:resizable="true"`, and its Reset adds `WorkingDisplay::WIDTHS => ''` (how
+      tall the rows are is the person's density, Profile → Appearance, no state of the list).
+- [ ] A short table whose records the page holds in memory (the settings tables) builds itself with
+      `Ui\View\ListTable` (`built()` for the builder's Apply, `of()` for the table, its filter sheet
+      added with `ListTablePage::with()`), as `LabelController` and `SalesSettingsController` do.
 - [ ] On a page with several tables, each takes its `ListSlot` (rule 9) through `RememberedDisplay`
       (`$slot->query()`), `ViewBar::of`, `FilterSheet::of`, its picker (`slot`), its FilterBar keep and
       search name and `Ui:DataTable widthsParam`, as `SalesSettingsController` does.

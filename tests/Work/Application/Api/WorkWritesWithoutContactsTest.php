@@ -33,7 +33,7 @@ final class WorkWritesWithoutContactsTest extends TestCase
 {
     public function testANewProjectWithAClientIsRefused(): void
     {
-        $refused = $this->refused(fn (WorkWrites $writes) => $writes->createProject(new CreateProjectInput('Website', '01900000-0000-7000-8000-000000000001')));
+        $refused = $this->refused(fn (WorkWrites $writes): string => $writes->createProject(new CreateProjectInput('Website', '01900000-0000-7000-8000-000000000001')));
 
         self::assertSame('client_unavailable', $refused->reason());
         self::assertSame(RefusalKind::Invalid, $refused->kind());
@@ -43,7 +43,7 @@ final class WorkWritesWithoutContactsTest extends TestCase
 
     public function testAChangeThatNamesAClientIsRefused(): void
     {
-        $refused = $this->refused(fn (WorkWrites $writes) => $writes->updateProject(new UpdateProjectInput('01900000-0000-7000-8000-000000000002', clientId: '01900000-0000-7000-8000-000000000001')));
+        $refused = $this->refused(fn (WorkWrites $writes): string => $writes->updateProject(new UpdateProjectInput('01900000-0000-7000-8000-000000000002', clientId: '01900000-0000-7000-8000-000000000001')));
 
         self::assertSame('client_unavailable', $refused->reason());
         self::assertSame('clientId', $refused->field());
@@ -84,12 +84,12 @@ final class WorkWritesWithoutContactsTest extends TestCase
     private function writes(WorkQueries $queries): WorkWrites
     {
         return new WorkWrites(
-            self::unreached(ManageTasks::class),
-            self::unreached(ManageProjects::class),
-            self::unreached(ManageComments::class),
+            $this->unreached(ManageTasks::class),
+            $this->unreached(ManageProjects::class),
+            $this->unreached(ManageComments::class),
             $queries,
             self::createStub(Comments::class),
-            self::unreached(WorkUnit::class),
+            $this->unreached(WorkUnit::class),
             self::createStub(Projects::class),
             self::createStub(WorkVisibility::class),
         );
@@ -104,7 +104,7 @@ final class WorkWritesWithoutContactsTest extends TestCase
      *
      * @return T
      */
-    private static function unreached(string $class): object
+    private function unreached(string $class): object
     {
         return new \ReflectionClass($class)->newInstanceWithoutConstructor();
     }

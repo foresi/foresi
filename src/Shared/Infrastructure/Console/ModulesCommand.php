@@ -24,7 +24,17 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * non-zero when a problem is not in extra.foresi.accepted-problems of the root
  * composer.json.
  */
-#[AsCommand(name: 'app:modules', description: 'List the installed modules, their dependencies, their integrations and the problems of the module graph')]
+#[AsCommand(
+    name: 'app:modules',
+    description: 'List the installed modules, their dependencies, their integrations and the problems of the module graph',
+    help: <<<'HELP'
+    Lists the installed modules with their kind, package, required and optional dependencies and
+    scopes, then the integrations between modules and the problems of the module graph. Run it by hand
+    to see what is installed and which integrations are loaded. It is read-only and safe to repeat. It
+    exits with 1 when a problem is not listed in extra.foresi.accepted-problems of the root
+    composer.json. Use --format=json for scripts.
+    HELP,
+)]
 final readonly class ModulesCommand
 {
     public function __construct(

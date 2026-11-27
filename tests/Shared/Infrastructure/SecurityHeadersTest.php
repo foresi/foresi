@@ -21,7 +21,7 @@ final class SecurityHeadersTest extends ApiTestCase
 
     public function testASignedInScreenRunsOnlyTheScriptsOfItsNonce(): void
     {
-        self::needsTheScreens();
+        $this->needsTheScreens();
         $this->client->loginUser(new SecurityUser($this->user->id(), $this->user->email(), $this->user->passwordHash()), 'main');
         $crawler = $this->client->request('GET', '/account/profile');
 
@@ -41,7 +41,7 @@ final class SecurityHeadersTest extends ApiTestCase
 
     public function testThePublicPagesCarryTheHeaders(): void
     {
-        self::needsTheScreens();
+        $this->needsTheScreens();
         $this->client->request('GET', '/login');
         $headers = $this->client->getResponse()->headers;
         self::assertStringStartsWith("default-src 'self'; script-src 'self' 'nonce-", (string) $headers->get('Content-Security-Policy'));
@@ -81,7 +81,7 @@ final class SecurityHeadersTest extends ApiTestCase
     /**
      * The screens, the sign-in page among them, come with Ui; the core runs without it (ADR 0038).
      */
-    private static function needsTheScreens(): void
+    private function needsTheScreens(): void
     {
         if (!class_exists(UiBundle::class)) {
             self::markTestSkipped('Ui is not installed, so there are no screens.');

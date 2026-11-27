@@ -34,7 +34,8 @@ interface DocumentVariableSource
 
     /**
      * The values for a document with these links: scalars and nested arrays only,
-     * keyed by the names of the definitions.
+     * keyed by the names of the definitions; a name that is a path, such as
+     * "custom.acme_fleet_industry", nests its value by the path (since 1.9).
      *
      * @param list<RecordLink> $links
      *

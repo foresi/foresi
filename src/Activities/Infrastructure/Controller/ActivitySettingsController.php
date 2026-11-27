@@ -15,11 +15,17 @@ use Foresi\Activities\Application\ActivityTypeWrites;
 use Foresi\Activities\Application\Api\ArchiveActivityTypeInput;
 use Foresi\Activities\Application\Api\CreateActivityTypeInput;
 use Foresi\Activities\Application\Api\UpdateActivityTypeInput;
+use Foresi\Activities\Application\View\ActivityTypeLists;
 use Foresi\Activities\Domain\ActivityTiming;
 use Foresi\Activities\Domain\ActivityType;
+use Foresi\Activities\Infrastructure\Column\ActivityTypeColumns;
 use Foresi\Activities\Infrastructure\Screen\ActivityScreen;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\Operation\Omitted;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,7 +40,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Settings → Activities: the activity types, each with its timing, as
  * Pipedrive and Odoo let a team keep its own activity types. A type is a small
  * record: a new one and a change open in a dialog over the list, and archiving
- * asks first. For the owners and members only.
+ * asks first. The types are a list with views (docs/design/list-pages.md, rule 8).
+ * For the owners and members only.
  */
 final class ActivitySettingsController extends AbstractController
 {
@@ -46,21 +53,27 @@ final class ActivitySettingsController extends AbstractController
         private readonly ActivityTypeWrites $types,
         private readonly ActivityScreen $screen,
         private readonly TranslatorInterface $translator,
+        private readonly ActivityTypeLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/activities', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
+        $page = $this->listTable->of($slot, $list, ActivityTypeColumns::LIST, self::ROUTE, 'activity-types', $this->store->types(true), $this->row(...), $this->valueOf(...), $this->screen->typeName(...), $this->trans('activities.settings.search'));
 
         return $this->render('@Activities/settings/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => $this->trans('activities.settings.column.name'), 'truncate' => true],
-                ['key' => 'timing', 'label' => $this->trans('activities.settings.column.timing')],
-                ['key' => 'key', 'label' => $this->trans('activities.settings.column.key'), 'phone' => false],
-            ],
-            'rows' => array_map($this->row(...), $this->store->types(true)),
+            'types' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ]);
     }
 
@@ -137,15 +150,10 @@ final class ActivitySettingsController extends AbstractController
     /**
      * @return array<string, mixed> a row of Ui:DataTable
      */
-    private function row(ActivityType $type): array
+    private function row(ActivityType $type, WorkingState $working): array
     {
         $edit = $this->generateUrl('app_activity_type_edit', ['id' => $type->id()]);
         $name = $this->screen->typeName($type);
-        $timing = $this->trans('activities.timing.'.$type->timing()->value);
-        $badges = [['label' => null === $type->defaultDurationMinutes() ? $timing : $timing.' · '.$this->trans('activities.duration', ['minutes' => $type->defaultDurationMinutes()]), 'tone' => 'gray']];
-        if ($type->isArchived()) {
-            $badges[] = ['label' => $this->trans('activities.settings.archived'), 'tone' => 'gray'];
-        }
 
         return [
             'id' => $type->id(),
@@ -153,13 +161,26 @@ final class ActivitySettingsController extends AbstractController
             // A type is a small record: it opens in a modal over the list (docs/design/overlays.md).
             'opens' => Opens::DIALOG,
             'label' => $name,
-            'cells' => ['name' => $name, 'timing' => ['badges' => $badges], 'key' => $type->key()],
+            'cells' => $working->display->cells($type),
             'actions' => $type->isArchived() ? [] : [
                 ['label' => $this->trans('activities.settings.action.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true],
                 ['label' => $this->trans('activities.settings.action.archive'), 'href' => $this->generateUrl('app_activity_type_archive', ['id' => $type->id()]), 'method' => 'POST',
                     'confirm' => ['title' => $this->trans('activities.settings.confirm.archive', ['name' => $name]), 'text' => $this->trans('activities.settings.confirm.archive_text'), 'accept' => $this->trans('activities.settings.action.archive'), 'cancel' => $this->trans('activities.keep'), 'tone' => 'danger']],
             ],
         ];
+    }
+
+    /**
+     * The value of a field of the list on a type, as RowConditions compares it.
+     */
+    private function valueOf(ActivityType $type, string $field): mixed
+    {
+        return match ($field) {
+            ActivityTypeLists::NAME => $this->screen->typeName($type),
+            ActivityTypeLists::TIMING => $type->timing()->value,
+            ActivityTypeLists::ARCHIVED => $type->isArchived(),
+            default => null,
+        };
     }
 
     /**

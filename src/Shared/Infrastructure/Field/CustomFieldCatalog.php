@@ -10,6 +10,7 @@ namespace Foresi\Shared\Infrastructure\Field;
 
 use Foresi\Shared\Application\Field\FieldRecords;
 use Foresi\Shared\Application\Field\ReferenceNames;
+use Foresi\Shared\Application\Field\VisibleFields;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListFieldCatalog;
@@ -25,7 +26,7 @@ use Foresi\Shared\Contract\Field\Fields;
  */
 final readonly class CustomFieldCatalog implements ListFieldCatalog
 {
-    public function __construct(private FieldRecords $records, private Fields $fields)
+    public function __construct(private FieldRecords $records, private Fields $fields, private VisibleFields $visible)
     {
     }
 
@@ -37,7 +38,7 @@ final readonly class CustomFieldCatalog implements ListFieldCatalog
         }
         [$record, $alias] = $list;
         $fields = [];
-        foreach ($this->fields->definitions($record->record()) as $definition) {
+        foreach ($this->visible->definitions($record->record()) as $definition) {
             if (!$definition->filterable) {
                 continue;
             }

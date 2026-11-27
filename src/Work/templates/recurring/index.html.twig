@@ -1,0 +1,41 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The recurring tasks of the projects the person sees, as a list with views, search, filters, columns
+    and widths (docs/design/list-pages.md, rule 8), as the recurring invoices are. A new one opens in a
+    dialog over the list; a row opens its page.
+    Variables: recurring, the table ListTable gives.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.recurring.title'|trans}] %}
+{% set t = recurring %}
+
+{% block title %}{{ 'work.recurring.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_work_recurring_task_new')" id="recurring-task-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.recurring.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Work/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-2" data-recurring-tasks>
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'work.recurring.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_work_recurring_tasks')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_work_recurring_tasks')" :keep="t.keep"
+            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+        </twig:Ui:FilterBar>
+        <twig:Ui:DataTable :caption="'work.recurring.title'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam">
+            <twig:block name="empty">
+                {% if t.filtered or t.view != '' %}
+                    <twig:Ui:EmptyState icon="search" :title="'work.recurring.empty.filtered'|trans">
+                        <twig:Ui:Button :href="t.resetHref">{{ 'work.labels.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="refresh-cw" :title="'work.recurring.empty.title'|trans" :text="'work.recurring.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_work_recurring_task_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'work.recurring.new'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
+    </div>
+{% endblock %}

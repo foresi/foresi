@@ -9,10 +9,10 @@
         "source": "https://github.com/foresi/foresi"
     },
     "require": {
+        "doctrine/collections": "^3.1",
         "doctrine/dbal": "^4.5",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
-        "doctrine/persistence": "^4.2",
         "foresi/activities": "self.version",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
@@ -51,7 +51,9 @@
                 "contacts"
             ],
             "scopes": [
-                "inbox"
+                "inbox",
+                "inbox_suggestions",
+                "inbox_decisions"
             ]
         }
     }

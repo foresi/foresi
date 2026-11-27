@@ -318,6 +318,76 @@ final class DataTableTest extends KernelTestCase
         return (string) $this->renderTwigComponent('Ui:DataTable', $props + ['columns' => self::COLUMNS, 'rows' => $this->rows(), 'caption' => 'Contacts'], null, $blocks);
     }
 
+    public function testAColumnOfTogglesIsNarrowAndNamedToAScreenReaderAlone(): void
+    {
+        $star = ['toggle' => ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star', 'pressed' => true]];
+        $crawler = new Crawler($this->render([
+            'columns' => [['key' => 'name', 'label' => 'Name'], ['key' => 'star', 'label' => 'Starred']],
+            'rows' => [['id' => 'a1', 'cells' => ['name' => 'Write the brief', 'star' => $star]]],
+        ]));
+
+        $header = $crawler->filter('thead th')->eq(1);
+        self::assertSame('Starred', trim($header->filter('.sr-only')->text()));
+        self::assertStringContainsString('w-10', (string) $header->attr('class'));
+        self::assertSame('true', $crawler->filter('tbody td')->eq(1)->filter('button')->attr('aria-pressed'));
+        // A column of text keeps its visible heading.
+        self::assertCount(0, $crawler->filter('thead th')->eq(0)->filter('.sr-only'));
+    }
+
+    public function testEachColumnOfTogglesIsNarrowAndATableWithoutRowsHasNone(): void
+    {
+        $star = ['toggle' => ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star']];
+        $columns = [['key' => 'name', 'label' => 'Name'], ['key' => 'star', 'label' => 'Starred'], ['key' => 'pin', 'label' => 'Pinned']];
+        $table = $this->mountTwigComponent('Ui:DataTable', ['columns' => $columns, 'rows' => [['id' => 'a1', 'cells' => ['name' => 'Write the brief', 'star' => $star, 'pin' => $star]]]]);
+        self::assertInstanceOf(DataTable::class, $table);
+        self::assertSame(['star', 'pin'], $table->toggleColumns());
+
+        $empty = $this->mountTwigComponent('Ui:DataTable', ['columns' => $columns, 'rows' => []]);
+        self::assertInstanceOf(DataTable::class, $empty);
+        self::assertSame([], $empty->toggleColumns());
+    }
+
+    public function testAToggleIsNotPressedUnlessItSaysSoAndSendsItsTextFields(): void
+    {
+        $toggle = ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star', 'fields' => ['before' => 'b2', 0 => 'x', 'count' => 5]];
+        $form = new Crawler($this->render([
+            'columns' => [['key' => 'star', 'label' => 'Starred']],
+            'rows' => [['id' => 'a1', 'cells' => ['star' => ['toggle' => $toggle]]]],
+        ]))->filter('form[data-cell-toggle]');
+
+        self::assertSame('false', $form->filter('button')->attr('aria-pressed'));
+        self::assertSame(['_token', 'before'], $form->filter('input[type="hidden"]')->each(static fn (Crawler $input): string => (string) $input->attr('name')));
+        self::assertSame('b2', $form->filter('input[name="before"]')->attr('value'));
+    }
+
+    /**
+     * @return iterable<string, array{mixed, string}>
+     */
+    public static function invalidToggles(): iterable
+    {
+        $toggle = ['action' => '/tasks/a1/star', 'token' => 'tok', 'label' => 'Star'];
+
+        yield 'not an array' => [new \ArrayObject($toggle), 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no action' => [['token' => 'tok', 'label' => 'Star'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no token' => [['action' => '/tasks/a1/star', 'label' => 'Star'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'no label' => [['action' => '/tasks/a1/star', 'token' => 'tok'], 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'an action not a string' => [['action' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'a token not a string' => [['token' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'a label not a string' => [['label' => 5] + $toggle, 'A toggle of a cell needs an action, a token and a label.'];
+        yield 'an unsafe action' => [['action' => 'javascript:alert(1)'] + $toggle, 'Unsupported URL in href.'];
+        yield 'an icon not a string' => [['icon' => 5] + $toggle, 'A toggle icon must be a string.'];
+        yield 'an icon out of the set' => [['icon' => 'not-an-icon'] + $toggle, 'Icon "not-an-icon" is not in the locked icon set.'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidToggles')]
+    public function testRefusesAToggleWithoutWhatItNeeds(mixed $toggle, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageIsOrContains($message);
+
+        $this->mountTwigComponent('Ui:DataTable', ['columns' => [['key' => 'star', 'label' => 'Starred']], 'rows' => [['id' => 'a1', 'cells' => ['star' => ['toggle' => $toggle]]]]]);
+    }
+
     public function testWithoutWidthsTheTableHasNoColgroup(): void
     {
         self::assertCount(0, new Crawler($this->render())->filter('colgroup'));
@@ -427,7 +497,8 @@ final class DataTableTest extends KernelTestCase
         self::assertContains('sm:table-fixed', explode(' ', (string) $table->attr('class')));
         self::assertSame('--table-w: 648px', $table->attr('style'), 'the columns and the room of the actions');
         self::assertSame('300', $html->filter('th [role="separator"]')->eq(1)->attr('aria-valuenow'));
-        self::assertCount(0, $html->filter('[data-column-filler]'), 'the actions column takes the room left');
+        self::assertSame('sm:w-12', $html->filter('colgroup col')->last()->attr('class'), 'the actions column keeps the room of its button, the last column takes what is left');
+        self::assertSame('balance', $html->filter('colgroup col[data-stretch]')->attr('data-column'));
     }
 
     public function testAFixedTableKeepsRoomForTheCheckboxesToo(): void
@@ -453,17 +524,49 @@ final class DataTableTest extends KernelTestCase
         self::assertStringNotContainsString('table-fixed', (string) new Crawler($this->render(['columns' => $columns]))->filter('table')->attr('class'));
     }
 
-    public function testWithoutActionsAnEmptyLastColumnTakesTheRoomLeft(): void
+    public function testTheLastColumnTakesTheRoomLeftAndNeverLessThanItsWidth(): void
     {
         $columns = self::COLUMNS;
         $columns[0]['width'] = 200;
         $columns[1]['width'] = 300;
+        $columns[1]['truncate'] = true;
         $columns[2]['width'] = 100;
+        $columns[2]['truncate'] = true;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
+        $cols = $html->filter('colgroup col');
+
+        self::assertCount(3, $cols, 'no empty column after the last one');
+        self::assertCount(3, $html->filter('tbody tr')->first()->filter('td'));
+        self::assertContains('sm:w-(--col-w)', explode(' ', (string) $cols->eq(1)->attr('class')));
+        self::assertNull($cols->eq(1)->attr('data-stretch'));
+        self::assertSame('', $cols->eq(2)->attr('data-stretch'));
+        self::assertSame('--col-w: 100px', $cols->eq(2)->attr('style'), 'its width counts in the table\'s, so the table is never narrower');
+        self::assertNotContains('sm:w-(--col-w)', explode(' ', (string) $cols->eq(2)->attr('class')), 'a width on its col would leave the room after it empty');
+        self::assertSame('--table-w: 600px', $html->filter('table')->attr('style'));
+        $header = explode(' ', (string) $html->filter('thead th')->eq(2)->attr('class'));
+        self::assertNotContains('sm:w-1/2', $header, 'a share on its header would size it in a fixed table');
+        self::assertContains('sm:max-w-0', $header);
+        self::assertContains('sm:w-1/2', explode(' ', (string) $html->filter('thead th')->eq(1)->attr('class')));
+        self::assertContains('sm:w-1/2', explode(' ', (string) $html->filter('tbody td')->eq(2)->attr('class')), 'its cells keep their share while the columns size to their text');
+    }
+
+    public function testAWideLastColumnLeavesTheRoomToTheLastColumnShownAtEveryWidth(): void
+    {
+        $columns = self::COLUMNS;
+        $columns[2]['wide'] = true;
         $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
 
-        self::assertCount(1, $html->filter('thead [data-column-filler][aria-hidden="true"]'));
-        self::assertCount(4, $html->filter('colgroup col'));
-        self::assertCount(4, $html->filter('tbody tr')->first()->filter('td'));
+        self::assertSame('email', $html->filter('colgroup col[data-stretch]')->attr('data-column'), 'a wide column hides below xl');
+
+        $columns[1]['wide'] = true;
+        $columns[0]['wide'] = true;
+        $html = new Crawler($this->render(['columns' => $columns, 'resizable' => true]));
+        self::assertSame('balance', $html->filter('colgroup col[data-stretch]')->attr('data-column'));
+        $columns[2]['width'] = 100;
+        $fixedCols = new Crawler($this->render(['columns' => $columns]))->filter('colgroup col');
+        self::assertCount(3, $fixedCols);
+        self::assertCount(0, $fixedCols->filter('[data-stretch]'), 'a table not resizable keeps the width a view gives its last column');
+        self::assertContains('sm:w-(--col-w)', explode(' ', (string) $fixedCols->last()->attr('class')));
     }
 
     public function testListRowsAre56PxLineRows44AndTheHeader44OnTheTint(): void
@@ -884,6 +987,9 @@ final class DataTableTest extends KernelTestCase
         $cell = explode(' ', (string) $status->closest('td')?->attr('class'));
         self::assertContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', $cell);
         self::assertContains('[&_[data-person-picker-trigger]]:-mx-[7px]', $cell);
+        // What holds the trigger is 14 px narrower than the trigger, so a cap at 100 % would cut its text however wide the column is.
+        self::assertContains('[&_[data-inline-edit-trigger]]:max-w-[calc(100%+14px)]', $cell);
+        self::assertContains('[&_[data-person-picker-trigger]]:max-w-[calc(100%+14px)]', $cell);
         self::assertNotContains('[&_[data-inline-edit-trigger]]:-mx-[7px]', explode(' ', (string) $crawler->filter('tbody tr')->eq(1)->filter('td')->last()->attr('class')), 'a cell without an edit keeps its place');
     }
 

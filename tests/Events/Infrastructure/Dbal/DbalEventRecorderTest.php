@@ -19,7 +19,7 @@ use Foresi\Events\Infrastructure\Catalogue\EventCatalogue;
 use Foresi\Events\Infrastructure\Dbal\DbalEventRecorder;
 use Foresi\Events\Infrastructure\Payload\EventPayloads;
 use Foresi\Shared\Domain\Module\ModuleId;
-use Foresi\Shared\Infrastructure\Doctrine\DoctrineTransactionalWork;
+use Foresi\Shared\Infrastructure\Doctrine\DoctrineUnitOfWork;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Event\InvoiceIssued;
 use Foresi\Tests\Events\Fixtures\Valid\Contract\Kind;
 use Psr\Log\NullLogger;
@@ -39,7 +39,7 @@ final class DbalEventRecorderTest extends KernelTestCase
     private Connection $db;
     private EventDispatcher $listeners;
     private DbalEventRecorder $recorder;
-    private DoctrineTransactionalWork $work;
+    private DoctrineUnitOfWork $work;
     private InMemoryTransport $relay;
     private AuditCorrelation $correlation;
 
@@ -72,7 +72,7 @@ final class DbalEventRecorderTest extends KernelTestCase
             $container->get(MessageBusInterface::class),
             new NullLogger(),
         );
-        $this->work = new DoctrineTransactionalWork($em, $container->get(ManagerRegistry::class), $this->recorder);
+        $this->work = new DoctrineUnitOfWork($em, $container->get(ManagerRegistry::class), $this->recorder);
     }
 
     public function testRecordOutsideATransactionThrows(): void
@@ -174,7 +174,7 @@ final class DbalEventRecorderTest extends KernelTestCase
             $bus,
             new NullLogger(),
         );
-        $work = new DoctrineTransactionalWork(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(ManagerRegistry::class), $recorder);
+        $work = new DoctrineUnitOfWork(self::getContainer()->get(EntityManagerInterface::class), self::getContainer()->get(ManagerRegistry::class), $recorder);
 
         $work->run(fn () => $recorder->record($this->event('a')));
 

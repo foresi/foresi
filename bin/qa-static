@@ -16,7 +16,7 @@ cd "$(dirname "$0")/.." || exit 2
 
 checks=("$@")
 if [ ${#checks[@]} -eq 0 ]; then
-	checks=(cs:check rector lint phpstan modules:check events:check deptrac)
+	checks=(cs:check rector lint phpstan modules:check events:check docs:check deptrac)
 fi
 
 github=${GITHUB_ACTIONS:-}

@@ -371,7 +371,7 @@ final class TimeReportController extends AbstractController
             TimeReportLists::PEOPLE => ['url' => $this->generateUrl('app_time_report_people'), 'name' => static fn (string $id): ?string => $options['people'][$id] ?? null],
         ];
         // A client is picked from the address book; without it a project has no client to pick.
-        if (null !== $this->clients) {
+        if ($this->clients instanceof \Foresi\Work\Contract\ProjectClients) {
             $references[TimeReportLists::CONTACTS] = ['url' => $this->clients->pickerUrl(), 'name' => fn (string $id): ?string => $this->parties->find($id)?->displayName()];
         }
 

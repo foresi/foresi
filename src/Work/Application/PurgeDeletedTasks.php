@@ -15,7 +15,7 @@ use Foresi\Work\Domain\TaskComment;
 /**
  * Removes for good the tasks that have been in the trash for more than 30
  * days, each with its subtasks, comments and the people they mention,
- * watchers, labels, shares, notifications and files. The audit log keeps what they were: it
+ * watchers, stars, labels, shares, notifications and files. The audit log keeps what they were: it
  * is the record of the organisation, as for invoices (ADR 0013). What other
  * modules keep of them lets go of them first (TaskPurge), such as the time
  * logged on them, which stays on their project.
@@ -36,6 +36,7 @@ final readonly class PurgeDeletedTasks
         private WorkShares $shares,
         private Notifications $notifications,
         private WorkUnit $unit,
+        private TaskStars $stars,
         /** @var iterable<TaskPurge> what other modules keep of a task, in config/services.php */
         private iterable $purges = [],
     ) {
@@ -86,6 +87,9 @@ final readonly class PurgeDeletedTasks
             foreach ($tasks as $one) {
                 foreach ([...$this->tasks->watchers($one), ...$this->tasks->labels($one)] as $item) {
                     $this->tasks->remove($item);
+                }
+                foreach ($this->stars->onTask($one) as $star) {
+                    $this->stars->remove($star);
                 }
                 foreach ($this->shares->on($one) as $share) {
                     $this->shares->remove($share);

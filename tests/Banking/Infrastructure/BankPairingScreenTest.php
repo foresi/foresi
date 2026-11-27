@@ -20,7 +20,7 @@ final class BankPairingScreenTest extends BankScreenTestCase
 {
     public function testPairingIsOfferedOnlyWhenAModulePairsMovements(): void
     {
-        $pairs = \in_array('Foresi\Invoicing\InvoicingBundle', self::getContainer()->getParameter('kernel.bundles'), true);
+        $pairs = \in_array(\Foresi\Invoicing\InvoicingBundle::class, self::getContainer()->getParameter('kernel.bundles'), true);
         $this->signedIn();
         $movement = $this->movement('1210.00', '20260001', trust: MovementTrust::Verified);
 

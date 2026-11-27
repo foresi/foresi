@@ -39,8 +39,8 @@ final class LineProjects implements ResetInterface
         #[AutowireIterator(LineProjectSource::TAG)] iterable $sources = [],
         #[AutowireIterator(LineProjectTime::TAG)] iterable $times = [],
     ) {
-        $this->source = self::first($sources);
-        $this->time = self::first($times);
+        $this->source = $this->first($sources);
+        $this->time = $this->first($times);
     }
 
     /**
@@ -50,7 +50,7 @@ final class LineProjects implements ResetInterface
      *
      * @return T|null
      */
-    private static function first(iterable $all): ?object
+    private function first(iterable $all): ?object
     {
         foreach ($all as $one) {
             return $one;

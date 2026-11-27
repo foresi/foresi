@@ -94,7 +94,7 @@ final readonly class BankText
     public function time(\DateTimeImmutable $at): string
     {
         $country = $this->countries->for($this->countryCode());
-        if (null !== $country) {
+        if ($country instanceof \Foresi\Banking\Contract\BankingCountry) {
             $at = $at->setTimezone($country->timezone());
         }
 

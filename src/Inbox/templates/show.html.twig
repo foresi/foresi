@@ -7,21 +7,30 @@
     dialogs.
     Everything of the mail (sender, subject, text, file names) is the sender's own words: it is printed
     escaped, never as markup, never as a link, and no remote content is loaded.
+    The suggestions an agent proposed come first, one card each (SuggestionCards): the open ones in one
+    form, whose Accept buttons and the header's Accept selected post the ticked steps and cards; the
+    decided ones after them, compact. Their rationale, quote and values are an agent's or the sender's
+    words, printed escaped as the mail is. Done asks what to do with open ones in a dialog.
     Variables: id, state, title, from, originalFrom, verdict, received, contact, matched, matchBasis,
-    warnings, duplicateOf, text, mailRemoved, attachments, thread, outputs, actions, token.
+    warnings, duplicateOf, text, mailRemoved, attachments, thread, outputs, actions, suggestions (open,
+    decided), token.
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
 {% set crumbs = [{label: 'nav.item.inbox'|trans, href: path('app_inbox')}, {label: title}] %}
 {% set csrf = csrf_token(token) %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set suggestion_form = constant('Foresi\\Inbox\\Infrastructure\\Controller\\SuggestionController::FORM') %}
+{% set open_suggestions = suggestions.open|filter(card => card.decidable) %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block actions %}
     <twig:Ui:MoreActions menuId="inbox-item-actions">
         <twig:block name="primary">
-            {% if state == 'new' %}
+            {% if state == 'new' and suggestions.open is not empty %}
+                <twig:Ui:Button :size="record_action_size" icon="check" variant="primary" :href="path('app_inbox_item_done_ask', {id: id})" data-dialog aria-haspopup="dialog" data-dialog-then="follow" data-inbox-done-ask>{{ 'inbox.action.done'|trans }}</twig:Ui:Button>
+            {% elseif state == 'new' %}
                 <form method="post" action="{{ path('app_inbox_item_done', {id: id}) }}" data-inbox-done>
                     <input type="hidden" name="_token" value="{{ csrf }}">
                     <twig:Ui:Button :size="record_action_size" type="submit" icon="check" variant="primary">{{ 'inbox.action.done'|trans }}</twig:Ui:Button>
@@ -34,6 +43,9 @@
             {% endif %}
         </twig:block>
         <twig:block name="buttons">
+            {% if open_suggestions|length >= 2 %}
+                <twig:Ui:Button :size="record_action_size" type="submit" icon="square-check-big" :form="suggestion_form" data-inbox-accept-selected>{{ 'inbox.suggestion.accept_selected'|trans }}</twig:Ui:Button>
+            {% endif %}
             {% for action in actions %}
                 <twig:Ui:Button :size="record_action_size" icon="plus" :href="action.href" data-dialog aria-haspopup="dialog" data-inbox-action="{{ action.operation }}">{{ action.label }}</twig:Ui:Button>
             {% endfor %}
@@ -46,6 +58,9 @@
             {% endif %}
         </twig:block>
         <twig:block name="phone">
+            {% if open_suggestions|length >= 2 %}
+                <twig:Ui:MenuItem type="submit" icon="square-check-big" :form="suggestion_form">{{ 'inbox.suggestion.accept_selected'|trans }}</twig:Ui:MenuItem>
+            {% endif %}
             {% for action in actions %}
                 <twig:Ui:MenuItem icon="plus" :href="action.href" data-dialog aria-haspopup="dialog" data-inbox-action-menu="{{ action.operation }}">{{ action.label }}</twig:Ui:MenuItem>
             {% endfor %}
@@ -97,6 +112,10 @@
         {% endfor %}
         {% if mailRemoved %}
             <twig:Ui:Alert tone="info" data-inbox-mail-removed>{{ 'inbox.item.mail_removed'|trans }}</twig:Ui:Alert>
+        {% endif %}
+
+        {% if suggestions.open is not empty or suggestions.decided is not empty %}
+            {{ include('@Inbox/_suggestions.html.twig') }}
         {% endif %}
 
         <twig:Ui:Card :title="'inbox.item.details'|trans" icon="mail">

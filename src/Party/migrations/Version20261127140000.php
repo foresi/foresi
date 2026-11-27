@@ -40,7 +40,7 @@ final class Version20261127140000 extends AbstractMigration
 
     public function postUp(Schema $schema): void
     {
-        $renames = self::renames();
+        $renames = $this->renames();
         foreach ($renames as $old => $new) {
             $this->rename($schema, $old, $new);
         }
@@ -66,7 +66,7 @@ final class Version20261127140000 extends AbstractMigration
 
     public function postDown(Schema $schema): void
     {
-        $renames = array_flip(self::renames());
+        $renames = array_flip($this->renames());
         foreach ($renames as $new => $old) {
             $this->rename($schema, $new, $old);
         }
@@ -87,7 +87,7 @@ final class Version20261127140000 extends AbstractMigration
     /**
      * @return array<string, string> the new name by the old one
      */
-    private static function renames(): array
+    private function renames(): array
     {
         $renames = [];
         foreach (self::EVENTS as $event) {

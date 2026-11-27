@@ -12,6 +12,10 @@ calendar:
     rename_submit: Uložit
     cancel: Zrušit
     never: Nikdy
+    views: Pohledy na odběry
+    search: Hledat podle názvu
+    tab:
+      all: Vše
     column:
       name: Název
       created: Vytvořeno
@@ -36,6 +40,8 @@ calendar:
     empty:
       title: Zatím žádné adresy odběru
       text: Vytvořte si adresu a přihlaste se k jejímu odběru v kalendářové aplikaci.
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
     created:
       title: Vaše adresa odběru
       once: Tuto adresu uvidíte jen teď. Zkopírujte si ji nebo se rovnou přihlaste k odběru; kdo ji má, vidí váš kalendář.

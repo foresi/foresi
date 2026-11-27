@@ -38,10 +38,11 @@ The address book (Party) offers two sources when Documents is installed:
 | `firm.logo` | The firm's logo, the one invoices print, as an image fitted into 52 × 16 mm; nothing when the firm has none. Place it with `{{ firm.logo }}`, or `{% if firm.logo %}…{% endif %}` around what belongs with it. A rule such as `.brand img { width: 20mm; height: 8mm }` sets another size; give both, keeping the logo's proportions. The frozen values keep the name of the stored image, not a path. |
 | `client.name`, `client.registration_number`, `client.vat_id`, `client.address_lines` | The contact the document links to (the first `contact` link): its billing address, or else its first address. |
 | `client.persons` | The contact persons of a company in the order they were linked, as rows with `name`, `position`, `email` and `phone`. |
+| `client.custom.<key>` | A custom field of the contact that a module adds and allows in templates, such as `client.custom.acme_fleet_industry` ([modules.md](modules.md#add-fields-to-a-record)): the text the contact's detail shows, in the language of the person who generates the document, and empty without a value. |
 
 A value that is not known is empty, such as the VAT ID of a firm that is not a VAT payer. The client variables need a link to a contact that is in the address book: without one, or once the contact is archived, a template that uses them is refused when it is generated. The address book keeps no e-mail or phone of the firm, so there are no such variables.
 
-Sales offers `deal.*` when it is installed: the deal's title, owner, stage, status, lines and totals ([sales.md](sales.md#documents-and-activities)).
+Sales offers `deal.*` when it is installed: the deal's title, owner, stage, status, lines and totals ([sales.md](sales.md#documents-and-activities)), and the deal's custom fields as `deal.custom.<key>`, the same way as the client's.
 
 A contact shows its documents on the **Documents** tab, with **New document** that opens the dialog with the contact linked.
 

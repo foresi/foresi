@@ -10,7 +10,9 @@ namespace Foresi\Tests\Inbox\Infrastructure;
 
 use Foresi\Identity\Domain\User;
 use Foresi\Inbox\Application\InboxPurpose;
+use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemState;
+use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
@@ -129,6 +131,31 @@ final class InboxScreensTest extends InboxScreenTestCase
         $crawler = $this->client->request('GET', '/inbox/'.$id);
         $this->client->submit($crawler->filter('form[data-inbox-reopen]')->form());
         self::assertResponseRedirects('/inbox/'.$id);
+    }
+
+    public function testDoneWithOpenSuggestionsWarnsAndThePersonsChoiceIsPassedOn(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address));
+        $item = $this->em->find(InboxItem::class, $id);
+        self::assertInstanceOf(InboxItem::class, $item);
+        $suggestion = new Suggestion(Id::generate(), $item, [['operation' => 'inbox.actions.fixture_note', 'input' => ['text' => 'A note']]], 'The client asks for it.', 'Hello', 0, $this->owner->id(), Id::generate(), 'Mail agent', new \DateTimeImmutable('2026-11-25 10:00:00'));
+        $this->em->persist($suggestion);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/inbox/'.$id);
+        // The page asks in a dialog (InboxSuggestionScreensTest); a Done posted without a choice, from a page
+        // loaded before the suggestion came, is sent back with a warning.
+        self::assertCount(1, $crawler->filter('[data-inbox-done-ask]'));
+        $token = (string) $crawler->filter('form[data-inbox-match-again] input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/inbox/'.$id.'/done', ['_token' => $token]);
+        self::assertResponseRedirects('/inbox/'.$id, null, 'Not a server error: the person is asked.');
+        $crawler = $this->client->followRedirect();
+        self::assertStringContainsString('Suggestions on this mail wait for your decision.', $crawler->text());
+        self::assertSame('new', $this->em->getConnection()->fetchOne('SELECT state FROM inbox_item WHERE id = ?', [$id]));
+
+        $this->client->request('POST', '/inbox/'.$id.'/done', ['_token' => $token, 'suggestions' => 'reject']);
+        self::assertResponseRedirects('/inbox');
+        self::assertSame(['done', 'rejected'], [$this->em->getConnection()->fetchOne('SELECT state FROM inbox_item WHERE id = ?', [$id]), $this->em->getConnection()->fetchOne('SELECT state FROM inbox_suggestion WHERE id = ?', [$suggestion->id()])]);
     }
 
     public function testTheCreateContactDialogStartsFromTheSender(): void

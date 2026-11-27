@@ -53,7 +53,41 @@ final readonly class CustomFieldForm
     {
         $values = [];
         foreach ($this->visible->definitions($record) as $definition) {
-            $value = null === $id ? null : $this->fields->value($record, $id, $definition->key);
+            $values[$definition->key] = null === $id ? null : $this->fields->value($record, $id, $definition->key);
+        }
+
+        return $this->inputs($record, $values);
+    }
+
+    /**
+     * What the inputs start with for values kept outside a record, as the API writes
+     * them, such as the fields a recurring task gives each of its tasks.
+     *
+     * @param array<string, mixed> $stored by field key, a date as YYYY-MM-DD and a date-time in ISO 8601
+     *
+     * @return array<string, string|list<string>> by field key, a reference's name under "<key>__text"
+     */
+    public function valuesFrom(string $record, array $stored): array
+    {
+        $values = [];
+        foreach ($this->visible->definitions($record) as $definition) {
+            $value = $stored[$definition->key] ?? null;
+            $values[$definition->key] = FieldKind::DateTime === $definition->kind && \is_string($value) && '' !== $value ? new \DateTimeImmutable($value)->setTimezone(new \DateTimeZone(date_default_timezone_get())) : $value;
+        }
+
+        return $this->inputs($record, $values);
+    }
+
+    /**
+     * @param array<string, mixed> $stored by field key, as Fields::value() gives them
+     *
+     * @return array<string, string|list<string>>
+     */
+    private function inputs(string $record, array $stored): array
+    {
+        $values = [];
+        foreach ($this->visible->definitions($record) as $definition) {
+            $value = $stored[$definition->key] ?? null;
             $values[$definition->key] = $this->text($definition, $value);
             if ($this->references($definition)) {
                 $values[$definition->key.self::TEXT] = \is_string($value) && '' !== $value ? ($this->names->of($definition->kind)?->names([$value])[$value] ?? '') : '';

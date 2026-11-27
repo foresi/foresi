@@ -145,7 +145,7 @@ final class ModuleBundleTest extends KernelTestCase
 
         self::assertSame($mappings, $this->mappings($builder));
         // The translations of an integration and a module's own transport are tested on their own.
-        $framework = array_values(array_filter($builder->getExtensionConfig('framework'), static fn (array $config): bool => !isset($config['translator']) && !(\is_array($config['messenger'] ?? null) && isset($config['messenger']['transports']))));
+        $framework = array_values(array_filter($builder->getExtensionConfig('framework'), static fn (array $config): bool => !isset($config['translator']) && (!\is_array($config['messenger'] ?? null) || !isset($config['messenger']['transports']))));
         self::assertSame([] === $routing ? [] : [['messenger' => ['routing' => $routing]]], $framework);
         $expected = [];
         foreach ($mappings as $name) {

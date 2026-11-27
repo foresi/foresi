@@ -101,7 +101,7 @@ final readonly class NavigationRegistry
     public function current(?string $currentRoute): ?NavigationItem
     {
         $items = $this->items();
-        $covered = self::covered($items, $currentRoute);
+        $covered = $this->covered($items, $currentRoute);
 
         return array_find($items, fn (NavigationItem $item): bool => $this->isCurrent($item, $currentRoute, $covered));
     }
@@ -130,7 +130,7 @@ final readonly class NavigationRegistry
     {
         $items = $this->items();
 
-        $covered = self::covered($items, $currentRoute);
+        $covered = $this->covered($items, $currentRoute);
         $entries = [];
         foreach ($items as $order => $item) {
             $entries[] = [$item, $order, new NavigationEntry(
@@ -185,7 +185,7 @@ final readonly class NavigationRegistry
      *
      * @param list<NavigationItem> $items
      */
-    private static function covered(array $items, ?string $currentRoute): int
+    private function covered(array $items, ?string $currentRoute): int
     {
         if (null === $currentRoute) {
             return 0;

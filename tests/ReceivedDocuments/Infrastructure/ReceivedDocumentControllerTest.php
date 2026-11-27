@@ -655,7 +655,7 @@ final class ReceivedDocumentControllerTest extends WebTestCase
     public function testEveryRefusalAndWarningIsTranslated(): void
     {
         foreach (['cs', 'en'] as $locale) {
-            /** @var array{purchasing: array{refused: array<string, string>, warning: array<string, string>}} $messages */
+            /** @var array{received_documents: array{refused: array<string, string>, warning: array<string, string>}} $messages */
             $messages = Yaml::parseFile(\dirname(__DIR__, 3).'/src/ReceivedDocuments/translations/messages+intl-icu.'.$locale.'.yaml');
             $warnings = array_values(array_filter(new \ReflectionClass(ReceivedDocumentWarning::class)->getConstants(), \is_string(...)));
             self::assertEqualsCanonicalizing(ReceivedDocumentRefused::REASONS, array_keys($messages['received_documents']['refused']), $locale);

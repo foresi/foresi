@@ -57,7 +57,7 @@ final class InvoiceLists implements ListDefinitionSource
         'correction_document' => 'invoicing.corrections',
     ];
 
-    /** @var array<string, ListDefinition> */
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()), then the list's key */
     private array $lists = [];
 
     public function __construct(private readonly ListFields $fields)
@@ -75,7 +75,7 @@ final class InvoiceLists implements ListDefinitionSource
     {
         $key = self::KEYS[$kind->value];
 
-        return $this->lists[$key] ??= new ListDefinition($key, $this->fields->of($key, $this->ownFields($kind)), $this->defaults($kind), [self::monthField($kind), self::CUSTOMER]);
+        return $this->lists[$this->fields->audience().'|'.$key] ??= new ListDefinition($key, $this->fields->of($key, $this->ownFields($kind)), $this->defaults($kind), [self::monthField($kind), self::CUSTOMER]);
     }
 
     /**

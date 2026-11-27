@@ -197,6 +197,30 @@ final readonly class ActionForm
     }
 
     /**
+     * The field of the input a wire name names, if the input has it.
+     */
+    public function field(DeclaredAction $action, string $wire): ?OperationField
+    {
+        foreach ($action->definition->fields as $field) {
+            if ($field->wire === $wire) {
+                return $field;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The label of a field by its wire name, as the dialog shows it; the wire name for a field the input lacks.
+     */
+    public function labelOf(DeclaredAction $action, string $wire): string
+    {
+        $field = $this->field($action, $wire);
+
+        return $field instanceof OperationField ? $this->label($action, $field) : $wire;
+    }
+
+    /**
      * The control of a field: a select for values to pick, a three-way select for a bool that may be
      * left to its default, by the format a date or a date and time, lines for a long text.
      */

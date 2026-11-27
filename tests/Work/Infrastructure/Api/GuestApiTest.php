@@ -48,9 +48,12 @@ final class GuestApiTest extends WorkApiTestCase
         'foresi_list_labels',
         'foresi_list_project_people',
         'foresi_list_task_comments',
+        'foresi_reorder_starred_tasks',
         'foresi_search_projects',
         'foresi_search_tasks',
+        'foresi_star_task',
         'foresi_trash_task_comment',
+        'foresi_unstar_task',
         'foresi_update_profile',
         'foresi_update_task',
         'foresi_update_task_comment',
@@ -92,7 +95,7 @@ final class GuestApiTest extends WorkApiTestCase
 
     public function testEveryOtherToolIsHiddenFromTheGuestOrRefused(): void
     {
-        $listed = array_column($this->list($this->mcpRequest('tools/list'), 'result', 'tools'), 'name');
+        $listed = array_values(array_filter(array_column($this->list($this->mcpRequest('tools/list'), 'result', 'tools'), 'name'), \is_string(...)));
         sort($listed);
         self::assertSame(self::GUEST_TOOLS, array_values(array_diff($listed, self::OTHER_MODULES)));
 
@@ -142,7 +145,9 @@ final class GuestApiTest extends WorkApiTestCase
         $this->fixtures->join($member, Role::Member);
         $this->writer = $this->connection($member, [ApiScope::from('firm:read'), ApiScope::from('tasks:write')]);
         // foresi_get_firm is Party's and reads with the firm's own scope, with or without the address book.
-        self::assertNotSame('insufficient_scope', $this->mcpTool('foresi_get_firm', [])['structuredContent']['error']['code'] ?? null);
+        $content = $this->mcpTool('foresi_get_firm', [])['structuredContent'] ?? [];
+        $error = \is_array($content) ? ($content['error'] ?? []) : [];
+        self::assertNotSame('insufficient_scope', \is_array($error) ? ($error['code'] ?? null) : null);
 
         $this->em()->getConnection()->executeStatement("UPDATE membership SET role = 'guest' WHERE id = ?", [$this->membershipOf($member)->id()]);
         self::assertSame('insufficient_scope', self::in($this->mcpTool('foresi_get_firm', []), 'structuredContent', 'error', 'code'));

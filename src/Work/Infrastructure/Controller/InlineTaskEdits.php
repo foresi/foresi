@@ -72,6 +72,8 @@ final readonly class InlineTaskEdits
                 'nobody' => $this->translator->trans('work.task.nobody'),
                 'no_due' => $this->translator->trans('work.task.no_due'),
                 'no_priority' => $this->translator->trans('work.priority.none'),
+                'star' => $this->translator->trans('work.task.star'),
+                'unstar' => $this->translator->trans('work.task.unstar'),
             ],
         );
     }

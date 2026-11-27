@@ -2,6 +2,7 @@
 
 * Status: accepted
 * Date: 2026-11-12
+* Amended by: [ADR 0048](0048-unit-of-work-in-the-module-contract.md) (the unit of work of a module, module API 1.10)
 
 ## Context and problem statement
 

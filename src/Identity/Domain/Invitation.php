@@ -17,7 +17,7 @@ use Foresi\Shared\Domain\Id;
 /**
  * The owner's invitation of a person into the organisation, by e-mail, as a
  * member or as a guest, with the contact the person represents if the owner
- * picked one (ADR 0048). Only the SHA-256 of its link token is kept; the link
+ * picked one (ADR 0049). Only the SHA-256 of its link token is kept; the link
  * works once and for a week.
  */
 #[ORM\Entity]

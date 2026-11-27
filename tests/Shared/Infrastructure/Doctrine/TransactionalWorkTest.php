@@ -32,12 +32,12 @@ final class TransactionalWorkTest extends KernelTestCase
 
     public function testCaughtDomainErrorLeavesAUsableSession(): void
     {
-        $this->em->persist(self::price('1.00'));
+        $this->em->persist($this->price('1.00'));
         $this->em->flush();
 
         try {
             $this->work()->run(function (): never {
-                $this->em->persist(self::price('2.00'));
+                $this->em->persist($this->price('2.00'));
                 $this->em->flush();
 
                 throw new \DomainException('Rejected.');
@@ -57,7 +57,24 @@ final class TransactionalWorkTest extends KernelTestCase
         self::assertSame($marker, $this->work()->run(static fn (): \stdClass => $marker));
     }
 
-    private static function price(string $amount): TestPrice
+    public function testAJoinedUnitFlushesSoItsCallerFindsWhatItMadeAndTheOuterUnitCommits(): void
+    {
+        $found = $this->em->wrapInTransaction(function (): mixed {
+            $price = $this->work()->run(function (): TestPrice {
+                $price = $this->price('3.00');
+                $this->em->persist($price);
+
+                return $price;
+            });
+
+            // A query, not the identity map: it sees only what was flushed.
+            return $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM test_price WHERE id = ?', [$price->id()]);
+        });
+
+        self::assertEquals(1, $found);
+    }
+
+    private function price(string $amount): TestPrice
     {
         return new TestPrice(Money::of($amount, Currency::CZK));
     }

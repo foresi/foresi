@@ -30,6 +30,7 @@ use Foresi\Inbox\Application\ItemStore;
 use Foresi\Inbox\Application\ItemWrites;
 use Foresi\Inbox\Application\PurgeTrashedItems;
 use Foresi\Inbox\Application\SenderMatching;
+use Foresi\Inbox\Application\SuggestionStore;
 use Foresi\Inbox\Contract\InboxItems;
 use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxOutput;
@@ -361,9 +362,9 @@ final class ItemWritesTest extends InboxTestCase
                 return $this->store->itemOfMessage($mailMessageId);
             }
 
-            public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit): array
+            public function page(string $ownerUserId, ?ItemState $state, bool $unmatched, ?string $afterId, int $limit, ?bool $withOpenSuggestions = null): array
             {
-                return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit);
+                return $this->store->page($ownerUserId, $state, $unmatched, $afterId, $limit, $withOpenSuggestions);
             }
 
             public function countInState(string $ownerUserId, ItemState $state, int $limit): int
@@ -413,7 +414,7 @@ final class ItemWritesTest extends InboxTestCase
         };
         $this->em->clear();
         $c = self::getContainer();
-        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class), $c->get(InboxAddressBook::class));
+        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class), $c->get(SuggestionStore::class), $c->get(InboxAddressBook::class));
 
         $this->assertRefused('already_linked', fn (): InboxItem => $writes->link(new LinkItemInput($itemId, 'contact', $person)));
     }

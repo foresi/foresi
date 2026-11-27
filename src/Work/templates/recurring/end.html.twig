@@ -1,0 +1,31 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# Ending a recurring task for good asks first, as ending a recurring invoice does; its tasks stay. #}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'work.recurring.title'|trans, href: path('app_work_recurring_tasks')}, {label: recurring.title, href: path('app_work_recurring_task', {id: recurring.id})}, {label: 'work.recurring.end_title'|trans}] %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'work.recurring.end_title'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="recurring-task-end-form" action="{{ path('app_work_recurring_task_end', {id: recurring.id}) }}" data-recurring-task-end>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\RecurringTaskController::TOKEN')) }}">
+        <p class="m-0">{{ 'work.recurring.end_text'|trans({title: recurring.title}) }}</p>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="recurring-task-end-form" variant="danger">{{ 'work.recurring.action.end'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'work.recurring.end_title'|trans" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_work_recurring_task', {id: recurring.id})">{{ 'work.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="recurring-task-end-form" variant="danger">{{ 'work.recurring.action.end'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

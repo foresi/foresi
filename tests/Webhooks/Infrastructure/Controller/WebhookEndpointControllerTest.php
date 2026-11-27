@@ -22,6 +22,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Infrastructure\Events\InboxEventAccess;
 use Foresi\Invoicing\Infrastructure\Events\InvoicingEventAccess;
 use Foresi\Mail\Infrastructure\Events\MailEventAccess;
+use Foresi\Meetings\Infrastructure\Events\MeetingsEventAccess;
 use Foresi\Party\Infrastructure\Events\PartyEventAccess;
 use Foresi\ReceivedDocuments\Infrastructure\Events\PurchasingEventAccess;
 use Foresi\Shared\Application\Event\EventReadAccess;
@@ -204,7 +205,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, the inbox, invoices, contacts, time or received documents: the access services
         // of the installed modules say no.
-        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'document-templates', ExchangeRateEventAccess::class => 'exchange-rate', InboxEventAccess::class => 'inbox', InvoicingEventAccess::class => 'invoicing', MailEventAccess::class => 'mail', ContactsEventAccess::class => 'contacts', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'received-documents', SalesEventAccess::class => 'deals', TaxesEventAccess::class => 'taxes-and-contributions', TimesheetEventAccess::class => 'timesheet', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
+        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'document-templates', ExchangeRateEventAccess::class => 'exchange-rate', InboxEventAccess::class => 'inbox', InvoicingEventAccess::class => 'invoicing', MailEventAccess::class => 'mail', MeetingsEventAccess::class => 'meetings', ContactsEventAccess::class => 'contacts', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'received-documents', SalesEventAccess::class => 'deals', TaxesEventAccess::class => 'taxes-and-contributions', TimesheetEventAccess::class => 'timesheet', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }

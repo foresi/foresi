@@ -32,9 +32,9 @@ final readonly class ModuleRename
     /**
      * Renames tables, rows and all, then their indexes and foreign keys.
      *
-     * @param array<string, string>                                  $tables      the new name by the old one
+     * @param array<string, string>                                    $tables      the new name by the old one
      * @param array<string, array{string, string, list<string>, bool}> $indexes     by the old name: the table's new name, the new name, the columns, whether it is unique
-     * @param array<string, array{string, string}>                   $foreignKeys by the old name: the table's new name and the new name
+     * @param array<string, array{string, string}>                     $foreignKeys by the old name: the table's new name and the new name
      */
     public function renameTables(array $tables, array $indexes = [], array $foreignKeys = []): void
     {
@@ -44,9 +44,9 @@ final readonly class ModuleRename
     /**
      * Gives the tables renameTables() renamed their old names again, with the same arguments.
      *
-     * @param array<string, string>                                  $tables
+     * @param array<string, string>                                    $tables
      * @param array<string, array{string, string, list<string>, bool}> $indexes
-     * @param array<string, array{string, string}>                   $foreignKeys
+     * @param array<string, array{string, string}>                     $foreignKeys
      */
     public function renameTablesBack(array $tables, array $indexes = [], array $foreignKeys = []): void
     {
@@ -59,9 +59,9 @@ final readonly class ModuleRename
     }
 
     /**
-     * @param array<string, string>                                  $tables
+     * @param array<string, string>                                    $tables
      * @param array<string, array{string, string, list<string>, bool}> $indexes
-     * @param array<string, array{string, string}>                   $foreignKeys
+     * @param array<string, array{string, string}>                     $foreignKeys
      */
     private function rename(array $tables, array $indexes, array $foreignKeys): void
     {
@@ -119,7 +119,7 @@ final readonly class ModuleRename
             return;
         }
         foreach ($this->connection->fetchAllAssociative('SELECT id, event_types FROM webhook_endpoint') as $row) {
-            $types = self::names($row['event_types']);
+            $types = $this->names($row['event_types']);
             if (null === $types) {
                 continue;
             }
@@ -163,7 +163,7 @@ final readonly class ModuleRename
     /**
      * @return list<string>|null null for a value that is no list of names
      */
-    private static function names(mixed $json): ?array
+    private function names(mixed $json): ?array
     {
         $names = \is_string($json) ? json_decode($json, true) : null;
         if (!\is_array($names) || !array_is_list($names)) {

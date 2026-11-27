@@ -13,6 +13,7 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
 use Foresi\Invoicing\Application\NumberCounter;
 use Foresi\Invoicing\Application\SeriesCatalog;
+use Foresi\Invoicing\Application\View\SeriesLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Domain\FirmInvoicing;
@@ -23,14 +24,18 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class FirmInvoicingControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
 
@@ -58,6 +63,28 @@ final class FirmInvoicingControllerTest extends WebTestCase
         self::assertSelectorTextContains('h1', 'Invoicing');
         self::assertSelectorExists('main [data-action-bar]');
         self::assertSame('whole_unit', $this->client->getCrawler()->filter('select[name="rounding"] option[selected]')->attr('value'));
+    }
+
+    public function testTheSeriesAreAListWithViewsAboveTheForm(): void
+    {
+        $this->signedInFirm();
+        $this->series();
+        $this->em()->persist(new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance));
+        $this->em()->flush();
+        self::assertListWithViews(self::getContainer()->get(SeriesLists::class), 'invoicing.series', ['name', 'kind', 'default'], ['all' => false]);
+
+        // The columns the page always showed; the person's own stay, and Reset forgets them.
+        $crawler = $this->client->request('GET', $this->settingsUrl());
+        self::assertSame(['name', 'kind', 'format', 'next', 'default'], $this->seriesColumns($crawler));
+        $crawler = $this->client->request('GET', $this->settingsUrl().'?cols=name,format');
+        self::assertSame(['name', 'format'], $this->seriesColumns($crawler));
+        self::assertListTable($crawler, '[data-series]', ['widths' => '']);
+
+        // The kind of documents is a field to filter on, and the builder's rows become the filter.
+        self::assertSame(['Advances'], $this->seriesNames(self::applyBuilder($this->client, $this->settingsUrl(), 'name', 'Adv')));
+        self::assertSame(['Standard'], $this->seriesNames($this->client->request('GET', $this->settingsUrl().'?q=stand')));
+        // The form of the settings stays under the list.
+        self::assertCount(1, $this->client->getCrawler()->filter('select[name="rounding"]'));
     }
 
     public function testTheOwnerSavesTheSettings(): void
@@ -592,6 +619,22 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->browser->seed();
         $this->browser->signIn();
         $this->firm();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function seriesNames(Crawler $crawler): array
+    {
+        return $crawler->filter('[data-series] tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->text()));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function seriesColumns(Crawler $crawler): array
+    {
+        return $crawler->filter('[data-series] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column'));
     }
 
     private function firm(): void

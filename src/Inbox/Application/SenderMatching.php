@@ -38,7 +38,7 @@ final readonly class SenderMatching
      */
     public function match(?string $address, bool $verified): SenderMatch
     {
-        if (null === $this->contacts) {
+        if (!$this->contacts instanceof \Foresi\Inbox\Application\InboxAddressBook) {
             return SenderMatch::none();
         }
         $address = mb_strtolower(trim((string) $address));
@@ -70,7 +70,7 @@ final readonly class SenderMatching
      */
     public function companyOf(PartySummary $contact): ?string
     {
-        if (null === $this->contacts || ContactKind::Person !== $contact->kind) {
+        if (!$this->contacts instanceof \Foresi\Inbox\Application\InboxAddressBook || ContactKind::Person !== $contact->kind) {
             return null;
         }
         $companies = array_values(array_filter(

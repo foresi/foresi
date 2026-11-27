@@ -16,7 +16,9 @@ use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Field\FieldRefused;
+use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FilterRows;
+use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -35,6 +37,7 @@ use Foresi\Work\Application\DueBucket;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
+use Foresi\Work\Application\ProjectOrder;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\ProjectSummary;
 use Foresi\Work\Application\PurgeDeletedTasks;
@@ -46,6 +49,7 @@ use Foresi\Work\Application\TrashedTask;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
+use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
@@ -98,7 +102,7 @@ final class ProjectController extends AbstractController
     private const array STATUS_FILTERS = ['open', 'all', 'finished'];
     private const array STATUS_TONES = ['open' => 'gray', 'active' => 'amber', 'done' => 'green', 'closed' => 'gray'];
 
-    public function __construct(private readonly ProjectTaskLists $taskLists, private readonly ProjectLists $projectLists,
+    public function __construct(private readonly ProjectTaskLists $taskLists, private readonly ProjectLists $projectLists, private readonly TaskLists $allTasks,
         private readonly WorkQueries $queries,
         private readonly ManageProjects $projects,
         private readonly ManageTasks $tasks,
@@ -148,7 +152,7 @@ final class ProjectController extends AbstractController
         // A view keeps its own order; the address names the sort only when it differs (spec D10).
         $viewSort = ViewState::sortParam($view->sort, self::SORT_NAME);
         $sort = $input->getString('sort', $viewSort);
-        $sort = self::SORT_NAME === ltrim($sort, '-') ? $sort : self::SORT_NAME;
+        $sort = \in_array(ltrim($sort, '-'), ProjectOrder::SORTS, true) ? $sort : self::SORT_NAME;
         $query = array_filter(['view' => $view->isAll() ? null : $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The quick filters and columns changed in the Settings sheet, kept in the address next to the view and for the person (spec D10, D-display-3).
         $working = $this->rememberedDisplay->read(ProjectColumns::LIST, [], $list->key, $view, $input->all(), filters: $list);
@@ -165,7 +169,7 @@ final class ProjectController extends AbstractController
             ...$bar,
             ...$this->viewTabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
-            'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'), $text)),
+            'rows' => array_map(fn (ProjectRow $project): array => $this->projectRow($project, $working), $this->queries->projectIndex($shown, str_starts_with($sort, '-'), $text, ltrim($sort, '-'))),
             'picker' => $this->picker($working, $query),
             'workingQuery' => $working->query,
             'text' => $text,
@@ -888,8 +892,28 @@ final class ProjectController extends AbstractController
                 $project->openTasks,
                 $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
                 $project->id,
+                $project->overdueTasks,
+                $project->unassignedTasks,
+                ...$this->countLinks($project),
             )),
         ];
+    }
+
+    /**
+     * The addresses of a project's counts: the list of all tasks in the view that counts
+     * the same, narrowed to the project. The list leaves out archived projects, so their
+     * counts open nothing.
+     *
+     * @return array{openHref: ?string, overdueHref: ?string, unassignedHref: ?string}
+     */
+    private function countLinks(ProjectRow $project): array
+    {
+        $href = fn (string $view): ?string => $project->archived ? null : $this->generateUrl(TaskListController::ROUTE, [
+            'view' => ListDefinition::ALL === $view ? null : $view,
+            WorkingFilter::PARAM => WorkingFilter::encode(($this->allTasks->list()->default($view)->filter ?? new ViewFilter())->with(new Condition(TaskLists::PROJECT, 'is', $project->id))),
+        ]);
+
+        return ['openHref' => $href(ListDefinition::ALL), 'overdueHref' => $href(TaskLists::OVERDUE), 'unassignedHref' => $href(TaskLists::UNASSIGNED)];
     }
 
     /**
@@ -941,7 +965,7 @@ final class ProjectController extends AbstractController
 
         return [ProjectLists::CONTACT => [
             'url' => $clients->pickerUrl(),
-            'name' => static fn (string $contact): ?string => $clients->name($contact),
+            'name' => $clients->name(...),
         ]];
     }
 

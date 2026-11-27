@@ -16,18 +16,25 @@ use Foresi\Invoicing\Application\NumberCounter;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\UnknownSeries;
 use Foresi\Invoicing\Application\UnsupportedCountry;
+use Foresi\Invoicing\Application\View\SeriesLists;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\TotalRounding;
 use Foresi\Invoicing\Domain\FirmInvoicing;
 use Foresi\Invoicing\Domain\InvalidSeriesFormat;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
+use Foresi\Invoicing\Infrastructure\Column\SeriesColumns;
+use Foresi\Invoicing\Infrastructure\Column\SeriesRow;
 use Foresi\Invoicing\Infrastructure\Form\FirmInvoicingReader;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Shared\Application\TransactionalWork;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Infrastructure\Http\SubmissionTokens;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,6 +66,9 @@ final class FirmInvoicingController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
         private readonly InvoicingCountries $countries,
+        private readonly SeriesLists $seriesLists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -69,14 +79,20 @@ final class FirmInvoicingController extends AbstractController
         $this->firm();
         $settings = $this->settings->get();
         if (!$request->isMethod('POST')) {
-            return $this->settingsForm($this->valuesOf($settings), [], Response::HTTP_OK);
+            // The builder's rows (spec D11) become the series' working filter, in the address.
+            $built = $this->listTable->built(ListSlot::first($request->query->all()), $this->seriesLists->list());
+            if (null !== $built) {
+                return $this->redirectToRoute('app_firm_invoicing', $built, Response::HTTP_SEE_OTHER);
+            }
+
+            return $this->settingsForm($request, $this->valuesOf($settings), [], Response::HTTP_OK);
         }
 
         $this->checkToken($request, self::SETTINGS_TOKEN);
         $submission = $this->reader->settings($request);
         $rounding = TotalRounding::tryFrom($submission->values['rounding']);
         if ([] !== $submission->errors || !$rounding instanceof TotalRounding) {
-            return $this->settingsForm($submission->values, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->settingsForm($request, $submission->values, $submission->errors, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $values = $submission->values;
@@ -87,7 +103,7 @@ final class FirmInvoicingController extends AbstractController
             });
         } catch (UniqueConstraintViolationException) {
             // Another request stored the first settings meanwhile.
-            return $this->settingsForm($values, ['form' => ['firm.invoicing.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->settingsForm($request, $values, ['form' => ['firm.invoicing.error.save_failed']], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $this->addFlash('success', $this->translator->trans('firm.invoicing.flash.saved'));
 
@@ -280,17 +296,22 @@ final class FirmInvoicingController extends AbstractController
      * @param array<string, string>                                      $values
      * @param array<string, array{0: string, 1?: array<string, string>}> $errors
      */
-    private function settingsForm(array $values, array $errors, int $status): Response
+    private function settingsForm(Request $request, array $values, array $errors, int $status): Response
     {
-        $series = $this->catalog->all();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->seriesLists->list();
+        $today = $this->today();
+        $records = array_map(fn (Series $series): SeriesRow => new SeriesRow($series, $this->seriesName($series), $this->counter->peek($series, $today)), $this->catalog->all());
+        $page = $this->listTable->of($slot, $list, SeriesColumns::LIST, 'app_firm_invoicing', 'series', $records, $this->row(...), $this->valueOf(...), static fn (SeriesRow $row): string => $row->name, $this->translator->trans('series.search'));
 
         return $this->render('@Invoicing/firm/settings.html.twig', [
             'firm' => $this->firm(),
             'values' => $values,
             'errors' => $this->messages($errors),
             'roundings' => $this->roundings(),
-            'columns' => array_map(fn (string $key): array => ['key' => $key, 'label' => $this->translator->trans('series.column.'.$key)], ['name', 'kind', 'format', 'next', 'default']),
-            'rows' => array_map($this->row(...), $series),
+            // The series are a list with views (docs/design/list-pages.md, rule 8); the form below is no part of it.
+            'series' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
+            'hasSeries' => [] !== $records,
             'firstNumber' => $this->counter->peek($this->catalog->defaultFor(), $this->today()),
             'action' => $this->generateUrl('app_firm_invoicing'),
             'cancel' => $this->generateUrl('app_firm'),
@@ -332,22 +353,29 @@ final class FirmInvoicingController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(Series $series): array
+    private function row(SeriesRow $row, WorkingState $working): array
     {
         return [
-            'id' => $series->id(),
-            'label' => $this->seriesName($series),
-            'href' => $this->generateUrl('app_series_edit', ['series' => $series->id()]),
+            'id' => $row->series->id(),
+            'label' => $row->name,
+            'href' => $this->generateUrl('app_series_edit', ['series' => $row->series->id()]),
             // A series is a small record: it opens in a modal over the list (docs/design/overlays.md).
             'opens' => Opens::DIALOG,
-            'cells' => [
-                'name' => $this->seriesName($series),
-                'kind' => $this->translator->trans('series.kind.'.$series->kind()->value),
-                'format' => $series->format()->toString(),
-                'next' => $this->counter->peek($series, $this->today()),
-                'default' => $series->isDefault() ? ['text' => $this->translator->trans('series.default'), 'tone' => 'green'] : null,
-            ],
+            'cells' => $working->display->cells($row),
         ];
+    }
+
+    /**
+     * The value of a field of the list on a series, as RowConditions compares it.
+     */
+    private function valueOf(SeriesRow $row, string $field): mixed
+    {
+        return match ($field) {
+            SeriesLists::NAME => $row->name,
+            SeriesLists::KIND => $row->series->kind()->value,
+            SeriesLists::DEFAULT => $row->series->isDefault(),
+            default => null,
+        };
     }
 
     private function seriesName(Series $series): string

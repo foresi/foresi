@@ -42,7 +42,8 @@ final class DealLists implements ListDefinitionSource
     /** What a client reference points to: the builder picks one with the contact picker. */
     public const string CONTACT = 'contact';
 
-    private ?ListDefinition $list = null;
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
+    private array $list = [];
 
     public function __construct(private readonly ListFields $fields)
     {
@@ -57,7 +58,7 @@ final class DealLists implements ListDefinitionSource
     {
         $statuses = array_column(DealStatus::cases(), 'value');
 
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::STATUS, FieldType::Enum, 'deals.deals.field.status', options: $statuses, optionLabels: array_combine($statuses, array_map(static fn (string $status): string => 'deals.status.'.$status, $statuses))),
             new Field(self::STAGE, FieldType::Reference, 'deals.deals.field.stage', ['is', 'is_not', 'is_any_of'], source: self::STAGE_SOURCE, quick: QuickPick::Choices),
             new Field(self::OWNER, FieldType::Reference, 'deals.deals.field.owner', ['is', 'is_not', 'is_any_of'], source: self::MEMBER),

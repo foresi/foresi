@@ -62,6 +62,7 @@ nav:
     people: Lidé
     profile: Profil
     password: Heslo
+    email: Přihlašovací e-mail
     two_factor: Dvoufázové přihlášení
     api: API a MCP
     connected_apps: Připojené aplikace
@@ -84,6 +85,7 @@ nav:
     my_tasks: Moje úkoly
     tasks: Úkoly
     time: Čas
+    recurring_tasks: Opakované úkoly
     notifications: Oznámení
 ui:
   code_block:
@@ -287,6 +289,7 @@ ui:
   empty_value: Nezadáno
   table:
     caption: Tabulka
+    order: Pořadí
     select_all: Vybrat všechny řádky
     select_row: 'Vybrat řádek {label}'
     actions: Akce

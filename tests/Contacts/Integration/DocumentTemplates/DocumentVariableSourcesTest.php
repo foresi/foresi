@@ -28,6 +28,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Tests\Party\Application\Query\ContactTestCase;
+use Foresi\Ui\Field\CustomFieldTemplates;
 
 /**
  * The firm and the client as a document template reads them: {{ firm.* }} from
@@ -202,6 +203,6 @@ final class DocumentVariableSourcesTest extends ContactTestCase
 
     private function client(): ClientVariables
     {
-        return new ClientVariables(self::getContainer()->get(PartyDirectory::class), self::getContainer()->get('translator'));
+        return new ClientVariables(self::getContainer()->get(PartyDirectory::class), self::getContainer()->get('translator'), self::getContainer()->get(CustomFieldTemplates::class));
     }
 }

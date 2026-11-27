@@ -10,7 +10,9 @@ namespace Foresi\Tests\Inbox\Infrastructure;
 
 use Foresi\Inbox\Domain\InboxItem;
 use Foresi\Inbox\Domain\ItemState;
+use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
+use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Support\InboxMail;
 use Foresi\Tests\Inbox\Support\NeedsTheAddressBook;
@@ -115,6 +117,24 @@ final class InboxActionScreensTest extends InboxScreenTestCase
         self::assertStringContainsString('Saved and added to what came of this mail.', $page->filter('main')->text());
         self::assertSame('Fixture note', $page->filter('[data-inbox-output-kind]')->text(), 'A kind no module offers to activities shows as its kind, without a link.');
         self::assertCount(0, $page->filter('[data-inbox-output-unavailable]'));
+    }
+
+    public function testWhileSuggestionsWaitSavingKeepsTheItemNewAndSaysSo(): void
+    {
+        $id = $this->receive(InboxMail::plain($this->address));
+        $item = $this->em->find(InboxItem::class, $id);
+        self::assertInstanceOf(InboxItem::class, $item);
+        $this->em->persist(new Suggestion(Id::generate(), $item, [['operation' => self::NOTE, 'input' => ['text' => 'A note']]], 'The client asks for it.', 'Hello', 0, $this->owner->id(), Id::generate(), 'Mail agent', new \DateTimeImmutable('2026-11-25 10:00:00')));
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/inbox/'.$id.'/actions/'.self::NOTE);
+        $this->client->submit($crawler->filter('#inbox-action-form')->form());
+
+        self::assertResponseRedirects('/inbox/'.$id);
+        self::assertSame(ItemState::New, $this->item($id)->state(), 'Mark done waits for the last decision.');
+        self::assertCount(1, $this->outputs($id));
+        $page = $this->client->followRedirect();
+        self::assertStringContainsString('The mail stays open because suggestions on it wait for your decision', $page->filter('main')->text());
     }
 
     public function testUntickingMarkDoneKeepsTheItemNew(): void

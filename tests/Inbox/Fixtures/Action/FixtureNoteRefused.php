@@ -16,7 +16,7 @@ use Foresi\Shared\Contract\Refused;
  */
 final class FixtureNoteRefused extends \DomainException implements Refused
 {
-    public function __construct()
+    public function __construct(private readonly string $field = 'fail')
     {
         parent::__construct('The note failed, as the test asked.');
     }
@@ -33,7 +33,7 @@ final class FixtureNoteRefused extends \DomainException implements Refused
 
     public function field(): string
     {
-        return 'fail';
+        return $this->field;
     }
 
     public function details(): array

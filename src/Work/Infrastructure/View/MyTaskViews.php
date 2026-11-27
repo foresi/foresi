@@ -50,7 +50,7 @@ final readonly class MyTaskViews
         $client = $input->getString('client');
         // A contact is named by its id; anything else names no client, as the sheet ignored it,
         // and so does any without the address book, where the list has no client.
-        if (Id::isValid($client) && null !== $list->field(MyTaskLists::CLIENT)) {
+        if (Id::isValid($client) && $list->field(MyTaskLists::CLIENT) instanceof \Foresi\Shared\Application\View\Field) {
             $working = $working->with(new Condition(MyTaskLists::CLIENT, 'is', $client));
         }
 

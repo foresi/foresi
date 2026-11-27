@@ -21,6 +21,7 @@ use Foresi\Tests\Shared\Fixtures\Field\StoredFields;
 use Foresi\Tests\Shared\Support\FixedActor;
 use Foresi\Ui\Component\CustomFields;
 use Foresi\Ui\Field\CustomFieldForm;
+use Foresi\Ui\Field\CustomFieldText;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -145,7 +146,7 @@ final class CustomFieldsTest extends KernelTestCase
     {
         $names ??= self::getContainer()->get(ReferenceNames::class);
         $visible = new VisibleFields($fields, FixedActor::staff());
-        $component = new CustomFields($visible, $fields, new CustomFieldForm($visible, $fields, $names, $this->translator), $names, $this->translator, self::getContainer()->get(UrlGeneratorInterface::class));
+        $component = new CustomFields($visible, $fields, new CustomFieldForm($visible, $fields, $names, $this->translator), $names, $this->translator, self::getContainer()->get(UrlGeneratorInterface::class), new CustomFieldText($this->translator, $names));
         $component->record = self::RECORD;
 
         return $component;

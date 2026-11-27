@@ -25,7 +25,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * record and its counters stay. It works on the whole instance and reads
  * through the connection.
  */
-#[AsCommand(name: 'app:import:purge', description: 'Delete the files and staged rows of imports that ended more than 30 days ago')]
+#[AsCommand(
+    name: 'app:import:purge',
+    description: 'Delete the files and staged rows of imports that ended more than 30 days ago',
+    help: <<<'HELP'
+    Deletes the source file, the staged rows and the staged missing records of imports that ended
+    more than 30 days ago. Imports that never ended and are older than 30 days (waiting for the user)
+    are cancelled first. The import record and its counters stay, and an import can no longer be undone
+    once purged. Run it from cron once a day. It works on the whole instance and is safe to repeat.
+    HELP,
+)]
 final readonly class PurgeImportsCommand
 {
     public const int RETENTION_DAYS = 30;

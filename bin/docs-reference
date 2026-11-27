@@ -1,0 +1,384 @@
+#!/usr/bin/env php
+<?php
+// SPDX-License-Identifier: AGPL-3.0-only
+
+declare(strict_types=1);
+
+/*
+ * Writes the reference pages that the code already knows, so that they never
+ * drift from it:
+ *
+ *   docs/reference/cli.md          Foresi's own console commands: name, description,
+ *                                  help, arguments and options, grouped by module.
+ *   docs/reference/environment.md  The environment variables of .env: default,
+ *                                  whether it is a secret, and the comment above it.
+ *
+ *   bin/docs-reference           Rewrites both pages.
+ *   bin/docs-reference --check   Writes nothing; exits 1 when a page differs from what
+ *                                it would write (composer docs:check, in bin/qa-static).
+ *
+ * How .env is read: a block is a run of comment lines followed by one or more
+ * variables, either set (NAME=value) or commented out (# NAME=value, the built-in
+ * default applies). The comment describes every variable of its block. A line
+ * "# Secret: NAME, NAME." marks those variables as secrets and is not printed. The
+ * Symfony Flex markers (###> and ###<) and the header of the file are skipped.
+ *
+ * The commands are those of all modules, so run it in the full application, not in
+ * a module subset.
+ */
+
+use Foresi\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Dotenv\Dotenv;
+
+$root = dirname(__DIR__);
+require $root.'/vendor/autoload.php';
+
+$check = in_array('--check', array_slice($argv, 1), true);
+
+$pages = [
+    'docs/reference/cli.md' => cliPage($root),
+    'docs/reference/environment.md' => environmentPage(file_get_contents($root.'/.env') ?: ''),
+];
+
+$stale = [];
+foreach ($pages as $path => $content) {
+    $file = $root.'/'.$path;
+    $current = is_file($file) ? file_get_contents($file) : null;
+    if ($current === $content) {
+        continue;
+    }
+    if ($check) {
+        $stale[] = $path;
+        $expected = tempnam(sys_get_temp_dir(), 'docs-reference');
+        file_put_contents($expected, $content);
+        passthru('diff -u '.escapeshellarg($file).' '.escapeshellarg($expected));
+        unlink($expected);
+        continue;
+    }
+    if (!is_dir(dirname($file))) {
+        mkdir(dirname($file), 0o777, true);
+    }
+    file_put_contents($file, $content);
+    echo "Wrote $path\n";
+}
+
+if ($stale !== []) {
+    fwrite(STDERR, 'Out of date: '.implode(', ', $stale).". Run bin/docs-reference and commit the result.\n");
+    exit(1);
+}
+if ($check) {
+    echo "The reference pages match the code.\n";
+}
+
+function cliPage(string $root): string
+{
+    (new Dotenv())->bootEnv($root.'/.env');
+    $kernel = new Kernel('dev', false);
+    $application = new Application($kernel);
+    $application->setAutoExit(false);
+
+    // Our commands are those declared with #[AsCommand] in the modules under src/.
+    $byModule = [];
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/src', FilesystemIterator::SKIP_DOTS));
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php'
+            || !preg_match("/#\\[AsCommand\\(\\s*(?:name:\\s*)?'([^']+)'/", (string) file_get_contents($file->getPathname()), $match)) {
+            continue;
+        }
+        $module = explode('/', substr($file->getPathname(), strlen($root.'/src/')))[0];
+        $command = $application->find($match[1]);
+        if (!$command->isHidden()) {
+            $byModule[moduleTitle($module)][$match[1]] = $command;
+        }
+    }
+    ksort($byModule);
+    foreach ($byModule as &$commands) {
+        ksort($commands);
+    }
+    unset($commands);
+
+    $out = [];
+    $out[] = '# Console commands';
+    $out[] = '';
+    $out[] = generatedNotice('the commands themselves');
+    $out[] = '';
+    $out[] = 'Run a command as the application user from the current release, for example';
+    $out[] = '`bin/console app:health`. On a server the environment is `prod`, set in';
+    $out[] = '`.env.local` (see [operations](../operations.md)). `bin/console help <command>`';
+    $out[] = 'shows the same text, and `bin/console list` also shows the commands of Symfony';
+    $out[] = 'and the libraries, which are not listed here.';
+    $out[] = '';
+    foreach ($byModule as $module => $commands) {
+        $out[] = '- '.$module.': '.implode(', ', array_map(
+            static fn (string $name): string => '['.code($name).'](#'.slug($name).')',
+            array_keys($commands),
+        ));
+    }
+    foreach ($byModule as $module => $commands) {
+        $out[] = '';
+        $out[] = '## '.$module;
+        foreach ($commands as $name => $command) {
+            $out = [...$out, ...commandSection($name, $command)];
+        }
+    }
+
+    return implode("\n", $out)."\n";
+}
+
+/** @return list<string> */
+function commandSection(string $name, Command $command): array
+{
+    $out = ['', '### '.$name, '', paragraph($command->getDescription())];
+    $help = trim(strip_tags(str_replace(['%command.name%', '%command.full_name%'], [$name, 'bin/console '.$name], $command->getHelp())));
+    if ($help !== '' && $help !== trim($command->getDescription())) {
+        $out[] = '';
+        $out = [...$out, ...helpLines($help)];
+    }
+    $out[] = '';
+    $out[] = '```';
+    $out[] = 'bin/console '.$command->getSynopsis(true);
+    $out[] = '```';
+
+    $definition = $command->getDefinition();
+    $arguments = $definition->getArguments();
+    if ($arguments !== []) {
+        $out[] = '';
+        $out[] = '| Argument | Required | Default | Description |';
+        $out[] = '| --- | --- | --- | --- |';
+        foreach ($arguments as $argument) {
+            $out[] = '| '.implode(' | ', [
+                code($argument->getName().($argument->isArray() ? '...' : '')),
+                $argument->isRequired() ? 'yes' : 'no',
+                defaultValue($argument),
+                cell($argument->getDescription()),
+            ]).' |';
+        }
+    }
+    $options = $definition->getOptions();
+    if ($options !== []) {
+        $out[] = '';
+        $out[] = '| Option | Value | Default | Description |';
+        $out[] = '| --- | --- | --- | --- |';
+        foreach ($options as $option) {
+            $label = '--'.$option->getName().($option->getShortcut() ? ', -'.$option->getShortcut() : '');
+            $out[] = '| '.implode(' | ', [
+                code($label),
+                match (true) {
+                    !$option->acceptValue() => 'none',
+                    $option->isValueRequired() => 'required'.($option->isArray() ? ', repeatable' : ''),
+                    default => 'optional'.($option->isArray() ? ', repeatable' : ''),
+                },
+                defaultValue($option),
+                cell($option->getDescription()),
+            ]).' |';
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * The help as Markdown: indented lines, the examples, become a code block.
+ *
+ * @return list<string>
+ */
+function helpLines(string $help): array
+{
+    $out = [];
+    $inCode = false;
+    foreach (explode("\n", $help) as $line) {
+        $code = str_starts_with($line, '  ');
+        if ($code !== $inCode) {
+            if ($code && end($out) !== '') {
+                $out[] = '';
+            }
+            $out[] = '```';
+            $inCode = $code;
+            if (!$code) {
+                $out[] = '';
+                if (trim($line) === '') {
+                    continue;
+                }
+            }
+        }
+        $out[] = $code ? trim($line) : $line;
+    }
+    if ($inCode) {
+        $out[] = '```';
+    }
+
+    return $out;
+}
+
+function moduleTitle(string $module): string
+{
+    return str_replace('Ai ', 'AI ', ucfirst(strtolower((string) preg_replace('/(?<=[a-z])(?=[A-Z])/', ' ', $module))));
+}
+
+function defaultValue(InputArgument|InputOption $input): string
+{
+    if ($input instanceof InputOption && !$input->acceptValue()) {
+        return '';
+    }
+    $default = $input->getDefault();
+    if ($default === null || $default === [] || $default === '' || $default === false) {
+        return '';
+    }
+
+    return code(is_array($default) ? implode(', ', $default) : var_export($default, true));
+}
+
+function environmentPage(string $env): string
+{
+    $blocks = envBlocks($env);
+
+    $out = [];
+    $out[] = '# Environment variables';
+    $out[] = '';
+    $out[] = generatedNotice('the comments in `.env`');
+    $out[] = '';
+    $out[] = 'The defaults are in `.env`, which is committed. Set the values of an installation in';
+    $out[] = '`shared/.env.local` (mode `0600`, owned by the application user), or in the environment';
+    $out[] = 'of PHP-FPM and the worker: real environment variables win over the files. Never put a';
+    $out[] = 'production secret in a committed file. A variable marked "built in" is commented out in';
+    $out[] = '`.env`, and the default shown applies until you set it. Changing a variable takes effect';
+    $out[] = 'after the cache is cleared and PHP-FPM and the worker restart; see';
+    $out[] = '[operations](../operations.md#deploy).';
+    $out[] = '';
+    $out[] = '| Variable | Default | Secret |';
+    $out[] = '| --- | --- | --- |';
+    foreach ($blocks as $block) {
+        foreach ($block['variables'] as $variable) {
+            $out[] = '| '.implode(' | ', [
+                '['.code($variable['name']).'](#'.slug(blockTitle($block)).')',
+                ($variable['value'] === '' ? 'empty' : code($variable['value'])).($variable['builtIn'] ? ' (built in)' : ''),
+                in_array($variable['name'], $block['secrets'], true) ? '**yes**' : 'no',
+            ]).' |';
+        }
+    }
+    foreach ($blocks as $block) {
+        $out[] = '';
+        $out[] = '## '.blockTitle($block);
+        $out[] = '';
+        $out[] = implode("\n\n", $block['paragraphs']);
+    }
+
+    return implode("\n", $out)."\n";
+}
+
+/**
+ * @param array{variables: list<array{name: string, value: string, builtIn: bool}>} $block
+ */
+function blockTitle(array $block): string
+{
+    return implode(', ', array_map(static fn (array $variable): string => code($variable['name']), $block['variables']));
+}
+
+/**
+ * @return list<array{paragraphs: list<string>, secrets: list<string>, variables: list<array{name: string, value: string, builtIn: bool}>}>
+ */
+function envBlocks(string $env): array
+{
+    $blocks = [];
+    $comment = [];
+    $variables = [];
+    $flush = static function () use (&$blocks, &$comment, &$variables): void {
+        if ($variables !== []) {
+            $secrets = [];
+            $text = [];
+            foreach ($comment as $line) {
+                if (preg_match('/^Secret:\s*(.+?)\.?$/', $line, $match)) {
+                    $secrets = [...$secrets, ...preg_split('/\s*,\s*/', $match[1]) ?: []];
+                } else {
+                    $text[] = $line;
+                }
+            }
+            $paragraphs = array_values(array_filter(
+                array_map(static fn (string $p): string => trim((string) preg_replace('/\s*\n\s*/', ' ', $p)), explode("\n\n", implode("\n", $text))),
+                static fn (string $p): bool => $p !== '',
+            ));
+            if ($paragraphs === []) {
+                throw new RuntimeException('.env: '.$variables[0]['name'].' has no comment that describes it.');
+            }
+            $blocks[] = ['paragraphs' => $paragraphs, 'secrets' => $secrets, 'variables' => $variables];
+        }
+        $comment = [];
+        $variables = [];
+    };
+
+    foreach (explode("\n", $env) as $line) {
+        $line = rtrim($line);
+        if ($line === '') {
+            // A blank line ends a block; a comment with no variable under it, such as
+            // the header of the file, describes nothing and is dropped.
+            $flush();
+            continue;
+        }
+        if (str_starts_with($line, '###')) {
+            $flush();
+            continue;
+        }
+        if (preg_match('/^#\s?([A-Z][A-Z0-9_]*)=(.*)$/', $line, $match)) {
+            $variables[] = ['name' => $match[1], 'value' => unquote($match[2]), 'builtIn' => true];
+            continue;
+        }
+        if (preg_match('/^([A-Z][A-Z0-9_]*)=(.*)$/', $line, $match)) {
+            $variables[] = ['name' => $match[1], 'value' => unquote($match[2]), 'builtIn' => false];
+            continue;
+        }
+        if (str_starts_with($line, '#')) {
+            if ($variables !== []) {
+                $flush();
+            }
+            $comment[] = trim(substr($line, 1));
+        }
+    }
+    $flush();
+
+    return $blocks;
+}
+
+function unquote(string $value): string
+{
+    $value = trim($value);
+    if (strlen($value) >= 2 && ($value[0] === '"' || $value[0] === "'") && $value[-1] === $value[0]) {
+        return substr($value, 1, -1);
+    }
+
+    return $value;
+}
+
+function generatedNotice(string $source): string
+{
+    return "<!-- Generated by bin/docs-reference from $source. Do not edit this page; change the source and run bin/docs-reference. -->";
+}
+
+function paragraph(string $text): string
+{
+    $text = trim($text);
+
+    return $text === '' || str_ends_with($text, '.') ? $text : $text.'.';
+}
+
+function code(string $text): string
+{
+    return '`'.$text.'`';
+}
+
+function cell(string $text): string
+{
+    return str_replace(['|', "\n"], ['\|', ' '], paragraph($text));
+}
+
+/** The anchor GitHub gives a heading. */
+function slug(string $heading): string
+{
+    $slug = mb_strtolower(trim($heading));
+    $slug = (string) preg_replace('/[^\p{L}\p{N}\s_-]/u', '', $slug);
+
+    return str_replace(' ', '-', $slug);
+}

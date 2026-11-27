@@ -24,9 +24,9 @@ final class MyTaskListsTest extends TestCase
 {
     public function testItShipsAllAndTheTabsItHadInTheirOrderWithoutCounts(): void
     {
-        $list = new MyTaskLists(self::clients())->list();
+        $list = new MyTaskLists($this->clients())->list();
 
-        self::assertEquals([$list], iterator_to_array(new MyTaskLists(self::clients())->lists()));
+        self::assertEquals([$list], iterator_to_array(new MyTaskLists($this->clients())->lists()));
         self::assertSame('work.my_tasks', $list->key);
         self::assertSame(
             [
@@ -44,7 +44,7 @@ final class MyTaskListsTest extends TestCase
 
     public function testItsFieldsAreHowTheTaskIsMineAndTheClient(): void
     {
-        $fields = new MyTaskLists(self::clients())->list()->fields;
+        $fields = new MyTaskLists($this->clients())->list()->fields;
 
         self::assertSame(['involvement' => 'work.my_tasks.involvement', 'client' => 'work.my_tasks.client'], array_map(static fn (Field $field): string => $field->label, $fields));
         self::assertSame(FieldType::Enum, $fields['involvement']->type);
@@ -66,7 +66,7 @@ final class MyTaskListsTest extends TestCase
     /**
      * The address book as Work's Contacts integration answers it, without its pages.
      */
-    private static function clients(): ProjectClients
+    private function clients(): ProjectClients
     {
         return new class implements ProjectClients {
             public function pickerUrl(): string

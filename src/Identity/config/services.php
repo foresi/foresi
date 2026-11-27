@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Application\TokenAuditActor;
+use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Application\StaffCheck;
 use Foresi\Identity\Application\UserPhotos;
 use Foresi\Identity\Contract\StaffCheck as StaffCheckContract;
@@ -68,5 +69,7 @@ return static function (ContainerConfigurator $container): void {
         // Public handles for tests/e2e/seed.php.
         $services->alias('e2e.password_hashers', PasswordHasherFactoryInterface::class)->public();
         $services->alias('e2e.token_storage', 'security.token_storage')->public();
+        // The inbox spec's agent proposes suggestions with a token of the owner.
+        $services->alias('e2e.manage_api_tokens', ManageApiTokens::class)->public();
     }
 };

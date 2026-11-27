@@ -16,7 +16,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * The checks of /health from the shell, for cron or a monitoring agent: the
  * exit code is non-zero when the installation is down.
  */
-#[AsCommand(name: 'app:health', description: 'Check the database, worker, schedule, disk and system mail')]
+#[AsCommand(
+    name: 'app:health',
+    description: 'Check the database, worker, schedule, disk and system mail',
+    help: <<<'HELP'
+    Runs the checks of /health from the shell and prints them as a table: database, worker, schedule,
+    disk and system mail. Run it from cron or a monitoring agent, or by hand to see why /health reports
+    a problem. It is read-only and safe to repeat. It exits with 1 when the installation is down and
+    with 0 otherwise, including when it is only degraded.
+    HELP,
+)]
 final readonly class HealthCommand
 {
     public function __construct(

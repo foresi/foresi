@@ -28,7 +28,6 @@ final class NewProjectBillableTest extends WebTestCase
     private const string BILLABLE = 'custom_fields[timesheet_billable_by_default]';
 
     private KernelBrowser $client;
-    private SignedInBrowser $browser;
     private EntityManagerInterface $em;
 
     protected function setUp(): void
@@ -36,9 +35,9 @@ final class NewProjectBillableTest extends WebTestCase
         $this->client = self::createClient();
         $this->client->disableReboot();
         $this->em = self::getContainer()->get('doctrine.orm.entity_manager');
-        $this->browser = new SignedInBrowser($this->client, $this->em);
-        $this->browser->seed();
-        $this->browser->signIn();
+        $browser = new SignedInBrowser($this->client, $this->em);
+        $browser->seed();
+        $browser->signIn();
     }
 
     public function testTheBoxFollowsTheClientComboboxOfTheForm(): void

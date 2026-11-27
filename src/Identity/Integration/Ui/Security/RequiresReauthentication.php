@@ -18,7 +18,8 @@ final readonly class RequiresReauthentication
 {
     public const string TWO_FACTOR = 'two_factor';
     public const string API_TOKEN = 'api_token';
-    public const array REASONS = [self::TWO_FACTOR, self::API_TOKEN];
+    public const string EMAIL = 'email';
+    public const array REASONS = [self::TWO_FACTOR, self::API_TOKEN, self::EMAIL];
 
     public function __construct(public string $reason)
     {

@@ -66,6 +66,8 @@ final readonly class WorkJson
             'visibility' => $project->visibility->value,
             'workflow' => $project->template->value,
             'open_tasks' => $project->openTasks,
+            'overdue_tasks' => $project->overdueTasks,
+            'unassigned_tasks' => $project->unassignedTasks,
             'nearest_due_on' => JsonValues::date($project->nearestDue),
             'archived' => $project->archived,
         ];
@@ -120,6 +122,7 @@ final readonly class WorkJson
             'subtask_count' => $task->subtaskCount,
             'done' => $task->done,
             'private' => $task->private,
+            'starred' => $task->starred,
             'url' => $this->urls->generate(TaskController::ROUTE, ['id' => $task->id], UrlGeneratorInterface::ABSOLUTE_URL),
         ];
     }
@@ -139,6 +142,8 @@ final readonly class WorkJson
             'project_archived' => $detail->projectArchived,
             'created_at' => JsonValues::timestamp($detail->createdAt),
             'completed_at' => JsonValues::timestamp($detail->completedAt),
+            'recurring_task' => $detail->recurringTask instanceof Choice ? ['id' => $detail->recurringTask->id, 'name' => $detail->recurringTask->name] : null,
+            'occurrence_on' => $detail->occurrenceOn?->format('Y-m-d'),
         ];
     }
 

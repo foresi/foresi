@@ -21,7 +21,17 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * compares, so CI fails when a manifest changed and the file was not
  * regenerated.
  */
-#[AsCommand(name: 'app:modules:deptrac', description: 'Generate the module-level Deptrac configuration from the module manifests')]
+#[AsCommand(
+    name: 'app:modules:deptrac',
+    description: 'Generate the module-level Deptrac configuration from the module manifests',
+    help: <<<'HELP'
+    Writes deptrac.modules.yaml, the module-level Deptrac configuration, from the module manifests.
+    Run it when a module or a dependency between modules changed, then commit the file. With --check it
+    writes nothing and compares only; CI runs it (composer modules:check) and exits with 1 when the file
+    differs from the manifests. Writing is safe to repeat. It exits with 1 when the file cannot be
+    written.
+    HELP,
+)]
 final readonly class ModulesDeptracCommand
 {
     public function __construct(

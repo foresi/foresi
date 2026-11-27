@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Integration\Country;
 
-use Foresi\Invoicing\Domain\PeriodText;
+use Foresi\Shared\Domain\Schedule\PeriodText;
 use Foresi\Tests\Invoicing\Infrastructure\Support\RecurringWorker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;

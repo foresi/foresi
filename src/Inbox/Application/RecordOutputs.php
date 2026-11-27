@@ -38,7 +38,8 @@ use Psr\Log\LoggerInterface;
  *   the answer's data, is added as an output under the action's kind, the
  *   item's one e-mail activity is made or extended with it and with the
  *   input's related records, InboxItemLinked is recorded, a discarded item
- *   keeps its mail, and a new item is marked done unless the input says not.
+ *   keeps its mail, and a new item is marked done unless the input says not
+ *   or suggestions on it wait for a decision (keptNew(): the answer says so).
  *
  * The record is committed by then and stays whatever happens here: a failure
  * to record it is logged by ids alone and answered false. The person links it
@@ -57,6 +58,8 @@ final readonly class RecordOutputs implements OperationObserver
     public const string NOT_LINKED = 'The record was made but not linked to the inbox item; link it with foresi_link_inbox_item.';
     /** The same for a kind that cannot be linked by hand, such as a time entry: the record stays in its module. */
     public const string NOT_ADDED = 'The record was made but not added to the inbox item, and a record of this kind cannot be linked by hand; it stays as made, so do not run the action again.';
+    /** What the answer adds when mark_done left the item new because suggestions on it wait for a decision. */
+    public const string KEPT_NEW = 'The item stays new because suggestions on it wait for a decision; the last decision on them marks it done.';
 
     public function __construct(
         private InboxAccess $access,
@@ -70,6 +73,7 @@ final readonly class RecordOutputs implements OperationObserver
         private EmailActivity $emailActivity,
         private ScopeGuard $scopes,
         private LoggerInterface $logger,
+        private SuggestionStore $suggestions,
     ) {
     }
 
@@ -90,11 +94,36 @@ final readonly class RecordOutputs implements OperationObserver
     public function after(Operation $operation, object $input, OperationOutput $output): OperationOutput
     {
         $action = InboxActions::attributeOf($input::class);
-        if (!$action instanceof InboxAction || !$input instanceof InboxActionInput || $this->record($action, $input, $output)) {
+        if (!$action instanceof InboxAction || !$input instanceof InboxActionInput) {
             return $output;
         }
+        $summary = $output->summary;
+        if (!$this->record($action, $input, $output)) {
+            $summary .= ' '.($this->linksByHand($action) ? self::NOT_LINKED : self::NOT_ADDED);
+        } elseif ($this->keptNew($input)) {
+            $summary .= ' '.self::KEPT_NEW;
+        }
 
-        return new OperationOutput($output->data, $output->summary.' '.($this->linksByHand($action) ? self::NOT_LINKED : self::NOT_ADDED), $output->location);
+        return $summary === $output->summary ? $output : new OperationOutput($output->data, $summary, $output->location);
+    }
+
+    /**
+     * Whether mark_done asked for the item to be done but it stays new, as suggestions on it
+     * wait for a decision (the last decision marks it done); call it after record().
+     */
+    public function keptNew(InboxActionInput $input): bool
+    {
+        $itemId = $input->inboxItemId();
+        if (null === $itemId || !$input->markDone()) {
+            return false;
+        }
+        try {
+            $item = $this->access->own($itemId);
+        } catch (InboxRefused) {
+            return false;
+        }
+
+        return ItemState::New === $item->state() && ($this->suggestions->openCounts([$itemId])[$itemId] ?? 0) > 0;
     }
 
     /**
@@ -165,7 +194,9 @@ final readonly class RecordOutputs implements OperationObserver
                 foreach ($input->relatedRecords() as $related) {
                     $this->emailActivity->link($item, $related->kind, $related->id);
                 }
-                if ($input->markDone() && ItemState::New === $item->state() && $item->changeState(ItemState::Done, $userId, $this->now())) {
+                // While suggestions on it wait for a decision, the last decision marks it done, not this action.
+                if ($input->markDone() && ItemState::New === $item->state() && 0 === ($this->suggestions->openCounts([$item->id()])[$item->id()] ?? 0)
+                    && $item->changeState(ItemState::Done, $userId, $this->now())) {
                     $this->events->record(new InboxItemDone($item->id()));
                 }
             });

@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `activities`, `calendar`, `cashflow`, `catalog`, `contacts` (the address book), `deals`, `documents`, `events`, `exchange_rates`, `firm` (the firm of the instance and its VAT statuses), `inbox`, `invoices`, `mail_addresses`, `margin`, `payments`, `projects`, `received_documents`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own, and only the resources of the installed modules can be given. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `activities`, `calendar`, `cashflow`, `catalog`, `contacts` (the address book), `deals`, `documents`, `events`, `exchange_rates`, `firm` (the firm of the instance and its VAT statuses), `inbox`, `inbox_suggestions` (an agent proposes suggestions for your inbox items), `inbox_decisions` (accepting and rejecting them), `invoices`, `mail_addresses`, `margin`, `meetings`, `payments`, `projects`, `received_documents`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own, and only the resources of the installed modules can be given. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -109,7 +109,7 @@ A detail answers `{"data": {...}}`.
 
 ## Endpoints
 
-The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
+The endpoints below are `GET`. The writes of invoices are under [Invoice writes](#invoice-writes), recurring invoices under [Recurring invoices](#recurring-invoices), those of contacts under [Contact writes](#contact-writes), those of the firm's VAT statuses under [Firm VAT statuses](#firm-vat-statuses), those of saved views under [Saved views](#saved-views), those of the cash flow under [Cash flow](#cash-flow), those of documents under [Documents](#documents), those of received documents under [Received documents](#received-documents), those of projects, tasks and time under [Work writes](#work-writes), recurring tasks under [Recurring tasks](#recurring-tasks), those of the inbox under [Inbox](#inbox), and those of webhooks under [Webhooks](#webhooks).
 
 | Endpoint | Scope | What it returns |
 | --- | --- | --- |
@@ -141,11 +141,15 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/cash-flow/pairings` | `cashflow:read` | The pairings of received documents with planned occurrences, oldest first, filtered by `state` (`auto`, `confirmed`, `proposed`, `declined`) and `planned_item_id` (paired with the item, or listing it among the candidates). |
 | `/api/v1/calendar/feeds` | `calendar:read` | Your calendar feeds, oldest first, without their addresses; see [Calendar](#calendar). |
 | `/api/v1/mail/addresses` | `mail_addresses:read` | Your inbound mail addresses, oldest first, revoked ones too, without their tokens; `purpose` filters them. See [Mail addresses](#mail-addresses). |
-| `/api/v1/inbox/items` | `inbox:read` | Your inbox items outside the trash, newest first, without their text; `state` and `unmatched` filter them. See [Inbox](#inbox). |
+| `/api/v1/inbox/items` | `inbox:read` | Your inbox items outside the trash, newest first, without their text; `state`, `unmatched` and `suggestions` filter them. See [Inbox](#inbox). |
 | `/api/v1/inbox/items/{itemId}` | `inbox:read` | One of your inbox items with the plain text of its mail. |
 | `/api/v1/catalog/products` | `catalog:read` | The products in name order, without paging; `q` finds a text in the name or description, `archived=true` includes the archived ones. See [Catalog](#catalog). |
 | `/api/v1/catalog/products/{productId}` | `catalog:read` | One product. |
-| `/api/v1/deals` | `deals:read` | The deals not in the trash, newest first; see [Sales](#deals). |
+| `/api/v1/meetings/series` | `meetings:read` | The meeting series you see, by name; `archived=true` includes the archived ones. See [Meetings](#meetings). |
+| `/api/v1/meetings/series/{seriesId}` | `meetings:read` | One series with its members. |
+| `/api/v1/meetings` | `meetings:read` | The meetings you see, newest first, without their minutes; `q` finds a text in the title or the minutes, and `series_id`, `attendee_id`, `from`, `to`, `link_kind` with `link_id`, and `trashed=true` narrow them. |
+| `/api/v1/meetings/{meetingId}` | `meetings:read` | One meeting with its minutes in Markdown and their `version`. |
+| `/api/v1/deals` | `deals:read` | The deals not in the trash, newest first; see [Deals](#deals). |
 | `/api/v1/deals/{dealId}` | `deals:read` | One deal with its lines, value, links and contact persons. |
 | `/api/v1/deal-stages` | `deals:read` | The stages of a deal, in order. |
 | `/api/v1/lost-reasons` | `deals:read` | The reasons a deal is lost for, in order. |
@@ -294,19 +298,22 @@ Query parameters of `GET /api/v1/tasks`:
 | `priority` | Priorities, comma separated, such as `high,urgent`: a task of any of them. |
 | `label_id` | Label ids, comma separated: a task with any of these labels. |
 | `client_id` | Only the tasks of the projects of this client. |
+| `starred` | `true` for the tasks the token's person starred for My priorities, `false` for the others. |
 | `created_from`, `created_to` | Only the tasks created on or after, on or before a day, `YYYY-MM-DD`. |
 | `updated_from`, `updated_to` | Only the tasks last changed on or after, on or before a day. A task changes when one of its fields or labels does; its comments and time do not change it. |
 | `status_type` | `open`, `active`, `done` or `closed`. |
 | `finished` | `true` for tasks in a status of type `done` or `closed`, `false` for the others. |
 | `due` | `overdue` (before today and not finished), `today`, `next_7_days` (today and the seven days after) or `none`. |
-| `view` | A saved view of the list `work.tasks`, such as `work.tasks.mine`, `work.tasks.overdue`, `work.tasks.unassigned`, `work.tasks.high` or `work.tasks.no_due`, or of `work.my_tasks`, such as `work.my_tasks.watching`. A view of `work.tasks` leaves out the finished tasks unless it asks about the status type, as the list does on the screen. Needs `views:read` too. |
+| `view` | A saved view of the list `work.tasks`, such as `work.tasks.mine`, `work.tasks.priorities`, `work.tasks.overdue`, `work.tasks.unassigned`, `work.tasks.high` or `work.tasks.no_due`, or of `work.my_tasks`, such as `work.my_tasks.watching`. A view of `work.tasks` leaves out the finished tasks unless it asks about the status type, as the list does on the screen. Needs `views:read` too. |
 | `filter` | Conditions as JSON in the format of [Saved views](#saved-views), checked against the list of the view, `work.tasks` without one. `work.tasks` has every field of `work.my_tasks` too. |
-| `sort` | `due` (the undated last), `priority`, `created`, `updated`, `project` or `title`; a minus first for backwards, such as `-priority`. Ties go by due date, then the highest priority. Without it, the newest first. The cursor of a sorted list goes on after the task it names. |
+| `sort` | `due` (the undated last), `priority`, `created`, `updated`, `project`, `title` or `my_order` (the order of My priorities, the unstarred last); a minus first for backwards, such as `-priority`. Ties go by due date, then the highest priority. Without it, the newest first. The cursor of a sorted list goes on after the task it names. |
 | `limit`, `cursor` | Paging, as above. |
 
 "My tasks" in an instance is `GET /api/v1/tasks?view=work.tasks.mine&sort=due`, or `GET /api/v1/tasks?assignee=me&finished=false`.
 
-Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
+My priorities, the person's own shortlist (see [projects](projects.md)), is `GET /api/v1/tasks?starred=true&sort=my_order`; each task says `starred` for the token's person, and nobody else sees whose star it is. `PUT /api/v1/tasks/{id}/star` stars a task, at the end or before `before_task_id`, `DELETE /api/v1/tasks/{id}/star` takes the star off, and `POST /api/v1/tasks/starred/reorder` with `task_ids`, every task of the shortlist once, puts them in a new order. A finished task leaves the shortlist, so starring one is refused `409 star_finished`.
+
+Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. Each project carries `open_tasks`, `overdue_tasks` and `unassigned_tasks`, counts of the unfinished tasks and subtasks the token's person sees, and `nearest_due_on`; `filter` and views take them as the fields `open_tasks`, `overdue_tasks`, `unassigned_tasks` (numbers) and `next_due` (a date), such as `{"conditions":[{"field":"overdue_tasks","op":"gt","value":0}]}`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 
 A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task is `null` and the custom fields not open to guests, such as `timesheet_billable_by_default` of a project, are left out, and the people of a project are the organisation's own, not other guests.
 
@@ -469,6 +476,24 @@ curl -X PATCH -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: app
 
 A comment takes `body` (Markdown, at most 20,000 characters) and `internal` (`true` keeps it to the people of the organisation). A project takes `name` (at most 200 characters), `client_id` (a contact), `description` and, on create, `workflow` (`simple` or `development`); its sharing and sections are kept on the screens. A budget change takes `hours` (a decimal number in a string, plus or minus, at most two decimal places, such as `"8"` or `"-2.5"`) or `minutes`, not both, `effective_on` (`YYYY-MM-DD`, today when left out), `note` (at most 500 characters) and `source_activity_id` (an activity linked to the project); the counting takes `counting` (`all` or `billable`). Time takes `project_id`, `task_id`, `worked_on` (`YYYY-MM-DD`), `minutes` or `started_at` and `ended_at` (ISO 8601 with the offset) but not both, `note` (at most 2,000 characters) and `billable` (the default of the project when left out); a timer takes `project_id`, `task_id`, `note` and `billable`.
 
+### Recurring tasks
+
+A recurring task creates an ordinary task of its project on each date of its schedule, as **Projects, Recurring tasks** keeps them (see [projects.md](projects.md#recurring-tasks)). Reading needs `tasks:read`, the writes `tasks:write`, and only the owners and team members use them; a guest's token is refused with `forbidden`. Each answers `{"data": {...}}` with the recurring task as `GET /api/v1/recurring-tasks/{recurringTaskId}` shows it: its `state`, `next_on`, what each task gets, its `schedule`, `skipped_on`, `next_tasks` (each with `on`, `create_on`, `due_on` and `title`) and the `tasks` it created.
+
+| Method and path | Answer |
+| --- | --- |
+| `GET /api/v1/recurring-tasks` | The recurring tasks of the projects the person sees, the active ones first, the soonest next date first; `state` (`active`, `paused`, `ended`) and `project_id`. |
+| `GET /api/v1/recurring-tasks/{recurringTaskId}` | One recurring task. |
+| `GET /api/v1/recurring-tasks/{recurringTaskId}/preview` | Its next tasks; `count` 1 to 24, 5 by default. |
+| `POST /api/v1/recurring-tasks` | Creates one. `201` with `Location`. |
+| `PATCH /api/v1/recurring-tasks/{recurringTaskId}` | Changes the fields given; the tasks to come follow them, those created stay. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/pause` | Pauses it; the dates that pass meanwhile are skipped. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/resume` | Resumes it from the first date on or after today. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/skip` | Leaves out the task of the date `on`, one it falls on whose task is not created yet. |
+| `POST /api/v1/recurring-tasks/{recurringTaskId}/end` | Ends it for good; the tasks it created stay. |
+
+The fields of a create: `project_id` and `title` (required; the title and `description` may hold the [period variables](recurring.md#variables-in-the-texts), such as `{week}`), `first_on` (required, `YYYY-MM-DD`), `repeat` (`day`, `week` by default, `month`, `year`), `every` (1 to 99), `last_day_of_month`, `end` (`never`, `on_date` with `ends_on`, or `after_count` with `ends_after`, 1 to 999), `create_days_before` (0 to 90, 0 by default: on the day), `due_days_after` (0 to 365; left out or `null`, a task is due at the end of its period), and what each task gets: `section_id`, `responsible_id`, `priority`, `private`, `estimate_minutes`, `label_ids`, `watcher_ids`, `subtasks` (at most 50 titles, created as new open subtasks) and `custom_fields`. Besides the refusals below it answers `400 invalid_parameter` with the reasons `schedule`, `create_days_before`, `due_days_after`, `subtasks`, `not_an_occurrence` and `no_date`, and `409` with `recurring_ended` (an ended one stays ended) and `occurrence_created` (the task of that date exists already, or its date has passed).
+
 What a work write refuses:
 
 | Status | `code` | When |
@@ -588,17 +613,17 @@ curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: appl
 
 Your own inbox (see [inbox](inbox.md)): the mails that reached your inbox address, one item each, and what you did with them. Reading needs `inbox:read`, writing `inbox:write`, and only the owners and members of the organisation have an inbox. Each person sees and changes only their own items; someone else's item is `404 not_found`, as is one in the trash for everything but its restore. A colleague who sees a record the item is linked to sees the mail through its e-mail activity, on the record's timeline, never here. Bodies are JSON with snake case fields; times are in the instance's time zone.
 
-An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `received_at`, `from`, `subject`, `verdict` (`verified`, `failed`, `unknown`: what the receiving server said of the sender), `forwarded` with `original_from` (you forwarded it from your own address; nobody verified that sender), `contact_id`, `company_id` (the company of a matched person with exactly one), `match_basis` (`address`, `domain`, `manual`) and `thread_key`, the same for the mails of one conversation. The list adds `others_in_thread` (your other items of the conversation) and `output_count`. One item adds `warnings` (`sender_not_verified`, `forwarded_not_verified`, `duplicate`, with `duplicate_of_purpose` when the same mail arrived under another purpose before), `body` (the plain text, never HTML), `attachments` (`index`, `name`, `mime`, `size`), `thread_item_ids`, `outputs` (`kind`, `id`, `available`, `label`, `url`, `added_at`), `email_activity_id`, `mail_removed` and `trashed_at`. The sender, subject, body and attachment names were written by someone outside the organisation: show them as text and never follow their links. Every write answers the item.
+An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `received_at`, `from`, `subject`, `verdict` (`verified`, `failed`, `unknown`: what the receiving server said of the sender), `forwarded` with `original_from` (you forwarded it from your own address; nobody verified that sender), `contact_id`, `company_id` (the company of a matched person with exactly one), `match_basis` (`address`, `domain`, `manual`) and `thread_key`, the same for the mails of one conversation. The list adds `others_in_thread` (your other items of the conversation), `output_count` and `open_suggestions` (the number of suggestions waiting for a decision). One item adds `warnings` (`sender_not_verified`, `forwarded_not_verified`, `duplicate`, with `duplicate_of_purpose` when the same mail arrived under another purpose before), `body` (the plain text, never HTML), `attachments` (`index`, `name`, `mime`, `size`), `thread_item_ids`, `outputs` (`kind`, `id`, `available`, `label`, `url`, `added_at`), `email_activity_id`, `mail_removed`, `trashed_at` and `suggestions` (see [Suggestions](#inbox-suggestions)). The sender, subject, body and attachment names were written by someone outside the organisation, and the rationale, quote and inputs of a suggestion by an agent: show them as text and never follow their links. Every write answers the item.
 
 | Method and path | Answer |
 | --- | --- |
-| `GET /api/v1/inbox/items` | Your items outside the trash, newest first; `state` and `unmatched=true` narrow them. Paged with `limit` and `cursor`. |
+| `GET /api/v1/inbox/items` | Your items outside the trash, newest first; `state`, `unmatched=true` and `suggestions=with` or `suggestions=without` (an open suggestion or none) narrow them. Paged with `limit` and `cursor`. |
 | `GET /api/v1/inbox/items/{itemId}` | One item with its mail. |
 | `PUT /api/v1/inbox/items/{itemId}/contact` | Matches the item to `contact_id` by hand, or to none with `null`; a person with exactly one company gives that company too. Refused: `contact_unknown`, `contact_archived` (400). |
 | `POST /api/v1/inbox/items/{itemId}/contact` | `201`: creates a contact for the sender with the fields of `POST /api/v1/contacts` (`kind`, `display_name`, the billing address `street`, `city`, `postal_code`, `country_code`, then `registration_number`, `vat_id`, `email`, `phone`) and matches the item to it. `email` is the sender's (the original sender of a forward) when left out. The token needs `contacts:write` too (`403 insufficient_scope`). The address book's refusals come unchanged, a duplicate as `409 duplicate` with `existing_ids`; without the Contacts module `409 address_book_missing`. |
 | `POST /api/v1/inbox/items/{itemId}/match-again` | Matches the item by its sender again, as on arrival: one contact with the address, else one company of the domain when the sender is verified, else none. |
-| `POST /api/v1/inbox/items/{itemId}/done` | The item done. Done already is `409 already_done`. A discarded item keeps its mail again. |
-| `POST /api/v1/inbox/items/{itemId}/discard` | The item discarded; unless something came of it, its mail is removed 30 days later. Discarded already is `409 already_discarded`. |
+| `POST /api/v1/inbox/items/{itemId}/done` | The item done. Done already is `409 already_done`. A discarded item keeps its mail again. While suggestions on it wait, it is refused `409 open_suggestions` (with `open`, their number) unless the body says `"suggestions": "reject"` (rejects them) or `"keep"` (leaves them open on the done item). |
+| `POST /api/v1/inbox/items/{itemId}/discard` | The item discarded; unless something came of it, its mail is removed 30 days later. Its open suggestions are rejected. Discarded already is `409 already_discarded`. |
 | `POST /api/v1/inbox/items/{itemId}/reopen` | The item new again; a discarded one keeps its mail. New already is `409 already_new`. |
 | `POST /api/v1/inbox/items/{itemId}/outputs` | `201`: links the item to the record `kind` and `id`, such as a deal. The record becomes an output, and the e-mail shows on its activity timeline: the first link makes the item's one e-mail activity (type `email`, the mail's subject, a body of the sender, the date and the text, its Markdown punctuation backslash-escaped so it shows as written with no link of the mail, cut to 20,000 characters, done when the mail arrived, linked to the matched contact and its company too), later links add to it. Refused: `kind_unknown` (no module links activities to the kind), `record_not_linkable` (400), `already_linked` (409), and Activities' `type_unknown` (400) while the activity type `email` is archived. |
 | `POST /api/v1/inbox/items/{itemId}/trash` | The item in the trash. 30 days later it is removed for good, and its mail with it unless a record's e-mail activity still uses it. |
@@ -614,6 +639,26 @@ The four actions above mark the item done unless `mark_done` is false, and the r
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" \
   -d '{"kind": "deal", "id": "'$DEAL_ID'"}' "https://app.example.com/api/v1/inbox/items/$ITEM_ID/outputs"
+```
+
+### Inbox suggestions
+
+An agent proposes what to do with a new item, and the person decides (see [inbox](inbox.md#suggestions)). Proposing needs `inbox_suggestions:write` and `inbox:read`; accepting and rejecting need `inbox_decisions:write` and `inbox:read`, and accepting also the scope of each step's action (`tasks:write` for a task, and so on). A token that holds only `inbox:read` and `inbox_suggestions:write` can read and propose, and nothing else. Only the owner of the item sees and decides its suggestions; another person's item or suggestion is `404 not_found`. Every write takes an `Idempotency-Key`.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/inbox/items/{itemId}/suggestions` | `201` with `{"suggestions": [...]}`: proposes 1 to 10 `suggestions` on a new item. Each is `{"steps": [{"operation", "input"}], "rationale", "quote", "replaces"}`: 1 to 10 steps, an operation from `available_actions` of the item and its input by the wire names of the fields, without `inbox_item_id` and `mark_done`; a rationale of at most 2,000 characters; a `quote` of at most 1,000 characters that is an exact span of the item's `body`; and optionally `replaces`, the ids of your own open suggestions of the item, which become superseded. A field of a step's input may be `{"$step": 1, "field": "id"}`, the record the earlier step 1 makes. All or nothing. |
+| `POST /api/v1/inbox/suggestions/accept` | `200`: accepts `suggestion_ids` (1 to 10, run in this order) as the person, each in its own right: the steps run in their order and a failing step stops its suggestion, which stays open (run it again to run only the failed and the pending steps). Optional `edits`, `{"<suggestion id>": {"<position>": {input}}}`, replaces the input of pending or failed steps, checked as a proposal is; optional `unselected`, `{"<suggestion id>": [position]}`, steps not to run. The answer is `{"suggestions": [...]}`, one per id with its `state`, a `refusal` (`not_found`, `not_open` or `item_trashed`) when it could not be decided, and its `steps` (`position`, `state`, `record` with `kind` and `id`, `refusal` with `reason` and `field`). Accepting the last open suggestion of a new item marks the item done. |
+| `POST /api/v1/inbox/suggestions/{suggestionId}/reject` | `200` with that answer for one suggestion: rejects an open one, with an optional `reason` of at most 500 characters. Decided already is `409 not_open`. |
+
+A suggestion is `id`, `item_id`, `state` (`proposed`, `accepted`, `rejected`, `superseded`), `rationale`, `quote`, `quote_offset` (where the quote first starts in the body, in characters), `proposed_by` with the `client_name`, `proposed_at`, `decided_at`, `reject_reason`, `superseded_by` and `steps`: `position`, `operation`, `proposed_input`, `final_input` (the input the step ran with, or the edit waiting to run), `selected`, `state` (`pending`, `done`, `failed`, `skipped`), `record` (`kind`, `id`) and `refusal` (`reason`, `field`). The item answer lists them in `suggestions`, the oldest first. The step's refusal is the reason of the action's own module, or `insufficient_scope`, `reference_unresolved` (the step it refers to made no record), `invalid_input`, `item_trashed` or `internal_error` (a failure that is no refusal; its message is never stored). The write answers carry no text of the agent or the mail.
+
+A wrong field answers `400 invalid_parameter` with `parameter`, the path in the call (`suggestions.0.steps.1.input.project_id`, `edits.<id>.<position>.<field>`), and the `reason`: `invalid_input`, `too_many`, `invalid_reference`, `action_not_applicable` (the operation is no action of the item), `quote_not_in_email`, and for `replaces` `not_yours`, `not_open` and `not_found`. `409 item_closed` is a done or discarded item, `409 item_trashed` one in the trash. In an accept call a wrong id list, edit or untick refuses the whole call before anything runs; the other refusals are per suggestion in the answer. A token needs the scope of a step's action: a step without it fails `insufficient_scope` and the later steps stay pending.
+
+```bash
+curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Idempotency-Key: $(uuidgen)" -H "Content-Type: application/json" \
+  -d '{"suggestions": [{"rationale": "The client asks for a call on Monday.", "quote": "Can we talk on Monday?", "steps": [{"operation": "inbox.actions.log_activity", "input": {"type_id": "'$TYPE_ID'", "subject": "Call on Monday"}}]}]}' \
+  "https://app.example.com/api/v1/inbox/items/$ITEM_ID/suggestions"
 ```
 
 ## Catalog
@@ -648,6 +693,27 @@ Fields of a product:
 | `description` | Up to 2,000 characters. |
 
 A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`, such as `interval_required`, `one_off_recurrence`, `time_based_recurrence` or `cycles_invalid`.
+
+## Meetings
+
+Meeting series and meetings with their minutes. What each field means, and who sees what, is in [meetings.md](meetings.md). The writes need `meetings:write`, the reads `meetings:read`; only the owners and members of the organisation may use them, never a guest, and a series or meeting you do not see is `404 not_found`. Bodies are JSON with snake case fields; people of the firm are named by the membership ids under `members`, `attendees`, or `people` of `foresi_list_meeting_series`.
+
+| Method and path | Answer |
+| --- | --- |
+| `POST /api/v1/meetings/series` | `201` with the new series: `name`, `visibility` (`members`, the default, or `organisation`), `agenda_template`, `default_project_id`, `member_ids` and `default_attendee_ids`. A name another series has is `409 name_taken`. |
+| `PATCH /api/v1/meetings/series/{seriesId}` | The series as it is now; a field left out keeps its value. Only the owners and its members change it (`403 not_series_member`). |
+| `POST /api/v1/meetings/series/{seriesId}/archive` | The archived series. It keeps its meetings and takes no new ones (`409 series_archived`). |
+| `POST /api/v1/meetings` | `201` with the new meeting: `held_on`, and `series_id`, `title`, `starts_at`, `attendee_ids`, `links` (`[{"kind": "project", "id": "…"}]`) and `minutes`. A meeting of a series takes the series' default attendees, its agenda template as the minutes and a title of the series name and the day for those left out; a one-off meeting needs a `title`. |
+| `PATCH /api/v1/meetings/{meetingId}` | The meeting as it is now: `title`, `held_on`, `starts_at`, `attendee_ids` and `links`, whichever are given. |
+| `PUT /api/v1/meetings/{meetingId}/minutes` | The meeting with the new minutes: `minutes` and the `version` they were read at. If someone saved them since, `409 stale_minutes` with `current_version`, and nothing changes. |
+| `POST /api/v1/meetings/{meetingId}/trash` | The meeting in the trash; it is removed for good after 30 days. Only its creator and the owners (`403 not_trasher`). |
+| `POST /api/v1/meetings/{meetingId}/restore` | The meeting, out of the trash. |
+
+```bash
+curl -X PUT -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"minutes": "## Numbers\n\nRevenue is on plan.", "version": 3}' \
+  "https://app.example.com/api/v1/meetings/0192f000-0000-7000-8000-000000000000/minutes"
+```
 
 ## Deals
 

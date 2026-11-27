@@ -47,6 +47,13 @@ framework:
             limit: 5
             interval: '5 minutes'
 
+        # Started changes of the sign-in address, per user: each sends a link to an address
+        # of the person's choosing.
+        email_change:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+
         # Documents sent by e-mail, per signed-in user and per firm.
         invoice_send:
             policy: sliding_window
@@ -119,6 +126,8 @@ when@test:
                 storage_service: test.two_factor_code_storage
             reauthentication:
                 storage_service: test.reauthentication_storage
+            email_change:
+                storage_service: test.email_change_storage
             invoice_send:
                 storage_service: test.invoice_send_storage
             invoice_send_firm:
@@ -153,6 +162,8 @@ when@test:
         test.two_factor_code_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
         test.reauthentication_storage:
+            class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
+        test.email_change_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage
         test.invoice_send_storage:
             class: Symfony\Component\RateLimiter\Storage\InMemoryStorage

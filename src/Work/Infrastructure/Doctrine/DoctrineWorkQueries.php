@@ -39,6 +39,7 @@ use Foresi\Work\Application\MentionCandidate;
 use Foresi\Work\Application\ProjectBoard;
 use Foresi\Work\Application\ProjectDetail;
 use Foresi\Work\Application\ProjectList;
+use Foresi\Work\Application\ProjectOrder;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\Projects;
 use Foresi\Work\Application\ProjectSettings;
@@ -77,11 +78,13 @@ use Foresi\Work\Contract\TaskTimes;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\RecurringTask;
 use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 use Foresi\Work\Domain\TaskLabel;
+use Foresi\Work\Domain\TaskStar;
 use Foresi\Work\Domain\TaskWatcher;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 
@@ -148,38 +151,59 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         return $this->projectRows($projects, $scope);
     }
 
-    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = ''): array
+    public function projectIndex(ViewFilter $view, bool $descending = false, string $text = '', string $sort = ProjectOrder::NAME): array
     {
         $scope = $this->visibility->scope();
         $seen = ScopedDql::projects($scope, 'p');
-        $derived = static fn (Condition $condition): array => [match ($condition->field) {
-            ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
-            default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
-        }, []];
-        [$condition, $parameters] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
+        [$condition, $parameters] = $this->projectConditions($view, $scope);
         // The archived projects only when the view asks for them, as the Active tab showed.
         $archived = [] === $view->on(ProjectLists::ARCHIVED) ? 'p.archivedAt IS NULL AND ' : '';
-        $direction = $descending ? 'DESC' : 'ASC';
         $text = trim(mb_substr($text, 0, self::MAX_TEXT));
         $found = '' === $text ? '' : " AND (LOWER(p.name) LIKE :text ESCAPE '!' OR LOWER(c.displayName) LIKE :text ESCAPE '!'"
             .implode('', array_map(static fn (string $field): string => ' OR '.$field, $this->fields->searched(ProjectExtension::RECORD, 'p', 'text'))).')';
         $query = $seen->apply($this->entityManager
-            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name '.$direction.', p.id '.$direction));
+            ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$archived.$condition.$found.$seen->where.' ORDER BY p.name ASC, p.id ASC'));
         if ('' !== $text) {
             $query->setParameter('text', '%'.$this->like(mb_strtolower($text)).'%');
         }
-        foreach ($parameters as $name => [$value, $type]) {
-            $query->setParameter($name, $value, $type);
-        }
+        $this->bind($query, $parameters);
         /** @var list<Project> $projects */
         $projects = $query->getResult();
 
-        return $this->projectRows($projects, $scope);
+        // The index holds every project it shows at once, so its rows are ordered with their counts.
+        return ProjectOrder::sorted($this->projectRows($projects, $scope), $sort, $descending);
+    }
+
+    /**
+     * The condition of a view of the projects on the alias p, its counts among them, with its parameters.
+     *
+     * @return array{string, array<string, array{mixed, string|ArrayParameterType|null}>}
+     */
+    private function projectConditions(ViewFilter $view, WorkScope $scope): array
+    {
+        [$own, $counted] = ProjectTaskCounts::split($view);
+        $derived = static fn (Condition $condition): array => [match ($condition->field) {
+            ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
+            default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
+        }, []];
+        [$condition, $parameters] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($own, $this->clock->today(...), 'v');
+        if ([] === $counted->conditions) {
+            return [$condition, $parameters];
+        }
+        [$counts, $bound] = $this->projectCounts($scope)->where($counted);
+
+        return [$condition.' AND '.$counts, $parameters + $bound];
+    }
+
+    private function projectCounts(WorkScope $scope): ProjectTaskCounts
+    {
+        return new ProjectTaskCounts($this->projectLists->list(), $scope, $this->clock->today());
     }
 
     /**
      * The rows of the projects, each with what is left of it: one query counts the
-     * unfinished tasks the person sees and finds the nearest due date of each.
+     * unfinished tasks the person sees, those overdue and those unassigned, and finds the
+     * nearest due date of each (ProjectTaskCounts).
      *
      * @param list<Project> $projects
      *
@@ -192,16 +216,16 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         // The custom fields of the rows, read once for their columns (ADR 0045).
         $this->fields->values(ProjectExtension::RECORD, array_map(static fn (Project $project): string => $project->id(), $projects));
-        $tasks = ScopedDql::tasks($scope, 't');
-        /** @var list<array{project: string, open: int|string, due: string|\DateTimeInterface|null}> $counts */
-        $counts = $tasks->apply($this->entityManager
-            ->createQuery('SELECT IDENTITY(t.project) AS project, COUNT(t.id) AS open, MIN(t.dueOn) AS due FROM '.Task::class.' t JOIN t.status s'.$tasks->joins.' WHERE s.type IN (:unfinished) AND t.deletedAt IS NULL'.$tasks->where.' GROUP BY t.project'))
-            ->setParameter('unfinished', $this->unfinished())
-            ->getArrayResult();
-        $open = [];
+        $counted = $this->projectCounts($scope);
+        $query = $this->entityManager->createQuery($counted->select())
+            ->setParameter('pt_projects', array_map(static fn (Project $project): string => $project->id(), $projects), ArrayParameterType::STRING);
+        $this->bind($query, $counted->parameters());
+        /** @var list<array{project: string, open: int|string|null, overdue: int|string|null, unassigned: int|string|null, due: string|\DateTimeInterface|null}> $counts */
+        $counts = $query->getArrayResult();
+        $of = [];
         foreach ($counts as $count) {
             $due = $count['due'];
-            $open[$count['project']] = [(int) $count['open'], null === $due ? null : new \DateTimeImmutable($due instanceof \DateTimeInterface ? $due->format('Y-m-d') : $due)];
+            $of[$count['project']] = [(int) $count['open'], null === $due ? null : new \DateTimeImmutable($due instanceof \DateTimeInterface ? $due->format('Y-m-d') : $due), (int) $count['overdue'], (int) $count['unassigned']];
         }
 
         return array_map(static fn (Project $project): ProjectRow => new ProjectRow(
@@ -210,10 +234,12 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $project->client()?->id(),
             $project->client()?->displayName(),
             $project->workflowTemplate(),
-            $open[$project->id()][0] ?? 0,
-            $open[$project->id()][1] ?? null,
+            $of[$project->id()][0] ?? 0,
+            $of[$project->id()][1] ?? null,
             $project->isArchived(),
             $project->visibility(),
+            $of[$project->id()][2] ?? 0,
+            $of[$project->id()][3] ?? 0,
         ), $projects);
     }
 
@@ -374,8 +400,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         $project = $task->project();
         $subtasks = array_values(array_filter($this->tasks->siblings($project, $task), $scope->seesTask(...)));
         $labels = $this->labelsOf([$task, ...$subtasks]);
+        $starred = $this->starredOf([$task, ...$subtasks]);
         $deletable = $this->trash->rule();
-        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, $scope, 0), $subtasks);
+        $subtaskRows = array_map(fn (Task $subtask): TaskRow => $this->row($subtask, $labels, $deletable, $scope, 0, starred: $starred), $subtasks);
         /** @var list<TaskWatcher> $watchers */
         $watchers = $this->entityManager
             ->createQuery('SELECT w, m, u FROM '.TaskWatcher::class.' w JOIN w.membership m JOIN m.user u WHERE w.task = :task ORDER BY u.displayName ASC, w.id ASC')
@@ -390,9 +417,10 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             }
         }
         $parent = $task->parent();
+        $recurring = $task->recurringTask();
 
         return new TaskDetail(
-            $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows),
+            $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows, $starred),
             $task->description(),
             $parent instanceof Task ? new Choice($parent->id(), $parent->title()) : null,
             $task->section()?->name(),
@@ -409,6 +437,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $scope->opens($project),
             // The estimate is the organisation's, which a guest never sees.
             $this->visibility->canManage() ? $task->estimateMinutes() : null,
+            // The recurring task is seen by the people of the organisation only.
+            $recurring instanceof RecurringTask && $this->visibility->canManage() ? new Choice($recurring->id(), $recurring->title()) : null,
+            $task->occurrenceOn(),
         );
     }
 
@@ -664,6 +695,8 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         if ('' !== $filter->sort) {
+            $parameters += new TaskListDql($this->taskLists->list(), $me, $this->clock->today())->meParameter();
+
             return $this->sortedSlice($where, $parameters, $seen, $filter->sort, $afterId, $limit);
         }
         if (null !== $afterId) {
@@ -726,7 +759,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $where .= " AND (LOWER(t.title) LIKE :tl_text ESCAPE '!' OR LOWER(p.name) LIKE :tl_text ESCAPE '!')";
             $parameters['tl_text'] = ['%'.$this->like(mb_strtolower($text)).'%', null];
         }
-        $parameters += $dql->dueParameters();
+        $parameters += $dql->dueParameters() + $dql->meParameter();
         $seen = ScopedDql::tasks($this->visibility->scope(), 't');
         [$hidden, $order] = $this->ordered([...TaskListDql::groupOrder($search->group), ...TaskListDql::order(TaskLists::sort($search->sort, TaskLists::DEFAULT_SORT))]);
         $query = $seen->apply($this->entityManager
@@ -842,27 +875,19 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $where .= ' AND LOWER(p.name) LIKE :text ESCAPE \'!\'';
             $parameters['text'] = ['%'.$this->like(mb_strtolower(mb_substr($text, 0, self::MAX_TEXT))).'%', null];
         }
-        if ([] !== $view->conditions) {
-            $derived = static fn (Condition $condition): array => [match ($condition->field) {
-                ProjectLists::ARCHIVED => DqlConditions::derivedBoolean($condition, 'p.archivedAt IS NOT NULL'),
-                default => throw new \LogicException(\sprintf('The field "%s" of the projects has no SQL.', $condition->field)),
-            }, []];
-            [$condition, $bound] = new DqlConditions($this->projectLists->list(), self::PROJECT_COLUMNS, $derived(...))->compile($view, $this->clock->today(...), 'v');
-            $where .= ' AND '.$condition;
-            $parameters += $bound;
-        }
+        $scope = $this->visibility->scope();
+        [$condition, $bound] = $this->projectConditions($view, $scope);
+        $where .= ' AND '.$condition;
+        $parameters += $bound;
         if (null !== $afterId) {
             $where .= ' AND p.id < :after';
             $parameters['after'] = [$afterId, null];
         }
-        $scope = $this->visibility->scope();
         $seen = ScopedDql::projects($scope, 'p');
         $query = $seen->apply($this->entityManager
             ->createQuery('SELECT p, c FROM '.Project::class.' p LEFT JOIN p.client c WHERE '.$where.$seen->where.' ORDER BY p.id DESC'))
             ->setMaxResults($limit);
-        foreach ($parameters as $name => [$value, $type]) {
-            $query->setParameter($name, $value, $type);
-        }
+        $this->bind($query, $parameters);
         /** @var list<Project> $projects */
         $projects = $query->getResult();
 
@@ -1079,20 +1104,21 @@ final readonly class DoctrineWorkQueries implements WorkQueries
     private function tree(array $tasks): array
     {
         $labels = $this->labelsOf($tasks);
+        $starred = $this->starredOf($tasks);
         $deletable = $this->trash->rule();
         $scope = $this->visibility->scope();
         $children = [];
         foreach ($tasks as $task) {
             $parent = $task->parent();
             if ($parent instanceof Task) {
-                $children[$parent->id()][] = $this->row($task, $labels, $deletable, $scope, 0);
+                $children[$parent->id()][] = $this->row($task, $labels, $deletable, $scope, 0, starred: $starred);
             }
         }
         $rows = [];
         foreach ($tasks as $task) {
             if (!$task->isSubtask()) {
                 $subtasks = $children[$task->id()] ?? [];
-                $rows[] = $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtasks);
+                $rows[] = $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtasks, $starred);
             }
         }
 
@@ -1118,19 +1144,20 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             ->getArrayResult();
         $subtasks = array_column($counts, 'subtasks', 'parent');
         $labels = $this->labelsOf($tasks);
+        $starred = $this->starredOf($tasks);
 
         $deletable = $this->trash->rule();
         $scope = $this->visibility->scope();
 
         if (!$wide) {
-            return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0)), $tasks);
+            return array_map(fn (Task $task): TaskRow => $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0), starred: $starred), $tasks);
         }
         // The estimate and the time logged are the organisation's, which a guest never sees.
         $manage = $this->visibility->canManage();
         $logged = $manage && $this->taskTimes instanceof TaskTimes ? $this->taskTimes->minutes(array_map(static fn (Task $task): string => $task->id(), $tasks)) : null;
 
-        return array_map(function (Task $task) use ($labels, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
-            $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0));
+        return array_map(function (Task $task) use ($labels, $starred, $deletable, $scope, $subtasks, $manage, $logged): TaskRow {
+            $row = $this->row($task, $labels, $deletable, $scope, (int) ($subtasks[$task->id()] ?? 0), starred: $starred);
             $client = $task->project()->client();
 
             return new TaskRow(
@@ -1143,6 +1170,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
                 $task->createdAt(),
                 $task->updatedAt(),
                 $task->parent()?->title(),
+                $row->starred,
             );
         }, $tasks);
     }
@@ -1151,8 +1179,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
      * @param array<string, list<LabelBadge>> $labels    by task id
      * @param \Closure(string): bool          $deletable whether the person may delete a task, by who created it
      * @param list<TaskRow>                   $subtasks
+     * @param array<string, true>             $starred   the tasks the person starred, by id
      */
-    private function row(Task $task, array $labels, \Closure $deletable, WorkScope $scope, int $subtaskCount, array $subtasks = []): TaskRow
+    private function row(Task $task, array $labels, \Closure $deletable, WorkScope $scope, int $subtaskCount, array $subtasks = [], array $starred = []): TaskRow
     {
         $status = $task->status();
         $responsible = $task->responsible();
@@ -1178,7 +1207,31 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $deletable($task->createdBy()),
             $task->isPrivate(),
             $scope->seesProject($task->project()),
+            starred: isset($starred[$task->id()]),
         );
+    }
+
+    /**
+     * The tasks the person looking starred for My priorities, of those given.
+     *
+     * @param list<Task> $tasks
+     *
+     * @return array<string, true> by task id
+     */
+    private function starredOf(array $tasks): array
+    {
+        $me = $this->me();
+        if (!$me instanceof Membership || [] === $tasks) {
+            return [];
+        }
+        /** @var list<array{task: string}> $rows */
+        $rows = $this->entityManager
+            ->createQuery('SELECT IDENTITY(st.task) AS task FROM '.TaskStar::class.' st WHERE st.membership = :me AND st.task IN (:tasks)')
+            ->setParameter('me', $me->id())
+            ->setParameter('tasks', array_map(static fn (Task $task): string => $task->id(), $tasks))
+            ->getScalarResult();
+
+        return array_fill_keys(array_column($rows, 'task'), true);
     }
 
     /**

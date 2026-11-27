@@ -11,7 +11,9 @@ namespace Foresi\Tests\Work\Infrastructure\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Role;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
+use Foresi\Work\Application\View\LabelLists;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Project;
@@ -30,6 +32,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class LabelControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
     private EntityManagerInterface $em;
@@ -53,6 +57,34 @@ final class LabelControllerTest extends WebTestCase
         self::assertContains('/settings/labels', $crawler->filter('#sidebar [data-nav-area="settings"] [data-nav-section] li > a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
         self::assertSelectorTextContains('main', 'No labels yet');
         self::assertCount(2, $crawler->filter('main a[href="/settings/labels/new"][data-dialog]'));
+    }
+
+    public function testTheLabelsAreAListWithViewsAndItsTrashIsOneOfThem(): void
+    {
+        $this->signIn();
+        $this->label('Design', LabelColour::Green);
+        $this->label('Launch', LabelColour::Red);
+        $this->em->getConnection()->executeStatement('UPDATE label SET deleted_at = ? WHERE name = ?', ['2026-11-01 10:00:00', 'Launch']);
+        self::assertListWithViews(self::getContainer()->get(LabelLists::class), 'work.labels', ['name', 'tasks', 'trashed'], ['all' => false, 'trash' => true]);
+
+        // All leaves out the trash, with the columns the page always showed; the person's own stay.
+        $crawler = $this->client->request('GET', '/settings/labels');
+        self::assertSame(['Design'], $this->names($crawler));
+        self::assertSame(['name', 'preview', 'tasks'], $this->columns($crawler));
+        $crawler = $this->client->request('GET', '/settings/labels?cols=name,tasks');
+        self::assertSame(['name', 'tasks'], $this->columns($crawler));
+        self::assertListTable($crawler, '[data-labels]', ['widths' => '']);
+
+        // The trash shows who deleted a label and when instead of its preview, and its Reset keeps the view.
+        $crawler = $this->client->request('GET', '/settings/labels?view=trash');
+        self::assertSame(['Launch'], $this->names($crawler));
+        self::assertSame(['name', 'tasks', 'deleted_by', 'deleted_at'], $this->columns($crawler));
+        self::assertListTable($crawler, '[data-labels]', ['view' => 'trash', 'widths' => '']);
+
+        // The search and the builder's rows narrow the list on the server.
+        $this->label('Delivery', LabelColour::Amber);
+        self::assertSame(['Delivery'], $this->names($this->client->request('GET', '/settings/labels?q=deliv')));
+        self::assertSame(['Design'], $this->names(self::applyBuilder($this->client, '/settings/labels', 'name', 'sig')));
     }
 
     public function testAGuestIsDenied(): void
@@ -131,7 +163,8 @@ final class LabelControllerTest extends WebTestCase
         $this->tagTasks($id, 2);
         $crawler = $this->client->request('GET', '/settings/labels');
         self::assertSame('2', trim($crawler->filter('tr[data-id="'.$id.'"] td')->eq(2)->text()));
-        self::assertSame('Trash', trim($crawler->filter('main [data-label-trash]')->text()));
+        // The trash is the list's Trash view, its tab counting the labels in it.
+        self::assertSame('Trash0', $this->tab($crawler, 'Trash'));
         $form = $crawler->filter('tr[data-id="'.$id.'"] form[action$="/delete"]')->first();
         self::assertNull($form->attr('data-turbo-confirm'));
 
@@ -141,16 +174,19 @@ final class LabelControllerTest extends WebTestCase
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('[data-task-trashed]', 'The label Design is in the trash.');
         self::assertCount(0, $crawler->filter('tr[data-id="'.$id.'"]'));
-        self::assertSame('Trash (1)', trim($crawler->filter('main [data-label-trash]')->text()));
+        self::assertSame('Trash1', $this->tab($crawler, 'Trash'));
         self::assertCount(2, $this->em->getConnection()->fetchFirstColumn('SELECT id FROM task_label'));
 
-        $crawler = $this->client->request('GET', '/settings/labels/trash');
+        // The old address of the trash opens the Trash view.
+        $this->client->request('GET', '/settings/labels/trash');
+        self::assertResponseRedirects('/settings/labels?view=trash');
+        $crawler = $this->client->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSame(['Design', '2'], $crawler->filter('tr[data-id="'.$id.'"] td')->slice(0, 2)->each(static fn (Crawler $cell): string => trim($cell->text())));
         self::assertSelectorTextContains('main [data-trash-purge]', '30 days');
         $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/restore"]')->first()->form());
 
-        self::assertResponseRedirects('/settings/labels/trash', 303);
+        self::assertResponseRedirects('/settings/labels?view=trash', 303);
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'The label Design is restored.');
         self::assertSelectorTextContains('main', 'The trash is empty');
@@ -181,10 +217,10 @@ final class LabelControllerTest extends WebTestCase
         $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/delete"]')->first()->form());
         $this->label('design', LabelColour::Red);
 
-        $crawler = $this->client->request('GET', '/settings/labels/trash');
+        $crawler = $this->client->request('GET', '/settings/labels?view=trash');
         $this->client->submit($crawler->filter('tr[data-id="'.$id.'"] form[action$="/restore"]')->first()->form());
 
-        self::assertResponseRedirects('/settings/labels/trash', 303);
+        self::assertResponseRedirects('/settings/labels?view=trash', 303);
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'A label of this name exists already. Rename it, then restore this one.');
         self::assertCount(1, $crawler->filter('tr[data-id="'.$id.'"]'));
@@ -197,6 +233,27 @@ final class LabelControllerTest extends WebTestCase
         $this->client->request('GET', '/settings/labels/trash');
 
         self::assertResponseStatusCodeSame(403);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function names(Crawler $crawler): array
+    {
+        return $crawler->filter('[data-labels] tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->text()));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function columns(Crawler $crawler): array
+    {
+        return $crawler->filter('[data-labels] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column'));
+    }
+
+    private function tab(Crawler $crawler, string $name): string
+    {
+        return (string) preg_replace('/\s+/', '', $crawler->filter('[data-list-toolbar] a')->reduce(static fn (Crawler $tab): bool => str_starts_with(trim($tab->text()), $name))->text());
     }
 
     private function signIn(Role $role = Role::Owner): void

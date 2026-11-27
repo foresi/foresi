@@ -378,7 +378,7 @@ final class FirmBankControllerTest extends WebTestCase
      */
     private function pairs(): bool
     {
-        return \in_array('Foresi\\Invoicing\\InvoicingBundle', self::getContainer()->getParameter('kernel.bundles'), true);
+        return \in_array(\Foresi\Invoicing\InvoicingBundle::class, self::getContainer()->getParameter('kernel.bundles'), true);
     }
 
     private function needsPairing(): void

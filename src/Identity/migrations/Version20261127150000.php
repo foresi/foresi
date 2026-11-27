@@ -77,7 +77,7 @@ final class Version20261127150000 extends AbstractMigration implements RunsOnlyF
                 continue;
             }
             foreach ($this->connection->fetchAllAssociative(\sprintf('SELECT id, scopes FROM %s', $table)) as $row) {
-                $scopes = self::scopes($row['scopes']);
+                $scopes = $this->scopes($row['scopes']);
                 if (null === $scopes) {
                     continue;
                 }
@@ -92,7 +92,7 @@ final class Version20261127150000 extends AbstractMigration implements RunsOnlyF
     /**
      * @return list<string>|null null for a value that is no list of scopes
      */
-    private static function scopes(mixed $json): ?array
+    private function scopes(mixed $json): ?array
     {
         $scopes = \is_string($json) ? json_decode($json, true) : null;
         if (!\is_array($scopes) || !array_is_list($scopes)) {

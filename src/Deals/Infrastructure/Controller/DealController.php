@@ -1070,7 +1070,7 @@ final class DealController extends AbstractController
      */
     private function personsBlock(?PartySummary $client, array $person, array $errors): array
     {
-        $shown = null !== $this->clientPersons && $client instanceof PartySummary && ContactKind::Person !== $client->kind;
+        $shown = $this->clientPersons instanceof \Foresi\Deals\Application\ClientPersons && $client instanceof PartySummary && ContactKind::Person !== $client->kind;
         $candidates = [];
         foreach ($shown ? $this->clientPersons->candidatesOf($client->id) : [] as $candidate) {
             $candidates[$candidate->id] = $candidate->displayName;

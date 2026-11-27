@@ -26,7 +26,20 @@ use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 /**
  * Creates a person who signs in, with their membership.
  */
-#[AsCommand(name: 'app:user:create', description: 'Create a user and their membership')]
+#[AsCommand(
+    name: 'app:user:create',
+    description: 'Create a user and their membership',
+    help: <<<'HELP'
+    Creates a person who can sign in, together with their membership, in one transaction. Run it once
+    after installation to create the first owner, or later to add a user without an invitation. It asks
+    for a display name and a password of at least 12 characters.
+    A guest must represent an existing contact, so pass --contact with its id.
+    It writes one user and one membership. It is not safe to repeat: a second run for the same e-mail
+    address fails with exit code 1 and changes nothing.
+
+      bin/console app:user:create owner@example.com owner
+    HELP,
+)]
 final readonly class CreateUserCommand
 {
     public function __construct(

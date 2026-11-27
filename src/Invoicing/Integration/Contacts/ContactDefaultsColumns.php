@@ -39,8 +39,8 @@ final class ContactDefaultsColumns implements ContactColumns
         return [
             $this->column('default_due_days', 'dueDays', AttributeType::Number, static fn (InvoicingDefaults $values): int => $values->dueDays, 170),
             $this->column('currency', 'currency', AttributeType::Text, static fn (InvoicingDefaults $values): string => $values->currency->value, 180),
-            $this->column('payment_method', 'paymentMethod', AttributeType::Enum, static fn (InvoicingDefaults $values): PaymentMethod => $values->paymentMethod, 190, self::options(PaymentMethod::cases(), 'invoice.contact_defaults.payment_method.')),
-            $this->column('language', 'language', AttributeType::Enum, static fn (InvoicingDefaults $values): DocumentLanguage => $values->language, 200, self::options(DocumentLanguage::cases(), 'invoice.contact_defaults.document_language.')),
+            $this->column('payment_method', 'paymentMethod', AttributeType::Enum, static fn (InvoicingDefaults $values): PaymentMethod => $values->paymentMethod, 190, $this->options(PaymentMethod::cases(), 'invoice.contact_defaults.payment_method.')),
+            $this->column('language', 'language', AttributeType::Enum, static fn (InvoicingDefaults $values): DocumentLanguage => $values->language, 200, $this->options(DocumentLanguage::cases(), 'invoice.contact_defaults.document_language.')),
             $this->column('reverse_charge', 'reverseCharge', AttributeType::Boolean, static fn (InvoicingDefaults $values): bool => $values->reverseCharge, 210),
             $this->column('reminders', 'sendReminders', AttributeType::Boolean, static fn (InvoicingDefaults $values): bool => $values->sendReminders, 220),
             $this->column('hourly_rate', 'hourlyRateMinor', AttributeType::Money, static fn (InvoicingDefaults $values): ?Money => $values->hourlyRate(), 230),
@@ -90,7 +90,7 @@ final class ContactDefaultsColumns implements ContactColumns
      *
      * @return array<string, string>
      */
-    private static function options(array $cases, string $prefix): array
+    private function options(array $cases, string $prefix): array
     {
         $options = [];
         foreach ($cases as $case) {

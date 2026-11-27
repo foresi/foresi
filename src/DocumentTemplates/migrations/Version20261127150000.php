@@ -21,7 +21,9 @@ use Foresi\Shared\Infrastructure\Migration\RenamesTables;
  * foreign keys, and the events (documents.document.created becomes
  * document-templates.document.created) in the event log, the webhook
  * deliveries and the endpoints' subscriptions (documents.* becomes
- * document-templates.*). The rows stay. Going down names them the old way again.
+ * document-templates.*), and the saved views of the settings lists (documents.types
+ * becomes document_templates.types). The rows stay. Going down names them the old
+ * way again.
  */
 final class Version20261127150000 extends AbstractMigration implements RenamesTables, RunsOnlyForReal
 {
@@ -53,6 +55,11 @@ final class Version20261127150000 extends AbstractMigration implements RenamesTa
         'fk_documents_signer_document' => ['document_signer', 'fk_document_signer_document'],
     ];
 
+    private const array LISTS = [
+        'documents.types' => 'document_templates.types',
+        'documents.templates' => 'document_templates.templates',
+    ];
+
     public function getDescription(): string
     {
         return 'Name the tables and events of documents after their records and the module document-templates';
@@ -73,6 +80,7 @@ final class Version20261127150000 extends AbstractMigration implements RenamesTa
         $rename = new ModuleRename($this->connection);
         $rename->renameTables(self::TABLES, self::INDEXES, self::FOREIGN_KEYS);
         $rename->renameEvents('documents.', 'document-templates.');
+        $rename->renameListKeys(self::LISTS);
     }
 
     public function down(Schema $schema): void
@@ -83,6 +91,7 @@ final class Version20261127150000 extends AbstractMigration implements RenamesTa
     public function postDown(Schema $schema): void
     {
         $rename = new ModuleRename($this->connection);
+        $rename->renameListKeys(array_flip(self::LISTS));
         $rename->renameEvents('document-templates.', 'documents.');
         $rename->renameTablesBack(self::TABLES, self::INDEXES, self::FOREIGN_KEYS);
     }

@@ -34,7 +34,8 @@ final class ProductLists implements ListDefinitionSource
     public const string ARCHIVED = 'archived';
     public const string BILLING_KIND = 'billing_kind';
 
-    private ?ListDefinition $list = null;
+    /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
+    private array $list = [];
 
     public function __construct(private readonly ListFields $fields)
     {
@@ -49,7 +50,7 @@ final class ProductLists implements ListDefinitionSource
     {
         $kinds = array_column(BillingKind::cases(), 'value');
 
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, [
             new Field(self::ARCHIVED, FieldType::Boolean, 'catalog.products.field.archived'),
             new Field(self::BILLING_KIND, FieldType::Enum, 'catalog.product.field.billing_kind', options: $kinds, optionLabels: array_combine($kinds, array_map(static fn (string $kind): string => 'catalog.billing_kind.'.$kind, $kinds))),
         ]), $this->defaults(), [self::BILLING_KIND]);

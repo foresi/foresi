@@ -340,20 +340,21 @@ final readonly class VehicleAdded implements DomainEventPayload
 }
 ```
 
-The name starts with the module id, and the payload is thin: ids, not copies of the data. The use case records the event with `EventRecorder` in the same transaction as the change, so the event exists exactly when the change is committed:
+The name starts with the module id, and the payload is thin: ids, not copies of the data. The use case runs the change in a `Foresi\Shared\Contract\UnitOfWork` and records the event with `EventRecorder` inside it, so the event exists exactly when the change is committed:
 
 ```php
-return $this->em->wrapInTransaction(function () use ($name, $plate, $input): Vehicle {
+return $this->work->run(function () use ($name, $plate, $input): Vehicle {
     // the checks
     $this->em->persist($vehicle);
-    $this->em->flush();
     $this->events->record(new VehicleAdded($vehicle->id()));
 
     return $vehicle;
 });
 ```
 
-`record()` outside a transaction throws a `LogicException`.
+`run()` flushes the entity manager and commits when the closure returns. Right after the commit, the event goes to the listeners and webhooks. If the closure throws, `run()` rolls back and drops the event. It replaces the entity manager, so the caller can query on, and rethrows the exception unchanged. A refusal thrown in the closure (`VehicleRefused::plateTaken()`) therefore stores nothing. A unit inside another one, such as yours inside a listener the relay runs, or Work's `TaskIntake` inside yours, is part of the outer one: only the outermost unit commits. `record()` outside a transaction throws a `LogicException`.
+
+Do not call `$em->wrapInTransaction()` yourself. Your events would then wait for the relay's periodic sweep, up to five minutes. After a failure the entity manager would stay closed. And inside another unit, you would open a savepoint that flushes the outer unit's changes early (ADR 0048).
 
 A listener of another module's event implements `DomainEventListener`. Fleet takes an archived contact off every vehicle it drove:
 
@@ -375,6 +376,8 @@ final readonly class DropArchivedDriver implements DomainEventListener
 ```
 
 Listeners run after the commit, from the event relay, so they must be idempotent: the relay may call one again for the same event. The relay flushes the unit of work after the listener, so the listener only changes entities. The class name is the listener's key, under which the relay records what it has delivered. Do not rename the class once the module is in use.
+
+The relay runs each delivery in a unit of work, and records the delivery in it. A `UnitOfWork::run()` in the listener joins that unit. So the listener's database changes and the record that it was called are stored together: the relay calls it again only if they were not stored. Effects outside the database, such as a mail or an HTTP call, can still happen twice, so key them on the event id. Operations need nothing of this. The REST API and MCP keep an idempotency key with the answer, so a client's retry never runs the write twice.
 
 ### 9. A setting
 
@@ -474,7 +477,7 @@ To add something to a screen of another module instead of a page of your own, us
 4. Make it idempotent. Do not flush; the relay does.
 5. Do not rename the class later: its name is the listener's key.
 
-To publish an event of your own, put a `DomainEventPayload` with `#[DomainEvent('<id>.<resource>.<action>', version: 1)]` in `Contract/Event/`, and record it with `EventRecorder::record()` inside the transaction of the change. A new field in the payload keeps the version; anything else is a new version.
+To publish an event of your own, put a `DomainEventPayload` with `#[DomainEvent('<id>.<resource>.<action>', version: 1)]` in `Contract/Event/`, and record it with `EventRecorder::record()` inside the `UnitOfWork::run()` of the change. A new field in the payload keeps the version; anything else is a new version.
 
 ### Integrate with an optional module
 
@@ -526,7 +529,7 @@ Foresi has no settings screen for modules. A setting that the people of a firm c
 
 ### Add fields to a record
 
-A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field in the card "Additional details" of the record's dialogs and detail, as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, keeps its changes in the record's history under the field's label, and names it in the record's update event when its value changes.
+A module adds custom fields to a record of another module: a contact, a deal, a task, a project or a product ([ADR 0045](adr/0045-custom-fields.md)). A field is a property of an entity of your module, in a table of your module; the record's own table never changes. Foresi shows the field in the card "Additional details" of the record's dialogs and detail, as a column of the record's list that a person adds, filters by it in the filter sheet, the quick filters, saved views and the `filter` of the record's `foresi_search_*` tool, sorts and searches by it when it says so, keeps its changes in the record's history under the field's label, names it in the record's update event when its value changes, and offers it in the record's import and export and in the document templates.
 
 1. Require the record's module and module API 2.0 in `composer.json`, such as `"foresi/contacts": "*"` and `"foresi/module-api": "^2.0"` for a contact (its extension interface, `ContactExtension`, is Party's, but the record and its screens are the address book's).
 2. Write an entity in `Domain/` that implements the record's extension interface:
@@ -538,6 +541,7 @@ A module adds custom fields to a record of another module: a contact, a deal, a 
    | Task | `Foresi\Work\Contract\Field\TaskExtension` | `taskId()` | The task list of a project |
    | Project | `Foresi\Work\Contract\Field\ProjectExtension` | `projectId()` | The projects |
    | Product | `Foresi\Catalog\Contract\Field\ProductExtension` | `productId()` | The products |
+   | Meeting | `Foresi\Meetings\Contract\Field\MeetingExtension` | `meetingId()` | The meetings |
 
 3. Give the entity the record's id as its only id, a `guid` column, and make every other mapped property a field with `#[CustomField]` from `Foresi\Shared\Contract\Field`. An extension has no associations and no other columns.
 4. Map each field to a nullable column of a type its kind allows:
@@ -591,13 +595,14 @@ The flags of `#[CustomField]`, all off unless the table says otherwise:
 
 | Flag | What it does |
 | --- | --- |
-| `filterable` | A field of the record's filters, saved views and quick filters, and of the `filter` of its search tool. A contact or a user field compares the id it holds, and the filter sheet picks the contact or the person by name. |
+| `filterable` | A field of the record's filters, saved views and quick filters, and of the `filter` of its search tool. A contact or a user field compares the id it holds, and the filter sheet picks the contact or the person by name. A field the actor does not see (`guests`, `api`) is no filter of theirs: it is not in their filter sheet or list description, a filter that names it is refused as an unknown field, and a saved view that names it is not shown to them. |
 | `sortable` | A sort of the record's list where the list sorts by columns (the address book). Not for a long text or a multi-select. |
 | `searchable` | The record's text search reads it. A text, a long text or a URL only. |
-| `guests` | Guests see it too, and may change it where they may change the record. Without it, a guest gets no column, input or value of it, and a write of it by a guest is refused. |
+| `guests` | Guests see it too, and may change it where they may change the record. Without it, a guest gets no column, input, value or filter of it, a write of it by a guest is refused, and a guest does not see a view that filters by it. |
 | `required` | A new record needs a value: its dialogs mark it and refuse to create the record without one, and the short dialogs (a new contact from a picker, a new task or subtask) show only the required fields. A later change may clear it. |
-| `api` (on) | Part of the REST and MCP payloads (since 1.7). Off, the field is left out of what an API token reads, and a write of it over the API is refused as an unknown field; a required field that is off is not required over the API. |
-| `template` (on), `import` (on) | Part of the document templates and of the import and export. |
+| `api` (on) | Part of the REST and MCP payloads (since 1.7). Off, the field is left out of what an API token reads, and a write of it over the API is refused as an unknown field; a required field that is off is not required over the API. Off, it is no filter of an API token either: the `filter` of the REST lists and of the search tools refuses it as an unknown field, and a saved view that filters by it is neither listed for the token nor created or changed by it. |
+| `template` (on) | A variable of the document templates of the record (since 1.9), `{{ client.custom.<key> }}` for a contact and `{{ deal.custom.<key> }}` for a deal. Off, templates do not offer it. |
+| `import` (on) | A field of the record's import and a column of its export (since 1.9), where the record has an import (the contacts). Off, neither offers it. |
 
 Foresi checks the declarations when it first reads the fields and stops with a `LogicException` that names the class and the property: a column that is not nullable, a type the kind does not allow, options on a kind that is no select (or none on a select), an option key that is not lowercase letters, digits and underscores, a sortable or searchable kind that cannot be, a column without `#[CustomField]`, an association, an id that is not one `guid`, or two fields of one key.
 
@@ -606,6 +611,12 @@ To read and write the fields, inject `Foresi\Shared\Contract\Field\Fields`, neve
 Where a person sees and changes the fields, under "Additional details": the whole form and the detail of a contact, the form and the detail of a product, the dialogs and the side column of a deal, the sidebar of a task (each field saved on its own), and the new project dialog and the project's settings (the project's page shows none). Each input is the one of its kind: a text field, a number, a date, a date and time, a web address, a long text, a select, choice chips of a multi-select, a checkbox, and a picker of a contact or a person, which the filter sheet uses too. The record's update event (`contacts.contact.updated`, `deals.deal.updated`, `catalog.product.updated`, `work.task.updated`, `work.project.updated`) names the keys of the fields whose value changed in `customFields`, never the values.
 
 Over the REST API and MCP (since 1.7), every contact, deal, task, project and product carries `custom_fields`, an object with each field the token's person sees by key, and null for one without a value: a select gives its option key, a multi-select a list of them, a date `YYYY-MM-DD`, a date and time ISO 8601 with an offset, a number a JSON number, a contact or a user its id. The create and update operations of the five records (`contacts.create`, `foresi_update_deal` and the others) take `custom_fields` with the keys to set; null clears one, and a key left out keeps its value. A create without a value for a required field is refused. A refusal is an invalid `custom_fields.<key>` with the reason `unknown_field`, `invalid_value` or `field_required`. `GET /api/v1/fields` and the MCP tool `foresi_list_fields` list the definitions, one record kind with `record`, each with its key, kind, label, options and flags; they only read, and nothing creates a field over the API. The OpenAPI document and the schemas of the MCP tools describe `custom_fields` from the definitions (`ContactCustomFields` and the like), and a filterable field is a field of the `filter` of the record's search tool and of its REST list.
+
+In the import and the export (since 1.9), each field with `import` on is one more field of the record's import, in the group "Additional details", and one more column of its export, so an exported file imports again. Today the contacts are the record with an import. A cell is read by the field's kind: a select by an option's key or its label in Czech or English, a multi-select as such options separated by commas or semicolons, a yes/no field as the import reads yes and no, a date as the import reads dates, a date and time as `YYYY-MM-DD HH:MM` or ISO 8601 with an offset, a contact or a user by its id. The export writes options by their labels in the exporting person's language, dates as `YYYY-MM-DD` and numbers with a decimal point. The value is written through `Fields`, an undo of the import puts the earlier value back, and an empty cell keeps or clears the value as the import's option says. The import does not ask for a required field, because a row may only update a record that has it.
+
+In the document templates (since 1.9), each field with `template` on is a variable of its record below `custom`: `{{ client.custom.acme_fleet_industry }}` for a contact, which templates call the client, and `{{ deal.custom.<key> }}` for a deal. The other records have no variables in templates, so their fields have none either. The value is the text the record's detail shows, in the language of the person who generates the document: an option by its label, a date as their language writes it, yes or no, a contact or a person by name. A field without a value is empty, so a template that uses it never misses it. The editor lists the fields beside the record's own variables, and the preview shows an example of each kind.
+
+A module that adds an import target of its own for one of these records implements `Foresi\Import\Contract\FieldRecordTarget` instead of `ImportTarget` and returns the record kind from `fieldRecord()`, such as `ContactExtension::RECORD`; the import then adds the fields as above, and the target never sees their values. A document variable source may name a variable by a path, such as `custom.acme_fleet_industry`, and nest its value the same way.
 
 ### Run a job on a schedule
 
@@ -692,6 +703,8 @@ What each version brought:
 | 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
 | 1.7 | Custom fields over the REST API and MCP: `custom_fields` in the payloads of contacts, deals, tasks, projects and products and in their create and update operations, with the `api` flag honoured; `GET /api/v1/fields` and the MCP tool `foresi_list_fields`; the OpenAPI schemas of the fields, generated from the definitions. A module whose fields must reach the API requires `^1.7`. |
 | 1.8 | Won deals in the cash flow: the certainty `FlowCertainty::Deal` (`deal`), `UndatedFlowSource` and `UndatedFlow` of Cash flow, amounts without a day; `BillingDocumentSource` (`foresi.deals.billing_document_source`), `BillingDocument` and `BillingDocumentType` of Sales, the invoices a planned invoice of a won deal is linked to; `PartySummary::$dueDays`; the events `deals.billing_entry.*`, `invoicing.recurring_invoice.ended` and `invoicing.recurring_invoice.deleted`. A module that uses them requires `^1.8`. |
+| 1.9 | Custom fields in the import, the export and the document templates: the `import` and `template` flags take effect; `FieldRecordTarget` of Import, an import target whose records take custom fields; a `VariableDefinition` of Documents may be named by a path, such as `custom.acme_fleet_industry`. A module whose fields must reach the import or the templates requires `^1.9`. |
+| 1.10 | `Foresi\Shared\Contract\UnitOfWork`, the unit of work of a module's change: its records and its events are stored together, and the events reach listeners and webhooks right after the commit instead of with the relay's sweep. A module that uses it requires `^1.10`. |
 | 2.0 | The modules got the names they keep (a major version: every name below moved, and a module written for 1.x must change). Contacts: the address book is the module `contacts`; `ContactTabs`, `ContactListActions`, `ContactCards`, `ContactColumns`, `ContactImportColumns`, `ContactCreation`, `NewContact`, `ContactsByEmail`, `ContactPersonWrites` and `ContactPersonRefused` moved from `Foresi\Party\Contract` to `Foresi\Contacts\Contract`, the events `contacts.contact.*` (were `party.contact.*`) to `Foresi\Contacts\Contract\Event`, and `ContactKind` of the summaries to `Foresi\Party\Contract\ContactKind`; the scope `contacts` is the contacts module's, and the firm has its own scope `firm`. Deals, received documents and document templates: `Foresi\Sales\` is `Foresi\Deals\`, `Foresi\Purchasing\` is `Foresi\ReceivedDocuments\` and `Foresi\Documents\` is `Foresi\DocumentTemplates\`, with their tags (`foresi.deals.*`, `foresi.received_documents.*`, `foresi.document_templates.*`), slots (`deals.*`, `received_documents.*`), list keys and events (`deals.*`, `received-documents.*`, `document-templates.*`). Timesheet: time, the project budget and the time settings of a project are the module `timesheet`, apart from Work. Invoicing publishes what other modules bill and pay through (`BilledWork`, `BilledWorkOrigin`, `BilledWorkRelease`, `InvoiceNumbers`, `PayableInvoices`, `BankPayments`, `BankPaymentRelease`, `PartyInvoicingDefaults`, `DocumentLanguage`, `PaymentMethod`, `InvoicingDefaults`), and Webhooks is a module of its own, outside the core. Work's new project dialog has the slot `ProjectSlots::NEW_FORM` (`work.project.new_form`). Work's `InvoiceNumbers` (`foresi.work.invoice_numbers`, before that `app.invoice_numbers`) left the contract: the billing of time is Timesheet's own. A module written for 1.x moves to the new names, requires `^2.0` and, for a module it used through the old names, that module's package, such as `foresi/contacts`. |
 
 When the container is built, the kernel checks the range of every installed module. A module whose range the provided version does not satisfy, or that has no range, stops the boot with one message:
@@ -751,8 +764,8 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
-| `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, and a member of `custom_fields` over REST and MCP (since 1.7). |
-| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Deals\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
+| `CustomField` (attribute), `FieldKind` | — | A property of a record extension as a custom field of the record: an input of its dialogs, a value of its detail (since 1.4), a column of its list, a filter, a sort, a search, its history, a member of `custom_fields` over REST and MCP (since 1.7), and a field of the import and export and a variable of the document templates (since 1.9). |
+| `RecordExtension` and the records' extension interfaces: `Foresi\Party\Contract\Field\ContactExtension`, `Foresi\Deals\Contract\Field\DealExtension`, `Foresi\Work\Contract\Field\TaskExtension`, `Foresi\Work\Contract\Field\ProjectExtension`, `Foresi\Catalog\Contract\Field\ProductExtension`, `Foresi\Meetings\Contract\Field\MeetingExtension` | — | The entity that holds a module's fields of a record, with the record's id and the record kind in `RECORD`. Its changes are audited under the record. |
 | `Fields` (service), `FieldDefinition`, `FieldExpression` | — | The fields of a record kind, their values read once a request and written in the caller's transaction, and the DQL that reads them. |
 | `FieldSource` | `foresi.shared.field_source` | A source of fields of its own, such as fields defined at runtime. The core's source reads the record extensions. |
 
@@ -761,6 +774,7 @@ Everything else is internal, even when PHP makes it `public`. See [What is publi
 | Extension point | Tag | What the core gives |
 | --- | --- | --- |
 | `DomainEvent` (attribute), `DomainEventPayload`, `EventSubject` | — | The event in the catalogue, the event log, the API (`/api/v1/events`) and the webhooks. |
+| `UnitOfWork` (service, since 1.10) | — | Runs a change as one unit: the outermost unit flushes and commits, hands its events to the relay at once, and on a failure rolls back, drops them and replaces the entity manager. |
 | `EventRecorder` (service) | — | Records an event in the active transaction. |
 | `DomainEventListener` | `foresi.shared.domain_event_listener` | Called after the commit, from the event relay, with the `RecordedEvent`; the relay flushes and records the delivery. |
 | `RecordedEvent` | — | The stored event: id, name, version, time, correlation id and payload. |
@@ -805,10 +819,11 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Deals | `BillingDocumentSource` (`foresi.deals.billing_document_source`, since 1.8) |
 | Document templates | `DocumentLinkTarget` (`foresi.document_templates.link_target`), `DocumentVariableSource` (`foresi.document_templates.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
-| Import | `ImportTarget` (`foresi.import.target`), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
+| Import | `ImportTarget` (`foresi.import.target`) and its extension `FieldRecordTarget` (since 1.9), `SourcePreset` (`foresi.import.preset`), `TargetPages` (`foresi.import.target_pages`) |
 | Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`); for the module that owns bank movements, the services `BankPayments` (record and cancel a payment from a movement, with `BankPayment`, `BankPaymentPart` and `BankPaymentRefused`) and `PayableInvoices` (the invoices a movement may pay or refund, with `PayableInvoice`), and `BankPaymentRelease` (`foresi.invoicing.bank_payment_release`), told when a bank payment is cancelled; the service `PartyInvoicingDefaults`, the invoicing defaults of a contact (due period, currency, document language, payment method, reverse charge, reminders, hourly rate), with `InvoicingDefaults`, `DocumentLanguage` and `PaymentMethod` (moved from Party's domain) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
+| Meetings | `MeetingTarget` (`foresi.meetings.target`) |
 | Margin | `MarginCostSource` (`foresi.margin.cost_source`), `MarginRevenueSource` (`foresi.margin.revenue_source`) |
 | Party | `BankAccountUsage` (`foresi.party.bank_account_usage`); what another module keeps for each contact: `ContactDueDays` (`foresi.party.contact_due_days`, the due period of `PartySummary`); `ContactPages`, the page of a contact in the address book, null without it (inject it nullable; Twig `contact_url()`, `contact_edit_url()`, `contact_new_url()`) |
 | Received documents | `Reading\DocumentReader` (`foresi.received_documents.document_reader`) |
@@ -833,8 +848,6 @@ These are known gaps. They will change, so do not build on them as if they were 
 
 - **`Money` and `Currency`** (`Foresi\Shared\Domain`) appear in some contracts of business modules, but are not part of the contract themselves. How Foresi models currencies is being settled, and these classes will change. Read them, but do not extend them or rely on their constructors.
 - **Response schemas in the OpenAPI document.** An operation's `response` names a schema of the document, and a module cannot add schemas to it yet. Leave `response` out: the endpoint works, and the document shows its answer without a schema of its data. A later module API version will let modules add schemas.
-- **Events wait for the relay.** An event that a module records is delivered to listeners and webhooks when the relay next runs, at most five minutes later, unless another change commits first. Foresi's own modules can hand events to the relay at once; that service is not in the contract yet.
-- **Custom fields in import, export and templates.** Since module API 1.7 a record's custom fields are in its dialogs, detail, lists, filters, saved views, text search, history, update event, REST and MCP. The import and export and the document templates do not show them yet; a later 2.x version adds them, without a change to an extension.
 - **No test kit.** The test support of acme/fleet (`ApiTestCase`, `SignedInBrowser`, `IdentityFixtures`) is part of this repository's tests, not a published package.
 - **Required modules' internals.** A module that requires a business module and uses its `Domain\` or `Application\` classes is not protected by the contract. Use only the other module's `Contract\` namespace.
 

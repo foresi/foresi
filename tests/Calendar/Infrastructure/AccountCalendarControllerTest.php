@@ -8,16 +8,19 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Calendar\Infrastructure;
 
+use Foresi\Calendar\Application\View\CalendarFeedLists;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Domain\FeedToken;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The calendar feeds in the person's account: listed with name, created and last
@@ -26,6 +29,8 @@ use Symfony\Component\Clock\NativeClock;
  */
 final class AccountCalendarControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
 
@@ -54,6 +59,26 @@ final class AccountCalendarControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-calendar-feeds-empty]'));
         self::assertCount(1, $crawler->filter('a#calendar-feed-new[href="/account/calendar/new"][data-dialog]'));
         self::assertStringContainsString('3 to 24 hours', $crawler->filter('[data-calendar-refresh-note]')->text());
+    }
+
+    public function testTheFeedsAreAListWithViews(): void
+    {
+        $user = $this->signedIn(Role::Member);
+        $this->feed($user, 'Phone');
+        $this->feed($user, 'Laptop');
+        self::assertListWithViews(self::getContainer()->get(CalendarFeedLists::class), 'calendar.feeds', ['name', 'revoked'], ['all' => false]);
+        // The first cell of a row holds the name, and on a phone when the feed was made under it.
+        $names = static fn (Crawler $crawler): array => $crawler->filter('[data-calendar-feeds] tbody tr[data-id]')->each(static fn (Crawler $row): string => explode('2026', trim($row->filter('th, td')->first()->text()))[0]);
+
+        $crawler = $this->client->request('GET', '/account/calendar');
+        self::assertSame(['name', 'created', 'last_fetched'], $crawler->filter('[data-calendar-feeds] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        // An old link names the column of the last fetch as it was called.
+        $crawler = $this->client->request('GET', '/account/calendar?cols=name,lastFetched');
+        self::assertSame(['name', 'last_fetched'], $crawler->filter('[data-calendar-feeds] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-calendar-feeds]', ['widths' => '']);
+
+        self::assertSame(['Laptop'], $names($this->client->request('GET', '/account/calendar?q=lap')));
+        self::assertSame(['Phone'], $names(self::applyBuilder($this->client, '/account/calendar', 'name', 'Pho')));
     }
 
     public function testANewFeedShowsItsAddressOnceAndTheListNever(): void

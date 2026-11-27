@@ -26,8 +26,8 @@
 {# The trigger is a small icon button at the end of the list's tabs, after the search and the filter icon; its label is its accessible name and tooltip. #}
 {% set buttonLabel = 'ui.column_picker.button'|trans ~ (modified ? ', ' ~ 'ui.column_picker.modified'|trans : '') %}
 <div {{ attributes.defaults({class: 'relative shrink-0', 'data-controller': 'column-picker', 'data-column-picker-dialog-outlet': '#' ~ sheetId, 'data-column-picker-max-pins-value': picker.maxPins, 'data-column-picker-max-tabs-value': manage.maxTabs ?? 0, 'data-column-picker-moved-value': 'ui.column_picker.moved'|trans({label: '{label}', position: '{position}', total: '{total}'})}) }}>
-    <twig:Ui:IconButton icon="settings" variant="ghost" size="sm" :label="buttonLabel" aria-haspopup="dialog" :aria-controls="sheetId" data-action="column-picker#open" data-column-picker-open="" />
-    {%- if modified %}<span class="pointer-events-none absolute right-0.5 top-0.5 size-2 rounded-sm bg-green" aria-hidden="true" data-column-picker-modified></span>{% endif -%}
+    <twig:Ui:IconButton icon="settings" variant="secondary" size="sm" :label="buttonLabel" aria-haspopup="dialog" :aria-controls="sheetId" data-action="column-picker#open" data-column-picker-open="" />
+    {%- if modified %}<span class="pointer-events-none absolute -right-0.75 -top-0.75 size-2 rounded-sm bg-green ring-2 ring-white" aria-hidden="true" data-column-picker-modified></span>{% endif -%}
     <twig:Ui:Sheet :id="sheetId" :title="'ui.column_picker.title'|trans" :description="'ui.column_picker.description'|trans" size="sm">
         <div class="grid gap-5">
             {% if manage %}

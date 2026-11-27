@@ -49,7 +49,7 @@ final class Version20261127130000 extends AbstractMigration
     {
         // Party's migrations create the party before this runs; a reader of the migrations alone may not have it.
         $party = $schema->hasTable('party') ? $schema->getTable('party') : null;
-        $this->partyColumns = null === $party ? [] : array_filter(self::PARTY_COLUMNS, $party->hasColumn(...));
+        $this->partyColumns = $party instanceof \Doctrine\DBAL\Schema\Table ? array_filter(self::PARTY_COLUMNS, $party->hasColumn(...)) : [];
 
         $table = $schema->createTable('invoicing_party_default');
         $table->addColumn('id', Types::GUID);

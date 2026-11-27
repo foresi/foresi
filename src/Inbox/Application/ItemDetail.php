@@ -12,6 +12,7 @@ use Foresi\Inbox\Contract\InboxAttachment;
 use Foresi\Inbox\Contract\InboxItemView;
 use Foresi\Inbox\Contract\InboxOutput;
 use Foresi\Inbox\Domain\InboxItem;
+use Foresi\Inbox\Domain\Suggestion;
 use Foresi\Mail\Contract\MailAttachment;
 use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\SenderCheck;
@@ -32,6 +33,7 @@ final readonly class ItemDetail
      * @param list<MailAttachment> $attachments
      * @param list<InboxItem>      $thread      the owner's other items of the conversation, oldest first
      * @param list<OutputView>     $outputs     the oldest first
+     * @param list<Suggestion>     $suggestions the oldest first; for the owner only, none for anyone else
      */
     public function __construct(
         public InboxItem $item,
@@ -40,6 +42,7 @@ final readonly class ItemDetail
         public array $attachments,
         public array $thread,
         public array $outputs,
+        public array $suggestions = [],
     ) {
     }
 

@@ -62,6 +62,39 @@ final class RecurringSchedule
     }
 
     /**
+     * The first date on or after the calendar day of $from that the end rule still
+     * allows once $issued occurrences exist; null when it allows none. The end rule
+     * counts what was really issued, not the dates passed, so a date skipped while
+     * paused does not count.
+     */
+    public static function firstFrom(Recurrence $r, int $issued, \DateTimeImmutable $from): ?\DateTimeImmutable
+    {
+        $date = self::next(self::open($r), 0, $from, 1)[0] ?? throw new \LogicException('A schedule that never ends has a next date.');
+
+        return self::isOver($r, $issued, $date) ? null : $date;
+    }
+
+    /**
+     * The last day of the period an occurrence opens: the day before the next date
+     * of the schedule, whatever its end rule, so a weekly occurrence on a Monday
+     * ends on the Sunday and a monthly one on the 1st on the last day of the month.
+     */
+    public static function periodEnd(Recurrence $r, \DateTimeImmutable $occurrence): \DateTimeImmutable
+    {
+        $next = self::next(self::open($r), 0, $occurrence->modify('+1 day'), 1)[0] ?? throw new \LogicException('A schedule that never ends has a next date.');
+
+        return $next->modify('-1 day');
+    }
+
+    /**
+     * The same schedule without an end.
+     */
+    public static function open(Recurrence $r): Recurrence
+    {
+        return new Recurrence($r->firstIssueOn(), $r->unit(), $r->every(), $r->onLastDayOfMonth(), RecurrenceEnd::Never, null, null);
+    }
+
+    /**
      * Whether the template is over once $issued invoices exist and $next is the
      * next occurrence date. An end date includes that day.
      */

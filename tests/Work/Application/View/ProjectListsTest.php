@@ -40,14 +40,23 @@ final class ProjectListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        // The client is Work's Contacts integration's (tests/Work/Integration/Contacts).
-        self::assertSame(['archived', 'visibility', 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => !str_contains($key, '_') && 'client' !== $key)));
+        // The client is Work's Contacts integration's (tests/Work/Integration/Contacts); other modules' fields have a prefix.
+        $counts = ['open_tasks', 'overdue_tasks', 'unassigned_tasks', 'next_due'];
+        self::assertSame(['archived', 'visibility', ...$counts, 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => 'client' !== $key && (!str_contains($key, '_') || \in_array($key, $counts, true)))));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
         self::assertSame(FieldType::Enum, $fields['visibility']->type);
         self::assertSame(['organisation', 'chosen'], $fields['visibility']->options);
         self::assertSame(['organisation' => 'work.sharing.visibility.organisation', 'chosen' => 'work.sharing.visibility.chosen'], $fields['visibility']->optionLabels);
         self::assertSame('work.projects.field.visibility', $fields['visibility']->label);
+        foreach (['open_tasks', 'overdue_tasks', 'unassigned_tasks'] as $count) {
+            self::assertSame(FieldType::Number, $fields[$count]->type);
+            self::assertSame('work.projects.field.'.$count, $fields[$count]->label);
+            self::assertSame(['eq', 'ne', 'lt', 'le', 'gt', 'ge', 'between'], $fields[$count]->operators, 'A count is never empty.');
+        }
+        self::assertSame(FieldType::Date, $fields['next_due']->type);
+        self::assertSame('work.projects.field.next_due', $fields['next_due']->label);
+        self::assertContains('is_empty', $fields['next_due']->operators);
     }
 
     public function testTheListIsBuiltOnce(): void

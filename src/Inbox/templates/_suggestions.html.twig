@@ -1,0 +1,101 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The suggestions of an inbox item (SuggestionCards), on its page: a card per open suggestion, then
+    the decided ones, compact. The open cards sit in one form (SuggestionController::FORM): a card's
+    Accept posts its own id, the header's Accept selected the ticked cards; the steps ticked in a card
+    are the ones that run. Reject and Edit open dialogs. The rationale, the quote, the excerpt of the
+    mail and the values are an agent's or the sender's words: printed escaped, the quote marked.
+    Variables (of show.html.twig): id, suggestions, suggestion_form, open_suggestions, csrf, focus.
+#}
+{% set select_cards = open_suggestions|length >= 2 %}
+<section class="grid gap-3" aria-labelledby="inbox-suggestions-title" data-inbox-suggestions>
+    <h2 id="inbox-suggestions-title" class="m-0 text-body font-semibold text-ink">{{ 'inbox.suggestion.title'|trans }}{% if suggestions.open is not empty %} <span class="num font-normal text-muted">({{ suggestions.open|length }})</span>{% endif %}</h2>
+
+    {% if suggestions.open is not empty %}
+        <form method="post" id="{{ suggestion_form }}" action="{{ path('app_inbox_suggestions_accept', {id: id}) }}" class="grid gap-3">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            {% for card in suggestions.open %}
+                <twig:Ui:Card :title="card.title" icon="text-quote" data-inbox-suggestion="{{ card.id }}">
+                    <twig:block name="actions">
+                        {% if select_cards and card.decidable %}
+                            <twig:Ui:Checkbox name="selected[]" :id="'inbox-suggestion-select-' ~ card.id" :value="card.id" :checked="true" :label="'inbox.suggestion.select'|trans" data-inbox-suggestion-select />
+                        {% endif %}
+                    </twig:block>
+                    <div class="grid gap-3">
+                        <p class="m-0 whitespace-pre-wrap break-words text-text" data-inbox-suggestion-rationale>{{ card.rationale }}</p>
+
+                        <ol class="m-0 grid list-none gap-2 p-0" aria-label="{{ 'inbox.suggestion.steps'|trans }}">
+                            {% for step in card.steps %}
+                                <li class="grid gap-1 rounded-control border border-divider p-3" data-inbox-suggestion-step="{{ step.position }}" data-state="{{ step.state }}">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        {% if step.tickable %}
+                                            <twig:Ui:Checkbox :name="'steps[' ~ card.id ~ '][]'" :id="'inbox-suggestion-' ~ card.id ~ '-step-' ~ step.position" :value="step.position ~ ''" :checked="true" :label="step.label" data-inbox-suggestion-tick />
+                                        {% else %}
+                                            <span class="font-medium text-ink">{{ step.label }}</span>
+                                        {% endif %}
+                                        {% if step.state != 'pending' %}
+                                            <twig:Ui:Badge :tone="{done: 'green', failed: 'red', skipped: 'gray'}[step.state] ?? 'gray'" data-inbox-step-state>{{ ('inbox.suggestion.step_state.' ~ step.state)|trans }}</twig:Ui:Badge>
+                                        {% endif %}
+                                        {% if step.editHref %}
+                                            <twig:Ui:Button size="sm" icon="pencil" :href="step.editHref" data-dialog aria-haspopup="dialog" class="ml-auto" data-inbox-suggestion-edit>{{ 'inbox.suggestion.edit'|trans }}</twig:Ui:Button>
+                                        {% endif %}
+                                    </div>
+                                    {% if step.values is not empty %}
+                                        <dl class="m-0 grid gap-0.5 text-small">
+                                            {% for value in step.values %}
+                                                <div class="flex flex-wrap gap-x-1"><dt class="text-muted">{{ value.label }}:</dt> <dd class="m-0 whitespace-pre-wrap break-words text-ink">{{ value.value }}</dd></div>
+                                            {% endfor %}
+                                        </dl>
+                                    {% endif %}
+                                    {% if step.refusal %}
+                                        <twig:Ui:Alert tone="error" data-inbox-step-refusal>{{ step.refusal }}</twig:Ui:Alert>
+                                    {% endif %}
+                                    {% if step.record %}
+                                        {{ include('@Inbox/_suggestion_record.html.twig', {record: step.record}) }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+
+                        {{ include('@Inbox/_suggestion_source.html.twig') }}
+
+                        {% if card.decidable %}
+                            <div class="flex flex-wrap items-center gap-2">
+                                <twig:Ui:Button type="submit" variant="primary" :icon="card.failed ? 'refresh-cw' : 'check'" name="accept" :value="card.id" data-inbox-suggestion-accept>{{ (card.failed ? 'inbox.suggestion.retry' : 'inbox.suggestion.accept')|trans }}</twig:Ui:Button>
+                                <twig:Ui:Button icon="x" :href="card.rejectHref" data-dialog aria-haspopup="dialog" data-inbox-suggestion-reject>{{ 'inbox.suggestion.reject.open'|trans }}</twig:Ui:Button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </twig:Ui:Card>
+            {% endfor %}
+        </form>
+    {% endif %}
+
+    {% if suggestions.decided is not empty %}
+        <h3 class="m-0 text-small font-semibold text-muted">{{ 'inbox.suggestion.decided_title'|trans }}</h3>
+        <ul class="m-0 grid list-none gap-2 p-0">
+            {% for card in suggestions.decided %}
+                <li class="grid gap-1 rounded-panel border border-container bg-white px-4 py-3" data-inbox-suggestion="{{ card.id }}" data-state="{{ card.state }}">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium text-ink">{{ card.title }}</span>
+                        <twig:Ui:Badge :tone="{accepted: 'green', rejected: 'gray', superseded: 'outline'}[card.state] ?? 'gray'" data-inbox-suggestion-state>{{ ('inbox.suggestion.state.' ~ card.state)|trans }}</twig:Ui:Badge>
+                        {% if card.decided %}<span class="text-caption text-muted">{{ card.decided }}</span>{% endif %}
+                    </div>
+                    {% if card.rejectReason %}
+                        <p class="m-0 whitespace-pre-wrap break-words text-small text-text" data-inbox-suggestion-reason>{{ 'inbox.suggestion.reason'|trans }} {{ card.rejectReason }}</p>
+                    {% endif %}
+                    <ul class="m-0 grid list-none gap-0.5 p-0 text-small">
+                        {% for step in card.steps %}
+                            <li class="flex flex-wrap items-center gap-x-2">
+                                <span class="text-text">{{ step.label }}</span>
+                                <span class="text-muted">· {{ ('inbox.suggestion.step_state.' ~ step.state)|trans }}</span>
+                                {% if step.record %}{{ include('@Inbox/_suggestion_record.html.twig', {record: step.record}) }}{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="m-0 text-caption text-muted">{{ card.proposed }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    What a done step of a suggestion made: the record with its name and a link when it is among what came
+    of the item, else its kind. Variables: record (kind, label, url), focus.
+#}
+<span class="text-small" data-inbox-step-record>
+    <span class="text-muted">{{ record.kind }}{% if record.url %}:{% endif %}</span>
+    {%- if record.url %} <a href="{{ record.url }}" class="font-medium text-ink underline decoration-control-line underline-offset-2 hover:decoration-ink {{ focus }}">{{ record.label }}</a>{% endif %}
+</span>

@@ -62,6 +62,7 @@ nav:
     people: People
     profile: Profile
     password: Password
+    email: Sign-in e-mail
     two_factor: Two-factor sign-in
     api: API and MCP
     connected_apps: Connected apps
@@ -84,6 +85,7 @@ nav:
     my_tasks: My tasks
     tasks: Tasks
     time: Time
+    recurring_tasks: Recurring tasks
     notifications: Notifications
 ui:
   code_block:
@@ -287,6 +289,7 @@ ui:
   empty_value: Not set
   table:
     caption: Table
+    order: Order
     select_all: Select all rows
     select_row: 'Select row {label}'
     actions: Actions

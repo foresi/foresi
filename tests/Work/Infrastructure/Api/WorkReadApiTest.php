@@ -12,6 +12,7 @@ use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Api\Cursor;
 use Foresi\Work\Application\ManageTasks;
 use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Project;
 
 /**
  * The reads of projects, tasks, comments and labels over REST: what the
@@ -46,6 +47,7 @@ final class WorkReadApiTest extends WorkApiTestCase
                 'subtask_count' => 0,
                 'done' => false,
                 'private' => false,
+                'starred' => false,
                 'url' => 'http://localhost/tasks/'.$id,
                 'custom_fields' => [],
             ]],
@@ -166,9 +168,11 @@ final class WorkReadApiTest extends WorkApiTestCase
             'visibility' => 'organisation',
             'workflow' => 'simple',
             'open_tasks' => 1,
+            'overdue_tasks' => 0,
+            'unassigned_tasks' => 1,
             'nearest_due_on' => null,
             'archived' => false,
-        ]], array_map(static fn (array $row): array => array_diff_key($row, ['custom_fields' => true]), (array) $this->at('data')));
+        ]], array_map(static fn (mixed $row): array => array_diff_key((array) $row, ['custom_fields' => true]), (array) $this->at('data')));
         // Its custom fields are those the installed modules add, each null without a value.
         self::assertSame([], array_filter((array) $this->at('data', 0, 'custom_fields'), static fn (mixed $value): bool => null !== $value));
 
@@ -180,6 +184,33 @@ final class WorkReadApiTest extends WorkApiTestCase
 
         $this->get('/api/v1/projects', ['archived' => 'true']);
         self::assertSame([], $this->ids());
+    }
+
+    public function testAProjectCountsItsOverdueAndUnassignedTasksAndIsFilteredOnThemAsOnTheScreen(): void
+    {
+        $late = $this->project('Late');
+        $calm = $this->project('Calm');
+        $empty = $this->project('Empty');
+        $me = $this->membershipOf($this->owner)->id();
+        $create = fn (Project $project, string $title, ?string $responsible, string $due): string => $this->as(fn (): string => $this->service(ManageTasks::class)->create($project->id(), $title, responsibleId: $responsible, dueOn: new \DateTimeImmutable($due))->id());
+        $create($late, 'Behind', null, '-2 days');
+        $create($late, 'Mine', $me, '+1 day');
+        $create($calm, 'Later', $me, '+3 days');
+
+        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'overdue_tasks', 'op' => 'gt', 'value' => 0]]], \JSON_THROW_ON_ERROR)]);
+        self::assertSame([$late->id()], $this->ids());
+        self::assertSame([2, 1, 1, new \DateTimeImmutable('-2 days')->format('Y-m-d')], [$this->at('data', 0, 'open_tasks'), $this->at('data', 0, 'overdue_tasks'), $this->at('data', 0, 'unassigned_tasks'), $this->at('data', 0, 'nearest_due_on')]);
+
+        // A project with no task meets a condition that zero meets, newest first as every page.
+        $found = $this->mcpTool('foresi_search_projects', ['filter' => ['conditions' => [['field' => 'unassigned_tasks', 'op' => 'eq', 'value' => 0]]]]);
+        self::assertFalse($found['isError'] ?? false);
+        $items = self::in($found, 'structuredContent', 'data', 'items');
+        self::assertIsArray($items);
+        self::assertSame([$empty->id(), $calm->id()], array_column($items, 'id'));
+        self::assertSame(0, self::in($found, 'structuredContent', 'data', 'items', 1, 'overdue_tasks'));
+
+        $this->get('/api/v1/projects', ['filter' => json_encode(['conditions' => [['field' => 'next_due', 'op' => 'is_empty']]], \JSON_THROW_ON_ERROR)]);
+        self::assertSame([$empty->id()], $this->ids());
     }
 
     public function testThePeopleOfAProjectAreWhoMayBeResponsible(): void

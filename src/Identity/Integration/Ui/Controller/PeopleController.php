@@ -44,7 +44,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * invites people, changes their role, contact and hourly rate, lets them in or
  * not and resets their two-factor sign-in, and keeps the pending invitations.
  * Only the owner sees a rate. The contact field and column come with the address
- * book's picker; without it they are not shown and a stored contact stays (ADR 0048).
+ * book's picker; without it they are not shown and a stored contact stays (ADR 0049).
  */
 final class PeopleController extends AbstractController
 {

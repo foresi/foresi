@@ -53,9 +53,9 @@ final readonly class MigrationHistoryRename
     {
         $due = [];
         $conflicts = [];
-        $executed = array_flip($this->executed());
-        foreach (array_keys($executed) as $version) {
-            $version = (string) $version;
+        $versions = $this->executed();
+        $executed = array_flip($versions);
+        foreach ($versions as $version) {
             $renamed = self::renamed($version);
             if ($renamed === $version) {
                 continue;
@@ -97,7 +97,7 @@ final readonly class MigrationHistoryRename
         );
         $connection->transactional(static function (Connection $connection) use ($plan, $statement): void {
             foreach ($plan['due'] as $old => $new) {
-                $connection->executeStatement($statement, ['new' => $new, 'old' => (string) $old]);
+                $connection->executeStatement($statement, ['new' => $new, 'old' => $old]);
             }
         });
 
@@ -129,9 +129,9 @@ final readonly class MigrationHistoryRename
             return [];
         }
 
-        return array_values(array_map(
-            'strval',
+        return array_values(array_filter(
             $connection->fetchFirstColumn(\sprintf('SELECT %s FROM %s', $connection->quoteSingleIdentifier($this->versionColumn()), $connection->quoteSingleIdentifier($this->table()))),
+            \is_string(...),
         ));
     }
 

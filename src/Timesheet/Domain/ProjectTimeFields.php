@@ -29,17 +29,15 @@ class ProjectTimeFields implements ProjectExtension
     /** The key of the field "Bill time": the module's prefix and the property. */
     public const string BILLABLE_FIELD = 'timesheet_billable_by_default';
 
-    #[ORM\Column(name: 'billable_by_default', type: 'boolean', nullable: true)]
-    #[CustomField(FieldKind::Boolean, 'timesheet.project.field.billable', filterable: true, sortable: true)]
-    private ?bool $billableByDefault = null;
-
     public function __construct(
         #[ORM\Id]
         #[ORM\Column(type: 'guid')]
         private readonly string $id,
-        ?bool $billableByDefault = null,
-    ) {
-        $this->billableByDefault = $billableByDefault;
+        #[ORM\Column(name: 'billable_by_default', type: 'boolean', nullable: true)]
+        #[CustomField(FieldKind::Boolean, 'timesheet.project.field.billable', filterable: true, sortable: true)]
+        private ?bool $billableByDefault = null
+    )
+    {
     }
 
     public function projectId(): string

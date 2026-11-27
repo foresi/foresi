@@ -173,7 +173,7 @@ final class DocumentSettingsScreensTest extends WebTestCase
 
     private function token(Crawler $crawler): string
     {
-        return (string) $crawler->filter('[data-document-types] form input[name="_token"]')->first()->attr('value');
+        return (string) $crawler->filter('[data-document-types] tbody form input[name="_token"]')->first()->attr('value');
     }
 
     /**

@@ -40,13 +40,14 @@ The order number, the description, the line texts and the texts before and after
 | Token | Gives, for the occurrence 1 March 2027 |
 |---|---|
 | `{day}` | `1` |
+| `{week}` | `9`, the ISO 8601 week, which starts on Monday |
 | `{month}` | `3` |
 | `{year}` | `2027` |
 | `{quarter}` | `1` |
 | `{month/year}` | `3/2027` |
 | `{document_number}` | the invoice's own number, for example `20270042` |
 
-Numbers have no leading zero. Each period token takes an optional offset, such as `{month+1}`, `{year-1}` or `{day+14}`.
+Numbers have no leading zero. Each period token takes an optional offset, such as `{month+1}`, `{year-1}`, `{day+14}` or `{week+1}`; the offset of `{week}` counts weeks. Around New Year the ISO week can belong to the other year: 1 January 2027 is in week 53 of 2026, so `{week}/{year}` gives `53/2027` there.
 
 **Tokens are independent.** Each token moves the occurrence date by its own offset only and shows its own part of the result; no offset carries into another token. So on 1 December 2026:
 
@@ -73,7 +74,7 @@ For each active template whose next date has come, the run issues every occurren
 
 ### The organisation's time zone
 
-The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see [operations](operations.md#environment-variables)), else the zone of the country of the firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
+The day and the 05:00 hour follow the instance's time zone: `APP_TIMEZONE` when it is set (see the [environment reference](reference/environment.md#app_timezone)), else the zone of the country of the firm (`Europe/Prague` for a Czech firm), else UTC. Only canonical names of the tz database are accepted. See [ADR 0035](adr/0035-one-instance-per-customer.md). The rows of the invoice list still tell overdue by the zone of the issuing firm's country rather than the organisation's zone, a known gap described in that ADR.
 
 ### Each occurrence exactly once
 

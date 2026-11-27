@@ -17,12 +17,16 @@ use Foresi\Shared\Domain\Id;
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'app_user')]
+#[ORM\Index(name: 'idx_app_user_pending_email_token', columns: ['pending_email_token_hash'])]
 class User
 {
     public const array LOCALES = ['cs', 'en'];
 
     /** The shortest password anyone signs in with, chosen on the console or on an invitation. */
     public const int MIN_PASSWORD_LENGTH = 12;
+
+    /** How long the link that confirms a new sign-in address works (OWASP: a short-lived, single-use link). */
+    public const int EMAIL_CHANGE_VALID_HOURS = 24;
 
     /** The longest name a person can give themselves, the length of its column. */
     public const int MAX_DISPLAY_NAME_LENGTH = 255;
@@ -71,6 +75,21 @@ class User
     #[ORM\Column(name: 'photo_version', type: 'string', length: 32, nullable: true)]
     private ?string $photoVersion = null;
 
+    /** The address the person asked to sign in with, until they confirm it from that mailbox. */
+    #[ORM\Column(name: 'pending_email', type: 'string', length: 255, nullable: true)]
+    private ?string $pendingEmail = null;
+
+    /** SHA-256 of the secret in the confirmation link; the link itself is never kept. */
+    #[ORM\Column(name: 'pending_email_token_hash', type: 'string', length: 64, nullable: true)]
+    private ?string $pendingEmailTokenHash = null;
+
+    #[ORM\Column(name: 'pending_email_expires_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $pendingEmailExpiresAt = null;
+
+    /** Raised to end every session signed in before, as each one keeps the version it began with. */
+    #[ORM\Column(name: 'session_version', type: 'integer', options: ['default' => 0])]
+    private int $sessionVersion = 0;
+
     #[ORM\Column(name: 'text_size', type: 'string', length: 16, options: ['default' => self::TEXT_STANDARD])]
     private string $textSize = self::TEXT_STANDARD;
 
@@ -85,10 +104,7 @@ class User
         string $locale = 'en',
     ) {
         $this->id = Id::generate();
-        $email = strtolower(trim($email));
-        if (false === filter_var($email, \FILTER_VALIDATE_EMAIL)) {
-            throw new \InvalidArgumentException('A user needs a valid e-mail address.');
-        }
+        $email = $this->usableEmail($email);
         if ('' === $passwordHash) {
             throw new \InvalidArgumentException('A user needs a password hash.');
         }
@@ -216,6 +232,80 @@ class User
         $this->forgetTrustedDevices();
     }
 
+    /**
+     * The person asked to sign in with another address. It stays a request until
+     * the link sent there is opened, so the address they sign in with does not
+     * change on a typo or on someone else's word (OWASP: confirm a new address).
+     * A new request replaces the one before, and its link.
+     *
+     * @throws \InvalidArgumentException when the address is not valid or is the current one
+     */
+    public function requestEmailChange(string $newEmail, string $tokenHash, \DateTimeImmutable $expiresAt): void
+    {
+        $newEmail = $this->usableEmail($newEmail);
+        if ($newEmail === $this->email) {
+            throw new \InvalidArgumentException('The new address is the current one.');
+        }
+        if ('' === $tokenHash) {
+            throw new \InvalidArgumentException('An e-mail change needs the hash of its link.');
+        }
+        $this->pendingEmail = $newEmail;
+        $this->pendingEmailTokenHash = $tokenHash;
+        $this->pendingEmailExpiresAt = $expiresAt;
+    }
+
+    public function cancelEmailChange(): void
+    {
+        $this->pendingEmail = null;
+        $this->pendingEmailTokenHash = null;
+        $this->pendingEmailExpiresAt = null;
+    }
+
+    /**
+     * The address waiting for confirmation; null when there is none or its link has expired.
+     */
+    public function pendingEmail(\DateTimeImmutable $now): ?string
+    {
+        return $this->pendingEmailExpiresAt instanceof \DateTimeImmutable && $now < $this->pendingEmailExpiresAt ? $this->pendingEmail : null;
+    }
+
+    public function pendingEmailExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->pendingEmailExpiresAt;
+    }
+
+    /**
+     * The link was opened: the person signs in with the new address from now on,
+     * and every session that began before ends.
+     *
+     * @return string the address they signed in with before
+     *
+     * @throws \LogicException when no change waits or its link has expired
+     */
+    public function confirmEmailChange(\DateTimeImmutable $now): string
+    {
+        $newEmail = $this->pendingEmail($now) ?? throw new \LogicException('No e-mail change waits for confirmation.');
+        $oldEmail = $this->email;
+        $this->email = $newEmail;
+        $this->cancelEmailChange();
+        $this->endSessions();
+
+        return $oldEmail;
+    }
+
+    /**
+     * Every session signed in until now ends on its next request.
+     */
+    public function endSessions(): void
+    {
+        ++$this->sessionVersion;
+    }
+
+    public function sessionVersion(): int
+    {
+        return $this->sessionVersion;
+    }
+
     public function hasTwoFactor(): bool
     {
         return null !== $this->totpSecretSealed;
@@ -277,6 +367,16 @@ class User
     public function locale(): string
     {
         return $this->locale;
+    }
+
+    private function usableEmail(string $email): string
+    {
+        $email = strtolower(trim($email));
+        if (false === filter_var($email, \FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('A user needs a valid e-mail address.');
+        }
+
+        return $email;
     }
 
     private function usableName(string $displayName): string

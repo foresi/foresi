@@ -36,7 +36,7 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(ContactCreation::class, DoctrineContactCreation::class);
     // The modules that name a party link it to its page here (Party\Contract\ContactPages).
     $services->alias(ContactPages::class, RoutedContactPages::class);
-    // The people screens of Identity offer the contact a person represents through its picker (ADR 0048).
+    // The people screens of Identity offer the contact a person represents through its picker (ADR 0049).
     $services->alias(PersonContactPicker::class, RoutedPersonContactPicker::class);
 
     if ('test' === $container->env()) {

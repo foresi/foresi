@@ -4,7 +4,8 @@
     list opens), Overdue, Unassigned, High and urgent, No due date, and the person's own views; the
     filter sheet and the Settings sheet as every list has them, which also says what the view groups
     by. The column headers sort. A group with nothing on the page is left out; its count is that of
-    the whole list. The status, the responsible person, the due date and the priority change in the row.
+    the whole list. The status, the responsible person, the due date and the priority change in the row,
+    and its star puts it on My priorities, whose rows are dragged by their grip or moved from their menu.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -36,7 +37,7 @@
                 </section>
             {% else %}
                 <div data-task-group="all">
-                    <twig:Ui:DataTable :caption="'work.tasks.title'|trans" :columns="columns" :resizable="true" :rows="group.rows" />
+                    <twig:Ui:DataTable :caption="'work.tasks.title'|trans" :columns="columns" :resizable="true" :rows="group.rows" :reorder="reorder" :actionToken="actionToken" />
                 </div>
             {% endif %}
         {% else %}
