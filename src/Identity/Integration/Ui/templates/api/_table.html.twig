@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    One table of Settings → API or of a guest's connected apps as a list (docs/design/list-pages.md,
+    rules 8 and 9): its views, search, filter sheet, columns and widths, kept in its slot of the address.
+    Variables: t (the table ListTable gives), caption, route (the page's), token (the CSRF token of the
+    row actions), empty (what the table says with no row and no filter).
+#}
+{{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'api_tokens.views'|trans({list: caption}), toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path(route)}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+<twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path(route)" :keep="t.keep"
+    :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+</twig:Ui:FilterBar>
+<twig:Ui:DataTable :caption="caption" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token">
+    <twig:block name="empty">
+        {% if t.filtered or t.view != '' %}
+            <twig:Ui:EmptyState icon="search" :title="'api_tokens.empty.filtered_title'|trans">
+                <twig:Ui:Button :href="t.resetHref">{{ 'api_tokens.empty.reset'|trans }}</twig:Ui:Button>
+            </twig:Ui:EmptyState>
+        {% else %}
+            {{ empty }}
+        {% endif %}
+    </twig:block>
+</twig:Ui:DataTable>
+{{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}

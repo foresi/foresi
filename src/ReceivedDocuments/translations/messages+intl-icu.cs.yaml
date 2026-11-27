@@ -365,6 +365,17 @@ received_documents:
         subject: "Předmět"
         outcome: "Výsledek"
         skipped: "Vynecháno"
+      views: Pohledy na poslední e-maily
+      search: Hledat podle odesílatele nebo předmětu
+      tab:
+        all: Vše
+      empty_filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
+      outcome:
+        queued: Čeká
+        filed: Založeno
+        nothing_accepted: Žádná příloha, kterou umíme přečíst
+        failed: Selhalo
   skipped:
     inline_image: "{name} (obrázek v e-mailu)"
     unsupported_type: "{name} (není to doklad)"

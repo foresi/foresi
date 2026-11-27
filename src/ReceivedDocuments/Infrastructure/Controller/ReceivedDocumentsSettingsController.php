@@ -18,8 +18,13 @@ use Foresi\Mail\Contract\OwnAddresses;
 use Foresi\ReceivedDocuments\Application\Mail\ReceivedDocumentsPurpose;
 use Foresi\ReceivedDocuments\Application\Mail\RecentMail;
 use Foresi\ReceivedDocuments\Application\Mail\RecentMails;
-use Foresi\ReceivedDocuments\Domain\MailIntakeOutcome;
+use Foresi\ReceivedDocuments\Application\View\CaptureMailLists;
+use Foresi\ReceivedDocuments\Infrastructure\Column\CaptureMailColumns;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\Refused;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -52,13 +57,23 @@ final class ReceivedDocumentsSettingsController extends AbstractController
         private readonly RecentMails $recent,
         private readonly TranslatorInterface $translator,
         private readonly InstanceClock $clock,
+        private readonly CaptureMailLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/received-documents', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
         $address = $this->own->mine(ReceivedDocumentsPurpose::KEY);
         $revealed = null;
         if ($address instanceof OwnAddress) {
@@ -68,6 +83,8 @@ final class ReceivedDocumentsSettingsController extends AbstractController
                 // The server lost its template or key; the page says the address cannot be shown.
             }
         }
+        $mails = $this->recent->mine();
+        $page = $this->listTable->of($slot, $list, CaptureMailColumns::LIST, self::ROUTE, 'capture-mails', $mails, $this->recentRow(...), $this->recentValue(...), static fn (RecentMail $mail): string => $mail->from.' '.$mail->subject, $this->translator->trans('received_documents.capture.recent.search'));
         $response = new Response();
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -77,8 +94,8 @@ final class ReceivedDocumentsSettingsController extends AbstractController
             'lastReceived' => $address?->lastReceivedAt?->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
             'unavailable' => $this->unavailable(),
             'mailGuide' => self::MAIL_GUIDE,
-            'recentColumns' => $this->recentColumns(),
-            'recent' => array_map($this->recentRow(...), $this->recent->mine()),
+            'hasRecent' => [] !== $mails,
+            'recent' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ], $response);
     }
 
@@ -204,52 +221,31 @@ final class ReceivedDocumentsSettingsController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>> the columns of Ui:DataTable for the recent e-mails
+     * A row of Ui:DataTable. A mail that made drafts opens its first one.
+     *
+     * @return array<string, mixed>
      */
-    private function recentColumns(): array
+    private function recentRow(RecentMail $mail, WorkingState $working): array
     {
         return [
-            ['key' => 'received', 'label' => $this->translator->trans('received_documents.capture.recent.column.received')],
-            ['key' => 'from', 'label' => $this->translator->trans('received_documents.capture.recent.column.from'), 'truncate' => true],
-            ['key' => 'subject', 'label' => $this->translator->trans('received_documents.capture.recent.column.subject'), 'truncate' => true, 'phone' => false],
-            ['key' => 'outcome', 'label' => $this->translator->trans('received_documents.capture.recent.column.outcome')],
-            ['key' => 'skipped', 'label' => $this->translator->trans('received_documents.capture.recent.column.skipped'), 'truncate' => true, 'phone' => false],
+            'id' => $mail->messageId,
+            'href' => null === $mail->firstDraftId ? null : $this->generateUrl('app_received_document', ['id' => $mail->firstDraftId]),
+            'label' => $mail->receivedAt->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
+            'cells' => $working->display->cells($mail),
         ];
     }
 
     /**
-     * A row of Ui:DataTable. The sender, the subject and the names of the parts
-     * left out are the sender's text: Twig escapes them. A mail that made drafts
-     * opens its first one.
-     *
-     * @return array<string, mixed>
+     * The value of a field of the list on a mail, as RowConditions compares it.
      */
-    private function recentRow(RecentMail $mail): array
+    private function recentValue(RecentMail $mail, string $field): mixed
     {
-        $received = $mail->receivedAt->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime'));
-        $skipped = array_map(fn (array $part): string => $this->translator->trans('received_documents.skipped.'.$part['reason'], ['name' => $part['name']]), $mail->skipped);
-        $more = $mail->skippedCount - \count($mail->skipped);
-        if ($more > 0) {
-            $skipped[] = $this->translator->trans('received_documents.skipped.more', ['count' => $more]);
-        }
-
-        return [
-            'id' => $mail->messageId,
-            'href' => null === $mail->firstDraftId ? null : $this->generateUrl('app_received_document', ['id' => $mail->firstDraftId]),
-            'label' => $received,
-            'cells' => [
-                'received' => $received,
-                'from' => $mail->from ?? ['empty' => $this->translator->trans('received_documents.capture.recent.gone')],
-                'subject' => $mail->subject ?? ['empty' => $this->translator->trans('received_documents.capture.recent.gone')],
-                'outcome' => match ($mail->outcome) {
-                    MailIntakeOutcome::Filed => ['text' => $this->translator->trans('received_documents.capture.recent.filed', ['count' => $mail->drafts]), 'tone' => 'green'],
-                    MailIntakeOutcome::NothingAccepted => ['text' => $this->translator->trans('received_documents.capture.recent.nothing_accepted'), 'tone' => 'gray'],
-                    MailIntakeOutcome::Failed => ['text' => $this->translator->trans('received_documents.capture.recent.failed'), 'tone' => 'red'],
-                    MailIntakeOutcome::Queued => ['text' => $this->translator->trans('received_documents.capture.recent.queued'), 'tone' => 'amber'],
-                },
-                'skipped' => [] === $skipped ? ['empty' => $this->translator->trans('received_documents.capture.recent.none_skipped')] : implode('; ', $skipped),
-            ],
-        ];
+        return match ($field) {
+            CaptureMailLists::FROM => $mail->from ?? '',
+            CaptureMailLists::SUBJECT => $mail->subject ?? '',
+            CaptureMailLists::OUTCOME => $mail->outcome->value,
+            default => null,
+        };
     }
 
     private function denyUnlessStaff(): void

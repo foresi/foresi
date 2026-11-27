@@ -456,6 +456,7 @@ firm:
       change: Vztah k DPH
       valid_from: Od
       valid_from_help: První den, kdy stav platí.
+      current: Platí dnes
     column:
       status: Stav
       from: Od
@@ -473,6 +474,13 @@ firm:
       vat_id_missing: Dnešní stav potřebuje DIČ. Doplňte ho v údajích firmy.
       last_stretch: Firma musí mít aspoň jeden stav. Nejdřív přidejte nový.
       not_found: Stav se nenašel. Načtěte stránku znovu.
+    views: Pohledy na stavy DPH
+    search: Hledat podle stavu
+    tab:
+      all: Vše
+    empty:
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
   vat_status:
     registered: Plátce DPH
     not_registered: Neplátce DPH

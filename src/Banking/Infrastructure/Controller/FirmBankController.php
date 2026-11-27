@@ -20,8 +20,11 @@ use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
+use Foresi\Banking\Application\View\FirmBankAccountLists;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankFeed;
+use Foresi\Banking\Infrastructure\Column\FirmBankAccountColumns;
+use Foresi\Banking\Infrastructure\Column\FirmBankAccountRow;
 use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressUnavailable;
@@ -33,8 +36,12 @@ use Foresi\Party\Application\UnknownFirmBankAccount;
 use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -87,6 +94,9 @@ final class FirmBankController extends AbstractController
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
         private readonly TrustChecks $checks,
+        private readonly FirmBankAccountLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -100,6 +110,19 @@ final class FirmBankController extends AbstractController
         $feeds = $this->feeds->ofAccounts(array_map(static fn (FirmBankAccount $account): string => $account->id(), $all));
         $rules = $this->pairing->get();
         $url = $this->generateUrl('app_firm_bank');
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        $accounts = null;
+        if (self::ACCOUNTS === $tab) {
+            // The builder's rows (spec D11) become the list's working filter, in its address.
+            $built = $this->listTable->built($slot, $list);
+            if (null !== $built) {
+                return $this->redirectToRoute('app_firm_bank', $built, Response::HTTP_SEE_OTHER);
+            }
+            $records = array_map(fn (FirmBankAccount $account): FirmBankAccountRow => new FirmBankAccountRow($account, $this->name($firm, $account), $this->grouped($account->iban()), $feeds[$account->id()] ?? null), $all);
+            $page = $this->listTable->of($slot, $list, FirmBankAccountColumns::LIST, 'app_firm_bank', 'firm-bank-accounts', $records, $this->row(...), $this->valueOf(...), static fn (FirmBankAccountRow $row): string => $row->name.' '.$row->iban, $this->translator->trans('bank.account.search'));
+            $accounts = $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot));
+        }
         // The switches of pairing mean something only when a module pays documents from movements (Invoicing);
         // without one the second tab holds the addresses for bank e-mail alone.
         $pairs = $this->payments->isAvailable();
@@ -111,8 +134,8 @@ final class FirmBankController extends AbstractController
                 ['label' => $this->translator->trans('bank.account.tab.accounts'), 'href' => $url, 'active' => self::ACCOUNTS === $tab],
                 ['label' => $this->translator->trans($pairs ? 'bank.account.tab.pairing' : 'bank.account.tab.addresses'), 'href' => $url.'?tab='.self::PAIRING, 'active' => self::PAIRING === $tab],
             ],
-            'columns' => $this->columns(),
-            'rows' => array_map(fn (FirmBankAccount $account): array => $this->row($firm, $account, $feeds[$account->id()] ?? null), $all),
+            'hasAccounts' => [] !== $all,
+            'accounts' => $accounts,
             'feeds' => array_map(fn (FirmBankAccount $account): array => $this->feedView($firm, $account, $feeds[$account->id()] ?? null), array_values(array_filter($all, static fn (FirmBankAccount $account): bool => !$account->isArchived()))),
             'pairs' => $pairs,
             'autoPairing' => $rules->autoPairing,
@@ -323,26 +346,13 @@ final class FirmBankController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function columns(): array
-    {
-        return [
-            ['key' => 'name', 'label' => $this->translator->trans('bank.account.column.name')],
-            ['key' => 'iban', 'label' => $this->translator->trans('bank.account.column.iban'), 'phone' => false],
-            ['key' => 'currency', 'label' => $this->translator->trans('bank.account.column.currency'), 'phone' => false],
-            ['key' => 'state', 'label' => $this->translator->trans('bank.account.column.state')],
-            ['key' => 'address', 'label' => $this->translator->trans('bank.account.column.address'), 'phone' => false],
-        ];
-    }
-
-    /**
      * @return array<string, mixed>
      */
-    private function row(LegalEntity $firm, FirmBankAccount $account, ?BankFeed $feed): array
+    private function row(FirmBankAccountRow $row, WorkingState $working): array
     {
+        $account = $row->account;
         $ids = ['account' => $account->id()];
-        $name = $this->name($firm, $account);
+        $name = $row->name;
         $actions = [];
         if (!$account->isArchived()) {
             $actions[] = ['label' => $this->translator->trans('bank.account.action.edit'), 'href' => $this->generateUrl('app_firm_bank_account_edit', $ids), 'method' => 'GET', 'icon' => 'pencil', 'dialog' => true];
@@ -367,23 +377,24 @@ final class FirmBankController extends AbstractController
             'href' => $account->isArchived() ? null : $this->generateUrl('app_firm_bank_account_edit', $ids),
             'opens' => Opens::DIALOG,
             'label' => $name,
-            'cells' => [
-                'name' => $name,
-                'iban' => $this->grouped($account->iban()),
-                'currency' => $account->currency()->value,
-                'state' => match (true) {
-                    $account->isArchived() => ['text' => $this->translator->trans('bank.account.state.archived'), 'tone' => 'gray'],
-                    $account->isPrimary() => ['text' => $this->translator->trans('bank.account.state.primary'), 'tone' => 'green'],
-                    default => ['text' => $this->translator->trans('bank.account.state.active'), 'tone' => 'gray'],
-                },
-                'address' => $feed instanceof BankFeed
-                    ? ['text' => $this->translator->trans('bank.account.address.state.set'), 'tone' => 'green']
-                    : ['text' => $this->translator->trans('bank.account.address.state.none'), 'tone' => 'gray'],
-            ],
+            'cells' => $working->display->cells($row),
             // On a phone the IBAN and the currency go under the name.
-            'secondary' => $this->grouped($account->iban()).' · '.$account->currency()->value,
+            'secondary' => $row->iban.' · '.$account->currency()->value,
             'actions' => $actions,
         ];
+    }
+
+    /**
+     * The value of a field of the list on an account, as RowConditions compares it.
+     */
+    private function valueOf(FirmBankAccountRow $row, string $field): mixed
+    {
+        return match ($field) {
+            FirmBankAccountLists::NAME => $row->name,
+            FirmBankAccountLists::IBAN => $row->account->iban(),
+            FirmBankAccountLists::ARCHIVED => $row->account->isArchived(),
+            default => null,
+        };
     }
 
     /**

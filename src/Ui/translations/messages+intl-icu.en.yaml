@@ -456,6 +456,7 @@ firm:
       change: VAT status
       valid_from: From
       valid_from_help: The first day the status holds.
+      current: Holds today
     column:
       status: Status
       from: From
@@ -473,6 +474,13 @@ firm:
       vat_id_missing: The status of today needs a VAT ID. Add it in the firm details.
       last_stretch: The firm keeps at least one status. Add the new one first.
       not_found: The status was not found. Reload the page.
+    views: Views of the VAT statuses
+    search: Search by status
+    tab:
+      all: All
+    empty:
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
   vat_status:
     registered: VAT payer
     not_registered: Non-payer

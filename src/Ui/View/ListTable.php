@@ -12,6 +12,8 @@ use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ListTablePage;
+use Foresi\Shared\Application\View\ListTables;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\RowConditions;
@@ -32,8 +34,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * the table's slot of the page's address. The records keep their own order: no column sorts.
  * The filter sheet is the caller's to add (ListTablePage::with()), as it lives in the shared
  * infrastructure.
+ *
+ * @implements ListTables<WorkingState>
  */
-final readonly class ListTable
+final readonly class ListTable implements ListTables
 {
     private const int MAX_SEARCH = 100;
 
@@ -78,11 +82,15 @@ final readonly class ListTable
      * @param \Closure(T): string                             $searched the text the search looks in
      * @param string|null                                     $hidden   a boolean field whose records show only while the filter names it, as a trash view does
      * @param \Closure(ViewFilter): array<string, mixed>|null $context  the columns' context of the filter shown, such as the trash
+     * @param \Closure(ListView): bool|null                   $offered  which views the person gets as tabs, such as the invitations only the owner keeps
      */
-    public function of(ListSlot $slot, ListDefinition $list, string $columns, string $route, string $id, array $records, \Closure $row, \Closure $valueOf, \Closure $searched, string $searchLabel, ?string $hidden = null, ?\Closure $context = null): ListTablePage
+    public function of(ListSlot $slot, ListDefinition $list, string $columns, string $route, string $id, array $records, \Closure $row, \Closure $valueOf, \Closure $searched, string $searchLabel, ?string $hidden = null, ?\Closure $context = null, ?\Closure $offered = null): ListTablePage
     {
         $input = $slot->input();
         $views = $this->listViews->of($list, $this->actorRole->userId());
+        if ($offered instanceof \Closure) {
+            $views = array_values(array_filter($views, $offered));
+        }
         $view = ListViews::chosen($views, $input->getString('view'));
         $shown = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
         $filterParam = WorkingFilter::param($shown, $view->filter);

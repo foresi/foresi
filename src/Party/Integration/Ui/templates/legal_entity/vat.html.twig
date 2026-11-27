@@ -2,8 +2,9 @@
 {#
     The VAT statuses of the firm over time, one tab of the firm: a dated list, each status holding
     until the next one. "Add a change" in the page header opens the form in a dialog; a status is
-    removed from its row menu. Variables: firm, today (the label of today's status), undated,
-    columns, rows.
+    removed from its row menu. The statuses are a list with views, search, filters, columns and widths
+    (docs/design/list-pages.md, rule 8). Variables: firm, today (the label of today's status), undated,
+    statuses, the table ListTable gives.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -30,7 +31,21 @@
             {% if undated %}
                 <twig:Ui:Alert tone="info" class="mb-3" id="firm-vat-undated">{{ 'firm.vat.undated'|trans }}</twig:Ui:Alert>
             {% endif %}
-            <twig:Ui:DataTable :caption="'firm.vat.card'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Party\\Integration\\Ui\\Controller\\FirmVatController::ACTION_TOKEN'))" />
+            {% set t = statuses %}
+            <div class="grid gap-2" data-firm-vat-statuses>
+                {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'firm.vat.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_firm_vat')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+                <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_firm_vat')" :keep="t.keep"
+                    :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+                </twig:Ui:FilterBar>
+                <twig:Ui:DataTable :caption="'firm.vat.card'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="csrf_token(constant('Foresi\\Party\\Integration\\Ui\\Controller\\FirmVatController::ACTION_TOKEN'))">
+                    <twig:block name="empty">
+                        <twig:Ui:EmptyState icon="search" :title="'firm.vat.empty.filtered_title'|trans">
+                            <twig:Ui:Button :href="t.resetHref">{{ 'firm.vat.empty.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    </twig:block>
+                </twig:Ui:DataTable>
+                {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
+            </div>
         </twig:Ui:Card>
     </div>
 {% endblock %}

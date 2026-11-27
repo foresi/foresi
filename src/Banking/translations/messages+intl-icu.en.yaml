@@ -16,6 +16,7 @@ bank:
     tab:
       accounts: Accounts
       pairing: Payment pairing
+      all: All
       addresses: Bank e-mail
     card:
       accounts: Bank accounts
@@ -26,6 +27,8 @@ bank:
     empty:
       title: No accounts yet
       text: Add the account your customers pay to. The first account is the primary one, which new invoices get.
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
     column:
       name: Account
       iban: IBAN
@@ -137,6 +140,8 @@ bank:
         kbplus_3: In your own mailbox, forward these e-mails to the address above.
         guide_text: Other banks and forwarding are covered in
         guide: the payment pairing guide
+    views: Views of the bank accounts
+    search: Search by account or IBAN
   movement:
     title: Bank
     views: Bank views

@@ -2,8 +2,10 @@
 {#
     The bank settings of a firm, one tab of the firm: its accounts, and how payments pair with
     invoices (only when a module pays documents from movements), with the inbound address of each
-    account. Adding and editing an account and the setup
-    steps of an address open as dialogs; their URLs are pages too.
+    account. Adding and editing an account and the setup steps of an address open as dialogs; their
+    URLs are pages too. The accounts are a list with views, search, filters, columns and widths
+    (docs/design/list-pages.md, rule 8). Variables: firm, tab, tabs, hasAccounts, accounts (the table
+    ListTable gives, on the accounts tab), the pairing tab's own.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -28,17 +30,31 @@
         {% if tab == 'accounts' %}
             <twig:Ui:Card :title="'bank.account.card.accounts'|trans" icon="landmark">
                 <twig:block name="actions">
-                    {% if rows is not empty %}
+                    {% if hasAccounts %}
                         <twig:Ui:Button :href="newUrl" size="sm" icon="plus" id="bank-account-add" data-dialog aria-haspopup="dialog">{{ 'bank.account.add'|trans }}</twig:Ui:Button>
                     {% endif %}
                 </twig:block>
-                {% if rows is empty %}
+                {% if not hasAccounts %}
                     <twig:Ui:EmptyState icon="landmark" :title="'bank.account.empty.title'|trans" :text="'bank.account.empty.text'|trans" class="py-10">
                         <twig:Ui:Button :href="newUrl" variant="primary" icon="plus" id="bank-account-add" data-dialog aria-haspopup="dialog">{{ 'bank.account.add'|trans }}</twig:Ui:Button>
                     </twig:Ui:EmptyState>
                 {% else %}
                     <p class="m-0 mb-3 text-small text-muted">{{ 'bank.account.intro'|trans }}</p>
-                    <twig:Ui:DataTable :caption="'bank.account.card.accounts'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ACTION_TOKEN'))" />
+                    {% set t = accounts %}
+                    <div class="grid gap-2" data-bank-accounts>
+                        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'bank.account.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_firm_bank')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+                        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_firm_bank')" :keep="t.keep"
+                            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+                        </twig:Ui:FilterBar>
+                        <twig:Ui:DataTable :caption="'bank.account.card.accounts'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="csrf_token(constant('Foresi\\Banking\\Infrastructure\\Controller\\FirmBankController::ACTION_TOKEN'))">
+                            <twig:block name="empty">
+                                <twig:Ui:EmptyState icon="search" :title="'bank.account.empty.filtered_title'|trans">
+                                    <twig:Ui:Button :href="t.resetHref">{{ 'bank.account.empty.reset'|trans }}</twig:Ui:Button>
+                                </twig:Ui:EmptyState>
+                            </twig:block>
+                        </twig:Ui:DataTable>
+                        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
+                    </div>
                 {% endif %}
             </twig:Ui:Card>
         {% else %}
