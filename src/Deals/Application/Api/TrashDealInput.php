@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * changes nothing.
  */
 #[Operation(
-    name: 'sales.deals.trash',
+    name: 'deals.trash',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/trash',
+    path: '/api/v1/deals/{dealId}/trash',
     tool: 'foresi_trash_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Put a deal in the trash',
     description: 'Puts a deal in the trash: it leaves the lists and keeps everything, its lines and links included; restore it with foresi_restore_deal. Trashing it again changes nothing.',
     destructive: true,

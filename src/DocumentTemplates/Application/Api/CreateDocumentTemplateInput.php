@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.templates.create',
+    name: 'document_templates.templates.create',
     method: 'POST',
     path: '/api/v1/document-templates',
     tool: 'foresi_create_document_template',

@@ -30,7 +30,7 @@ final class TimeReportListsTest extends TestCase
         $lists = iterator_to_array(new TimeReportLists()->lists(), false);
         self::assertCount(1, $lists);
         $list = $lists[0];
-        self::assertSame('work.time_report', $list->key);
+        self::assertSame('timesheet.time_report', $list->key);
 
         $defaults = [];
         foreach ($list->defaults as $default) {

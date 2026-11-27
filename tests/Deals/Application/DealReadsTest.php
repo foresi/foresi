@@ -92,7 +92,7 @@ final class DealReadsTest extends SalesTestCase
         $this->clock->modify('+1 hour');
         self::assertEquals(new \DateTimeImmutable('2026-11-23 11:00:00 UTC'), $this->deals()->trash(new TrashDealInput($deal->id()))->trashedAt());
         $stage = $this->stages['inquiry']->id();
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('sales.deal.trashed'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('deals.deal.trashed'));
 
         // A deal in the trash leaves the lists, still reads by its id, and takes no change but restore.
         self::assertSame([], $this->reads()->deals());
@@ -111,7 +111,7 @@ final class DealReadsTest extends SalesTestCase
         self::assertNull($restored->trashedBy());
         self::assertNull($restored->trashedAt());
         self::assertFalse($this->deals()->restore(new RestoreDealInput($deal->id()))->isTrashed());
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('sales.deal.restored'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('deals.deal.restored'));
         self::assertEquals(new \DateTimeImmutable('2026-11-23 12:00:00 UTC'), $this->reload(Deal::class, $deal->id())->updatedAt());
 
         $this->assertRefused('not_found', fn (): Deal => $this->deals()->trash(new TrashDealInput('0192f1a4-0000-7000-8000-000000000000')));

@@ -11,7 +11,7 @@ namespace Foresi\ReceivedDocuments\Application;
 /**
  * Something about a saved document a person should look at; it never stops the
  * save. The code is stable: the API returns it and it is the last part of a
- * translation key under purchasing.warning. The other documents it is about,
+ * translation key under received_documents.warning. The other documents it is about,
  * or the date it names, come with it.
  */
 final readonly class ReceivedDocumentWarning

@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * An open deal lost, over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deals.lose',
+    name: 'deals.lose',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/lose',
+    path: '/api/v1/deals/{dealId}/lose',
     tool: 'foresi_lose_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Mark a deal lost',
     description: 'Marks an open deal lost, with a reason from the list (foresi_list_deal_stages lists the lost reasons) and a note, both optional. A lost deal is reopened with foresi_reopen_deal.',
     response: 'SalesDeal',

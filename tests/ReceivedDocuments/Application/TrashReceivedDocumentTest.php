@@ -50,19 +50,19 @@ final class TrashReceivedDocumentTest extends PurchasingTestCase
 
         $this->trashing()->trash($id, 'Recorded twice');
 
-        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('purchasing.received_document.trashed'));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('received-documents.received_document.trashed'));
     }
 
     public function testRestoringRecordsTheRestoredEvent(): void
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();
         $this->restoring()->restore($id);
-        self::assertSame([], $this->events('purchasing.received_document.restored'), 'A document outside the trash is not restored.');
+        self::assertSame([], $this->events('received-documents.received_document.restored'), 'A document outside the trash is not restored.');
         $this->trashing()->trash($id, 'Recorded twice');
 
         $this->restoring()->restore($id);
 
-        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('purchasing.received_document.restored'));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id]]], $this->events('received-documents.received_document.restored'));
     }
 
     public function testTheTrashOfADraftRecordsNoEvent(): void
@@ -72,7 +72,7 @@ final class TrashReceivedDocumentTest extends PurchasingTestCase
         $this->trashing()->trash($id, 'Not ours');
         $this->restoring()->restore($id);
 
-        self::assertSame([[], []], [$this->events('purchasing.received_document.trashed'), $this->events('purchasing.received_document.restored')]);
+        self::assertSame([[], []], [$this->events('received-documents.received_document.trashed'), $this->events('received-documents.received_document.restored')]);
     }
 
     public function testTheTrashNeedsAReasonAndTakesADocumentOnce(): void

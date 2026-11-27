@@ -223,7 +223,7 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertGreaterThan(0, $page->filter('nav a[href="'.self::URL.'"][aria-current="page"]')->count());
-        self::assertCount(0, $page->filter('nav a[href="/purchasing"][aria-current="page"]'));
+        self::assertCount(0, $page->filter('nav a[href="/received-documents"][aria-current="page"]'));
     }
 
     public function testThePageRendersWithNoSectionProvider(): void

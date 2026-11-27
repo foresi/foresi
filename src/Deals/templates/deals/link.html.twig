@@ -6,14 +6,14 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = 'deals.link.new'|trans %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'md' %}
 
 {% block title %}{{ heading }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="deal-link-form" action="{{ path('app_sales_deal_link_new', {id: deal.id}) }}" class="grid gap-4" novalidate>
+    <form method="post" id="deal-link-form" action="{{ path('app_deal_link_new', {id: deal.id}) }}" class="grid gap-4" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
         <twig:Ui:Select name="toDealId" id="toDealId" :label="'deals.link.follows_from_field'|trans" :help="'deals.link.follows_from_help'|trans" :options="{'': 'deals.link.choose'|trans}|merge(options)" :value="values.toDealId" :error="errors.toDealId|default(null)" required />
     </form>
@@ -29,7 +29,7 @@
     <twig:Ui:Card :title="heading" icon="link-2" class="max-w-2xl">{{ body }}</twig:Ui:Card>
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="deal-link-form" variant="primary">{{ 'deals.link.submit'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>

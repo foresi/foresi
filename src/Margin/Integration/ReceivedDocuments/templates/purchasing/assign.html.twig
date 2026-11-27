@@ -7,7 +7,7 @@
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: documentId})}] %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_received_documents')}, {label: title, href: path('app_received_document', {id: documentId})}] %}
 {% set dialog_size = 'sm' %}
 {% set dialog_description = 'margin.screen.assign_description'|trans %}
 
@@ -40,7 +40,7 @@
         {{ body }}
         <div class="mt-4 flex flex-wrap justify-end gap-2">
             {% if view.documentRecipient is not null %}<twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="clear">{{ 'margin.screen.clear'|trans }}</twig:Ui:Button>{% endif %}
-            <twig:Ui:Button :href="path('app_purchasing_document', {id: documentId})">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_received_document', {id: documentId})">{{ 'margin.screen.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="margin-assign-form" name="_action" value="assign" variant="primary">{{ 'margin.screen.submit'|trans }}</twig:Ui:Button>
         </div>
     </twig:Ui:Card>

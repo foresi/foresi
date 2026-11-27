@@ -12,15 +12,15 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = deal ? 'deals.deal.edit'|trans : 'deals.deal.new'|trans %}
-{% set back = deal ? path('app_sales_deal', {id: deal.id}) : path('app_sales_deals') %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}]|merge(deal ? [{label: deal.title, href: back}] : [])|merge([{label: heading}]) %}
+{% set back = deal ? path('app_deal', {id: deal.id}) : path('app_deals') %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}]|merge(deal ? [{label: deal.title, href: back}] : [])|merge([{label: heading}]) %}
 {% set form_invalid = errors is not empty or customErrors|default({}) is not empty %}
 {% set dialog_size = 'md' %}
 
 {% block title %}{{ heading }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="deal-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="deal-client" data-deal-client-url-value="{{ path('app_sales_deal_client_persons') }}">
+    <form method="post" id="deal-form" action="{{ action }}" class="grid gap-4" novalidate data-controller="deal-client" data-deal-client-url-value="{{ path('app_deal_client_persons') }}">
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
         <twig:Ui:TextInput name="title" id="title" :label="'deals.deal.field.title'|trans" :placeholder="'deals.deal.field.title_placeholder'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="200" autocomplete="off" required />
         {% if clientFixed and client %}
@@ -36,7 +36,7 @@
             </twig:Ui:Field>
         {% else %}
             <div data-action="combobox:pick->deal-client#load combobox:clear->deal-client#clear">
-                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'deals.deal.field.client'|trans" :placeholder="'deals.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_sales_deal_clients')" :emptyText="'deals.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
+                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'deals.deal.field.client'|trans" :placeholder="'deals.deal.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_deal_clients')" :emptyText="'deals.deal.field.client_empty'|trans" :error="errors.clientId|default(null)" required />
             </div>
         {% endif %}
         <div class="contents" data-deal-client-target="persons">{% include '@Deals/deals/_persons.html.twig' %}</div>

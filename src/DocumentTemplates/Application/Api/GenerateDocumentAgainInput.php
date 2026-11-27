@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.generate_again',
+    name: 'document_templates.generate_again',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/generate-again',
     tool: 'foresi_generate_document_again',

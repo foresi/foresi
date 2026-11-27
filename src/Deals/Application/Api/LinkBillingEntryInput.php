@@ -17,11 +17,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * that fulfils it, over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.billing_entries.link',
+    name: 'deals.billing_entries.link',
     method: 'PUT',
-    path: '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}/fulfilment',
+    path: '/api/v1/deals/{dealId}/billing-plan/{entryId}/fulfilment',
     tool: 'foresi_link_billing_entry',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Link a planned invoice to its invoice',
     description: 'Links a planned invoice to the invoice (a one_off entry) or recurring invoice (a recurring entry) of the same client that fulfils it, such as one issued before the plan existed; the forecast then counts that document and no longer the entry, so nothing is counted twice. The invoice is not in the trash, the recurring invoice neither ended nor in the trash, and a document fulfils one entry. Find them with foresi_search_invoices and foresi_list_recurring_invoices.',
     response: 'SalesDeal',

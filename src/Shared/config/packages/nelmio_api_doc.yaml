@@ -1102,7 +1102,7 @@ nelmio_api_doc:
                         warnings: { type: array, items: { type: string }, example: [quarter_not_allowed], description: What the country does not allow in the VAT statuses of the firm; the statuses are kept. }
                         unverified: { type: array, items: { type: string }, example: [refund_timing], description: The rules nobody has confirmed from a primary source yet. }
                         known_gaps: { type: array, items: { type: string }, example: [deduction_before_registration], description: 'What the amounts do not count yet; deduction_before_registration: VAT on supplies before the payer day is never deducted.' }
-                        unavailable_sources: { type: array, items: { type: string }, example: [purchasing.received_vat], description: 'The document and schedule sources not installed or not readable: invoicing.issued_vat, purchasing.received_vat, invoicing.recurring_vat. What they hold counts nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
+                        unavailable_sources: { type: array, items: { type: string }, example: [received-documents.received_vat], description: 'The document and schedule sources not installed or not readable: invoicing.issued_vat, received-documents.received_vat, invoicing.recurring_vat. What they hold counts nothing; and the bank sources that could not be read, such as banking.movements, whose payments match nothing.' }
                         unassigned_payments: { type: array, description: 'The bank movements to or from the tax office that pay no period, oldest first, for a person to place with PUT /api/v1/vat/payments/{movementId}.', items: { $ref: '#/components/schemas/VatPayment' } }
                         possible_duplicates:
                             type: array
@@ -1497,7 +1497,7 @@ nelmio_api_doc:
                     required: [id, purpose, label, masked_address, created_at, revoked_at, last_received_at, limit_reached_today, dropped_today]
                     properties:
                         id: { type: string, format: uuid }
-                        purpose: { type: string, example: purchasing, description: 'What the address is for, the key a module registered.' }
+                        purpose: { type: string, example: received_documents, description: 'What the address is for, the key a module registered.' }
                         label: { type: string, example: 'Receipts to the accountant' }
                         masked_address: { type: string, example: 'inbox+…@example.com', description: 'The address with its secret part left out.' }
                         created_at: { type: string, format: date-time }
@@ -1952,7 +1952,7 @@ nelmio_api_doc:
                                   items:
                                       type: object
                                       properties:
-                                          key: { type: string, description: 'The id of a stored line, or rate:<rate> of an implicit one. The key of a stored line is stable only while the lines stay as they are: lines are rewritten by position when they change, so read the lines again after purchasing.received_document.changed.', example: 'rate:21' }
+                                          key: { type: string, description: 'The id of a stored line, or rate:<rate> of an implicit one. The key of a stored line is stable only while the lines stay as they are: lines are rewritten by position when they change, so read the lines again after received-documents.received_document.changed.', example: 'rate:21' }
                                           text: { type: string, example: 'Hosting' }
                                           base: { $ref: '#/components/schemas/Money' }
                                           base_czk: { allOf: [{ $ref: '#/components/schemas/Money' }], nullable: true }

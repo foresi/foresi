@@ -18,7 +18,7 @@ namespace Foresi\ReceivedDocuments\Contract;
  * DOCUMENT_ACTIONS: rows of the "⋯" menu of the page of a draft, after Read again, offered only while the
  * draft can be read again. Context: documentId (string). Each item's template is a menu row, included with the
  * item's data, the document's id as "documentId" and the CSRF token of the page's forms as "token"; a form
- * that posts to a route of Purchasing, such as app_purchasing_read_again, uses that token.
+ * that posts to a route of Purchasing, such as app_received_document_read_again, uses that token.
  *
  * SETTINGS_SECTIONS: sections of Settings → Received documents, in the order of their weights. Context:
  * none. Each item's template is included with the item's data and renders one section; the page says so
@@ -26,11 +26,11 @@ namespace Foresi\ReceivedDocuments\Contract;
  */
 final class PurchasingSlots
 {
-    public const string DOCUMENT_SECTIONS = 'purchasing.document_sections';
+    public const string DOCUMENT_SECTIONS = 'received_documents.document_sections';
 
-    public const string DOCUMENT_ACTIONS = 'purchasing.document_actions';
+    public const string DOCUMENT_ACTIONS = 'received_documents.document_actions';
 
-    public const string SETTINGS_SECTIONS = 'purchasing.settings_sections';
+    public const string SETTINGS_SECTIONS = 'received_documents.settings_sections';
 
     private function __construct()
     {

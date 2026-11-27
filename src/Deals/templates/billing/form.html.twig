@@ -12,7 +12,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = entry ? 'deals.billing.edit'|trans : 'deals.billing.new'|trans %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'md' %}
 {% set dialog_description = recurring ? 'deals.billing.recurring_help'|trans({line: label}) : (oneOffValue ? 'deals.billing.value_help'|trans({value: oneOffValue, left: notPlanned ?: '0'}) : null) %}
@@ -56,7 +56,7 @@
     </twig:Ui:Card>
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="billing-entry-form" variant="primary">{{ (entry ? 'deals.save' : 'deals.billing.add')|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>

@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A recorded received document was moved to the trash: it keeps its evidence number, leaves the lists and the VAT reports, and takes no change or payment until it is restored. A draft in the trash records no event. The payload is thin (ADR 0030): the reason stays in the document's history.
  */
-#[DomainEvent('purchasing.received_document.trashed', version: 1)]
+#[DomainEvent('received-documents.received_document.trashed', version: 1)]
 final readonly class ReceivedDocumentTrashed implements DomainEventPayload
 {
     public function __construct(

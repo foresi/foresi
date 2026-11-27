@@ -17,8 +17,8 @@ use Foresi\Shared\Domain\Id;
  * is shown, not enforced: signers of one order sign in parallel.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_signer')]
-#[ORM\Index(name: 'idx_documents_signer_document', columns: ['document_id'])]
+#[ORM\Table(name: 'document_signer')]
+#[ORM\Index(name: 'idx_document_signer_document', columns: ['document_id'])]
 class Signer implements Audited
 {
     public const int MAX_NAME = 160;

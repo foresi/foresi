@@ -46,7 +46,7 @@ final class DealDocumentsPiecesTest extends SalesTestCase
         self::assertSame(['deal'], $target->kinds());
         self::assertTrue($target->exists('deal', $deal->id()));
         self::assertSame('Roof audit', $target->label('deal', $deal->id()));
-        self::assertSame('/sales/deals/'.$deal->id(), $target->url('deal', $deal->id()));
+        self::assertSame('/deals/'.$deal->id(), $target->url('deal', $deal->id()));
         self::assertContains('deal', self::getContainer()->get(LinkTargets::class)->kinds());
     }
 
@@ -126,7 +126,7 @@ final class DealDocumentsPiecesTest extends SalesTestCase
 
     public function testTheSectionAndTheActionFillOnlyTheirSlotOfADeal(): void
     {
-        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [], 'return' => '/sales/deals/'.self::UNKNOWN];
+        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [], 'return' => '/deals/'.self::UNKNOWN];
         $section = self::getContainer()->get(DealDocumentsSection::class);
         $action = self::getContainer()->get(NewDocumentDealAction::class);
 

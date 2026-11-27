@@ -43,7 +43,7 @@ final class ReceivedDocumentCostsTest extends PurchasingTestCase
         $document = $this->costs()->document($id);
 
         self::assertInstanceOf(CostDocument::class, $document);
-        self::assertSame([$id, $this->supplier->id(), '2026-11-30', false, '/purchasing/'.$id], [$document->id, $document->supplierId, $document->monthBasis->format('Y-m-d'), $document->trashed, $document->url]);
+        self::assertSame([$id, $this->supplier->id(), '2026-11-30', false, '/received-documents/'.$id], [$document->id, $document->supplierId, $document->monthBasis->format('Y-m-d'), $document->trashed, $document->url]);
         self::assertSame($this->em->find(\Foresi\ReceivedDocuments\Domain\ReceivedDocument::class, $id)?->evidenceNumber().' Supplier Example s.r.o.', $document->label);
         self::assertSame(['rate:21', 100_000], [$document->lines[0]->key, $document->lines[0]->baseCzk?->minor()]);
     }

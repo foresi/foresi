@@ -16,7 +16,7 @@ use Foresi\Shared\Contract\Event\EventRecorder;
 /**
  * Brings a received document back from the trash as it was, with its number.
  * Restoring one that is not in the trash changes nothing. Restoring a recorded
- * document records purchasing.received_document.restored; a draft records no event.
+ * document records received-documents.received_document.restored; a draft records no event.
  */
 final readonly class RestoreReceivedDocument
 {

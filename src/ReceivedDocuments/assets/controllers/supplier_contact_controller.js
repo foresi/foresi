@@ -7,7 +7,7 @@ import { Controller } from '@hotwired/stimulus';
  * The supplier of a received document: a contact created in the dialog the
  * form opened becomes its supplier, as the invoice form takes a new customer.
  *
- *     <div data-controller="supplier-contact" data-supplier-contact-url-value="/purchasing/suppliers"
+ *     <div data-controller="supplier-contact" data-supplier-contact-url-value="/received-documents/suppliers"
  *          data-action="contact:created@document->supplier-contact#created">
  */
 export default class extends Controller {

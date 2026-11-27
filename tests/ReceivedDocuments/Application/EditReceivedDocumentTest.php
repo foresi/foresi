@@ -82,12 +82,12 @@ final class EditReceivedDocumentTest extends PurchasingTestCase
     public function testSavingARecordedDocumentAgainRecordsTheChangedEvent(): void
     {
         $id = $this->recording()->record($this->draft(), $this->input())->document->id();
-        self::assertSame([], $this->events('purchasing.received_document.changed'), 'The first recording records only recorded.');
+        self::assertSame([], $this->events('received-documents.received_document.changed'), 'The first recording records only recorded.');
 
         $this->editing()->edit($id, $this->input(supplierNumber: 'FV-2026-999'));
 
-        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('purchasing.received_document.changed'));
-        self::assertCount(1, $this->events('purchasing.received_document.recorded'));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('received-documents.received_document.changed'));
+        self::assertCount(1, $this->events('received-documents.received_document.recorded'));
     }
 
     public function testADraftRecordsNoEvent(): void
@@ -96,7 +96,7 @@ final class EditReceivedDocumentTest extends PurchasingTestCase
 
         $this->editing()->edit($id, $this->input(supplierNumber: 'FV-2026-999'));
 
-        self::assertSame([], $this->events('purchasing.received_document.changed'));
+        self::assertSame([], $this->events('received-documents.received_document.changed'));
     }
 
     public function testARecordedDocumentStaysComplete(): void

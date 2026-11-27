@@ -108,9 +108,9 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class DealController extends AbstractController
 {
-    public const string ROUTE = 'app_sales_deals';
-    public const string NEW_ROUTE = 'app_sales_deal_new';
-    public const string DEAL_ROUTE = 'app_sales_deal';
+    public const string ROUTE = 'app_deals';
+    public const string NEW_ROUTE = 'app_deal_new';
+    public const string DEAL_ROUTE = 'app_deal';
     public const string TOKEN = 'sales';
     public const string UNDO_FLASH = 'sales_undo';
     public const string PERSON_EXISTING = 'existing';
@@ -145,7 +145,7 @@ final class DealController extends AbstractController
     ) {
     }
 
-    #[Route('/sales/deals', name: self::ROUTE, methods: ['GET'])]
+    #[Route('/deals', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -190,7 +190,7 @@ final class DealController extends AbstractController
     /**
      * The contacts the client field and the client filter offer: any contact of the address book.
      */
-    #[Route('/sales/deals/clients', name: 'app_sales_deal_clients', methods: ['GET'])]
+    #[Route('/deals/clients', name: 'app_deal_clients', methods: ['GET'])]
     public function clients(Request $request): JsonResponse
     {
         $this->denyUnlessStaff();
@@ -206,7 +206,7 @@ final class DealController extends AbstractController
     /**
      * The active stages the stage filter offers, in their order.
      */
-    #[Route('/sales/deals/stages', name: 'app_sales_deal_stages', methods: ['GET'])]
+    #[Route('/deals/stages', name: 'app_deal_stages', methods: ['GET'])]
     public function stages(Request $request): JsonResponse
     {
         $this->denyUnlessStaff();
@@ -225,7 +225,7 @@ final class DealController extends AbstractController
     /**
      * The owners and members the owner filter offers.
      */
-    #[Route('/sales/deals/owners', name: 'app_sales_deal_owners', methods: ['GET'])]
+    #[Route('/deals/owners', name: 'app_deal_owners', methods: ['GET'])]
     public function owners(Request $request): JsonResponse
     {
         $this->denyUnlessStaff();
@@ -237,7 +237,7 @@ final class DealController extends AbstractController
      * The contact persons of a client and the person to add to it, as the deal's dialog
      * shows them once the client is chosen (deal-client). Nothing for an unknown client.
      */
-    #[Route('/sales/deals/client-persons', name: 'app_sales_deal_client_persons', methods: ['GET'])]
+    #[Route('/deals/client-persons', name: 'app_deal_client_persons', methods: ['GET'])]
     public function clientPersons(Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -252,7 +252,7 @@ final class DealController extends AbstractController
      * contact (?client=<id>) the client is set; the client's contact persons are offered
      * once it is known, with a person to add.
      */
-    #[Route('/sales/deals/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
+    #[Route('/deals/new', name: self::NEW_ROUTE, methods: ['GET', 'POST'])]
     public function new(Request $request): Response
     {
         $userId = $this->denyUnlessStaff();
@@ -311,7 +311,7 @@ final class DealController extends AbstractController
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/sales/deals/{id}', name: self::DEAL_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
+    #[Route('/deals/{id}', name: self::DEAL_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -348,7 +348,7 @@ final class DealController extends AbstractController
         ]);
     }
 
-    #[Route('/sales/deals/{id}/edit', name: 'app_sales_deal_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/edit', name: 'app_deal_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function edit(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -388,7 +388,7 @@ final class DealController extends AbstractController
 
         return $this->render('@Deals/deals/form.html.twig', [
             'deal' => $deal,
-            'action' => $this->generateUrl('app_sales_deal_edit', ['id' => $id]),
+            'action' => $this->generateUrl('app_deal_edit', ['id' => $id]),
             'values' => $values,
             'errors' => $errors,
             'client' => $client,
@@ -401,7 +401,7 @@ final class DealController extends AbstractController
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/sales/deals/{id}/stage', name: 'app_sales_deal_stage', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/stage', name: 'app_deal_stage', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function stage(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -412,7 +412,7 @@ final class DealController extends AbstractController
         return $this->back($id);
     }
 
-    #[Route('/sales/deals/{id}/win', name: 'app_sales_deal_win', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/win', name: 'app_deal_win', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function win(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -427,7 +427,7 @@ final class DealController extends AbstractController
      * Marking a deal lost asks why, with a reason from the list and an optional note, as
      * Pipedrive's and Odoo's lost-reason prompts do; neither is required.
      */
-    #[Route('/sales/deals/{id}/lose', name: 'app_sales_deal_lose', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/lose', name: 'app_deal_lose', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function lose(string $id, Request $request): Response
     {
         $deal = $this->detail($id)->deal;
@@ -456,7 +456,7 @@ final class DealController extends AbstractController
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/sales/deals/{id}/reopen', name: 'app_sales_deal_reopen', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/reopen', name: 'app_deal_reopen', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function reopen(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -470,7 +470,7 @@ final class DealController extends AbstractController
     /**
      * The deal goes to the trash, and the list says so with Undo, as the activities do.
      */
-    #[Route('/sales/deals/{id}/trash', name: 'app_sales_deal_trash', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/trash', name: 'app_deal_trash', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function trash(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -481,14 +481,14 @@ final class DealController extends AbstractController
         $this->addFlash(self::UNDO_FLASH, [
             'message' => $this->screen->trans('deals.deal.flash.trashed', ['title' => $deal->title()]),
             'label' => $this->screen->trans('deals.deal.undo'),
-            'href' => $this->generateUrl('app_sales_deal_restore', ['id' => $id]),
+            'href' => $this->generateUrl('app_deal_restore', ['id' => $id]),
             'token' => self::TOKEN,
         ]);
 
         return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/sales/deals/{id}/restore', name: 'app_sales_deal_restore', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/restore', name: 'app_deal_restore', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function restore(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -503,7 +503,7 @@ final class DealController extends AbstractController
      * A follow-up deal in a dialog: its title and the lines of this deal to copy. It is
      * for the same client and contact persons and follows from this deal.
      */
-    #[Route('/sales/deals/{id}/follow-up', name: 'app_sales_deal_follow_up', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/follow-up', name: 'app_deal_follow_up', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function followUp(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -534,7 +534,7 @@ final class DealController extends AbstractController
     /**
      * A link to another deal of the same client, which this deal follows from, in a dialog.
      */
-    #[Route('/sales/deals/{id}/links/new', name: 'app_sales_deal_link_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/links/new', name: 'app_deal_link_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function newLink(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -562,7 +562,7 @@ final class DealController extends AbstractController
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/sales/deals/{id}/links/{linkId}/remove', name: 'app_sales_deal_link_remove', requirements: ['id' => Requirement::UUID, 'linkId' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/links/{linkId}/remove', name: 'app_deal_link_remove', requirements: ['id' => Requirement::UUID, 'linkId' => Requirement::UUID], methods: ['POST'])]
     public function removeLink(string $id, string $linkId, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -771,18 +771,18 @@ final class DealController extends AbstractController
         $last = \count($detail->lines) - 1;
         $rows = [];
         foreach ($detail->lines as $index => $line) {
-            $edit = $this->generateUrl('app_sales_deal_line_edit', ['id' => $deal->id(), 'lineId' => $line->id()]);
+            $edit = $this->generateUrl('app_deal_line_edit', ['id' => $deal->id(), 'lineId' => $line->id()]);
             $price = $line->unitPrice();
             $actions = [];
             if (!$deal->isTrashed()) {
                 $actions[] = ['label' => $this->screen->trans('deals.line.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true];
                 if ($index > 0) {
-                    $actions[] = ['label' => $this->screen->trans('deals.line.move_up'), 'href' => $this->generateUrl('app_sales_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'up']];
+                    $actions[] = ['label' => $this->screen->trans('deals.line.move_up'), 'href' => $this->generateUrl('app_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'up']];
                 }
                 if ($index < $last) {
-                    $actions[] = ['label' => $this->screen->trans('deals.line.move_down'), 'href' => $this->generateUrl('app_sales_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'down']];
+                    $actions[] = ['label' => $this->screen->trans('deals.line.move_down'), 'href' => $this->generateUrl('app_deal_line_move', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST', 'fields' => ['direction' => 'down']];
                 }
-                $actions[] = ['label' => $this->screen->trans('deals.line.remove'), 'href' => $this->generateUrl('app_sales_deal_line_remove', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST',
+                $actions[] = ['label' => $this->screen->trans('deals.line.remove'), 'href' => $this->generateUrl('app_deal_line_remove', ['id' => $deal->id(), 'lineId' => $line->id()]), 'method' => 'POST',
                     'confirm' => ['title' => $this->screen->trans('deals.line.confirm.remove', ['name' => $line->name()]), 'accept' => $this->screen->trans('deals.line.remove'), 'cancel' => $this->screen->trans('deals.keep'), 'tone' => 'danger']];
             }
             $rows[] = [
@@ -827,15 +827,15 @@ final class DealController extends AbstractController
         foreach ($plan->entries as $view) {
             $entry = $view->entry;
             $actions = [];
-            $edit = $this->generateUrl('app_sales_billing_entry_edit', ['id' => $deal->id(), 'entryId' => $entry->id()]);
+            $edit = $this->generateUrl('app_deal_billing_entry_edit', ['id' => $deal->id(), 'entryId' => $entry->id()]);
             if ($editable) {
                 $actions[] = ['label' => $this->screen->trans('deals.billing.action.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true];
                 if ($entry->isFulfilled()) {
-                    $actions[] = ['label' => $this->screen->trans('deals.billing.action.unlink'), 'href' => $this->generateUrl('app_sales_billing_entry_unlink', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'x', 'method' => 'POST'];
+                    $actions[] = ['label' => $this->screen->trans('deals.billing.action.unlink'), 'href' => $this->generateUrl('app_deal_billing_entry_unlink', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'x', 'method' => 'POST'];
                 } else {
-                    $actions[] = ['label' => $this->screen->trans('deals.billing.action.link'), 'href' => $this->generateUrl('app_sales_billing_entry_link', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'link-2', 'dialog' => true];
+                    $actions[] = ['label' => $this->screen->trans('deals.billing.action.link'), 'href' => $this->generateUrl('app_deal_billing_entry_link', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'icon' => 'link-2', 'dialog' => true];
                 }
-                $actions[] = ['label' => $this->screen->trans('deals.billing.action.delete'), 'href' => $this->generateUrl('app_sales_billing_entry_delete', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'method' => 'POST',
+                $actions[] = ['label' => $this->screen->trans('deals.billing.action.delete'), 'href' => $this->generateUrl('app_deal_billing_entry_delete', ['id' => $deal->id(), 'entryId' => $entry->id()]), 'method' => 'POST',
                     'confirm' => ['title' => $this->screen->trans('deals.billing.confirm.delete'), 'accept' => $this->screen->trans('deals.billing.action.delete'), 'cancel' => $this->screen->trans('deals.keep'), 'tone' => 'danger']];
             }
             $label = '' !== $entry->text() ? $entry->text() : ($view->line?->name() ?? $this->screen->trans('deals.billing.kind.'.$entry->kind()->value));
@@ -970,7 +970,7 @@ final class DealController extends AbstractController
                 'href' => $this->generateUrl(self::DEAL_ROUTE, ['id' => $view->other->id()]),
                 'relation' => $this->screen->trans($view->outgoing ? 'deals.link.follows_from' : 'deals.link.followed_by'),
                 'status' => $this->screen->status($view->other),
-                'remove' => $detail->deal->isTrashed() ? null : $this->generateUrl('app_sales_deal_link_remove', ['id' => $detail->deal->id(), 'linkId' => $view->link->id()]),
+                'remove' => $detail->deal->isTrashed() ? null : $this->generateUrl('app_deal_link_remove', ['id' => $detail->deal->id(), 'linkId' => $view->link->id()]),
             ];
         }
 
@@ -1220,9 +1220,9 @@ final class DealController extends AbstractController
     private function references(): array
     {
         return [
-            DealLists::STAGE_SOURCE => ['url' => $this->generateUrl('app_sales_deal_stages'), 'name' => fn (string $stage): ?string => ($found = $this->store->stage($stage)) instanceof Stage ? $this->screen->stage($found) : null],
-            DealLists::MEMBER => ['url' => $this->generateUrl('app_sales_deal_owners'), 'name' => $this->screen->owner(...)],
-            DealLists::CONTACT => ['url' => $this->generateUrl('app_sales_deal_clients'), 'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName],
+            DealLists::STAGE_SOURCE => ['url' => $this->generateUrl('app_deal_stages'), 'name' => fn (string $stage): ?string => ($found = $this->store->stage($stage)) instanceof Stage ? $this->screen->stage($found) : null],
+            DealLists::MEMBER => ['url' => $this->generateUrl('app_deal_owners'), 'name' => $this->screen->owner(...)],
+            DealLists::CONTACT => ['url' => $this->generateUrl('app_deal_clients'), 'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName],
         ];
     }
 

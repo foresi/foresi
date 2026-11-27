@@ -16,7 +16,7 @@ use Foresi\Shared\Contract\Operation\Operation;
  * changes nothing.
  */
 #[Operation(
-    name: 'documents.trash',
+    name: 'document_templates.trash',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/trash',
     tool: 'foresi_trash_document',

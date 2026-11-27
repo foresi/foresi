@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A signer of a document was marked signed. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.signer.signed', version: 1)]
+#[DomainEvent('document-templates.signer.signed', version: 1)]
 final readonly class SignerSigned implements DomainEventPayload
 {
     /**

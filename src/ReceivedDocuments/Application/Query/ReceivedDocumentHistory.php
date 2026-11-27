@@ -22,7 +22,7 @@ use Foresi\ReceivedDocuments\Domain\ReceivedDocument;
  */
 final readonly class ReceivedDocumentHistory
 {
-    /** The audited fields a person sees, by the last part of their translation key under purchasing.field. */
+    /** The audited fields a person sees, by the last part of their translation key under received_documents.field. */
     private const array FIELDS = [
         'kind' => 'kind',
         'treatment' => 'treatment',

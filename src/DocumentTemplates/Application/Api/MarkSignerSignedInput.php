@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.signers.mark_signed',
+    name: 'document_templates.signers.mark_signed',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/signers/{signerId}/mark-signed',
     tool: 'foresi_mark_document_signer_signed',

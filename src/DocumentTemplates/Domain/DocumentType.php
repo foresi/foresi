@@ -18,8 +18,8 @@ use Foresi\Shared\Domain\Id;
  * modules and events can name it.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_type')]
-#[ORM\UniqueConstraint(name: 'uniq_documents_type_code', columns: ['code'])]
+#[ORM\Table(name: 'document_type')]
+#[ORM\UniqueConstraint(name: 'uniq_document_type_code', columns: ['code'])]
 class DocumentType implements Audited
 {
     public const int MAX_NAME = 120;

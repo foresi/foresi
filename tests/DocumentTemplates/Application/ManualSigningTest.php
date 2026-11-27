@@ -61,7 +61,7 @@ final class ManualSigningTest extends DocumentsTestCase
         self::assertSame(DocumentStatus::OutForSignature, $fresh->status());
         self::assertSame(hash('sha256', self::PDF), $fresh->signedSha256());
         self::assertNotNull($fresh->sentAt());
-        self::assertCount(1, $this->eventData('documents.document.sent_for_signature'));
+        self::assertCount(1, $this->eventData('document-templates.document.sent_for_signature'));
     }
 
     #[Test]
@@ -77,7 +77,7 @@ final class ManualSigningTest extends DocumentsTestCase
         $this->documents()->markSigned(new MarkSignerSignedInput($first->id(), $b->id()));
         self::assertSame(DocumentStatus::Completed, $this->reload($first)->status());
         $this->assertCompletedOnce($first, $b->id());
-        self::assertCount(2, $this->eventData('documents.signer.signed'));
+        self::assertCount(2, $this->eventData('document-templates.signer.signed'));
     }
 
     #[Test]
@@ -91,7 +91,7 @@ final class ManualSigningTest extends DocumentsTestCase
         $this->documents()->attachSignedCopy(new AttachSignedCopyInput($second->id(), 'signed.pdf', base64_encode(self::PDF)));
         self::assertSame(DocumentStatus::Completed, $this->reload($second)->status());
         $this->assertCompletedOnce($second, $c->id());
-        self::assertCount(1, $this->eventData('documents.signer.signed'));
+        self::assertCount(1, $this->eventData('document-templates.signer.signed'));
     }
 
     /**
@@ -115,7 +115,7 @@ final class ManualSigningTest extends DocumentsTestCase
             $payload = json_decode($data, true, flags: \JSON_THROW_ON_ERROR);
 
             return \is_array($payload) && \is_string($payload['document_id'] ?? null) ? $payload['document_id'] : '';
-        }, $this->eventData('documents.document.completed'));
+        }, $this->eventData('document-templates.document.completed'));
         self::assertSame([$document->id()], $completed);
     }
 
@@ -131,7 +131,7 @@ final class ManualSigningTest extends DocumentsTestCase
         $fresh = $this->reload($document);
         self::assertSame(DocumentStatus::Declined, $fresh->status());
         self::assertSame(SignerStatus::Declined, $this->store()->signer($fresh, $signer->id())?->status());
-        self::assertCount(1, $this->eventData('documents.document.declined'));
+        self::assertCount(1, $this->eventData('document-templates.document.declined'));
         $this->expectException(DocumentsRefused::class);
         $this->documents()->removeSigner(new RemoveSignerInput($document->id(), $signer->id()));
     }

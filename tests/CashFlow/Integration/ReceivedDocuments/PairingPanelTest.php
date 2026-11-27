@@ -29,7 +29,7 @@ final class PairingPanelTest extends TestCase
 
     public function testNothingIsOfferedInAnotherSlotOrForNoDocument(): void
     {
-        self::assertSame([], $this->panel()->items('purchasing.other_slot', ['documentId' => 'doc-1']));
+        self::assertSame([], $this->panel()->items('received_documents.other_slot', ['documentId' => 'doc-1']));
         self::assertSame([], $this->panel()->items(PurchasingSlots::DOCUMENT_SECTIONS, []));
         self::assertSame([], $this->panel()->items(PurchasingSlots::DOCUMENT_SECTIONS, ['documentId' => 7]));
     }

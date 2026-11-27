@@ -84,7 +84,7 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         $read = $this->draft(IsdocFixtures::invoice(), 'invoice.isdoc');
         $this->readQueued();
 
-        $crawler = $this->page('/purchasing/'.$read);
+        $crawler = $this->page('/received-documents/'.$read);
         $panel = $crawler->filter('[data-purchasing-reading="read"]');
         self::assertCount(1, $panel);
         self::assertStringContainsString('Read from ISDOC', $panel->text());
@@ -103,16 +103,16 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         self::assertSame('Cloud Host s.r.o.', $dialog->filter('#displayName')->attr('value'));
         self::assertSame('12345678', $dialog->filter('#registrationNumber')->attr('value'));
         // Read again sits in the menu of the page header.
-        self::assertCount(1, $crawler->filter('[data-page-actions] form[action="/purchasing/'.$read.'/read-again"]'));
+        self::assertCount(1, $crawler->filter('[data-page-actions] form[action="/received-documents/'.$read.'/read-again"]'));
 
         // Saved by a person before the reading: what was read waits as suggestions.
         $edited = $this->draft(IsdocFixtures::invoice(), 'edited.isdoc');
         $queued = $this->queued();
-        $this->client->request('POST', '/purchasing/'.$edited, $this->personValues($edited));
-        self::assertResponseRedirects('/purchasing/'.$edited, 303);
+        $this->client->request('POST', '/received-documents/'.$edited, $this->personValues($edited));
+        self::assertResponseRedirects('/received-documents/'.$edited, 303);
         $this->read($queued);
 
-        $crawler = $this->page('/purchasing/'.$edited);
+        $crawler = $this->page('/received-documents/'.$edited);
         $suggestions = $crawler->filter('[data-purchasing-suggestions]');
         self::assertCount(1, $suggestions);
         self::assertStringContainsString('Found in the file', $suggestions->text());
@@ -125,12 +125,12 @@ final class ReceivedDocumentReadingTest extends WebTestCase
 
         $form = $suggestions->filter('form')->form();
         $this->client->request('POST', $form->getUri(), ['fields' => ['total', 'vat_recap']] + $form->getValues());
-        self::assertResponseRedirects('/purchasing/'.$edited, 303);
+        self::assertResponseRedirects('/received-documents/'.$edited, 303);
 
         $document = $this->document($edited);
         self::assertSame(1_210_000, $document->total()?->minor());
         self::assertSame('FV-2026-123', $document->supplierNumber(), 'Not chosen, so kept.');
-        $crawler = $this->page('/purchasing/'.$edited);
+        $crawler = $this->page('/received-documents/'.$edited);
         self::assertStringContainsString('From ISDOC', $crawler->filter('#total-help')->text());
         $offered = $crawler->filter('[data-purchasing-suggestions] input[name="fields[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
         self::assertNotContains('total', $offered);
@@ -145,19 +145,19 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         $recorded = $this->draft(IsdocFixtures::invoice(), 'recorded.isdoc');
         $this->readQueued();
         $this->em()->clear();
-        $this->client->request('POST', '/purchasing/'.$recorded, ['_action' => 'record'] + $this->personValues($recorded));
-        self::assertResponseRedirects('/purchasing/'.$recorded, 303);
+        $this->client->request('POST', '/received-documents/'.$recorded, ['_action' => 'record'] + $this->personValues($recorded));
+        self::assertResponseRedirects('/received-documents/'.$recorded, 303);
 
-        $crawler = $this->page('/purchasing');
+        $crawler = $this->page('/received-documents');
         self::assertContains('To review1', $this->tabs($crawler));
-        $row = $crawler->filter('main table tbody tr')->reduce(static fn (Crawler $tr): bool => 1 === $tr->filter('a[href="/purchasing/'.$reading.'"]')->count());
+        $row = $crawler->filter('main table tbody tr')->reduce(static fn (Crawler $tr): bool => 1 === $tr->filter('a[href="/received-documents/'.$reading.'"]')->count());
         self::assertStringContainsString('Reading', $row->text());
         self::assertStringContainsString('Upload', $row->text());
 
-        $crawler = $this->page('/purchasing?view=to_review');
+        $crawler = $this->page('/received-documents?view=to_review');
         $rows = $crawler->filter('main table tbody tr');
         self::assertCount(1, $rows);
-        self::assertCount(1, $rows->filter('a[href="/purchasing/'.$read.'"]'));
+        self::assertCount(1, $rows->filter('a[href="/received-documents/'.$read.'"]'));
         self::assertStringContainsString('Read', $rows->text());
     }
 
@@ -165,15 +165,15 @@ final class ReceivedDocumentReadingTest extends WebTestCase
     {
         $id = $this->draft("%PDF-1.4\nStill being read\n%%EOF", 'waiting.pdf');
 
-        $frame = $this->page('/purchasing/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
+        $frame = $this->page('/received-documents/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
         self::assertCount(1, $frame);
         self::assertSame('true', $frame->filter('[data-progress-active]')->attr('data-progress-active'));
 
-        $this->client->request('POST', '/purchasing/'.$id.'/trash', ['_token' => $this->token('/purchasing/'.$id), 'reason' => 'Twice'], server: ['HTTP_X_FORESI_DIALOG' => '1']);
+        $this->client->request('POST', '/received-documents/'.$id.'/trash', ['_token' => $this->token('/received-documents/'.$id), 'reason' => 'Twice'], server: ['HTTP_X_FORESI_DIALOG' => '1']);
         self::assertTrue($this->document($id)->isTrashed());
 
         // No reading to show: an empty frame, which stops the polling, never an error.
-        $frame = $this->page('/purchasing/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
+        $frame = $this->page('/received-documents/'.$id.'/reading')->filter('turbo-frame#received-document-reading');
         self::assertCount(1, $frame);
         self::assertCount(0, $frame->filter('[data-progress-active], [data-purchasing-reading]'));
     }
@@ -181,17 +181,17 @@ final class ReceivedDocumentReadingTest extends WebTestCase
     public function testAReadingStuckForTenMinutesShowsAsFailedWithReadAgain(): void
     {
         $id = $this->draft("%PDF-1.4\nNever read\n%%EOF", 'stuck.pdf');
-        $crawler = $this->page('/purchasing/'.$id);
+        $crawler = $this->page('/received-documents/'.$id);
         self::assertCount(1, $crawler->filter('turbo-frame[data-controller="import-progress"] [data-purchasing-reading="reading"]'));
-        self::assertCount(0, $crawler->filter('[data-page-actions] form[action="/purchasing/'.$id.'/read-again"]'));
+        self::assertCount(0, $crawler->filter('[data-page-actions] form[action="/received-documents/'.$id.'/read-again"]'));
 
         $this->clock->modify('+11 minutes');
 
-        $crawler = $this->page('/purchasing/'.$id);
+        $crawler = $this->page('/received-documents/'.$id);
         self::assertCount(1, $crawler->filter('[data-purchasing-reading="failed"]'));
         self::assertCount(0, $crawler->filter('turbo-frame[data-controller]'), 'No endless polling.');
-        self::assertCount(1, $crawler->filter('[data-page-actions] form[action="/purchasing/'.$id.'/read-again"]'));
-        self::assertCount(0, $this->page('/purchasing/'.$id.'/reading')->filter('[data-progress-active="true"]'));
+        self::assertCount(1, $crawler->filter('[data-page-actions] form[action="/received-documents/'.$id.'/read-again"]'));
+        self::assertCount(0, $this->page('/received-documents/'.$id.'/reading')->filter('[data-progress-active="true"]'));
     }
 
     public function testReadAgainAndAcceptRefuseABadTokenAndAGuest(): void
@@ -200,14 +200,14 @@ final class ReceivedDocumentReadingTest extends WebTestCase
         $this->readQueued();
         $version = (string) $this->document($id)->version();
         $posts = [
-            '/purchasing/'.$id.'/read-again' => [],
-            '/purchasing/'.$id.'/accept-reading' => ['version' => $version, 'fields' => ['total']],
+            '/received-documents/'.$id.'/read-again' => [],
+            '/received-documents/'.$id.'/accept-reading' => ['version' => $version, 'fields' => ['total']],
         ];
         foreach ($posts as $url => $values) {
             $this->client->request('POST', $url, ['_token' => 'not-the-token'] + $values);
             self::assertResponseStatusCodeSame(403, $url);
         }
-        $token = $this->token('/purchasing/'.$id);
+        $token = $this->token('/received-documents/'.$id);
 
         $this->scopedGuest();
         foreach ($posts as $url => $values) {
@@ -259,7 +259,7 @@ final class ReceivedDocumentReadingTest extends WebTestCase
     private function personValues(string $id): array
     {
         $values = [];
-        foreach ($this->page('/purchasing/'.$id)->filter('form#received-document-form')->form()->getPhpValues() as $field => $value) {
+        foreach ($this->page('/received-documents/'.$id)->filter('form#received-document-form')->form()->getPhpValues() as $field => $value) {
             $values[(string) $field] = $value;
         }
 
@@ -326,7 +326,7 @@ final class ReceivedDocumentReadingTest extends WebTestCase
 
     private function draft(string $content, string $name): string
     {
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $this->token('/purchasing/upload')], ['file' => $this->file($content, $name)], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('POST', '/received-documents/upload', ['_token' => $this->token('/received-documents/upload')], ['file' => $this->file($content, $name)], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame(201);
         $decoded = json_decode((string) $this->client->getResponse()->getContent(), true);
         self::assertIsArray($decoded);
@@ -339,7 +339,7 @@ final class ReceivedDocumentReadingTest extends WebTestCase
     {
         $this->client->request('GET', $url);
         self::assertResponseIsSuccessful();
-        $token = $this->client->getCrawler()->filter('main form[action^="/purchasing"] input[name="_token"]')->first()->attr('value');
+        $token = $this->client->getCrawler()->filter('main form[action^="/received-documents"] input[name="_token"]')->first()->attr('value');
         self::assertIsString($token);
 
         return $token;

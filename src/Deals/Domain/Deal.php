@@ -22,9 +22,9 @@ use Foresi\Shared\Domain\Id;
  * everything, and restoring brings it back as it was.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_deal')]
-#[ORM\Index(name: 'idx_sales_deal_client', columns: ['client_party_id'])]
-#[ORM\Index(name: 'idx_sales_deal_stage', columns: ['stage_id'])]
+#[ORM\Table(name: 'deal')]
+#[ORM\Index(name: 'idx_deal_client', columns: ['client_party_id'])]
+#[ORM\Index(name: 'idx_deal_stage', columns: ['stage_id'])]
 class Deal implements Audited
 {
     public const int MAX_TITLE = 200;

@@ -24,7 +24,7 @@ final readonly class PurchasingSubjectUrls implements EventSubjectUrl
 
     public function module(): string
     {
-        return 'purchasing';
+        return 'received-documents';
     }
 
     public function url(EventSubject $subject): ?string

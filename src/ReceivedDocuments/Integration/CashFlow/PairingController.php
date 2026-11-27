@@ -49,7 +49,7 @@ final class PairingController extends AbstractController
     /**
      * The dialog that picks an item and the day of its occurrence, from those around the day of the document.
      */
-    #[Route('/purchasing/{id}/pairing/choose', name: 'app_purchasing_pairing_choose', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    #[Route('/received-documents/{id}/pairing/choose', name: 'app_received_document_pairing_choose', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function choose(string $id): Response
     {
         [$document, $pairable] = $this->recorded($id);
@@ -74,7 +74,7 @@ final class PairingController extends AbstractController
         ]);
     }
 
-    #[Route('/purchasing/{id}/pairing', name: 'app_purchasing_pairing_pair', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/pairing', name: 'app_received_document_pairing_pair', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function pair(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -90,7 +90,7 @@ final class PairingController extends AbstractController
         return $this->act($id, fn () => $this->pairings->pair($pairable->subject, $itemId, $on), 'received_documents.pairing.flash.paired');
     }
 
-    #[Route('/purchasing/{id}/pairing/unpair', name: 'app_purchasing_pairing_unpair', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/pairing/unpair', name: 'app_received_document_pairing_unpair', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function unpair(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -133,7 +133,7 @@ final class PairingController extends AbstractController
 
     private function toDocument(string $id): RedirectResponse
     {
-        return $this->redirectToRoute('app_purchasing_document', ['id' => $id], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_received_document', ['id' => $id], Response::HTTP_SEE_OTHER);
     }
 
     private function checkToken(Request $request): void

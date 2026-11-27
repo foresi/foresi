@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Event\EventRecorder;
 /**
  * The links between deals: two deals of the same client, never a deal to
  * itself, and a pair once, whichever way round. Each change records
- * sales.deal.updated for both deals.
+ * deals.deal.updated for both deals.
  */
 final readonly class DealLinkWrites
 {

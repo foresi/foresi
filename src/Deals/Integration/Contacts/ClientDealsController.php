@@ -34,7 +34,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class ClientDealsController extends AbstractController
 {
-    public const string ROUTE = 'app_sales_client_deals';
+    public const string ROUTE = 'app_deal_client_deals';
 
     public function __construct(
         private readonly DealReads $reads,
@@ -44,7 +44,7 @@ final class ClientDealsController extends AbstractController
     ) {
     }
 
-    #[Route('/sales/clients/{id}/deals', name: self::ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
+    #[Route('/deals/clients/{id}/deals', name: self::ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function deals(string $id): Response
     {
         $client = $this->parties->find($id) ?? throw new NotFoundHttpException('There is no contact with this id.');

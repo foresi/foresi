@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.attach_signed_copy',
+    name: 'document_templates.attach_signed_copy',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/signed-copy',
     tool: 'foresi_attach_signed_document_copy',

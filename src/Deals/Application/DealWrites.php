@@ -43,13 +43,13 @@ use Foresi\Shared\Contract\Operation\Omitted;
 
 /**
  * The writes of a deal itself, from its screens, the API and MCP alike (ADR
- * 0032). Each runs in one unit of work with its sales.deal event, and only the
+ * 0032). Each runs in one unit of work with its deals.deal event, and only the
  * owners and members of the organisation write. The client is a contact of
  * the address book, not archived for a new deal or a deal moved to it; the
  * contact persons are linked to it; the owner is an owner or member. A deal in
  * the trash is not found, except to trash or restore it. The custom fields of a
  * deal (ADR 0045) come from its screens beside the input, which the API does not
- * carry yet: they are written in the same unit of work, and sales.deal.updated
+ * carry yet: they are written in the same unit of work, and deals.deal.updated
  * names the keys that changed.
  */
 final readonly class DealWrites

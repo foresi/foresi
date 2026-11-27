@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Operation\OperationHandler;
 use Foresi\Shared\Contract\Operation\OperationOutput;
 
 /**
- * inbox.actions.create_deal: the deal sales.deals.create opens, answered the same way.
+ * inbox.actions.create_deal: the deal deals.create opens, answered the same way.
  */
 final readonly class CreateDealFromEmailHandler implements OperationHandler
 {

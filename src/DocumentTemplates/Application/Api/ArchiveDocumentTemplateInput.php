@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.templates.archive',
+    name: 'document_templates.templates.archive',
     method: 'POST',
     path: '/api/v1/document-templates/{templateId}/archive',
     tool: 'foresi_archive_document_template',

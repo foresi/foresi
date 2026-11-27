@@ -13,7 +13,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.templates.save_version',
+    name: 'document_templates.templates.save_version',
     method: 'POST',
     path: '/api/v1/document-templates/{templateId}/versions',
     tool: 'foresi_save_document_template_version',

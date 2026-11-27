@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A cancelled document went to the trash; it is kept there with its history. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.trashed', version: 1)]
+#[DomainEvent('document-templates.document.trashed', version: 1)]
 final readonly class DocumentTrashed implements DomainEventPayload
 {
     /**

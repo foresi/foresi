@@ -6,7 +6,7 @@
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_purchasing')}, {label: title, href: path('app_purchasing_document', {id: document.id})}] %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_received_documents')}, {label: title, href: path('app_received_document', {id: document.id})}] %}
 {% set dialog_size = 'sm' %}
 {% set dialog_description = 'received_documents.pairing.choose_description'|trans %}
 
@@ -16,7 +16,7 @@
     {% if options is empty %}
         <p class="m-0 text-small text-muted" data-pairing-no-options>{{ 'received_documents.pairing.no_options'|trans }}</p>
     {% else %}
-        <form method="post" id="pairing-form" action="{{ path('app_purchasing_pairing_pair', {id: document.id}) }}" class="grid gap-4" novalidate>
+        <form method="post" id="pairing-form" action="{{ path('app_received_document_pairing_pair', {id: document.id}) }}" class="grid gap-4" novalidate>
             <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\ReceivedDocuments\\Integration\\CashFlow\\PairingController::TOKEN')) }}">
             <twig:Ui:Select name="choice" id="pairing-choice" :label="'received_documents.pairing.field'|trans" :options="options" required />
         </form>
@@ -34,7 +34,7 @@
         <p class="m-0 mb-4 text-small text-muted">{{ 'received_documents.pairing.choose_description'|trans }}</p>
         {{ body }}
         <div class="mt-4 flex flex-wrap justify-end gap-2">
-            <twig:Ui:Button :href="path('app_purchasing_document', {id: document.id})">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_received_document', {id: document.id})">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
             {% if options is not empty %}<twig:Ui:Button type="submit" form="pairing-form" variant="primary">{{ 'received_documents.pairing.submit'|trans }}</twig:Ui:Button>{% endif %}
         </div>
     </twig:Ui:Card>

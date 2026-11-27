@@ -2254,7 +2254,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Contacts",
-                "reference": "d7cfb3b9215b155ffa42d2f3cae1cf567f0c2b68"
+                "reference": "f8b9e1072ceb50721dedf99b5d757fe441a7d251"
             },
             "require": {
                 "doctrine/orm": "^3.7.5",
@@ -2290,6 +2290,9 @@
                         "activities",
                         "document-templates",
                         "import"
+                    ],
+                    "scopes": [
+                        "contacts"
                     ]
                 }
             },
@@ -2402,7 +2405,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Deals",
-                "reference": "ddd11c176ad7b5a18eb8972972eb0133b98c379c"
+                "reference": "842a8f7dc64a442ff3d69108d7b72dd7542abd8b"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2447,7 +2450,7 @@
                         "contacts"
                     ],
                     "scopes": [
-                        "sales"
+                        "deals"
                     ]
                 }
             },
@@ -3251,7 +3254,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "1ff3e124772235510c7f17fd1ce4d3bba73a7450"
+                "reference": "1b5af3ac04409d247e0a07a39b6b3932afa1e391"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3287,7 +3290,7 @@
                         "ui"
                     ],
                     "scopes": [
-                        "contacts"
+                        "firm"
                     ]
                 }
             },

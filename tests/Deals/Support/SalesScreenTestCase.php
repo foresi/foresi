@@ -71,7 +71,7 @@ abstract class SalesScreenTestCase extends WebTestCase
      */
     protected function newDeal(string $title, array $persons = []): Deal
     {
-        $form = $this->client->request('GET', '/sales/deals/new?client='.$this->company->id())->filter('#deal-form')->form();
+        $form = $this->client->request('GET', '/deals/new?client='.$this->company->id())->filter('#deal-form')->form();
         $form['title'] = $title;
         $values = $form->getPhpValues();
         $ids = [$this->petra->id(), $this->karel->id()];

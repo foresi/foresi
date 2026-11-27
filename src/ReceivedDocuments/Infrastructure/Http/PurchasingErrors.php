@@ -26,7 +26,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 final readonly class PurchasingErrors
 {
-    public const array ROUTE_PREFIXES = ['app_purchasing', 'api_v1_received_document'];
+    public const array ROUTE_PREFIXES = ['app_received_document', 'api_v1_received_document'];
 
     #[AsEventListener(event: KernelEvents::EXCEPTION)]
     public function onException(ExceptionEvent $event): void

@@ -15,8 +15,8 @@ use Doctrine\ORM\Mapping as ORM;
  * order the deal lists them. The person is a contact of Party, by its id.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_deal_contact')]
-#[ORM\Index(name: 'idx_sales_deal_contact_person', columns: ['party_person_id'])]
+#[ORM\Table(name: 'deal_contact')]
+#[ORM\Index(name: 'idx_deal_contact_person', columns: ['party_person_id'])]
 class DealContact
 {
     public function __construct(

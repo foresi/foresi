@@ -20,8 +20,8 @@ use Doctrine\ORM\Mapping as ORM;
  * address or the text of a mail.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'purchasing_mail_intake')]
-#[ORM\Index(name: 'idx_purchasing_mail_intake_owner', columns: ['owner_user_id', 'created_at'])]
+#[ORM\Table(name: 'received_document_mail_intake')]
+#[ORM\Index(name: 'idx_received_document_mail_intake_owner', columns: ['owner_user_id', 'created_at'])]
 class MailIntake
 {
     /** Attachments are listed up to this many; the rest are only counted. */

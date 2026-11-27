@@ -38,9 +38,9 @@ namespace Foresi\Deals\Contract;
  */
 final class SalesSlots
 {
-    public const string DEAL_ACTIONS = 'sales.deal_actions';
+    public const string DEAL_ACTIONS = 'deals.deal_actions';
 
-    public const string DEAL_SECTIONS = 'sales.deal_sections';
+    public const string DEAL_SECTIONS = 'deals.deal_sections';
 
     /** The prefix of the id of the Turbo frame a section's fragment loads into. */
     public const string SECTION_FRAME = 'deal-section-';

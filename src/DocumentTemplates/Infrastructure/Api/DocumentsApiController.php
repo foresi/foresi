@@ -46,7 +46,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/documents', name: DocumentsRoutes::DOCUMENTS, methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Parameter(name: 'type_id', description: 'Only the documents of this type.', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid'))]
     #[OA\Parameter(name: 'status', description: 'Only the documents in this status.', in: 'query', schema: new OA\Schema(type: 'string', enum: ['draft', 'ready', 'out_for_signature', 'completed', 'declined', 'cancelled', 'expired']))]
     #[OA\Parameter(name: 'linked_kind', description: 'With linked_id: only the documents linked to this record, such as contact.', in: 'query', schema: new OA\Schema(type: 'string', example: 'contact'))]
@@ -75,7 +75,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/documents/{documentId}', name: DocumentsRoutes::DOCUMENT, methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Response(response: 200, description: 'The document with its links, signers, files and frozen values, also one in the trash.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/DocumentsDocument')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -88,7 +88,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/documents/{documentId}/files/{file}', name: DocumentsRoutes::DOCUMENT_FILE, requirements: ['file' => 'pdf|signed|certificate'], methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Parameter(name: 'file', description: 'Which file: pdf (the generated PDF), signed (the signed copy) or certificate (the provider\'s certificate).', in: 'path', required: true, schema: new OA\Schema(type: 'string', enum: ['pdf', 'signed', 'certificate']))]
     #[OA\Response(response: 200, description: 'The bytes of the file, as stored; its SHA-256 is in the files of the document.', content: new OA\MediaType(mediaType: 'application/pdf', schema: new OA\Schema(type: 'string', format: 'binary')))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -117,7 +117,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/document-types', name: DocumentsRoutes::TYPES, methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Parameter(name: 'include_archived', description: 'Whether archived types are listed too; not when left out.', in: 'query', schema: new OA\Schema(type: 'boolean'))]
     #[OA\Response(response: 200, description: 'The document types, by name.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentsType'))], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
@@ -130,7 +130,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/document-templates', name: DocumentsRoutes::TEMPLATES, methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Parameter(name: 'type_id', description: 'Only the templates of this document type.', in: 'query', schema: new OA\Schema(type: 'string', format: 'uuid'))]
     #[OA\Parameter(name: 'include_archived', description: 'Whether archived templates are listed too; not when left out.', in: 'query', schema: new OA\Schema(type: 'boolean'))]
     #[OA\Response(response: 200, description: 'The templates, by name, each with its latest version without the body.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/DocumentsTemplateRow'))], type: 'object'))]
@@ -146,7 +146,7 @@ final readonly class DocumentsApiController
     }
 
     #[Route('/api/v1/document-templates/{templateId}', name: DocumentsRoutes::TEMPLATE, methods: ['GET'])]
-    #[OA\Tag(name: 'Documents')]
+    #[OA\Tag(name: 'Document templates')]
     #[OA\Response(response: 200, description: 'The template with its latest version, its versions and the variables a body can use.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/DocumentsTemplate')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 403, description: 'The token lacks the documents:read scope, or is a guest\'s.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]

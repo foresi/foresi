@@ -60,7 +60,7 @@ final class MarginScreensTest extends WebTestCase
         $this->start(Role::Owner);
         $id = $this->record();
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $page->filter('[data-purchasing-margin]'));
@@ -86,7 +86,7 @@ final class MarginScreensTest extends WebTestCase
         self::assertCount(1, $dialog->filter('a[data-margin-split-lines]'));
         $this->client->submit($dialog->filter('#margin-assign-form')->form(['type' => 'client', 'contactId' => $this->clientA->id(), 'query' => 'Client A s.r.o.']));
 
-        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertResponseRedirects('/received-documents/'.$id, 303);
         $page = $this->client->followRedirect();
         self::assertStringContainsString('Client A s.r.o.', $page->filter('[data-margin-whole]')->text());
         self::assertSame(['document', 'document'], $page->filter('[data-margin-share]')->each(static fn (Crawler $share): ?string => $share->attr('data-margin-share')));
@@ -109,7 +109,7 @@ final class MarginScreensTest extends WebTestCase
             'shares[1][type]' => 'own', 'shares[1][percent]' => '70',
         ]));
 
-        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertResponseRedirects('/received-documents/'.$id, 303);
         $page = $this->client->followRedirect();
         $line = $page->filter('[data-margin-line="'.$key.'"]');
         self::assertSame(['line', 'line'], $line->filter('[data-margin-share]')->each(static fn (Crawler $share): ?string => $share->attr('data-margin-share')));
@@ -120,7 +120,7 @@ final class MarginScreensTest extends WebTestCase
         $again = $this->client->request('GET', '/margin/documents/'.$id.'/lines/'.$key);
         self::assertSame('30', $again->filter('#margin-percent-0')->attr('value'));
         $this->client->request('POST', '/margin/documents/'.$id.'/lines/'.$key, ['_action' => 'clear', '_token' => $again->filter('#margin-line-form input[name="_token"]')->attr('value')]);
-        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertResponseRedirects('/received-documents/'.$id, 303);
         self::assertSame(0, $this->stored(LineAllocation::class));
     }
 
@@ -197,7 +197,7 @@ final class MarginScreensTest extends WebTestCase
     {
         $this->start(Role::Owner);
         $id = $this->record();
-        $this->client->request('GET', '/purchasing/'.$id);
+        $this->client->request('GET', '/received-documents/'.$id);
         $panel = self::getContainer()->get(MarginPanel::class);
 
         self::assertCount(1, [...$panel->items(PurchasingSlots::DOCUMENT_SECTIONS, ['documentId' => $id])]);
@@ -221,7 +221,7 @@ final class MarginScreensTest extends WebTestCase
         $first = $again->filter('#margin-line-form button[type="submit"]')->first();
         self::assertSame('save', $first->attr('value'));
         $this->client->request('POST', '/margin/documents/'.$id.'/lines/'.$key, $form->getPhpValues() + ['_action' => $first->attr('value')]);
-        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertResponseRedirects('/received-documents/'.$id, 303);
         self::assertSame(1, $this->stored(LineAllocation::class), 'Enter did not clear the split.');
 
         $dialog = $this->client->request('GET', '/margin/documents/'.$id.'/assign');
@@ -239,7 +239,7 @@ final class MarginScreensTest extends WebTestCase
         $this->browser->em()->clear();
         self::getContainer()->get(CostShareCalculation::class)->recalculate($id);
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $page->filter('[data-margin-gap]'));
@@ -268,7 +268,7 @@ final class MarginScreensTest extends WebTestCase
         $membership->changeRole(Role::Guest, $this->browser->em()->find(Party::class, $this->clientA->id()));
         $this->browser->em()->flush();
 
-        foreach (['/purchasing/'.$id, '/margin/documents/'.$id.'/assign', '/margin/documents/'.$id.'/lines/rate:21', '/margin/contacts?q=Client'] as $url) {
+        foreach (['/received-documents/'.$id, '/margin/documents/'.$id.'/assign', '/margin/documents/'.$id.'/lines/rate:21', '/margin/contacts?q=Client'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
@@ -325,7 +325,7 @@ final class MarginScreensTest extends WebTestCase
      */
     private function lineKeys(string $id): array
     {
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         return $page->filter('[data-margin-line]')->each(static fn (Crawler $line): string => (string) $line->attr('data-margin-line'));
     }

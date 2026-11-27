@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * The lines of a deal put in a new order over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deal_lines.reorder',
+    name: 'deals.lines.reorder',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/lines/reorder',
+    path: '/api/v1/deals/{dealId}/lines/reorder',
     tool: 'foresi_reorder_deal_lines',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Reorder the lines of a deal',
     description: 'Puts the lines of a deal in the order given. Name every line of the deal once.',
     response: 'SalesDeal',

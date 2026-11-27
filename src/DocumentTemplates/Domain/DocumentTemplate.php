@@ -16,8 +16,8 @@ use Foresi\Shared\Domain\Id;
  * A template of one type of document. Its text lives in its versions.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_template')]
-#[ORM\Index(name: 'idx_documents_template_type', columns: ['type_id'])]
+#[ORM\Table(name: 'document_template')]
+#[ORM\Index(name: 'idx_document_template_type', columns: ['type_id'])]
 class DocumentTemplate implements Audited
 {
     public const int MAX_NAME = 120;

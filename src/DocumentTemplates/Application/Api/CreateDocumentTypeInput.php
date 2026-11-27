@@ -13,7 +13,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.types.create',
+    name: 'document_templates.types.create',
     method: 'POST',
     path: '/api/v1/document-types',
     tool: 'foresi_create_document_type',

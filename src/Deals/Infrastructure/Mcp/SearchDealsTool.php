@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The deals found by text and narrowed by status, stage, owner and client, as
- * GET /api/v1/sales/deals writes them.
+ * GET /api/v1/deals writes them.
  */
 final readonly class SearchDealsTool implements ReadTool, StaffOnlyTool
 {
@@ -39,7 +39,7 @@ final readonly class SearchDealsTool implements ReadTool, StaffOnlyTool
 
     public function scope(): string
     {
-        return 'sales:read';
+        return 'deals:read';
     }
 
     public function description(): string

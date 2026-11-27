@@ -344,8 +344,8 @@ final class MarginTableTest extends KernelTestCase
         self::assertSame(3_908_404, $cell->figures->margin->minor());
         self::assertSame([['EN-i2', 981_500, 'revenue', 'invoice', '/invoices/i2'], ['EN-i1', 3_000_000, 'revenue', 'invoice', '/invoices/i1']], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->amountCzk->minor(), $item->source, $item->kind, $item->url], $cell->revenue), 'By tax point.');
         self::assertSame([
-            ['EN-'.self::VOICE, 'Voice API usage', 50_820, 'document', '/purchasing/'.self::VOICE],
-            ['EN-'.self::CLOUD, 'Hosting', 22_176, 'line', '/purchasing/'.self::CLOUD],
+            ['EN-'.self::VOICE, 'Voice API usage', 50_820, 'document', '/received-documents/'.self::VOICE],
+            ['EN-'.self::CLOUD, 'Hosting', 22_176, 'line', '/received-documents/'.self::CLOUD],
             [self::GONE, null, 100, 'supplier', null],
         ], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): array => [$item->label, $item->text, $item->amountCzk->minor(), $item->source, $item->url], $cell->costs));
         self::assertSame([self::VOICE, self::CLOUD, self::GONE], array_map(static fn (\Foresi\Margin\Application\MarginCellItem $item): string => $item->documentId, $cell->costs));
@@ -419,7 +419,7 @@ final class MarginTableTest extends KernelTestCase
      */
     private function costDocument(string $id, string $basis, array $lines): CostDocument
     {
-        return new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), $lines, false, 'EN-'.$id, '/purchasing/'.$id);
+        return new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), $lines, false, 'EN-'.$id, '/received-documents/'.$id);
     }
 
     private function calculation(): CostShareCalculation

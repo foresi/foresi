@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 id="client-deals-title" class="m-0 text-heading font-semibold text-ink">{{ 'deals.client.title'|trans }} <span class="num font-normal text-muted">({{ deals|length }})</span></h2>
             {% if not client.archived %}
-                <twig:Ui:Button variant="primary" icon="plus" size="sm" :href="path('app_sales_deal_new', {client: client.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-client-deal-new>{{ 'deals.deal.new'|trans }}</twig:Ui:Button>
+                <twig:Ui:Button variant="primary" icon="plus" size="sm" :href="path('app_deal_new', {client: client.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-client-deal-new>{{ 'deals.deal.new'|trans }}</twig:Ui:Button>
             {% endif %}
         </div>
         {% if deals is empty %}

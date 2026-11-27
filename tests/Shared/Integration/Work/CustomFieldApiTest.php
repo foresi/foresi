@@ -68,7 +68,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->writer = $this->issued(array_map(ApiScope::from(...), ['contacts:write', 'sales:write', 'catalog:write', 'projects:write', 'tasks:write']));
+        $this->writer = $this->issued(array_map(ApiScope::from(...), ['contacts:write', 'deals:write', 'catalog:write', 'projects:write', 'tasks:write']));
     }
 
     public function testAContactCarriesItsCustomFieldsOnEveryRead(): void
@@ -252,23 +252,23 @@ final class CustomFieldApiTest extends WorkApiTestCase
     public function testADealCarriesItsCustomFields(): void
     {
         $this->lend(DealExtension::RECORD, ['test_fields_code']);
-        $this->send('POST', '/api/v1/sales/stages', ['name' => 'Inquiry']);
+        $this->send('POST', '/api/v1/deal-stages', ['name' => 'Inquiry']);
         self::assertResponseStatusCodeSame(201);
 
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'custom_fields.test_fields_code', 'reason' => 'field_required']);
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'custom_fields' => ['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01']]);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'custom_fields' => ['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01']]);
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
         self::assertIsString($id);
         self::assertSame(['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01'], $this->values($this->at('data', 'custom_fields'), 'test_fields_code', 'test_fields_due'));
-        $this->get('/api/v1/sales/deals', [], $this->writer);
+        $this->get('/api/v1/deals', [], $this->writer);
         self::assertSame('D-1', $this->at('data', 0, 'custom_fields', 'test_fields_code'));
 
         $call = $this->mcpTool('foresi_update_deal', ['deal_id' => $id, 'custom_fields' => ['test_fields_size' => 'small']]);
         self::assertFalse($call['isError'] ?? false, json_encode($call, \JSON_THROW_ON_ERROR));
         self::assertSame(['test_fields_code' => 'D-1', 'test_fields_size' => 'small'], $this->values(self::in($call, 'structuredContent', 'data', 'custom_fields'), 'test_fields_code', 'test_fields_size'));
-        self::assertSame(['test_fields_size'], $this->eventKeys('sales.deal.updated', $id));
+        self::assertSame(['test_fields_size'], $this->eventKeys('deals.deal.updated', $id));
         self::assertSame('small', self::in($this->mcpTool('foresi_search_deals', []), 'structuredContent', 'data', 'items', 0, 'custom_fields', 'test_fields_size'));
         $refused = $this->mcpTool('foresi_update_deal', ['deal_id' => $id, 'custom_fields' => ['test_fields_site' => 'mailto:sales@example.com']]);
         self::assertSame('custom_fields.test_fields_site', self::in($refused, 'structuredContent', 'error', 'details', 'parameter'));

@@ -9,7 +9,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = 'deals.billing.link.title'|trans %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'md' %}
 {% set dialog_description = ('deals.billing.link.description_' ~ type)|trans({entry: label}) %}
@@ -40,7 +40,7 @@
     </twig:Ui:Card>
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
             {% if options is not empty %}<twig:Ui:Button type="submit" form="billing-link-form" variant="primary">{{ 'deals.billing.link.submit'|trans }}</twig:Ui:Button>{% endif %}
         </twig:Ui:ActionBar>
     </div>

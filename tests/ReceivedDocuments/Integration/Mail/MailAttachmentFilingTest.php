@@ -296,7 +296,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
 
         self::assertSame(ReceiveOutcome::UnknownRecipient, $outcome, 'Mail keeps nothing.');
         self::assertSame(0, $this->rows('mail_message'));
-        self::assertSame(0, $this->rows('purchasing_mail_intake'));
+        self::assertSame(0, $this->rows('received_document_mail_intake'));
         self::assertSame([], $this->filingJobs());
     }
 
@@ -334,7 +334,7 @@ final class MailAttachmentFilingTest extends PurchasingTestCase
                 self::addToAssertionCount(1);
             }
         }
-        self::assertSame(1, $this->rows('purchasing_mail_intake'), 'Only the mail taken in before the address was revoked.');
+        self::assertSame(1, $this->rows('received_document_mail_intake'), 'Only the mail taken in before the address was revoked.');
     }
 
     public function testRunningTwiceFilesOnce(): void

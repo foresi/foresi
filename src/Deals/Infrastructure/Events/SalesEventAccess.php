@@ -23,7 +23,7 @@ final readonly class SalesEventAccess implements EventReadAccess
 
     public function module(): string
     {
-        return 'sales';
+        return 'deals';
     }
 
     public function mayRead(): bool

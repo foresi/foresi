@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * The stages put in a new order over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.stages.reorder',
+    name: 'deals.stages.reorder',
     method: 'POST',
-    path: '/api/v1/sales/stages/reorder',
+    path: '/api/v1/deal-stages/reorder',
     tool: 'foresi_reorder_deal_stages',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Reorder the stages',
     description: 'Puts the stages deals go through in the order given. Name every stage that is not archived once (foresi_list_deal_stages).',
     response: 'SalesStageList',

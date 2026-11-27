@@ -18,7 +18,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * event. The payload is thin (ADR 0030): read the deal itself for its title,
  * client and lines.
  */
-#[DomainEvent('sales.deal.lost', version: 1)]
+#[DomainEvent('deals.deal.lost', version: 1)]
 final readonly class DealLost implements DomainEventPayload
 {
     /**

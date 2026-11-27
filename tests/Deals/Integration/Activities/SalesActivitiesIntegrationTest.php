@@ -32,7 +32,7 @@ final class SalesActivitiesIntegrationTest extends SalesScreenTestCase
     public function testActivityLoggedOnDealShowsOnClientToo(): void
     {
         $deal = $this->newDeal('Roof audit', [0]);
-        $page = '/sales/deals/'.$deal->id();
+        $page = '/deals/'.$deal->id();
 
         $crawler = $this->client->request('GET', $page);
         self::assertResponseIsSuccessful();
@@ -41,12 +41,12 @@ final class SalesActivitiesIntegrationTest extends SalesScreenTestCase
             $action = $crawler->filter('[data-deal-action="'.$mode.'-activity"]');
             self::assertSame($label, trim($action->text()));
             self::assertNotNull($action->attr('data-dialog'));
-            self::assertSame('/activities/new?mode='.$mode.'&link_kind=deal&link_id='.$deal->id().$links.'&return=/sales/deals/'.$deal->id(), $action->attr('href'));
+            self::assertSame('/activities/new?mode='.$mode.'&link_kind=deal&link_id='.$deal->id().$links.'&return=/deals/'.$deal->id(), $action->attr('href'));
         }
         // Log activity comes before Plan activity, both before what other modules add after them.
         self::assertSame(['log-activity', 'plan-activity'], \array_slice($crawler->filter('[data-deal-action]')->each(static fn (Crawler $a): string => (string) $a->attr('data-deal-action')), 0, 2));
         $timeline = (string) $crawler->filter('[data-deal-section="activities"] turbo-frame#deal-section-activities')->attr('src');
-        self::assertSame('/activities/for/deal/'.$deal->id().'?return=/sales/deals/'.$deal->id(), $timeline);
+        self::assertSame('/activities/for/deal/'.$deal->id().'?return=/deals/'.$deal->id(), $timeline);
         // The timeline is the first tab, shown by default; the documents are the next one, loaded only when chosen.
         self::assertSame([$page, $page.'?tab=documents'], $crawler->filter('[data-deal-tabs] nav a')->each(static fn (Crawler $tab): string => (string) $tab->attr('href')));
         self::assertSame(['Activities'], $crawler->filter('[data-deal-tabs] nav a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));

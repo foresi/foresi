@@ -18,7 +18,7 @@ use Foresi\Shared\Contract\Event\EventRecorder;
  * Sets the lines of a draft or a recorded document on their own: they split
  * the bases of its VAT recap as it stands, and an empty list removes them.
  * Never in the trash or once locked. Lines that change a recorded document
- * record purchasing.received_document.changed with what "lines"; the same
+ * record received-documents.received_document.changed with what "lines"; the same
  * lines again change nothing.
  */
 final readonly class SetReceivedDocumentLines

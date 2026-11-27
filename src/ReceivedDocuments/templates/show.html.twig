@@ -16,7 +16,7 @@
 {% set record_fields = true %}
 {% set record_full = true %}
 
-{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_purchasing')}, {label: title}] %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_received_documents')}, {label: title}] %}
 {% set form_invalid = errors is not empty %}
 {% set token = csrf_token(constant('Foresi\\ReceivedDocuments\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) %}
 {% set draft = not document.recorded %}
@@ -27,7 +27,7 @@
     <twig:Ui:MoreActions menuId="document-actions">
         <twig:block name="primary">
             {% if not editable %}
-                <form method="post" action="{{ path('app_purchasing_restore', {id: document.id}) }}" data-purchasing-restore>
+                <form method="post" action="{{ path('app_received_document_restore', {id: document.id}) }}" data-purchasing-restore>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Button :size="record_action_size" type="submit" icon="archive-restore" variant="primary">{{ 'received_documents.restore'|trans }}</twig:Ui:Button>
                 </form>
@@ -41,7 +41,7 @@
         <twig:block name="phone">{% if editable and draft %}<twig:Ui:MenuItem type="submit" form="received-document-form" name="_action" value="save">{{ 'received_documents.save'|trans }}</twig:Ui:MenuItem>{% endif %}</twig:block>
         <twig:block name="last">
             {% if editable and draft and reading and reading.retry %}
-                <form method="post" action="{{ path('app_purchasing_read_again', {id: document.id}) }}" role="none" data-purchasing-read-again>
+                <form method="post" action="{{ path('app_received_document_read_again', {id: document.id}) }}" role="none" data-purchasing-read-again>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:MenuItem type="submit" icon="refresh-cw">{{ 'received_documents.reading.again'|trans }}</twig:Ui:MenuItem>
                 </form>
@@ -51,9 +51,9 @@
                 {% endfor %}
             {% endif %}
             {% if editable %}
-                <twig:Ui:MenuItem icon="trash-2" :href="path('app_purchasing_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'received_documents.trash.open'|trans }}</twig:Ui:MenuItem>
+                <twig:Ui:MenuItem icon="trash-2" :href="path('app_received_document_trash', {id: document.id})" data-dialog aria-haspopup="dialog" data-purchasing-trash>{{ 'received_documents.trash.open'|trans }}</twig:Ui:MenuItem>
                 {% if draft %}
-                    <form method="post" action="{{ path('app_purchasing_delete', {id: document.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
+                    <form method="post" action="{{ path('app_received_document_delete', {id: document.id}) }}" role="none" data-controller="confirm-submit" data-action="submit->confirm-submit#ask"
                         data-confirm-title="{{ 'received_documents.delete.confirm_title'|trans }}" data-confirm-text="{{ 'received_documents.delete.confirm_text'|trans }}"
                         data-confirm-accept="{{ 'received_documents.delete.submit'|trans }}" data-confirm-cancel="{{ 'received_documents.cancel'|trans }}" data-confirm-tone="danger" data-purchasing-delete>
                         <input type="hidden" name="_token" value="{{ token }}">
@@ -74,7 +74,7 @@
         {% if stale %}
             <twig:Ui:Alert tone="error" role="alert" data-reload-prompt>
                 <span>{{ 'received_documents.refused.stale'|trans }}</span>
-                <a href="{{ path('app_purchasing_document', {id: document.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'received_documents.reload'|trans }}</a>
+                <a href="{{ path('app_received_document', {id: document.id}) }}" class="ml-1 font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'received_documents.reload'|trans }}</a>
             </twig:Ui:Alert>
         {% endif %}
         {% if document.trashed %}<twig:Ui:Alert tone="warning" data-purchasing-trashed>{{ 'received_documents.detail.trashed'|trans({reason: document.deletedReason ?? ''}) }}</twig:Ui:Alert>{% endif %}
@@ -107,7 +107,7 @@
                 {{ include('@ReceivedDocuments/_reading.html.twig') }}
                 {% if editable and reading.suggestions is not empty %}
                     <twig:Ui:Card :title="'received_documents.reading.suggestions'|trans" icon="file-text" data-purchasing-suggestions>
-                        <form method="post" action="{{ path('app_purchasing_accept_reading', {id: document.id}) }}" class="grid gap-3" data-turbo="false">
+                        <form method="post" action="{{ path('app_received_document_accept_reading', {id: document.id}) }}" class="grid gap-3" data-turbo="false">
                             <input type="hidden" name="_token" value="{{ token }}">
                             <input type="hidden" name="version" value="{{ version }}">
                             <p class="m-0 text-small text-muted">{{ 'received_documents.reading.suggestions_help'|trans }}</p>
@@ -122,7 +122,7 @@
                 {% endif %}
             {% endif %}
             <twig:Ui:Card>
-                <form method="post" id="received-document-form" action="{{ path('app_purchasing_document', {id: document.id}) }}" class="grid gap-4" novalidate data-turbo="false" data-purchasing-form>
+                <form method="post" id="received-document-form" action="{{ path('app_received_document', {id: document.id}) }}" class="grid gap-4" novalidate data-turbo="false" data-purchasing-form>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <input type="hidden" name="version" value="{{ version }}">
                     {{ include('@ReceivedDocuments/_form_errors.html.twig') }}

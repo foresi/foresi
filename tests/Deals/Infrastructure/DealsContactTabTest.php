@@ -49,29 +49,29 @@ final class DealsContactTabTest extends WebTestCase
         $this->em()->persist($company);
         $this->em()->flush();
         $audit = $this->newDeal($company, 'Roof audit');
-        $token = (string) $this->client->request('GET', '/sales/deals/new')->filter('#deal-form input[name="_token"]')->attr('value');
-        $this->client->request('POST', '/sales/deals/'.$audit->id().'/follow-up', ['_token' => $token, 'title' => 'Roof maintenance']);
+        $token = (string) $this->client->request('GET', '/deals/new')->filter('#deal-form input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/deals/'.$audit->id().'/follow-up', ['_token' => $token, 'title' => 'Roof maintenance']);
         self::assertResponseRedirects();
 
         // The contact offers the tab, which loads the Sales fragment.
         $crawler = $this->client->request('GET', '/contacts/'.$company->id());
         self::assertSame('Deals', trim($crawler->filter('a[href="/contacts/'.$company->id().'?tab=deals"]')->text()));
         $crawler = $this->client->request('GET', '/contacts/'.$company->id().'?tab=deals');
-        self::assertSame('/sales/clients/'.$company->id().'/deals', $crawler->filter('turbo-frame#contact-tab')->attr('src'));
+        self::assertSame('/deals/clients/'.$company->id().'/deals', $crawler->filter('turbo-frame#contact-tab')->attr('src'));
 
-        $crawler = $this->client->request('GET', '/sales/clients/'.$company->id().'/deals', server: ['HTTP_TURBO_FRAME' => 'contact-tab']);
+        $crawler = $this->client->request('GET', '/deals/clients/'.$company->id().'/deals', server: ['HTTP_TURBO_FRAME' => 'contact-tab']);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('turbo-frame#contact-tab'));
         self::assertCount(2, $crawler->filter('[data-client-deal]'));
         $followUp = $crawler->filter('[data-client-deal]')->reduce(static fn ($item): bool => str_contains($item->text(), 'Roof maintenance'));
         self::assertSame('Follows from Roof audit', trim((string) preg_replace('/\s+/', ' ', $followUp->filter('[data-follows-from]')->text())));
-        self::assertSame('/sales/deals/'.$audit->id(), $followUp->filter('[data-follows-from] a')->attr('href'));
-        self::assertSame('/sales/deals/new?client='.$company->id(), $crawler->filter('[data-client-deal-new]')->attr('href'));
+        self::assertSame('/deals/'.$audit->id(), $followUp->filter('[data-follows-from] a')->attr('href'));
+        self::assertSame('/deals/new?client='.$company->id(), $crawler->filter('[data-client-deal-new]')->attr('href'));
     }
 
     private function newDeal(Party $company, string $title): Deal
     {
-        $form = $this->client->request('GET', '/sales/deals/new?client='.$company->id())->filter('#deal-form')->form();
+        $form = $this->client->request('GET', '/deals/new?client='.$company->id())->filter('#deal-form')->form();
         $form['title'] = $title;
         $this->client->submit($form);
         self::assertResponseRedirects();

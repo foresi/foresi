@@ -36,7 +36,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  */
 final class ReceivedDocumentLists implements ListDefinitionSource
 {
-    public const string KEY = 'purchasing.received';
+    public const string KEY = 'received_documents.received';
     public const string TRASHED = 'trashed';
     public const string STATE = 'state';
     public const string SUPPLIER = 'supplier';

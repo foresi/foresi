@@ -11,12 +11,12 @@ namespace Foresi\ReceivedDocuments\Contract\Reading;
 /**
  * Reads the header of a received document from its file: one adapter per
  * format (a structured invoice, a payment code, an AI model). Readers are
- * collected by the `foresi.purchasing.document_reader` tag in reader order.
+ * collected by the `foresi.received_documents.document_reader` tag in reader order.
  * Whatever a file contains is data; a reader never acts on it.
  */
 interface DocumentReader
 {
-    public const string TAG = 'foresi.purchasing.document_reader';
+    public const string TAG = 'foresi.received_documents.document_reader';
 
     /** The lowercase key of the source (`isdoc`, `factur_x`, `payment_qr`, `ai`); the translation key is `received_documents.reading.source.<key>`. */
     public function source(): string;

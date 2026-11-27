@@ -115,4 +115,4 @@ The read tools are `foresi_list_documents`, `foresi_get_document`, `foresi_list_
 
 ## Events
 
-`documents.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined`, `.cancelled`, `.trashed` and `.restored`, and `documents.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.
+`document-templates.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined`, `.cancelled`, `.trashed` and `.restored`, and `document-templates.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.

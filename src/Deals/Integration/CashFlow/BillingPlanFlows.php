@@ -48,7 +48,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class BillingPlanFlows implements UndatedFlowSource
 {
-    public const string KEY = 'sales.billing_plan';
+    public const string KEY = 'deals.billing_plan';
     public const string SUBJECT = 'deal_billing_entry';
 
     public function __construct(
@@ -69,7 +69,7 @@ final readonly class BillingPlanFlows implements UndatedFlowSource
     {
         $grant = $this->tokens->grant();
 
-        return !$grant instanceof ApiTokenGrant || $grant->allows(ApiScope::of('sales', false));
+        return !$grant instanceof ApiTokenGrant || $grant->allows(ApiScope::of('deals', false));
     }
 
     public function flows(\DateTimeImmutable $from, \DateTimeImmutable $to, \DateTimeImmutable $today): iterable

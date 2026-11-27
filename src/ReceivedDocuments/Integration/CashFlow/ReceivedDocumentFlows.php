@@ -38,7 +38,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ReceivedDocumentFlows implements CashFlowSource, ActualFlowSource
 {
-    public const string KEY = 'purchasing.received_documents';
+    public const string KEY = 'received-documents.received_documents';
     private const int CHUNK = 200;
 
     public function __construct(

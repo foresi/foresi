@@ -40,8 +40,8 @@ final class DocumentLifecycleTest extends DocumentsTestCase
         self::assertSame('<p>Example Firm s.r.o. and Example Client Ltd</p>', $this->pdf->lastHtml);
         self::assertNotNull($document->pdfAttachmentId());
         self::assertSame(hash('sha256', "%PDF-1.7\n% NDA with Example Client\n<p>Example Firm s.r.o. and Example Client Ltd</p>\n%%EOF\n"), $document->pdfSha256());
-        self::assertCount(1, $this->eventData('documents.document.generated'));
-        self::assertStringNotContainsString('Example', $this->eventData('documents.document.generated')[0]);
+        self::assertCount(1, $this->eventData('document-templates.document.generated'));
+        self::assertStringNotContainsString('Example', $this->eventData('document-templates.document.generated')[0]);
     }
 
     #[Test]
@@ -80,7 +80,7 @@ final class DocumentLifecycleTest extends DocumentsTestCase
         $document = $this->reload($draft);
         self::assertSame(DocumentStatus::Draft, $document->status());
         self::assertNull($document->pdfAttachmentId());
-        self::assertSame([], $this->eventData('documents.document.generated'));
+        self::assertSame([], $this->eventData('document-templates.document.generated'));
     }
 
     #[Test]
@@ -98,7 +98,7 @@ final class DocumentLifecycleTest extends DocumentsTestCase
         self::assertNotNull($document->resolvedValues());
         self::assertCount(1, $this->store()->signers($document));
         self::assertCount(1, $this->store()->links($document));
-        self::assertCount(1, $this->eventData('documents.document.cancelled'));
+        self::assertCount(1, $this->eventData('document-templates.document.cancelled'));
         $this->expectException(DocumentsRefused::class);
         $this->documents()->cancel(new CancelDocumentInput($draft->id()));
     }

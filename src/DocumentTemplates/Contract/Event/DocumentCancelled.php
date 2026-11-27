@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A document was cancelled; its history stays. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.cancelled', version: 1)]
+#[DomainEvent('document-templates.document.cancelled', version: 1)]
 final readonly class DocumentCancelled implements DomainEventPayload
 {
     /**

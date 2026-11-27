@@ -7,14 +7,14 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = 'deals.lose.title'|trans %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'md' %}
 
 {% block title %}{{ heading }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="deal-lose-form" action="{{ path('app_sales_deal_lose', {id: deal.id}) }}" class="grid gap-4" novalidate>
+    <form method="post" id="deal-lose-form" action="{{ path('app_deal_lose', {id: deal.id}) }}" class="grid gap-4" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
         <twig:Ui:Select name="lostReasonId" id="lostReasonId" :label="'deals.lose.reason'|trans" :options="reasons" :value="values.lostReasonId" :error="errors.lostReasonId|default(null)" />
         <twig:Ui:Textarea name="note" id="note" :label="'deals.lose.note'|trans" :help="'deals.lose.note_help'|trans" :value="values.note" :error="errors.note|default(null)" :rows="3" maxlength="1000" />
@@ -31,7 +31,7 @@
     <twig:Ui:Card :title="heading" icon="x" class="max-w-2xl">{{ body }}</twig:Ui:Card>
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_sales_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="deal-lose-form" variant="primary">{{ 'deals.lose.submit'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>

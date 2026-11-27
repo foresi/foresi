@@ -75,8 +75,8 @@ final readonly class SearchReceivedDocumentsTool implements ReadTool
                 'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True returns only the documents in the trash.'],
                 'reading' => ToolSchema::choiceSchema(['reading', 'read', 'nothing_found', 'failed'], 'Only documents whose file is being read, was read with values found, was read with nothing found, or could not be read.'),
                 'source' => ToolSchema::choiceSchema(['manual', 'upload', 'api', 'mail'], 'Only documents typed in by a person, made from a file uploaded in Foresi, made over the API and MCP, or filed from a mail.'),
-                'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list purchasing.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "purchasing.received.drafts" or "purchasing.received.to_review" (drafts whose file was read, found nothing or failed).'],
-                'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list purchasing.received; its fields and operators are in foresi_list_lists.'],
+                'view_id' => ['type' => 'string', 'description' => 'Only the documents a saved view of the list received_documents.received holds: its id as foresi_list_views gives it, or the system key of a view a module ships, such as "received_documents.received.drafts" or "received_documents.received.to_review" (drafts whose file was read, found nothing or failed).'],
+                'filter' => ['type' => 'object', 'description' => 'Conditions all documents meet, {"conditions": [{"field", "op", "value"}]}, checked against the list received_documents.received; its fields and operators are in foresi_list_lists.'],
             ] + ToolSchema::pagingSchema(),
             'additionalProperties' => false,
         ];

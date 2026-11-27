@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * One deal linked to another of the same client over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deal_links.add',
+    name: 'deals.links.add',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/links',
+    path: '/api/v1/deals/{dealId}/links',
     tool: 'foresi_add_deal_link',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Link two deals',
     description: 'Records that a deal follows from another deal of the same client. A deal is never linked to itself, and two deals are linked once.',
     status: 201,

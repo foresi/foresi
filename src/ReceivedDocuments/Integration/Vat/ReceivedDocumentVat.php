@@ -36,7 +36,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ReceivedDocumentVat implements VatDocumentSource
 {
-    public const string KEY = 'purchasing.received_vat';
+    public const string KEY = 'received-documents.received_vat';
 
     public function __construct(
         private EntityManagerInterface $entityManager,

@@ -49,11 +49,11 @@ final class DealRulesTest extends SalesTestCase
         self::assertSame($this->stages['inquiry']->id(), $deal->stageId(), 'A new deal starts at the first stage.');
 
         $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['proposal']->id()));
-        $changed = $this->events('sales.deal.stage_changed');
+        $changed = $this->events('deals.deal.stage_changed');
         self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'from_stage_id' => $this->stages['inquiry']->id(), 'to_stage_id' => $this->stages['proposal']->id()]], $changed);
         // To the stage it is at already changes nothing and records nothing.
         $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['proposal']->id()));
-        self::assertSame($changed, $this->events('sales.deal.stage_changed'));
+        self::assertSame($changed, $this->events('deals.deal.stage_changed'));
 
         $this->deals()->win(new WinDealInput($deal->id()));
         $refused = $this->assertRefused('deal_not_open', fn (): Deal => $this->deals()->changeStage(new ChangeDealStageInput($deal->id(), $this->stages['meeting']->id())));
@@ -89,11 +89,11 @@ final class DealRulesTest extends SalesTestCase
         $this->assertRefused('deal_not_open', fn (): Deal => $this->deals()->win(new WinDealInput($deal->id())));
 
         $stage = $this->stages['inquiry']->id();
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'won', 'stage_id' => $stage]], $this->events('sales.deal.won'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'won', 'stage_id' => $stage]], $this->events('deals.deal.won'));
         // The lost event names the reason, never the note.
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'lost', 'stage_id' => $stage, 'lost_reason_id' => $this->reasons['price']->id()]], $this->events('sales.deal.lost'));
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('sales.deal.reopened'));
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('sales.deal.created'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'lost', 'stage_id' => $stage, 'lost_reason_id' => $this->reasons['price']->id()]], $this->events('deals.deal.lost'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('deals.deal.reopened'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $stage]], $this->events('deals.deal.created'));
     }
 
     public function testLoseTakesAReasonFromTheListOrNone(): void
@@ -108,7 +108,7 @@ final class DealRulesTest extends SalesTestCase
         $lost = $this->deals()->lose(new LoseDealInput($deal->id(), null, '   '));
         self::assertNull($lost->lostReasonId());
         self::assertNull($lost->lostNote(), 'A blank note is no note.');
-        self::assertSame([['deal_id' => $deal->id(), 'status' => 'lost', 'stage_id' => $this->stages['inquiry']->id(), 'lost_reason_id' => null]], $this->events('sales.deal.lost'));
+        self::assertSame([['deal_id' => $deal->id(), 'status' => 'lost', 'stage_id' => $this->stages['inquiry']->id(), 'lost_reason_id' => null]], $this->events('deals.deal.lost'));
     }
 
     public function testReopenClearsReasonAndNote(): void
@@ -198,7 +198,7 @@ final class DealRulesTest extends SalesTestCase
 
         self::assertSame(
             array_fill(0, 4, ['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []]),
-            $this->events('sales.deal.updated'),
+            $this->events('deals.deal.updated'),
         );
     }
 }

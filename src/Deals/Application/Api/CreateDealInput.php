@@ -19,11 +19,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A new deal over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deals.create',
+    name: 'deals.create',
     method: 'POST',
-    path: '/api/v1/sales/deals',
+    path: '/api/v1/deals',
     tool: 'foresi_create_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Create a deal',
     description: 'Opens a deal with a client: what is being sold, at the first stage unless another is named (stages from foresi_list_deal_stages), owned by the caller unless another owner or member is named. The contact persons must be linked to the client in the address book (foresi_get_contact). An archived client takes no new deal. Add what it sells with foresi_add_deal_line.',
     status: 201,

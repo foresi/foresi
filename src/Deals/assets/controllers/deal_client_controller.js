@@ -13,7 +13,7 @@ import { Controller } from '@hotwired/stimulus';
  * the server ignores the way not chosen, and a refused form comes back with
  * the persons of the client sent.
  *
- *     <form data-controller="deal-client" data-deal-client-url-value="/sales/deals/client-persons">
+ *     <form data-controller="deal-client" data-deal-client-url-value="/deals/client-persons">
  *         <div data-action="combobox:pick->deal-client#load combobox:clear->deal-client#clear">…</div>
  *         <div data-deal-client-target="persons">…</div>
  */

@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.mark_sent',
+    name: 'document_templates.mark_sent',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/mark-sent',
     tool: 'foresi_mark_document_sent',

@@ -25,7 +25,7 @@ use Foresi\Shared\Application\Event\EventOutbox;
 final readonly class DoctrineSalesWork implements SalesWork
 {
     /** The unique index on a line's project, as PostgreSQL and SQLite name it. */
-    private const array PROJECT_INDEX = ['uniq_sales_deal_line_project', 'sales_deal_line.project_id'];
+    private const array PROJECT_INDEX = ['uniq_deal_line_project', 'deal_line.project_id'];
 
     public function __construct(
         private EntityManagerInterface $em,

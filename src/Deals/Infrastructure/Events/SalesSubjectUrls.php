@@ -25,7 +25,7 @@ final readonly class SalesSubjectUrls implements EventSubjectUrl
 
     public function module(): string
     {
-        return 'sales';
+        return 'deals';
     }
 
     public function url(EventSubject $subject): ?string

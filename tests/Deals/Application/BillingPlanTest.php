@@ -52,14 +52,14 @@ final class BillingPlanTest extends SalesTestCase
         self::assertSame([BillingEntryView::PLANNED, BillingEntryView::PLANNED], array_map(static fn (BillingEntryView $view): string => $view->state, $plan->entries));
         self::assertSame([], $plan->notPlanned);
         self::assertSame(['CZK' => 2_400_000], array_map(static fn (Money $money): int => $money->minor(), $plan->notInvoiced()));
-        self::assertCount(2, $this->events('sales.billing_entry.created'));
+        self::assertCount(2, $this->events('deals.billing_entry.created'));
 
         // Reopened and won again, the deal keeps the plan it had.
         $this->deals()->reopen(new ReopenDealInput($audit->id()));
         $this->assertRefused('deal_not_won', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($audit->id(), amount: '1000.00')));
         $this->deals()->win(new WinDealInput($audit->id()));
         self::assertCount(2, $this->reads()->deal($audit->id())->billingPlan->entries);
-        self::assertCount(2, $this->events('sales.billing_entry.created'));
+        self::assertCount(2, $this->events('deals.billing_entry.created'));
     }
 
     public function testOneOffEntriesNeverExceedTheOneOffValue(): void
@@ -88,7 +88,7 @@ final class BillingPlanTest extends SalesTestCase
         $plan = $this->reads()->deal($deal->id())->billingPlan;
         self::assertSame(['CZK' => 100_000], array_map(static fn (Money $money): int => $money->minor(), $plan->notPlanned));
         self::assertNull($this->entry($deal, $deposit->id())->expectedOn());
-        self::assertSame(['entry_id' => $deposit->id(), 'deal_id' => $deal->id(), 'kind' => 'one_off'], array_reverse($this->events('sales.billing_entry.updated'))[0]);
+        self::assertSame(['entry_id' => $deposit->id(), 'deal_id' => $deal->id(), 'kind' => 'one_off'], array_reverse($this->events('deals.billing_entry.updated'))[0]);
 
         // A day before today makes it overdue.
         $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $deposit->id(), expectedOn: '2026-11-20'));
@@ -96,7 +96,7 @@ final class BillingPlanTest extends SalesTestCase
 
         $this->plans()->delete(new DeleteBillingEntryInput($deal->id(), $deposit->id()));
         self::assertCount(1, $this->reads()->deal($deal->id())->billingPlan->entries);
-        self::assertCount(1, $this->events('sales.billing_entry.deleted'));
+        self::assertCount(1, $this->events('deals.billing_entry.deleted'));
     }
 
     public function testARecurringLineHasOneEntryAndTakesItAlong(): void
@@ -114,15 +114,15 @@ final class BillingPlanTest extends SalesTestCase
         $start = $this->only($deal);
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $seo->id(), billingKind: 'one_off'));
         self::assertSame([], $this->reads()->deal($deal->id())->billingPlan->entries);
-        self::assertSame([['entry_id' => $start->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring']], $this->events('sales.billing_entry.deleted'));
+        self::assertSame([['entry_id' => $start->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring']], $this->events('deals.billing_entry.deleted'));
 
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $seo->id(), billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
         $entry = $this->plans()->create(new CreateBillingEntryInput($deal->id(), 'recurring', lineId: $seo->id(), expectedOn: '2026-12-01'));
         self::assertNull($entry->amount(), 'A recurring entry stores no amount; its line prices it.');
         $this->lines()->remove(new RemoveDealLineInput($deal->id(), $seo->id()));
         self::assertSame([], $this->reads()->deal($deal->id())->billingPlan->entries);
-        self::assertSame(['entry_id' => $entry->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring'], array_reverse($this->events('sales.billing_entry.deleted'))[0]);
-        self::assertCount(2, $this->events('sales.billing_entry.deleted'));
+        self::assertSame(['entry_id' => $entry->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring'], array_reverse($this->events('deals.billing_entry.deleted'))[0]);
+        self::assertCount(2, $this->events('deals.billing_entry.deleted'));
     }
 
     public function testLinkingNeedsAModuleThatIssuesInvoices(): void
@@ -224,8 +224,8 @@ final class BillingPlanTest extends SalesTestCase
         $this->plans()->update(new UpdateBillingEntryInput($deal->id(), $czk->id(), amount: '600.00'));
         self::assertSame('The one-off entries would exceed the deal\'s one-off value in EUR; 400.00 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '400.01', currency: 'EUR')))->getMessage());
         $created = $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '400.00', currency: 'EUR', text: 'Rest'));
-        self::assertSame(['entry_id' => $created->id(), 'deal_id' => $deal->id(), 'kind' => 'one_off'], array_reverse($this->events('sales.billing_entry.created'))[0]);
-        self::assertCount(3, $this->events('sales.billing_entry.created'));
+        self::assertSame(['entry_id' => $created->id(), 'deal_id' => $deal->id(), 'kind' => 'one_off'], array_reverse($this->events('deals.billing_entry.created'))[0]);
+        self::assertCount(3, $this->events('deals.billing_entry.created'));
         $report = $this->reads()->deal($deal->id())->lines[1];
         $this->lines()->update(new UpdateDealLineInput($deal->id(), $report->id(), unitPrice: '900.00'));
         self::assertSame('The one-off entries would exceed the deal\'s one-off value in EUR; 0 is left to plan.', $this->assertRefused('plan_exceeds_value', fn (): BillingPlanEntry => $this->plans()->create(new CreateBillingEntryInput($deal->id(), amount: '1.00', currency: 'EUR')))->getMessage());

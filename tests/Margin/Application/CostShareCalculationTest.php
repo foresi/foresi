@@ -194,7 +194,7 @@ final class CostShareCalculationTest extends KernelTestCase
     public function testADocumentNeverTouchesTheMappingsOrSharesOfAnother(): void
     {
         $other = '0197a1de-0000-7000-8000-0000000000d2';
-        $this->source->documents[$other] = new CostDocument($other, null, new \DateTimeImmutable('2026-11-24', new \DateTimeZone('Europe/Prague')), [$this->line('other-line', 50_000)], false, 'EN-2', '/purchasing/'.$other);
+        $this->source->documents[$other] = new CostDocument($other, null, new \DateTimeImmutable('2026-11-24', new \DateTimeZone('Europe/Prague')), [$this->line('other-line', 50_000)], false, 'EN-2', '/received-documents/'.$other);
         $this->em->persist(new DocumentAllocation(Uuid::v7()->toRfc4122(), $other, Recipient::client(self::CLIENT_B), new \DateTimeImmutable(), 'user'));
         $this->em->persist(new LineAllocation(Uuid::v7()->toRfc4122(), $other, 'other-line', new Allocation(AllocationKind::Whole, [new AllocationShare(Recipient::own())]), new \DateTimeImmutable(), 'user'));
         $this->em->flush();
@@ -222,7 +222,7 @@ final class CostShareCalculationTest extends KernelTestCase
     {
         $this->document([new CostLine('line-1', 'Voice API', null)]);
         $second = '0197a1de-0000-7000-8000-0000000000d2';
-        $this->source->documents[$second] = new CostDocument($second, null, new \DateTimeImmutable('2026-11-24'), [new CostLine('line-1', 'Voice API', null)], false, 'EN-2', '/purchasing/'.$second);
+        $this->source->documents[$second] = new CostDocument($second, null, new \DateTimeImmutable('2026-11-24'), [new CostLine('line-1', 'Voice API', null)], false, 'EN-2', '/received-documents/'.$second);
 
         $gaps = new KnownGaps(new CostSources([$this->source]))->documentsMissingExchangeRate([self::DOCUMENT, 'unknown', $second]);
 
@@ -234,7 +234,7 @@ final class CostShareCalculationTest extends KernelTestCase
      */
     private function document(array $lines, bool $trashed = false, ?\DateTimeImmutable $basis = null): void
     {
-        $this->source->documents[self::DOCUMENT] = new CostDocument(self::DOCUMENT, null, $basis ?? new \DateTimeImmutable('2026-11-24', new \DateTimeZone('Europe/Prague')), $lines, $trashed, 'EN-1 Cloud Host', '/purchasing/'.self::DOCUMENT);
+        $this->source->documents[self::DOCUMENT] = new CostDocument(self::DOCUMENT, null, $basis ?? new \DateTimeImmutable('2026-11-24', new \DateTimeZone('Europe/Prague')), $lines, $trashed, 'EN-1 Cloud Host', '/received-documents/'.self::DOCUMENT);
     }
 
     private function line(string $key, int $minor): CostLine

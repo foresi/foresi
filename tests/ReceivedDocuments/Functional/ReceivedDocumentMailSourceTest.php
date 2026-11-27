@@ -54,7 +54,7 @@ final class ReceivedDocumentMailSourceTest extends WebTestCase
     {
         $id = $this->document(DocumentSource::Mail, self::MAIL);
 
-        $crawler = $this->client->request('GET', '/purchasing/'.$id);
+        $crawler = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertResponseIsSuccessful();
         $line = $crawler->filter('[data-purchasing-mail-source]');
@@ -69,7 +69,7 @@ final class ReceivedDocumentMailSourceTest extends WebTestCase
     {
         $id = $this->document(DocumentSource::Upload, null);
 
-        $crawler = $this->client->request('GET', '/purchasing/'.$id);
+        $crawler = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-purchasing-mail-source]'));
@@ -79,7 +79,7 @@ final class ReceivedDocumentMailSourceTest extends WebTestCase
     {
         $this->document(DocumentSource::Mail, self::MAIL);
 
-        $crawler = $this->client->request('GET', '/purchasing');
+        $crawler = $this->client->request('GET', '/received-documents');
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('E-mail', $crawler->filter('main')->text());

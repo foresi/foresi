@@ -13,7 +13,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.signers.update',
+    name: 'document_templates.signers.update',
     method: 'PATCH',
     path: '/api/v1/documents/{documentId}/signers/{signerId}',
     tool: 'foresi_update_document_signer',

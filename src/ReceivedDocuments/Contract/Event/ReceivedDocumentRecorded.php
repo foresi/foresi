@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A received document was recorded for the first time, from a draft or typed in at once, on a screen or over the API. The total is what the document asks to be paid, in its currency, as a decimal (negative for a credit note); the due date is YYYY-MM-DD or null. The supplier is a contact id, never its name.
  */
-#[DomainEvent('purchasing.received_document.recorded', version: 1)]
+#[DomainEvent('received-documents.received_document.recorded', version: 1)]
 final readonly class ReceivedDocumentRecorded implements DomainEventPayload
 {
     public function __construct(

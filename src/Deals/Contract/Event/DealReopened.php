@@ -17,7 +17,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * A won or lost deal was opened again. The payload is thin (ADR 0030): read
  * the deal itself for its title, client and lines.
  */
-#[DomainEvent('sales.deal.reopened', version: 1)]
+#[DomainEvent('deals.deal.reopened', version: 1)]
 final readonly class DealReopened implements DomainEventPayload
 {
     /**

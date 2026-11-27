@@ -13,9 +13,9 @@ use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Contract\Event\EventSubject;
 
 /**
- * A recorded received document changed: it was saved again (what is "edited"), or its lines, which split the bases of its VAT recap, were set (what is "lines"). `edited` may change anything, the lines included; `lines` is a change of the lines alone. Lines set the same as before change nothing and record nothing. A draft records no event; recording it records purchasing.received_document.recorded. The payload is thin (ADR 0030): read the document itself for its values.
+ * A recorded received document changed: it was saved again (what is "edited"), or its lines, which split the bases of its VAT recap, were set (what is "lines"). `edited` may change anything, the lines included; `lines` is a change of the lines alone. Lines set the same as before change nothing and record nothing. A draft records no event; recording it records received-documents.received_document.recorded. The payload is thin (ADR 0030): read the document itself for its values.
  */
-#[DomainEvent('purchasing.received_document.changed', version: 1)]
+#[DomainEvent('received-documents.received_document.changed', version: 1)]
 final readonly class ReceivedDocumentChanged implements DomainEventPayload
 {
     public const string EDITED = 'edited';

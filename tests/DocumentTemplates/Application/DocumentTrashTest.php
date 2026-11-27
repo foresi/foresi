@@ -48,7 +48,7 @@ final class DocumentTrashTest extends DocumentsTestCase
         self::assertSame([], $this->ids(new DocumentFilter(linkKind: 'contact', linkId: $this->contactId)), 'It leaves the documents of its records, such as a deal.');
         self::assertSame([$document->id()], $this->ids(new DocumentFilter(trashed: true)));
         self::assertSame($document->id(), $this->reads()->document($document->id())->id(), 'Read by its id, it is shown from the trash.');
-        self::assertCount(1, $this->eventData('documents.document.trashed'));
+        self::assertCount(1, $this->eventData('document-templates.document.trashed'));
     }
 
     #[Test]
@@ -60,8 +60,8 @@ final class DocumentTrashTest extends DocumentsTestCase
         $this->documents()->trash(new TrashDocumentInput($document->id()));
         $this->documents()->trash(new TrashDocumentInput($document->id()));
 
-        self::assertCount(1, $this->eventData('documents.document.trashed'));
-        self::assertSame([], $this->eventData('documents.document.restored'));
+        self::assertCount(1, $this->eventData('document-templates.document.trashed'));
+        self::assertSame([], $this->eventData('document-templates.document.restored'));
     }
 
     #[Test]
@@ -78,7 +78,7 @@ final class DocumentTrashTest extends DocumentsTestCase
         self::assertSame(DocumentStatus::Cancelled, $restored->status());
         self::assertSame([$document->id()], $this->ids(new DocumentFilter(linkKind: 'contact', linkId: $this->contactId)));
         self::assertSame([], $this->ids(new DocumentFilter(trashed: true)));
-        self::assertCount(1, $this->eventData('documents.document.restored'));
+        self::assertCount(1, $this->eventData('document-templates.document.restored'));
     }
 
     #[Test]

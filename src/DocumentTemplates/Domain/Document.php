@@ -18,9 +18,9 @@ use Foresi\Shared\Domain\Id;
  * completed once every signer signed and the signed copy is stored.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_document')]
-#[ORM\Index(name: 'idx_documents_document_type', columns: ['type_id'])]
-#[ORM\Index(name: 'idx_documents_document_status', columns: ['status'])]
+#[ORM\Table(name: 'document')]
+#[ORM\Index(name: 'idx_document_type', columns: ['type_id'])]
+#[ORM\Index(name: 'idx_document_status', columns: ['status'])]
 class Document implements Audited
 {
     public const int MAX_TITLE = 200;

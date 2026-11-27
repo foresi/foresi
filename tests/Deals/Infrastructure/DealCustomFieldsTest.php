@@ -31,8 +31,8 @@ final class DealCustomFieldsTest extends SalesScreenTestCase
         $fields->write(DealExtension::RECORD, $inspection->id(), ['test_fields_size' => 'small']);
         $this->em()->flush();
 
-        $large = $this->client->request('GET', '/sales/deals?cols=title,test_fields_code&f='.WorkingFilter::encode(ViewFilter::all(new Condition('test_fields_size', 'is', 'large'))))->filter('table')->text();
-        $found = $this->client->request('GET', '/sales/deals?q=ra-17')->filter('table')->text();
+        $large = $this->client->request('GET', '/deals?cols=title,test_fields_code&f='.WorkingFilter::encode(ViewFilter::all(new Condition('test_fields_size', 'is', 'large'))))->filter('table')->text();
+        $found = $this->client->request('GET', '/deals?q=ra-17')->filter('table')->text();
 
         self::assertStringContainsString('RA-17', $large);
         self::assertStringContainsString('Roof audit', $large);

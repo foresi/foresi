@@ -27,9 +27,9 @@ use Foresi\Shared\Domain\Schedule\RecurrenceUnit;
  * time it bills at its rate; a project serves at most one line.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_deal_line')]
-#[ORM\Index(name: 'idx_sales_deal_line_deal', columns: ['deal_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_sales_deal_line_project', columns: ['project_id'])]
+#[ORM\Table(name: 'deal_line')]
+#[ORM\Index(name: 'idx_deal_line_deal', columns: ['deal_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_deal_line_project', columns: ['project_id'])]
 class DealLine implements Audited
 {
     public const int MAX_NAME = 200;

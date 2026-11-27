@@ -13,7 +13,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.types.update',
+    name: 'document_templates.types.update',
     method: 'PATCH',
     path: '/api/v1/document-types/{typeId}',
     tool: 'foresi_update_document_type',

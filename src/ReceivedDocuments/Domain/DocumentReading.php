@@ -23,7 +23,7 @@ use Foresi\ReceivedDocuments\Contract\Reading\Reading;
  * code, never a text from a reader or a provider. It goes with its document.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'purchasing_document_reading')]
+#[ORM\Table(name: 'received_document_reading')]
 class DocumentReading
 {
     /** No reader could read the file and none found anything. */

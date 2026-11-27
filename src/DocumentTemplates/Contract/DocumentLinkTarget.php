@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface DocumentLinkTarget
 {
-    public const string TAG = 'foresi.documents.link_target';
+    public const string TAG = 'foresi.document_templates.link_target';
 
     /**
      * @return list<string> the record kinds this target answers for, such as ["contact"]

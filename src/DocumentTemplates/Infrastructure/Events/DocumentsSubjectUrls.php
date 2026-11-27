@@ -21,7 +21,7 @@ final readonly class DocumentsSubjectUrls implements EventSubjectUrl
 
     public function module(): string
     {
-        return 'documents';
+        return 'document-templates';
     }
 
     public function url(EventSubject $subject): ?string

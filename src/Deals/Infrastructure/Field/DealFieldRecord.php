@@ -26,7 +26,7 @@ final readonly class DealFieldRecord implements FieldRecord
 
     public function scope(): string
     {
-        return 'sales:read';
+        return 'deals:read';
     }
 
     public function entity(): string

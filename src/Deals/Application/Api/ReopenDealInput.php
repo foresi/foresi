@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A won or lost deal opened again over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deals.reopen',
+    name: 'deals.reopen',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/reopen',
+    path: '/api/v1/deals/{dealId}/reopen',
     tool: 'foresi_reopen_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Reopen a deal',
     description: 'Opens a won or lost deal again at the stage it was at; when and why it was won or lost is forgotten.',
     response: 'SalesDeal',

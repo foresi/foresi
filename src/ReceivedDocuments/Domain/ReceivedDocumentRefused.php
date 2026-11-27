@@ -11,7 +11,7 @@ namespace Foresi\ReceivedDocuments\Domain;
 /**
  * Why a received document refuses a change. The reason is stable: the API
  * returns it and it is the last part of a translation key under
- * purchasing.refused.
+ * received_documents.refused.
  */
 final class ReceivedDocumentRefused extends \DomainException
 {

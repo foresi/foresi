@@ -328,7 +328,21 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        self::assertSame(['foresi_get_contact', 'foresi_get_firm', 'foresi_list_fields', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+        self::assertSame(['foresi_get_contact', 'foresi_list_fields', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+    }
+
+    public function testTheFirmHasAScopeOfItsOwn(): void
+    {
+        $this->secret = $this->issued([ApiScope::from('firm:write')]);
+
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+        $tools = $this->in($this->rpc('tools/list'), 'result', 'tools');
+        self::assertIsArray($tools);
+        $names = array_column($tools, 'name');
+        sort($names);
+
+        self::assertSame(['foresi_add_firm_vat_status', 'foresi_get_firm', 'foresi_list_fields', 'foresi_list_modules', 'foresi_remove_firm_vat_status', 'foresi_whoami'], $names);
     }
 
     public function testAContactsWriteTokenListsTheContactToolsAlone(): void
@@ -342,17 +356,14 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        // contacts:write grants contacts:read, and nothing of invoices, payments, events or webhooks.
+        // contacts:write grants contacts:read, and nothing of the firm, invoices, payments, events or webhooks.
         self::assertSame([
-            'foresi_add_firm_vat_status',
             'foresi_archive_contact',
             'foresi_create_contact',
             'foresi_get_contact',
-            'foresi_get_firm',
             'foresi_link_contact_person',
             'foresi_list_fields',
             'foresi_list_modules',
-            'foresi_remove_firm_vat_status',
             'foresi_restore_contact',
             'foresi_search_contacts',
             'foresi_unlink_contact_person',

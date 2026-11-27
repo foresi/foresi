@@ -17,7 +17,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * A planned invoice of a deal was planned on a won deal, by hand or as the starting plan when it was won. The payload is thin (ADR 0030):
  * read the deal for its billing plan. The subject is the deal. Since module API 1.8.
  */
-#[DomainEvent('sales.billing_entry.created', version: 1)]
+#[DomainEvent('deals.billing_entry.created', version: 1)]
 final readonly class BillingEntryCreated implements DomainEventPayload
 {
     /**

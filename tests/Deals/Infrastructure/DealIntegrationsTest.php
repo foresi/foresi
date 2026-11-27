@@ -25,7 +25,7 @@ final class DealIntegrationsTest extends SalesScreenTestCase
         $activities = \in_array(\Foresi\Activities\ActivitiesBundle::class, $bundles, true);
         $deal = $this->newDeal('Roof audit', [0]);
 
-        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
+        $crawler = $this->client->request('GET', '/deals/'.$deal->id());
 
         self::assertResponseIsSuccessful();
         self::assertCount($documents ? 1 : 0, $crawler->filter('[data-deal-action="new-document"]'));

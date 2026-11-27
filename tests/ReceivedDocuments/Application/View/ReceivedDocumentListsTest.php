@@ -25,7 +25,7 @@ final class ReceivedDocumentListsTest extends KernelTestCase
         $list = $this->lists()->list();
 
         self::assertEquals([$list], iterator_to_array($this->lists()->lists()));
-        self::assertSame('purchasing.received', $list->key);
+        self::assertSame('received_documents.received', $list->key);
         self::assertSame(
             [
                 ['all', 'received_documents.list.tab.all', [], 0],

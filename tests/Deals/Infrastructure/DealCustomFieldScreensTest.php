@@ -24,7 +24,7 @@ use Symfony\Component\DomCrawler\Crawler;
  * The custom fields of a deal (ADR 0045) on its screens, with the test-only fields lent
  * to the deals and their code required: New and Edit ask for every field under
  * "Additional details", a new deal needs the required one, the save goes through
- * DealWrites with the changed keys in sales.deal.updated, and the side column of the
+ * DealWrites with the changed keys in deals.deal.updated, and the side column of the
  * deal shows the values.
  */
 final class DealCustomFieldScreensTest extends SalesScreenTestCase
@@ -39,7 +39,7 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
 
     public function testNewAsksForEveryFieldAndANewDealNeedsTheRequiredOne(): void
     {
-        $crawler = $this->dialog('/sales/deals/new?client='.$this->company->id());
+        $crawler = $this->dialog('/deals/new?client='.$this->company->id());
         $section = $crawler->filter('#deal-form [data-custom-fields-section]');
         self::assertStringContainsString('Additional details', $section->filter('h3')->text());
         self::assertCount(1, $section->filter('select[name="custom_fields[test_fields_size]"]'));
@@ -65,13 +65,13 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
     {
         $deal = $this->created('Roof audit');
 
-        $crawler = $this->dialog('/sales/deals/'.$deal.'/edit');
+        $crawler = $this->dialog('/deals/'.$deal.'/edit');
         self::assertSame('RA-1', $crawler->filter('#custom-field-test-fields-code')->attr('value'));
         self::assertNull($crawler->filter('#custom-field-test-fields-code')->attr('required'), 'Only a new deal is asked for it.');
         $form = $crawler->filter('#deal-form')->form(['custom_fields[test_fields_size]' => 'large']);
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/sales/deals/'.$deal);
+        self::assertResponseRedirects('/deals/'.$deal);
         self::assertSame('large', $this->fields->value(DealExtension::RECORD, $deal, 'test_fields_size'));
         self::assertSame(['test_fields_size'], $this->updatedKeys($deal));
 
@@ -103,7 +103,7 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
         $this->fields->write(DealExtension::RECORD, $deal, ['test_fields_size' => 'large', 'test_fields_flag' => true]);
         $this->em()->flush();
 
-        $crawler = $this->client->request('GET', '/sales/deals/'.$deal);
+        $crawler = $this->client->request('GET', '/deals/'.$deal);
 
         self::assertResponseIsSuccessful();
         $aside = $crawler->filter('[data-deal-details] [data-custom-fields-section]');
@@ -122,7 +122,7 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
      */
     private function created(string $title): string
     {
-        $form = $this->dialog('/sales/deals/new?client='.$this->company->id())->filter('#deal-form')->form(['title' => $title, 'custom_fields[test_fields_code]' => 'RA-1']);
+        $form = $this->dialog('/deals/new?client='.$this->company->id())->filter('#deal-form')->form(['title' => $title, 'custom_fields[test_fields_code]' => 'RA-1']);
         $this->client->submit($form);
         self::assertResponseRedirects();
 
@@ -147,13 +147,13 @@ final class DealCustomFieldScreensTest extends SalesScreenTestCase
     }
 
     /**
-     * @return list<mixed> the custom fields the last sales.deal.updated of the deal names
+     * @return list<mixed> the custom fields the last deals.deal.updated of the deal names
      */
     private function updatedKeys(string $id): array
     {
         $data = $this->em()->getConnection()->fetchOne(
             'SELECT '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ? AND '.EventLogTable::SUBJECT_ID.' = ? ORDER BY '.EventLogTable::ID.' DESC',
-            ['sales.deal.updated', $id],
+            ['deals.deal.updated', $id],
         );
         self::assertIsString($data);
         $payload = json_decode($data, true);

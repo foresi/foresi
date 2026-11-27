@@ -290,13 +290,13 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $trashed = $this->recorded('FV-7');
         self::assertFalse($this->tool('foresi_trash_received_document', ['document_id' => $trashed, 'reason' => 'Recorded twice.'])['isError'] ?? false);
 
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.recorded']);
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.recorded']);
         self::assertSame([$second, $first], $this->ids());
-        self::assertSame('purchasing.received.recorded', $this->at('applied_view', 'system_key'));
+        self::assertSame('received_documents.received.recorded', $this->at('applied_view', 'system_key'));
         // The trash condition of the view decides it instead of the trashed parameter.
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.trash']);
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.trash']);
         self::assertSame([$trashed], $this->ids());
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts', 'trashed' => 'true']);
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.drafts', 'trashed' => 'true']);
         self::assertSame([], $this->ids());
         $this->get('/api/v1/received-documents', ['filter' => '{"conditions": [{"field": "supplier", "op": "is", "value": "'.$this->customerId.'"}, {"field": "kind", "op": "is", "value": "tax_invoice"}]}']);
         self::assertSame([$second, $first], $this->ids());
@@ -309,7 +309,7 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $search = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'kind', 'op' => 'is', 'value' => 'credit_note']]]]);
         self::assertSame(['items' => [], 'next_cursor' => null, 'applied_view' => null], $this->pathOf($search, 'structuredContent', 'data'));
         // The writer's token cannot read views.
-        $refused = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
+        $refused = $this->tool('foresi_search_received_documents', ['view_id' => 'received_documents.received.recorded']);
         self::assertTrue($refused['isError'] ?? false);
         self::assertSame('insufficient_scope', $this->pathOf($refused, 'structuredContent', 'error', 'code'));
         $refused = $this->tool('foresi_search_received_documents', ['filter' => ['conditions' => [['field' => 'colour', 'op' => 'is', 'value' => 'red']]]]);
@@ -322,13 +322,13 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $id = $this->recorded('FV-8');
         $this->writer = $this->issued([ApiScope::from('received_documents:write'), ApiScope::from('views:read')]);
 
-        $search = $this->tool('foresi_search_received_documents', ['view_id' => 'purchasing.received.recorded']);
+        $search = $this->tool('foresi_search_received_documents', ['view_id' => 'received_documents.received.recorded']);
 
         self::assertFalse($search['isError'] ?? false);
         $data = $this->pathOf($search, 'structuredContent', 'data');
         self::assertIsArray($data);
         self::assertSame([$id], array_column(\is_array($data['items'] ?? null) ? $data['items'] : [], 'id'));
-        self::assertSame('purchasing.received.recorded', \is_array($data['applied_view'] ?? null) ? $data['applied_view']['system_key'] ?? null : null);
+        self::assertSame('received_documents.received.recorded', \is_array($data['applied_view'] ?? null) ? $data['applied_view']['system_key'] ?? null : null);
         $text = $this->pathOf($search, 'content', 0, 'text');
         self::assertIsString($text);
         self::assertStringContainsString('Through the view Recorded: 1 received document', $text);
@@ -361,18 +361,18 @@ final class ReceivedDocumentApiTest extends ApiTestCase
         $this->recorded('FV-9');
         $this->recorded('FV-10');
 
-        $this->get('/api/v1/views/purchasing.received.recorded/count');
+        $this->get('/api/v1/views/received_documents.received.recorded/count');
         self::assertResponseIsSuccessful();
         self::assertSame(2, $this->at('data', 'count'));
-        $this->get('/api/v1/views/purchasing.received.drafts/count');
+        $this->get('/api/v1/views/received_documents.received.drafts/count');
         self::assertSame(0, $this->at('data', 'count'));
     }
 
     public function testAViewNeedsTheViewsScope(): void
     {
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts'], $this->issued([ApiScope::from('received_documents:read')]));
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.drafts'], $this->issued([ApiScope::from('received_documents:read')]));
         $this->assertProblem(403, 'insufficient_scope');
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.drafts'], $this->issued([ApiScope::from('received_documents:read'), ApiScope::from('views:read')]));
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.drafts'], $this->issued([ApiScope::from('received_documents:read'), ApiScope::from('views:read')]));
         self::assertSame([], $this->ids());
     }
 

@@ -16,13 +16,13 @@
 {% block title %}{{ 'deals.settings.title'|trans }}{% endblock %}
 
 {% block actions %}
-    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_sales_stage_new')" data-dialog aria-haspopup="dialog" data-sales-stage-new>{{ 'deals.settings.new_stage'|trans }}</twig:Ui:Button>
-    <twig:Ui:Button icon="plus" :href="path('app_sales_lost_reason_new')" data-dialog aria-haspopup="dialog" data-sales-reason-new>{{ 'deals.settings.new_reason'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_deal_stage_new')" data-dialog aria-haspopup="dialog" data-sales-stage-new>{{ 'deals.settings.new_stage'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button icon="plus" :href="path('app_deal_lost_reason_new')" data-dialog aria-haspopup="dialog" data-sales-reason-new>{{ 'deals.settings.new_reason'|trans }}</twig:Ui:Button>
 {% endblock %}
 
 {% macro table(t, caption, token) %}
-    {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'deals.settings.views'|trans({list: caption}), toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_sales_settings')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
-    <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_sales_settings')" :keep="t.keep"
+    {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'deals.settings.views'|trans({list: caption}), toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_deal_settings')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+    <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_deal_settings')" :keep="t.keep"
         :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
     </twig:Ui:FilterBar>
     <twig:Ui:DataTable :caption="caption" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token">

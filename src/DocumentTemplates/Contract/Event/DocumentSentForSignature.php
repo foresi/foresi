@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A ready document went out for signature. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.sent_for_signature', version: 1)]
+#[DomainEvent('document-templates.document.sent_for_signature', version: 1)]
 final readonly class DocumentSentForSignature implements DomainEventPayload
 {
     /**

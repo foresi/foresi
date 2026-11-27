@@ -28,7 +28,7 @@
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title}] %}
 {% set token = csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) %}
 {% set open = deal.open and not deal.trashed %}
 {# A won or lost deal shows its status alone: the stage it was closed in is no longer where it stands. #}
@@ -43,17 +43,17 @@
     <twig:Ui:MoreActions menuId="deal-actions">
         <twig:block name="primary">
             {% if deal.trashed %}
-                <form method="post" action="{{ path('app_sales_deal_restore', {id: deal.id}) }}" class="contents" data-deal-restore>
+                <form method="post" action="{{ path('app_deal_restore', {id: deal.id}) }}" class="contents" data-deal-restore>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Button type="submit" variant="primary" icon="archive-restore">{{ 'deals.deal.restore'|trans }}</twig:Ui:Button>
                 </form>
             {% elseif open %}
-                <form method="post" action="{{ path('app_sales_deal_win', {id: deal.id}) }}" class="contents" data-deal-win>
+                <form method="post" action="{{ path('app_deal_win', {id: deal.id}) }}" class="contents" data-deal-win>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Button type="submit" variant="primary" icon="circle-check">{{ 'deals.deal.win'|trans }}</twig:Ui:Button>
                 </form>
             {% else %}
-                <form method="post" action="{{ path('app_sales_deal_reopen', {id: deal.id}) }}" class="contents" data-deal-reopen>
+                <form method="post" action="{{ path('app_deal_reopen', {id: deal.id}) }}" class="contents" data-deal-reopen>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:Button type="submit" variant="primary" icon="refresh-cw">{{ 'deals.deal.reopen'|trans }}</twig:Ui:Button>
                 </form>
@@ -78,14 +78,14 @@
             {% endif %}
         </twig:block>
         {% if open %}
-            <twig:Ui:MenuItem icon="x" :href="path('app_sales_deal_lose', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-lose>{{ 'deals.deal.lose'|trans }}</twig:Ui:MenuItem>
+            <twig:Ui:MenuItem icon="x" :href="path('app_deal_lose', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-lose>{{ 'deals.deal.lose'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         {% if billing and billing.editable %}
             {# A won deal plans its invoices from its header, in a dialog (Productive's billing plan of a budget). #}
-            <twig:Ui:MenuItem icon="receipt-text" :href="path('app_sales_billing_entry_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-billing-entry-new>{{ 'deals.billing.new'|trans }}</twig:Ui:MenuItem>
+            <twig:Ui:MenuItem icon="receipt-text" :href="path('app_deal_billing_entry_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-billing-entry-new>{{ 'deals.billing.new'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         {% if not deal.trashed %}
-            <twig:Ui:MenuItem icon="pencil" :href="path('app_sales_deal_edit', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-edit>{{ 'deals.deal.edit'|trans }}</twig:Ui:MenuItem>
+            <twig:Ui:MenuItem icon="pencil" :href="path('app_deal_edit', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-edit>{{ 'deals.deal.edit'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         {% for action in menuActions %}
             {% if action.dialog %}
@@ -95,11 +95,11 @@
             {% endif %}
         {% endfor %}
         {% if not deal.trashed %}
-            <twig:Ui:MenuItem icon="plus" :href="path('app_sales_deal_follow_up', {id: deal.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-deal-follow-up>{{ 'deals.deal.follow_up'|trans }}</twig:Ui:MenuItem>
+            <twig:Ui:MenuItem icon="plus" :href="path('app_deal_follow_up', {id: deal.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-deal-follow-up>{{ 'deals.deal.follow_up'|trans }}</twig:Ui:MenuItem>
         {% endif %}
         <twig:block name="last">
             {% if not deal.trashed %}
-                <form method="post" action="{{ path('app_sales_deal_trash', {id: deal.id}) }}" role="none" data-deal-trash>
+                <form method="post" action="{{ path('app_deal_trash', {id: deal.id}) }}" role="none" data-deal-trash>
                     <input type="hidden" name="_token" value="{{ token }}">
                     <twig:Ui:MenuItem type="submit" icon="trash-2" tone="danger">{{ 'deals.deal.trash'|trans }}</twig:Ui:MenuItem>
                 </form>
@@ -115,7 +115,7 @@
             {# The stages in their order, the current one pressed, as Pipedrive's deal shows its pipeline under the title. #}
             <div role="group" aria-label="{{ 'deals.deal.field.stage'|trans }}" class="flex flex-wrap gap-1" data-deal-stage>
                 {% for stage in stages %}
-                    <form method="post" action="{{ path('app_sales_deal_stage', {id: deal.id}) }}" class="contents">
+                    <form method="post" action="{{ path('app_deal_stage', {id: deal.id}) }}" class="contents">
                         <input type="hidden" name="_token" value="{{ token }}">
                         <input type="hidden" name="stageId" value="{{ stage.id }}">
                         <twig:Ui:Button type="submit" size="sm" :pressed="stage.current">{{ stage.name }}</twig:Ui:Button>
@@ -133,7 +133,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h2 id="deal-lines-title" class="m-0 text-heading font-semibold text-ink">{{ 'deals.line.title'|trans }}</h2>
                         {% if not deal.trashed %}
-                            <twig:Ui:Button icon="plus" size="sm" :href="path('app_sales_deal_line_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-line-new>{{ 'deals.line.new'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button icon="plus" size="sm" :href="path('app_deal_line_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-line-new>{{ 'deals.line.new'|trans }}</twig:Ui:Button>
                         {% endif %}
                     </div>
                     {% set lineColumns = [
@@ -218,7 +218,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <h3 id="deal-links-title" class="m-0 text-small font-medium text-ink">{{ 'deals.link.title'|trans }}</h3>
                         {% if linkable %}
-                            <twig:Ui:Button icon="link-2" size="sm" variant="ghost" :href="path('app_sales_deal_link_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-link-new>{{ 'deals.link.new'|trans }}</twig:Ui:Button>
+                            <twig:Ui:Button icon="link-2" size="sm" variant="ghost" :href="path('app_deal_link_new', {id: deal.id})" data-dialog aria-haspopup="dialog" data-deal-link-new>{{ 'deals.link.new'|trans }}</twig:Ui:Button>
                         {% endif %}
                     </div>
                     {% if links is empty %}

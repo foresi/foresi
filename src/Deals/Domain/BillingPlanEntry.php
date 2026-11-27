@@ -28,10 +28,10 @@ use Foresi\Shared\Domain\Money;
  * type and id, as Timesheet keeps the invoice of a time entry.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_billing_plan_entry')]
-#[ORM\Index(name: 'idx_sales_billing_plan_entry_deal', columns: ['deal_id'])]
-#[ORM\Index(name: 'idx_sales_billing_plan_entry_fulfilled', columns: ['fulfilled_type', 'fulfilled_id'])]
-#[ORM\UniqueConstraint(name: 'uniq_sales_billing_plan_entry_line', columns: ['line_id'])]
+#[ORM\Table(name: 'deal_billing_plan_entry')]
+#[ORM\Index(name: 'idx_deal_billing_plan_entry_deal', columns: ['deal_id'])]
+#[ORM\Index(name: 'idx_deal_billing_plan_entry_fulfilled', columns: ['fulfilled_type', 'fulfilled_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_deal_billing_plan_entry_line', columns: ['line_id'])]
 class BillingPlanEntry implements Audited
 {
     public const int MAX_TEXT = 200;

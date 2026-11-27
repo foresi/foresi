@@ -87,7 +87,7 @@ final class PairingScreensTest extends WebTestCase
         $item = $this->monthly('Cloud Host', '1210.00');
         $id = $this->record('2026-11-18', '1210.00');
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $page->filter('[data-purchasing-pairing][data-pairing-state="auto"]'));
@@ -98,7 +98,7 @@ final class PairingScreensTest extends WebTestCase
 
         $this->client->submit($page->filter('[data-pairing-unpair]')->form());
 
-        self::assertResponseRedirects('/purchasing/'.$id);
+        self::assertResponseRedirects('/received-documents/'.$id);
         self::assertSame(PairingState::Declined, $this->state($id));
         $page = $this->client->followRedirect();
         self::assertCount(1, $page->filter('[data-pairing-state="declined"] [data-pairing-declined]'));
@@ -111,7 +111,7 @@ final class PairingScreensTest extends WebTestCase
         $this->monthly('Cloud Host backup', '600.00');
         $id = $this->record('2026-11-18', '1210.00');
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         self::assertCount(1, $page->filter('[data-pairing-state="proposed"]'));
         self::assertCount(2, $page->filter('[data-pairing-candidate]'));
@@ -131,10 +131,10 @@ final class PairingScreensTest extends WebTestCase
         $item = $this->monthly('Cloud Host', '500.00', null);
         $id = $this->record('2026-11-18', '1210.00');
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
         self::assertCount(1, $page->filter('[data-pairing-state="none"] [data-pairing-none]'));
 
-        $dialog = $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        $dialog = $this->client->request('GET', '/received-documents/'.$id.'/pairing/choose');
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $dialog->filter('select[name="choice"] optgroup[label="Cloud Host"]'));
@@ -142,7 +142,7 @@ final class PairingScreensTest extends WebTestCase
         $form->setValues(['choice' => $item->id().'|2026-11-20']);
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/purchasing/'.$id);
+        self::assertResponseRedirects('/received-documents/'.$id);
         self::assertSame(PairingState::Confirmed, $this->state($id));
     }
 
@@ -150,12 +150,12 @@ final class PairingScreensTest extends WebTestCase
     {
         $item = $this->monthly('Cloud Host', '500.00', null);
         $id = $this->record('2026-11-18', '1210.00');
-        $dialog = $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        $dialog = $this->client->request('GET', '/received-documents/'.$id.'/pairing/choose');
         $token = (string) $dialog->filter('#pairing-form input[name="_token"]')->attr('value');
 
-        $this->client->request('POST', '/purchasing/'.$id.'/pairing', ['_token' => $token, 'choice' => $item->id().'|2026-11-21']);
+        $this->client->request('POST', '/received-documents/'.$id.'/pairing', ['_token' => $token, 'choice' => $item->id().'|2026-11-21']);
 
-        self::assertResponseRedirects('/purchasing/'.$id);
+        self::assertResponseRedirects('/received-documents/'.$id);
         $page = $this->client->followRedirect();
         self::assertCount(1, $page->filter('[role="alert"]'));
         self::assertNull($this->state($id));
@@ -165,10 +165,10 @@ final class PairingScreensTest extends WebTestCase
     {
         $this->monthly('Cloud Host', '1210.00');
         $id = $this->record('2026-11-18', '1210.00');
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
         $this->client->submit($page->filter('[data-pairing-unpair]')->form());
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         $panel = $page->filter('[data-pairing-state="declined"]');
         self::assertCount(1, $panel);
@@ -183,7 +183,7 @@ final class PairingScreensTest extends WebTestCase
         $this->monthly('Cloud Host backup', '600.00');
         $id = $this->record('2026-11-18', '1210.00');
 
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         $panel = $page->filter('[data-pairing-state="proposed"]');
         self::assertStringContainsString('Another item…', $panel->filter('[data-pairing-other]')->text());
@@ -198,11 +198,11 @@ final class PairingScreensTest extends WebTestCase
         $this->monthly('Cloud Host', '500.00');
         $this->monthly('Cloud Host backup', '600.00');
         $id = $this->record('2026-11-18', '1210.00');
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
 
         $this->client->submit($page->filter('[data-pairing-decline]')->ancestors()->filter('form')->form());
 
-        self::assertResponseRedirects('/purchasing/'.$id);
+        self::assertResponseRedirects('/received-documents/'.$id);
         self::assertSame(PairingState::Declined, $this->state($id));
         $page = $this->client->followRedirect();
         self::assertCount(1, $page->filter('[data-pairing-state="declined"] [data-pairing-declined]'));
@@ -213,7 +213,7 @@ final class PairingScreensTest extends WebTestCase
         $item = $this->monthly('Cloud Host', '500.00');
         $this->monthly('Cloud Host backup', '600.00');
         $id = $this->record('2026-11-18', '1210.00');
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
         $this->client->submit($page->filter('[data-pairing-candidate="'.$item->id().'"] form')->form());
 
         $page = $this->client->followRedirect();
@@ -229,7 +229,7 @@ final class PairingScreensTest extends WebTestCase
     {
         $item = $this->monthly('Cloud Host', '500.00', null);
         $id = $this->record('2026-11-18', '1210.00');
-        $dialog = $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        $dialog = $this->client->request('GET', '/received-documents/'.$id.'/pairing/choose');
         $token = (string) $dialog->filter('#pairing-form input[name="_token"]')->attr('value');
         $em = $this->browser->em();
         $user = new User('guest@example.com', 'hash', 'Example Guest');
@@ -240,13 +240,13 @@ final class PairingScreensTest extends WebTestCase
         $em->flush();
         $this->client->loginUser(new SecurityUser($user->id(), $user->email(), 'hash'), 'main');
 
-        $this->client->request('GET', '/purchasing/'.$id.'/pairing/choose');
+        $this->client->request('GET', '/received-documents/'.$id.'/pairing/choose');
         self::assertResponseStatusCodeSame(403);
-        $this->client->request('POST', '/purchasing/'.$id.'/pairing', ['_token' => $token, 'choice' => $item->id().'|2026-11-20']);
+        $this->client->request('POST', '/received-documents/'.$id.'/pairing', ['_token' => $token, 'choice' => $item->id().'|2026-11-20']);
         self::assertResponseStatusCodeSame(403);
-        $this->client->request('POST', '/purchasing/'.$id.'/pairing/unpair', ['_token' => $token]);
+        $this->client->request('POST', '/received-documents/'.$id.'/pairing/unpair', ['_token' => $token]);
         self::assertResponseStatusCodeSame(403);
-        $page = $this->client->request('GET', '/purchasing/'.$id);
+        $page = $this->client->request('GET', '/received-documents/'.$id);
         self::assertResponseStatusCodeSame(403);
         self::assertCount(0, $page->filter('[data-purchasing-pairing]'));
         self::assertNull($this->state($id));
@@ -256,7 +256,7 @@ final class PairingScreensTest extends WebTestCase
     {
         $id = $this->record('2026-11-18', '1210.00');
 
-        $this->client->request('POST', '/purchasing/'.$id.'/pairing/unpair', ['_token' => 'wrong']);
+        $this->client->request('POST', '/received-documents/'.$id.'/pairing/unpair', ['_token' => 'wrong']);
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -279,7 +279,7 @@ final class PairingScreensTest extends WebTestCase
 
     public function testTheListOffersTheConditionAmongItsFilters(): void
     {
-        $page = $this->client->request('GET', '/purchasing?tab=recorded');
+        $page = $this->client->request('GET', '/received-documents?tab=recorded');
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Pairing to confirm', $page->html());
@@ -294,7 +294,7 @@ final class PairingScreensTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $page->filter('[data-planned-paired] [data-paired-occurrence="2026-11-20"] [data-paired-document]'));
-        self::assertStringContainsString('/purchasing/'.$id, (string) $page->filter('[data-paired-document] a')->attr('href'));
+        self::assertStringContainsString('/received-documents/'.$id, (string) $page->filter('[data-paired-document] a')->attr('href'));
         self::assertStringContainsString('Cloud Host', $page->filter('[data-paired-document]')->text());
     }
 

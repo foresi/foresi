@@ -30,6 +30,6 @@ final class DocumentReaderTagTest extends TestCase
 
         $tags = $builder->getAutoconfiguredInstanceof()[DocumentReader::class]->getTags();
 
-        self::assertArrayHasKey('foresi.purchasing.document_reader', $tags);
+        self::assertArrayHasKey('foresi.received_documents.document_reader', $tags);
     }
 }

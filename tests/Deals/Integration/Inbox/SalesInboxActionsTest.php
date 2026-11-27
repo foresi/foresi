@@ -50,8 +50,8 @@ final class SalesInboxActionsTest extends ApiTestCase
             $this->em()->persist(new ActivityType('email', null, ActivityTiming::None, null, new \DateTimeImmutable()));
         });
         $this->address = self::getContainer()->get(AddressIssuer::class)->issue(InboxPurpose::KEY, $this->user->id(), 'My inbox')->address;
-        $this->agent = $this->issued([ApiScope::from('inbox:write'), ApiScope::from('sales:write')]);
-        $this->send('POST', '/api/v1/sales/stages', ['name' => 'Inquiry'], $this->agent);
+        $this->agent = $this->issued([ApiScope::from('inbox:write'), ApiScope::from('deals:write')]);
+        $this->send('POST', '/api/v1/deal-stages', ['name' => 'Inquiry'], $this->agent);
         self::assertResponseStatusCodeSame(201);
         $this->stageId = $this->idOfAnswer();
     }
@@ -64,7 +64,7 @@ final class SalesInboxActionsTest extends ApiTestCase
         $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/deals', ['title' => 'Office offer', 'client_party_id' => $this->customerId], $this->agent);
         self::assertResponseStatusCodeSame(201);
         $dealId = $this->idOfAnswer();
-        self::assertSame('/api/v1/sales/deals/'.$dealId, $this->client->getResponse()->headers->get('Location'));
+        self::assertSame('/api/v1/deals/'.$dealId, $this->client->getResponse()->headers->get('Location'));
         self::assertSame([$this->customerId, $this->stageId], [$this->at('data', 'client', 'id'), $this->at('data', 'stage', 'id')]);
 
         $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
@@ -133,7 +133,7 @@ final class SalesInboxActionsTest extends ApiTestCase
 
         $this->get('/api/v1/inbox/items/'.$itemId, secret: $this->agent);
         self::assertSame(['new', [], null], [$this->at('data', 'state'), $this->at('data', 'outputs'), $this->at('data', 'email_activity_id')]);
-        self::assertEquals(0, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM sales_deal'), 'No deal was opened.');
+        self::assertEquals(0, $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM deal'), 'No deal was opened.');
     }
 
     public function testTheSingleOpenDealIsPreselected(): void
@@ -167,7 +167,7 @@ final class SalesInboxActionsTest extends ApiTestCase
 
             return $party->id();
         });
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Other deal', 'client_party_id' => $other], $this->agent);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Other deal', 'client_party_id' => $other], $this->agent);
         self::assertResponseStatusCodeSame(201);
         $itemId = $this->receive(InboxMail::plain($this->address));
         $this->match($itemId);
@@ -184,7 +184,7 @@ final class SalesInboxActionsTest extends ApiTestCase
             return $party->id();
         });
         $personal = $this->deal('Personal offer');
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Company offer', 'client_party_id' => $company], $this->agent);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Company offer', 'client_party_id' => $company], $this->agent);
         self::assertResponseStatusCodeSame(201);
         $companys = $this->idOfAnswer();
         $suggester = self::getContainer()->get(OpenDealSuggester::class);
@@ -208,7 +208,7 @@ final class SalesInboxActionsTest extends ApiTestCase
 
     private function deal(string $title): string
     {
-        $this->send('POST', '/api/v1/sales/deals', ['title' => $title, 'client_party_id' => $this->customerId], $this->agent);
+        $this->send('POST', '/api/v1/deals', ['title' => $title, 'client_party_id' => $this->customerId], $this->agent);
         self::assertResponseStatusCodeSame(201);
 
         return $this->idOfAnswer();
@@ -216,19 +216,19 @@ final class SalesInboxActionsTest extends ApiTestCase
 
     private function wonDeal(string $title): void
     {
-        $this->send('POST', '/api/v1/sales/deals/'.$this->deal($title).'/win', [], $this->agent);
+        $this->send('POST', '/api/v1/deals/'.$this->deal($title).'/win', [], $this->agent);
         self::assertResponseIsSuccessful();
     }
 
     private function lostDeal(string $title): void
     {
-        $this->send('POST', '/api/v1/sales/deals/'.$this->deal($title).'/lose', [], $this->agent);
+        $this->send('POST', '/api/v1/deals/'.$this->deal($title).'/lose', [], $this->agent);
         self::assertResponseIsSuccessful();
     }
 
     private function trashedDeal(string $title): void
     {
-        $this->send('POST', '/api/v1/sales/deals/'.$this->deal($title).'/trash', [], $this->agent);
+        $this->send('POST', '/api/v1/deals/'.$this->deal($title).'/trash', [], $this->agent);
         self::assertResponseIsSuccessful();
     }
 

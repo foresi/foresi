@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * The answer of a write to a deal, its lines or its links: the deal as
- * GET /api/v1/sales/deals/{dealId} reads it, a summary and, for a new deal,
+ * GET /api/v1/deals/{dealId} reads it, a summary and, for a new deal,
  * where it is read.
  */
 final readonly class DealAnswer

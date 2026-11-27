@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * An open deal moved to another stage over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deals.change_stage',
+    name: 'deals.change_stage',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/stage',
+    path: '/api/v1/deals/{dealId}/stage',
     tool: 'foresi_change_deal_stage',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Move a deal to another stage',
     description: 'Moves an open deal to another stage (stages from foresi_list_deal_stages). A won or lost deal keeps its stage; reopen it first with foresi_reopen_deal.',
     response: 'SalesDeal',

@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A signer declined, so the document is declined. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.declined', version: 1)]
+#[DomainEvent('document-templates.document.declined', version: 1)]
 final readonly class DocumentDeclined implements DomainEventPayload
 {
     /**

@@ -22,7 +22,7 @@ use Foresi\Ui\Contract\Navigation\NavigationItemProvider;
  */
 final readonly class PurchasingNavigation implements NavigationItemProvider
 {
-    public const string ROUTE = 'app_purchasing';
+    public const string ROUTE = 'app_received_documents';
 
     public function __construct(private StaffCheck $staff, private DraftsNavigationCount $drafts)
     {
@@ -31,7 +31,7 @@ final readonly class PurchasingNavigation implements NavigationItemProvider
     public function items(): iterable
     {
         if ($this->staff->isStaff()) {
-            yield new NavigationItem(CoreNavigationAreas::PURCHASING, 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: [self::ROUTE]);
+            yield new NavigationItem(CoreNavigationAreas::PURCHASING, 'nav.item.purchasing', 'file-text', self::ROUTE, $this->drafts, weight: 20, routePrefixes: ['app_received_document']);
             yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.received_documents_settings', 'file-text', ReceivedDocumentsSettingsController::ROUTE, weight: 42, routePrefixes: [ReceivedDocumentsSettingsController::ROUTE, 'app_capture_address'], section: CoreNavigationAreas::SECTION_FIRM);
         }
     }

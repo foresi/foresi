@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A lost reason renamed over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.lost_reasons.update',
+    name: 'deals.lost_reasons.update',
     method: 'PATCH',
-    path: '/api/v1/sales/lost-reasons/{reasonId}',
+    path: '/api/v1/lost-reasons/{reasonId}',
     tool: 'foresi_update_lost_reason',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Rename a lost reason',
     description: 'Renames a lost reason. One that came with Foresi may be given null to show under its own name in each person\'s language again.',
     response: 'SalesLostReason',

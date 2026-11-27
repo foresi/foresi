@@ -170,6 +170,7 @@ api_tokens:
     resource_write: '{resource}: číst a měnit'
   resource:
     contacts: Kontakty
+    firm: Firma
     invoices: Faktury
     payments: Platby
     webhooks: Webhooky
@@ -179,7 +180,7 @@ api_tokens:
     profile: Váš profil
     cashflow: Cash flow
     catalog: Katalog
-    sales: Obchod
+    deals: Obchody
     taxes: Daně a odvody
     vat: DPH
     exchange_rates: Kurzy měn

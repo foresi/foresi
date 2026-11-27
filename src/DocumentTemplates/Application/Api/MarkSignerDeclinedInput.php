@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\Operation\Field;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.signers.mark_declined',
+    name: 'document_templates.signers.mark_declined',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/signers/{signerId}/mark-declined',
     tool: 'foresi_mark_document_signer_declined',

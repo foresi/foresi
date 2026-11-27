@@ -138,7 +138,7 @@ final class DealLineSnapshotTest extends SalesTestCase
         $this->assertRefused('cycles_invalid', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1, cycles: 1000)));
         $this->assertRefused('cycles_invalid', fn (): DealLine => $add(new AddDealLineInput($deal->id(), name: 'Audit', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1, cycles: 0)));
         self::assertSame([], $this->store()->linesOf($deal->id()));
-        self::assertSame([], $this->events('sales.deal.updated'));
+        self::assertSame([], $this->events('deals.deal.updated'));
     }
 
     public function testALineFromAProductTakesOnlyTheQuantity(): void
@@ -188,8 +188,8 @@ final class DealLineSnapshotTest extends SalesTestCase
         $this->assertRefused('not_found', fn (): Deal => $this->lines()->remove(new RemoveDealLineInput($deal->id(), $report->id())));
 
         // Each change of a line is a change of its deal.
-        self::assertCount(7, $this->events('sales.deal.updated'));
-        self::assertSame(['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], $this->events('sales.deal.updated')[0]);
+        self::assertCount(7, $this->events('deals.deal.updated'));
+        self::assertSame(['deal_id' => $deal->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], $this->events('deals.deal.updated')[0]);
     }
 
     /**

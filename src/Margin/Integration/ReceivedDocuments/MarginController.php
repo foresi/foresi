@@ -68,7 +68,7 @@ final class MarginController extends AbstractController
                     $this->writes->assign(new AssignDocumentInput($id, $clear ? null : $recipient));
                     $this->addFlash('success', $this->translator->trans($clear ? 'margin.screen.flash.cleared' : 'margin.screen.flash.assigned'));
 
-                    return $this->redirectToRoute('app_purchasing_document', ['id' => $id], Response::HTTP_SEE_OTHER);
+                    return $this->redirectToRoute('app_received_document', ['id' => $id], Response::HTTP_SEE_OTHER);
                 } catch (MarginRefused $refused) {
                     $error = $this->told($refused);
                 }
@@ -105,7 +105,7 @@ final class MarginController extends AbstractController
                     $this->writes->setLine($input);
                     $this->addFlash('success', $this->translator->trans($clear ? 'margin.screen.flash.line_cleared' : 'margin.screen.flash.line_set'));
 
-                    return $this->redirectToRoute('app_purchasing_document', ['id' => $id], Response::HTTP_SEE_OTHER);
+                    return $this->redirectToRoute('app_received_document', ['id' => $id], Response::HTTP_SEE_OTHER);
                 } catch (MarginRefused $refused) {
                     $error = $this->told($refused);
                 }

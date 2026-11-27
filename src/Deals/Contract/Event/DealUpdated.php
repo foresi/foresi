@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * client and lines. It names the keys of the custom fields that changed (ADR 0045),
  * never their values; empty when none did.
  */
-#[DomainEvent('sales.deal.updated', version: 1)]
+#[DomainEvent('deals.deal.updated', version: 1)]
 final readonly class DealUpdated implements DomainEventPayload
 {
     /**

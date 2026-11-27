@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * Every signer signed and the signed copy is stored. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.completed', version: 1)]
+#[DomainEvent('document-templates.document.completed', version: 1)]
 final readonly class DocumentCompleted implements DomainEventPayload
 {
     /**

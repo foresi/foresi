@@ -71,7 +71,7 @@ final class PartyToolsTest extends ReadToolTestCase
         $firm = $this->tool(GetFirmTool::class);
         self::assertSame('foresi_get_firm', $firm->name());
         self::assertSame('Get the firm', $firm->title());
-        self::assertSame('contacts:read', $firm->scope());
+        self::assertSame('firm:read', $firm->scope());
         self::assertStringStartsWith('Returns the firm of this Foresi instance', $firm->description());
         self::assertEquals(['type' => 'object', 'properties' => new \stdClass(), 'additionalProperties' => false], $firm->inputSchema());
     }

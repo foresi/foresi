@@ -92,7 +92,7 @@ final class ReceivedDocumentListController extends AbstractController
     ) {
     }
 
-    #[Route('/purchasing', name: PurchasingNavigation::ROUTE, methods: ['GET'])]
+    #[Route('/received-documents', name: PurchasingNavigation::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
         $input = $request->query;
@@ -147,7 +147,7 @@ final class ReceivedDocumentListController extends AbstractController
     /**
      * One file a request from the dialog, answered in JSON; the plain form sends them all at once.
      */
-    #[Route('/purchasing/upload', name: 'app_purchasing_upload', methods: ['GET', 'POST'])]
+    #[Route('/received-documents/upload', name: 'app_received_document_upload', methods: ['GET', 'POST'])]
     public function upload(Request $request): Response
     {
         // The documents go to the instance's firm (ADR 0039); none before the first-run setup.
@@ -169,7 +169,7 @@ final class ReceivedDocumentListController extends AbstractController
             $first = $uploaded[0];
 
             return $first->isDrafted()
-                ? new JsonResponse(['id' => $first->documentId, 'url' => $this->generateUrl('app_purchasing_document', ['id' => $first->documentId]), 'warnings' => $this->screen->warnings($first->warnings)], Response::HTTP_CREATED)
+                ? new JsonResponse(['id' => $first->documentId, 'url' => $this->generateUrl('app_received_document', ['id' => $first->documentId]), 'warnings' => $this->screen->warnings($first->warnings)], Response::HTTP_CREATED)
                 : new JsonResponse(['error' => $this->translator->trans('attachment.error.'.$first->refusal)], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
         $drafted = array_values(array_filter($uploaded, static fn (UploadedDocument $file): bool => $file->isDrafted()));
@@ -191,7 +191,7 @@ final class ReceivedDocumentListController extends AbstractController
     /**
      * A document typed in without a file, recorded at once; the dialog then leads to it.
      */
-    #[Route('/purchasing/new', name: 'app_purchasing_new', methods: ['GET', 'POST'])]
+    #[Route('/received-documents/new', name: 'app_received_document_new', methods: ['GET', 'POST'])]
     public function create(Request $request): Response
     {
         // The document goes to the instance's firm (ADR 0039); none before the first-run setup.
@@ -214,7 +214,7 @@ final class ReceivedDocumentListController extends AbstractController
                     $this->addFlash('warning', $warning);
                 }
 
-                return $this->redirectToRoute('app_purchasing_document', ['id' => $saved->document->id()], Response::HTTP_SEE_OTHER);
+                return $this->redirectToRoute('app_received_document', ['id' => $saved->document->id()], Response::HTTP_SEE_OTHER);
             } catch (ReceivedDocumentRefused $refused) {
                 $errors[RefusalFields::of($refused->reason)] = $this->screen->refusal($refused);
             }
@@ -227,7 +227,7 @@ final class ReceivedDocumentListController extends AbstractController
      * The contacts for the combobox of the form: found by text, or the one with an id,
      * which the form asks for once a contact was created in the dialog.
      */
-    #[Route('/purchasing/suppliers', name: 'app_purchasing_suppliers', methods: ['GET'])]
+    #[Route('/received-documents/suppliers', name: 'app_received_document_suppliers', methods: ['GET'])]
     public function suppliers(Request $request): JsonResponse
     {
         $id = $request->query->getString('id');
@@ -355,7 +355,7 @@ final class ReceivedDocumentListController extends AbstractController
     private function references(): array
     {
         return [ReceivedDocumentLists::CONTACT => [
-            'url' => $this->generateUrl('app_purchasing_suppliers'),
+            'url' => $this->generateUrl('app_received_document_suppliers'),
             'name' => fn (string $contact): ?string => $this->suppliers->find($contact)?->name,
         ]];
     }
@@ -413,7 +413,7 @@ final class ReceivedDocumentListController extends AbstractController
 
         return [
             'id' => $row->id,
-            'href' => $this->generateUrl('app_purchasing_document', ['id' => $row->id]),
+            'href' => $this->generateUrl('app_received_document', ['id' => $row->id]),
             'opens' => Opens::SHEET,
             'label' => $label,
             'secondary' => implode(' · ', array_filter([$row->supplierName, $this->columns->total($row), $badge['label']], static fn (string $part): bool => '' !== $part)),

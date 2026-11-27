@@ -57,13 +57,13 @@ final class SalesSettingsListsTest extends WebTestCase
         $stages = self::getContainer()->get(DealStageLists::class);
         $reasons = self::getContainer()->get(LostReasonLists::class);
         $all = self::getContainer()->get(ListDefinitions::class);
-        foreach (['sales.deal_stages' => $stages->list(), 'sales.lost_reasons' => $reasons->list()] as $key => $list) {
+        foreach (['deals.deal_stages' => $stages->list(), 'deals.lost_reasons' => $reasons->list()] as $key => $list) {
             self::assertSame($key, $list->key);
             self::assertSame([[ListDefinition::ALL, false, 0]], array_map(static fn (DefaultView $view): array => [$view->slug, $view->showCount, $view->position], $list->defaults));
             self::assertArrayHasKey('name', $list->fields);
             self::assertArrayHasKey('archived', $list->fields);
             // Built once, so its fields are asked once.
-            self::assertSame($list, ('sales.deal_stages' === $key ? $stages : $reasons)->list());
+            self::assertSame($list, ('deals.deal_stages' === $key ? $stages : $reasons)->list());
             // app:views:sync stores the views of every list it finds.
             self::assertArrayHasKey($key, $all->all());
         }
@@ -72,25 +72,25 @@ final class SalesSettingsListsTest extends WebTestCase
     public function testTheColumnsOfOneTableLeaveTheOtherAndAnOldLinkStillOpensTheStages(): void
     {
         // An old link of the page names the stages' columns on the bare keys.
-        $crawler = $this->client->request('GET', '/settings/sales?cols=name');
+        $crawler = $this->client->request('GET', '/settings/deals?cols=name');
         self::assertResponseIsSuccessful();
         self::assertSame(['name'], $this->columns($crawler, 'stages'));
         self::assertSame(['name', 'key', 'state'], $this->columns($crawler, 'reasons'));
 
         // The reasons' own columns, under their slot, change only the reasons.
-        $crawler = $this->client->request('GET', '/settings/sales?cols=name&reasons[cols]=name,state');
+        $crawler = $this->client->request('GET', '/settings/deals?cols=name&reasons[cols]=name,state');
         self::assertSame(['name'], $this->columns($crawler, 'stages'));
         self::assertSame(['name', 'state'], $this->columns($crawler, 'reasons'));
 
         // Each remembers its own for the person: the page opened bare shows both as last changed.
-        $crawler = $this->client->request('GET', '/settings/sales');
+        $crawler = $this->client->request('GET', '/settings/deals');
         self::assertSame(['name'], $this->columns($crawler, 'stages'));
         self::assertSame(['name', 'state'], $this->columns($crawler, 'reasons'));
     }
 
     public function testTheLinksAndFormsOfOneTableKeepTheOthersState(): void
     {
-        $crawler = $this->client->request('GET', '/settings/sales?cols=name&reasons[cols]=name,state&reasons[widths]=name:240');
+        $crawler = $this->client->request('GET', '/settings/deals?cols=name&reasons[cols]=name,state&reasons[widths]=name:240');
         $stages = $crawler->filter('[data-sales-stages]');
         $reasons = $crawler->filter('[data-sales-reasons]');
 
@@ -117,7 +117,7 @@ final class SalesSettingsListsTest extends WebTestCase
 
     public function testTheBuildersRowsOfTheReasonsBecomeTheirFilterAndTheStagesKeepTheirs(): void
     {
-        $this->client->request('GET', '/settings/sales?'.http_build_query(['cols' => 'name', 'reasons' => ['conditions' => '1', 'c' => [['field' => 'name', 'op' => 'contains', 'value' => 'Tim']]]]));
+        $this->client->request('GET', '/settings/deals?'.http_build_query(['cols' => 'name', 'reasons' => ['conditions' => '1', 'c' => [['field' => 'name', 'op' => 'contains', 'value' => 'Tim']]]]));
         self::assertResponseRedirects();
         $query = $this->query((string) $this->client->getResponse()->headers->get('Location'));
         self::assertSame('name', $query['cols']);

@@ -23,7 +23,7 @@ use Foresi\Shared\Application\View\ListFields;
  */
 final class DealStageLists implements ListDefinitionSource
 {
-    public const string KEY = 'sales.deal_stages';
+    public const string KEY = 'deals.deal_stages';
     public const string NAME = 'name';
     public const string ARCHIVED = 'archived';
 

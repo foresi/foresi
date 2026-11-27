@@ -94,11 +94,11 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'document-templates' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'party' => ['contacts'], 'received-documents' => ['received_documents'], 'deals' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'document-templates' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'contacts' => ['contacts'], 'party' => ['firm'], 'received-documents' => ['received_documents'], 'deals' => ['deals'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'timesheet' => ['time_entries'], 'work' => ['projects', 'tasks']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());
-        self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
+        self::assertSame(['firm'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
         // A guest may change tasks and read projects, and nothing else (ADR 0041).
         $guest = ['identity' => ['profile:write'], 'work' => ['projects:read', 'tasks:write']];

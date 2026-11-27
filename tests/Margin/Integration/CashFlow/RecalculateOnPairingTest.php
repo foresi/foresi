@@ -306,7 +306,7 @@ final class RecalculateOnPairingTest extends KernelTestCase
 
     private function document(string $id, string $basis, int $minor): void
     {
-        $this->source->documents[$id] = new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), [new CostLine('line-1', 'Hosting', Money::ofMinor($minor, Currency::CZK))], false, 'EN '.$id, '/purchasing/'.$id);
+        $this->source->documents[$id] = new CostDocument($id, null, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), [new CostLine('line-1', 'Hosting', Money::ofMinor($minor, Currency::CZK))], false, 'EN '.$id, '/received-documents/'.$id);
     }
 
     /**

@@ -180,7 +180,12 @@ final readonly class MigrationRebase
         $tables = [];
         foreach ($this->migrations->getMigrationRepository()->getMigrations()->getItems() as $available) {
             $before = $this->columnsByTable($schema);
-            $available->getMigration()->up($schema);
+            $migration = $available->getMigration();
+            $migration->up($schema);
+            if ($migration instanceof RenamesTables) {
+                $schema = TableOwners::renamed($schema, $migration);
+                array_push($tables, ...array_values($migration->renamedTables()));
+            }
             if (str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE)) {
                 continue;
             }

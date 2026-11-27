@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A cancelled document came back from the trash. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.restored', version: 1)]
+#[DomainEvent('document-templates.document.restored', version: 1)]
 final readonly class DocumentRestored implements DomainEventPayload
 {
     /**

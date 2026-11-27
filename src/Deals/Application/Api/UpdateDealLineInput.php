@@ -19,11 +19,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * change, the rest stay; an optional field sent as null is cleared.
  */
 #[Operation(
-    name: 'sales.deal_lines.update',
+    name: 'deals.lines.update',
     method: 'PATCH',
-    path: '/api/v1/sales/deals/{dealId}/lines/{lineId}',
+    path: '/api/v1/deals/{dealId}/lines/{lineId}',
     tool: 'foresi_update_deal_line',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Update a line of a deal',
     description: 'Changes the fields given of a line of a deal and keeps the rest; unit_price null leaves it without a price. A time_based line has the unit h, its unit_price is the hourly rate (needed) and it has no recurrence. Making a recurring line one_off or time_based clears its recurrence_unit, interval and cycles. project_id links a time_based line to the project whose billable time it bills at its rate, null unlinks it; time already invoiced keeps the rate it took. The product it was copied from does not change.',
     response: 'SalesDeal',

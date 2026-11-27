@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
  * The stages of a deal and the reasons it is lost for, as
- * GET /api/v1/sales/stages and GET /api/v1/sales/lost-reasons write them.
+ * GET /api/v1/deal-stages and GET /api/v1/lost-reasons write them.
  */
 final readonly class ListDealStagesTool implements ReadTool, StaffOnlyTool
 {
@@ -39,7 +39,7 @@ final readonly class ListDealStagesTool implements ReadTool, StaffOnlyTool
 
     public function scope(): string
     {
-        return 'sales:read';
+        return 'deals:read';
     }
 
     public function description(): string

@@ -43,7 +43,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
     public function testTheFragmentShowsTheClientsPersonsAndAPersonToAdd(): void
     {
-        $crawler = $this->client->request('GET', '/sales/deals/client-persons?client='.$this->company->id());
+        $crawler = $this->client->request('GET', '/deals/client-persons?client='.$this->company->id());
         self::assertResponseIsSuccessful();
         self::assertSame([$this->petra->id(), $this->karel->id()], $crawler->filter('input[name="contactPersonIds[]"]')->each(static fn ($input): string => (string) $input->attr('value')));
         self::assertCount(0, $crawler->filter('input[name="contactPersonIds[]"][checked]'), 'A new client starts with no person ticked.');
@@ -56,13 +56,13 @@ final class DealClientDialogTest extends SalesScreenTestCase
         self::assertSame('existing', $crawler->filter('input[name="personMode"][checked]')->attr('value'));
 
         // A client with no contact persons says so, and still offers to add one.
-        $crawler = $this->client->request('GET', '/sales/deals/client-persons?client='.$this->beta->id());
+        $crawler = $this->client->request('GET', '/deals/client-persons?client='.$this->beta->id());
         self::assertCount(1, $crawler->filter('[data-deal-no-persons]'));
         self::assertCount(1, $crawler->filter('[data-deal-add-person]'));
 
         // A person as the client, or no client known, has no block at all.
         foreach ([$this->petra->id(), '0192f1a4-0000-7000-8000-000000000000', ''] as $client) {
-            $this->client->request('GET', '/sales/deals/client-persons?client='.$client);
+            $this->client->request('GET', '/deals/client-persons?client='.$client);
             self::assertResponseIsSuccessful();
             self::assertSame('', trim((string) $this->client->getResponse()->getContent()), $client);
         }
@@ -70,14 +70,14 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
     public function testANewDealFromTheListOffersThePersonsOnceTheClientIsKnown(): void
     {
-        $crawler = $this->client->request('GET', '/sales/deals/new', server: [self::DIALOG => '1']);
+        $crawler = $this->client->request('GET', '/deals/new', server: [self::DIALOG => '1']);
         self::assertCount(1, $crawler->filter('#deal-form [data-controller="combobox"] input[name="clientId"]'));
         self::assertCount(0, $crawler->filter('#deal-form [data-deal-persons]'));
-        self::assertSame('/sales/deals/client-persons', $crawler->filter('#deal-form')->attr('data-deal-client-url-value'));
+        self::assertSame('/deals/client-persons', $crawler->filter('#deal-form')->attr('data-deal-client-url-value'));
 
         // Without JavaScript a refused form comes back with the persons of the client sent.
         $values = $crawler->filter('#deal-form')->form()->getPhpValues();
-        $crawler = $this->client->request('POST', '/sales/deals/new', ['title' => '', 'clientId' => $this->company->id(), 'clientQuery' => 'Alpha Example s.r.o.', 'contactPersonIds' => [$this->karel->id()]] + $values);
+        $crawler = $this->client->request('POST', '/deals/new', ['title' => '', 'clientId' => $this->company->id(), 'clientQuery' => 'Alpha Example s.r.o.', 'contactPersonIds' => [$this->karel->id()]] + $values);
         self::assertResponseStatusCodeSame(422);
         self::assertSame($this->company->id(), $crawler->filter('#deal-form input[name="clientId"]')->attr('value'));
         self::assertSame([$this->karel->id()], $crawler->filter('input[name="contactPersonIds[]"][checked]')->each(static fn ($input): string => (string) $input->attr('value')));
@@ -86,10 +86,10 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
     public function testAPersonIsAddedToTheClientFromTheNewDialog(): void
     {
-        $values = $this->client->request('GET', '/sales/deals/new?client='.$this->company->id())->filter('#deal-form')->form()->getPhpValues();
+        $values = $this->client->request('GET', '/deals/new?client='.$this->company->id())->filter('#deal-form')->form()->getPhpValues();
 
         // A refused person stays in the open "Add a person", with the message at its field, and nothing is stored.
-        $crawler = $this->client->request('POST', '/sales/deals/new', ['title' => 'Roof audit', 'personMode' => 'new', 'personName' => '', 'personEmail' => 'not-an-address'] + $values);
+        $crawler = $this->client->request('POST', '/deals/new', ['title' => 'Roof audit', 'personMode' => 'new', 'personName' => '', 'personEmail' => 'not-an-address'] + $values);
         self::assertResponseStatusCodeSame(422);
         self::assertCount(1, $crawler->filter('details[data-deal-add-person][open]'));
         self::assertSelectorTextContains('#deal-form', 'Fill in this field.');
@@ -99,7 +99,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
         self::assertCount(1, $crawler->filter('[data-deal-client]'), 'The client stays fixed.');
         self::assertCount(0, $this->em()->getRepository(Deal::class)->findAll());
 
-        $this->client->request('POST', '/sales/deals/new', ['title' => 'Roof audit', 'contactPersonIds' => [$this->petra->id()], 'personMode' => 'new', 'personName' => 'Eva Example', 'personEmail' => 'eva@example.com', 'personPosition' => 'Buyer'] + $values);
+        $this->client->request('POST', '/deals/new', ['title' => 'Roof audit', 'contactPersonIds' => [$this->petra->id()], 'personMode' => 'new', 'personName' => 'Eva Example', 'personEmail' => 'eva@example.com', 'personPosition' => 'Buyer'] + $values);
         self::assertResponseRedirects();
         $deal = $this->deal('Roof audit');
         $eva = $this->personOf($this->company, 'Eva Example');
@@ -111,7 +111,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
     {
         $deal = $this->newDeal('Roof audit', [0]);
 
-        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id().'/edit', server: [self::DIALOG => '1']);
+        $crawler = $this->client->request('GET', '/deals/'.$deal->id().'/edit', server: [self::DIALOG => '1']);
         self::assertResponseIsSuccessful();
         self::assertSame($this->company->id(), $crawler->filter('#deal-form input[name="clientId"]')->attr('value'));
         self::assertSame('Alpha Example s.r.o.', $crawler->filter('#client')->attr('value'));
@@ -120,14 +120,14 @@ final class DealClientDialogTest extends SalesScreenTestCase
         // Another client and a person of the address book added to it, in one go; the persons of the old client go.
         $values = $crawler->filter('#deal-form')->form()->getPhpValues();
         unset($values['contactPersonIds']);
-        $this->client->request('POST', '/sales/deals/'.$deal->id().'/edit', ['clientId' => $this->beta->id(), 'personMode' => 'existing', 'personId' => $this->jana->id(), 'personPosition' => 'Director'] + $values);
-        self::assertResponseRedirects('/sales/deals/'.$deal->id());
+        $this->client->request('POST', '/deals/'.$deal->id().'/edit', ['clientId' => $this->beta->id(), 'personMode' => 'existing', 'personId' => $this->jana->id(), 'personPosition' => 'Director'] + $values);
+        self::assertResponseRedirects('/deals/'.$deal->id());
         self::assertSame($this->beta->id(), $this->deal('Roof audit')->clientPartyId());
         self::assertSame([$this->jana->id()], $this->contacts($deal));
         self::assertSame('Director', $this->personOf($this->beta, 'Jana Example')->position);
 
         // An emptied client is refused at its field.
-        $this->client->request('POST', '/sales/deals/'.$deal->id().'/edit', ['clientId' => '', 'clientQuery' => 'Bet'] + $values);
+        $this->client->request('POST', '/deals/'.$deal->id().'/edit', ['clientId' => '', 'clientQuery' => 'Bet'] + $values);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('#deal-form', 'Choose a contact of the address book.');
         self::assertSame($this->beta->id(), $this->deal('Roof audit')->clientPartyId());
@@ -140,7 +140,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
         $this->actAsOwner();
         self::getContainer()->get(DealLinkWrites::class)->add(new AddDealLinkInput($repair->id(), $audit->id()));
 
-        $crawler = $this->client->request('GET', '/sales/deals/'.$repair->id().'/edit', server: [self::DIALOG => '1']);
+        $crawler = $this->client->request('GET', '/deals/'.$repair->id().'/edit', server: [self::DIALOG => '1']);
         self::assertSelectorTextContains('[data-deal-client]', 'Alpha Example s.r.o.');
         self::assertSame('/contacts/'.$this->company->id(), $crawler->filter('[data-deal-client] a[data-deal-client-link]')->attr('href'), 'The client is read-only text, its name a link to the contact.');
         self::assertSelectorTextContains('[data-deal-client-linked]', 'Remove the links to other deals to change the client');
@@ -148,7 +148,7 @@ final class DealClientDialogTest extends SalesScreenTestCase
 
         // A client sent anyway is ignored, and the rest is saved.
         $values = $crawler->filter('#deal-form')->form()->getPhpValues();
-        $this->client->request('POST', '/sales/deals/'.$repair->id().'/edit', ['title' => 'Gutter repair, phase 2', 'clientId' => $this->beta->id()] + $values);
+        $this->client->request('POST', '/deals/'.$repair->id().'/edit', ['title' => 'Gutter repair, phase 2', 'clientId' => $this->beta->id()] + $values);
         self::assertResponseRedirects();
         $kept = $this->deal('Gutter repair, phase 2');
         self::assertSame($this->company->id(), $kept->clientPartyId());

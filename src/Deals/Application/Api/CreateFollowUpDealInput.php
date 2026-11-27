@@ -17,11 +17,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * client that follows from the one before.
  */
 #[Operation(
-    name: 'sales.deals.create_follow_up',
+    name: 'deals.create_follow_up',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/follow-ups',
+    path: '/api/v1/deals/{dealId}/follow-ups',
     tool: 'foresi_create_follow_up_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Create a follow-up deal',
     description: 'Opens a new deal for the same client and contact persons that follows from this one, such as a monthly service after a one-off audit. The lines named are copied as they are on this deal; the others are left out. It starts at the first stage and is owned by the caller unless others are named.',
     status: 201,

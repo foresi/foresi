@@ -18,7 +18,7 @@ use Foresi\Shared\Contract\Mcp\ToolRefusal;
 use Foresi\Shared\Contract\Mcp\ToolSchema;
 
 /**
- * One deal, as GET /api/v1/sales/deals/{dealId} writes it.
+ * One deal, as GET /api/v1/deals/{dealId} writes it.
  */
 final readonly class GetDealTool implements ReadTool, StaffOnlyTool
 {
@@ -38,7 +38,7 @@ final readonly class GetDealTool implements ReadTool, StaffOnlyTool
 
     public function scope(): string
     {
-        return 'sales:read';
+        return 'deals:read';
     }
 
     public function description(): string

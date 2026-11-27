@@ -118,7 +118,7 @@ Every action of the screens is an operation with an idempotency key ([ADR 0032](
 | `inbox.actions.create_task` | Creates a task from the item (Projects; also needs `tasks:write`) |
 | `inbox.actions.log_time` | Logs time from the item (Projects; also needs `time_entries:write`) |
 | `inbox.actions.add_to_budget` | Adds hours to a project's budget from the item (Projects; also needs `projects:write`) |
-| `inbox.actions.create_deal` | Opens a deal from a matched item (Sales; also needs `sales:write`) |
+| `inbox.actions.create_deal` | Opens a deal from a matched item (Sales; also needs `deals:write`) |
 | `inbox.actions.log_activity` | Logs an activity from the item (Activities; also needs `activities:write`) |
 
 An action needs `inbox:read` and the scope of its operation, not `inbox:write`. `inbox.items.get` lists the actions that apply to the item and that the token may run under `available_actions`, each with its operation, tool, label, input schema and the values to start from (`prefill`, and `choices` for a field to pick from).

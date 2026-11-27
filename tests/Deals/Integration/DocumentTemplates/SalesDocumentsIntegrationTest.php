@@ -97,7 +97,7 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         $this->em()->persist(new TemplateVersion($template, 1, '<h1>NDA about {{ deal.title }} with {{ client.name }}</h1>', new PageSettings(), new \DateTimeImmutable()));
         $this->em()->flush();
 
-        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id());
+        $crawler = $this->client->request('GET', '/deals/'.$deal->id());
         self::assertResponseIsSuccessful();
         $action = $crawler->filter('[data-deal-action="new-document"]');
         self::assertCount(1, $action);
@@ -108,7 +108,7 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
         // The documents are a tab of their own, loaded only when it is chosen.
         self::assertCount(0, $crawler->filter('turbo-frame#deal-section-documents'));
         self::assertCount(1, $crawler->filter('[data-more-actions-menu] [data-deal-action="new-document"]'));
-        $crawler = $this->client->request('GET', '/sales/deals/'.$deal->id().'?tab=documents');
+        $crawler = $this->client->request('GET', '/deals/'.$deal->id().'?tab=documents');
         self::assertResponseIsSuccessful();
         self::assertSame(['Documents'], $crawler->filter('[data-deal-tabs] nav a[aria-current="page"]')->each(static fn (Crawler $tab): string => trim($tab->text())));
         $section = $crawler->filter('[data-deal-section="documents"] turbo-frame#deal-section-documents');
@@ -132,7 +132,7 @@ final class SalesDocumentsIntegrationTest extends SalesScreenTestCase
 
         // The document shows the deal as a link to its page, and the deal's section lists the document.
         $crawler = $this->client->request('GET', '/documents/'.$document->id());
-        self::assertCount(1, $crawler->filter('[data-document-links] a[href="/sales/deals/'.$deal->id().'"]'));
+        self::assertCount(1, $crawler->filter('[data-document-links] a[href="/deals/'.$deal->id().'"]'));
         $this->client->request('GET', '/documents/for/deal/'.$deal->id(), server: ['HTTP_TURBO_FRAME' => 'deal-section-documents']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('turbo-frame#deal-section-documents [data-record-documents]', 'NDA with Alpha Example');

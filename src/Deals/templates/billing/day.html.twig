@@ -8,7 +8,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = 'deals.billing.day.title'|trans %}
-{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_sales_deals')}, {label: deal.title, href: path('app_sales_deal', {id: deal.id})}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
 {% set dialog_description = 'deals.billing.day.description'|trans({deal: deal.title, entry: label}) %}

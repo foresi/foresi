@@ -57,7 +57,7 @@ final readonly class ReceivedDocumentCosts implements MarginCostSource
             array_map(static fn (LineView $line): CostLine => new CostLine($line->key, $line->text, $line->baseCzk), $document->effectiveLines()),
             $document->isTrashed(),
             trim(($document->evidenceNumber() ?? $document->supplierNumber()).' '.$name),
-            $this->urls->generate('app_purchasing_document', ['id' => $document->id()], UrlGeneratorInterface::ABSOLUTE_PATH),
+            $this->urls->generate('app_received_document', ['id' => $document->id()], UrlGeneratorInterface::ABSOLUTE_PATH),
         );
     }
 

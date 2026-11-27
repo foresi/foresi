@@ -267,26 +267,26 @@ final class DocumentsGuardsTest extends DocumentsTestCase
     public function eachStepIsRecordedOnce(): void
     {
         $document = $this->draft();
-        self::assertCount(1, $this->eventData('documents.document.created'));
+        self::assertCount(1, $this->eventData('document-templates.document.created'));
         $signer = $this->signer($document, 'Jana Example', 1);
         $this->documents()->generate(new GenerateDocumentInput($document->id()));
 
         $sent = [];
         foreach ([1, 2] as $time) {
             $this->documents()->markSent(new MarkDocumentSentInput($document->id()));
-            $sent[$time] = \count($this->eventData('documents.document.sent_for_signature'));
+            $sent[$time] = \count($this->eventData('document-templates.document.sent_for_signature'));
         }
         self::assertSame([1 => 1, 2 => 1], $sent);
 
         $this->documents()->cancel(new CancelDocumentInput($document->id()));
         $this->documents()->generateAgain(new GenerateDocumentAgainInput($document->id()));
-        self::assertCount(2, $this->eventData('documents.document.created'));
+        self::assertCount(2, $this->eventData('document-templates.document.created'));
 
         $again = $this->draft();
         $this->documents()->generate(new GenerateDocumentInput($again->id()));
         $other = $this->signer($again, 'Petr Example', 1);
         $this->documents()->markSigned(new MarkSignerSignedInput($again->id(), $other->id()));
-        self::assertCount(2, $this->eventData('documents.document.sent_for_signature'));
+        self::assertCount(2, $this->eventData('document-templates.document.sent_for_signature'));
         self::assertSame($signer->documentId(), $document->id());
     }
 

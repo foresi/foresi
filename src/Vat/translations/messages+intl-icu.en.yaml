@@ -59,7 +59,7 @@ vat:
       invoicing:
         issued_vat: issued invoices
         recurring_vat: recurring invoices
-      purchasing:
+      received-documents:
         received_vat: received documents
       cash-flow:
         vat_payments: bank payments

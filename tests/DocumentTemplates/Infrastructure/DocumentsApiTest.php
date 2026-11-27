@@ -324,7 +324,7 @@ final class DocumentsApiTest extends ApiTestCase
         $this->send('POST', '/api/v1/documents/'.$documentId.'/signers/'.$signerId.'/mark-signed', null, idempotencyKey: $key);
         self::assertResponseIsSuccessful();
         self::assertSame($first, $this->json());
-        self::assertCount(1, $this->events('documents.signer.signed'));
+        self::assertCount(1, $this->events('document-templates.signer.signed'));
 
         [$documentId, $signerId] = $this->readyDocumentWithASigner();
         $arguments = ['document_id' => $documentId, 'signer_id' => $signerId, 'idempotency_key' => Id::generate()];
@@ -332,7 +332,7 @@ final class DocumentsApiTest extends ApiTestCase
         $twice = $this->tool($this->writer, 'foresi_mark_document_signer_signed', $arguments);
         self::assertFalse($once['isError'] ?? false);
         self::assertEquals($this->in($once, 'structuredContent', 'data'), $this->in($twice, 'structuredContent', 'data'));
-        self::assertCount(2, $this->events('documents.signer.signed'));
+        self::assertCount(2, $this->events('document-templates.signer.signed'));
     }
 
     public function testACancelledDocumentGoesToTheTrashAndBackOverRestAndMcp(): void
@@ -365,8 +365,8 @@ final class DocumentsApiTest extends ApiTestCase
         $this->call('foresi_trash_document', ['document_id' => $documentId]);
         $this->get('/api/v1/documents', ['trashed' => 'true']);
         self::assertSame([$documentId], $this->ids());
-        self::assertCount(2, $this->events('documents.document.trashed'));
-        self::assertCount(1, $this->events('documents.document.restored'));
+        self::assertCount(2, $this->events('document-templates.document.trashed'));
+        self::assertCount(1, $this->events('document-templates.document.restored'));
     }
 
     /**

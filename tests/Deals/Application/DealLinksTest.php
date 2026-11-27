@@ -51,8 +51,8 @@ final class DealLinksTest extends SalesTestCase
         $before = $this->reads()->deal($audit->id());
         self::assertSame([[$followUp->id(), false]], array_map(static fn (DealLinkView $view): array => [$view->other->id(), $view->outgoing], $before->links));
         self::assertCount(3, $before->lines, 'The deal before keeps its lines.');
-        self::assertSame(['deal_id' => $followUp->id(), 'status' => 'open', 'stage_id' => $this->stages['proposal']->id()], $this->events('sales.deal.created')[1]);
-        self::assertSame(['deal_id' => $audit->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], array_reverse($this->events('sales.deal.updated'))[0]);
+        self::assertSame(['deal_id' => $followUp->id(), 'status' => 'open', 'stage_id' => $this->stages['proposal']->id()], $this->events('deals.deal.created')[1]);
+        self::assertSame(['deal_id' => $audit->id(), 'status' => 'open', 'stage_id' => $this->stages['inquiry']->id(), 'custom_fields' => []], array_reverse($this->events('deals.deal.updated'))[0]);
 
         // A deal of another client is never linked.
         $other = $this->deal('Gutter audit', $this->company('Beta Example a.s.'));
@@ -90,7 +90,7 @@ final class DealLinksTest extends SalesTestCase
         self::assertSame($maintenance->id(), $link->fromDealId());
         self::assertSame($audit->id(), $link->toDealId());
         // Each deal of the pair changed.
-        self::assertSame([$maintenance->id(), $audit->id()], array_column(\array_slice($this->events('sales.deal.updated'), -2), 'deal_id'));
+        self::assertSame([$maintenance->id(), $audit->id()], array_column(\array_slice($this->events('deals.deal.updated'), -2), 'deal_id'));
 
         $refused = $this->assertRefused('link_duplicate', fn (): DealLink => $this->links()->add(new AddDealLinkInput($maintenance->id(), $audit->id())));
         self::assertSame(409, $refused->kind()->status());
@@ -100,7 +100,7 @@ final class DealLinksTest extends SalesTestCase
 
         $this->links()->remove(new RemoveDealLinkInput($audit->id(), $link->id()));
         self::assertSame([], $this->store()->linksOf($audit->id()));
-        self::assertSame([$audit->id(), $maintenance->id()], array_column(\array_slice($this->events('sales.deal.updated'), -2), 'deal_id'));
+        self::assertSame([$audit->id(), $maintenance->id()], array_column(\array_slice($this->events('deals.deal.updated'), -2), 'deal_id'));
         $this->assertRefused('not_found', fn (): Deal => $this->links()->remove(new RemoveDealLinkInput($audit->id(), $link->id())));
         // Linked again once it was removed.
         $this->links()->add(new AddDealLinkInput($audit->id(), $maintenance->id()));

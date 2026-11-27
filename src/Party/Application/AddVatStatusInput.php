@@ -20,7 +20,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     method: 'POST',
     path: '/api/v1/firm/vat-statuses',
     tool: 'foresi_add_firm_vat_status',
-    scope: 'contacts:write',
+    scope: 'firm:write',
     title: 'Add a VAT status of the firm',
     description: 'Adds a VAT status of the firm that holds from valid_from until the next one begins, such as {"status": "registered", "period_length": "month", "valid_from": "2026-11-12"}. '
         .'The status is registered (a VAT payer), not_registered or identified_person; a registered payer needs period_length month or quarter, and no other status takes one. '

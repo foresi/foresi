@@ -15,8 +15,8 @@ use Doctrine\ORM\Mapping as ORM;
  * the link stays and the document shows it as unavailable.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_document_link')]
-#[ORM\Index(name: 'idx_documents_document_link_target', columns: ['kind', 'target_id'])]
+#[ORM\Table(name: 'document_link')]
+#[ORM\Index(name: 'idx_document_link_target', columns: ['kind', 'target_id'])]
 class DocumentLink
 {
     public const int MAX_KIND = 40;

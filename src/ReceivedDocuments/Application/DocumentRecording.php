@@ -27,8 +27,8 @@ use Psr\Clock\ClockInterface;
  * the next evidence number of the series, made with the standard format
  * when there is none yet; the number counts in the year of the received
  * date. Its supplier becomes a supplier of the firm. Recording a draft records
- * purchasing.received_document.recorded; saving a recorded document again
- * records purchasing.received_document.changed with what "edited".
+ * received-documents.received_document.recorded; saving a recorded document again
+ * records received-documents.received_document.changed with what "edited".
  */
 final readonly class DocumentRecording
 {

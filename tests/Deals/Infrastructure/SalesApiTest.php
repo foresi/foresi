@@ -25,7 +25,7 @@ use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
  * Sales over REST and MCP: every write declared once with #[Operation], the
- * reads under sales:read, an idempotent win, and a guest refused on both
+ * reads under deals:read, an idempotent win, and a guest refused on both
  * surfaces.
  */
 final class SalesApiTest extends ApiTestCase
@@ -37,7 +37,7 @@ final class SalesApiTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->writer = $this->issued([ApiScope::from('sales:write')]);
+        $this->writer = $this->issued([ApiScope::from('deals:write')]);
         $this->petra = $this->flushed(function (): string {
             $client = $this->em()->find(Party::class, $this->customerId);
             self::assertInstanceOf(Party::class, $client);
@@ -52,137 +52,137 @@ final class SalesApiTest extends ApiTestCase
 
     public function testStagesAndLostReasonsAreKeptOverRest(): void
     {
-        $inquiry = $this->created('/api/v1/sales/stages', ['name' => 'Inquiry', 'key' => 'inquiry']);
-        $proposal = $this->created('/api/v1/sales/stages', ['name' => 'Proposal']);
+        $inquiry = $this->created('/api/v1/deal-stages', ['name' => 'Inquiry', 'key' => 'inquiry']);
+        $proposal = $this->created('/api/v1/deal-stages', ['name' => 'Proposal']);
         self::assertSame([null, 'Proposal', 1, false], [$this->at('data', 'key'), $this->at('data', 'name'), $this->at('data', 'position'), $this->at('data', 'archived')]);
 
-        $this->send('PATCH', '/api/v1/sales/stages/'.$proposal, ['name' => 'Offer']);
+        $this->send('PATCH', '/api/v1/deal-stages/'.$proposal, ['name' => 'Offer']);
         self::assertSame('Offer', $this->at('data', 'name'));
-        $this->send('POST', '/api/v1/sales/stages/reorder', ['stage_ids' => [$proposal, $inquiry]]);
+        $this->send('POST', '/api/v1/deal-stages/reorder', ['stage_ids' => [$proposal, $inquiry]]);
         self::assertResponseIsSuccessful();
         $items = $this->at('data', 'items');
         self::assertIsArray($items);
         self::assertSame([$proposal, $inquiry], array_column($items, 'id'));
-        $this->send('POST', '/api/v1/sales/stages/'.$inquiry.'/archive');
+        $this->send('POST', '/api/v1/deal-stages/'.$inquiry.'/archive');
         self::assertTrue($this->at('data', 'archived'));
-        $this->get('/api/v1/sales/stages', [], $this->writer);
+        $this->get('/api/v1/deal-stages', [], $this->writer);
         self::assertSame([$proposal], $this->ids());
-        $this->get('/api/v1/sales/stages', ['include_archived' => 'true'], $this->writer);
+        $this->get('/api/v1/deal-stages', ['include_archived' => 'true'], $this->writer);
         self::assertSame([$proposal, $inquiry], $this->ids());
 
-        $price = $this->created('/api/v1/sales/lost-reasons', ['name' => 'Price', 'key' => 'price']);
-        $this->send('PATCH', '/api/v1/sales/lost-reasons/'.$price, ['name' => 'Too expensive']);
+        $price = $this->created('/api/v1/lost-reasons', ['name' => 'Price', 'key' => 'price']);
+        $this->send('PATCH', '/api/v1/lost-reasons/'.$price, ['name' => 'Too expensive']);
         self::assertSame(['price', 'Too expensive'], [$this->at('data', 'key'), $this->at('data', 'name')]);
-        $this->send('POST', '/api/v1/sales/lost-reasons/'.$price.'/archive');
+        $this->send('POST', '/api/v1/lost-reasons/'.$price.'/archive');
         self::assertTrue($this->at('data', 'archived'));
-        $this->get('/api/v1/sales/lost-reasons', [], $this->writer);
+        $this->get('/api/v1/lost-reasons', [], $this->writer);
         self::assertSame([], $this->ids());
-        $this->get('/api/v1/sales/lost-reasons', ['include_archived' => '1'], $this->writer);
+        $this->get('/api/v1/lost-reasons', ['include_archived' => '1'], $this->writer);
         self::assertSame([$price], $this->ids());
     }
 
     public function testADealGoesThroughItsLifeOverRest(): void
     {
-        $inquiry = $this->created('/api/v1/sales/stages', ['name' => 'Inquiry']);
-        $proposal = $this->created('/api/v1/sales/stages', ['name' => 'Proposal']);
-        $price = $this->created('/api/v1/sales/lost-reasons', ['name' => 'Price']);
+        $inquiry = $this->created('/api/v1/deal-stages', ['name' => 'Inquiry']);
+        $proposal = $this->created('/api/v1/deal-stages', ['name' => 'Proposal']);
+        $price = $this->created('/api/v1/lost-reasons', ['name' => 'Price']);
 
-        $id = $this->created('/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'contact_person_ids' => [$this->petra]]);
-        self::assertResponseHeaderSame('Location', '/api/v1/sales/deals/'.$id);
+        $id = $this->created('/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'contact_person_ids' => [$this->petra]]);
+        self::assertResponseHeaderSame('Location', '/api/v1/deals/'.$id);
         self::assertSame(['open', $inquiry, 'Inquiry'], [$this->at('data', 'status'), $this->at('data', 'stage', 'id'), $this->at('data', 'stage', 'name')]);
         self::assertSame(['id' => $this->customerId, 'name' => 'Example Customer a.s.'], $this->at('data', 'client'));
         self::assertSame([['id' => $this->petra, 'name' => 'Petra Example']], $this->at('data', 'contacts'));
         self::assertSame($this->user->id(), $this->at('data', 'owner_user_id'));
         self::assertSame(['one_off' => [], 'monthly' => [], 'approximate' => false, 'hourly' => []], $this->at('data', 'value'));
 
-        $this->send('PATCH', '/api/v1/sales/deals/'.$id, ['title' => 'Roof audit 2026', 'description' => 'Two buildings.']);
+        $this->send('PATCH', '/api/v1/deals/'.$id, ['title' => 'Roof audit 2026', 'description' => 'Two buildings.']);
         self::assertSame(['Roof audit 2026', 'Two buildings.'], [$this->at('data', 'title'), $this->at('data', 'description')]);
 
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/lines', ['name' => 'Audit', 'unit' => 'piece', 'quantity' => '2', 'unit_price' => '12000.00', 'currency' => 'CZK']);
+        $this->send('POST', '/api/v1/deals/'.$id.'/lines', ['name' => 'Audit', 'unit' => 'piece', 'quantity' => '2', 'unit_price' => '12000.00', 'currency' => 'CZK']);
         self::assertResponseStatusCodeSame(201);
         $audit = $this->at('data', 'lines', 0, 'id');
         self::assertIsString($audit);
         self::assertSame(['2.000', ['amount_minor' => 1200000, 'currency' => 'CZK'], 'one_off'], [$this->at('data', 'lines', 0, 'quantity'), $this->at('data', 'lines', 0, 'unit_price'), $this->at('data', 'lines', 0, 'billing_kind')]);
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/lines', ['name' => 'Maintenance', 'unit' => 'month', 'unit_price' => '5000.00', 'currency' => 'CZK', 'billing_kind' => 'recurring', 'recurrence_unit' => 'month', 'interval' => 1]);
+        $this->send('POST', '/api/v1/deals/'.$id.'/lines', ['name' => 'Maintenance', 'unit' => 'month', 'unit_price' => '5000.00', 'currency' => 'CZK', 'billing_kind' => 'recurring', 'recurrence_unit' => 'month', 'interval' => 1]);
         $maintenance = $this->at('data', 'lines', 1, 'id');
         self::assertIsString($maintenance);
         self::assertSame(['one_off' => [['amount_minor' => 2400000, 'currency' => 'CZK']], 'monthly' => [['amount_minor' => 500000, 'currency' => 'CZK']], 'approximate' => false, 'hourly' => []], $this->at('data', 'value'));
 
-        $this->send('PATCH', '/api/v1/sales/deals/'.$id.'/lines/'.$maintenance, ['recurrence_unit' => 'week']);
+        $this->send('PATCH', '/api/v1/deals/'.$id.'/lines/'.$maintenance, ['recurrence_unit' => 'week']);
         self::assertTrue($this->at('data', 'value', 'approximate'));
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/lines/reorder', ['line_ids' => [$maintenance, $audit]]);
+        $this->send('POST', '/api/v1/deals/'.$id.'/lines/reorder', ['line_ids' => [$maintenance, $audit]]);
         $lines = $this->at('data', 'lines');
         self::assertIsArray($lines);
         self::assertSame([$maintenance, $audit], array_column($lines, 'id'));
-        $this->send('DELETE', '/api/v1/sales/deals/'.$id.'/lines/'.$maintenance);
+        $this->send('DELETE', '/api/v1/deals/'.$id.'/lines/'.$maintenance);
         $lines = $this->at('data', 'lines');
         self::assertIsArray($lines);
         self::assertSame([$audit], array_column($lines, 'id'));
 
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/stage', ['stage_id' => $proposal]);
+        $this->send('POST', '/api/v1/deals/'.$id.'/stage', ['stage_id' => $proposal]);
         self::assertSame($proposal, $this->at('data', 'stage', 'id'));
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/lose', ['lost_reason_id' => $price, 'note' => 'Went with a cheaper offer.']);
+        $this->send('POST', '/api/v1/deals/'.$id.'/lose', ['lost_reason_id' => $price, 'note' => 'Went with a cheaper offer.']);
         self::assertSame(['lost', $price, 'Went with a cheaper offer.'], [$this->at('data', 'status'), $this->at('data', 'lost_reason', 'id'), $this->at('data', 'lost_note')]);
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/reopen');
+        $this->send('POST', '/api/v1/deals/'.$id.'/reopen');
         self::assertSame(['open', null, null], [$this->at('data', 'status'), $this->at('data', 'lost_reason'), $this->at('data', 'lost_note')]);
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/win');
+        $this->send('POST', '/api/v1/deals/'.$id.'/win');
         self::assertSame('won', $this->at('data', 'status'));
         self::assertIsString($this->at('data', 'won_at'));
 
-        $followUp = $this->created('/api/v1/sales/deals/'.$id.'/follow-ups', ['title' => 'Roof repair', 'line_ids' => [$audit]]);
+        $followUp = $this->created('/api/v1/deals/'.$id.'/follow-ups', ['title' => 'Roof repair', 'line_ids' => [$audit]]);
         self::assertSame([['id' => $this->petra, 'name' => 'Petra Example']], $this->at('data', 'contacts'));
         self::assertSame(['Audit'], array_column($this->listAt('data', 'lines'), 'name'));
         self::assertSame([['type' => 'follows_from', 'direction' => 'outgoing', 'deal' => ['id' => $id, 'title' => 'Roof audit 2026', 'status' => 'won']]], array_map(static fn (array $link): array => array_diff_key($link, ['id' => true]), $this->listAt('data', 'links')));
 
-        $third = $this->created('/api/v1/sales/deals', ['title' => 'Facade', 'client_party_id' => $this->customerId]);
-        $this->send('POST', '/api/v1/sales/deals/'.$third.'/links', ['to_deal_id' => $id]);
+        $third = $this->created('/api/v1/deals', ['title' => 'Facade', 'client_party_id' => $this->customerId]);
+        $this->send('POST', '/api/v1/deals/'.$third.'/links', ['to_deal_id' => $id]);
         self::assertResponseStatusCodeSame(201);
         $link = $this->at('data', 'links', 0, 'id');
         self::assertIsString($link);
-        $this->send('POST', '/api/v1/sales/deals/'.$third.'/links', ['to_deal_id' => $id]);
+        $this->send('POST', '/api/v1/deals/'.$third.'/links', ['to_deal_id' => $id]);
         $this->assertProblem(409, 'link_duplicate');
-        $this->send('DELETE', '/api/v1/sales/deals/'.$third.'/links/'.$link);
+        $this->send('DELETE', '/api/v1/deals/'.$third.'/links/'.$link);
         self::assertSame([], $this->at('data', 'links'));
 
-        $this->send('POST', '/api/v1/sales/deals/'.$third.'/trash');
+        $this->send('POST', '/api/v1/deals/'.$third.'/trash');
         self::assertTrue($this->at('data', 'trashed'));
-        $this->get('/api/v1/sales/deals', [], $this->writer);
+        $this->get('/api/v1/deals', [], $this->writer);
         self::assertSame([$followUp, $id], $this->ids());
-        $this->send('POST', '/api/v1/sales/deals/'.$third.'/restore');
+        $this->send('POST', '/api/v1/deals/'.$third.'/restore');
         self::assertFalse($this->at('data', 'trashed'));
 
-        $this->get('/api/v1/sales/deals', ['status' => 'won'], $this->writer);
+        $this->get('/api/v1/deals', ['status' => 'won'], $this->writer);
         self::assertSame([$id], $this->ids());
         self::assertSame(['Roof audit 2026', 'won', $proposal], [$this->at('data', 0, 'title'), $this->at('data', 0, 'status'), $this->at('data', 0, 'stage', 'id')]);
-        $this->get('/api/v1/sales/deals', ['stage_id' => $inquiry, 'client_party_id' => $this->customerId, 'owner_user_id' => $this->user->id()], $this->writer);
+        $this->get('/api/v1/deals', ['stage_id' => $inquiry, 'client_party_id' => $this->customerId, 'owner_user_id' => $this->user->id()], $this->writer);
         self::assertSame([$third, $followUp], $this->ids());
-        $this->get('/api/v1/sales/deals', ['q' => 'ROOF'], $this->writer);
+        $this->get('/api/v1/deals', ['q' => 'ROOF'], $this->writer);
         self::assertSame([$followUp, $id], $this->ids());
-        $this->get('/api/v1/sales/deals', ['status' => 'pending'], $this->writer);
+        $this->get('/api/v1/deals', ['status' => 'pending'], $this->writer);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'status', 'reason' => 'status_unknown']);
-        $this->get('/api/v1/sales/deals/'.$id, [], $this->writer);
+        $this->get('/api/v1/deals/'.$id, [], $this->writer);
         self::assertSame([['type' => 'follows_from', 'direction' => 'incoming', 'deal' => ['id' => $followUp, 'title' => 'Roof repair', 'status' => 'open']]], array_map(static fn (array $link): array => array_diff_key($link, ['id' => true]), $this->listAt('data', 'links')));
-        $this->get('/api/v1/sales/deals/0192f000-0000-7000-8000-000000000000', [], $this->writer);
+        $this->get('/api/v1/deals/0192f000-0000-7000-8000-000000000000', [], $this->writer);
         $this->assertProblem(404, 'not_found');
     }
 
     public function testTheSameWinTwiceWinsOnce(): void
     {
-        $this->created('/api/v1/sales/stages', ['name' => 'Inquiry']);
-        $id = $this->created('/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
+        $this->created('/api/v1/deal-stages', ['name' => 'Inquiry']);
+        $id = $this->created('/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
 
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/win', key: 'win-roof-audit');
+        $this->send('POST', '/api/v1/deals/'.$id.'/win', key: 'win-roof-audit');
         self::assertResponseIsSuccessful();
         $first = $this->json();
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/win', key: 'win-roof-audit');
+        $this->send('POST', '/api/v1/deals/'.$id.'/win', key: 'win-roof-audit');
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Idempotent-Replayed', 'true');
         self::assertSame($first, $this->json());
 
-        $won = $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['sales.deal.won']);
+        $won = $this->em()->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['deals.deal.won']);
         self::assertTrue(1 === $won || '1' === $won, 'One deal is won once.');
         // Another key is another win, refused now the deal is won.
-        $this->send('POST', '/api/v1/sales/deals/'.$id.'/win', key: 'win-roof-audit-again');
+        $this->send('POST', '/api/v1/deals/'.$id.'/win', key: 'win-roof-audit-again');
         $this->assertProblem(409, 'deal_not_open');
     }
 
@@ -202,7 +202,7 @@ final class SalesApiTest extends ApiTestCase
         self::assertIsArray($items);
         self::assertSame([$id], array_column($items, 'id'));
         $one = $this->tool('foresi_get_deal', ['id' => $id]);
-        $this->get('/api/v1/sales/deals/'.$id, [], $this->writer);
+        $this->get('/api/v1/deals/'.$id, [], $this->writer);
         self::assertSame($this->json()['data'], $this->in($one, 'structuredContent', 'data'));
         $stages = $this->tool('foresi_list_deal_stages', []);
         self::assertSame(['Inquiry'], array_column($this->arrayIn($stages, 'structuredContent', 'data', 'stages'), 'name'));
@@ -214,7 +214,7 @@ final class SalesApiTest extends ApiTestCase
         $hourly = $this->tool('foresi_get_deal', ['id' => $id]);
         self::assertSame([['rate' => ['amount_minor' => 120000, 'currency' => 'CZK'], 'expected_hours' => null, 'expected_amount' => null]], $this->in($hourly, 'structuredContent', 'data', 'value', 'hourly'));
         self::assertSame([], $this->in($hourly, 'structuredContent', 'data', 'value', 'monthly'));
-        $this->get('/api/v1/sales/deals/'.$id, [], $this->writer);
+        $this->get('/api/v1/deals/'.$id, [], $this->writer);
         self::assertSame($this->json()['data'], $this->in($hourly, 'structuredContent', 'data'));
 
         $refused = $this->tool('foresi_get_deal', ['id' => '0192f000-0000-7000-8000-000000000000']);
@@ -224,16 +224,16 @@ final class SalesApiTest extends ApiTestCase
     public function testScopesDecideWhatATokenDoes(): void
     {
         // The default token reads everything and writes nothing.
-        $this->get('/api/v1/sales/deals', [], $this->secret);
+        $this->get('/api/v1/deals', [], $this->secret);
         self::assertResponseIsSuccessful();
-        $this->send('POST', '/api/v1/sales/stages', ['name' => 'Inquiry'], $this->secret);
+        $this->send('POST', '/api/v1/deal-stages', ['name' => 'Inquiry'], $this->secret);
         $this->assertProblem(403, 'insufficient_scope');
-        $reader = $this->issued([ApiScope::from('sales:read')]);
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId], $reader);
+        $reader = $this->issued([ApiScope::from('deals:read')]);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId], $reader);
         $this->assertProblem(403, 'insufficient_scope');
 
         $contacts = $this->issued([ApiScope::from('contacts:read')]);
-        foreach (['/api/v1/sales/deals', '/api/v1/sales/stages', '/api/v1/sales/lost-reasons'] as $path) {
+        foreach (['/api/v1/deals', '/api/v1/deal-stages', '/api/v1/lost-reasons'] as $path) {
             $this->get($path, [], $contacts);
             $this->assertProblem(403, 'insufficient_scope');
         }
@@ -245,7 +245,7 @@ final class SalesApiTest extends ApiTestCase
         $guest = $this->fixtures->user('guest@example.com');
         $this->fixtures->join($guest, Role::Guest);
         try {
-            self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($guest->id(), 'Guest', [ApiScope::from('sales:write')]);
+            self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($guest->id(), 'Guest', [ApiScope::from('deals:write')]);
             self::fail('A guest was given a token.');
         } catch (ApiTokenRefused) {
         }

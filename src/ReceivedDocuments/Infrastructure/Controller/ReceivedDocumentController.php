@@ -83,7 +83,7 @@ final class ReceivedDocumentController extends AbstractController
     ) {
     }
 
-    #[Route('/purchasing/{id}', name: 'app_purchasing_document', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    #[Route('/received-documents/{id}', name: 'app_received_document', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function show(string $id, Request $request): Response
     {
         $detail = $this->details->of($id);
@@ -115,7 +115,7 @@ final class ReceivedDocumentController extends AbstractController
         return $this->page($this->details->of($id), $values, $errors, $version, Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
-    #[Route('/purchasing/{id}/trash', name: 'app_purchasing_trash', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
+    #[Route('/received-documents/{id}/trash', name: 'app_received_document_trash', requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function trash(string $id, Request $request): Response
     {
         $detail = $this->details->of($id);
@@ -148,7 +148,7 @@ final class ReceivedDocumentController extends AbstractController
         ], new Response(status: null === $error ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/purchasing/{id}/restore', name: 'app_purchasing_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/restore', name: 'app_received_document_restore', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function restore(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -162,7 +162,7 @@ final class ReceivedDocumentController extends AbstractController
         return $this->toDocument($id);
     }
 
-    #[Route('/purchasing/{id}/delete', name: 'app_purchasing_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/delete', name: 'app_received_document_delete', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function delete(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -181,7 +181,7 @@ final class ReceivedDocumentController extends AbstractController
     /**
      * The reading of the document's file alone, in its frame, which the page reloads while the file is read.
      */
-    #[Route('/purchasing/{id}/reading', name: 'app_purchasing_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
+    #[Route('/received-documents/{id}/reading', name: 'app_received_document_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function reading(string $id): Response
     {
         [$document, $reading] = $this->details->reading($id);
@@ -193,7 +193,7 @@ final class ReceivedDocumentController extends AbstractController
         ]);
     }
 
-    #[Route('/purchasing/{id}/read-again', name: 'app_purchasing_read_again', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/read-again', name: 'app_received_document_read_again', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function readAgain(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -210,7 +210,7 @@ final class ReceivedDocumentController extends AbstractController
     /**
      * Takes the values of the reading a person checked, at the version of the page they saw.
      */
-    #[Route('/purchasing/{id}/accept-reading', name: 'app_purchasing_accept_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    #[Route('/received-documents/{id}/accept-reading', name: 'app_received_document_accept_reading', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
     public function acceptReading(string $id, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -316,7 +316,7 @@ final class ReceivedDocumentController extends AbstractController
 
     private function toDocument(string $id): RedirectResponse
     {
-        return $this->redirectToRoute('app_purchasing_document', ['id' => $id], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_received_document', ['id' => $id], Response::HTTP_SEE_OTHER);
     }
 
     /**

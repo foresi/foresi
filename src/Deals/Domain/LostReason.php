@@ -19,8 +19,8 @@ use Foresi\Shared\Domain\Id;
  * archived reason stays on the deals lost for it and is not offered any more.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_lost_reason')]
-#[ORM\UniqueConstraint(name: 'uniq_sales_lost_reason_key', columns: ['reason_key'])]
+#[ORM\Table(name: 'deal_lost_reason')]
+#[ORM\UniqueConstraint(name: 'uniq_deal_lost_reason_key', columns: ['reason_key'])]
 class LostReason implements Audited
 {
     public const int MAX_NAME = 80;

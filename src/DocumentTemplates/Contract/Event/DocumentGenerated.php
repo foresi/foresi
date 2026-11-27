@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A draft was generated: its values, PDF and template version are frozen. No names or e-mails (ADR 0030).
  */
-#[DomainEvent('documents.document.generated', version: 1)]
+#[DomainEvent('document-templates.document.generated', version: 1)]
 final readonly class DocumentGenerated implements DomainEventPayload
 {
     /**

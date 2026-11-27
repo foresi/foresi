@@ -17,7 +17,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * A planned invoice of a deal changed: its amount, day or text. The payload is thin (ADR 0030):
  * read the deal for its billing plan. The subject is the deal. Since module API 1.8.
  */
-#[DomainEvent('sales.billing_entry.updated', version: 1)]
+#[DomainEvent('deals.billing_entry.updated', version: 1)]
 final readonly class BillingEntryUpdated implements DomainEventPayload
 {
     /**

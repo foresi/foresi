@@ -381,7 +381,7 @@ final class PlannedCostSharesTest extends KernelTestCase
         $this->writes->setSupplierDefault($this->cloudHost, Recipient::client($this->clientB), '2026-12');
         // 23:30 UTC on 30 November is 00:30 on 1 December in Prague.
         $document = self::DOC_1;
-        $this->source->documents[$document] = new CostDocument($document, $this->cloudHost, new \DateTimeImmutable('2026-11-30 23:30:00', new \DateTimeZone('UTC')), [$this->line('line-1', 1_000)], false, 'EN-1 Cloud Host', '/purchasing/d1');
+        $this->source->documents[$document] = new CostDocument($document, $this->cloudHost, new \DateTimeImmutable('2026-11-30 23:30:00', new \DateTimeZone('UTC')), [$this->line('line-1', 1_000)], false, 'EN-1 Cloud Host', '/received-documents/d1');
 
         $this->recalculate($document);
 
@@ -459,7 +459,7 @@ final class PlannedCostSharesTest extends KernelTestCase
     public function testATrashedDocumentOrAMappedLineFillsNoFixedAmount(): void
     {
         $this->writes->setPlanned(self::CLOUD_HOST_ITEM, $this->fixed600(), '2026-05');
-        $this->source->documents[self::DOC_1] = new CostDocument(self::DOC_1, $this->cloudHost, new \DateTimeImmutable('2026-05-01', new \DateTimeZone('Europe/Prague')), [$this->line('line-1', 67_200)], true, 'EN-d1', '/purchasing/d1');
+        $this->source->documents[self::DOC_1] = new CostDocument(self::DOC_1, $this->cloudHost, new \DateTimeImmutable('2026-05-01', new \DateTimeZone('Europe/Prague')), [$this->line('line-1', 67_200)], true, 'EN-d1', '/received-documents/d1');
         $mapped = $this->document(self::DOC_2, $this->cloudHost, '2026-05-02', [$this->line('line-1', 67_200), $this->line('line-2', 0)]);
         $last = $this->document(self::DOC_3, $this->cloudHost, '2026-05-20', [$this->line('line-1', 15_750)]);
         foreach ([self::DOC_1, $mapped, $last] as $id) {
@@ -495,7 +495,7 @@ final class PlannedCostSharesTest extends KernelTestCase
             new AllocationShare(Recipient::own(), rest: true),
             new AllocationShare(Recipient::client($this->clientA), amountCzk: Money::ofMinor(60_000, Currency::CZK)),
         ]);
-        $document = new CostDocument(self::DOC_1, $this->cloudHost, new \DateTimeImmutable('2026-05-03'), [$this->line('line-1', 67_200)], false, 'EN-d1', '/purchasing/d1');
+        $document = new CostDocument(self::DOC_1, $this->cloudHost, new \DateTimeImmutable('2026-05-03'), [$this->line('line-1', 67_200)], false, 'EN-d1', '/received-documents/d1');
 
         $parts = new OccurrenceFill(new ShareSplitter())->split($allocation, [[$document, $document->lines]]);
 
@@ -515,7 +515,7 @@ final class PlannedCostSharesTest extends KernelTestCase
      */
     private function document(string $id, ?string $supplierId, string $basis, array $lines): string
     {
-        $this->source->documents[$id] = new CostDocument($id, $supplierId, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), $lines, false, 'EN-'.$id, '/purchasing/'.$id);
+        $this->source->documents[$id] = new CostDocument($id, $supplierId, new \DateTimeImmutable($basis, new \DateTimeZone('Europe/Prague')), $lines, false, 'EN-'.$id, '/received-documents/'.$id);
 
         return $id;
     }

@@ -17,7 +17,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * A deal came back from the trash. The payload is thin (ADR 0030): read the
  * deal itself for its title, client and lines.
  */
-#[DomainEvent('sales.deal.restored', version: 1)]
+#[DomainEvent('deals.deal.restored', version: 1)]
 final readonly class DealRestored implements DomainEventPayload
 {
     /**

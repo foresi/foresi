@@ -37,7 +37,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         $document = $this->document($id);
         self::assertSame(['Hosting', 'Domain'], array_map(static fn (\Foresi\ReceivedDocuments\Domain\ReceivedDocumentLine $line): string => $line->text(), $document->lines()));
         self::assertSame($version + 1, $document->version());
-        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'lines']]], $this->events('purchasing.received_document.changed'));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'lines']]], $this->events('received-documents.received_document.changed'));
     }
 
     public function testEditingARecordedDocumentWithChangedLinesRecordsOnlyTheEditedEvent(): void
@@ -47,7 +47,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         $this->editing()->edit($id, $this->input(lines: [$this->line('Hosting', 70_000), $this->line('Domain', 30_000)]));
 
         self::assertSame(['Hosting', 'Domain'], array_map(static fn (\Foresi\ReceivedDocuments\Domain\ReceivedDocumentLine $line): string => $line->text(), $this->document($id)->lines()));
-        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('purchasing.received_document.changed'));
+        self::assertSame([['subject' => $id, 'data' => ['received_document_id' => $id, 'what' => 'edited']]], $this->events('received-documents.received_document.changed'));
     }
 
     public function testTheSameLinesAgainRecordNothing(): void
@@ -60,7 +60,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         $this->lines()->set($id, [$this->line('Hosting', 100_000, $kept)]);
 
         self::assertSame($version, $this->document($id)->version());
-        self::assertCount(1, $this->events('purchasing.received_document.changed'));
+        self::assertCount(1, $this->events('received-documents.received_document.changed'));
     }
 
     public function testADraftTakesLinesAndRecordsNoEvent(): void
@@ -71,7 +71,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         $this->lines()->set($id, [$this->line('Hosting', 100_000)]);
 
         self::assertCount(1, $this->document($id)->lines());
-        self::assertSame([], $this->events('purchasing.received_document.changed'));
+        self::assertSame([], $this->events('received-documents.received_document.changed'));
     }
 
     public function testAnEmptyListRemovesTheLines(): void
@@ -82,7 +82,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
         $this->lines()->set($id, []);
 
         self::assertSame([], $this->document($id)->lines());
-        self::assertCount(2, $this->events('purchasing.received_document.changed'));
+        self::assertCount(2, $this->events('received-documents.received_document.changed'));
     }
 
     public function testLinesThatDoNotAddUpAreRefused(): void
@@ -91,7 +91,7 @@ final class SetReceivedDocumentLinesTest extends PurchasingTestCase
 
         $this->assertRefused(ReceivedDocumentRefused::LINES_DO_NOT_ADD_UP, fn (): ReceivedDocument => $this->lines()->set($id, [$this->line('Hosting', 99_999)]));
         self::assertSame([], $this->document($id)->lines());
-        self::assertSame([], $this->events('purchasing.received_document.changed'));
+        self::assertSame([], $this->events('received-documents.received_document.changed'));
     }
 
     public function testAStaleVersionTheLockAndTheTrashAreRefused(): void

@@ -32,7 +32,7 @@ final readonly class SalesNavigation implements NavigationItemProvider
         if (!$this->access->mayWork()) {
             return;
         }
-        yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.deals', 'trending-up', DealController::ROUTE, weight: 10, commandLabelKey: 'deals.deal.new', commandRoute: DealController::NEW_ROUTE, routePrefixes: ['app_sales_deal'], section: CoreNavigationAreas::SECTION_SELLING);
-        yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.deals_settings', 'trending-up', SalesSettingsController::ROUTE, weight: 50, routePrefixes: ['app_sales_settings', 'app_sales_stage', 'app_sales_lost_reason'], section: CoreNavigationAreas::SECTION_FIRM);
+        yield new NavigationItem(CoreNavigationAreas::SALES, 'nav.item.deals', 'trending-up', DealController::ROUTE, weight: 10, commandLabelKey: 'deals.deal.new', commandRoute: DealController::NEW_ROUTE, routePrefixes: ['app_deal'], section: CoreNavigationAreas::SECTION_SELLING);
+        yield new NavigationItem(NavigationArea::SETTINGS, 'nav.item.deals_settings', 'trending-up', SalesSettingsController::ROUTE, weight: 50, routePrefixes: ['app_deal_settings', 'app_deal_stage_', 'app_deal_lost_reason'], section: CoreNavigationAreas::SECTION_FIRM);
     }
 }

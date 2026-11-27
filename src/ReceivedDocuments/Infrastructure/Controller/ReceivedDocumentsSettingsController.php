@@ -235,7 +235,7 @@ final class ReceivedDocumentsSettingsController extends AbstractController
 
         return [
             'id' => $mail->messageId,
-            'href' => null === $mail->firstDraftId ? null : $this->generateUrl('app_purchasing_document', ['id' => $mail->firstDraftId]),
+            'href' => null === $mail->firstDraftId ? null : $this->generateUrl('app_received_document', ['id' => $mail->firstDraftId]),
             'label' => $received,
             'cells' => [
                 'received' => $received,

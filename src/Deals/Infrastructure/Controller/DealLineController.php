@@ -56,7 +56,7 @@ final class DealLineController extends AbstractController
     ) {
     }
 
-    #[Route('/sales/deals/{id}/lines/new', name: 'app_sales_deal_line_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/lines/new', name: 'app_deal_line_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function new(string $id, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -85,7 +85,7 @@ final class DealLineController extends AbstractController
         return $this->form($detail, null, $values, $errors);
     }
 
-    #[Route('/sales/deals/{id}/lines/{lineId}/edit', name: 'app_sales_deal_line_edit', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/lines/{lineId}/edit', name: 'app_deal_line_edit', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function edit(string $id, string $lineId, Request $request): Response
     {
         $detail = $this->detail($id);
@@ -111,7 +111,7 @@ final class DealLineController extends AbstractController
         return $this->form($detail, $line, $values, $errors);
     }
 
-    #[Route('/sales/deals/{id}/lines/{lineId}/remove', name: 'app_sales_deal_line_remove', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/lines/{lineId}/remove', name: 'app_deal_line_remove', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['POST'])]
     public function remove(string $id, string $lineId, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -123,7 +123,7 @@ final class DealLineController extends AbstractController
     /**
      * Moves a line one place up or down: the up and down buttons a list without dragging keeps.
      */
-    #[Route('/sales/deals/{id}/lines/{lineId}/move', name: 'app_sales_deal_line_move', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/lines/{lineId}/move', name: 'app_deal_line_move', requirements: ['id' => Requirement::UUID, 'lineId' => Requirement::UUID], methods: ['POST'])]
     public function move(string $id, string $lineId, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -151,8 +151,8 @@ final class DealLineController extends AbstractController
             'deal' => $detail->deal,
             'line' => $line,
             'action' => $line instanceof DealLine
-                ? $this->generateUrl('app_sales_deal_line_edit', ['id' => $detail->deal->id(), 'lineId' => $line->id()])
-                : $this->generateUrl('app_sales_deal_line_new', ['id' => $detail->deal->id()]),
+                ? $this->generateUrl('app_deal_line_edit', ['id' => $detail->deal->id(), 'lineId' => $line->id()])
+                : $this->generateUrl('app_deal_line_new', ['id' => $detail->deal->id()]),
             'values' => $values,
             'errors' => $errors,
             'products' => $line instanceof DealLine ? [] : $this->productOptions(),

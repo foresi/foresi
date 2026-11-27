@@ -18,8 +18,8 @@ use Foresi\Shared\Domain\Id;
  * saving the template makes the next version.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'documents_template_version')]
-#[ORM\UniqueConstraint(name: 'uniq_documents_template_version_number', columns: ['template_id', 'number'])]
+#[ORM\Table(name: 'document_template_version')]
+#[ORM\UniqueConstraint(name: 'uniq_document_template_version_number', columns: ['template_id', 'number'])]
 class TemplateVersion implements Audited
 {
     /** The longest body, in bytes. */

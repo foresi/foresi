@@ -172,7 +172,7 @@ final class AppShellTest extends WebTestCase
         }
         self::assertSame(['selling', 'billing'], $sales->filter('[data-nav-section]')->each(static fn ($s): string => (string) $s->attr('data-nav-section')));
         self::assertSame(['Selling', 'Billing'], $sales->filter('[data-nav-section] > h3')->each(static fn ($h): string => trim($h->text())));
-        self::assertSame(['/sales/deals', '/documents', '/catalog/products'], $sales->filter('[data-nav-section="selling"] a')->each(static fn ($a): string => (string) $a->attr('href')));
+        self::assertSame(['/deals', '/documents', '/catalog/products'], $sales->filter('[data-nav-section="selling"] a')->each(static fn ($a): string => (string) $a->attr('href')));
         self::assertSame('nav-section-sales-billing', $sales->filter('[data-nav-section="billing"]')->attr('aria-labelledby'));
         self::assertCount(0, $crawler->filter('#sidebar [data-nav-area="projects"] h3'));
         self::assertNull($crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section]')->attr('aria-labelledby'));

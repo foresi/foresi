@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * nothing.
  */
 #[Operation(
-    name: 'sales.stages.archive',
+    name: 'deals.stages.archive',
     method: 'POST',
-    path: '/api/v1/sales/stages/{stageId}/archive',
+    path: '/api/v1/deal-stages/{stageId}/archive',
     tool: 'foresi_archive_deal_stage',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Archive a stage',
     description: 'Archives a stage: it is no longer offered and leaves the order. A stage that still holds open deals is refused: move them first.',
     response: 'SalesStage',

@@ -64,7 +64,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class SalesSettingsController extends AbstractController
 {
-    public const string ROUTE = 'app_sales_settings';
+    public const string ROUTE = 'app_deal_settings';
     /** The slot of the lost reasons in the page's address (ListSlot). */
     public const string REASONS = 'reasons';
     private const int MAX_SEARCH = 100;
@@ -85,7 +85,7 @@ final class SalesSettingsController extends AbstractController
     ) {
     }
 
-    #[Route('/settings/sales', name: self::ROUTE, methods: ['GET'])]
+    #[Route('/settings/deals', name: self::ROUTE, methods: ['GET'])]
     public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -108,7 +108,7 @@ final class SalesSettingsController extends AbstractController
         ]);
     }
 
-    #[Route('/settings/sales/stages/new', name: 'app_sales_stage_new', methods: ['GET', 'POST'])]
+    #[Route('/settings/deals/stages/new', name: 'app_deal_stage_new', methods: ['GET', 'POST'])]
     public function newStage(Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -116,7 +116,7 @@ final class SalesSettingsController extends AbstractController
         return $this->form($request, 'stage', null, null, ['name' => '']);
     }
 
-    #[Route('/settings/sales/stages/{id}/edit', name: 'app_sales_stage_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/settings/deals/stages/{id}/edit', name: 'app_deal_stage_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function editStage(string $id, Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -128,7 +128,7 @@ final class SalesSettingsController extends AbstractController
     /**
      * Moves a stage one place up or down among the stages not archived.
      */
-    #[Route('/settings/sales/stages/{id}/move', name: 'app_sales_stage_move', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/settings/deals/stages/{id}/move', name: 'app_deal_stage_move', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function moveStage(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
@@ -147,7 +147,7 @@ final class SalesSettingsController extends AbstractController
         return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/settings/sales/stages/{id}/archive', name: 'app_sales_stage_archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/settings/deals/stages/{id}/archive', name: 'app_deal_stage_archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archiveStage(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
@@ -158,7 +158,7 @@ final class SalesSettingsController extends AbstractController
         return $this->redirectToRoute(self::ROUTE, status: Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/settings/sales/lost-reasons/new', name: 'app_sales_lost_reason_new', methods: ['GET', 'POST'])]
+    #[Route('/settings/deals/lost-reasons/new', name: 'app_deal_lost_reason_new', methods: ['GET', 'POST'])]
     public function newReason(Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -166,7 +166,7 @@ final class SalesSettingsController extends AbstractController
         return $this->form($request, 'reason', null, null, ['name' => '']);
     }
 
-    #[Route('/settings/sales/lost-reasons/{id}/edit', name: 'app_sales_lost_reason_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/settings/deals/lost-reasons/{id}/edit', name: 'app_deal_lost_reason_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function editReason(string $id, Request $request): Response
     {
         $this->denyUnlessStaff();
@@ -175,7 +175,7 @@ final class SalesSettingsController extends AbstractController
         return $this->form($request, 'reason', $reason, $reason->name(), ['name' => $this->screen->reason($reason)]);
     }
 
-    #[Route('/settings/sales/lost-reasons/{id}/archive', name: 'app_sales_lost_reason_archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/settings/deals/lost-reasons/{id}/archive', name: 'app_deal_lost_reason_archive', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
     public function archiveReason(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessStaff();
@@ -214,7 +214,7 @@ final class SalesSettingsController extends AbstractController
                 $errors = ['name' => $this->screen->refusal($refused)];
             }
         }
-        $routes = 'stage' === $kind ? ['app_sales_stage_edit', 'app_sales_stage_new'] : ['app_sales_lost_reason_edit', 'app_sales_lost_reason_new'];
+        $routes = 'stage' === $kind ? ['app_deal_stage_edit', 'app_deal_stage_new'] : ['app_deal_lost_reason_edit', 'app_deal_lost_reason_new'];
 
         return $this->render('@Deals/settings/record.html.twig', [
             'kind' => $kind,
@@ -349,10 +349,10 @@ final class SalesSettingsController extends AbstractController
      */
     private function stageRow(Stage $stage, array $open, WorkingState $working): array
     {
-        $edit = $this->generateUrl('app_sales_stage_edit', ['id' => $stage->id()]);
+        $edit = $this->generateUrl('app_deal_stage_edit', ['id' => $stage->id()]);
         $name = $this->screen->stage($stage);
         $index = array_search($stage, $open, true);
-        $move = $this->generateUrl('app_sales_stage_move', ['id' => $stage->id()]);
+        $move = $this->generateUrl('app_deal_stage_move', ['id' => $stage->id()]);
         $actions = [];
         if (false !== $index) {
             $actions[] = ['label' => $this->screen->trans('deals.settings.action.rename'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true];
@@ -362,7 +362,7 @@ final class SalesSettingsController extends AbstractController
             if ($index < \count($open) - 1) {
                 $actions[] = ['label' => $this->screen->trans('deals.settings.action.move_down'), 'href' => $move, 'icon' => 'arrow-down', 'method' => 'POST', 'fields' => ['direction' => 'down']];
             }
-            $actions[] = $this->archiveAction($this->generateUrl('app_sales_stage_archive', ['id' => $stage->id()]), $name);
+            $actions[] = $this->archiveAction($this->generateUrl('app_deal_stage_archive', ['id' => $stage->id()]), $name);
         }
 
         return $this->row($stage, $name, $edit, $actions, $working);
@@ -373,11 +373,11 @@ final class SalesSettingsController extends AbstractController
      */
     private function reasonRow(LostReason $reason, WorkingState $working): array
     {
-        $edit = $this->generateUrl('app_sales_lost_reason_edit', ['id' => $reason->id()]);
+        $edit = $this->generateUrl('app_deal_lost_reason_edit', ['id' => $reason->id()]);
         $name = $this->screen->reason($reason);
         $actions = $reason->isArchived() ? [] : [
             ['label' => $this->screen->trans('deals.settings.action.rename'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true],
-            $this->archiveAction($this->generateUrl('app_sales_lost_reason_archive', ['id' => $reason->id()]), $name),
+            $this->archiveAction($this->generateUrl('app_deal_lost_reason_archive', ['id' => $reason->id()]), $name),
         ];
 
         return $this->row($reason, $name, $edit, $actions, $working);

@@ -28,7 +28,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  */
 final readonly class TimeReportLists implements ListDefinitionSource
 {
-    public const string KEY = 'work.time_report';
+    public const string KEY = 'timesheet.time_report';
     public const string WORKED_ON = 'worked_on';
     public const string PROJECT = 'project';
     public const string CLIENT = 'client';

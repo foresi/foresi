@@ -16,7 +16,7 @@ use Foresi\Shared\Contract\Operation\Operation;
  * there changes nothing.
  */
 #[Operation(
-    name: 'documents.restore',
+    name: 'document_templates.restore',
     method: 'POST',
     path: '/api/v1/documents/{documentId}/restore',
     tool: 'foresi_restore_document',

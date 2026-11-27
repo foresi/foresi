@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface LineProjectTime
 {
-    public const string TAG = 'foresi.sales.line_project_time';
+    public const string TAG = 'foresi.deals.line_project_time';
 
     /** The billable minutes logged on the project that the person sees, the trash left out. */
     public function billableMinutes(string $projectId): int;

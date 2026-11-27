@@ -13,6 +13,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Shared\Infrastructure\Console\RebaseMigrationsCommand;
 use Foresi\Shared\Infrastructure\Migration\GlobalMigrationHistory;
+use Foresi\Shared\Infrastructure\Migration\RenamesTables;
+use Foresi\Shared\Infrastructure\Migration\TableOwners;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Command\Command;
@@ -151,7 +153,19 @@ final class MigrationRebaseTest extends KernelTestCase
         foreach ($this->migrations() as $version) {
             $before = $this->columnsByTable($schema);
             $known = $this->definitions($schema);
-            $repository->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration()->up($schema);
+            $migration = $repository->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration();
+            $migration->up($schema);
+            if ($migration instanceof RenamesTables) {
+                // The database holds a renamed table under its new name, rows, columns and all.
+                $schema = TableOwners::renamed($schema, $migration);
+                $renamed = static fn (string $table): string => $migration->renamedTables()[$table] ?? $table;
+                $before = array_combine(array_map($renamed, array_keys($before)), $before);
+                $known = array_combine(array_map($renamed, array_keys($known)), $known);
+                $dropTables = array_map($renamed, $dropTables);
+                $dropColumns = array_map(static fn (array $drop): array => [$renamed($drop[0]), $drop[1]], $dropColumns);
+                $restoreColumns = array_map(static fn (array $restore): array => [$renamed($restore[0]), $restore[1], $restore[2]], $restoreColumns);
+                $restoreIndexes = array_map(static fn (array $restore): array => [$renamed($restore[0]), $restore[1]], $restoreIndexes);
+            }
             if (!\in_array($version, $afterBaselines, true)) {
                 continue;
             }

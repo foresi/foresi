@@ -26,7 +26,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
  * It decodes the images stored in a PDF (see PdfFiles). A code drawn with
  * vectors, as the PDF of an invoice system often has it, is not read.
  *
- * The priority is the reader order: the tag `foresi.purchasing.document_reader`
+ * The priority is the reader order: the tag `foresi.received_documents.document_reader`
  * comes from the autoconfiguration of DocumentReader, and AsTaggedItem sets the
  * priority on it without a second tag.
  */

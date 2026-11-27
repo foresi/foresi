@@ -27,7 +27,7 @@ use Foresi\Shared\Domain\Money;
  * The lines of a deal, kept in positions 0 to n-1. A line from a product
  * copies what the product says now (Foresi\Catalog\Contract\ProductSnapshot);
  * a typed line says it itself, by the catalog's rules. Each change records
- * sales.deal.updated for its deal.
+ * deals.deal.updated for its deal.
  */
 final readonly class DealLineWrites
 {

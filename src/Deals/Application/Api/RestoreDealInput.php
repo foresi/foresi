@@ -15,11 +15,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A deal brought back from the trash over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.deals.restore',
+    name: 'deals.restore',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/restore',
+    path: '/api/v1/deals/{dealId}/restore',
     tool: 'foresi_restore_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Restore a deal',
     description: 'Brings a deal back from the trash as it was. Restoring one that is not in the trash changes nothing.',
     response: 'SalesDeal',

@@ -19,8 +19,8 @@ use Foresi\Shared\Domain\Id;
  * someone renames it: it shows under its key's name in the person's language.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_stage')]
-#[ORM\UniqueConstraint(name: 'uniq_sales_stage_key', columns: ['stage_key'])]
+#[ORM\Table(name: 'deal_stage')]
+#[ORM\UniqueConstraint(name: 'uniq_deal_stage_key', columns: ['stage_key'])]
 class Stage implements Audited
 {
     public const int MAX_NAME = 80;

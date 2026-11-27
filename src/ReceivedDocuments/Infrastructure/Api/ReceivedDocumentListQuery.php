@@ -35,7 +35,7 @@ final readonly class ReceivedDocumentListQuery
         #[Assert\Range(min: 1, max: 100)]
         public int $limit = 25,
         public ?string $cursor = null,
-        // A saved view's id or system key, such as "purchasing.received.drafts" (spec D13).
+        // A saved view's id or system key, such as "received_documents.received.drafts" (spec D13).
         public ?string $view = null,
         // D4 JSON, {"conditions": [...]}, joined with the view's by AND.
         public ?string $filter = null,

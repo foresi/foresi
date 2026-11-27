@@ -14,7 +14,7 @@ use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Contract\Operation\Operation;
 
 #[Operation(
-    name: 'documents.update',
+    name: 'document_templates.update',
     method: 'PATCH',
     path: '/api/v1/documents/{documentId}',
     tool: 'foresi_update_document',

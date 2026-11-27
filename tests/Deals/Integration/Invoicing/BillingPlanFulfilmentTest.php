@@ -104,7 +104,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         $view = self::getContainer()->get(DealReads::class)->deal($deal->id())->billingPlan->entries[0];
         self::assertSame(BillingEntryView::INVOICED, $view->state);
         self::assertSame('SEO example.com – Customer', $view->document?->label);
-        self::assertSame([['entry_id' => $entry->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring', 'document_type' => 'recurring_invoice', 'document_id' => $template->id()]], $this->events('sales.billing_entry.fulfilled'));
+        self::assertSame([['entry_id' => $entry->id(), 'deal_id' => $deal->id(), 'kind' => 'recurring', 'document_type' => 'recurring_invoice', 'document_id' => $template->id()]], $this->events('deals.billing_entry.fulfilled'));
         // A document fulfils one entry.
         $other = $this->deal('More SEO');
         $this->lines()->add(new AddDealLineInput($other->id(), name: 'SEO', unitPrice: '1000.00', billingKind: 'recurring', recurrenceUnit: 'month', interval: 1));
@@ -121,7 +121,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         $listener($event);
 
         self::assertNotSame([], $this->flows(), 'The entry counts again.');
-        self::assertCount(1, $this->events('sales.billing_entry.unfulfilled'));
+        self::assertCount(1, $this->events('deals.billing_entry.unfulfilled'));
         // An ended recurring invoice is linked no more.
         $this->assertRefused('document_inactive', fn (): BillingPlanEntry => $this->plans()->link(new LinkBillingEntryInput($deal->id(), $entry->id(), 'recurring_invoice', $template->id())));
     }
@@ -143,7 +143,7 @@ final class BillingPlanFulfilmentTest extends CashFlowTestCase
         $this->plans()->unlink(new UnlinkBillingEntryInput($deal->id(), $entry->id()));
         $this->plans()->unlink(new UnlinkBillingEntryInput($deal->id(), $entry->id()));
         self::assertFalse($this->entry($deal)->isFulfilled());
-        self::assertCount(1, $this->events('sales.billing_entry.unfulfilled'), 'Unlinking twice records once.');
+        self::assertCount(1, $this->events('deals.billing_entry.unfulfilled'), 'Unlinking twice records once.');
 
         $listeners = self::getContainer()->get(EventListeners::class);
         self::assertContains(UnfulfilOnInvoiceTrashed::class, $listeners->idsFor(UnfulfilOnInvoiceTrashed::EVENT));

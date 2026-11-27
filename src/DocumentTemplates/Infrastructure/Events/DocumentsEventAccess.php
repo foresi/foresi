@@ -23,7 +23,7 @@ final readonly class DocumentsEventAccess implements EventReadAccess
 
     public function module(): string
     {
-        return 'documents';
+        return 'document-templates';
     }
 
     public function mayRead(): bool

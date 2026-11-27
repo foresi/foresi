@@ -16,9 +16,9 @@ use Foresi\Shared\Domain\Id;
  * follows from the deal before it. A pair is linked once for each type.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'sales_deal_link')]
-#[ORM\UniqueConstraint(name: 'uniq_sales_deal_link', columns: ['from_deal_id', 'to_deal_id', 'link_type'])]
-#[ORM\Index(name: 'idx_sales_deal_link_to', columns: ['to_deal_id'])]
+#[ORM\Table(name: 'deal_link')]
+#[ORM\UniqueConstraint(name: 'uniq_deal_link', columns: ['from_deal_id', 'to_deal_id', 'link_type'])]
+#[ORM\Index(name: 'idx_deal_link_to', columns: ['to_deal_id'])]
 class DealLink
 {
     #[ORM\Id]

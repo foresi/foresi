@@ -11,7 +11,7 @@ namespace Foresi\ReceivedDocuments\Application\Query;
 /**
  * One step in the history of a received document: who did what and when. A
  * change names the fields it changed by the last part of their translation key
- * under purchasing.field; a move to the trash keeps its reason.
+ * under received_documents.field; a move to the trash keeps its reason.
  */
 final readonly class ReceivedDocumentHistoryEntry
 {

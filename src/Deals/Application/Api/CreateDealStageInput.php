@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A new stage over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.stages.create',
+    name: 'deals.stages.create',
     method: 'POST',
-    path: '/api/v1/sales/stages',
+    path: '/api/v1/deal-stages',
     tool: 'foresi_create_deal_stage',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Create a stage',
     description: 'Adds a stage deals go through, at the end of the order; move it with foresi_reorder_deal_stages. Its key, when given, is a lowercase identifier that never changes.',
     status: 201,

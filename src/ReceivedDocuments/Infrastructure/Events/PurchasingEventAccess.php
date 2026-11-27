@@ -26,7 +26,7 @@ final readonly class PurchasingEventAccess implements EventReadAccess
 
     public function module(): string
     {
-        return 'purchasing';
+        return 'received-documents';
     }
 
     public function mayRead(): bool

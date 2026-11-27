@@ -41,7 +41,7 @@ final readonly class Amounts
      * The sources the estimate expects: one that is not installed is listed as
      * unavailable, so a missing module never passes for a year without income.
      */
-    public const array EXPECTED_SOURCES = ['invoicing.payments', 'purchasing.payments'];
+    public const array EXPECTED_SOURCES = ['invoicing.payments', 'received-documents.payments'];
 
     private const int FIRST_YEAR = 2000;
 

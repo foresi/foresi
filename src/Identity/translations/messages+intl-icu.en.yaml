@@ -170,6 +170,7 @@ api_tokens:
     resource_write: '{resource}: read and change'
   resource:
     contacts: Contacts
+    firm: Firm
     invoices: Invoices
     payments: Payments
     webhooks: Webhooks
@@ -179,7 +180,7 @@ api_tokens:
     profile: Your profile
     cashflow: Cash flow
     catalog: Catalog
-    sales: Sales
+    deals: Deals
     taxes: Taxes and contributions
     vat: VAT
     exchange_rates: Exchange rates

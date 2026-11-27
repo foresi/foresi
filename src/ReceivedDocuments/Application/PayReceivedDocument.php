@@ -23,7 +23,7 @@ use Psr\Clock\ClockInterface;
  * cash flow spec): one payment of an amount on a day, or "mark as paid", which
  * pays all that remains today, in the instance's zone. A payment may not be more
  * than what remains, and one recorded by mistake can be removed. The payment that leaves nothing to pay records
- * purchasing.received_document.paid. A document in the trash, a draft and a
+ * received-documents.received_document.paid. A document in the trash, a draft and a
  * document paid in full take no payment; a closed month does not stop one, as a
  * payment changes nothing the VAT reports read.
  */

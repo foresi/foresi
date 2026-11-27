@@ -20,11 +20,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * the rest stay.
  */
 #[Operation(
-    name: 'sales.deals.update',
+    name: 'deals.update',
     method: 'PATCH',
-    path: '/api/v1/sales/deals/{dealId}',
+    path: '/api/v1/deals/{dealId}',
     tool: 'foresi_update_deal',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Update a deal',
     description: 'Changes the fields given of a deal and keeps the rest: its title, description, owner, client or contact persons (the whole list, in order; an empty list removes them all). Changing the client replaces the contact persons with those given in the same call, each linked to the new client, or removes them all when none are given; an archived client is refused, and so is a deal linked to other deals until its links are removed. Its stage, status and lines change with their own tools.',
     response: 'SalesDeal',

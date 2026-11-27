@@ -46,7 +46,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ReceivedPaymentAmounts implements ActualAmountSource
 {
-    public const string KEY = 'purchasing.payments';
+    public const string KEY = 'received-documents.payments';
 
     public function __construct(
         private EntityManagerInterface $entityManager,

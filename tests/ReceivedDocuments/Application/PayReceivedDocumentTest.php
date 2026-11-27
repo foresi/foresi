@@ -45,14 +45,14 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         self::assertSame(50_000, $paid->balance->paid->minor());
         self::assertSame(71_000, $paid->balance->remaining->minor());
         self::assertFalse($paid->balance->isPaid());
-        self::assertSame([], $this->events('purchasing.received_document.paid'));
+        self::assertSame([], $this->events('received-documents.received_document.paid'));
 
         $last = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('710.00', Currency::CZK), PaymentMethod::Cash);
         $paid = $this->balances()->of($id);
         self::assertTrue($paid->balance->isPaid());
         self::assertSame('2026-11-14', $paid->balance->lastPaidOn?->format('Y-m-d'));
         self::assertCount(2, $paid->payments);
-        $events = $this->events('purchasing.received_document.paid');
+        $events = $this->events('received-documents.received_document.paid');
         self::assertCount(1, $events);
         self::assertSame($id, $events[0]['subject']);
         self::assertSame(['received_document_id' => $id, 'firm_id' => $this->firm->id(), 'payment_id' => $last->id(), 'paid_on' => '2026-11-14'], $events[0]['data']);
@@ -68,7 +68,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
 
         $this->payments()->markPaid($id, PaymentMethod::Card);
         $this->assertRefused(ReceivedDocumentRefused::PAID, fn (): ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Card));
-        self::assertCount(1, $this->events('purchasing.received_document.paid'));
+        self::assertCount(1, $this->events('received-documents.received_document.paid'));
     }
 
     public function testAPaymentRecordedByMistakeIsRemoved(): void
@@ -165,7 +165,7 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
         // Uploading a draft records nothing; recording it once does, saving it again does not.
         $draft = $this->draft();
         $this->recording()->record($draft, $this->input());
-        $events = $this->events('purchasing.received_document.recorded');
+        $events = $this->events('received-documents.received_document.recorded');
         self::assertCount(1, $events);
         $this->editing()->edit($draft, $this->input(supplierNumber: 'FV-2026-124'));
 
@@ -241,11 +241,11 @@ final class PayReceivedDocumentTest extends PurchasingTestCase
     }
 
     /**
-     * How many purchasing.received_document.recorded events the log holds.
+     * How many received-documents.received_document.recorded events the log holds.
      */
     private function recordedEvents(): int
     {
-        $count = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['purchasing.received_document.recorded']);
+        $count = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['received-documents.received_document.recorded']);
         self::assertIsNumeric($count);
 
         return (int) $count;

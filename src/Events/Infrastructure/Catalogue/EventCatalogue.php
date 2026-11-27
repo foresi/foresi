@@ -30,18 +30,6 @@ final class EventCatalogue
     private const string NAME = '/^[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/';
 
     /**
-     * A module that changed its id keeps the names of the events it published and stored, and the
-     * event access, webhook patterns and tokens that carry them, until a data migration renames
-     * them: the module id and the prefix its events still carry. The events of such a module belong
-     * to that prefix. An entry goes when its events are renamed.
-     */
-    private const array RENAMED_MODULE_PREFIXES = [
-        'received-documents' => 'purchasing',
-        'deals' => 'sales',
-        'document-templates' => 'documents',
-    ];
-
-    /**
      * @var list<array{ModuleId, string, string}>|null the module, its namespace and its directory
      */
     private ?array $sources = null;
@@ -225,8 +213,7 @@ final class EventCatalogue
             return;
         }
         $broken = false;
-        $prefix = self::RENAMED_MODULE_PREFIXES[$module->value] ?? $module->value;
-        if (!str_starts_with($event->name, $module->value.'.') && !str_starts_with($event->name, $prefix.'.')) {
+        if (!str_starts_with($event->name, $module->value.'.')) {
             $problems[] = 'prefix:'.$module->value.':'.$event->name;
             $broken = true;
         }
@@ -242,7 +229,7 @@ final class EventCatalogue
             return;
         }
         /* @var class-string<DomainEventPayload> $class */
-        $types[$key] = new EventType($event->name, $event->version, str_starts_with($event->name, $module->value.'.') ? $module : ModuleId::of($prefix), $class, $fields);
+        $types[$key] = new EventType($event->name, $event->version, $module, $class, $fields);
     }
 
     /**

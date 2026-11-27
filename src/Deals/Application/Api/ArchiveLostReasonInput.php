@@ -16,11 +16,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * nothing.
  */
 #[Operation(
-    name: 'sales.lost_reasons.archive',
+    name: 'deals.lost_reasons.archive',
     method: 'POST',
-    path: '/api/v1/sales/lost-reasons/{reasonId}/archive',
+    path: '/api/v1/lost-reasons/{reasonId}/archive',
     tool: 'foresi_archive_lost_reason',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Archive a lost reason',
     description: 'Archives a lost reason: it is no longer offered, and the deals lost for it keep it.',
     response: 'SalesLostReason',

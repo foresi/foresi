@@ -35,7 +35,7 @@ use Foresi\Shared\Domain\Money;
 /**
  * The billing plan of a won deal: its planned invoices, from its screens, the
  * API and MCP alike (ADR 0032), each change in one unit of work with its
- * sales.billing_entry event. Only a won deal not in the trash is planned; the
+ * deals.billing_entry event. Only a won deal not in the trash is planned; the
  * plan of a deal reopened stays, and counts again once it is won again.
  *
  * The one-off entries of a currency never exceed the one-off value of the deal

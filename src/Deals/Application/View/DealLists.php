@@ -26,7 +26,7 @@ use Foresi\Shared\Application\View\ViewFilter;
  */
 final class DealLists implements ListDefinitionSource
 {
-    public const string KEY = 'sales.deals';
+    public const string KEY = 'deals.deals';
     public const string STATUS = 'status';
     public const string OWNER = 'owner';
     public const string CLIENT = 'client';

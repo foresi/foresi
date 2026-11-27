@@ -7,14 +7,14 @@
 #}
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
-{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_purchasing')}, {label: 'received_documents.new'|trans}] %}
+{% set crumbs = [{label: 'nav.group.money'|trans}, {label: 'received_documents.list.title'|trans, href: path('app_received_documents')}, {label: 'received_documents.new'|trans}] %}
 {% set dialog_size = 'lg' %}
 {% set form_invalid = errors is not empty %}
 
 {% block title %}{{ 'received_documents.new'|trans }}{% endblock %}
 
 {% block dialog_body %}
-    <form method="post" id="received-document-new" action="{{ path('app_purchasing_new') }}" class="grid gap-4" novalidate data-purchasing-new-form>
+    <form method="post" id="received-document-new" action="{{ path('app_received_document_new') }}" class="grid gap-4" novalidate data-purchasing-new-form>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\ReceivedDocuments\\Infrastructure\\Controller\\ReceivedDocumentListController::TOKEN')) }}">
         {{ include('@ReceivedDocuments/_form_errors.html.twig') }}
         {{ include('@ReceivedDocuments/_fields.html.twig', {editable: true, contactDialog: false}) }}
@@ -33,7 +33,7 @@
     </twig:Ui:Card>
     <div class="max-w-4xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_purchasing')">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_received_documents')">{{ 'received_documents.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="received-document-new" name="_action" value="record" variant="primary" icon="circle-check">{{ 'received_documents.record'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>

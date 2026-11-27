@@ -126,11 +126,11 @@ final class SwitchAdjustmentTest extends TaxesTestCase
         [$income] = $this->sources();
         $logger = new RecordingLogger();
 
-        $estimate = $this->estimates([new DatedAmountSource('purchasing.payments', openFails: true), $income], $logger)->of(2027);
+        $estimate = $this->estimates([new DatedAmountSource('received-documents.payments', openFails: true), $income], $logger)->of(2027);
 
         self::assertContains(EstimateView::WARNING_SOURCES_UNAVAILABLE, $estimate->warnings, 'Only the open documents failed, and that says so too.');
         self::assertSame(121_000_00, $estimate->toDate?->switchAdjustment?->baseChange->minor(), 'Only what could be read counts, after the source that failed.');
-        self::assertContains(['error', 'purchasing.payments'], array_map(static fn (array $record): array => [$record[0], $record[1]['source'] ?? null], $logger->records));
+        self::assertContains(['error', 'received-documents.payments'], array_map(static fn (array $record): array => [$record[0], $record[1]['source'] ?? null], $logger->records));
     }
 
     public function testTheFirstYearBeforeIsReadToo(): void
@@ -155,7 +155,7 @@ final class SwitchAdjustmentTest extends TaxesTestCase
         $view = new Amounts($container->get(ProfileReads::class), [$source], $container->get(ExchangeRates::class), $container->get(InstanceClock::class), new NullLogger())
             ->openAt(new \DateTimeImmutable('2026-12-31 23:30:00', new \DateTimeZone('UTC')), $container->get(ProfileReads::class)->profile());
 
-        self::assertSame(['2026-12-31', 'Europe/Prague', ['purchasing.payments'], ['USD']], [$view->day->format('Y-m-d'), $view->day->getTimezone()->getName(), $view->unavailableSources, $view->missingRates]);
+        self::assertSame(['2026-12-31', 'Europe/Prague', ['received-documents.payments'], ['USD']], [$view->day->format('Y-m-d'), $view->day->getTimezone()->getName(), $view->unavailableSources, $view->missingRates]);
         $income = $view->totalOf(AmountKind::Income);
         self::assertSame([3_025_00, 2_500_00, 525_00, 3_025_00], [$income->gross->minor(), $income->net->minor(), $income->vat->minor(), $income->counted->minor()], '121 EUR at 25.000; not a VAT payer, so gross.');
         self::assertSame(['fx_payment_day'], $view->unverified);
@@ -173,7 +173,7 @@ final class SwitchAdjustmentTest extends TaxesTestCase
 
         return [
             new DatedAmountSource('invoicing.payments', [$paid('invoicing.payments', AmountKind::Income, 500_000)], ['2026-12-31' => [$open('invoicing.payments', AmountKind::Income, 121_000, 100_000)]]),
-            new DatedAmountSource('purchasing.payments', [$paid('purchasing.payments', AmountKind::Cost, 100_000)], ['2026-12-31' => [$open('purchasing.payments', AmountKind::Cost, 24_200, 20_000)]]),
+            new DatedAmountSource('received-documents.payments', [$paid('received-documents.payments', AmountKind::Cost, 100_000)], ['2026-12-31' => [$open('received-documents.payments', AmountKind::Cost, 24_200, 20_000)]]),
         ];
     }
 

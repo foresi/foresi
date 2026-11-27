@@ -37,7 +37,7 @@ final class DealActivitiesPiecesTest extends SalesTestCase
         self::assertTrue($target->canSee('deal', $deal->id()));
         self::assertTrue($target->canLink('deal', $deal->id()));
         self::assertSame('Roof audit', $target->label('deal', $deal->id()));
-        self::assertSame('/sales/deals/'.$deal->id(), $target->url('deal', $deal->id()));
+        self::assertSame('/deals/'.$deal->id(), $target->url('deal', $deal->id()));
         self::assertContains('deal', self::getContainer()->get(ActivityTargets::class)->kinds());
 
         // A member sees the deals too.
@@ -74,11 +74,11 @@ final class DealActivitiesPiecesTest extends SalesTestCase
     {
         self::getContainer()->get(LocaleSwitcher::class)->setLocale('en');
         $section = self::getContainer()->get(DealActivitiesSection::class);
-        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [], 'return' => '/sales/deals/'.self::UNKNOWN];
+        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [], 'return' => '/deals/'.self::UNKNOWN];
 
         $items = $this->items($section->items(SalesSlots::DEAL_SECTIONS, $context));
         self::assertCount(1, $items);
-        self::assertSame(['key' => 'activities', 'label' => 'Activities', 'href' => '/activities/for/deal/'.self::UNKNOWN.'?return=/sales/deals/'.self::UNKNOWN], $items[0]->data);
+        self::assertSame(['key' => 'activities', 'label' => 'Activities', 'href' => '/activities/for/deal/'.self::UNKNOWN.'?return=/deals/'.self::UNKNOWN], $items[0]->data);
         self::assertSame(10, $items[0]->weight);
 
         // Without a page to come back to, the timeline comes back to itself.
@@ -92,14 +92,14 @@ final class DealActivitiesPiecesTest extends SalesTestCase
     {
         self::getContainer()->get(LocaleSwitcher::class)->setLocale('en');
         $actions = self::getContainer()->get(DealActivityActions::class);
-        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [$this->petra->id(), 3, $this->karel->id()], 'return' => '/sales/deals/'.self::UNKNOWN];
+        $context = ['dealId' => self::UNKNOWN, 'clientId' => $this->client->id(), 'contactPersonIds' => [$this->petra->id(), 3, $this->karel->id()], 'return' => '/deals/'.self::UNKNOWN];
         $links = '&links%5B0%5D=contact:'.$this->client->id().'&links%5B1%5D=contact:'.$this->petra->id().'&links%5B2%5D=contact:'.$this->karel->id();
 
         $items = $this->items($actions->items(SalesSlots::DEAL_ACTIONS, $context));
 
         self::assertCount(2, $items);
-        self::assertSame(['key' => 'log-activity', 'label' => 'Log activity', 'icon' => 'square-pen', 'dialog' => true, 'href' => '/activities/new?mode=log&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/sales/deals/'.self::UNKNOWN, 'prominent' => true], $items[0]->data);
-        self::assertSame(['key' => 'plan-activity', 'label' => 'Plan activity', 'icon' => 'calendar', 'dialog' => true, 'href' => '/activities/new?mode=plan&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/sales/deals/'.self::UNKNOWN], $items[1]->data);
+        self::assertSame(['key' => 'log-activity', 'label' => 'Log activity', 'icon' => 'square-pen', 'dialog' => true, 'href' => '/activities/new?mode=log&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/deals/'.self::UNKNOWN, 'prominent' => true], $items[0]->data);
+        self::assertSame(['key' => 'plan-activity', 'label' => 'Plan activity', 'icon' => 'calendar', 'dialog' => true, 'href' => '/activities/new?mode=plan&link_kind=deal&link_id='.self::UNKNOWN.$links.'&return=/deals/'.self::UNKNOWN], $items[1]->data);
         self::assertSame([10, 11], [$items[0]->weight, $items[1]->weight]);
 
         // No contact persons, nor a page to come back to: the deal and the client alone.

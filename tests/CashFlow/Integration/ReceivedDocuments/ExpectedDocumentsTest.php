@@ -97,7 +97,7 @@ final class ExpectedDocumentsTest extends WebTestCase
         self::assertStringContainsString('Overdue', $late->text());
         self::assertStringContainsString('12,100', $late->text());
         // The document opens in place, in the same sheet.
-        self::assertSame('/purchasing/'.$overdue, $late->filter('[data-in-place] a[data-cash-flow-item-link]')->attr('href'));
+        self::assertSame('/received-documents/'.$overdue, $late->filter('[data-in-place] a[data-cash-flow-item-link]')->attr('href'));
         self::assertSame('/cash-flow/expected/received_document/'.$overdue, $late->filter('a[data-cash-flow-item-expected][data-dialog]')->attr('href'));
         self::assertSame('Set expected day', $late->filter('a[data-cash-flow-item-expected]')->text());
         self::assertCount(0, $late->filter('[data-due]'), 'Counted on its due day, it says no more.');

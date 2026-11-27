@@ -51,8 +51,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
  */
 final class BillingPlanController extends AbstractController
 {
-    public const string ENTRY_ROUTE = 'app_sales_billing_entry';
-    public const string DAY_ROUTE = 'app_sales_billing_entry_day';
+    public const string ENTRY_ROUTE = 'app_deal_billing_entry';
+    public const string DAY_ROUTE = 'app_deal_billing_entry_day';
     /** The plan field's value for an amount; a recurring line is "line:<id>". */
     private const string AMOUNT = 'amount';
     private const string LINE = 'line:';
@@ -70,7 +70,7 @@ final class BillingPlanController extends AbstractController
     /**
      * Where a planned invoice is read, such as from the cash-flow forecast: on its deal.
      */
-    #[Route('/sales/billing-plan/{id}', name: self::ENTRY_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
+    #[Route('/deals/billing-plan/{id}', name: self::ENTRY_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET'])]
     public function show(string $id): RedirectResponse
     {
         $entry = $this->entryOrNotFound($id);
@@ -79,7 +79,7 @@ final class BillingPlanController extends AbstractController
         return $this->redirectToRoute(DealController::DEAL_ROUTE, ['id' => $entry->dealId()]);
     }
 
-    #[Route('/sales/deals/{id}/billing-plan/new', name: 'app_sales_billing_entry_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/billing-plan/new', name: 'app_deal_billing_entry_new', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function new(string $id, Request $request): Response
     {
         $detail = $this->wonDetail($id);
@@ -108,7 +108,7 @@ final class BillingPlanController extends AbstractController
         return $this->form($detail, null, $values, $errors, $plans);
     }
 
-    #[Route('/sales/deals/{id}/billing-plan/{entryId}/edit', name: 'app_sales_billing_entry_edit', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/billing-plan/{entryId}/edit', name: 'app_deal_billing_entry_edit', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function edit(string $id, string $entryId, Request $request): Response
     {
         $detail = $this->wonDetail($id);
@@ -153,7 +153,7 @@ final class BillingPlanController extends AbstractController
     /**
      * The day alone, as the forecast sets it for an item without one: Save moves it into its period, Clear takes the day away.
      */
-    #[Route('/sales/billing-plan/{id}/day', name: self::DAY_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/billing-plan/{id}/day', name: self::DAY_ROUTE, requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function day(string $id, Request $request): Response
     {
         $entry = $this->entryOrNotFound($id);
@@ -195,7 +195,7 @@ final class BillingPlanController extends AbstractController
     /**
      * Links an invoice or recurring invoice of the client that exists already, such as one issued before the plan.
      */
-    #[Route('/sales/deals/{id}/billing-plan/{entryId}/link', name: 'app_sales_billing_entry_link', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['GET', 'POST'])]
+    #[Route('/deals/{id}/billing-plan/{entryId}/link', name: 'app_deal_billing_entry_link', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['GET', 'POST'])]
     public function link(string $id, string $entryId, Request $request): Response
     {
         $detail = $this->wonDetail($id);
@@ -224,7 +224,7 @@ final class BillingPlanController extends AbstractController
         return $this->render('@Deals/billing/link.html.twig', [
             'deal' => $detail->deal,
             'label' => $this->label($view),
-            'action' => $this->generateUrl('app_sales_billing_entry_link', ['id' => $id, 'entryId' => $entryId]),
+            'action' => $this->generateUrl('app_deal_billing_entry_link', ['id' => $id, 'entryId' => $entryId]),
             'type' => $type->value,
             'options' => $options,
             'values' => $values,
@@ -232,7 +232,7 @@ final class BillingPlanController extends AbstractController
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
-    #[Route('/sales/deals/{id}/billing-plan/{entryId}/unlink', name: 'app_sales_billing_entry_unlink', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/billing-plan/{entryId}/unlink', name: 'app_deal_billing_entry_unlink', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['POST'])]
     public function unlink(string $id, string $entryId, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -241,7 +241,7 @@ final class BillingPlanController extends AbstractController
         return $this->back($id);
     }
 
-    #[Route('/sales/deals/{id}/billing-plan/{entryId}/delete', name: 'app_sales_billing_entry_delete', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['POST'])]
+    #[Route('/deals/{id}/billing-plan/{entryId}/delete', name: 'app_deal_billing_entry_delete', requirements: ['id' => Requirement::UUID, 'entryId' => Requirement::UUID], methods: ['POST'])]
     public function delete(string $id, string $entryId, Request $request): RedirectResponse
     {
         $this->checkToken($request);
@@ -267,8 +267,8 @@ final class BillingPlanController extends AbstractController
             'recurring' => BillingEntryKind::Recurring === $view?->entry->kind(),
             'label' => $view instanceof BillingEntryView ? $this->label($view) : null,
             'action' => $view instanceof BillingEntryView
-                ? $this->generateUrl('app_sales_billing_entry_edit', ['id' => $deal->id(), 'entryId' => $view->entry->id()])
-                : $this->generateUrl('app_sales_billing_entry_new', ['id' => $deal->id()]),
+                ? $this->generateUrl('app_deal_billing_entry_edit', ['id' => $deal->id(), 'entryId' => $view->entry->id()])
+                : $this->generateUrl('app_deal_billing_entry_new', ['id' => $deal->id()]),
             'values' => $values,
             'errors' => $errors,
             'plans' => $plans,

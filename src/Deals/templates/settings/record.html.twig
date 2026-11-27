@@ -7,7 +7,7 @@
 {% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
 
 {% set heading = (record ? 'deals.settings.rename_' ~ kind : 'deals.settings.new_' ~ kind)|trans %}
-{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'deals.settings.title'|trans, href: path('app_sales_settings')}, {label: heading}] %}
+{% set crumbs = [{label: 'nav.group.settings'|trans}, {label: 'deals.settings.title'|trans, href: path('app_deal_settings')}, {label: heading}] %}
 {% set form_invalid = errors is not empty %}
 {% set dialog_size = 'sm' %}
 
@@ -30,7 +30,7 @@
     <twig:Ui:Card :title="heading" icon="trending-up" class="max-w-2xl">{{ body }}</twig:Ui:Card>
     <div class="max-w-2xl">
         <twig:Ui:ActionBar>
-            <twig:Ui:Button :href="path('app_sales_settings')">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button :href="path('app_deal_settings')">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
             <twig:Ui:Button type="submit" form="sales-record-form" variant="primary">{{ 'deals.save'|trans }}</twig:Ui:Button>
         </twig:Ui:ActionBar>
     </div>

@@ -19,7 +19,7 @@ use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 #[AutoconfigureTag(self::TAG)]
 interface BillingDocumentSource
 {
-    public const string TAG = 'foresi.sales.billing_document_source';
+    public const string TAG = 'foresi.deals.billing_document_source';
 
     /**
      * An invoice or recurring invoice, in the trash or ended too; null for an unknown id.

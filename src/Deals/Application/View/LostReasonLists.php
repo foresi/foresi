@@ -23,7 +23,7 @@ use Foresi\Shared\Application\View\ListFields;
  */
 final class LostReasonLists implements ListDefinitionSource
 {
-    public const string KEY = 'sales.lost_reasons';
+    public const string KEY = 'deals.lost_reasons';
     public const string NAME = 'name';
     public const string ARCHIVED = 'archived';
 

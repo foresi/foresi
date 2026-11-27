@@ -19,11 +19,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * the fields given change, the rest stay; expected_on sent as null clears the day.
  */
 #[Operation(
-    name: 'sales.billing_entries.update',
+    name: 'deals.billing_entries.update',
     method: 'PATCH',
-    path: '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}',
+    path: '/api/v1/deals/{dealId}/billing-plan/{entryId}',
     tool: 'foresi_update_billing_entry',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Update a planned invoice of a won deal',
     description: 'Changes the fields given of a planned invoice and keeps the rest. Setting expected_on moves it from "No date" into its period of the cash-flow forecast; null takes the day away again. The amount, given as amount or percent, changes a one_off entry only; a recurring entry takes its amount from its line.',
     response: 'SalesDeal',

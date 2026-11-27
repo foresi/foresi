@@ -138,7 +138,7 @@ final class BillingPlanFlowsTest extends CashFlowTestCase
     public function testATokenWithoutSalesReadsNoDetails(): void
     {
         self::assertTrue($this->source()->mayReadDetails());
-        self::assertTrue($this->source(tokens: new FixedToken([ApiScope::from('sales:read')]))->mayReadDetails());
+        self::assertTrue($this->source(tokens: new FixedToken([ApiScope::from('deals:read')]))->mayReadDetails());
         self::assertFalse($this->source(tokens: new FixedToken([ApiScope::from('cashflow:read')]))->mayReadDetails());
     }
 

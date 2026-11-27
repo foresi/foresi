@@ -108,7 +108,7 @@ final class ReceivedDocumentReadingApiTest extends ReceivedDocumentApiTestCase
         $this->get('/api/v1/received-documents', ['source' => 'upload', 'reading' => 'reading'], $this->writer);
         self::assertSame([$running], $this->ids());
 
-        $this->get('/api/v1/received-documents', ['view' => 'purchasing.received.to_review'], $this->issued([ApiScope::from('received_documents:read'), ApiScope::from('views:read')]));
+        $this->get('/api/v1/received-documents', ['view' => 'received_documents.received.to_review'], $this->issued([ApiScope::from('received_documents:read'), ApiScope::from('views:read')]));
         self::assertEqualsCanonicalizing([$read, $failed], $this->ids());
 
         $this->get('/api/v1/received-documents', ['reading' => 'bogus'], $this->writer);

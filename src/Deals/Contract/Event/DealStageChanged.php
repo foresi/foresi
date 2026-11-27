@@ -17,7 +17,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
  * An open deal moved from one stage to another. The payload is thin (ADR
  * 0030): read the deal itself for its title, client and lines.
  */
-#[DomainEvent('sales.deal.stage_changed', version: 1)]
+#[DomainEvent('deals.deal.stage_changed', version: 1)]
 final readonly class DealStageChanged implements DomainEventPayload
 {
     /**

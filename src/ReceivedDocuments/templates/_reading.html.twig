@@ -12,12 +12,12 @@
 {% if not reading %}
 <turbo-frame id="received-document-reading"></turbo-frame>
 {% else %}
-<turbo-frame id="received-document-reading"{% if reading.live %} data-controller="import-progress" data-import-progress-url-value="{{ path('app_purchasing_reading', {id: document.id}) }}"{% endif %}>
+<turbo-frame id="received-document-reading"{% if reading.live %} data-controller="import-progress" data-import-progress-url-value="{{ path('app_received_document_reading', {id: document.id}) }}"{% endif %}>
     <div data-progress-active="{{ reading.live ? 'true' : 'false' }}" data-purchasing-reading="{{ reading.state }}">
         {% set details %}
             {% for warning in reading.warnings %}<p class="m-0">{{ warning }}</p>{% endfor %}
             {% if polled|default(false) and not reading.live %}
-                <p class="m-0"><a href="{{ path('app_purchasing_document', {id: document.id}) }}" data-turbo-frame="_top" class="font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'received_documents.reading.show_values'|trans }}</a></p>
+                <p class="m-0"><a href="{{ path('app_received_document', {id: document.id}) }}" data-turbo-frame="_top" class="font-semibold text-current underline underline-offset-2 {{ focus }}">{{ 'received_documents.reading.show_values'|trans }}</a></p>
             {% endif %}
         {% endset %}
         {% if reading.live %}

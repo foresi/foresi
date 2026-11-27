@@ -18,11 +18,11 @@ use Foresi\Shared\Contract\Operation\Operation;
  * A planned invoice added to the billing plan of a won deal over the API and MCP (ADR 0032).
  */
 #[Operation(
-    name: 'sales.billing_entries.create',
+    name: 'deals.billing_entries.create',
     method: 'POST',
-    path: '/api/v1/sales/deals/{dealId}/billing-plan',
+    path: '/api/v1/deals/{dealId}/billing-plan',
     tool: 'foresi_create_billing_entry',
-    scope: 'sales:write',
+    scope: 'deals:write',
     title: 'Plan an invoice of a won deal',
     description: 'Adds a planned invoice to the billing plan of a won deal; the cash-flow forecast counts it until an invoice or recurring invoice fulfils it. A one_off entry is an amount, given as amount or as percent of the deal\'s one-off value in the currency (the amount is stored, the percent is not); the one_off entries of a currency never exceed the deal\'s one-off value in it. A recurring entry follows one recurring line (line_id), takes its amount and period from it, and a line has one entry at most. expected_on is the day it is expected to be invoiced on; left out, it has no day and the forecast shows it under "No date", outside the balance. Winning a deal adds a starting plan already; read it with foresi_get_deal (billing_plan).',
     status: 201,

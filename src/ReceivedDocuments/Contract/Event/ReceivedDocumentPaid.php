@@ -15,7 +15,7 @@ use Foresi\Shared\Contract\Event\EventSubject;
 /**
  * A recorded received document became paid in full: the payment named, on the day it names (YYYY-MM-DD), left nothing to pay. A partial payment records no event.
  */
-#[DomainEvent('purchasing.received_document.paid', version: 1)]
+#[DomainEvent('received-documents.received_document.paid', version: 1)]
 final readonly class ReceivedDocumentPaid implements DomainEventPayload
 {
     public function __construct(

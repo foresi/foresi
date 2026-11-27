@@ -45,7 +45,7 @@ final class SalesInboxScreensTest extends InboxScreenTestCase
         $this->client->submit($crawler->filter('#inbox-action-form')->form());
 
         self::assertResponseRedirects('/inbox/'.$id);
-        $deal = $this->em->getConnection()->fetchAssociative('SELECT id, title, client_party_id FROM sales_deal');
+        $deal = $this->em->getConnection()->fetchAssociative('SELECT id, title, client_party_id FROM deal');
         self::assertIsArray($deal);
         self::assertSame(['Roof audit', $contactId], [$deal['title'], $deal['client_party_id']]);
         $this->em->clear();
