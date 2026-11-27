@@ -11,7 +11,6 @@ namespace Foresi\Tests\Invoicing\Application\View;
 use Foresi\Invoicing\Application\InvoiceFilter;
 use Foresi\Invoicing\Application\View\InvoiceLists;
 use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\View\Condition;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ViewFilter;
@@ -35,22 +34,15 @@ final class InvoiceListsTest extends KernelTestCase
     public function testEveryAttributeWithAnExpressionIsAFieldBesideTheModulesOwn(): void
     {
         $fields = $this->lists()->of(DocumentKind::Invoice)->fields;
+        // The live customer contact is a field of the address book's data source, tested with Contacts.
+        $own = array_filter($fields, static fn (string $key): bool => !str_starts_with($key, 'customer.'), \ARRAY_FILTER_USE_KEY);
 
         self::assertSame([
             'trashed', 'payment', 'overdue', 'export', 'customer', 'number', 'issue_date', 'deleted_at', 'due_date', 'deleted_reason', 'payable', 'sent',
             'customer_registration_number', 'customer_vat_id', 'customer_city', 'customer_country', 'customer_email', 'tax_point_date', 'currency',
             'net', 'vat', 'payment_method', 'bank_account', 'variable_symbol', 'order_number', 'language', 'vat_regime', 'description',
             'created_at', 'import_source',
-            // The live customer contact (DS6): every field of the contact list's data source, one hop.
-            'customer.name', 'customer.kind', 'customer.roles', 'customer.registration_number', 'customer.vat_id', 'customer.email',
-            'customer.phone', 'customer.mobile', 'customer.website', 'customer.registration_country', 'customer.billing_city',
-            'customer.billing_country', 'customer.default_due_days', 'customer.currency', 'customer.payment_method', 'customer.language',
-            'customer.reverse_charge', 'customer.reminders', 'customer.hourly_rate', 'customer.vies_result', 'customer.archived_at',
-        ], array_keys($fields));
-        self::assertSame('invoice.relation.customer', $fields['customer.phone']->group);
-        self::assertSame('p.phone', $fields['customer.phone']->expression);
-        self::assertSame(Party::class.' p WHERE p = i.customerParty', $fields['customer.phone']->within);
-        self::assertSame(100, $fields['customer.hourly_rate']->scale);
+        ], array_keys($own));
         self::assertSame(FieldType::Reference, $fields['customer']->type);
         self::assertSame(FieldType::Date, $fields['due_date']->type);
         self::assertSame('i.dueDate', $fields['due_date']->expression);

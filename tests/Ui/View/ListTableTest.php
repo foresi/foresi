@@ -19,12 +19,11 @@ use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\View\Placement;
+use Foresi\Tests\Ui\Support\TestRow;
+use Foresi\Tests\Ui\Support\TestRowColumns;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ListTable;
 use Foresi\Ui\View\ListTablePage;
-use Foresi\Work\Domain\LabelColour;
-use Foresi\Work\Infrastructure\Column\LabelColumns;
-use Foresi\Work\Infrastructure\Column\LabelRow;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -50,12 +49,12 @@ final class ListTableTest extends KernelTestCase
         $actor->method('userId')->willReturn(null);
         self::getContainer()->set(ActorRole::class, $actor);
         $this->list = new ListDefinition('test.list_table', [
-            new Field('name', FieldType::Text, 'work.labels.field.name'),
-            new Field('trashed', FieldType::Boolean, 'work.labels.field.trashed'),
+            new Field('name', FieldType::Text, 'test.field.name'),
+            new Field('trashed', FieldType::Boolean, 'test.field.trashed'),
         ], [
-            new DefaultView(ListDefinition::ALL, 'work.labels.tab.all', showCount: false),
-            new DefaultView('trash', 'work.labels.tab.trash', ViewFilter::all(new Condition('trashed', 'is', true)), position: 1),
-            new DefaultView('later', 'work.labels.tab.trash', showCount: false, placement: Placement::Overflow, position: 2),
+            new DefaultView(ListDefinition::ALL, 'test.tab.all', showCount: false),
+            new DefaultView('trash', 'test.tab.trash', ViewFilter::all(new Condition('trashed', 'is', true)), position: 1),
+            new DefaultView('later', 'test.tab.trash', showCount: false, placement: Placement::Overflow, position: 2),
         ]);
     }
 
@@ -96,10 +95,10 @@ final class ListTableTest extends KernelTestCase
 
         self::assertSame(['Old one'], $this->names($page));
         self::assertSame([
-            ['label' => 'Vše', 'href' => '/settings/labels?q=Old', 'active' => false, 'modified' => false, 'private' => false, 'count' => null],
-            ['label' => 'Koš', 'href' => '/settings/labels?view=trash&q=Old', 'active' => true, 'modified' => true, 'private' => false, 'count' => 1],
+            ['label' => 'test.tab.all', 'href' => '/settings/labels?q=Old', 'active' => false, 'modified' => false, 'private' => false, 'count' => null],
+            ['label' => 'test.tab.trash', 'href' => '/settings/labels?view=trash&q=Old', 'active' => true, 'modified' => true, 'private' => false, 'count' => 1],
         ], $page->table['tabs']);
-        self::assertSame([['label' => 'Koš', 'href' => '/settings/labels?view=later&q=Old', 'active' => false, 'modified' => false, 'private' => false, 'count' => null]], $page->table['moreViews']);
+        self::assertSame([['label' => 'test.tab.trash', 'href' => '/settings/labels?view=later&q=Old', 'active' => false, 'modified' => false, 'private' => false, 'count' => null]], $page->table['moreViews']);
         self::assertSame(['view' => 'trash', 'f' => $filter, 'cols' => 'name'], $page->table['keep']);
         self::assertSame('/settings/labels?view=trash', $page->table['resetHref']);
         self::assertSame('/settings/labels?view=trash&q=Old&cols=name', ($page->href)(ViewFilter::all(new Condition('trashed', 'is', true))), 'The view\'s own filter is the bare view.');
@@ -114,17 +113,17 @@ final class ListTableTest extends KernelTestCase
     {
         $now = new \DateTimeImmutable('2026-11-01');
         $records = [
-            new LabelRow('l1', 'Alpha', LabelColour::Gray, 1),
-            new LabelRow('l2', 'Old one', LabelColour::Gray, 0, 'Someone', $now),
-            new LabelRow('l3', 'Lima', LabelColour::Green, 2),
-            new LabelRow('l4', 'Čtvrtek', LabelColour::Green, 0),
+            new TestRow('l1', 'Alpha'),
+            new TestRow('l2', 'Old one', $now),
+            new TestRow('l3', 'Lima'),
+            new TestRow('l4', 'Čtvrtek'),
         ];
 
-        return $this->table()->of(ListSlot::first($query), $this->list, LabelColumns::LIST, self::ROUTE, 'labels', $records, static fn (LabelRow $row, WorkingState $working): array => ['label' => $row->name], static fn (LabelRow $row, string $field): mixed => match ($field) {
+        return $this->table()->of(ListSlot::first($query), $this->list, TestRowColumns::LIST, self::ROUTE, 'labels', $records, static fn (TestRow $row, WorkingState $working): array => ['label' => $row->name], static fn (TestRow $row, string $field): mixed => match ($field) {
             'name' => $row->name,
             'trashed' => $row->isTrashed(),
             default => null,
-        }, static fn (LabelRow $row): string => $row->name, 'Search', 'trashed', static fn (ViewFilter $shown): array => ['trash' => [] !== $shown->on('trashed')]);
+        }, static fn (TestRow $row): string => $row->name, 'Search', 'trashed', static fn (ViewFilter $shown): array => ['trash' => [] !== $shown->on('trashed')]);
     }
 
     /**

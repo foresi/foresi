@@ -9,8 +9,10 @@ declare(strict_types=1);
 use Foresi\Tests\Ui\Support\ShellProbeController;
 use Foresi\Tests\Ui\Support\TestNavigationProvider;
 use Foresi\Tests\Ui\Support\TestPersonPhotos;
+use Foresi\Tests\Ui\Support\TestRowColumns;
 use Foresi\Ui\Contract\PersonPhotos;
 use Foresi\Ui\Controller\CatalogueController;
+use Foresi\Ui\View\ListTable;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 /*
@@ -32,5 +34,8 @@ return static function (ContainerConfigurator $container): void {
         // Stands in for the module that keeps the people's photos.
         $services->set(TestPersonPhotos::class)->autoconfigure(false)->tag(PersonPhotos::TAG, ['priority' => 100]);
         $services->set(ShellProbeController::class);
+        // The Ui tests of the table read it from the container; no module of a Ui-only application uses it.
+        $services->get(ListTable::class)->public();
+        $services->set(TestRowColumns::class);
     }
 };
