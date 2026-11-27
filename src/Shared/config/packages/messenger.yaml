@@ -54,17 +54,8 @@ framework:
                     max_retries: 5
                     delay: 5000
                     multiplier: 6
-            # Outbound webhooks, one message per attempt, apart so a slow receiver holds
-            # up only this worker. The delivery row keeps the schedule and the next
-            # attempt is dispatched with a delay, so Messenger never retries. An attempt
-            # ends within 15 s, well inside the redeliver timeout.
-            webhooks:
-                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
-                options:
-                    queue_name: webhooks
-                    redeliver_timeout: 600
-                retry_strategy:
-                    max_retries: 0
+            # A module may add a transport of its own, such as webhooks (Foresi\Webhooks\WebhooksBundle),
+            # which then exists only where the module is installed.
             failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options:
@@ -82,5 +73,4 @@ when@e2e:
                 registry: 'sync://'
                 mail: 'sync://'
                 events: 'sync://'
-                webhooks: 'sync://'
                 failed: 'in-memory://'

@@ -23,14 +23,6 @@ dashboard:
     debtors_empty: No customer owes anything.
     pending: '{month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
     pending_link: Pass to the accountant
-registry:
-  result:
-    valid: Valid in VIES
-    invalid: Not valid in VIES
-    reliable: Reliable VAT payer
-    unreliable: Unreliable VAT payer
-    not_registered: Not a registered VAT payer
-    unavailable: Register unavailable
 nav:
   area:
     overview: Overview

@@ -97,3 +97,11 @@ party:
     registration_number: Neplatné IČO. Zkontrolujte číslo.
     vat_id: Neplatné DIČ. Zadejte například CZ12345678.
     expired: Formulář vypršel. Zkontrolujte údaje a odešlete ho znovu.
+registry:
+  result:
+    valid: Platné ve VIES
+    invalid: Neplatné ve VIES
+    reliable: Spolehlivý plátce DPH
+    unreliable: Nespolehlivý plátce DPH
+    not_registered: Není plátce DPH
+    unavailable: Rejstřík není dostupný

@@ -16,7 +16,6 @@
         "foresi/instance": "self.version",
         "foresi/module-api": "^1.0",
         "foresi/shared": "self.version",
-        "foresi/ui": "self.version",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -46,6 +45,9 @@
             "kind": "core",
             "namespace": "Foresi\\Party\\",
             "bundle": "Foresi\\Party\\PartyBundle",
+            "optional": [
+                "ui"
+            ],
             "scopes": [
                 "contacts"
             ]

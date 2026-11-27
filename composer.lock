@@ -2318,7 +2318,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/core",
-                "reference": "6f72d23e3b63b97026ea64a65133ab3e842f5daf"
+                "reference": "4a9880a873c5d396be7fe10df5ddcc737eb0b30d"
             },
             "require": {
                 "foresi/attachment": "self.version",
@@ -2327,14 +2327,13 @@
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
                 "foresi/party": "self.version",
-                "foresi/shared": "self.version",
-                "foresi/webhooks": "self.version"
+                "foresi/shared": "self.version"
             },
             "type": "metapackage",
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments, events and webhooks.",
+            "description": "The core every Foresi application needs: shared kernel, instance, audit, identity, party, attachments and events.",
             "homepage": "https://foresi.app",
             "support": {
                 "issues": "https://github.com/foresi/foresi/issues",
@@ -2679,7 +2678,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "5ada7e080a0008576b43691068474a6dbdb57344"
+                "reference": "2b94214c520eabd3eee477a227a0ab826aae8651"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2691,7 +2690,6 @@
                 "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "scheb/2fa-bundle": "^8.7",
@@ -2726,7 +2724,9 @@
                     "kind": "core",
                     "namespace": "Foresi\\Identity\\",
                     "bundle": "Foresi\\Identity\\IdentityBundle",
-                    "optional": [],
+                    "optional": [
+                        "ui"
+                    ],
                     "scopes": [
                         {
                             "resource": "profile",
@@ -3251,7 +3251,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "71e11372d62514c64f9683c5f1d7477348942700"
+                "reference": "1ff3e124772235510c7f17fd1ce4d3bba73a7450"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3261,7 +3261,6 @@
                 "foresi/instance": "self.version",
                 "foresi/module-api": "^1.0",
                 "foresi/shared": "self.version",
-                "foresi/ui": "self.version",
                 "psr/clock": "^1.0",
                 "psr/log": "^3.0",
                 "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -3284,6 +3283,9 @@
                     "kind": "core",
                     "namespace": "Foresi\\Party\\",
                     "bundle": "Foresi\\Party\\PartyBundle",
+                    "optional": [
+                        "ui"
+                    ],
                     "scopes": [
                         "contacts"
                     ]
@@ -3792,7 +3794,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "abbdbb0a4dee5397c563c669a55c40249c3b7626"
+                "reference": "cfb0f183052ce530f9d6c913ce600a2ac2a520a4"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3829,7 +3831,7 @@
             "extra": {
                 "foresi": {
                     "module": "webhooks",
-                    "kind": "core",
+                    "kind": "module",
                     "namespace": "Foresi\\Webhooks\\",
                     "bundle": "Foresi\\Webhooks\\WebhooksBundle",
                     "optional": [],

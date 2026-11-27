@@ -97,3 +97,11 @@ party:
     registration_number: Invalid registration number. Check the digits.
     vat_id: Invalid VAT ID. Enter for example CZ12345678.
     expired: The form has expired. Check the details and send it again.
+registry:
+  result:
+    valid: Valid in VIES
+    invalid: Not valid in VIES
+    reliable: Reliable VAT payer
+    unreliable: Unreliable VAT payer
+    not_registered: Not a registered VAT payer
+    unavailable: Register unavailable

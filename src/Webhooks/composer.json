@@ -50,7 +50,7 @@
     "extra": {
         "foresi": {
             "module": "webhooks",
-            "kind": "core",
+            "kind": "module",
             "namespace": "Foresi\\Webhooks\\",
             "bundle": "Foresi\\Webhooks\\WebhooksBundle",
             "optional": [],

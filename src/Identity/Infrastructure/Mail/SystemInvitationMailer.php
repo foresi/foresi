@@ -10,7 +10,6 @@ namespace Foresi\Identity\Infrastructure\Mail;
 
 use Foresi\Identity\Application\InvitationMailer;
 use Foresi\Identity\Domain\Invitation;
-use Foresi\Identity\Infrastructure\Controller\InvitationController;
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Application\SystemMailer;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -23,6 +22,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class SystemInvitationMailer implements InvitationMailer
 {
+    /** The page that accepts an invitation, which exists with Ui only (Integration/Ui), as do the screens that invite. */
+    public const string ACCEPT_ROUTE = 'app_invitation';
+
     public function __construct(
         private SystemMailer $mailer,
         private TranslatorInterface $translator,
@@ -63,6 +65,6 @@ final readonly class SystemInvitationMailer implements InvitationMailer
 
     public function link(string $token): string
     {
-        return $this->urls->generate(InvitationController::ROUTE, ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+        return $this->urls->generate(self::ACCEPT_ROUTE, ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 }

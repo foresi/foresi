@@ -18,7 +18,6 @@
         "foresi/module-api": "^1.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
-        "foresi/ui": "self.version",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "scheb/2fa-bundle": "^8.7",
@@ -60,7 +59,9 @@
             "kind": "core",
             "namespace": "Foresi\\Identity\\",
             "bundle": "Foresi\\Identity\\IdentityBundle",
-            "optional": [],
+            "optional": [
+                "ui"
+            ],
             "scopes": [
                 {
                     "resource": "profile",

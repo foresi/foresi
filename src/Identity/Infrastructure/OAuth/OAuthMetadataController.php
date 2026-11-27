@@ -14,6 +14,7 @@ use Foresi\Shared\Infrastructure\Security\PublicRoute;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -54,21 +55,36 @@ final readonly class OAuthMetadataController
             return OAuthEndpoints::preflight();
         }
         $url = fn (string $route): string => $this->urls->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $authorize = $this->authorizationEndpoint();
 
         return OAuthEndpoints::json([
             'issuer' => $this->endpoints->issuer($request),
-            'authorization_endpoint' => $url(OAuthAuthorizeController::ROUTE),
+            ...(null === $authorize ? [] : ['authorization_endpoint' => $authorize]),
             'token_endpoint' => $url(OAuthTokenController::ROUTE),
             'registration_endpoint' => $url(OAuthRegisterController::ROUTE),
             'scopes_supported' => $this->scopes(),
             'response_types_supported' => ['code'],
             'response_modes_supported' => ['query'],
-            'grant_types_supported' => ['authorization_code', 'refresh_token'],
+            'grant_types_supported' => null === $authorize ? ['refresh_token'] : ['authorization_code', 'refresh_token'],
             'token_endpoint_auth_methods_supported' => ['none'],
             'code_challenge_methods_supported' => ['S256'],
             'client_id_metadata_document_supported' => true,
             'authorization_response_iss_parameter_supported' => true,
         ]);
+    }
+
+    /**
+     * The consent screen, or null where Ui is not installed: then nobody can sign in
+     * in a browser, so the metadata names no authorization endpoint and offers no
+     * authorization code (RFC 8414, section 2).
+     */
+    private function authorizationEndpoint(): ?string
+    {
+        try {
+            return $this->urls->generate(OAuthEndpoints::AUTHORIZE_ROUTE, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**

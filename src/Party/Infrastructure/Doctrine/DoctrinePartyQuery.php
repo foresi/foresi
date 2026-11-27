@@ -11,6 +11,7 @@ namespace Foresi\Party\Infrastructure\Doctrine;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Party\Application\ContactSorts;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\PartyCounts;
 use Foresi\Party\Application\PartyPage;
@@ -26,7 +27,6 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
-use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Domain\Id;
@@ -43,7 +43,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     private const int MAX_TEXT = 100;
 
-    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSource $source, private Fields $fields)
+    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSorts $source, private Fields $fields)
     {
     }
 

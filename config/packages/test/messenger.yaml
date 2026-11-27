@@ -6,5 +6,4 @@ framework:
             registry: 'in-memory://'
             mail: 'in-memory://'
             events: 'in-memory://'
-            webhooks: 'in-memory://'
             failed: 'in-memory://'

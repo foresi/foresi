@@ -147,6 +147,15 @@ reminders, bank polling, exchange rates), domain events, outbound webhooks,
 imports and register checks; see the [background worker](development.md#background-worker). It must
 run all the time.
 
+The worker consumes the transports of the installed modules, which
+`bin/console app:worker:receivers` prints in the order the worker takes them:
+`scheduler_foresi mail events async`, then the transports a module brings
+along, then `registry`. The `webhooks` transport belongs to `foresi/webhooks`
+and exists only where that module is installed, so the commands below ask for
+the list instead of naming it; an instance without webhooks never consumes a
+`webhooks` queue. Run the command again after installing or removing a module,
+or restart the worker, which asks every time it starts.
+
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):
 
 ```bash
@@ -161,7 +170,7 @@ supervisor:
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+command=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 directory=/srv/foresi/current
 user=www-data
 environment=APP_ENV="prod"
@@ -172,7 +181,7 @@ autorestart=true
 stopwaitsecs=3600
 ```
 
-The `webhooks` transport carries one message per delivery attempt, and an attempt may take up to 15 s. The worker takes a transport only while the ones before it are empty, so `webhooks` comes after `async`: a slow receiver never holds up imports or the timed jobs. An installation with many endpoints runs a second worker with `messenger:consume webhooks --memory-limit=256M --time-limit=3600` (another `foresi-worker@` unit or supervisor program with that command) beside the first one; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
+Where `foresi/webhooks` is installed, the `webhooks` transport carries one message per delivery attempt, and an attempt may take up to 15 s. The worker takes a transport only while the ones before it are empty, so `webhooks` comes after `async`: a slow receiver never holds up imports or the timed jobs. An installation with many endpoints runs a second worker with `messenger:consume webhooks --memory-limit=256M --time-limit=3600` (another `foresi-worker@` unit or supervisor program with that command) beside the first one; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
 
 On PostgreSQL more workers may run (`foresi-worker@2`, `numprocs=2`); on SQLite
 exactly one. Under **Ploi**, add a daemon (Server › Daemons) with the same

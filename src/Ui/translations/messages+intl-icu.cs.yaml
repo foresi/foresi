@@ -23,14 +23,6 @@ dashboard:
     debtors_empty: Žádný odběratel nic nedluží.
     pending: '{month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
     pending_link: Předat účetní
-registry:
-  result:
-    valid: Platné ve VIES
-    invalid: Neplatné ve VIES
-    reliable: Spolehlivý plátce DPH
-    unreliable: Nespolehlivý plátce DPH
-    not_registered: Není plátce DPH
-    unavailable: Rejstřík není dostupný
 nav:
   area:
     overview: Přehled

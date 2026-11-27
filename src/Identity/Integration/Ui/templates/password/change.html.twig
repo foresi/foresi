@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The password change, in a dialog over the password page; the same URL is a page of its own. The
+    current password, the new one once, and Show passwords in place of a second field (Google Account).
+    Pasting is allowed, so a password manager can fill both (NIST SP 800-63B).
+    Variables: email, min, errors (field => message).
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set title = 'password.change_title'|trans %}
+{% set crumbs = [{label: 'password.title'|trans, href: path('app_account_password')}, {label: title}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="password-form" action="{{ path('app_account_password_change') }}" class="grid gap-4" novalidate data-controller="password-reveal">
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Integration\\Ui\\Controller\\PasswordController::TOKEN')) }}">
+        {# For password managers: the account the new password belongs to. #}
+        <input type="hidden" name="username" autocomplete="username" value="{{ email }}">
+        <twig:Ui:TextInput type="password" name="currentPassword" id="current-password" :label="'password.field.current'|trans" :error="errors.currentPassword|default(null)" required autocomplete="current-password" data-password-reveal-target="input" />
+        <twig:Ui:TextInput type="password" name="newPassword" id="new-password" :label="'password.field.new'|trans" :help="'password.field.new_help'|trans({min: min})" :error="errors.newPassword|default(null)" required minlength="{{ min }}" autocomplete="new-password" data-password-reveal-target="input" />
+        {# Only with JavaScript, which it needs. #}
+        <div data-password-reveal-target="toggle" hidden>
+            <twig:Ui:Checkbox name="showPasswords" id="show-passwords" :label="'password.field.show'|trans" data-action="password-reveal#toggle" />
+        </div>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'password.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="password-form" variant="primary">{{ 'password.save'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="title" icon="key-round" class="max-w-2xl">
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_account_password')">{{ 'password.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="password-form" variant="primary">{{ 'password.save'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

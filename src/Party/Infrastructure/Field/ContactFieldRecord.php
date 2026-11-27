@@ -12,7 +12,6 @@ use Foresi\Party\Application\PartyRow;
 use Foresi\Party\Contract\Contacts;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\Field\FieldRecord;
 
 /**
@@ -42,12 +41,12 @@ final readonly class ContactFieldRecord implements FieldRecord
 
     public function lists(): array
     {
-        return [ContactSource::LIST => Contacts::ALIAS];
+        return [Contacts::LIST => Contacts::ALIAS];
     }
 
     public function sorted(): array
     {
-        return [ContactSource::LIST];
+        return [Contacts::LIST];
     }
 
     public function id(mixed $row): string

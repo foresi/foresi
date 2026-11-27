@@ -330,7 +330,7 @@ final class ContactApiTest extends ApiTestCase
 
     public function testATokenScopedToAnotherResourceReadsNothing(): void
     {
-        $secret = $this->issued([ApiScope::from('webhooks:write')]);
+        $secret = $this->issued([ApiScope::from('views:write')]);
 
         $this->get('/api/v1/contacts', secret: $secret);
         $this->assertProblem(403, 'insufficient_scope');
