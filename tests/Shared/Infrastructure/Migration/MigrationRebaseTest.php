@@ -8,17 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Migration;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Shared\Infrastructure\Console\RebaseMigrationsCommand;
 use Foresi\Shared\Infrastructure\Migration\GlobalMigrationHistory;
-use Foresi\Shared\Infrastructure\Migration\RenamesTables;
-use Foresi\Shared\Infrastructure\Migration\TableOwners;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Foresi\Tests\Shared\Support\RebaseTestCase;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * A database on the global migration history moves onto the module baselines
@@ -26,33 +19,8 @@ use Symfony\Component\Console\Tester\CommandTester;
  * full proof against the last release with the history is
  * bin/migration-rebase-proof in CI.
  */
-final class MigrationRebaseTest extends KernelTestCase
+final class MigrationRebaseTest extends RebaseTestCase
 {
-    private Connection $db;
-
-    protected function setUp(): void
-    {
-        self::bootKernel();
-        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $this->db = $entityManager->getConnection();
-        new SchemaTool($entityManager)->dropDatabase();
-        self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:migrate')->getStatusCode());
-        // The test environment maps entities of its own and keeps messages in memory, so
-        // the schema follows that mapping, as the schema of an application follows its own.
-        $configuration = $this->db->getConfiguration();
-        $filter = $configuration->getSchemaAssetsFilter();
-        $configuration->setSchemaAssetsFilter(static fn (mixed $asset): bool => !\is_string($asset) || 'doctrine_migration_versions' !== $asset);
-        new SchemaTool($entityManager)->updateSchema($entityManager->getMetadataFactory()->getAllMetadata());
-        $configuration->setSchemaAssetsFilter($filter);
-    }
-
-    protected function tearDown(): void
-    {
-        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        new SchemaTool($entityManager)->dropDatabase();
-        parent::tearDown();
-    }
-
     public function testADatabaseOnTheGlobalHistoryMovesOntoTheBaselines(): void
     {
         $tables = $this->tables();
@@ -69,24 +37,6 @@ final class MigrationRebaseTest extends KernelTestCase
         self::assertSame($tables, $this->tables());
         self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:up-to-date')->getStatusCode());
         self::assertSame(Command::SUCCESS, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
-    }
-
-    public function testColumnsTheBaselinesNoLongerMakeAndALaterMigrationDropsDoNotStopTheRebase(): void
-    {
-        $tables = $this->tables();
-        $this->onGlobalHistory();
-        // The global history gave the party its invoicing defaults; Party's baseline no longer makes them.
-        foreach (['invoicing_due_days INT', 'invoicing_currency CHAR(3)', 'invoicing_language CHAR(2)', 'invoicing_payment_method VARCHAR(32)', 'invoicing_reverse_charge BOOLEAN', 'invoicing_send_reminders BOOLEAN', 'invoicing_hourly_rate_minor BIGINT', 'invoicing_hourly_rate_currency CHAR(3)'] as $column) {
-            $this->db->executeStatement('ALTER TABLE party ADD COLUMN '.$column);
-        }
-
-        $rebase = $this->console('app:migrations:rebase');
-
-        self::assertSame(Command::SUCCESS, $rebase->getStatusCode(), $rebase->getDisplay());
-        self::assertSame(Command::SUCCESS, $this->console('doctrine:migrations:migrate')->getStatusCode());
-        self::assertSame($tables, $this->tables());
-        $columns = array_map(static fn (\Doctrine\DBAL\Schema\Column $column): string => $column->getName(), $this->db->createSchemaManager()->introspectTableColumnsByUnquotedName('party'));
-        self::assertSame([], array_values(array_filter($columns, static fn (string $name): bool => str_starts_with($name, 'invoicing_'))));
     }
 
     public function testADatabaseOnTheBaselinesIsLeftAlone(): void
@@ -135,226 +85,5 @@ final class MigrationRebaseTest extends KernelTestCase
 
         // The check reads the version rows only, so the deploy leaves such a database alone too.
         $this->assertRefused('not in sync with the mapping', RebaseMigrationsCommand::PENDING);
-    }
-
-    private function assertRefused(string $reason, int $check = Command::FAILURE): void
-    {
-        $versions = $this->versions();
-
-        self::assertSame($check, $this->console('app:migrations:rebase', ['--check' => true])->getStatusCode());
-        $rebase = $this->console('app:migrations:rebase');
-
-        self::assertSame(Command::FAILURE, $rebase->getStatusCode());
-        self::assertStringContainsString($reason, preg_replace('/\s+/', ' ', $rebase->getDisplay()) ?? '');
-        self::assertStringContainsString('The database was not changed.', $rebase->getDisplay());
-        self::assertSame($versions, $this->versions());
-    }
-
-    /**
-     * The rows a database migrated before the module packages holds.
-     */
-    /**
-     * A database of the last release before the module packages: every global version executed,
-     * and none of the tables that only migrations after the baselines create.
-     */
-    private function onGlobalHistory(): void
-    {
-        // Every migration in order on one schema, as the database got them: what one after
-        // the baselines creates goes, and the columns it adds to a table that was there go too.
-        $repository = self::getContainer()->get('doctrine.migrations.dependency_factory')->getMigrationRepository();
-        $afterBaselines = $this->afterBaselines();
-        $schema = new \Doctrine\DBAL\Schema\Schema();
-        $dropTables = [];
-        $dropColumns = [];
-        $restoreColumns = [];
-        $restoreIndexes = [];
-        foreach ($this->migrations() as $version) {
-            $before = $this->columnsByTable($schema);
-            $known = $this->definitions($schema);
-            $migration = $repository->getMigration(new \Doctrine\Migrations\Version\Version($version))->getMigration();
-            $migration->up($schema);
-            if ($migration instanceof RenamesTables) {
-                // The database holds a renamed table under its new name, rows, columns and all.
-                $schema = TableOwners::renamed($schema, $migration);
-                $renamed = static fn (string $table): string => $migration->renamedTables()[$table] ?? $table;
-                $before = array_combine(array_map($renamed, array_keys($before)), $before);
-                $known = array_combine(array_map($renamed, array_keys($known)), $known);
-                $dropTables = array_map($renamed, $dropTables);
-                $dropColumns = array_map(static fn (array $drop): array => [$renamed($drop[0]), $drop[1]], $dropColumns);
-                $restoreColumns = array_map(static fn (array $restore): array => [$renamed($restore[0]), $restore[1], $restore[2]], $restoreColumns);
-                $restoreIndexes = array_map(static fn (array $restore): array => [$renamed($restore[0]), $restore[1]], $restoreIndexes);
-            }
-            if (!\in_array($version, $afterBaselines, true)) {
-                continue;
-            }
-            // What a migration after the baselines drops was there before it: the database is given it back.
-            foreach ($known as $table => [$columns, $indexes]) {
-                $now = $schema->hasTable($table) ? $schema->getTable($table) : null;
-                if (!$now instanceof \Doctrine\DBAL\Schema\Table || \in_array($table, $dropTables, true)) {
-                    continue;
-                }
-                foreach ($columns as $name => $column) {
-                    if (!$now->hasColumn($name) && !\in_array([$table, $name], $dropColumns, true)) {
-                        $restoreColumns[] = [$table, $name, $column];
-                    }
-                }
-                foreach ($indexes as $name => $index) {
-                    if (!$now->hasIndex($name) && !$index->isPrimary()) {
-                        $restoreIndexes[] = [$table, $index];
-                    }
-                }
-            }
-            foreach ($this->columnsByTable($schema) as $table => $columns) {
-                if (!\array_key_exists($table, $before)) {
-                    $dropTables[] = $table;
-                } elseif (!\in_array($table, $dropTables, true)) {
-                    foreach (array_diff($columns, $before[$table]) as $column) {
-                        $dropColumns[] = [$table, $column];
-                    }
-                }
-            }
-        }
-        foreach ($dropColumns as [$table, $column]) {
-            // A foreign key and an index on the column go first, as a column that one of them uses cannot be dropped.
-            $manager = $this->db->createSchemaManager();
-            foreach ($manager->listTableForeignKeys($table) as $foreignKey) {
-                if (\in_array($column, $foreignKey->getLocalColumns(), true)) {
-                    $manager->dropForeignKey($foreignKey->getName(), $table);
-                }
-            }
-            foreach ($manager->listTableIndexes($table) as $index) {
-                if (!$index->isPrimary() && \in_array($column, $index->getColumns(), true)) {
-                    $manager->dropIndex($index->getName(), $table);
-                }
-            }
-            $this->db->executeStatement(\sprintf('ALTER TABLE %s DROP COLUMN %s', $table, $column));
-        }
-        // Their foreign keys go first: PostgreSQL refuses to drop a table that another one still references.
-        $manager = $this->db->createSchemaManager();
-        foreach ($dropTables as $table) {
-            foreach ($manager->listTableForeignKeys($table) as $foreignKey) {
-                $manager->dropForeignKey($foreignKey->getName(), $table);
-            }
-        }
-        foreach ($dropTables as $table) {
-            $manager->dropTable($table);
-        }
-        $platform = $this->db->getDatabasePlatform();
-        foreach ($restoreColumns as [$table, $name, $column]) {
-            $definition = $column->toArray(true);
-            $definition['type'] = $column->getType();
-            $definition['notnull'] = false;
-            $this->db->executeStatement(\sprintf('ALTER TABLE %s ADD COLUMN %s', $table, $platform->getColumnDeclarationSQL($name, $definition)));
-        }
-        foreach ($restoreIndexes as [$table, $index]) {
-            $this->db->createSchemaManager()->createIndex($index, $table);
-        }
-        $this->db->executeStatement('DELETE FROM doctrine_migration_versions');
-        foreach (GlobalMigrationHistory::VERSIONS as $version) {
-            $this->db->insert('doctrine_migration_versions', ['version' => $version, 'executed_at' => '2026-11-20 12:00:00', 'execution_time' => 5]);
-        }
-    }
-
-    /**
-     * @return array<string, array{array<string, \Doctrine\DBAL\Schema\Column>, array<string, \Doctrine\DBAL\Schema\Index>}> the columns and indexes of each table
-     */
-    private function definitions(\Doctrine\DBAL\Schema\Schema $schema): array
-    {
-        $definitions = [];
-        foreach ($schema->getTables() as $table) {
-            $columns = [];
-            foreach ($table->getColumns() as $column) {
-                $columns[$column->getName()] = $column;
-            }
-            $indexes = [];
-            foreach ($table->getIndexes() as $index) {
-                $indexes[$index->getName()] = $index;
-            }
-            $definitions[$table->getName()] = [$columns, $indexes];
-        }
-
-        return $definitions;
-    }
-
-    /**
-     * @return array<string, list<string>> the column names of each table
-     */
-    private function columnsByTable(\Doctrine\DBAL\Schema\Schema $schema): array
-    {
-        $columns = [];
-        foreach ($schema->getTables() as $table) {
-            $columns[$table->getName()] = array_map(static fn (\Doctrine\DBAL\Schema\Column $column): string => $column->getName(), $table->getColumns());
-        }
-
-        return $columns;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function baselines(): array
-    {
-        return array_values(array_filter($this->migrations(), static fn (string $version): bool => str_ends_with($version, '\\'.GlobalMigrationHistory::BASELINE)));
-    }
-
-    /**
-     * The migrations written after the baselines, such as those of a module added later.
-     *
-     * @return list<string>
-     */
-    private function afterBaselines(): array
-    {
-        return array_values(array_diff($this->migrations(), $this->baselines()));
-    }
-
-    /**
-     * @return list<string> every migration of the modules in src/
-     */
-    private function migrations(): array
-    {
-        $files = glob(\dirname(__DIR__, 4).'/src/*/migrations/Version*.php');
-        self::assertIsArray($files);
-        $versions = array_map(
-            static fn (string $file): string => 'Foresi\\'.basename(\dirname($file, 2)).'\Migrations\\'.basename($file, '.php'),
-            $files,
-        );
-        sort($versions, \SORT_STRING);
-
-        return $versions;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function versions(): array
-    {
-        $versions = array_map(static fn (mixed $version): string => \is_string($version) ? $version : '', $this->db->fetchFirstColumn('SELECT version FROM doctrine_migration_versions'));
-        sort($versions, \SORT_STRING);
-
-        return $versions;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function tables(): array
-    {
-        $tables = $this->db->createSchemaManager()->listTableNames();
-        sort($tables, \SORT_STRING);
-
-        return $tables;
-    }
-
-    /**
-     * @param array<string, mixed> $input
-     */
-    private function console(string $name, array $input = []): CommandTester
-    {
-        $kernel = self::$kernel;
-        self::assertNotNull($kernel);
-        $tester = new CommandTester(new Application($kernel)->find($name));
-        $tester->execute($input, ['interactive' => false]);
-
-        return $tester;
     }
 }
