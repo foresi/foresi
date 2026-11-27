@@ -33,6 +33,10 @@ final class ManageTasksTest extends WorkTestCase
         $this->signIn($this->member);
         $this->tasks->setEstimate($task->id(), 300);
         self::assertSame(300, $task->estimateMinutes());
+        foreach ([1, Task::MAX_ESTIMATE_MINUTES] as $minutes) {
+            $this->tasks->setEstimate($task->id(), $minutes);
+            self::assertSame($minutes, $task->estimateMinutes(), 'a minute and the longest estimate are allowed');
+        }
         foreach ([0, Task::MAX_ESTIMATE_MINUTES + 1] as $minutes) {
             try {
                 $this->tasks->setEstimate($task->id(), $minutes);

@@ -445,6 +445,21 @@ final class NavigationRegistryTest extends TestCase
         self::assertNull($registry->current(null));
     }
 
+    public function testAPageThatIsAnItemOfItsOwnIsNoOtherItemsEvenByAPrefixOfOneLetter(): void
+    {
+        $short = new NavigationItem('overview', 'a', 'plus', 'x_list', routePrefixes: ['b']);
+        $own = new NavigationItem('overview', 'b', 'plus', 'b_page');
+
+        $items = $this->overview('b_page', $short, $own);
+
+        self::assertSame([false, true], [$items[0]->current, $items[1]->current]);
+    }
+
+    public function testWithoutItemsNoPageIsCurrent(): void
+    {
+        self::assertNull($this->registry()->current('app_inbox'));
+    }
+
     public function testCurrentRunsNoCount(): void
     {
         $count = new class implements NavigationCountProvider {

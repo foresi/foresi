@@ -9,6 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Integration\Contacts;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Contacts\Contract\ContactImportColumn;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\InvoicingDefaults;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Contract\PaymentMethod;
@@ -58,9 +60,39 @@ final class ContactDefaultsImportTest extends TestCase
         self::assertTrue($this->written->equals(new InvoicingDefaults(14, Currency::CZK, $base->language, PaymentMethod::BankTransfer, true)));
     }
 
+    public function testTheColumnsAreFoundByTheNamesTheyUsuallyHave(): void
+    {
+        $columns = array_map(static fn (ContactImportColumn $column): array => [$column->key, $column->aliases, $column->choices], $this->import(InvoicingDefaults::standard())->columns());
+
+        self::assertSame([
+            ['due_days', ['splatnost', 'due days'], []],
+            ['currency', ['mena', 'currency'], array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())],
+            ['payment_method', ['zpusob platby', 'forma uhrady', 'payment method'], ['bank_transfer', 'cash', 'card']],
+        ], $columns);
+    }
+
+    public function testAPaymentMethodGivenWinsOverTheOneKept(): void
+    {
+        $base = new InvoicingDefaults(30, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
+
+        $this->import($base)->write(self::CONTACT, ['payment_method' => 'card'], true, false);
+
+        self::assertSame(PaymentMethod::Card, $this->written?->paymentMethod);
+    }
+
+    public function testAChangeIsWrittenAtOnce(): void
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('flush');
+        $defaults = self::createStub(PartyInvoicingDefaults::class);
+        $defaults->method('of')->willReturn(InvoicingDefaults::standard());
+
+        new ContactDefaultsImport($defaults, $em)->write(self::CONTACT, ['due_days' => 30], false, false);
+    }
+
     public function testAnUndoPutsBackWhatTheSnapshotHeld(): void
     {
-        $before = new InvoicingDefaults(21, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Card, true, false);
+        $before = new InvoicingDefaults(21, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true, false);
         $snapshot = $this->import($before)->snapshot(self::CONTACT);
 
         $this->import(InvoicingDefaults::standard())->restore(self::CONTACT, $snapshot);

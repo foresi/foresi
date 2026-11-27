@@ -26,6 +26,14 @@
     "minCoveredMsi": 90,
     "mutators": {
         "@default": true,
+        // The container configuration a module bundle prepends runs once, when the container is compiled. The tests
+        // boot the container compiled before them, so no mutant of it reaches a test, as with Kernel.php (excluded
+        // above) and the YAML it replaced; lint:container and the tests check what the configuration builds.
+        "global-ignore": [
+            "Foresi\\*Bundle::prepend",
+            "Foresi\\Identity\\IdentityBundle::tokenFirewall",
+            "Foresi\\Webhooks\\WebhooksBundle::transport"
+        ],
         // Column lengths and join columns in mapping attributes are verified by doctrine:schema:validate; the jsonb
         // option only picks PostgreSQL's column type, which the migrations create, and the tests run on SQLite.
         // The lengths an API field declares are read from its attribute by reflection, which covers no line, so the
@@ -63,6 +71,11 @@
         // inMonth() gives the same day whatever year it splits off; a schedule that never ends gives the same first
         // date when asked for two.
         "DecrementInteger": {"ignore": [
+            // Equivalent mutants of the current navigation item: a page without a route, or covered by no prefix, is
+            // no item's whatever the number not above zero; a page that is an item of its own is that item's before
+            // any prefix is compared, so any number not above zero says so.
+            "Foresi\\Ui\\Navigation\\NavigationRegistry::covered",
+            "Foresi\\Ui\\Navigation\\NavigationRegistry::coverage::205",
             // Equivalent mutants of the splitter: an allocation is checked when it is made, so every percent of a percent split reads and the fallback is never used; the place kept for the share that takes the rest is overwritten with what is left.
             "Foresi\\Margin\\Domain\\ShareSplitter::percent",
             "Foresi\\Margin\\Domain\\ShareSplitter::fixed",
@@ -90,6 +103,9 @@
         ]},
         // The same, and the length of a month read from its second day instead of its first.
         "IncrementInteger": {"ignore": [
+            // The same of the current navigation item; and a page no prefix covers stays no item's at one, as no
+            // item's prefix then covers it by one letter.
+            "Foresi\\Ui\\Navigation\\NavigationRegistry::covered",
             // Equivalent mutant: the fallback of a percent that always reads is never used.
             "Foresi\\Margin\\Domain\\ShareSplitter::percent",
             "Foresi\\Shared\\Domain\\Schedule\\RecurringSchedule::monthLength::82",
@@ -201,6 +217,8 @@
         // Equivalent mutants: preg_replace() and preg_replace_callback() without the u flag always return a string,
         // and NumberFormatter formats an integer without failing.
         "CastString": {"ignore": [
+            // Equivalent mutant: the invoicing enums are backed by strings, so their values are string keys already.
+            "Foresi\\Invoicing\\Integration\\Contacts\\ContactDefaultsColumns::options",
             // Equivalent mutants of Margin: the percent of a percent split is always set (checked when the allocation is made), and only a staff member decides, who is a stored user, so the actor has an id.
             "Foresi\\Margin\\Domain\\ShareSplitter::percent",
             "Foresi\\Margin\\Application\\AllocationWrites::setLine",
@@ -250,7 +268,7 @@
             // are always both set or both empty.
             "Foresi\\Identity\\Domain\\Membership::hourlyRate",
             "Foresi\\Invoicing\\Contract\\InvoicingDefaults::hourlyRate",
-            "Foresi\\Work\\Domain\\Project::hourlyRate",
+            "Foresi\\Timesheet\\Domain\\ProjectTimeSetting::hourlyRate",
             "Foresi\\Timesheet\\Domain\\TimeEntry::invoicedRate"
         ]},
         // Equivalent mutants: a paused template always has a next date, and a row alert's column that is not a
@@ -303,7 +321,7 @@
             "Foresi\\Invoicing\\Application\\InvoiceHistory::of::45",
             "Foresi\\Invoicing\\Application\\RecordPayment::record::57",
             // Spreading a list into an array literal renumbers its keys, so the groupings are a list either way.
-            "Foresi\\Work\\Application\\View\\TaskLists::groupsOf::132"
+            "Foresi\\Work\\Application\\View\\TaskLists::groupsOf::155"
         ]},
         // Equivalent mutant: when both parties carry a tenant they are equal (checked just above).
         // Czechia, at home in CZK, is the only invoicing country, and a template without one is refused for its
