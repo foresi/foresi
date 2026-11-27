@@ -121,6 +121,8 @@ ui:
     move_down: 'Move {label} down'
     moved: '{label} moved to position {position} of {total}.'
     group: Group by
+    layout: Layout
+    weekends: Show weekends
     reset: Reset to default
     apply: Apply
     add: Add column

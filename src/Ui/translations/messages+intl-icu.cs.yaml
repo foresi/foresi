@@ -121,6 +121,8 @@ ui:
     move_down: 'Posunout {label} dolů'
     moved: '{label} je teď na pozici {position} z {total}.'
     group: Seskupit podle
+    layout: Rozložení
+    weekends: Zobrazit víkendy
     reset: Obnovit výchozí
     apply: Použít
     add: Přidat sloupec

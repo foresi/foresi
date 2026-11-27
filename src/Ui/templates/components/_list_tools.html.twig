@@ -41,6 +41,6 @@
         </span>
     {% endif %}
     {% if columns %}
-        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], manage: manageViews ?? null, viewBar: viewBar ?? null, groups: picker.groups ?? [], group: picker.group ?? null, slot: picker.slot ?? null}) }}
+        {{ component('Ui:ColumnPicker', {id: columns.id, action: columns.action, keep: picker.keep, columns: picker.columns ?? [], resetHref: picker.resetHref, modified: picker.modified, quick: pinnable ?? [], manage: manageViews ?? null, viewBar: viewBar ?? null, groups: picker.groups ?? [], group: picker.group ?? null, layouts: picker.layouts ?? [], layout: picker.layout ?? null, weekends: picker.weekends ?? null, slot: picker.slot ?? null}) }}
     {% endif %}
 </div>

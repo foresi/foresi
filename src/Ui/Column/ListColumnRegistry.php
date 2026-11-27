@@ -129,11 +129,14 @@ final class ListColumnRegistry
         }
 
         $groupBy = $display['group_by'] ?? null;
+        $layout = $display['layout'] ?? null;
 
         return new ListDisplay(
             $columns,
             $context,
             \is_string($groupBy) && '' !== $groupBy ? $groupBy : null,
+            \is_string($layout) && '' !== $layout ? $layout : null,
+            false !== ($display['weekends'] ?? null),
         );
     }
 

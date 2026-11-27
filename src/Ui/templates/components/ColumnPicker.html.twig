@@ -7,6 +7,8 @@
       "+ New view" under them; All always leads;
     - Quick filters: every filter field of the list, a checked one a chip under the tabs, in the
       order of the list, at most four, stored with the view (display.pinned);
+    - Layout, on a list that can be a calendar (Todoist's and ClickUp's layouts of a view), with
+      whether the calendar shows the weekend (Teamwork, ClickUp), both kept with the view;
     - Group by, on a list that groups its rows (Linear's and Notion's grouping, kept with the view);
     - Columns, each with its checkbox and movable.
     "Reset to default" and one Apply: Apply saves the order of the views and which are tabs (an
@@ -54,6 +56,14 @@
                             {% endfor %}
                         </ol>
                     </fieldset>
+                {% endif %}
+                {% if layouts is not empty %}
+                    <twig:Ui:Select :name="picker.name('layout')" :id="id ~ '-layout'" :label="'ui.column_picker.layout'|trans" :options="layouts|reduce((options, item) => options|merge({(item.value): item.label}), {})" :value="layout" data-column-picker-layout />
+                {% endif %}
+                {% if weekends is not null %}
+                    {# Sent unchecked too, so "hide" is not read as the view's own. #}
+                    <input type="hidden" name="{{ picker.name('weekends') }}" value="0">
+                    <twig:Ui:Checkbox :name="picker.name('weekends')" :id="id ~ '-weekends'" value="1" :checked="weekends" :label="'ui.column_picker.weekends'|trans" data-column-picker-weekends />
                 {% endif %}
                 {% if groups is not empty %}
                     <twig:Ui:Select :name="picker.name('group')" :id="id ~ '-group'" :label="'ui.column_picker.group'|trans" :options="groups|reduce((options, item) => options|merge({(item.value): item.label}), {})" :value="group" data-column-picker-group />

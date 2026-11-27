@@ -63,6 +63,12 @@ final readonly class TaskListQuery
         #[SerializedName('created_to')]
         #[Assert\Regex(pattern: self::DATE, message: 'Use a date, YYYY-MM-DD.')]
         public ?string $createdTo = null,
+        #[SerializedName('due_from')]
+        #[Assert\Regex(pattern: self::DATE, message: 'Use a date, YYYY-MM-DD.')]
+        public ?string $dueFrom = null,
+        #[SerializedName('due_to')]
+        #[Assert\Regex(pattern: self::DATE, message: 'Use a date, YYYY-MM-DD.')]
+        public ?string $dueTo = null,
         #[SerializedName('updated_from')]
         #[Assert\Regex(pattern: self::DATE, message: 'Use a date, YYYY-MM-DD.')]
         public ?string $updatedFrom = null,
@@ -98,7 +104,7 @@ final readonly class TaskListQuery
         if (null !== $this->starred) {
             $conditions[] = new Condition(TaskLists::STARRED, 'is', $this->starred);
         }
-        foreach ([[TaskLists::CREATED, $this->createdFrom, $this->createdTo], [TaskLists::UPDATED, $this->updatedFrom, $this->updatedTo]] as [$field, $from, $to]) {
+        foreach ([[TaskLists::DUE_ON, $this->dueFrom, $this->dueTo], [TaskLists::CREATED, $this->createdFrom, $this->createdTo], [TaskLists::UPDATED, $this->updatedFrom, $this->updatedTo]] as [$field, $from, $to]) {
             if (null !== $from) {
                 $conditions[] = new Condition($field, 'on_or_after', $from);
             }

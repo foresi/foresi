@@ -68,7 +68,7 @@ final class RememberedDisplayTest extends TestCase
             /** @var array<array-key, mixed> */
             public array $query = [];
 
-            public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState
+            public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null, bool $calendar = false): WorkingState
             {
                 $this->query = $query;
 

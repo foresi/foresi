@@ -56,7 +56,8 @@ final class TaskCreateController extends AbstractController
             'project' => $input->getString('project'),
             'projectQuery' => '',
             'responsible' => '',
-            'due' => '',
+            // A day of the calendar opens it with its date (plan 37.5).
+            'due' => $post ? '' : $input->getString('due'),
             'priority' => Priority::None->value,
             'labels' => [],
         ];
