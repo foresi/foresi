@@ -219,6 +219,8 @@ final class ProjectController extends AbstractController
             'errors' => $errors,
             'customValues' => $custom?->values,
             'customErrors' => $custom->errors ?? [],
+            // What other modules add to the form (ProjectSlots::NEW_FORM), such as Timesheet's billable box following the client.
+            'formItems' => $this->pageSlots->newForm(),
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 

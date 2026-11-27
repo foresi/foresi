@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    In Work's new project dialog (ProjectSlots::NEW_FORM): the box "Bill time" ticks when a client is picked and
+    unticks when the client is cleared, until the person changes it by hand (billable_default_controller.js).
+    Variables: clientField (the id of the client combobox), field (the key of the custom field).
+#}
+<div hidden data-controller="billable-default" data-billable-default-client-value="{{ clientField }}" data-billable-default-field-value="{{ field }}" data-billable-default></div>

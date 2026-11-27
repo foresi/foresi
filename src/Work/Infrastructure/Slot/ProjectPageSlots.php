@@ -28,6 +28,8 @@ final readonly class ProjectPageSlots
     private const string KEY = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/D';
     /** The client line of the header, a template of Work's Contacts integration. */
     private const string CLIENT_FACT = '@Work/projects/_client_fact.html.twig';
+    /** The id of the client combobox of a project's form (projects/_client_field.html.twig). */
+    private const string CLIENT_FIELD = 'client';
 
     public function __construct(private SlotRegistry $slots, private UrlGeneratorInterface $urls, private ?ProjectClients $clients = null)
     {
@@ -66,6 +68,16 @@ final readonly class ProjectPageSlots
     public function settings(ProjectSummary $project, string $return): array
     {
         return $this->templated(ProjectSlots::SETTINGS, $this->context($project, $return));
+    }
+
+    /**
+     * What other modules add to the form of a new project, with the id of its client field.
+     *
+     * @return list<array{template: string, data: array<string, mixed>}>
+     */
+    public function newForm(): array
+    {
+        return $this->templated(ProjectSlots::NEW_FORM, ['clientField' => $this->clients instanceof ProjectClients ? self::CLIENT_FIELD : null]);
     }
 
     /**

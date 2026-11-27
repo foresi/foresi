@@ -26,6 +26,9 @@ use Foresi\Work\Contract\Field\ProjectExtension;
 #[ORM\Table(name: 'project_time_field')]
 class ProjectTimeFields implements ProjectExtension
 {
+    /** The key of the field "Bill time": the module's prefix and the property. */
+    public const string BILLABLE_FIELD = 'timesheet_billable_by_default';
+
     #[ORM\Column(name: 'billable_by_default', type: 'boolean', nullable: true)]
     #[CustomField(FieldKind::Boolean, 'timesheet.project.field.billable', filterable: true, sortable: true)]
     private ?bool $billableByDefault = null;

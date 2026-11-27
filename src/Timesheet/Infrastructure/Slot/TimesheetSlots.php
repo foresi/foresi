@@ -16,6 +16,7 @@ use Foresi\Timesheet\Application\TaskTime;
 use Foresi\Timesheet\Application\TimeEntryRow;
 use Foresi\Timesheet\Application\TimeQueries;
 use Foresi\Timesheet\Application\TimeTarget;
+use Foresi\Timesheet\Domain\ProjectTimeFields;
 use Foresi\Timesheet\Infrastructure\InvoiceNumbers;
 use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
@@ -32,8 +33,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Time on the screens of Work and in the shell: the running timer over every
  * page of a member; on a task the timer as its main action and the time logged
  * on it under its subtasks, with the total against the estimate (Teamwork);
- * on a project "Log time" in its header; and for an owner the project's own
- * hourly rate as a card of its settings. Work offers the slots and shows the
+ * on a project "Log time" in its header; for an owner the project's own
+ * hourly rate as a card of its settings; and in the dialog of a new project the
+ * billable box that follows the client. Work offers the slots and shows the
  * task's to the people of the organisation only.
  */
 final readonly class TimesheetSlots implements SlotProvider
@@ -42,6 +44,7 @@ final readonly class TimesheetSlots implements SlotProvider
     public const string TASK_TIME_TEMPLATE = '@Timesheet/task/_time.html.twig';
     public const string LOG_TIME_TEMPLATE = '@Timesheet/projects/_log_time_action.html.twig';
     public const string SETTINGS_TEMPLATE = '@Timesheet/projects/_time_settings.html.twig';
+    public const string BILLABLE_DEFAULT_TEMPLATE = '@Timesheet/projects/_billable_default.html.twig';
 
     public function __construct(
         private TimeQueries $time,
@@ -66,6 +69,8 @@ final readonly class TimesheetSlots implements SlotProvider
             TaskSlots::SECTIONS === $slot && null !== $taskId => $this->taskTime($taskId),
             ProjectSlots::HEADER_ACTIONS === $slot && null !== $projectId => $this->time->projectTarget($projectId) instanceof TimeTarget ? [new SlotItem(self::LOG_TIME_TEMPLATE, weight: 10)] : [],
             ProjectSlots::SETTINGS === $slot && null !== $projectId => $this->settingsCard($projectId),
+            // The billable box of a new project follows its client; without the address book there is none to follow.
+            ProjectSlots::NEW_FORM === $slot && \is_string($context['clientField'] ?? null) => [new SlotItem(self::BILLABLE_DEFAULT_TEMPLATE, ['field' => ProjectTimeFields::BILLABLE_FIELD])],
             default => [],
         };
     }
