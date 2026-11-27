@@ -71,7 +71,7 @@ final class FirmInvoicingControllerTest extends WebTestCase
         $this->series();
         $this->em()->persist(new Series('Advances', SeriesFormat::fromString('ZF{YYYY}{NNNN}'), DocumentKind::Advance));
         $this->em()->flush();
-        self::assertListWithViews(self::getContainer()->get(SeriesLists::class)->list(), 'invoicing.series', ['all']);
+        self::assertListWithViews(self::getContainer()->get(SeriesLists::class), 'invoicing.series', ['name', 'kind', 'default'], ['all' => false]);
 
         // The columns the page always showed; the person's own stay, and Reset forgets them.
         $crawler = $this->client->request('GET', $this->settingsUrl());

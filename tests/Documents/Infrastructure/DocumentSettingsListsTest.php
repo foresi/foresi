@@ -50,8 +50,8 @@ final class DocumentSettingsListsTest extends WebTestCase
 
     public function testEachTableIsAListWithItsOwnKeyAndAllAsItsView(): void
     {
-        self::assertListWithViews(self::getContainer()->get(DocumentTypeLists::class)->list(), 'documents.types', ['all']);
-        self::assertListWithViews(self::getContainer()->get(DocumentTemplateLists::class)->list(), 'documents.templates', ['all']);
+        self::assertListWithViews(self::getContainer()->get(DocumentTypeLists::class), 'documents.types', ['name', 'code', 'signed', 'archived'], ['all' => false]);
+        self::assertListWithViews(self::getContainer()->get(DocumentTemplateLists::class), 'documents.templates', ['name', 'type', 'archived'], ['all' => false]);
     }
 
     public function testTheColumnsOfOneTableLeaveTheOtherAndAnOldLinkStillOpensTheTypes(): void

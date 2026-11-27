@@ -66,7 +66,7 @@ final class AccountCalendarControllerTest extends WebTestCase
         $user = $this->signedIn(Role::Member);
         $this->feed($user, 'Phone');
         $this->feed($user, 'Laptop');
-        self::assertListWithViews(self::getContainer()->get(CalendarFeedLists::class)->list(), 'calendar.feeds', ['all']);
+        self::assertListWithViews(self::getContainer()->get(CalendarFeedLists::class), 'calendar.feeds', ['name', 'revoked'], ['all' => false]);
         // The first cell of a row holds the name, and on a phone when the feed was made under it.
         $names = static fn (Crawler $crawler): array => $crawler->filter('[data-calendar-feeds] tbody tr[data-id]')->each(static fn (Crawler $row): string => explode('2026', trim($row->filter('th, td')->first()->text()))[0]);
 

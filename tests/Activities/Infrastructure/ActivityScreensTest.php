@@ -191,7 +191,7 @@ final class ActivityScreensTest extends WebTestCase
 
     public function testTheTypesAreAListWithViews(): void
     {
-        self::assertListWithViews(self::getContainer()->get(ActivityTypeLists::class)->list(), 'activities.types', ['all']);
+        self::assertListWithViews(self::getContainer()->get(ActivityTypeLists::class), 'activities.types', ['name', 'timing', 'archived'], ['all' => false]);
         $types = fn (Crawler $crawler): array => $crawler->filter('[data-activity-types] tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->text()));
 
         $crawler = $this->client->request('GET', '/settings/activities?cols=name,key');

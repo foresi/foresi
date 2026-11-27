@@ -65,7 +65,7 @@ final class LabelControllerTest extends WebTestCase
         $this->label('Design', LabelColour::Green);
         $this->label('Launch', LabelColour::Red);
         $this->em->getConnection()->executeStatement('UPDATE label SET deleted_at = ? WHERE name = ?', ['2026-11-01 10:00:00', 'Launch']);
-        self::assertListWithViews(self::getContainer()->get(LabelLists::class)->list(), 'work.labels', ['all', 'trash']);
+        self::assertListWithViews(self::getContainer()->get(LabelLists::class), 'work.labels', ['name', 'tasks', 'trashed'], ['all' => false, 'trash' => true]);
 
         // All leaves out the trash, with the columns the page always showed; the person's own stay.
         $crawler = $this->client->request('GET', '/settings/labels');

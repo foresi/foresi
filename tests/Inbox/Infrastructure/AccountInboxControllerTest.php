@@ -22,7 +22,7 @@ final class AccountInboxControllerTest extends InboxScreenTestCase
 
     public function testTheAddressesAreAListWithViews(): void
     {
-        self::assertListWithViews(self::getContainer()->get(InboxAddressLists::class)->list(), 'inbox.addresses', ['all']);
+        self::assertListWithViews(self::getContainer()->get(InboxAddressLists::class), 'inbox.addresses', ['label', 'dropped'], ['all' => false]);
         $rows = static fn (Crawler $crawler): int => $crawler->filter('[data-inbox-addresses] tbody tr[data-id]')->count();
 
         $crawler = $this->client->request('GET', '/account/inbox');

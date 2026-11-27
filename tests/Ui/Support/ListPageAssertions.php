@@ -9,11 +9,14 @@ declare(strict_types=1);
 namespace Foresi\Tests\Ui\Support;
 
 use Foresi\Shared\Application\View\DefaultView;
-use Foresi\Shared\Application\View\ListDefinition;
+use Foresi\Shared\Application\View\Field;
+use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinitions;
+use Foresi\Shared\Application\View\ListDefinitionSource;
 use PHPUnit\Framework\Assert;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * What every table that ListTable builds shows (docs/design/list-pages.md, rule 8): its list
@@ -24,12 +27,33 @@ use Symfony\Component\DomCrawler\Crawler;
 trait ListPageAssertions
 {
     /**
-     * @param list<string> $views the slugs of the shipped views, in their order
+     * The list a source gives, built once: its own fields, each choice of an enum field named by a
+     * translated label, and its shipped views in their order, each counting its rows or not.
+     *
+     * @param list<string>        $fields the keys of the fields the list is filtered by, in their order
+     * @param array<string, bool> $views  the slugs of the shipped views, in their order, and whether each shows a count
      */
-    private static function assertListWithViews(ListDefinition $list, string $key, array $views): void
+    private static function assertListWithViews(ListDefinitionSource $source, string $key, array $fields, array $views): void
     {
+        $lists = [...$source->lists()];
+        Assert::assertCount(1, $lists);
+        $list = $lists[0];
+        Assert::assertSame([$list], [...$source->lists()], 'The list is built once.');
         Assert::assertSame($key, $list->key);
-        Assert::assertSame($views, array_map(static fn (DefaultView $view): string => $view->slug, $list->defaults));
+        Assert::assertSame($fields, array_values(array_map(static fn (Field $field): string => $field->key, $list->fields)));
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        foreach ($list->fields as $field) {
+            if (FieldType::Enum !== $field->type) {
+                continue;
+            }
+            Assert::assertSame($field->options, array_keys($field->optionLabels));
+            foreach ($field->optionLabels as $label) {
+                Assert::assertNotSame($label, $translator->trans($label, [], null, 'en'), $label.' is a translated label.');
+            }
+        }
+        Assert::assertSame(array_keys($views), array_map(static fn (DefaultView $view): string => $view->slug, $list->defaults));
+        Assert::assertSame(array_values($views), array_map(static fn (DefaultView $view): bool => $view->showCount, $list->defaults));
+        Assert::assertSame(array_keys(array_values($views)), array_map(static fn (DefaultView $view): int => $view->position, $list->defaults));
         // app:views:sync stores the views of every list it finds.
         Assert::assertArrayHasKey($key, self::getContainer()->get(ListDefinitions::class)->all());
     }
