@@ -55,6 +55,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Banking\\Integration\\CashFlow\\.*
+    - name: banking_integration_invoicing
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Banking\\Integration\\Invoicing\\.*
     - name: calendar
       collectors:
         - type: classLike
@@ -555,8 +559,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing
-      - invoicing_contract
       - mail
       - mail_contract
       - party
@@ -572,7 +574,6 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing_contract
       - mail_contract
       - party
       - party_contract
@@ -589,7 +590,23 @@ deptrac:
       - identity_contract
       - instance
       - instance_contract
-      - invoicing
+      - mail
+      - mail_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    banking_integration_invoicing:
+      - audit
+      - audit_contract
+      - banking
+      - banking_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
       - invoicing_contract
       - mail
       - mail_contract
@@ -779,7 +796,6 @@ deptrac:
       - banking_contract
       - country
       - country_contract
-      - invoicing_contract
       - mail_contract
       - party
       - party_contract

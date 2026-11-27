@@ -6,8 +6,9 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Integration\Invoicing;
 
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\MatchDecision;
 use Foresi\Banking\Application\Matcher;
@@ -17,12 +18,11 @@ use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -30,7 +30,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * decide() on candidates made up here, and candidates() on stored invoices.
  * The tests that need the Czech rules are in Integration/Country.
  */
-final class MatcherTest extends BankingTestCase
+final class MatcherTest extends InvoiceBankingTestCase
 {
     private ?FirmBankAccount $foreign = null;
 
@@ -211,7 +211,7 @@ final class MatcherTest extends BankingTestCase
             return $decision->reason instanceof UnmatchedReason ? $decision->reason->value : 'none';
         }
 
-        return array_map(static fn (AllocationRequest $allocation): array => [$allocation->invoiceId, self::decimal($allocation->amount), $allocation->settlement instanceof Money ? self::decimal($allocation->settlement) : null], $decision->allocations);
+        return array_map(static fn (Allocation $allocation): array => [$allocation->documentId, self::decimal($allocation->amount), $allocation->settlement instanceof Money ? self::decimal($allocation->settlement) : null], $decision->allocations);
     }
 
     private static function decimal(Money $money): string

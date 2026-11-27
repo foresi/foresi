@@ -66,13 +66,6 @@ interface BankMovements
     public function corroborationCandidates(MovementInput $input): array;
 
     /**
-     * Whether a payment that is not cancelled came from the movement, whichever path
-     * recorded it. The database allows one such payment per movement, so a save that
-     * failed while this holds lost to another pairing.
-     */
-    public function hasLivePayment(string $movementId): bool;
-
-    /**
      * Whether a movement in the account's currency is recorded on the account. One in
      * another currency says the account's currency is wrong, so it does not count.
      */

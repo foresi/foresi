@@ -21,8 +21,6 @@ use Foresi\Invoicing\Domain\Payment;
  */
 interface PaymentSourceRelease
 {
-    public const string TAG = 'foresi.invoicing.payment_source_release';
-
     /**
      * Takes the row of where the payment came from for this transaction, before any
      * invoice of the payment is locked. A payment of no such source locks nothing.

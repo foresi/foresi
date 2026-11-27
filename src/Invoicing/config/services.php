@@ -60,12 +60,15 @@ use Foresi\Invoicing\Application\SentFiles;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
+use Foresi\Invoicing\Contract\BankPayments;
 use Foresi\Invoicing\Contract\InvoiceNumbers;
 use Foresi\Invoicing\Contract\InvoicingCountry;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PayableInvoices;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWork;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease;
 use Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineBankPayments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceNumbers;
@@ -76,6 +79,7 @@ use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePartyInvoicingDefaults;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePayableInvoices;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog;
@@ -128,8 +132,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // A country module plugs into invoicing with its rules.
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    // Foresi\Invoicing\Contract\BilledWork and BilledWorkRelease are tagged by their own attribute.
-    $builder->registerForAutoconfiguration(PaymentSourceRelease::class)->addTag(PaymentSourceRelease::TAG);
+    // Foresi\Invoicing\Contract\BilledWork, BilledWorkRelease and BankPaymentRelease are tagged by their own attribute.
 
     $services->set(InvoicingCountries::class)
         ->arg('$countries', tagged_iterator(InvoicingCountry::TAG));
@@ -162,6 +165,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(InvoicePayments::class, DoctrineInvoicePayments::class);
     // A cancelled bank payment returns its movement to the unmatched ones.
     $services->alias(PaymentSourceRelease::class, CollectedPaymentSourceRelease::class);
+    // A module that owns bank movements pairs them with invoices through these.
+    $services->alias(BankPayments::class, DoctrineBankPayments::class);
+    $services->alias(PayableInvoices::class, DoctrinePayableInvoices::class);
     // Time is the work an invoice may bill; issuing it locks the time.
     $services->alias(BilledWork::class, CollectedBilledWork::class);
     // An invoice in the trash frees its time, and restoring it bills the time again.

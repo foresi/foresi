@@ -1994,7 +1994,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "87c55178ea768158231221f46b78f65f207929a9"
+                "reference": "4dde37a657d1906d087129af91e79c5748d31ae8"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2003,7 +2003,6 @@
                 "foresi/audit": "self.version",
                 "foresi/identity": "self.version",
                 "foresi/instance": "self.version",
-                "foresi/invoicing": "self.version",
                 "foresi/mail": "self.version",
                 "foresi/module-api": "^1.0",
                 "foresi/party": "self.version",
@@ -2028,7 +2027,8 @@
                     "namespace": "Foresi\\Banking\\",
                     "bundle": "Foresi\\Banking\\BankingBundle",
                     "optional": [
-                        "cash-flow"
+                        "cash-flow",
+                        "invoicing"
                     ]
                 }
             },

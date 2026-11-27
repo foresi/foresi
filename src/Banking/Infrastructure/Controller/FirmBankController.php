@@ -13,6 +13,7 @@ use Foresi\Banking\Application\AddressRefusal;
 use Foresi\Banking\Application\AddressRefused;
 use Foresi\Banking\Application\BankFeedPurpose;
 use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\BankingCountries;
 use Foresi\Banking\Application\ChangePairing;
 use Foresi\Banking\Application\FirmPairingRules;
 use Foresi\Banking\Application\GenerateAddress;
@@ -21,8 +22,6 @@ use Foresi\Banking\Application\TrustChecks;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Identity\Application\OwnerCheck;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Party\Application\BankAccountRefused;
@@ -82,7 +81,7 @@ final class FirmBankController extends AbstractController
         private readonly AddressIssuer $addresses,
         private readonly FirmPairingRules $pairing,
         private readonly ChangePairing $changePairing,
-        private readonly InvoicingCountries $countries,
+        private readonly BankingCountries $countries,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
         private readonly TrustChecks $checks,
@@ -451,11 +450,7 @@ final class FirmBankController extends AbstractController
 
     private function domestic(LegalEntity $firm, string $iban): ?string
     {
-        try {
-            return $this->countries->for($firm->address()->countryCode)->domesticAccount($iban);
-        } catch (UnsupportedCountry) {
-            return null;
-        }
+        return $this->countries->for($firm->address()->countryCode)?->domesticAccount($iban);
     }
 
     private function grouped(string $iban): string

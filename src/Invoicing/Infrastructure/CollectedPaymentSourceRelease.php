@@ -9,36 +9,46 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure;
 
 use Foresi\Invoicing\Application\PaymentSourceRelease;
+use Foresi\Invoicing\Contract\BankPaymentRelease;
 use Foresi\Invoicing\Domain\Payment;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
- * Tells every installed module that owns where payments come from, such as
- * Banking with its movements. Each one ignores a payment of another source;
- * with none installed, a cancellation releases nothing.
+ * Tells every installed module that owns bank movements, such as Banking, by
+ * the ids of the movement and the payment. Only a payment from a movement is
+ * told; each module ignores a movement that is not its own, and with none
+ * installed, a cancellation releases nothing.
  */
 final readonly class CollectedPaymentSourceRelease implements PaymentSourceRelease
 {
     /**
-     * @param iterable<PaymentSourceRelease> $providers
+     * @param iterable<BankPaymentRelease> $providers
      */
     public function __construct(
-        #[AutowireIterator(PaymentSourceRelease::TAG)]
+        #[AutowireIterator(BankPaymentRelease::TAG)]
         private iterable $providers,
     ) {
     }
 
     public function lockSource(Payment $payment): void
     {
+        $movementId = $payment->bankMovementId();
+        if (null === $movementId) {
+            return;
+        }
         foreach ($this->providers as $provider) {
-            $provider->lockSource($payment);
+            $provider->lockMovement($movementId);
         }
     }
 
     public function released(Payment $payment): void
     {
+        $movementId = $payment->bankMovementId();
+        if (null === $movementId) {
+            return;
+        }
         foreach ($this->providers as $provider) {
-            $provider->released($payment);
+            $provider->released($movementId, $payment->id());
         }
     }
 }

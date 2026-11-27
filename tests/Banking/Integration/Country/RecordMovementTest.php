@@ -31,11 +31,11 @@ use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Psr\Clock\ClockInterface;
 
-final class RecordMovementTest extends BankingTestCase
+final class RecordMovementTest extends InvoiceBankingTestCase
 {
     private const string OTHER_OWN_IBAN = 'DE89370400440532013000';
 
@@ -52,12 +52,12 @@ final class RecordMovementTest extends BankingTestCase
         $row = $connection->fetchAssociative('SELECT firm_bank_account_id, inbound_message_id, direction, amount_minor, currency, booked_on, counter_iban, variable_symbol, constant_symbol, trust, trust_basis, state, unmatched_reason, payment_id, auto_pair_blocked FROM bank_movement WHERE id = ?', [$movement->id()]);
         self::assertIsArray($row);
         self::assertSame(
-            [$this->account->id(), '01963c5e-0000-7000-8000-000000000001', 'incoming', 121000, 'CZK', '2026-11-20', self::COUNTER_IBAN, '20260001', '0308', 'verified', 'dmarc', 'paired', null, $payment->id(), false],
+            [$this->account->id(), '01963c5e-0000-7000-8000-000000000001', 'incoming', 121000, 'CZK', '2026-11-20', self::COUNTER_IBAN, '20260001', '0308', 'verified', 'dmarc', 'paired', null, $payment, false],
             [$row['firm_bank_account_id'], $row['inbound_message_id'], $row['direction'], self::int($row['amount_minor']), $row['currency'], $row['booked_on'], $row['counter_iban'], $row['variable_symbol'], $row['constant_symbol'], $row['trust'], $row['trust_basis'], $row['state'], $row['unmatched_reason'], $row['payment_id'], (bool) $row['auto_pair_blocked']],
         );
-        $stored = $connection->fetchAssociative('SELECT source, bank_movement_id, method, received_on, amount_minor FROM payment WHERE id = ?', [$payment->id()]);
+        $stored = $connection->fetchAssociative('SELECT source, bank_movement_id, method, received_on, amount_minor FROM payment WHERE id = ?', [$payment]);
         self::assertSame(['bank_movement', $movement->id(), 'bank_transfer', '2026-11-20', 121000], [$stored['source'] ?? null, $stored['bank_movement_id'] ?? null, $stored['method'] ?? null, $stored['received_on'] ?? null, self::int($stored['amount_minor'] ?? 0)]);
-        $allocations = $connection->fetchAllAssociative('SELECT invoice_id, amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment->id()]);
+        $allocations = $connection->fetchAllAssociative('SELECT invoice_id, amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment]);
         self::assertSame([[$invoice->id(), 121000, 0]], array_map(static fn (array $a): array => [$a['invoice_id'], self::int($a['amount_minor']), self::int($a['settlement_minor'])], $allocations));
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }

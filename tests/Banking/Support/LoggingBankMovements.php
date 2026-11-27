@@ -63,11 +63,6 @@ final class LoggingBankMovements implements BankMovements
         return $this->movements->corroborationCandidates($input);
     }
 
-    public function hasLivePayment(string $movementId): bool
-    {
-        return $this->movements->hasLivePayment($movementId);
-    }
-
     public function anyOnAccount(string $accountId): bool
     {
         return $this->movements->anyOnAccount($accountId);

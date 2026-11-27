@@ -6,13 +6,12 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Banking\Infrastructure\Doctrine;
+namespace Foresi\Invoicing\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Banking\Application\Candidate;
-use Foresi\Banking\Application\Candidates;
-use Foresi\Banking\Domain\BankMovement;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\PayableInvoice;
+use Foresi\Invoicing\Contract\PayableInvoices;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentDirection;
@@ -24,7 +23,7 @@ use Foresi\Shared\Domain\Money;
  * it: amounts and settlements of allocations whose payment is not cancelled, a
  * refund's below zero.
  */
-final readonly class DoctrineCandidates implements Candidates
+final readonly class DoctrinePayableInvoices implements PayableInvoices
 {
     public function __construct(private EntityManagerInterface $em)
     {
@@ -77,26 +76,25 @@ final readonly class DoctrineCandidates implements Candidates
             if ($toRefund > 0) {
                 // Money sent back before a credit note was written is for something else: the later date counts.
                 $issued = null === $row['correctedOn'] ? $row['issueDate'] : max($row['issueDate'], new \DateTimeImmutable($row['correctedOn']));
-                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($toRefund, $row['currency']), $row['customer'], $issued);
+                $candidates[] = new PayableInvoice($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($toRefund, $row['currency']), $row['customer'], $issued);
             }
         }
 
         return $candidates;
     }
 
-    public function paidFrom(?string $counterIban, ?string $counterAccount): array
+    public function paidFrom(array $bankMovementIds): array
     {
-        [$field, $value] = null !== $counterIban && '' !== $counterIban ? ['counterIban', $counterIban] : ['counterAccount', $counterAccount];
-        if (null === $value || '' === $value) {
+        if ([] === $bankMovementIds) {
             return [];
         }
         /** @var list<array{id: string}> $rows */
         $rows = $this->em->createQuery(
-            'SELECT DISTINCT IDENTITY(a.invoice) AS id FROM '.PaymentAllocation::class.' a JOIN a.payment p, '.BankMovement::class.' m '
-            .'WHERE m.id = p.bankMovementId AND p.cancelledAt IS NULL AND p.direction = :incoming AND m.'.$field.' = :value',
+            'SELECT DISTINCT IDENTITY(a.invoice) AS id FROM '.PaymentAllocation::class.' a JOIN a.payment p '
+            .'WHERE p.bankMovementId IN (:movements) AND p.cancelledAt IS NULL AND p.direction = :incoming',
         )
             ->setParameter('incoming', PaymentDirection::Incoming)
-            ->setParameter('value', $value)
+            ->setParameter('movements', $bankMovementIds)
             ->getArrayResult();
 
         return array_map(static fn (array $row): string => $row['id'], $rows);
@@ -124,7 +122,7 @@ final readonly class DoctrineCandidates implements Candidates
     /**
      * @param array<string, mixed> $parameters
      *
-     * @return list<Candidate>
+     * @return list<PayableInvoice>
      */
     private function candidates(string $where, array $parameters): array
     {
@@ -133,7 +131,7 @@ final readonly class DoctrineCandidates implements Candidates
             // Overpaid or credited invoices have nothing left: no candidate either.
             $remaining = (int) $row['payable'] + (int) $row['corrections'] - (int) $row['paid'];
             if ($remaining > 0) {
-                $candidates[] = new Candidate($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($remaining, $row['currency']), $row['customer'], $row['issueDate']);
+                $candidates[] = new PayableInvoice($row['id'], $row['number'], $row['dueDate'], Money::ofMinor($remaining, $row['currency']), $row['customer'], $row['issueDate']);
             }
         }
 

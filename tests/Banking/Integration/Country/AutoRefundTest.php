@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Integration\Country;
 
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Contract\MovementDirection;
@@ -31,7 +32,7 @@ use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 
 /**
@@ -40,7 +41,7 @@ use Foresi\Tests\Party\Support\FirmAccounts;
  * exactly what it has to refund. An invoice of 1 210 paid in full and credited by
  * 484, an overpaid invoice and a paid advance no final invoice deducts all qualify.
  */
-final class AutoRefundTest extends BankingTestCase
+final class AutoRefundTest extends InvoiceBankingTestCase
 {
     private const string OWN_IBAN = 'DE89370400440532013000';
 
@@ -53,7 +54,7 @@ final class AutoRefundTest extends BankingTestCase
 
         self::assertNotNull($payment);
         $this->em->clear();
-        self::assertSame(PaymentDirection::Refund, $this->payments->get($payment->id())->direction());
+        self::assertSame(PaymentDirection::Refund, $this->payments->get($payment)->direction());
         self::assertSame(MovementState::Paired, $this->storedMovement($movement->id())->state());
         self::assertSame(0, $this->payments->toRefundOf($this->store->get($invoice->id()))->minor());
     }
@@ -80,8 +81,8 @@ final class AutoRefundTest extends BankingTestCase
         self::assertNull($this->pairing->auto($movement->id()));
 
         self::assertSame(UnmatchedReason::Unverified, $this->storedMovement($movement->id())->unmatchedReason());
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('484.00'))], checkedInBank: true);
-        self::assertSame(PaymentDirection::Refund, $payment->direction(), 'a person still pairs it by hand');
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('484.00'))], checkedInBank: true);
+        self::assertSame(PaymentDirection::Refund, $this->payments->get($payment)->direction(), 'a person still pairs it by hand');
     }
 
     public function testARefundSentBeforeTheCreditNoteIsOnlySuggested(): void
@@ -144,7 +145,7 @@ final class AutoRefundTest extends BankingTestCase
         $refund = $this->pairing->auto($movement->id());
 
         self::assertNotNull($refund);
-        self::assertSame(PaymentDirection::Refund, $refund->direction());
+        self::assertSame(PaymentDirection::Refund, $this->payments->get($refund)->direction());
         $this->em->clear();
         self::assertSame(0, $this->payments->toRefundOf($this->store->get($advance->id()))->minor());
     }

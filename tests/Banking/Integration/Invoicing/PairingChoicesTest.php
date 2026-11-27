@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Banking\Application;
+namespace Foresi\Tests\Banking\Integration\Invoicing;
 
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\Candidates;
@@ -16,16 +16,15 @@ use Foresi\Banking\Application\PairingChoice;
 use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Application\PairingOptions;
 use Foresi\Banking\Application\PairingRules;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -33,7 +32,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  * the ones a test gives, so each rule of the offer shows on its own.
  * The tests that need the Czech rules are in Integration/Country.
  */
-final class PairingChoicesTest extends BankingTestCase
+final class PairingChoicesTest extends InvoiceBankingTestCase
 {
     /** @var list<Candidate> what the symbol finds */
     private array $bySymbol = [];
@@ -276,7 +275,7 @@ final class PairingChoicesTest extends BankingTestCase
             }
         };
 
-        return new PairingChoices(new Matcher($candidates, self::getContainer()->get(InvoicingCountries::class), self::getContainer()->get(InstanceFirm::class)), $candidates, $rules)->of($movement, $text, $kept);
+        return new PairingChoices(new Matcher($candidates, self::getContainer()->get(PaymentPairing::class)), $candidates, $rules)->of($movement, $text, $kept);
     }
 
     /**

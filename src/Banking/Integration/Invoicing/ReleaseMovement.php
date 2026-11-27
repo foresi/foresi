@@ -6,12 +6,11 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Banking\Infrastructure;
+namespace Foresi\Banking\Integration\Invoicing;
 
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\UnknownBankMovement;
-use Foresi\Invoicing\Application\PaymentSourceRelease;
-use Foresi\Invoicing\Domain\Payment;
+use Foresi\Invoicing\Contract\BankPaymentRelease;
 
 /**
  * A bank payment was cancelled, on the invoice or by unpairing: its movement is
@@ -19,38 +18,30 @@ use Foresi\Invoicing\Domain\Payment;
  * only changes the movement, and never cancels anything, so the two paths cannot
  * call each other round.
  */
-final readonly class ReleaseMovement implements PaymentSourceRelease
+final readonly class ReleaseMovement implements BankPaymentRelease
 {
     public function __construct(private BankMovements $movements)
     {
     }
 
-    public function lockSource(Payment $payment): void
+    public function lockMovement(string $bankMovementId): void
     {
-        $id = $payment->bankMovementId();
-        if (null === $id) {
-            return;
-        }
         try {
-            $this->movements->lock($id);
+            $this->movements->lock($bankMovementId);
         } catch (UnknownBankMovement) {
             // Nothing recorded to lock; the payment is cancelled all the same.
         }
     }
 
-    public function released(Payment $payment): void
+    public function released(string $bankMovementId, string $paymentId): void
     {
-        $id = $payment->bankMovementId();
-        if (null === $id) {
-            return;
-        }
         try {
-            $movement = $this->movements->lock($id);
+            $movement = $this->movements->lock($bankMovementId);
         } catch (UnknownBankMovement) {
             // Nothing recorded to take back; the payment is cancelled all the same.
             return;
         }
-        if ($movement->paymentId() === $payment->id()) {
+        if ($movement->paymentId() === $paymentId) {
             $movement->release();
         }
     }
