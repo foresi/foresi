@@ -13,15 +13,18 @@ use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\TaxesAndContributions\Application\View\ProfileStatusLists;
 use Foresi\TaxesAndContributions\Domain\OwnerProfile;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\TaxesAndContributions\Support\FirmVat;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Clock\Clock;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\NativeClock;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The profile page under Money → Taxes and contributions: the owner adds a
@@ -30,6 +33,8 @@ use Symfony\Component\Clock\NativeClock;
  */
 final class ProfileControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
 
@@ -111,6 +116,32 @@ final class ProfileControllerTest extends WebTestCase
         $crawler = $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'sickness_insurance:on', 'validFrom' => '2026-01-01', 'base' => ''] + $values);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('Enter the monthly base', $crawler->filter('#taxes-status-form')->text());
+    }
+
+    public function testTheStatusesAreOneListWithViewsShownAsATablePerKind(): void
+    {
+        $this->signedIn(Role::Owner);
+        $values = $this->dialogForm('/taxes-and-contributions/profile/statuses/new', '#taxes-status-form');
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'legal_form:sole_trader', 'validFrom' => '2024-03-01'] + $values);
+        $this->dialogPost('/taxes-and-contributions/profile/statuses/new', ['change' => 'activity:main', 'validFrom' => '2024-03-01'] + $values);
+        self::assertListWithViews(self::getContainer()->get(ProfileStatusLists::class), 'taxes.profile_statuses', ['value', 'kind'], ['all' => false]);
+        $kinds = static fn (Crawler $crawler): array => $crawler->filter('[data-taxes-statuses] [data-taxes-kind]')->each(static fn (Crawler $group): string => (string) $group->attr('data-taxes-kind'));
+
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses');
+        // One toolbar for the page, and every table has the same columns.
+        self::assertCount(1, $crawler->filter('[data-taxes-statuses] [data-list-toolbar]'));
+        self::assertSame(['legal_form', 'activity', 'vat_payer'], $kinds($crawler));
+        foreach ($crawler->filter('[data-taxes-kind] colgroup')->each(static fn (Crawler $cols): array => $cols->filter('col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column'))) as $columns) {
+            self::assertSame(['value', 'from', 'until'], $columns);
+        }
+        self::assertListTable($crawler, '[data-taxes-statuses]', ['widths' => '']);
+
+        // A search keeps the kinds that have a row left, and none shows the way out.
+        self::assertSame(['activity'], $kinds($this->client->request('GET', '/taxes-and-contributions/profile/statuses?q=main')));
+        $crawler = $this->client->request('GET', '/taxes-and-contributions/profile/statuses?q=zzz');
+        self::assertSame([], $kinds($crawler));
+        self::assertCount(1, $crawler->selectLink('Clear the filter'));
+        self::assertSame(['legal_form'], $kinds(self::applyBuilder($this->client, '/taxes-and-contributions/profile/statuses', 'value', 'Sole')));
     }
 
     public function testTheOwnerEntersAYearInThreeSheetsAndAnAuthorityAccount(): void
@@ -251,7 +282,7 @@ final class ProfileControllerTest extends WebTestCase
     /**
      * @param array<string, string> $values
      */
-    private function dialogPost(string $url, array $values): \Symfony\Component\DomCrawler\Crawler
+    private function dialogPost(string $url, array $values): Crawler
     {
         return $this->client->request('POST', $url, $values, server: [$this->dialogHeader() => '1']);
     }

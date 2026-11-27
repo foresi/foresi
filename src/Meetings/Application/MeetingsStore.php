@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Meetings\Application;
 
+use Foresi\Meetings\Domain\ActionItem;
 use Foresi\Meetings\Domain\Attendee;
 use Foresi\Meetings\Domain\Meeting;
 use Foresi\Meetings\Domain\MeetingLink;
@@ -72,6 +73,25 @@ interface MeetingsStore
      * @return array<string, list<array{string, string}>> the kind and id of each record linked, by meeting id
      */
     public function linksOf(array $meetingIds): array;
+
+    public function actionItem(string $id): ?ActionItem;
+
+    /**
+     * @param list<string> $meetingIds
+     *
+     * @return list<ActionItem> of those meetings, in the order they were made
+     */
+    public function actionItemsOf(array $meetingIds): array;
+
+    /**
+     * @return list<ActionItem> the action items a task was made as, the oldest first
+     */
+    public function actionItemsOfTask(string $taskId): array;
+
+    /**
+     * @return list<Meeting> the meetings of the series not in the trash, the newest first
+     */
+    public function meetingsOf(MeetingSeries $series): array;
 
     /**
      * @return list<Meeting> those in the trash since before the moment, oldest first

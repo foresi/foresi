@@ -6,6 +6,8 @@
 
 declare(strict_types=1);
 
+use Foresi\Meetings\Application\ActionItemReads;
+use Foresi\Meetings\Application\ActionItemWrites;
 use Foresi\Meetings\Application\MeetingHistory;
 use Foresi\Meetings\Application\MeetingQueries;
 use Foresi\Meetings\Application\MeetingReads;
@@ -36,7 +38,7 @@ return static function (ContainerConfigurator $container): void {
 
     if ('test' === $container->env()) {
         // The tests drive the use cases directly.
-        foreach ([SeriesWrites::class, SeriesReads::class, MeetingWrites::class, MeetingReads::class, MeetingHistory::class, MeetingVisibility::class, PurgeTrashedMeetings::class] as $service) {
+        foreach ([SeriesWrites::class, SeriesReads::class, MeetingWrites::class, MeetingReads::class, MeetingHistory::class, MeetingVisibility::class, PurgeTrashedMeetings::class, ActionItemWrites::class, ActionItemReads::class] as $service) {
             $services->set($service)->public();
         }
     }

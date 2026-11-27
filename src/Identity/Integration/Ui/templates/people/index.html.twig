@@ -1,7 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
     The people of the organisation: who belongs to it, and for the owner the pending invitations.
-    The staff see the list; only the owner gets the tabs, the invitation and the row actions.
+    The staff see the list; only the owner gets the Invitations view, the invitation and the row actions.
+    The people are a list with views, search, filters, columns and widths (docs/design/list-pages.md,
+    rule 8); the invitations are its Invitations view. Variables: owner, invitations (whether the filter
+    shows the invitations), people (the table ListTable gives).
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -19,14 +22,25 @@
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
         {% endfor %}
     {% endfor %}
-    {% if owner %}<div class="mb-4">{% include '@Identity/people/_tabs.html.twig' with {active: tab, pendingCount: pendingCount} only %}</div>{% endif %}
-    <twig:Ui:DataTable :caption="(tab == 'people' ? 'people.tab.people' : 'people.tab.invitations')|trans" :columns="columns" :rows="rows" :actionToken="owner ? csrf_token(constant('Foresi\\Identity\\Integration\\Ui\\Controller\\PeopleController::TOKEN')) : null">
-        <twig:block name="empty">
-            {% if tab == 'invitations' %}
-                <twig:Ui:EmptyState icon="send" :title="'people.invitations.empty.title'|trans" :text="'people.invitations.empty.text'|trans">
-                    <twig:Ui:Button variant="primary" icon="user-plus" :href="path('app_people_invite')">{{ 'people.invite'|trans }}</twig:Ui:Button>
-                </twig:Ui:EmptyState>
-            {% endif %}
-        </twig:block>
-    </twig:Ui:DataTable>
+    {% set t = people %}
+    <section class="grid gap-2" data-people>
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'people.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_people')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_people')" :keep="t.keep"
+            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+        </twig:Ui:FilterBar>
+        <twig:Ui:DataTable :caption="(invitations ? 'people.tab.invitations' : 'people.tab.people')|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="owner ? csrf_token(constant('Foresi\\Identity\\Integration\\Ui\\Controller\\PeopleController::TOKEN')) : null">
+            <twig:block name="empty">
+                {% if invitations and owner and t.view == 'invitations' and not t.filtered %}
+                    <twig:Ui:EmptyState icon="send" :title="'people.invitations.empty.title'|trans" :text="'people.invitations.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="user-plus" :href="path('app_people_invite')">{{ 'people.invite'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% elseif t.filtered or t.view != '' %}
+                    <twig:Ui:EmptyState icon="search" :title="'people.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="t.resetHref">{{ 'people.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
+    </section>
 {% endblock %}

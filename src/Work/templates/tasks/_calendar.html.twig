@@ -1,0 +1,80 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The calendar of due dates of a view of all tasks (plan 37.5): a month as whole weeks from Monday,
+    or one week (Teamwork, Freelo, Todoist), the weekend shown unless the view hides it (Teamwork,
+    ClickUp). Each day lists its tasks, the most urgent first, each opening in the sheet, where its due
+    date also changes without dragging (WCAG 2.5.7); a finished one is struck through, an unfinished one
+    past its date says so. A task is dragged by its handle to another day, which sets its due date, or
+    onto "No due date", which clears it; the page then comes back in place. Beside the month, the
+    tasks of the view with no due date are dragged onto a day to plan them (Freelo, Teamwork, Asana,
+    Todoist, Productive). The + of a day, shown on hover or focus, opens New task with that date
+    (Freelo, Todoist, Teamwork).
+    On a narrow screen the days stand one under the other, an empty one left out.
+#}
+{% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
+{% set listClass = 'm-0 grid min-h-6 list-none content-start gap-1 p-0 [&>.calendar-ghost]:h-0.5 [&>.calendar-ghost]:overflow-hidden [&>.calendar-ghost]:border-0 [&>.calendar-ghost]:bg-green [&>.calendar-ghost]:p-0 [&>.calendar-chosen]:border-green [&>.calendar-drag]:shadow-floating' %}
+{% macro entry(task, focus, dragLabel) %}
+    <li class="flex min-w-0 items-start gap-1 rounded-control border border-container bg-white p-1 text-small" data-calendar-task data-task-id="{{ task.id }}">
+        <span class="grid size-6 shrink-0 cursor-grab touch-none place-items-center rounded-control text-muted hover:bg-head active:cursor-grabbing" data-calendar-handle title="{{ dragLabel }}" aria-hidden="true">{{ ux_icon('lucide:grip-vertical', {class: 'size-4'}) }}</span>
+        <span class="grid min-w-0 flex-1 gap-0.5">
+            <a href="{{ task.href }}" data-sheet aria-haspopup="dialog" class="line-clamp-2 min-w-0 break-words font-medium no-underline {{ task.done ? 'text-muted line-through' : 'text-ink' }} {{ focus }}" title="{{ task.title }}" data-calendar-title>{{ task.title }}{% if task.done %}<span class="sr-only"> ({{ 'work.tasks.calendar.done'|trans }})</span>{% endif %}</a>
+            <span class="min-w-0 truncate text-caption text-muted">{{ task.project }}</span>
+            {% if task.priority or task.overdue %}
+                <span class="flex flex-wrap gap-1">
+                    {% if task.overdue %}<twig:Ui:Badge tone="red" data-calendar-overdue>{{ 'work.tasks.calendar.overdue'|trans }}</twig:Ui:Badge>{% endif %}
+                    {% if task.priority %}<span><span class="sr-only">{{ 'work.task.field.priority'|trans }}: </span><twig:Ui:Badge :tone="task.priority.tone">{{ task.priority.text }}</twig:Ui:Badge></span>{% endif %}
+                </span>
+            {% endif %}
+        </span>
+    </li>
+{% endmacro %}
+{% set dragLabel = 'work.tasks.calendar.drag'|trans %}
+<div class="grid gap-3" data-controller="task-calendar" data-task-calendar-url-value="{{ calendar.due.url }}" data-task-calendar-token-value="{{ calendar.due.token }}" data-task-calendar-return-value="{{ calendar.due.return }}" data-task-calendar data-period="{{ calendar.period }}">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1">
+            <twig:Ui:IconButton icon="chevron-left" variant="secondary" size="sm" :href="calendar.previous" :label="('work.tasks.calendar.previous_' ~ calendar.period)|trans" data-calendar-previous />
+            <twig:Ui:Button size="sm" :href="calendar.today" data-calendar-today>{{ 'work.tasks.calendar.today'|trans }}</twig:Ui:Button>
+            <twig:Ui:IconButton icon="chevron-right" variant="secondary" size="sm" :href="calendar.next" :label="('work.tasks.calendar.next_' ~ calendar.period)|trans" data-calendar-next />
+            <h2 class="m-0 ml-2 text-heading font-semibold text-ink first-letter:uppercase" data-calendar-title-period>{{ calendar.title }}</h2>
+        </div>
+        <twig:Ui:Tabs :items="calendar.periods" :label="'work.tasks.calendar.periods'|trans" />
+    </div>
+    {% if calendar.weekend > 0 %}
+        <p class="m-0 text-small text-muted" data-calendar-weekend>{{ 'work.tasks.calendar.weekend_hidden'|trans({count: calendar.weekend}) }} <a href="{{ calendar.showWeekends }}" class="text-ink {{ focus }}">{{ 'work.tasks.calendar.show_weekends'|trans }}</a></p>
+    {% endif %}
+    {% if calendar.more > 0 %}
+        <twig:Ui:Alert tone="warning" data-calendar-too-many>{{ 'work.tasks.calendar.too_many'|trans({count: calendar.max}) }}</twig:Ui:Alert>
+    {% endif %}
+    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <section aria-labelledby="calendar-label" class="min-w-0">
+            <h2 id="calendar-label" class="sr-only">{{ 'work.tasks.calendar.label'|trans }}: {{ calendar.title }}</h2>
+            {% set columns = calendar.weekdays|length == 7 ? 'md:grid-cols-7' : 'md:grid-cols-5' %}
+            <div class="hidden gap-px md:grid {{ columns }}" aria-hidden="true">
+                {% for weekday in calendar.weekdays %}<div class="px-2 pb-1 text-caption font-medium uppercase text-muted">{{ weekday }}</div>{% endfor %}
+            </div>
+            <ol class="m-0 grid list-none grid-cols-1 gap-px overflow-hidden rounded-panel border border-container bg-container p-0 {{ columns }}">
+                {% for week in calendar.weeks %}
+                    {% for day in week %}
+                        <li class="{{ day.tasks is empty ? 'hidden md:grid' : 'grid' }} {{ calendar.period == 'week' ? 'md:min-h-80' : 'md:min-h-28' }} group content-start gap-1 p-1.5 {{ day.own ? 'bg-white' : 'bg-head' }}" data-calendar-day="{{ day.date }}"{% if day.today %} aria-current="date"{% endif %}>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-small {{ day.today ? 'font-semibold text-green' : (day.own ? 'text-ink' : 'text-muted') }}"><span class="md:hidden">{{ day.label }}</span><span class="hidden md:inline"><span aria-hidden="true"{% if day.today %} class="grid size-6 place-items-center rounded-sm bg-green text-white"{% endif %}>{{ day.number }}</span><span class="sr-only">{{ day.label }}</span></span></span>
+                                <twig:Ui:IconButton icon="plus" variant="ghost" size="sm" :href="day.add" :label="day.addLabel" data-dialog data-dialog-then="follow" aria-haspopup="dialog" class="md:opacity-0 md:focus-visible:opacity-100 md:group-hover:opacity-100" data-calendar-add />
+                            </div>
+                            <ol class="{{ listClass }}" data-task-calendar-target="list" data-day="{{ day.date }}">
+                                {% for task in day.tasks %}{{ _self.entry(task, focus, dragLabel) }}{% endfor %}
+                            </ol>
+                        </li>
+                    {% endfor %}
+                {% endfor %}
+            </ol>
+        </section>
+        <section aria-labelledby="calendar-undated" class="grid content-start gap-2 rounded-panel border border-container bg-white p-2" data-calendar-undated>
+            <h2 id="calendar-undated" class="m-0 text-small font-semibold text-ink">{{ 'work.tasks.calendar.undated'|trans }}</h2>
+            <p class="m-0 text-caption text-muted">{{ calendar.undated is empty ? 'work.tasks.calendar.undated_empty'|trans : 'work.tasks.calendar.undated_hint'|trans }}</p>
+            <ol class="{{ listClass }}" data-task-calendar-target="list" data-day="">
+                {% for task in calendar.undated %}{{ _self.entry(task, focus, dragLabel) }}{% endfor %}
+            </ol>
+            {% if calendar.undatedMore > 0 %}<p class="m-0 text-caption text-muted" data-calendar-undated-more>{{ 'work.tasks.calendar.undated_more'|trans({count: calendar.undatedMore}) }}</p>{% endif %}
+        </section>
+    </div>
+</div>

@@ -60,6 +60,10 @@ final readonly class UpdateViewInput
         public string|Omitted|null $groupBy = new Omitted(),
         #[Field('The quick filters shown as chips under the tabs, in order: keys of the list\'s fields, at most 4; an empty list pins none, null the list\'s own.', items: 'string')]
         public array|Omitted|null $pinned = new Omitted(),
+        #[Field('How the rows are laid out, on a list that offers a calendar: list (a table) or calendar; null for a table.', enum: ViewRules::LAYOUTS)]
+        public string|Omitted|null $layout = new Omitted(),
+        #[Field('Whether the calendar shows Saturday and Sunday; null shows them.')]
+        public bool|Omitted|null $weekends = new Omitted(),
     ) {
     }
 }

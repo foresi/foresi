@@ -21,8 +21,13 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * for its preview. Given "uploadUrl" with the
  * kind and id of the record ("uploadKind", "uploadOwner"), an image pasted from the
  * clipboard or files dropped on the text area are uploaded there, as on GitHub, and
- * go into the text as Markdown images or links. Without JavaScript only the text
- * area shows.
+ * go into the text as Markdown images or links. Given "taskUrl" (a dialog that
+ * makes a task, such as a meeting's), the toolbar has Create task, also with
+ * Ctrl/Cmd+Shift+K, for a selection on one line outside another task's token,
+ * as Linear's create issue from selection: the dialog opens with the selection
+ * as its "title", and its answer (the event markdown-editor:task-created with
+ * the task's id) puts "[selection](task:id)" in place of the selection. Without
+ * JavaScript only the text area shows.
  */
 #[AsTwigComponent]
 final class MarkdownEditor extends AbstractControl
@@ -43,6 +48,8 @@ final class MarkdownEditor extends AbstractControl
     public ?string $uploadUrl = null;
     public ?string $uploadKind = null;
     public ?string $uploadOwner = null;
+    /** A dialog that makes a task from the selection, given as "title"; without it there is no Create task. */
+    public ?string $taskUrl = null;
 
     #[PostMount]
     public function validateUrls(): void
@@ -53,6 +60,7 @@ final class MarkdownEditor extends AbstractControl
         Style::href($this->previewUrl);
         Style::href($this->mentionsUrl);
         Style::href($this->uploadUrl);
+        Style::href($this->taskUrl);
         if (null !== $this->uploadUrl && (null === $this->uploadKind || null === $this->uploadOwner)) {
             throw new \InvalidArgumentException('An upload URL needs the kind and the id of the record the files go to.');
         }

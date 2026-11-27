@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The meeting a task was made at, in the task's header, for Work's TaskSlots::HEADER_FACTS (MeetingTaskFacts):
+    the meeting linked to its page. Variables: meeting (its title), href.
+#}
+<p class="m-0" data-task-meeting>{{ 'meetings.task_fact.label'|trans }}: <a href="{{ href }}" class="font-medium text-ink no-underline hover:underline">{{ meeting }}</a></p>

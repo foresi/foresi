@@ -1,0 +1,21 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The pill of a task after its text (spec, Task reference token): its status coloured by its type as the
+    task list shows it, who is responsible or "Nobody", the due day marked when overdue, linked to the task.
+    A task in the trash reads "In the trash", muted, with no link. Variables: task (Foresi\Work\Contract\TaskSummary),
+    today (YYYY-MM-DD).
+#}
+{% set tones = {open: 'gray', active: 'amber', done: 'green', closed: 'gray'} %}
+{% if task.trashed %}
+    <span class="ml-1 inline-flex align-baseline" data-task-pill="trashed"><twig:Ui:Badge tone="gray" class="text-muted">{{ 'meetings.task.in_trash'|trans }}</twig:Ui:Badge></span>
+{% else %}
+    {% set overdue = not task.done and task.dueOn and task.dueOn|date('Y-m-d') < today %}
+    <a href="{{ task.url }}" class="ml-1 inline-flex flex-wrap items-center gap-1 align-baseline text-caption text-muted no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}" aria-label="{{ 'meetings.task.open'|trans({title: task.title}) }}" data-task-pill="{{ overdue ? 'overdue' : task.statusType }}">
+        <twig:Ui:Badge :tone="tones[task.statusType]|default('gray')">{{ task.statusName }}</twig:Ui:Badge>
+        <span>{{ task.responsibleName ?? 'meetings.task.nobody'|trans }}</span>
+        {% if task.dueOn %}
+            {% set due = task.dueOn|date('format.date'|trans) %}
+            {% if overdue %}<twig:Ui:Badge tone="red">{{ 'meetings.task.overdue'|trans({date: due}) }}</twig:Ui:Badge>{% else %}<span>{{ due }}</span>{% endif %}
+        {% endif %}
+    </a>
+{% endif %}

@@ -11,6 +11,7 @@ namespace Foresi\Meetings\Infrastructure\Doctrine;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Meetings\Application\MeetingsStore;
+use Foresi\Meetings\Domain\ActionItem;
 use Foresi\Meetings\Domain\Attendee;
 use Foresi\Meetings\Domain\Meeting;
 use Foresi\Meetings\Domain\MeetingLink;
@@ -140,6 +141,39 @@ final readonly class DoctrineMeetingsStore implements MeetingsStore
             ->getResult();
 
         return $meetings;
+    }
+
+    public function actionItem(string $id): ?ActionItem
+    {
+        return $this->em->find(ActionItem::class, $id);
+    }
+
+    public function actionItemsOf(array $meetingIds): array
+    {
+        if ([] === $meetingIds) {
+            return [];
+        }
+
+        /* @var list<ActionItem> */
+        return $this->em->createQuery('SELECT a FROM '.ActionItem::class.' a WHERE a.meeting IN (:ids) ORDER BY a.createdAt ASC, a.id ASC')
+            ->setParameter('ids', $meetingIds, ArrayParameterType::STRING)
+            ->getResult();
+    }
+
+    public function actionItemsOfTask(string $taskId): array
+    {
+        /* @var list<ActionItem> */
+        return $this->em->createQuery('SELECT a, m FROM '.ActionItem::class.' a JOIN a.meeting m WHERE a.taskId = :task ORDER BY a.createdAt ASC, a.id ASC')
+            ->setParameter('task', $taskId)
+            ->getResult();
+    }
+
+    public function meetingsOf(MeetingSeries $series): array
+    {
+        /* @var list<Meeting> */
+        return $this->em->createQuery('SELECT m FROM '.Meeting::class.' m WHERE m.series = :series AND m.deletedAt IS NULL ORDER BY m.heldOn DESC, m.createdAt DESC, m.id DESC')
+            ->setParameter('series', $series->id())
+            ->getResult();
     }
 
     public function add(object $entity): void

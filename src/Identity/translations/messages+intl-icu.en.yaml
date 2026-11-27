@@ -60,6 +60,7 @@ people:
     rate: Hourly rate
     rate_help: Applies when neither the project nor the client has a rate
     rate_currency: Currency
+    invited: Invitation
   column:
     name: Name
     email: E-mail
@@ -131,6 +132,11 @@ people:
     action: Accept the invitation
     validity: '{days, plural, one {The link works once, for # day.} other {The link works once, for # days.}}'
     ignore: If you did not expect this invitation, ignore this e-mail.
+  views: Views of the people
+  search: Search by name or e-mail
+  empty:
+    filtered_title: Nothing matches the filter
+    reset: Clear the filter
 api_tokens:
   title: API and MCP
   new: New token
@@ -201,12 +207,15 @@ api_tokens:
   state:
     expired: Expired
     revoked: Revoked
+    active: Active
   field:
     name: Name
     name_help: Where you will use it, such as Reporting
     expiry: Expires after
     access: Access
     access_help: Only what its program needs. Changing includes reading.
+    state: State
+    verified: Verified
   expiry: '{days, plural, one {# day} other {# days}}'
   action:
     revoke: Revoke
@@ -221,6 +230,8 @@ api_tokens:
   empty:
     title: No API tokens
     text: A token lets another program read your data without your password.
+    filtered_title: Nothing matches the filter
+    reset: Clear the filter
   two_factor:
     text: A token can only be created with two-factor sign-in.
     link: Set up two-factor sign-in
@@ -247,6 +258,7 @@ api_tokens:
   tab:
     tokens: Tokens
     connect: MCP
+    all: All
   connect:
     intro: Foresi has an MCP server. Claude and other AI clients read and change your data through it. Add the server address to your client; it opens Foresi in the browser, where you sign in and choose what it may do. Scripts and clients without OAuth sign-in use a token instead.
     server: MCP server address
@@ -312,6 +324,8 @@ api_tokens:
       disconnect: Disconnect an app you no longer use under Settings → API and MCP. It loses its access at once.
       revoke: Revoke a token you no longer need, or that may have leaked, on the Tokens tab. It stops working at once.
     docs: The tools and the REST API in detail
+  views: 'Views of {list}'
+  search: Search by name
 invitation:
   title: 'Join {organisation}'
   field:

@@ -11,6 +11,7 @@ namespace Foresi\Tests\Ui\Support;
 use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
+use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitions;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use PHPUnit\Framework\Assert;
@@ -27,7 +28,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 trait ListPageAssertions
 {
     /**
-     * The list a source gives, built once: its own fields, each choice of an enum field named by a
+     * The list of a key a source gives, built once: its own fields, each choice of an enum field named by a
      * translated label, and its shipped views in their order, each counting its rows or not.
      *
      * @param list<string>        $fields the keys of the fields the list is filtered by, in their order
@@ -36,9 +37,10 @@ trait ListPageAssertions
     private static function assertListWithViews(ListDefinitionSource $source, string $key, array $fields, array $views): void
     {
         $lists = [...$source->lists()];
-        Assert::assertCount(1, $lists);
-        $list = $lists[0];
-        Assert::assertSame([$list], [...$source->lists()], 'The list is built once.');
+        $keyed = array_values(array_filter($lists, static fn (ListDefinition $one): bool => $one->key === $key));
+        Assert::assertCount(1, $keyed);
+        $list = $keyed[0];
+        Assert::assertSame($lists, [...$source->lists()], 'Each list is built once.');
         Assert::assertSame($key, $list->key);
         Assert::assertSame($fields, array_values(array_map(static fn (Field $field): string => $field->key, $list->fields)));
         $translator = self::getContainer()->get(TranslatorInterface::class);

@@ -123,6 +123,7 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/meetings' => ['get' => '200', 'post' => '201'],
                 '/api/v1/meetings/{meetingId}' => ['get' => '200', 'patch' => '200'],
                 '/api/v1/meetings/{meetingId}/minutes' => ['put' => '200'],
+                '/api/v1/meetings/{meetingId}/action-items' => ['post' => '201'],
                 '/api/v1/meetings/{meetingId}/trash' => ['post' => '200'],
                 '/api/v1/meetings/{meetingId}/restore' => ['post' => '200'],
             ],

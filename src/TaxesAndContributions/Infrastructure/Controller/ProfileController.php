@@ -8,8 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\TaxesAndContributions\Infrastructure\Controller;
 
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\TaxesAndContributions\Application\AddStatusInput;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
 use Foresi\TaxesAndContributions\Application\ProfileWrites;
@@ -18,11 +20,15 @@ use Foresi\TaxesAndContributions\Application\SetAuthorityAccountInput;
 use Foresi\TaxesAndContributions\Application\SetYearInputsInput;
 use Foresi\TaxesAndContributions\Application\TaxesAccess;
 use Foresi\TaxesAndContributions\Application\TaxesRefused;
+use Foresi\TaxesAndContributions\Application\View\ProfileStatusLists;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\DeductionType;
 use Foresi\TaxesAndContributions\Contract\ReturnRoute;
+use Foresi\TaxesAndContributions\Infrastructure\Column\ProfileStatusColumns;
+use Foresi\TaxesAndContributions\Infrastructure\Column\StatusRow;
 use Foresi\TaxesAndContributions\Infrastructure\Screen\ProfileScreen;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,6 +56,9 @@ final class ProfileController extends AbstractController
         private readonly ProfileScreen $screen,
         private readonly TaxesAccess $access,
         private readonly TranslatorInterface $translator,
+        private readonly ProfileStatusLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -71,13 +80,25 @@ final class ProfileController extends AbstractController
      * form in the same dialog. The same URL is a page.
      */
     #[Route('/taxes-and-contributions/profile/statuses', name: self::ROUTE.'_statuses', methods: ['GET'])]
-    public function statuses(): Response
+    public function statuses(Request $request): Response
     {
         $profile = $this->reads()->profile();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE.'_statuses', $built, Response::HTTP_SEE_OTHER);
+        }
+        // One list for the whole dialog: its tables, one per kind, share its view and its columns.
+        $records = $this->screen->statusRows($profile);
+        $page = $this->listTable->of($slot, $list, ProfileStatusColumns::LIST, self::ROUTE.'_statuses', 'taxes-statuses', $records, $this->screen->statusRow(...), $this->screen->statusField(...), static fn (StatusRow $row): string => $row->value, $this->translator->trans('taxes.profile.search'));
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $page->table['rows'];
 
         return $this->render('@TaxesAndContributions/profile/statuses.html.twig', [
-            'columns' => $this->screen->statusColumns(),
-            'groups' => $this->screen->statusGroups($profile),
+            'statuses' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
+            'groups' => $this->screen->statusGroups($records, $rows),
         ]);
     }
 

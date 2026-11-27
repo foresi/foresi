@@ -13,6 +13,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\SavedViewUserStates;
+use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 
@@ -34,20 +35,21 @@ final readonly class RememberedDisplay
     }
 
     /**
-     * @param string                  $columns the list's key in the column registry
-     * @param array<string, mixed>    $context the list's context, as ListColumnRegistry::display() takes it
-     * @param string                  $list    the list's key among the saved views' lists
-     * @param array<array-key, mixed> $query   the list's query
-     * @param list<string>            $groups  what the list can group by, its default first (WorkingDisplay::read())
-     * @param ListDefinition|null     $filters the list's filter fields, whose quick filters the view pins; null for a list without
+     * @param string                  $columns  the list's key in the column registry
+     * @param array<string, mixed>    $context  the list's context, as ListColumnRegistry::display() takes it
+     * @param string                  $list     the list's key among the saved views' lists
+     * @param array<array-key, mixed> $query    the list's query
+     * @param list<string>            $groups   what the list can group by, its default first (WorkingDisplay::read())
+     * @param ListDefinition|null     $filters  the list's filter fields, whose quick filters the view pins; null for a list without
+     * @param bool                    $calendar whether the list can be laid out as a calendar (WorkingDisplay::read())
      */
-    public function read(string $columns, array $context, string $list, ListView $view, array $query, array $groups = [], ?ListDefinition $filters = null): WorkingState
+    public function read(string $columns, array $context, string $list, ListView $view, array $query, array $groups = [], ?ListDefinition $filters = null, bool $calendar = false): WorkingState
     {
         $pins = $filters instanceof ListDefinition ? self::pinsOf($filters) : null;
         $user = $this->actor->userId();
         $named = [] !== array_intersect_key($query, array_flip(WorkingDisplay::KEYS));
         if (null === $user) {
-            return $this->display->read($columns, $context, $view->display, $query, $groups, $pins);
+            return $this->display->read($columns, $context, $view->display, $query, $groups, $pins, $calendar);
         }
         $stored = null === $view->id ? null : $this->states->display($view->id, $user);
         $remembered = $named ? null : $stored;
@@ -55,9 +57,9 @@ final readonly class RememberedDisplay
             // What the address leaves out stays as remembered: the Settings sheet sends no widths, and a
             // dragged column sends its widths alone, which would otherwise show the columns hidden again.
             // Reset names the view's own with empty widths, and forgets it all.
-            $query += $this->query($stored);
+            $query += $this->query($stored, $calendar);
         }
-        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered) + $query, $groups, $pins);
+        $working = $this->display->read($columns, $context, $view->display, null === $remembered ? $query : $this->query($remembered, $calendar) + $query, $groups, $pins, $calendar);
         if ($named) {
             if ($working->modified) {
                 // A shipped view nobody stored yet is stored first, so the state has its id.
@@ -89,7 +91,7 @@ final readonly class RememberedDisplay
      *
      * @return array<string, string>
      */
-    private function query(array $display): array
+    private function query(array $display, bool $calendar): array
     {
         $keys = [];
         $widths = [];
@@ -104,10 +106,14 @@ final readonly class RememberedDisplay
         $group = $display['group_by'] ?? null;
 
         $pinned = $display['pinned'] ?? null;
+        $layout = $display['layout'] ?? null;
+        $weekends = $display['weekends'] ?? null;
 
         // Empty widths are the view's own.
         return [WorkingDisplay::COLUMNS => implode(',', $keys), WorkingDisplay::WIDTHS => RegistryWorkingDisplay::encodeWidths($widths)]
             + (\is_string($group) ? [WorkingDisplay::GROUP => $group] : [])
-            + (\is_array($pinned) ? [WorkingDisplay::PINNED => implode(',', array_filter($pinned, \is_string(...)))] : []);
+            + (\is_array($pinned) ? [WorkingDisplay::PINNED => implode(',', array_filter($pinned, \is_string(...)))] : [])
+            // On a list with a calendar it names its layout and weekends either way, so a remembered table wins over a view's calendar.
+            + ($calendar ? [WorkingDisplay::LAYOUT => \is_string($layout) ? $layout : ViewRules::LAYOUT_LIST, WorkingDisplay::WEEKENDS => false === $weekends ? '0' : '1'] : []);
     }
 }

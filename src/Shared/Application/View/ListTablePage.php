@@ -6,10 +6,7 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Ui\View;
-
-use Foresi\Shared\Application\View\ListView;
-use Foresi\Shared\Application\View\ViewFilter;
+namespace Foresi\Shared\Application\View;
 
 /**
  * One table ListTable built, still without its filter sheet: what the template takes of it,

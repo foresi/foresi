@@ -4,6 +4,10 @@
     own, and for the owner those of the other people. A new token opens in a dialog over the list;
     revoking a token and disconnecting an app ask first. Without two-factor sign-in there is
     no new token, only the way to set it up. The tab next to it tells how to connect a client.
+    Each table is a list with its own views, search, filters, columns and widths (docs/design/list-pages.md,
+    rules 8 and 9): the connected apps keep the address's bare keys, the others theirs under a list slot.
+    Variables: canIssue, connections, mine, others, othersConnections (the tables ListTable gives; null
+    where the person does not see them).
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -32,40 +36,36 @@
     <div class="grid gap-6">
         <section class="grid gap-2" aria-labelledby="api-connections-mine-title" data-api-connections="mine">
             <h2 id="api-connections-mine-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connections'|trans }}</h2>
-            <twig:Ui:DataTable :caption="'api_tokens.connections'|trans" :columns="connectionColumns" :rows="connectionRows" :actionToken="token">
-                <twig:block name="empty">
-                    <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.connections_empty'|trans }} <a href="{{ path('app_api_connect') }}" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.connections_how'|trans }}</a></p>
-                </twig:block>
-            </twig:Ui:DataTable>
+            {% set empty %}
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.connections_empty'|trans }} <a href="{{ path('app_api_connect') }}" class="font-medium text-green underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'api_tokens.connections_how'|trans }}</a></p>
+            {% endset %}
+            {{ include('@Identity/api/_table.html.twig', {t: connections, caption: 'api_tokens.connections'|trans, route: 'app_api_tokens', token: token, empty: empty}) }}
         </section>
         <section class="grid gap-2" aria-labelledby="api-tokens-mine-title" data-api-tokens="mine">
             <h2 id="api-tokens-mine-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.mine'|trans }}</h2>
-            <twig:Ui:DataTable :caption="'api_tokens.mine'|trans" :columns="mineColumns" :rows="mineRows" :actionToken="token">
-                <twig:block name="empty">
-                    <twig:Ui:EmptyState icon="key-round" :title="'api_tokens.empty.title'|trans" :text="'api_tokens.empty.text'|trans">
-                        {% if canIssue %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_api_token_new')" data-dialog aria-haspopup="dialog">{{ 'api_tokens.new'|trans }}</twig:Ui:Button>{% endif %}
-                    </twig:Ui:EmptyState>
-                </twig:block>
-            </twig:Ui:DataTable>
+            {% set empty %}
+                <twig:Ui:EmptyState icon="key-round" :title="'api_tokens.empty.title'|trans" :text="'api_tokens.empty.text'|trans">
+                    {% if canIssue %}<twig:Ui:Button variant="primary" icon="plus" :href="path('app_api_token_new')" data-dialog aria-haspopup="dialog">{{ 'api_tokens.new'|trans }}</twig:Ui:Button>{% endif %}
+                </twig:Ui:EmptyState>
+            {% endset %}
+            {{ include('@Identity/api/_table.html.twig', {t: mine, caption: 'api_tokens.mine'|trans, route: 'app_api_tokens', token: token, empty: empty}) }}
         </section>
-        {% if othersRows is not null %}
+        {% if others is not null %}
             <section class="grid gap-2" aria-labelledby="api-tokens-others-title" data-api-tokens="others">
                 <h2 id="api-tokens-others-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.others'|trans }}</h2>
-                <twig:Ui:DataTable :caption="'api_tokens.others'|trans" :columns="othersColumns" :rows="othersRows" :actionToken="token">
-                    <twig:block name="empty">
-                        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.others_empty'|trans }}</p>
-                    </twig:block>
-                </twig:Ui:DataTable>
+                {% set empty %}
+                    <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.others_empty'|trans }}</p>
+                {% endset %}
+                {{ include('@Identity/api/_table.html.twig', {t: others, caption: 'api_tokens.others'|trans, route: 'app_api_tokens', token: token, empty: empty}) }}
             </section>
         {% endif %}
-        {% if othersConnectionRows is not null %}
+        {% if othersConnections is not null %}
             <section class="grid gap-2" aria-labelledby="api-connections-others-title" data-api-connections="others">
                 <h2 id="api-connections-others-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.others_connections'|trans }}</h2>
-                <twig:Ui:DataTable :caption="'api_tokens.others_connections'|trans" :columns="othersConnectionColumns" :rows="othersConnectionRows" :actionToken="token">
-                    <twig:block name="empty">
-                        <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.others_connections_empty'|trans }}</p>
-                    </twig:block>
-                </twig:Ui:DataTable>
+                {% set empty %}
+                    <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.others_connections_empty'|trans }}</p>
+                {% endset %}
+                {{ include('@Identity/api/_table.html.twig', {t: othersConnections, caption: 'api_tokens.others_connections'|trans, route: 'app_api_tokens', token: token, empty: empty}) }}
             </section>
         {% endif %}
     </div>

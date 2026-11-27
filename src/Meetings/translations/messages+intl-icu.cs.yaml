@@ -135,6 +135,26 @@ meetings:
       not_series_member: Řadu mění jen majitelé a její členové.
       not_found: Řada se nenašla.
       forbidden: Schůzky firmy vedou jen její majitelé a členové.
+  action_item:
+    title: Úkoly ze schůzky
+    none: Z této schůzky zatím nevznikl žádný úkol.
+    new: Vytvořit úkol
+    created: 'Úkol „{title}“ je vytvořený.'
+    private: Soukromý úkol
+    private_help: Uvidí ho jen lidé, se kterými je sdílený, a vy.
+    apply: Nabídnout lidi projektu
+  carry_over:
+    title: Otevřené z dřívějších schůzek této série
+    none: Z dřívějších schůzek není nic otevřeného.
+    all: "{count, plural, one {Všechny otevřené úkoly této série (#)} few {Všechny otevřené úkoly této série (#)} other {Všechny otevřené úkoly této série (#)}}"
+    all_title: 'Otevřené úkoly série {series}'
+  task:
+    in_trash: V koši
+    open: 'Otevřít úkol {title}'
+    nobody: Nikdo
+    overdue: 'Po termínu {date}'
+  task_fact:
+    label: Ze schůzky
   trash:
     title: Koš
     purge: Schůzky v koši se po {days} dnech smažou natrvalo.

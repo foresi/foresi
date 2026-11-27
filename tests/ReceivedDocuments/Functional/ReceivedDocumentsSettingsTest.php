@@ -16,12 +16,15 @@ use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Mail\Contract\IssuedAddress;
 use Foresi\Mail\Contract\Messages;
 use Foresi\ReceivedDocuments\Application\Mail\ReceivedDocumentsPurpose;
+use Foresi\ReceivedDocuments\Application\View\CaptureMailLists;
 use Foresi\ReceivedDocuments\Domain\MailIntake;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\ReceivedDocuments\Support\StoredMessages;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Ui\Slot\SlotRegistry;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Settings → Received documents: the person's own capture address, made, renamed, replaced and revoked
@@ -30,6 +33,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class ReceivedDocumentsSettingsTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private const string URL = '/settings/received-documents';
     private const string MAIL = '5f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b11';
     private const string OTHER_PERSON = '7a1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d';
@@ -149,6 +154,28 @@ final class ReceivedDocumentsSettingsTest extends WebTestCase
         self::assertStringContainsString('Invoice <b>11/2026</b>', (string) $text);
         self::assertStringContainsString('<i>notes</i>.txt (not a document); logo.png (image in the mail)', (string) $text);
         self::assertCount(0, $recent->filter('b, i'), 'The sender\'s text is shown as text, never as markup.');
+    }
+
+    public function testTheRecentEmailsAreAListWithViews(): void
+    {
+        $this->signIn(Role::Member);
+        self::getContainer()->set(Messages::class, new StoredMessages(self::MAIL, 'Pat <pat@supplier.example.com>', 'Invoice 11/2026', new \DateTimeImmutable('2026-11-20 09:00:00 UTC')));
+        $intake = new MailIntake(self::MAIL, $this->user->id(), '6f0b1c9e-1d52-4f0e-8d3c-2a7a9d0f4b12', 'unknown', new \DateTimeImmutable('2026-11-20 09:01:00 UTC'));
+        $intake->finish(0, [], new \DateTimeImmutable('2026-11-20 09:02:00 UTC'));
+        $this->em()->persist($intake);
+        $this->em()->flush();
+        self::assertListWithViews(self::getContainer()->get(CaptureMailLists::class), 'received_documents.capture_mails', ['from', 'subject', 'outcome'], ['all' => false]);
+        $rows = static fn (Crawler $crawler): int => $crawler->filter('[data-capture-recent] tbody tr[data-id]')->count();
+
+        $crawler = $this->client->request('GET', self::URL);
+        self::assertSame(['received', 'from', 'subject', 'outcome', 'skipped'], $crawler->filter('[data-capture-recent] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-capture-recent]', ['widths' => '']);
+        self::assertSame(1, $rows($crawler));
+
+        self::assertSame(1, $rows($this->client->request('GET', self::URL.'?q=invoice')));
+        self::assertSame(0, $rows($this->client->request('GET', self::URL.'?q=zzz')));
+        self::assertCount(1, $this->client->getCrawler()->selectLink('Clear the filter'));
+        self::assertSame(1, $rows(self::applyBuilder($this->client, self::URL, 'subject', 'Invoice')));
     }
 
     public function testMarkupInTheSenderSubjectAndFileNamesIsShownAsText(): void

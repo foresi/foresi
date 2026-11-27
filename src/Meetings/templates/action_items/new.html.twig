@@ -1,0 +1,55 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Create task from the minutes (spec, Create task from the minutes): the selection as the title, the project
+    (the likeliest first), the responsible person (attendees first, only people who see the project), the due day
+    and, in a series for its members, Private. A change of project sends the form again to offer its people; only
+    Create makes the task. A dialog over the meeting; the same URL is a page of its own. Variables: meeting,
+    values, errors, projects, people, offersPrivate.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}, {label: meeting.title, href: path('app_meetings_meeting', {id: meeting.id})}, {label: 'meetings.action_item.new'|trans}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'sm' %}
+
+{% block title %}{{ 'meetings.action_item.new'|trans }}{% endblock %}
+
+{% block dialog_body %}
+    {% if projects is not empty %}
+        <form method="post" id="action-item-form" action="{{ path('app_meetings_action_item_new', {id: meeting.id}) }}" class="grid gap-4" novalidate data-action-item-form>
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Meetings\\Infrastructure\\Controller\\ActionItemController::TOKEN')) }}">
+            <input type="hidden" name="key" value="{{ values.key }}">
+            {{ include('@Work/_form_errors.html.twig', {prefix: 'action-item-'}) }}
+            <twig:Ui:TextInput name="title" id="action-item-title" :label="'work.task.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="500" required autocomplete="off" autofocus />
+            <twig:Ui:Select name="project" id="action-item-project" :label="'work.task.field.project'|trans" :options="projects" :value="values.project" :error="errors.project|default(null)" required data-controller="autosubmit" data-action="change->autosubmit#submit" />
+            <div class="grid gap-4 sm:grid-cols-2">
+                <twig:Ui:Select name="responsible" id="action-item-responsible" :label="'work.task.field.responsible'|trans" :options="people" :value="values.responsible" :error="errors.responsible|default(null)" />
+                <twig:Ui:TextInput type="date" name="due" id="action-item-due" :label="'work.task.field.due_on'|trans" :value="values.due" :error="errors.due|default(null)" />
+            </div>
+            {% if offersPrivate %}
+                <twig:Ui:Checkbox name="private" id="action-item-private" :label="'meetings.action_item.private'|trans" :help="'meetings.action_item.private_help'|trans" :checked="values.private" />
+            {% endif %}
+            <noscript><twig:Ui:Button type="submit" size="sm">{{ 'meetings.action_item.apply'|trans }}</twig:Ui:Button></noscript>
+        </form>
+    {% else %}
+        <p class="m-0 text-muted" data-action-item-no-project>{{ 'work.tasks.new.no_projects'|trans }}</p>
+    {% endif %}
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+    {% if projects is not empty %}<twig:Ui:Button type="submit" form="action-item-form" name="_action" value="create" variant="primary" data-action-item-create>{{ 'work.task.create'|trans }}</twig:Ui:Button>{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% set form %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="'meetings.action_item.new'|trans" icon="square-check-big" class="max-w-2xl">
+        {{ form }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_meetings_meeting', {id: meeting.id})">{{ 'meetings.cancel'|trans }}</twig:Ui:Button>
+            {% if projects is not empty %}<twig:Ui:Button type="submit" form="action-item-form" name="_action" value="create" variant="primary">{{ 'work.task.create'|trans }}</twig:Ui:Button>{% endif %}
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

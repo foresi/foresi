@@ -18,6 +18,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListView;
 use Foresi\Shared\Application\View\ListViews;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Infrastructure\View\FilterSheet;
@@ -29,10 +30,12 @@ use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\TaskSearch;
+use Foresi\Work\Application\View\CalendarPeriod;
 use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkVisibility;
 use Foresi\Work\Contract\ProjectClients;
+use Foresi\Work\Domain\Priority;
 use Foresi\Work\Infrastructure\Column\MyTaskLine;
 use Foresi\Work\Infrastructure\Column\TaskColumns;
 use Foresi\Work\Infrastructure\Doctrine\TaskListDql;
@@ -60,6 +63,9 @@ final class TaskListController extends AbstractController
     public const int PAGE = 100;
     private const int MAX_SEARCH = 100;
     private const int MAX_LOOKUP = 20;
+    /** At most this many tasks on a calendar's month, and of those with no due date beside it. */
+    private const int CALENDAR_MAX = 500;
+    private const int UNDATED_MAX = 50;
     /** A task id the route takes, for the address the drop of a row fills in. */
     private const string ID = '00000000-0000-7000-8000-000000000000';
 
@@ -98,22 +104,17 @@ final class TaskListController extends AbstractController
         $query = array_filter(['view' => $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The quick filters, columns and grouping changed in the Settings sheet, kept in the address and for the person (spec D10, D-display-3).
         $context = ['manage' => $this->visibility->canManage()];
-        $working = $this->rememberedDisplay->read(TaskColumns::LIST, $context, $list->key, $view, $input->all(), groups: TaskLists::groupsOf($view->slug, $this->taskLists->hasClients()), filters: $list);
+        $working = $this->rememberedDisplay->read(TaskColumns::LIST, $context, $list->key, $view, $input->all(), groups: TaskLists::groupsOf($view->slug, $this->taskLists->hasClients()), filters: $list, calendar: true);
         $query += $working->query;
         $group = $working->display->groupBy ?? TaskLists::groupsOf($view->slug, $this->taskLists->hasClients())[0];
-
-        $page = max(1, $input->getInt('page', 1));
-        $index = $this->queries->taskIndex(new TaskSearch($shown, $text, $sort, $group), ($page - 1) * self::PAGE, self::PAGE);
-        $pages = max(1, (int) ceil($index->total / self::PAGE));
-        $edits = $this->edits->for($index->rows, $request->getRequestUri());
-        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, TaskLists::sortOf($view->slug), $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
-        $reorder = $this->reorderable($shown, $sort, $group, $text, $pages);
-        $groups = $this->groups($index->rows, $index->groups, $group, $working, $edits);
-        if ($reorder) {
-            $groups = $this->withMoves($groups, $request->getRequestUri());
+        $calendar = ViewRules::LAYOUT_CALENDAR === $working->display->layout;
+        $period = $calendar ? CalendarPeriod::of($input->getString('period'), $input->getString('on'), $this->clock->today(), $working->display->weekends) : null;
+        if ($period instanceof CalendarPeriod) {
+            // Where the calendar is opened stays in the address, through a change of the view or the filter.
+            $query += array_filter(['period' => CalendarPeriod::MONTH === $period->period ? null : $period->period, 'on' => $input->has('on') ? $period->anchor->format('Y-m-d') : null], static fn (?string $value): bool => null !== $value);
         }
-
-        return $this->render('@Work/tasks/index.html.twig', [
+        $bar = $this->viewBar->of($list, $views, $view, $shown, $sort, TaskLists::sortOf($view->slug), $working, self::ROUTE, '' === $text ? [] : ['q' => $text]);
+        $common = [
             'view' => $view->key,
             'working' => $filterParam ?? '',
             'sortKept' => $viewSort === $sort ? null : $sort,
@@ -121,11 +122,34 @@ final class TaskListController extends AbstractController
             ...$bar,
             ...$this->tabs($views, $view->key, $query, $bar['viewBar']['modified']),
             'text' => $text,
+            'picker' => $this->picker($working, $query, $group, $view),
+            'workingQuery' => $working->query + array_intersect_key($query, ['period' => true, 'on' => true]),
+            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->key]),
+            'newTask' => $this->newTaskHref($shown, $request->getRequestUri()),
+        ];
+        if ($period instanceof CalendarPeriod) {
+            return $this->render('@Work/tasks/index.html.twig', $common + [
+                'calendar' => $this->calendar($period, $shown, $text, $query, $request),
+                'groups' => [],
+                'empty' => null,
+                'pages' => 1,
+            ]);
+        }
+
+        $page = max(1, $input->getInt('page', 1));
+        $index = $this->queries->taskIndex(new TaskSearch($shown, $text, $sort, $group), ($page - 1) * self::PAGE, self::PAGE);
+        $pages = max(1, (int) ceil($index->total / self::PAGE));
+        $edits = $this->edits->for($index->rows, $request->getRequestUri());
+        $reorder = $this->reorderable($shown, $sort, $group, $text, $pages);
+        $groups = $this->groups($index->rows, $index->groups, $group, $working, $edits);
+        if ($reorder) {
+            $groups = $this->withMoves($groups, $request->getRequestUri());
+        }
+
+        return $this->render('@Work/tasks/index.html.twig', $common + [
+            'calendar' => null,
             'empty' => $this->emptyOf($view, $shown, '' !== $text),
             'columns' => $working->display->table($sort, fn (string $next): string => $this->generateUrl(self::ROUTE, ['sort' => $next] + $query)),
-            'picker' => $this->picker($working, $query, $group, $view),
-            'workingQuery' => $working->query,
-            'resetHref' => $this->generateUrl(self::ROUTE, ['view' => $view->key]),
             'groups' => $groups,
             'grouped' => TaskLists::GROUP_NONE !== $group,
             'reorder' => $reorder ? ['url' => str_replace(self::ID, '__id__', $this->generateUrl('app_task_star_move', ['id' => self::ID])), 'token' => $this->tokens->getToken(TaskController::TOKEN)->getValue(), 'label' => $this->translator->trans('work.tasks.reorder.drag')] : null,
@@ -134,7 +158,6 @@ final class TaskListController extends AbstractController
             'page' => min($page, $pages),
             'pages' => $pages,
             'pageBase' => $this->generateUrl(self::ROUTE, $query),
-            'newTask' => $this->newTaskHref($shown, $request->getRequestUri()),
         ]);
     }
 
@@ -172,10 +195,110 @@ final class TaskListController extends AbstractController
     }
 
     /**
+     * The calendar of due dates (plan 37.5): the tasks of the view due in the period on their
+     * days, the most urgent first; those of the view with no due date beside it, to be dragged
+     * onto a day. A drop sets the due date with the task's own inline edit, so the history and
+     * the notifications are those of any change of it.
+     *
+     * @param array<string, string> $query
+     *
+     * @return array<string, mixed>
+     */
+    private function calendar(CalendarPeriod $period, ViewFilter $shown, string $text, array $query, Request $request): array
+    {
+        $today = $this->clock->today()->format('Y-m-d');
+        $dated = $shown
+            ->with(new Condition(TaskLists::DUE_ON, 'on_or_after', $period->from->format('Y-m-d')))
+            ->with(new Condition(TaskLists::DUE_ON, 'on_or_before', $period->to->format('Y-m-d')));
+        $index = $this->queries->taskIndex(new TaskSearch($dated, $text, '-'.TaskLists::SORT_PRIORITY), 0, self::CALENDAR_MAX);
+        $undated = $this->queries->taskIndex(new TaskSearch($shown->with(new Condition(TaskLists::DUE_ON, 'is_empty')), $text, '-'.TaskLists::SORT_PRIORITY), 0, self::UNDATED_MAX);
+        $return = $request->getRequestUri();
+        $byDay = [];
+        $weekend = 0;
+        foreach ($index->rows as $task) {
+            $day = $task->dueOn?->format('Y-m-d') ?? '';
+            if (!$period->weekends && null !== $task->dueOn && CalendarPeriod::isWeekend($task->dueOn)) {
+                ++$weekend;
+            }
+            $byDay[$day][] = $this->entry($task, $today);
+        }
+        $locale = $request->getLocale();
+        $format = static fn (string $pattern, \DateTimeImmutable $day): string => (string) new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::NONE, $day->getTimezone(), null, $pattern)->format($day);
+        $weeks = array_map(fn (array $days): array => array_map(fn (\DateTimeImmutable $day): array => [
+            'date' => $day->format('Y-m-d'),
+            'number' => $day->format('j'),
+            'label' => $format('EEEE d. MMMM y', $day),
+            'own' => $period->owns($day),
+            'today' => $day->format('Y-m-d') === $today,
+            'tasks' => $byDay[$day->format('Y-m-d')] ?? [],
+            'add' => $this->generateUrl(TaskCreateController::ROUTE, ['due' => $day->format('Y-m-d')] + $this->newTaskQuery($shown, $return)),
+            'addLabel' => $this->translator->trans('work.tasks.calendar.add', ['date' => $format('d. MMMM', $day)]),
+        ], $days), $period->weeks());
+        $month = CalendarPeriod::MONTH === $period->period;
+        $at = fn (array $change): string => $this->generateUrl(self::ROUTE, $change + array_diff_key($query, ['period' => true, 'on' => true]));
+        $periodQuery = $month ? [] : ['period' => $period->period];
+
+        return [
+            'period' => $period->period,
+            'title' => $month ? $format('LLLL y', $period->anchor) : $format('d. MMMM', $period->from).' – '.$format('d. MMMM y', $period->to),
+            'weekdays' => array_map(static fn (\DateTimeImmutable $day): string => $format('cccccc', $day), $period->weeks()[0]),
+            'weeks' => $weeks,
+            'previous' => $at($periodQuery + ['on' => $period->previous()]),
+            'next' => $at($periodQuery + ['on' => $period->next()]),
+            'today' => $at($periodQuery),
+            'periods' => array_map(fn (string $key): array => ['label' => $this->translator->trans('work.tasks.calendar.'.$key), 'href' => $at((CalendarPeriod::MONTH === $key ? [] : ['period' => $key]) + ['on' => ($month ? $period->anchor : $period->from)->format('Y-m-d')]), 'active' => $key === $period->period], CalendarPeriod::PERIODS),
+            'weekend' => $weekend,
+            'showWeekends' => $this->generateUrl(self::ROUTE, [WorkingDisplay::WEEKENDS => '1'] + $query),
+            'more' => max(0, $index->total - \count($index->rows)),
+            'max' => self::CALENDAR_MAX,
+            'undated' => array_map(fn (TaskRow $task): array => $this->entry($task, $today), $undated->rows),
+            'undatedMore' => max(0, $undated->total - \count($undated->rows)),
+            'due' => [
+                'url' => str_replace(self::ID, '__id__', $this->generateUrl('app_task_due', ['id' => self::ID])),
+                'token' => $this->tokens->getToken(TaskController::TOKEN)->getValue(),
+                'return' => $return,
+            ],
+        ];
+    }
+
+    /**
+     * One task on the calendar: it opens in the sheet; a finished one is struck through, an
+     * unfinished one past its due date is overdue.
+     *
+     * @return array<string, mixed>
+     */
+    private function entry(TaskRow $task, string $today): array
+    {
+        $due = $task->dueOn?->format('Y-m-d');
+
+        return [
+            'id' => $task->id,
+            'href' => $this->generateUrl(TaskController::ROUTE, ['id' => $task->id]),
+            'title' => $task->title,
+            'project' => $task->projectName,
+            // Only what stands out: a high or urgent priority in its tone (C8: no colour per project).
+            'priority' => \in_array($task->priority, [Priority::High, Priority::Urgent], true) ? ['text' => $this->translator->trans('work.priority.'.$task->priority->value), 'tone' => TaskEdits::PRIORITY_TONES[$task->priority->value]] : null,
+            'done' => $task->done,
+            'overdue' => !$task->done && null !== $due && $due < $today,
+        ];
+    }
+
+    /**
      * The address of New task from the list: in the project the filter names, else in the
      * first project of the client it names.
      */
     private function newTaskHref(ViewFilter $filter, string $return): string
+    {
+        return $this->generateUrl(TaskCreateController::ROUTE, $this->newTaskQuery($filter, $return));
+    }
+
+    /**
+     * What New task from the list fills in: the project the filter names, else the first
+     * project of the client it names, and where it goes back to.
+     *
+     * @return array<string, string>
+     */
+    private function newTaskQuery(ViewFilter $filter, string $return): array
     {
         $project = null;
         foreach ($filter->conditions as $condition) {
@@ -192,7 +315,7 @@ final class TaskListController extends AbstractController
             }
         }
 
-        return $this->generateUrl(TaskCreateController::ROUTE, array_filter(['project' => $project, 'return' => $return], static fn (?string $value): bool => null !== $value && '' !== $value));
+        return array_filter(['project' => $project, 'return' => $return], static fn (?string $value): bool => null !== $value && '' !== $value);
     }
 
     /**
@@ -371,6 +494,9 @@ final class TaskListController extends AbstractController
             'modified' => $working->modified,
             'group' => $group,
             'groups' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.group_by.'.$key)], TaskLists::groupsOf($view->slug, $this->taskLists->hasClients())),
+            'layouts' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.layout.'.$key)], ViewRules::LAYOUTS),
+            'layout' => ViewRules::LAYOUT_CALENDAR === $working->display->layout ? ViewRules::LAYOUT_CALENDAR : ViewRules::LAYOUT_LIST,
+            'weekends' => $working->display->weekends,
         ];
     }
 

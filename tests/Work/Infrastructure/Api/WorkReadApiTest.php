@@ -122,6 +122,17 @@ final class WorkReadApiTest extends WorkApiTestCase
         self::assertSame([$none], $this->ids());
         $this->get('/api/v1/tasks', ['created_from' => '2099-01-01']);
         self::assertSame([], $this->ids());
+        // The tasks of a calendar's days: a task with no due date is left out.
+        $this->as(fn () => $this->service(ManageTasks::class)->setDue($high, new \DateTimeImmutable('2026-12-03')));
+        $this->as(fn () => $this->service(ManageTasks::class)->setDue($urgent, new \DateTimeImmutable('2026-12-08')));
+        $this->get('/api/v1/tasks', ['due_from' => '2026-12-01', 'due_to' => '2026-12-07']);
+        self::assertSame([$high], $this->ids());
+        $this->get('/api/v1/tasks', ['due_from' => '2026-12-01']);
+        self::assertSame([$high, $urgent], $this->ids());
+        $found = $this->mcpTool('foresi_search_tasks', ['due_from' => '2026-12-04', 'due_to' => '2026-12-31']);
+        self::assertSame([$urgent], array_column((array) self::in($found, 'structuredContent', 'data', 'items'), 'id'));
+        $this->get('/api/v1/tasks', ['due_to' => 'soon']);
+        $this->assertProblem(400, 'invalid_parameter');
         $this->get('/api/v1/tasks', ['view' => 'work.tasks.high', 'sort' => 'title']);
         self::assertSame([$high, $urgent], $this->ids());
         self::assertSame('work.tasks', $this->at('applied_view', 'list'));

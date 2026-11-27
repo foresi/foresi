@@ -54,7 +54,7 @@ final class GuestOAuthFlowTest extends OAuthTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-api-connections="mine"]', 'Example Agent');
         self::assertSelectorTextContains('[data-mcp-server]', self::MCP);
-        $this->client->submit($crawler->filter('[data-api-connections="mine"] form')->form());
+        $this->client->submit($crawler->filter('[data-api-connections="mine"] form[action*="/disconnect"]')->form());
         self::assertResponseRedirects('/connected-apps');
         self::assertSame(401, $this->mcp($tokens['access_token']));
     }

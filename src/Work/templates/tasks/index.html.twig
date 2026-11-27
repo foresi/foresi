@@ -6,6 +6,8 @@
     by. The column headers sort. A group with nothing on the page is left out; its count is that of
     the whole list. The status, the responsible person, the due date and the priority change in the row,
     and its star puts it on My priorities, whose rows are dragged by their grip or moved from their menu.
+    Laid out as a calendar (List settings, Layout), the same view shows its tasks on the days they are
+    due, those with no due date beside it (_calendar.html.twig).
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -26,9 +28,12 @@
         {% set search = {name: 'q', value: text ?? '', label: 'work.tasks.search_label'|trans} %}
         {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'work.tasks.views'|trans, toolsFilter: 'tasks-filters', toolsSearch: search, toolsColumns: {id: 'tasks-columns', action: path('app_tasks')}}) }}
         <twig:Ui:FilterBar id="tasks-filters" :search="search" :action="path('app_tasks')" :keep="{view: view, f: working != '' ? working : null, sort: sortKept}|merge(workingQuery)"
-            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="groups is empty" data-tasks-filter>
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="calendar is null and groups is empty" data-tasks-filter>
         </twig:Ui:FilterBar>
 
+        {% if calendar %}
+            {{ include('@Work/tasks/_calendar.html.twig', {calendar: calendar}) }}
+        {% endif %}
         {% for group in groups %}
             {% if grouped %}
                 <section class="grid gap-2" aria-labelledby="group-{{ loop.index }}-title" data-task-group="{{ group.key }}">
@@ -41,7 +46,8 @@
                 </div>
             {% endif %}
         {% else %}
-            {% if empty == 'filtered' %}
+            {% if calendar %}
+            {% elseif empty == 'filtered' %}
                 <twig:Ui:EmptyState icon="search" :title="'work.tasks.empty.filtered_title'|trans" :text="'work.tasks.empty.filtered'|trans">
                     <twig:Ui:Button :href="resetHref">{{ 'work.tasks.empty.reset'|trans }}</twig:Ui:Button>
                 </twig:Ui:EmptyState>

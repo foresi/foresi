@@ -60,6 +60,7 @@ people:
     rate: Hodinová sazba
     rate_help: Platí, když sazbu nemá projekt ani klient
     rate_currency: Měna
+    invited: Pozvánka
   column:
     name: Jméno
     email: E-mail
@@ -131,6 +132,11 @@ people:
     action: Přijmout pozvánku
     validity: '{days, plural, one {Odkaz funguje jednou, # den.} few {Odkaz funguje jednou, # dny.} other {Odkaz funguje jednou, # dní.}}'
     ignore: Pokud jste pozvánku nečekali, e-mail ignorujte.
+  views: Pohledy na lidi
+  search: Hledat podle jména nebo e-mailu
+  empty:
+    filtered_title: Filtru nic neodpovídá
+    reset: Zrušit filtr
 api_tokens:
   title: API a MCP
   new: Nový token
@@ -201,12 +207,15 @@ api_tokens:
   state:
     expired: Vypršel
     revoked: Zrušen
+    active: Platný
   field:
     name: Název
     name_help: Kde ho použijete, třeba Reporting
     expiry: Platnost
     access: Přístup
     access_help: Jen to, co program potřebuje. Kdo mění, smí i číst.
+    state: Stav
+    verified: Ověřeno
   expiry: '{days, plural, one {# den} few {# dny} many {# dne} other {# dní}}'
   action:
     revoke: Zrušit token
@@ -221,6 +230,8 @@ api_tokens:
   empty:
     title: Žádné tokeny
     text: Token dovolí jinému programu číst vaše data bez hesla.
+    filtered_title: Filtru nic neodpovídá
+    reset: Zrušit filtr
   two_factor:
     text: Token jde vytvořit jen s dvoufázovým přihlášením.
     link: Nastavit dvoufázové přihlášení
@@ -247,6 +258,7 @@ api_tokens:
   tab:
     tokens: Tokeny
     connect: MCP
+    all: Vše
   connect:
     intro: Foresi má MCP server. Claude a další AI klienti s ním čtou a mění vaše data. Přidejte adresu serveru do svého klienta; ten otevře Foresi v prohlížeči, kde se přihlásíte a vyberete, co smí. Skripty a klienti bez přihlášení přes OAuth místo toho použijí token.
     server: Adresa MCP serveru
@@ -312,6 +324,8 @@ api_tokens:
       disconnect: Aplikaci, kterou už nepoužíváte, odpojte v Nastavení → API a MCP. Přístup ztratí okamžitě.
       revoke: Token, který už nepotřebujete nebo mohl uniknout, zrušte v záložce Tokeny. Přestane platit okamžitě.
     docs: Podrobný popis nástrojů a REST API
+  views: 'Pohledy: {list}'
+  search: Hledat podle názvu
 invitation:
   title: 'Připojit se k {organisation}'
   field:

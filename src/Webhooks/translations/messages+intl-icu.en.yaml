@@ -43,6 +43,8 @@ webhooks:
   empty:
     title: No webhook endpoints
     text: An endpoint receives the events of the modules you choose as signed HTTPS requests.
+    filtered_title: Nothing matches the filter
+    reset: Clear the filter
   detail:
     title: Endpoint
     previous_secret: Previous secret signs until
@@ -143,3 +145,7 @@ webhooks:
       manual: 'The endpoint at {host} was turned off and receives no more events.'
     pending: 'Deliveries still waiting end as failed. Once the receiver works again, enable the endpoint and redeliver what it missed.'
     open: Open the endpoint
+  views: Views of the endpoints
+  search: Search by URL or description
+  tab:
+    all: All

@@ -666,6 +666,30 @@ work:
     title: Tasks
     views: Views of the tasks
     total: '{count, plural, one {# task} other {# tasks}}'
+    layout:
+      list: List
+      calendar: Calendar
+    calendar:
+      label: Calendar of due dates
+      periods: Period
+      month: Month
+      week: Week
+      today: Today
+      previous_month: Previous month
+      next_month: Next month
+      previous_week: Previous week
+      next_week: Next week
+      add: 'New task on {date}'
+      undated: No due date
+      undated_hint: Drag a task onto a day to plan it.
+      undated_empty: Every task of this view has a due date.
+      undated_more: '{count, plural, one {and # more task} other {and # more tasks}}'
+      weekend_hidden: '{count, plural, one {# task falls on a weekend.} other {# tasks fall on a weekend.}}'
+      show_weekends: Show weekends
+      too_many: 'The calendar shows the first {count} tasks. Narrow the filter.'
+      drag: Drag to another day
+      done: done
+      overdue: overdue
     tab:
       all: All open
       mine: Mine

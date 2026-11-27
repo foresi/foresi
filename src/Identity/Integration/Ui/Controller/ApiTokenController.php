@@ -16,13 +16,19 @@ use Foresi\Identity\Application\OpenToGuest;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Application\View\ApiTokenLists;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenState;
 use Foresi\Identity\Domain\OAuth\OAuthClient;
 use Foresi\Identity\Domain\User;
+use Foresi\Identity\Integration\Ui\Column\ApiTokenRow;
 use Foresi\Identity\Integration\Ui\Security\RequiresReauthentication;
+use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ListTables;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Contract\WorkingState;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -43,7 +49,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Connected apps, lists and disconnects the clients they connected (ADR 0041).
  * Who may do what is decided by the service; this controller only turns its refusals
  * into answers. The secret of a new token is in the answer to the form that
- * issued it, once, and is never stored, redirected to or cached.
+ * issued it, once, and is never stored, redirected to or cached. Each table is a
+ * list with views, columns and widths of its own (list-pages.md, rules 8 and 9).
  */
 final class ApiTokenController extends AbstractController
 {
@@ -56,7 +63,14 @@ final class ApiTokenController extends AbstractController
     /** The MCP server over Streamable HTTP (config/packages/mcp.yaml). */
     private const string MCP_ROUTE = '_mcp_endpoint_default';
     public const string TOKEN = 'api_tokens';
+    /** The slots of the tables after the first, the connected apps, in the page's address (ListSlot). */
+    public const string TOKENS_SLOT = 'tokens';
+    public const string OTHERS_SLOT = 'others';
+    public const string OTHERS_CONNECTIONS_SLOT = 'others_apps';
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly ManageApiTokens $tokens,
         private readonly People $people,
@@ -67,11 +81,14 @@ final class ApiTokenController extends AbstractController
         private readonly ApiScopeOptions $scopeOptions,
         private readonly OAuthStore $oauth,
         private readonly StaffCheck $staff,
+        private readonly ApiTokenLists $lists,
+        private readonly ListTables $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/api', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         try {
             $mine = $this->tokens->mine();
@@ -87,17 +104,30 @@ final class ApiTokenController extends AbstractController
                 $people[$person->userId] = $person;
             }
         }
+        $page = $request->query->all();
+        // Four tables on one page (list-pages.md, rule 9): the connected apps keep the bare keys, the others theirs under a slot.
+        $slots = [
+            ApiTokenLists::CONNECTIONS => ListSlot::first($page, self::TOKENS_SLOT, self::OTHERS_SLOT, self::OTHERS_CONNECTIONS_SLOT),
+            ApiTokenLists::TOKENS => ListSlot::named(self::TOKENS_SLOT, $page),
+            ApiTokenLists::OTHERS_TOKENS => ListSlot::named(self::OTHERS_SLOT, $page),
+            ApiTokenLists::OTHERS_CONNECTIONS => ListSlot::named(self::OTHERS_CONNECTIONS_SLOT, $page),
+        ];
+        foreach ($slots as $key => $slot) {
+            // The builder's rows (spec D11) become the table's working filter, in its part of the address.
+            $built = $this->listTable->built($slot, $this->lists->list($key));
+            if (null !== $built) {
+                return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+            }
+        }
+        $tokenRow = fn (ApiTokenRow $row, WorkingState $working): array => $this->row($row, $working);
+        $connectionRow = fn (ApiTokenRow $row, WorkingState $working): array => $this->connectionRow($row, $working);
 
         return $this->render('@Identity/api/index.html.twig', [
             'canIssue' => $this->hasTwoFactor(),
-            'mineColumns' => $this->columns(false),
-            'mineRows' => array_map(fn (ApiToken $token): array => $this->row($token, false, null), $mine),
-            'othersColumns' => $this->columns(true),
-            'othersRows' => null === $others ? null : array_map(fn (ApiToken $token): array => $this->row($token, true, $people[$token->userId()] ?? null), $others),
-            'connectionColumns' => $this->connectionColumns(false),
-            'connectionRows' => array_map(fn (ApiToken $token): array => $this->connectionRow($token, false, null), $myConnections),
-            'othersConnectionColumns' => $this->connectionColumns(true),
-            'othersConnectionRows' => null === $othersConnections ? null : array_map(fn (ApiToken $token): array => $this->connectionRow($token, true, $people[$token->userId()] ?? null), $othersConnections),
+            'connections' => $this->table($slots, ApiTokenLists::CONNECTIONS, self::ROUTE, 'api-connections', $this->rows($myConnections, null), $connectionRow),
+            'mine' => $this->table($slots, ApiTokenLists::TOKENS, self::ROUTE, 'api-tokens', $this->rows($mine, null), $tokenRow),
+            'others' => null === $others ? null : $this->table($slots, ApiTokenLists::OTHERS_TOKENS, self::ROUTE, 'api-others-tokens', $this->rows($others, $people), $tokenRow),
+            'othersConnections' => null === $othersConnections ? null : $this->table($slots, ApiTokenLists::OTHERS_CONNECTIONS, self::ROUTE, 'api-others-connections', $this->rows($othersConnections, $people), $connectionRow),
         ]);
     }
 
@@ -107,7 +137,7 @@ final class ApiTokenController extends AbstractController
      */
     #[Route('/connected-apps', name: self::GUEST_ROUTE, methods: ['GET'])]
     #[OpenToGuest]
-    public function connectedApps(): Response
+    public function connectedApps(Request $request): Response
     {
         if ($this->staff->isStaff()) {
             return $this->redirectToRoute(self::ROUTE);
@@ -117,11 +147,15 @@ final class ApiTokenController extends AbstractController
         } catch (ApiTokenRefused $refused) {
             throw $this->denied($refused);
         }
+        $slots = [ApiTokenLists::CONNECTIONS => ListSlot::first($request->query->all())];
+        $built = $this->listTable->built($slots[ApiTokenLists::CONNECTIONS], $this->lists->list(ApiTokenLists::CONNECTIONS));
+        if (null !== $built) {
+            return $this->redirectToRoute(self::GUEST_ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
 
         return $this->render('@Identity/api/connected-apps.html.twig', [
             'server' => $this->mcpServer(),
-            'columns' => $this->connectionColumns(false),
-            'rows' => array_map(fn (ApiToken $token): array => $this->connectionRow($token, false, null, self::GUEST_DISCONNECT_ROUTE), $connections),
+            'connections' => $this->table($slots, ApiTokenLists::CONNECTIONS, self::GUEST_ROUTE, 'connected-apps', array_map(fn (ApiToken $token): ApiTokenRow => $this->tokenRow($token, null), $connections), fn (ApiTokenRow $row, WorkingState $working): array => $this->connectionRow($row, $working, self::GUEST_DISCONNECT_ROUTE)),
         ]);
     }
 
@@ -235,17 +269,6 @@ final class ApiTokenController extends AbstractController
     }
 
     /**
-     * What a token or a connection may do, as few badges as say it: a scope
-     * another one covers is left out.
-     *
-     * @return array{badges: list<array{label: string, tone: string}>}
-     */
-    private function access(ApiToken $token): array
-    {
-        return ['badges' => array_map(fn (ApiScope $scope): array => ['label' => $this->scopeOptions->label($scope), 'tone' => 'gray'], ApiScope::smallest($token->scopes()))];
-    }
-
-    /**
      * @return ?list<ApiToken> the tokens of the other people; null for whoever is not the owner
      *
      * @throws ApiTokenRefused
@@ -290,22 +313,60 @@ final class ApiTokenController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * One table of the page as every list is (docs/design/list-pages.md): its views, the
+     * filter sheet, the search, its Settings sheet with columns, and widths a person drags,
+     * all of it in its slot of the address so the other tables keep their own.
+     *
+     * @param array<string, ListSlot>                                   $slots the page's tables by their list
+     * @param list<ApiTokenRow>                                         $rows
+     * @param \Closure(ApiTokenRow, WorkingState): array<string, mixed> $row
+     *
+     * @return array<string, mixed>
      */
-    private function connectionColumns(bool $withPerson): array
+    private function table(array $slots, string $key, string $route, string $id, array $rows, \Closure $row): array
     {
-        $columns = [['key' => 'name', 'label' => $this->translator->trans('api_tokens.column.app'), 'truncate' => true]];
-        if ($withPerson) {
-            $columns[] = ['key' => 'person', 'label' => $this->translator->trans('api_tokens.column.person'), 'truncate' => true, 'phone' => false];
-            $columns[] = ['key' => 'email', 'label' => $this->translator->trans('api_tokens.column.email'), 'truncate' => true, 'phone' => false];
-        }
+        $list = $this->lists->list($key);
+        $slot = $slots[$key];
+        $page = $this->listTable->of($slot, $list, $key, $route, $id, $rows, $row, $this->valueOf(...), static fn (ApiTokenRow $one): string => $one->token->name().' '.($one->person->name ?? ''), $this->translator->trans('api_tokens.search'));
 
-        return [...$columns,
-            ['key' => 'verified', 'label' => $this->translator->trans('api_tokens.column.verified_by'), 'phone' => false],
-            ['key' => 'access', 'label' => $this->translator->trans('api_tokens.column.access'), 'phone' => false],
-            ['key' => 'created', 'label' => $this->translator->trans('api_tokens.column.connected'), 'phone' => false],
-            ['key' => 'lastUsed', 'label' => $this->translator->trans('api_tokens.column.last_used')],
-        ];
+        return $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot));
+    }
+
+    /**
+     * The value of a field of the lists on a token or a connection, as RowConditions compares it.
+     */
+    private function valueOf(ApiTokenRow $row, string $field): mixed
+    {
+        return match ($field) {
+            ApiTokenLists::NAME => $row->token->name(),
+            ApiTokenLists::PERSON => $row->person->name ?? '',
+            ApiTokenLists::STATE => $row->token->state($this->clock->now())->value,
+            ApiTokenLists::VERIFIED => null !== $row->host,
+            default => null,
+        };
+    }
+
+    /**
+     * @param list<ApiToken>             $tokens
+     * @param array<string, Person>|null $people the people by their user, for a table of the other people's
+     *
+     * @return list<ApiTokenRow>
+     */
+    private function rows(array $tokens, ?array $people): array
+    {
+        return array_map(fn (ApiToken $token): ApiTokenRow => $this->tokenRow($token, null === $people ? null : ($people[$token->userId()] ?? null)), $tokens);
+    }
+
+    /**
+     * A token or a connection with the person it belongs to, and for a connected OAuth client
+     * the host that vouches for its name.
+     */
+    private function tokenRow(ApiToken $token, ?Person $person): ApiTokenRow
+    {
+        $clientId = $token->oauthClientId();
+        $client = null === $clientId ? null : $this->oauth->client($clientId);
+
+        return new ApiTokenRow($token, $person, $client instanceof OAuthClient ? $client->verifiedHost() : null);
     }
 
     /**
@@ -313,28 +374,15 @@ final class ApiTokenController extends AbstractController
      *
      * @return array<string, mixed>
      */
-    private function connectionRow(ApiToken $token, bool $withPerson, ?Person $person, string $disconnectRoute = self::REVOKE_ROUTE): array
+    private function connectionRow(ApiTokenRow $row, WorkingState $working, string $disconnectRoute = self::REVOKE_ROUTE): array
     {
-        $clientId = $token->oauthClientId();
-        $client = null === $clientId ? null : $this->oauth->client($clientId);
-        $host = $client instanceof OAuthClient ? $client->verifiedHost() : null;
-        $lastUsed = $token->lastUsedAt();
-        $cells = ['name' => $token->name()];
-        if ($withPerson) {
-            $cells['person'] = $person?->name;
-            $cells['email'] = $person?->email;
-        }
+        $token = $row->token;
 
         return [
             'id' => $token->id(),
             'label' => $token->name(),
-            'secondary' => $host ?? $this->translator->trans('api_tokens.connection.unverified'),
-            'cells' => $cells + [
-                'verified' => $host ?? ['badges' => [['label' => $this->translator->trans('api_tokens.connection.unverified'), 'tone' => 'amber']]],
-                'access' => $this->access($token),
-                'created' => $this->date($token->createdAt()),
-                'lastUsed' => $lastUsed instanceof \DateTimeImmutable ? $lastUsed->format($this->translator->trans('format.datetime')) : $this->translator->trans('api_tokens.never'),
-            ],
+            'secondary' => $row->host ?? $this->translator->trans('api_tokens.connection.unverified'),
+            'cells' => $working->display->cells($row),
             'actions' => [
                 ['label' => $this->translator->trans('api_tokens.action.disconnect'), 'href' => $this->generateUrl($disconnectRoute, ['id' => $token->id()]), 'method' => 'POST', 'confirm' => [
                     'title' => $this->translator->trans('api_tokens.confirm.disconnect.title', ['name' => $token->name()]),
@@ -347,55 +395,18 @@ final class ApiTokenController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function columns(bool $withPerson): array
-    {
-        $columns = [['key' => 'name', 'label' => $this->translator->trans('api_tokens.column.name'), 'truncate' => true]];
-        if ($withPerson) {
-            $columns[] = ['key' => 'person', 'label' => $this->translator->trans('api_tokens.column.person'), 'truncate' => true, 'phone' => false];
-            $columns[] = ['key' => 'email', 'label' => $this->translator->trans('api_tokens.column.email'), 'truncate' => true, 'phone' => false];
-        }
-
-        return [...$columns,
-            ['key' => 'access', 'label' => $this->translator->trans('api_tokens.column.access'), 'phone' => false],
-            ['key' => 'token', 'label' => $this->translator->trans('api_tokens.column.token'), 'phone' => false],
-            ['key' => 'created', 'label' => $this->translator->trans('api_tokens.column.created'), 'phone' => false],
-            ['key' => 'expires', 'label' => $this->translator->trans('api_tokens.column.expires')],
-            ['key' => 'lastUsed', 'label' => $this->translator->trans('api_tokens.column.last_used'), 'phone' => false],
-        ];
-    }
-
-    /**
      * @return array<string, mixed>
      */
-    private function row(ApiToken $token, bool $withPerson, ?Person $person): array
+    private function row(ApiTokenRow $row, WorkingState $working): array
     {
-        $state = $token->state($this->clock->now());
-        $expires = $this->date($token->expiresAt());
-        $lastUsed = $token->lastUsedAt();
-        $cells = ['name' => $token->name()];
-        if ($withPerson) {
-            $cells['person'] = $person?->name;
-            $cells['email'] = $person?->email;
-        }
+        $token = $row->token;
 
         return [
             'id' => $token->id(),
             'label' => $token->name(),
             'secondary' => '…'.$token->lastFour(),
-            'cells' => $cells + [
-                'access' => $this->access($token),
-                'token' => '…'.$token->lastFour(),
-                'created' => $this->date($token->createdAt()),
-                'expires' => match ($state) {
-                    ApiTokenState::Active => $expires,
-                    ApiTokenState::Expired => ['text' => $expires, 'flag' => ['label' => $this->translator->trans('api_tokens.state.expired'), 'tone' => 'amber']],
-                    ApiTokenState::Revoked => ['text' => $expires, 'flag' => ['label' => $this->translator->trans('api_tokens.state.revoked'), 'tone' => 'red']],
-                },
-                'lastUsed' => $lastUsed instanceof \DateTimeImmutable ? $lastUsed->format($this->translator->trans('format.datetime')) : $this->translator->trans('api_tokens.never'),
-            ],
-            'actions' => ApiTokenState::Active === $state ? [
+            'cells' => $working->display->cells($row),
+            'actions' => ApiTokenState::Active === $token->state($this->clock->now()) ? [
                 ['label' => $this->translator->trans('api_tokens.action.revoke'), 'href' => $this->generateUrl(self::REVOKE_ROUTE, ['id' => $token->id()]), 'method' => 'POST', 'confirm' => [
                     'title' => $this->translator->trans('api_tokens.confirm.revoke.title', ['name' => $token->name()]),
                     'text' => $this->translator->trans('api_tokens.confirm.revoke.text'),

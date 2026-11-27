@@ -9,6 +9,9 @@ const IMAGES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 // What would end the text of a Markdown link or image early.
 const label = (name) => name.replace(/[\r\n]+/g, ' ').replace(/([[\]\\])/g, '\\$1');
 const fold = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+// "[text](task:UUID)", as Foresi\Shared\Application\TaskReferenceSyntax reads it.
+const TASK_TOKEN = /\[(?:\\[[\]\\]|[^[\]\\\r\n]){1,500}\]\(task:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\)/g;
+const TASK_CREATED = 'markdown-editor:task-created';
 
 /**
  * A text area for Markdown (see the Ui:MarkdownEditor component).
@@ -29,12 +32,19 @@ const fold = (value) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
  * "![Uploading name…]()" holds their place and becomes "![name](url)" for an
  * image, "[name](url)" for any other file; a refused file takes its
  * placeholder away and the server's message shows under the text area.
+ *
+ * Given a task URL, Create task (also Ctrl/Cmd+Shift+K) is enabled for a
+ * selection on one line that is not part of a task's token. It opens the URL
+ * as a dialog with the selection as "title" and keeps where the selection was;
+ * the dialog's answer, the event markdown-editor:task-created with the task's
+ * id, puts "[selection](task:id)" there, as the selected text, unchanged.
  */
 export default class extends Controller {
-    static targets = ['bar', 'toolbar', 'writeTab', 'previewTab', 'writePanel', 'previewPanel', 'input', 'list', 'empty', 'status', 'option', 'nothing', 'failed', 'rendered', 'uploadError'];
+    static targets = ['bar', 'toolbar', 'writeTab', 'previewTab', 'writePanel', 'previewPanel', 'input', 'list', 'empty', 'status', 'option', 'nothing', 'failed', 'rendered', 'uploadError', 'taskTool', 'taskLink'];
     static values = {
         previewUrl: String, token: String, previewFields: Object, mentionsUrl: String, found: String,
         uploadUrl: String, uploadToken: String, uploadKind: String, uploadOwner: String, uploading: String, uploadFailed: String,
+        taskUrl: String,
     };
 
     connect() {
@@ -51,10 +61,26 @@ export default class extends Controller {
             input.setAttribute('aria-expanded', 'false');
             input.setAttribute('aria-controls', this.listTarget.id);
         }
+        this.pendingTask = null;
+        if (this.hasTasks) {
+            this.selectionChanged = () => this.updateTaskTool();
+            this.taskCreated = (event) => this.insertTask(event.detail || {});
+            document.addEventListener('selectionchange', this.selectionChanged);
+            document.addEventListener(TASK_CREATED, this.taskCreated);
+            this.updateTaskTool();
+        }
     }
 
     disconnect() {
         this.request?.abort();
+        if (this.hasTasks) {
+            document.removeEventListener('selectionchange', this.selectionChanged);
+            document.removeEventListener(TASK_CREATED, this.taskCreated);
+        }
+    }
+
+    get hasTasks() {
+        return this.hasTaskUrlValue && this.taskUrlValue !== '' && this.hasTaskToolTarget && this.hasTaskLinkTarget;
     }
 
     get canUpload() {
@@ -211,6 +237,66 @@ export default class extends Controller {
         input.setSelectionRange(selectionStart, selectionEnd);
     }
 
+    // Create task from the selection
+
+    /** The selection, when a task can be made from it: not empty, on one line, outside every token. */
+    taskSelection() {
+        const input = this.inputTarget;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value.slice(start, end);
+        if (start === end || text.trim() === '' || /[\r\n]/.test(text)) {
+            return null;
+        }
+        const lineStart = input.value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = input.value.indexOf('\n', end);
+        const line = input.value.slice(lineStart, lineEnd === -1 ? input.value.length : lineEnd);
+        for (const token of line.matchAll(TASK_TOKEN)) {
+            const tokenStart = lineStart + token.index;
+            if (start < tokenStart + token[0].length && end > tokenStart) {
+                return null;
+            }
+        }
+        return { start, end, text };
+    }
+
+    updateTaskTool() {
+        this.taskToolTarget.disabled = this.taskSelection() === null;
+    }
+
+    createTask() {
+        const selection = this.taskSelection();
+        if (selection === null) {
+            return;
+        }
+        this.pendingTask = selection;
+        const url = new URL(this.taskUrlValue, window.location.href);
+        url.searchParams.set('title', selection.text.trim());
+        this.taskLinkTarget.href = url.toString();
+        this.taskLinkTarget.click();
+    }
+
+    insertTask({ taskId }) {
+        const pending = this.pendingTask;
+        if (pending === null || typeof taskId !== 'string') {
+            return;
+        }
+        this.pendingTask = null;
+        const value = this.inputTarget.value;
+        // The text moved while the dialog was open: its first occurrence, else the end.
+        let start = value.slice(pending.start, pending.end) === pending.text ? pending.start : value.indexOf(pending.text);
+        let end = start + pending.text.length;
+        let text = `[${label(pending.text)}](task:${taskId})`;
+        if (start === -1) {
+            start = value.length;
+            end = start;
+            text = `${value === '' || value.endsWith('\n') ? '' : '\n'}- ${text}`;
+        }
+        const caret = start + text.length;
+        this.replace(start, end, text, caret, caret);
+        this.updateTaskTool();
+    }
+
     // Keys
 
     keydown(event) {
@@ -218,6 +304,11 @@ export default class extends Controller {
             return;
         }
         if (this.isOpen() && this.navigate(event)) {
+            return;
+        }
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && event.shiftKey && event.key.toLowerCase() === 'k' && this.hasTasks) {
+            event.preventDefault();
+            this.createTask();
             return;
         }
         if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {

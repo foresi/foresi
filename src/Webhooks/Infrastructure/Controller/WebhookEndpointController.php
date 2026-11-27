@@ -8,7 +8,11 @@ declare(strict_types=1);
 
 namespace Foresi\Webhooks\Infrastructure\Controller;
 
+use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Foresi\Webhooks\Application\DeliveryNotRedeliverable;
 use Foresi\Webhooks\Application\InvalidWebhookEndpoint;
 use Foresi\Webhooks\Application\InvalidWebhookUrl;
@@ -20,12 +24,14 @@ use Foresi\Webhooks\Application\Query\WebhookEndpointList;
 use Foresi\Webhooks\Application\SubscribableEvents;
 use Foresi\Webhooks\Application\UnknownWebhookDelivery;
 use Foresi\Webhooks\Application\UnknownWebhookEndpoint;
+use Foresi\Webhooks\Application\View\WebhookEndpointLists;
 use Foresi\Webhooks\Application\WebhookAccess;
 use Foresi\Webhooks\Application\WebhookEndpointDisabled;
 use Foresi\Webhooks\Application\WebhookNotAllowed;
 use Foresi\Webhooks\Application\WebhookSecretsUnavailable;
 use Foresi\Webhooks\Domain\WebhookEndpoint;
 use Foresi\Webhooks\Domain\WebhookSecret;
+use Foresi\Webhooks\Infrastructure\Column\WebhookEndpointColumns;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -74,32 +80,36 @@ final class WebhookEndpointController extends AbstractController
         private readonly SubscribableEvents $events,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly WebhookEndpointLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/webhooks', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->denyUnlessAnyModule();
-        $rows = [];
+        $endpoints = [];
         $after = null;
         do {
             $slice = $this->endpoints->slice($after, WebhookEndpointList::MAX_LIMIT);
             foreach ($slice->endpoints as $endpoint) {
-                $rows[] = $this->endpointRow($endpoint);
+                $endpoints[] = $endpoint;
             }
             $after = $slice->lastId();
         } while ($slice->hasMore && null !== $after);
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
+        $page = $this->listTable->of($slot, $list, WebhookEndpointColumns::LIST, self::ROUTE, 'webhook-endpoints', $endpoints, $this->endpointRow(...), $this->valueOf(...), static fn (WebhookEndpoint $endpoint): string => $endpoint->url()->value.' '.$endpoint->description(), $this->translator->trans('webhooks.search'));
 
         return $this->render('@Webhooks/index.html.twig', [
-            'columns' => [
-                ['key' => 'url', 'label' => $this->translator->trans('webhooks.column.url'), 'truncate' => true],
-                ['key' => 'description', 'label' => $this->translator->trans('webhooks.column.description'), 'truncate' => true, 'phone' => false],
-                ['key' => 'events', 'label' => $this->translator->trans('webhooks.column.events'), 'phone' => false],
-                ['key' => 'status', 'label' => $this->translator->trans('webhooks.column.status')],
-                ['key' => 'created', 'label' => $this->translator->trans('webhooks.column.created'), 'phone' => false],
-            ],
-            'rows' => $rows,
+            'endpoints' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ]);
     }
 
@@ -476,7 +486,7 @@ final class WebhookEndpointController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function endpointRow(WebhookEndpoint $endpoint): array
+    private function endpointRow(WebhookEndpoint $endpoint, WorkingState $working): array
     {
         $id = $endpoint->id();
         $actions = [['label' => $this->translator->trans('webhooks.action.edit'), 'href' => $this->generateUrl(self::EDIT_ROUTE, ['id' => $id]), 'method' => 'GET', 'dialog' => true]];
@@ -494,13 +504,7 @@ final class WebhookEndpointController extends AbstractController
             'href' => $this->generateUrl(self::SHOW_ROUTE, ['id' => $id]),
             'label' => $endpoint->url()->value,
             'secondary' => $endpoint->description(),
-            'cells' => [
-                'url' => $endpoint->url()->value,
-                'description' => $endpoint->description(),
-                'events' => ['badges' => array_map(static fn (string $pattern): array => ['label' => $pattern, 'tone' => 'gray'], $endpoint->eventTypes()->patterns())],
-                'status' => ['badges' => [$this->status($endpoint)]],
-                'created' => $this->dateTime($endpoint->createdAt()),
-            ],
+            'cells' => $working->display->cells($endpoint),
             'actions' => $actions,
         ];
     }
@@ -555,6 +559,19 @@ final class WebhookEndpointController extends AbstractController
         return $endpoint->isActive()
             ? ['label' => $this->translator->trans('webhooks.state.active'), 'tone' => 'green']
             : ['label' => $this->translator->trans('webhooks.state.disabled'), 'tone' => 'red'];
+    }
+
+    /**
+     * The value of a field of the list on an endpoint, as RowConditions compares it.
+     */
+    private function valueOf(WebhookEndpoint $endpoint, string $field): mixed
+    {
+        return match ($field) {
+            WebhookEndpointLists::URL => $endpoint->url()->value,
+            WebhookEndpointLists::DESCRIPTION => $endpoint->description() ?? '',
+            WebhookEndpointLists::DISABLED => !$endpoint->isActive(),
+            default => null,
+        };
     }
 
     /**

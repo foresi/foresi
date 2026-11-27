@@ -16,6 +16,7 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ListTablePage;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\View\Placement;
@@ -23,7 +24,6 @@ use Foresi\Tests\Ui\Support\TestRow;
 use Foresi\Tests\Ui\Support\TestRowColumns;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ListTable;
-use Foresi\Ui\View\ListTablePage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -106,10 +106,22 @@ final class ListTableTest extends KernelTestCase
         self::assertSame('/settings/labels', $this->page(['q' => 'x'])->table['resetHref']);
     }
 
+    public function testAViewTheListDoesNotOfferIsNoTabAndTheFirstOfferedOpensByDefault(): void
+    {
+        $page = $this->page([], static fn (\Foresi\Shared\Application\View\ListView $view): bool => 'all' !== $view->key);
+
+        $tabs = $page->table['tabs'];
+        self::assertIsArray($tabs);
+        self::assertSame(['test.tab.trash'], array_column($tabs, 'label'));
+        self::assertSame([true], array_column($tabs, 'active'));
+        self::assertSame([['label' => 'test.tab.trash', 'href' => '/settings/labels?view=later', 'active' => false, 'modified' => false, 'private' => false, 'count' => null]], $page->table['moreViews']);
+        self::assertSame(['Old one'], $this->names($page));
+    }
+
     /**
      * @param array<string, mixed> $query
      */
-    private function page(array $query): ListTablePage
+    private function page(array $query, ?\Closure $offered = null): ListTablePage
     {
         $now = new \DateTimeImmutable('2026-11-01');
         $records = [
@@ -123,7 +135,7 @@ final class ListTableTest extends KernelTestCase
             'name' => $row->name,
             'trashed' => $row->isTrashed(),
             default => null,
-        }, static fn (TestRow $row): string => $row->name, 'Search', 'trashed', static fn (ViewFilter $shown): array => ['trash' => [] !== $shown->on('trashed')]);
+        }, static fn (TestRow $row): string => $row->name, 'Search', 'trashed', static fn (ViewFilter $shown): array => ['trash' => [] !== $shown->on('trashed')], $offered);
     }
 
     /**

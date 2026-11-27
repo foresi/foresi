@@ -14,14 +14,21 @@ use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\RemoveVatStatusInput;
 use Foresi\Party\Application\VatStatusRefused;
 use Foresi\Party\Application\VatStatusWrites;
+use Foresi\Party\Application\View\FirmVatLists;
 use Foresi\Party\Contract\FirmVatStatuses;
 use Foresi\Party\Contract\VatPeriodLength;
 use Foresi\Party\Contract\VatStretch;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Party\Integration\Ui\Column\FirmVatColumns;
+use Foresi\Party\Integration\Ui\Column\VatStatusRow;
 use Foresi\Party\Integration\Ui\View\VatStretchLabel;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ListTables;
 use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Contract\WorkingState;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,6 +58,9 @@ final class FirmVatController extends AbstractController
         'identified_person' => [VatStatus::IdentifiedPerson, null],
     ];
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly InstanceFirm $instanceFirm,
         private readonly FirmVatStatuses $statuses,
@@ -59,6 +69,9 @@ final class FirmVatController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly InstanceClock $clock,
         private readonly VatStretchLabel $labels,
+        private readonly FirmVatLists $lists,
+        private readonly ListTables $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
@@ -70,18 +83,23 @@ final class FirmVatController extends AbstractController
         if (!$firm instanceof LegalEntity) {
             return $this->redirectToRoute('app_firm');
         }
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute('app_firm_vat', $built, Response::HTTP_SEE_OTHER);
+        }
         $stretches = $this->statuses->stretches();
+        $current = $this->statuses->on($this->clock->today()) ?? $stretches[0] ?? null;
+        $single = 1 === \count($stretches);
+        $page = $this->listTable->of($slot, $list, FirmVatColumns::LIST, 'app_firm_vat', 'firm-vat', $this->records($stretches, $current, $request->getLocale()), fn (VatStatusRow $row, WorkingState $working): array => $this->row($row, $working, $single), $this->valueOf(...), static fn (VatStatusRow $row): string => $row->label, $this->translator->trans('firm.vat.search'));
 
         return $this->render('@Party/legal_entity/vat.html.twig', [
             'firm' => $firm,
-            'today' => $this->label($this->statuses->on($this->clock->today()) ?? $stretches[0] ?? null),
+            'today' => $this->label($current),
             'undated' => [] !== $stretches && !$stretches[0]->validFrom instanceof \DateTimeImmutable,
-            'columns' => [
-                ['key' => 'status', 'label' => $this->translator->trans('firm.vat.column.status'), 'truncate' => true],
-                ['key' => 'from', 'label' => $this->translator->trans('firm.vat.column.from')],
-                ['key' => 'until', 'label' => $this->translator->trans('firm.vat.column.until'), 'phone' => false],
-            ],
-            'rows' => $this->rows($stretches, $request->getLocale()),
+            'statuses' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ]);
     }
 
@@ -145,42 +163,61 @@ final class FirmVatController extends AbstractController
     /**
      * @param list<VatStretch> $stretches oldest first
      *
-     * @return list<array<string, mixed>>
+     * @return list<VatStatusRow>
      */
-    private function rows(array $stretches, string $locale): array
+    private function records(array $stretches, ?VatStretch $current, string $locale): array
     {
         $rows = [];
-        $single = 1 === \count($stretches);
         foreach ($stretches as $index => $stretch) {
             $next = $stretches[$index + 1] ?? null;
-            $label = $this->label($stretch);
-            $from = $stretch->validFrom instanceof \DateTimeImmutable ? $this->day($stretch->validFrom, $locale) : ['empty' => $this->translator->trans('firm.vat.from_start')];
-            $rows[] = [
-                'id' => $stretch->id,
-                'label' => $label,
-                'secondary' => \is_string($from) ? $from : $from['empty'],
-                'cells' => [
-                    'status' => $label,
-                    'from' => $from,
-                    'until' => $next?->validFrom instanceof \DateTimeImmutable ? $this->day($next->validFrom->modify('-1 day'), $locale) : ['empty' => $this->translator->trans('firm.vat.until_next')],
-                ],
-                // The last status stays: the firm always has one.
-                'actions' => $single ? [] : [[
-                    'label' => $this->translator->trans('firm.vat.remove'),
-                    'href' => $this->generateUrl('app_firm_vat_remove', ['id' => $stretch->id]),
-                    'method' => 'POST',
-                    'icon' => 'trash-2',
-                    'confirm' => [
-                        'title' => $this->translator->trans('firm.vat.remove_title', ['status' => $label]),
-                        'text' => $this->translator->trans('firm.vat.remove_text'),
-                        'accept' => $this->translator->trans('firm.vat.remove'),
-                        'tone' => 'danger',
-                    ],
-                ]],
-            ];
+            $rows[] = new VatStatusRow(
+                $stretch->id,
+                $this->labels->of($stretch),
+                $stretch->validFrom instanceof \DateTimeImmutable ? $this->day($stretch->validFrom, $locale) : null,
+                $next?->validFrom instanceof \DateTimeImmutable ? $this->day($next->validFrom->modify('-1 day'), $locale) : null,
+                $stretch->id === $current?->id,
+            );
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function row(VatStatusRow $row, WorkingState $working, bool $single): array
+    {
+        return [
+            'id' => $row->id,
+            'label' => $row->label,
+            'secondary' => $row->from ?? $this->translator->trans('firm.vat.from_start'),
+            'cells' => $working->display->cells($row),
+            // The last status stays: the firm always has one.
+            'actions' => $single ? [] : [[
+                'label' => $this->translator->trans('firm.vat.remove'),
+                'href' => $this->generateUrl('app_firm_vat_remove', ['id' => $row->id]),
+                'method' => 'POST',
+                'icon' => 'trash-2',
+                'confirm' => [
+                    'title' => $this->translator->trans('firm.vat.remove_title', ['status' => $row->label]),
+                    'text' => $this->translator->trans('firm.vat.remove_text'),
+                    'accept' => $this->translator->trans('firm.vat.remove'),
+                    'tone' => 'danger',
+                ],
+            ]],
+        ];
+    }
+
+    /**
+     * The value of a field of the list on a status, as RowConditions compares it.
+     */
+    private function valueOf(VatStatusRow $row, string $field): mixed
+    {
+        return match ($field) {
+            FirmVatLists::STATUS => $row->label,
+            FirmVatLists::CURRENT => $row->current,
+            default => null,
+        };
     }
 
     private function label(?VatStretch $stretch): ?string

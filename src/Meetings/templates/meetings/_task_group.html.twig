@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The open tasks of one earlier meeting, under its title and day linked to it. Variables: group
+    (Foresi\Meetings\Application\CarriedOver), today (YYYY-MM-DD).
+#}
+<section class="grid gap-1.5" data-carry-over-meeting="{{ group.meeting.id }}">
+    <h3 class="m-0 text-small font-semibold text-ink"><a href="{{ path('app_meetings_meeting', {id: group.meeting.id}) }}" class="text-ink no-underline hover:underline {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ group.meeting.title }}</a> <span class="font-normal text-muted">{{ group.meeting.heldOn|date('format.date'|trans) }}</span></h3>
+    {{ include('@Meetings/meetings/_task_list.html.twig', {tasks: group.tasks, today: today}) }}
+</section>

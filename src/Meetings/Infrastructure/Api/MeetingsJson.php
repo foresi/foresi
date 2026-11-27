@@ -8,13 +8,18 @@ declare(strict_types=1);
 
 namespace Foresi\Meetings\Infrastructure\Api;
 
+use Foresi\Meetings\Application\CarriedOver;
+use Foresi\Meetings\Application\MeetingTasks;
 use Foresi\Meetings\Application\MeetingView;
 use Foresi\Meetings\Application\SeriesView;
 use Foresi\Meetings\Domain\Meeting;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
+use Foresi\Work\Contract\TaskSummary;
 
 /**
  * A series and a meeting as REST and MCP write them (schemas MeetingSeries and Meeting).
+ * A meeting comes with the tasks made from it and those carried over from
+ * earlier meetings of its series, live from Work.
  */
 final class MeetingsJson
 {
@@ -45,9 +50,35 @@ final class MeetingsJson
      *
      * @return array<string, mixed>
      */
-    public static function meeting(MeetingView $view): array
+    public static function meeting(MeetingView $view, MeetingTasks $tasks): array
     {
-        return self::row($view) + ['minutes' => $view->meeting->minutes()];
+        return self::row($view) + [
+            'minutes' => $view->meeting->minutes(),
+            'action_items' => array_map(self::task(...), $tasks->actionItems),
+            'carry_over' => array_map(static fn (CarriedOver $group): array => [
+                'meeting' => ['id' => $group->meeting->id(), 'title' => $group->meeting->title(), 'held_on' => JsonValues::date($group->meeting->heldOn())],
+                'tasks' => array_map(self::task(...), $group->tasks),
+            ], $tasks->carryOver),
+        ];
+    }
+
+    /**
+     * A task of a meeting as the person sees it, live from Work.
+     *
+     * @return array<string, mixed>
+     */
+    public static function task(TaskSummary $task): array
+    {
+        return [
+            'task_id' => $task->id,
+            'title' => $task->title,
+            'status' => $task->statusName,
+            'status_type' => $task->statusType,
+            'responsible_id' => $task->responsibleId,
+            'due_on' => JsonValues::date($task->dueOn),
+            'done' => $task->done,
+            'trashed' => $task->trashed,
+        ];
     }
 
     /**

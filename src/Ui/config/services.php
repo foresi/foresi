@@ -6,6 +6,7 @@
 
 declare(strict_types=1);
 
+use Foresi\Shared\Application\View\ListTables;
 use Foresi\Tests\Ui\Support\ShellProbeController;
 use Foresi\Tests\Ui\Support\TestNavigationProvider;
 use Foresi\Tests\Ui\Support\TestPersonPhotos;
@@ -23,6 +24,8 @@ return static function (ContainerConfigurator $container): void {
     // Integration code is registered by the kernel, only when its module is installed (ADR 0033).
     $services->load('Foresi\\Ui\\', '../')
         ->exclude(['../config/', '../Integration/', '../UiBundle.php', '../Controller/CatalogueController.php']);
+    // The tables with views of the pages an integration adds to the interface (Shared\Application\View\ListTables).
+    $services->alias(ListTables::class, ListTable::class);
 
     if (\in_array($container->env(), ['dev', 'test', 'e2e'], true)) {
         // Development tool: registered, and so routable, outside production only.

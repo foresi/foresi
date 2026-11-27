@@ -116,6 +116,7 @@ final class ProjectModulesTest extends TestCase
         'Foresi\\Shared\\Application\\Api\\ScopeGuard -> Foresi\\Identity\\Infrastructure\\Security\\TokenScopeGuard',
         'Foresi\\Shared\\Application\\ConflictRetry -> Foresi\\Audit\\Infrastructure\\Doctrine\\DoctrineConflictRetry',
         'Foresi\\Shared\\Application\\Event\\EventOutbox -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
+        'Foresi\\Shared\\Application\\View\\ListTables -> Foresi\\Ui\\View\\ListTable',
         'Foresi\\Shared\\Contract\\Event\\EventRecorder -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
         'Foresi\\Shared\\Infrastructure\\Mcp\\ToolCaller -> Foresi\\Identity\\Infrastructure\\Console\\McpStdioSignIn',
     ];

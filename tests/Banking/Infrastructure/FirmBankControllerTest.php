@@ -11,6 +11,7 @@ namespace Foresi\Tests\Banking\Infrastructure;
 use Doctrine\DBAL\Connection;
 use Foresi\Banking\Application\FeedRoute;
 use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\View\FirmBankAccountLists;
 use Foresi\Banking\Infrastructure\Doctrine\DoctrineBankFeedDirectory;
 use Foresi\Identity\Domain\Role;
 use Foresi\Mail\Application\InboundAddresses;
@@ -25,6 +26,7 @@ use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\Scalars;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -41,6 +43,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class FirmBankControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private const string IBAN = 'CZ6508000000192000145399';
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
     private const string ADDRESS = '/^bank\+[a-z2-7]{26}@example\.com$/D';
@@ -77,6 +81,25 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertCount(2, $crawler->filter('main nav[aria-label="Bank settings sections"] a'));
         self::assertSelectorTextContains('main', 'No accounts yet');
         self::assertCount(1, $crawler->filter('#bank-account-add[data-dialog][aria-haspopup="dialog"]'));
+    }
+
+    public function testTheAccountsAreAListWithViews(): void
+    {
+        $this->signedInFirm();
+        $this->withAccount();
+        $this->withAccount(self::OTHER_IBAN);
+        self::assertListWithViews(self::getContainer()->get(FirmBankAccountLists::class), 'banking.firm_accounts', ['name', 'iban', 'archived'], ['all' => false]);
+        $rows = static fn (Crawler $crawler): int => $crawler->filter('[data-bank-accounts] tbody tr[data-id]')->count();
+
+        $crawler = $this->client->request('GET', $this->url());
+        self::assertSame(['name', 'iban', 'currency', 'state', 'address'], $crawler->filter('[data-bank-accounts] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-bank-accounts]', ['widths' => '']);
+        self::assertSame(2, $rows($crawler));
+
+        self::assertSame(1, $rows($this->client->request('GET', $this->url().'?q=CZ55')));
+        self::assertSame(1, $rows(self::applyBuilder($this->client, $this->url(), 'iban', 'CZ65')));
+        // The pairing tab has no table of its own.
+        self::assertCount(0, $this->client->request('GET', $this->url('pairing'))->filter('[data-bank-accounts]'));
     }
 
     public function testTheFirmFormLinksToTheBankTab(): void

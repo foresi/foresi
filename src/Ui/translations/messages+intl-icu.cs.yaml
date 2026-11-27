@@ -121,6 +121,8 @@ ui:
     move_down: 'Posunout {label} dolů'
     moved: '{label} je teď na pozici {position} z {total}.'
     group: Seskupit podle
+    layout: Rozložení
+    weekends: Zobrazit víkendy
     reset: Obnovit výchozí
     apply: Použít
     add: Přidat sloupec
@@ -275,6 +277,7 @@ ui:
     code: Kód
     quote: Citace
     mentions: Lidé
+    task: Vytvořit úkol
     no_match: Nikdo neodpovídá
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
@@ -453,6 +456,7 @@ firm:
       change: Vztah k DPH
       valid_from: Od
       valid_from_help: První den, kdy stav platí.
+      current: Platí dnes
     column:
       status: Stav
       from: Od
@@ -470,6 +474,13 @@ firm:
       vat_id_missing: Dnešní stav potřebuje DIČ. Doplňte ho v údajích firmy.
       last_stretch: Firma musí mít aspoň jeden stav. Nejdřív přidejte nový.
       not_found: Stav se nenašel. Načtěte stránku znovu.
+    views: Pohledy na stavy DPH
+    search: Hledat podle stavu
+    tab:
+      all: Vše
+    empty:
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
   vat_status:
     registered: Plátce DPH
     not_registered: Neplátce DPH

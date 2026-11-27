@@ -57,6 +57,10 @@ final readonly class CreateViewInput
         public ?string $groupBy = null,
         #[Field('The quick filters shown as chips under the tabs, in order: keys of the list\'s fields from foresi_list_lists, at most 4; an empty list pins none, null the list\'s own.', items: 'string')]
         public ?array $pinned = null,
+        #[Field('How the rows are laid out, on a list that offers a calendar, such as "work.tasks": list (a table) or calendar (the rows on the days of their due date); null for a table.', enum: ViewRules::LAYOUTS)]
+        public ?string $layout = null,
+        #[Field('Whether the calendar shows Saturday and Sunday; null shows them.')]
+        public ?bool $weekends = null,
     ) {
     }
 }

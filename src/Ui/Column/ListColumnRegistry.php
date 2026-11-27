@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Column;
 
+use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\DataSource;
@@ -129,11 +130,14 @@ final class ListColumnRegistry
         }
 
         $groupBy = $display['group_by'] ?? null;
+        $layout = $display['layout'] ?? null;
 
         return new ListDisplay(
             $columns,
             $context,
             \is_string($groupBy) && '' !== $groupBy ? $groupBy : null,
+            \in_array($layout, ViewRules::LAYOUTS, true) ? $layout : null,
+            false !== ($display['weekends'] ?? null),
         );
     }
 

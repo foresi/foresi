@@ -53,26 +53,34 @@ final class RememberedDisplayTest extends TestCase
         self::assertSame(['widths' => 'name:300', 'cols' => 'name,email', 'pins' => 'city'], $this->queryOf($remembered, ['widths' => 'name:300'], named: true));
     }
 
+    public function testOnAListWithACalendarARememberedDisplayNamesItsLayoutAndWeekends(): void
+    {
+        self::assertSame(['cols' => '', 'widths' => '', 'layout' => 'calendar', 'weekends' => '0'], $this->queryOf(['layout' => 'calendar', 'weekends' => false], calendar: true));
+        self::assertSame(['cols' => '', 'widths' => '', 'layout' => 'list', 'weekends' => '1'], $this->queryOf([], calendar: true), 'A remembered table wins over a view\'s calendar.');
+        self::assertSame(['cols' => '', 'widths' => ''], $this->queryOf(['layout' => 'calendar', 'weekends' => false]), 'A list without a calendar names neither.');
+    }
+
     /**
      * The query WorkingDisplay is asked to read for a person's remembered display.
      *
      * @param array<string, mixed>  $remembered
      * @param array<string, string> $query
      * @param bool                  $named      whether the address names a display, so a read may forget the one remembered
+     * @param bool                  $calendar   whether the list can be laid out as a calendar
      *
      * @return array<array-key, mixed>
      */
-    private function queryOf(array $remembered, array $query = [], bool $named = false): array
+    private function queryOf(array $remembered, array $query = [], bool $named = false, bool $calendar = false): array
     {
         $working = new class implements WorkingDisplay {
             /** @var array<array-key, mixed> */
             public array $query = [];
 
-            public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState
+            public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null, bool $calendar = false): WorkingState
             {
                 $this->query = $query;
 
-                return new WorkingState(new ListDisplay([]), null, [], false, []);
+                return new WorkingState(new ListDisplay([], [], null, null, true), null, [], false, []);
             }
         };
         $states = new readonly class($remembered, $named) implements SavedViewUserStates {
@@ -105,7 +113,9 @@ final class RememberedDisplayTest extends TestCase
         $views = new \ReflectionClass(SavedViews::class)->newInstanceWithoutConstructor();
         $view = new ListView('party.contacts.mine', 'Mine', false, ViewFilter::all(), true, Placement::Primary, id: 'view-1');
 
-        new RememberedDisplay($working, $states, $views, $actor)->read('party.contacts', [], 'party.contacts', $view, $query);
+        $display = new RememberedDisplay($working, $states, $views, $actor);
+        // A list offers no calendar unless it says so.
+        $calendar ? $display->read('party.contacts', [], 'party.contacts', $view, $query, calendar: true) : $display->read('party.contacts', [], 'party.contacts', $view, $query);
 
         return $working->query;
     }

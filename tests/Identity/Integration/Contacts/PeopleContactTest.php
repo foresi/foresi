@@ -56,7 +56,7 @@ final class PeopleContactTest extends WebTestCase
         $invitations = $this->em->getRepository(Invitation::class)->findAll();
         self::assertCount(1, $invitations);
         self::assertSame($contact, $invitations[0]->party()?->id());
-        $crawler = $this->client->request('GET', '/settings/people/invitations');
+        $crawler = $this->client->request('GET', '/settings/people?view=invitations');
         self::assertCount(1, $crawler->filter('tbody a[href="/contacts/'.$contact.'"]'));
     }
 

@@ -16,6 +16,7 @@ bank:
     tab:
       accounts: Účty
       pairing: Párování plateb
+      all: Vše
       addresses: E-maily z banky
     card:
       accounts: Bankovní účty
@@ -26,6 +27,8 @@ bank:
     empty:
       title: Zatím tu nejsou žádné účty
       text: Přidejte účet, na který vám zákazníci platí. První účet bude hlavní a dostanou ho nové faktury.
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
     column:
       name: Účet
       iban: IBAN
@@ -137,6 +140,8 @@ bank:
         kbplus_3: Ve své poštovní schránce nastavte přeposílání těchto e-mailů na adresu výše.
         guide_text: Další banky a přeposílání popisuje
         guide: návod k párování plateb
+    views: Pohledy na bankovní účty
+    search: Hledat podle účtu nebo IBAN
   movement:
     title: Banka
     views: Pohledy na banku

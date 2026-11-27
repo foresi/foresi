@@ -19,18 +19,27 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\PeopleRefused;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Application\View\PeopleLists;
 use Foresi\Identity\Contract\PersonContactPicker;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\Invitation;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Contract\ContactPages;
+use Foresi\Identity\Integration\Ui\Column\PeopleColumns;
+use Foresi\Identity\Integration\Ui\Column\PeopleRow;
 use Foresi\Party\Domain\Party;
+use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ListTables;
+use Foresi\Shared\Application\View\ListView;
+use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -45,6 +54,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * not and resets their two-factor sign-in, and keeps the pending invitations.
  * Only the owner sees a rate. The contact field and column come with the address
  * book's picker; without it they are not shown and a stored contact stays (ADR 0049).
+ * The people and the invitations are one list with views (docs/design/list-pages.md,
+ * rule 8), the invitations its Invitations view.
  */
 final class PeopleController extends AbstractController
 {
@@ -54,6 +65,9 @@ final class PeopleController extends AbstractController
     private const int MAX_NAME = 255;
     private const string LINK_KEY = 'identity.invitation_link.';
 
+    /**
+     * @param ListTables<WorkingState> $listTable
+     */
     public function __construct(
         private readonly People $people,
         private readonly Invitations $invitations,
@@ -65,41 +79,55 @@ final class PeopleController extends AbstractController
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly PeopleLists $lists,
+        private readonly ListTables $listTable,
+        private readonly FilterSheet $filterSheet,
         private readonly ?PersonContactPicker $contactPicker = null,
-        private readonly ?ContactPages $contactPages = null,
     ) {
     }
 
     #[Route('/settings/people', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         if (!$this->staff->isStaff()) {
             throw new AccessDeniedHttpException('Only the staff see the people of the organisation.');
         }
         $owner = $this->owner->isOwner();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
+        $records = array_map(PeopleRow::person(...), $this->people->all());
+        if ($owner) {
+            $records = [...$records, ...array_map(PeopleRow::invitation(...), $this->invitations->pending($this->clock->now()))];
+        }
+        $invitations = static fn (ViewFilter $shown): bool => [] !== $shown->on(PeopleLists::INVITED);
+        $page = $this->listTable->of($slot, $list, PeopleColumns::LIST, self::ROUTE, 'people', $records,
+            fn (PeopleRow $row, WorkingState $working): array => $row->isInvitation() ? $this->invitationRow($row, $working) : $this->personRow($row, $owner, $working),
+            $this->valueOf(...), static fn (PeopleRow $row): string => $row->name().' '.$row->email(), $this->translator->trans('people.search'),
+            PeopleLists::INVITED, static fn (ViewFilter $shown): array => ['invitations' => $invitations($shown)],
+            // The invitations are the owner's (spec: only the owner gets them).
+            static fn (ListView $view): bool => $owner || PeopleLists::INVITATIONS !== $view->key);
 
         return $this->render('@Identity/people/index.html.twig', [
-            'tab' => 'people',
             'owner' => $owner,
-            'columns' => $this->peopleColumns(),
-            'rows' => array_map(fn (Person $person): array => $this->personRow($person, $owner), $this->people->all()),
-            'pendingCount' => $owner ? \count($this->invitations->pending($this->clock->now())) : 0,
+            'invitations' => $invitations($page->shown),
+            'people' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ]);
     }
 
+    /**
+     * The old address of the pending invitations, which are the list's Invitations view now.
+     */
     #[Route('/settings/people/invitations', name: self::INVITATIONS_ROUTE, methods: ['GET'])]
-    public function invitations(): Response
+    public function invitations(): RedirectResponse
     {
         $this->denyUnlessOwner();
-        $pending = $this->invitations->pending($this->clock->now());
 
-        return $this->render('@Identity/people/index.html.twig', [
-            'tab' => 'invitations',
-            'owner' => true,
-            'columns' => $this->invitationColumns(),
-            'rows' => array_map($this->invitationRow(...), $pending),
-            'pendingCount' => \count($pending),
-        ]);
+        return $this->redirectToRoute(self::ROUTE, ['view' => PeopleLists::INVITATIONS]);
     }
 
     #[Route('/settings/people/invite', name: 'app_people_invite', methods: ['GET', 'POST'])]
@@ -205,25 +233,25 @@ final class PeopleController extends AbstractController
     }
 
     #[Route('/settings/people/{id}/deactivate', name: 'app_people_deactivate', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function deactivate(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function deactivate(string $id, Request $request): RedirectResponse
     {
         return $this->manage($request, fn () => $this->managing->deactivate($id), 'people.flash.deactivated');
     }
 
     #[Route('/settings/people/{id}/reactivate', name: 'app_people_reactivate', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function reactivate(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function reactivate(string $id, Request $request): RedirectResponse
     {
         return $this->manage($request, fn () => $this->managing->reactivate($id), 'people.flash.reactivated');
     }
 
     #[Route('/settings/people/{id}/reset-two-factor', name: 'app_people_reset_two_factor', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function resetTwoFactor(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function resetTwoFactor(string $id, Request $request): RedirectResponse
     {
         return $this->manage($request, fn () => $this->managing->resetTwoFactor($id), 'people.flash.two_factor_reset');
     }
 
     #[Route('/settings/people/invitations/{id}/resend', name: 'app_people_invitation_resend', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function resend(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function resend(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
         $this->checkToken($request);
@@ -232,12 +260,12 @@ final class PeopleController extends AbstractController
         } catch (InvitationRefused $refused) {
             $this->addFlash('error', $this->translator->trans('people.refused.'.$refused->reason));
 
-            return $this->redirectToRoute(self::INVITATIONS_ROUTE);
+            return $this->redirectToRoute(self::ROUTE, ['view' => PeopleLists::INVITATIONS]);
         }
     }
 
     #[Route('/settings/people/invitations/{id}/revoke', name: 'app_people_invitation_revoke', requirements: ['id' => Requirement::UUID], methods: ['POST'])]
-    public function revoke(string $id, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    public function revoke(string $id, Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
         $this->checkToken($request);
@@ -248,7 +276,21 @@ final class PeopleController extends AbstractController
             $this->addFlash('error', $this->translator->trans('people.refused.'.$refused->reason));
         }
 
-        return $this->redirectToRoute(self::INVITATIONS_ROUTE);
+        return $this->redirectToRoute(self::ROUTE, ['view' => PeopleLists::INVITATIONS]);
+    }
+
+    /**
+     * The value of a field of the list on a person or an invitation, as RowConditions compares it.
+     */
+    private function valueOf(PeopleRow $row, string $field): mixed
+    {
+        return match ($field) {
+            PeopleLists::NAME => $row->name(),
+            PeopleLists::EMAIL => $row->email(),
+            PeopleLists::ROLE => $row->role()->value,
+            PeopleLists::INVITED => $row->isInvitation(),
+            default => null,
+        };
     }
 
     /** Which field of the invitation form a refusal points at. */
@@ -259,12 +301,12 @@ final class PeopleController extends AbstractController
      * gets the link to pass on, on a page of its own after a redirect, as Turbo
      * expects of a form. The link waits in the session for that page, once.
      */
-    private function issued(InvitationIssued $issued, Request $request): \Symfony\Component\HttpFoundation\RedirectResponse
+    private function issued(InvitationIssued $issued, Request $request): RedirectResponse
     {
         if ($issued->mailed) {
             $this->addFlash('success', $this->translator->trans('people.flash.invited', ['email' => $issued->invitation->email()]));
 
-            return $this->redirectToRoute(self::INVITATIONS_ROUTE);
+            return $this->redirectToRoute(self::ROUTE, ['view' => PeopleLists::INVITATIONS]);
         }
         $request->getSession()->set(self::LINK_KEY.$issued->invitation->id(), $issued->link);
 
@@ -278,7 +320,7 @@ final class PeopleController extends AbstractController
         $link = $request->getSession()->remove(self::LINK_KEY.$id);
         $invitation = $this->invitations->find($id);
         if (!\is_string($link) || !$invitation instanceof Invitation) {
-            return $this->redirectToRoute(self::INVITATIONS_ROUTE);
+            return $this->redirectToRoute(self::ROUTE, ['view' => PeopleLists::INVITATIONS]);
         }
 
         return $this->render('@Identity/people/link.html.twig', [
@@ -291,7 +333,7 @@ final class PeopleController extends AbstractController
     /**
      * @param callable(): void $change
      */
-    private function manage(Request $request, callable $change, string $done): \Symfony\Component\HttpFoundation\RedirectResponse
+    private function manage(Request $request, callable $change, string $done): RedirectResponse
     {
         $this->denyUnlessOwner();
         $this->checkToken($request);
@@ -306,25 +348,11 @@ final class PeopleController extends AbstractController
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    private function peopleColumns(): array
-    {
-        return [
-            ['key' => 'name', 'label' => $this->translator->trans('people.column.name'), 'truncate' => true],
-            ['key' => 'email', 'label' => $this->translator->trans('people.column.email'), 'truncate' => true, 'phone' => false],
-            ['key' => 'role', 'label' => $this->translator->trans('people.column.role')],
-            ...$this->contactColumn(),
-            ['key' => 'twoFactor', 'label' => $this->translator->trans('people.column.two_factor'), 'phone' => false],
-            ['key' => 'status', 'label' => $this->translator->trans('people.column.status'), 'phone' => false],
-        ];
-    }
-
-    /**
      * @return array<string, mixed>
      */
-    private function personRow(Person $person, bool $owner): array
+    private function personRow(PeopleRow $row, bool $owner, WorkingState $working): array
     {
+        $person = $row->person ?? throw new \LogicException('A row of a person.');
         $actions = [];
         if ($owner) {
             $actions[] = ['label' => $this->translator->trans('people.action.edit'), 'href' => $this->generateUrl('app_people_edit', ['id' => $person->membershipId]), 'icon' => 'pencil', 'dialog' => true];
@@ -355,50 +383,23 @@ final class PeopleController extends AbstractController
             'opens' => Opens::DIALOG,
             'label' => $person->name,
             'secondary' => $person->email,
-            'cells' => [
-                'name' => ['avatar' => $person->userId, 'user' => $person->userId, 'text' => $person->name],
-                'email' => $person->email,
-                'role' => ['text' => $this->translator->trans('role.'.$person->role->value), 'tone' => Role::Owner === $person->role ? 'green' : 'gray'],
-                'contact' => $this->contactCell($person->contactId, $person->contactName ?? ''),
-                'twoFactor' => $person->twoFactor ? ['text' => $this->translator->trans('people.two_factor.on'), 'tone' => 'green'] : ['text' => $this->translator->trans('people.two_factor.off'), 'tone' => 'gray'],
-                'status' => $person->active ? ['text' => $this->translator->trans('people.status.active'), 'tone' => 'green'] : ['text' => $this->translator->trans('people.status.deactivated'), 'tone' => 'amber'],
-            ],
+            'cells' => $working->display->cells($row),
             'actions' => $actions,
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function invitationColumns(): array
-    {
-        return [
-            ['key' => 'name', 'label' => $this->translator->trans('people.column.name'), 'truncate' => true],
-            ['key' => 'email', 'label' => $this->translator->trans('people.column.email'), 'truncate' => true, 'phone' => false],
-            ['key' => 'role', 'label' => $this->translator->trans('people.column.role')],
-            ...$this->contactColumn(),
-            ['key' => 'expires', 'label' => $this->translator->trans('people.column.expires'), 'align' => 'right'],
         ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function invitationRow(Invitation $invitation): array
+    private function invitationRow(PeopleRow $row, WorkingState $working): array
     {
-        $party = $invitation->party();
+        $invitation = $row->invitation ?? throw new \LogicException('A row of an invitation.');
 
         return [
             'id' => $invitation->id(),
             'label' => $invitation->displayName(),
             'secondary' => $invitation->email(),
-            'cells' => [
-                'name' => $invitation->displayName(),
-                'email' => $invitation->email(),
-                'role' => ['text' => $this->translator->trans('role.'.$invitation->role()->value), 'tone' => 'gray'],
-                'contact' => $party instanceof Party ? $this->contactCell($party->id(), $party->displayName()) : null,
-                'expires' => $this->date($invitation->expiresAt()),
-            ],
+            'cells' => $working->display->cells($row),
             'actions' => [
                 ['label' => $this->translator->trans('people.action.resend'), 'href' => $this->generateUrl('app_people_invitation_resend', ['id' => $invitation->id()]), 'method' => 'POST', 'icon' => 'send'],
                 ['label' => $this->translator->trans('people.action.revoke'), 'href' => $this->generateUrl('app_people_invitation_revoke', ['id' => $invitation->id()]), 'method' => 'POST', 'confirm' => [
@@ -409,33 +410,6 @@ final class PeopleController extends AbstractController
                 ]],
             ],
         ];
-    }
-
-    /**
-     * The contact column, shown only with the address book's picker.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function contactColumn(): array
-    {
-        return $this->contactPicker instanceof PersonContactPicker
-            ? [['key' => 'contact', 'label' => $this->translator->trans('people.column.contact'), 'truncate' => true, 'phone' => false]]
-            : [];
-    }
-
-    /**
-     * The contact a person represents, linked to its page when the address book has one.
-     *
-     * @return array<string, mixed>|string|null
-     */
-    private function contactCell(?string $id, string $name): array|string|null
-    {
-        if (null === $id) {
-            return null;
-        }
-        $href = $this->contactPages?->urlFor($id);
-
-        return null === $href ? $name : ['links' => [['text' => $name, 'href' => $href]]];
     }
 
     /**

@@ -299,6 +299,7 @@ Query parameters of `GET /api/v1/tasks`:
 | `label_id` | Label ids, comma separated: a task with any of these labels. |
 | `client_id` | Only the tasks of the projects of this client. |
 | `starred` | `true` for the tasks the token's person starred for My priorities, `false` for the others. |
+| `due_from`, `due_to` | Only the tasks due on or after, on or before a day, `YYYY-MM-DD`: the tasks of a calendar week or month. A task with no due date is left out. |
 | `created_from`, `created_to` | Only the tasks created on or after, on or before a day, `YYYY-MM-DD`. |
 | `updated_from`, `updated_to` | Only the tasks last changed on or after, on or before a day. A task changes when one of its fields or labels does; its comments and time do not change it. |
 | `status_type` | `open`, `active`, `done` or `closed`. |
@@ -354,7 +355,7 @@ A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `share
 
 | Method and path | Body | What it does |
 | --- | --- | --- |
-| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `timesheet.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `timesheet.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `layout` (`list` or `calendar`, on a list that offers a calendar such as `work.tasks`; `null` for a table), `weekends` (`false` hides Saturday and Sunday in the calendar), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
 | `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
 | `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
 | `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |
@@ -706,6 +707,7 @@ Meeting series and meetings with their minutes. What each field means, and who s
 | `POST /api/v1/meetings` | `201` with the new meeting: `held_on`, and `series_id`, `title`, `starts_at`, `attendee_ids`, `links` (`[{"kind": "project", "id": "…"}]`) and `minutes`. A meeting of a series takes the series' default attendees, its agenda template as the minutes and a title of the series name and the day for those left out; a one-off meeting needs a `title`. |
 | `PATCH /api/v1/meetings/{meetingId}` | The meeting as it is now: `title`, `held_on`, `starts_at`, `attendee_ids` and `links`, whichever are given. |
 | `PUT /api/v1/meetings/{meetingId}/minutes` | The meeting with the new minutes: `minutes` and the `version` they were read at. If someone saved them since, `409 stale_minutes` with `current_version`, and nothing changes. |
+| `POST /api/v1/meetings/{meetingId}/action-items` | `201` with the meeting: a task made in a project (`project_id`, `title`, `responsible_id`, `due_on`, `private`) with Work's own checks, linked to the meeting, and its token `[text](task:id)` in the minutes, in place of the first exact occurrence of `quote` (on one line, outside another token; `422 quote_not_found` when there is none) or appended as a list item without it. The version of the minutes goes up by one. |
 | `POST /api/v1/meetings/{meetingId}/trash` | The meeting in the trash; it is removed for good after 30 days. Only its creator and the owners (`403 not_trasher`). |
 | `POST /api/v1/meetings/{meetingId}/restore` | The meeting, out of the trash. |
 
