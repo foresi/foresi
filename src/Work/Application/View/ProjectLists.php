@@ -16,6 +16,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\ProjectVisibility;
 
 /**
@@ -27,8 +28,9 @@ use Foresi\Work\Domain\ProjectVisibility;
  * list's All, and shows the projects the Active tab showed, so ?tab=active opens it.
  *
  * The name is a filterable attribute of the list's data source (DS1); the archive, the
- * client, the visibility and billable are the module's own fields, and so are the task
- * counts and the next due date, read from the unfinished tasks the person sees.
+ * client and the visibility are the module's own fields, and so are the task counts and
+ * the next due date, read from the unfinished tasks the person sees. The client, pinned as
+ * a quick filter, is there only where the address book is installed (ProjectClients).
  */
 final class ProjectLists implements ListDefinitionSource
 {
@@ -36,7 +38,6 @@ final class ProjectLists implements ListDefinitionSource
     public const string ARCHIVED = 'archived';
     public const string CLIENT = 'client';
     public const string VISIBILITY = 'visibility';
-    public const string BILLABLE = 'billable';
     public const string OPEN_TASKS = 'open_tasks';
     public const string OVERDUE_TASKS = 'overdue_tasks';
     public const string UNASSIGNED_TASKS = 'unassigned_tasks';
@@ -56,13 +57,13 @@ final class ProjectLists implements ListDefinitionSource
     /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
     private array $list = [];
 
-    public function __construct(private readonly ListFields $fields)
+    public function __construct(private readonly ListFields $fields, private readonly ?ProjectClients $clients = null)
     {
     }
 
     public function list(): ListDefinition
     {
-        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client', 'billable']);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), $this->clients instanceof ProjectClients ? [self::CLIENT] : []);
     }
 
     /**
@@ -74,9 +75,8 @@ final class ProjectLists implements ListDefinitionSource
 
         return [
             new Field(self::ARCHIVED, FieldType::Boolean, 'work.projects.field.archived'),
-            new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT),
+            ...$this->clients instanceof ProjectClients ? [new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT)] : [],
             new Field(self::VISIBILITY, FieldType::Enum, 'work.projects.field.visibility', options: $visibilities, optionLabels: array_combine($visibilities, array_map(static fn (string $value): string => 'work.sharing.visibility.'.$value, $visibilities))),
-            new Field(self::BILLABLE, FieldType::Boolean, 'work.projects.field.billable'),
             new Field(self::OPEN_TASKS, FieldType::Number, 'work.projects.field.open_tasks', self::COUNT_OPERATORS),
             new Field(self::OVERDUE_TASKS, FieldType::Number, 'work.projects.field.overdue_tasks', self::COUNT_OPERATORS),
             new Field(self::UNASSIGNED_TASKS, FieldType::Number, 'work.projects.field.unassigned_tasks', self::COUNT_OPERATORS),

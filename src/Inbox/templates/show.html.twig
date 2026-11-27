@@ -123,7 +123,7 @@
                 {label: 'inbox.item.from'|trans, value: from},
                 {label: 'inbox.item.original_from'|trans, value: originalFrom, note: originalFrom ? 'inbox.item.original_from_note'|trans : null},
                 {label: 'inbox.item.received'|trans, value: received},
-                {label: 'inbox.item.contact'|trans, value: contact ? {links: [{text: contact.name, href: contact.href, opens: 'page'}]} : null, empty: 'inbox.item.no_contact'|trans, note: matchBasis ? ('inbox.item.basis.' ~ matchBasis)|trans : null},
+                {label: 'inbox.item.contact'|trans, value: contact ? (contact.href ? {links: [{text: contact.name, href: contact.href, opens: 'page'}]} : contact.name) : null, empty: 'inbox.item.no_contact'|trans, note: matchBasis ? ('inbox.item.basis.' ~ matchBasis)|trans : null},
             ]" />
         </twig:Ui:Card>
 

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Domain\DocumentLanguage;
 
 /**
  * The texts a tax document on payment gets, in the language of the document: the

@@ -48,7 +48,7 @@ final class MarginAccessApiTest extends ApiTestCase
     {
         $id = Uuid::v7()->toRfc4122();
         $reader = $this->issued([ApiScope::from('margin:read')]);
-        $other = $this->issued([ApiScope::from('contacts:read')]);
+        $other = $this->issued([ApiScope::from('firm:read')]);
 
         $this->send('PUT', $this->line($id, 'rate:21'), ['kind' => null], $reader);
         $this->assertProblem(403, 'insufficient_scope');

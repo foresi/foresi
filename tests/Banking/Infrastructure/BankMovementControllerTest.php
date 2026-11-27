@@ -80,7 +80,7 @@ final class BankMovementControllerTest extends BankScreenTestCase
         $crawler = $this->page('/bank');
 
         self::assertSame('page', $crawler->filter('#sidebar [data-nav-section] a[href="/bank"]')->first()->attr('aria-current'));
-        self::assertCount(1, $this->page('/invoices')->filter('#sidebar [data-nav-section] a[href="/bank"]'));
+        self::assertCount(1, $this->page('/account/profile')->filter('#sidebar [data-nav-section] a[href="/bank"]'));
     }
 
     public function testAClientRoleGets403(): void

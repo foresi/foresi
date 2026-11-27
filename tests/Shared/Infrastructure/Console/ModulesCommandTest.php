@@ -39,13 +39,13 @@ final class ModulesCommandTest extends TestCase
         self::assertIsArray($json);
         self::assertIsArray($json['modules']);
         self::assertCount(\count(new InstalledModules(\dirname(__DIR__, 4))->graph()->all()), $json['modules']);
-        $webhooks = array_values(array_filter($json['modules'], static fn (mixed $module): bool => \is_array($module) && 'webhooks' === $module['id']))[0] ?? null;
-        self::assertIsArray($webhooks);
-        self::assertSame('core', $webhooks['kind']);
-        self::assertSame('foresi/webhooks', $webhooks['package']);
-        self::assertIsArray($webhooks['requires']);
-        self::assertContains('events', $webhooks['requires']);
-        self::assertSame([], $webhooks['optional']);
+        $identity = array_values(array_filter($json['modules'], static fn (mixed $module): bool => \is_array($module) && 'identity' === $module['id']))[0] ?? null;
+        self::assertIsArray($identity);
+        self::assertSame('core', $identity['kind']);
+        self::assertSame('foresi/identity', $identity['package']);
+        self::assertIsArray($identity['requires']);
+        self::assertContains('party', $identity['requires']);
+        self::assertSame(['ui'], $identity['optional']);
         self::assertSame([], $json['problems']);
     }
 
@@ -57,7 +57,7 @@ final class ModulesCommandTest extends TestCase
 
         self::assertSame(Command::SUCCESS, $status);
         $text = $output->fetch();
-        self::assertStringContainsString('foresi/webhooks', $text);
+        self::assertStringContainsString('foresi/identity', $text);
         self::assertStringContainsString('No problems.', $text);
     }
 

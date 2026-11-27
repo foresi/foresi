@@ -21,7 +21,7 @@ use Foresi\CashFlow\Contract\PlannedVatMode;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PlannedItem;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Contract\Operation\Omitted;
 use Foresi\Shared\Domain\Money;

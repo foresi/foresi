@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Infrastructure\Controller;
 
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\MessageRow;
@@ -19,6 +20,7 @@ use Foresi\Banking\Application\PairingChoices;
 use Foresi\Banking\Application\PairingOptions;
 use Foresi\Banking\Application\PairingRefused;
 use Foresi\Banking\Application\PairMovement;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\ReceivedStatements;
 use Foresi\Banking\Application\StatementChain;
 use Foresi\Banking\Application\UnknownBankMovement;
@@ -32,11 +34,6 @@ use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Banking\Infrastructure\Column\MovementColumns;
 use Foresi\Banking\Infrastructure\View\BankMovementViews;
 use Foresi\Identity\Contract\StaffCheck;
-use Foresi\Invoicing\Application\AllocationRequest;
-use Foresi\Invoicing\Application\InvoicePayments;
-use Foresi\Invoicing\Application\PaymentRefused;
-use Foresi\Invoicing\Application\UnknownInvoice;
-use Foresi\Invoicing\Domain\Payment;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Shared\Application\View\FilterRows;
 use Foresi\Shared\Application\View\ListView;
@@ -103,7 +100,7 @@ final class BankMovementController extends AbstractController
         private readonly PairingChoices $choices,
         private readonly PairMovement $pairing,
         private readonly UnpairMovement $unpairing,
-        private readonly InvoicePayments $payments,
+        private readonly PaymentPairing $payments,
         private readonly BankText $text,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
@@ -229,19 +226,21 @@ final class BankMovementController extends AbstractController
         }
 
         try {
-            $payment = $this->pairing->pair($id, $allocations, $values['checked']);
+            $paymentId = $this->pairing->pair($id, $allocations, $values['checked']);
         } catch (PairingRefused $refused) {
+            // The invoice's own refusal, or an invoice gone meanwhile, is a problem of the form.
+            if (null !== $refused->problem || PairingRefused::UNKNOWN_DOCUMENT === $refused->reason) {
+                $problem = $refused->problem ?? 'bank.movement.pair.error.unknown_invoice';
+
+                return $this->pairPage($movement, $options, $values, [self::FORM => $this->translator->trans($problem, $refused->parameters)], $return, Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
             $this->addFlash('error', $this->translator->trans('bank.movement.refused.'.$refused->reason));
 
             return $this->toList($return);
-        } catch (PaymentRefused $refused) {
-            return $this->pairPage($movement, $options, $values, [self::FORM => $this->translator->trans('invoice.payment.refused.'.$refused->reason, ['max' => Payment::MAX_NOTE])], $return, Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (UnknownInvoice) {
-            return $this->pairPage($movement, $options, $values, [self::FORM => $this->translator->trans('bank.movement.pair.error.unknown_invoice')], $return, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $numbers = implode(', ', $this->payments->invoiceNumbersOf($payment->id()));
-        $request->getSession()->set(self::UNDO, ['movement' => $id, 'payment' => $payment->id(), 'at' => $this->clock->now()->getTimestamp()]);
+        $numbers = implode(', ', $this->numbersOf($paymentId));
+        $request->getSession()->set(self::UNDO, ['movement' => $id, 'payment' => $paymentId, 'at' => $this->clock->now()->getTimestamp()]);
         $this->addFlash(self::PAIRED_FLASH, ['text' => $this->translator->trans('bank.movement.flash.paired', ['numbers' => $numbers]), 'movement' => $id, 'return' => $return]);
 
         return $this->toList($return);
@@ -258,12 +257,17 @@ final class BankMovementController extends AbstractController
             $this->checkToken($request);
         }
         $paymentId = $movement->paymentId();
+        if (!$this->payments->isAvailable()) {
+            $this->addFlash('error', $this->translator->trans('bank.movement.refused.no_pairing'));
+
+            return $this->toList($return);
+        }
         if (MovementState::Paired !== $movement->state() || null === $paymentId) {
             $this->addFlash('warning', $this->translator->trans('bank.movement.refused.not_paired'));
 
             return $this->toList($return);
         }
-        $numbers = array_values($this->payments->invoiceNumbersOf($paymentId));
+        $numbers = $this->numbersOf($paymentId);
         if (!$post) {
             return $this->render('@Banking/unpair.html.twig', [
                 'movement' => $movement,
@@ -301,7 +305,17 @@ final class BankMovementController extends AbstractController
         }
         $session->remove(self::UNDO);
 
-        return $this->unpaired($id, array_values($this->payments->invoiceNumbersOf($paymentId)), $return);
+        return $this->unpaired($id, $this->numbersOf($paymentId), $return);
+    }
+
+    /**
+     * The numbers of the invoices the payment paid.
+     *
+     * @return list<string>
+     */
+    private function numbersOf(string $paymentId): array
+    {
+        return array_values($this->payments->documentsOf([$paymentId])[$paymentId] ?? []);
     }
 
     /**
@@ -311,8 +325,8 @@ final class BankMovementController extends AbstractController
     {
         try {
             $this->unpairing->unpair($id);
-        } catch (PairingRefused) {
-            $this->addFlash('warning', $this->translator->trans('bank.movement.refused.not_paired'));
+        } catch (PairingRefused $refused) {
+            $this->addFlash('warning', $this->translator->trans('bank.movement.refused.'.$refused->reason));
 
             return $this->toList($return);
         }
@@ -401,7 +415,7 @@ final class BankMovementController extends AbstractController
      *
      * @param Values $values
      *
-     * @return array{list<AllocationRequest>, array<string, string>}
+     * @return array{list<Allocation>, array<string, string>}
      */
     private function allocations(BankMovement $movement, PairingOptions $options, array $values): array
     {
@@ -424,7 +438,7 @@ final class BankMovementController extends AbstractController
                 continue;
             }
             $sum += $amount->minor();
-            $allocations[] = new AllocationRequest($invoiceId, $amount);
+            $allocations[] = new Allocation($invoiceId, $amount);
         }
         if ([] !== $errors) {
             return [[], $errors];
@@ -436,13 +450,13 @@ final class BankMovementController extends AbstractController
             return [$allocations, []];
         }
 
-        $choice = 1 === \count($allocations) ? $options->choice($allocations[0]->invoiceId) : null;
+        $choice = 1 === \count($allocations) ? $options->choice($allocations[0]->documentId) : null;
         $difference = $choice instanceof PairingChoice ? $choice->candidate->remaining->minor() - $total->minor() : 0;
         if (null === $options->settlementLimit || !$choice instanceof PairingChoice || 0 === $difference || abs($difference) > $options->settlementLimit) {
             return [[], ['settle' => $this->translator->trans('bank.movement.pair.error.settle')]];
         }
 
-        return [[new AllocationRequest($allocations[0]->invoiceId, $total, Money::ofMinor($difference, $total->currency()))], []];
+        return [[new Allocation($allocations[0]->documentId, $total, Money::ofMinor($difference, $total->currency()))], []];
     }
 
     /**
@@ -516,6 +530,7 @@ final class BankMovementController extends AbstractController
     private function unpairable(BankMovement $movement): ?string
     {
         return match (true) {
+            !$this->payments->isAvailable() => PairingRefused::NO_PAIRING,
             MovementState::Paired === $movement->state() => PairingRefused::ALREADY_PAIRED,
             MovementState::PossibleDuplicate === $movement->state() => PairingRefused::POSSIBLE_DUPLICATE,
             MovementState::OwnTransfer === $movement->state() => PairingRefused::OWN_TRANSFER,
@@ -708,10 +723,11 @@ final class BankMovementController extends AbstractController
     {
         $id = ['id' => $row->id, 'return' => '' === $return ? null : $return];
         $actions = [];
-        if ($row->isPairable()) {
+        // Without a pairing, nothing is paired or unpaired here.
+        if ($row->isPairable() && $this->payments->isAvailable()) {
             $actions[] = ['label' => $this->translator->trans('bank.movement.action.pair'), 'href' => $this->generateUrl('app_bank_movement_pair', $id), 'method' => 'GET', 'icon' => 'link-2', 'dialog' => true];
         }
-        if (MovementState::Paired === $row->state) {
+        if (MovementState::Paired === $row->state && $this->payments->isAvailable()) {
             $actions[] = ['label' => $this->translator->trans('bank.movement.action.unpair'), 'href' => $this->generateUrl('app_bank_movement_unpair', $id), 'method' => 'GET', 'dialog' => true];
         }
         if (null !== $row->inboundMessageId) {

@@ -14,11 +14,13 @@ use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Work\Application\View\TaskLists;
+use Foresi\Work\Contract\ProjectClients;
 use PHPUnit\Framework\TestCase;
 
 /**
  * The list of all tasks across projects (plan 37.1): its fields, the views it ships, none
- * counted, the quick filters it pins, and how a view groups and sorts when it keeps neither.
+ * counted, the quick filters it pins, and how a view groups and sorts when it keeps neither;
+ * the client only where the address book is installed.
  */
 final class TaskListsTest extends TestCase
 {
@@ -140,8 +142,43 @@ final class TaskListsTest extends TestCase
         self::assertSame('-priority', TaskLists::sort('', '-priority'));
     }
 
+    public function testWithoutTheAddressBookAProjectHasNoClientToFilterOrGroupBy(): void
+    {
+        $lists = new TaskLists(new ListFields([]));
+
+        self::assertFalse($lists->hasClients());
+        self::assertArrayNotHasKey('client', $lists->list()->fields);
+        self::assertEquals(TaskLists::plain(false), $lists->list());
+        self::assertSame(['project', 'responsible', 'priority', 'due'], $lists->list()->pinned);
+        self::assertSame(['due', 'none', 'project', 'responsible', 'priority', 'status_type'], TaskLists::groupsOf('mine', false));
+        self::assertSame(['none', 'project', 'responsible', 'priority', 'status_type', 'due'], TaskLists::groupsOf(null, false));
+    }
+
     private function lists(): TaskLists
     {
-        return new TaskLists(new ListFields([]));
+        return new TaskLists(new ListFields([]), $this->clients());
+    }
+
+    /**
+     * The address book as Work's Contacts integration answers it, without its pages.
+     */
+    private function clients(): ProjectClients
+    {
+        return new class implements ProjectClients {
+            public function pickerUrl(): string
+            {
+                return '/projects/clients';
+            }
+
+            public function name(string $id): ?string
+            {
+                return null;
+            }
+
+            public function pageUrl(string $id): ?string
+            {
+                return null;
+            }
+        };
     }
 }

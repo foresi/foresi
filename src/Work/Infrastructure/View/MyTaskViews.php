@@ -32,7 +32,7 @@ final readonly class MyTaskViews
     /** The parameters of the old sheet, by the field they now name. */
     public const array OLD_PARAMS = ['client' => MyTaskLists::CLIENT];
 
-    public function __construct(private ListViews $views, private ActorRole $actor)
+    public function __construct(private ListViews $views, private ActorRole $actor, private MyTaskLists $lists)
     {
     }
 
@@ -43,13 +43,14 @@ final readonly class MyTaskViews
      */
     public function of(InputBag $input): array
     {
-        $list = MyTaskLists::list();
+        $list = $this->lists->list();
         $views = $this->views->of($list, $this->actor->userId());
         $view = ListViews::chosen($views, $input->getString('view', $input->getString('tab')));
         $working = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
         $client = $input->getString('client');
-        // A contact is named by its id; anything else names no client, as the sheet ignored it.
-        if (Id::isValid($client)) {
+        // A contact is named by its id; anything else names no client, as the sheet ignored it,
+        // and so does any without the address book, where the list has no client.
+        if (Id::isValid($client) && $list->field(MyTaskLists::CLIENT) instanceof \Foresi\Shared\Application\View\Field) {
             $working = $working->with(new Condition(MyTaskLists::CLIENT, 'is', $client));
         }
 

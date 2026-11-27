@@ -12,6 +12,7 @@ use Foresi\Activities\Contract\ActivityTarget;
 use Foresi\Shared\Domain\Id;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Contract\ProjectDirectory;
 use Foresi\Work\Infrastructure\Controller\ProjectController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -23,7 +24,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final readonly class ProjectActivityTarget implements ActivityTarget
 {
-    public const string KIND = 'project';
+    public const string KIND = ProjectDirectory::KIND;
 
     public function __construct(private WorkQueries $queries, private UrlGeneratorInterface $urls)
     {

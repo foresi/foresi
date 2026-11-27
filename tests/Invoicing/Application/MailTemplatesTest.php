@@ -11,9 +11,9 @@ namespace Foresi\Tests\Invoicing\Application;
 use Doctrine\DBAL\Connection;
 use Foresi\Invoicing\Application\MailTemplates;
 use Foresi\Invoicing\Application\UnknownMailVariables;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\InvalidMailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\DocumentLanguage;
 
 final class MailTemplatesTest extends InvoiceTestCase
 {

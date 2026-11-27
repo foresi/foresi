@@ -55,7 +55,7 @@ final readonly class CreateUserCommand
         string $email,
         #[Argument(description: 'owner, member or guest')]
         string $role,
-        #[Option(description: 'Id of the contact the user represents; required for a guest')]
+        #[Option(description: 'Id of the contact the user represents, if any')]
         ?string $contact = null,
     ): int {
         $membershipRole = Role::tryFrom($role);
@@ -64,12 +64,6 @@ final readonly class CreateUserCommand
 
             return Command::INVALID;
         }
-        if (Role::Guest === $membershipRole && null === $contact) {
-            $io->error('A guest user represents a contact: pass its id with --contact.');
-
-            return Command::INVALID;
-        }
-
         $party = null === $contact || !Id::isValid($contact) ? null : $this->entityManager->find(Party::class, $contact);
         if (null !== $contact && !$party instanceof Party) {
             $io->error(sprintf('There is no contact "%s".', $contact));

@@ -1,0 +1,268 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\ReceivedDocuments\Application;
+
+use Foresi\Events\Infrastructure\Dbal\EventLogTable;
+use Foresi\ReceivedDocuments\Application\Api\AddReceivedDocumentPaymentInput;
+use Foresi\ReceivedDocuments\Application\Api\ReceivedDocumentWrites;
+use Foresi\ReceivedDocuments\Application\PayReceivedDocument;
+use Foresi\ReceivedDocuments\Application\PurchasingNotAllowed;
+use Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentBalances;
+use Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentSliceFilter;
+use Foresi\ReceivedDocuments\Application\TrashReceivedDocument;
+use Foresi\ReceivedDocuments\Application\UnknownReceivedDocument;
+use Foresi\ReceivedDocuments\Domain\PaymentMethod;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentKind;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentPayment;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentRefused;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentState;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Money;
+use Foresi\Tests\Events\Support\ReadsEventLog;
+
+/**
+ * The payments of received documents (decision C3 of the cash flow spec):
+ * several per document, never more than its total, "mark as paid" for what
+ * remains today in the instance's zone, the paid event once the document is paid
+ * in full, and the recorded event when a document is first recorded.
+ */
+final class PayReceivedDocumentTest extends PurchasingTestCase
+{
+    use ReadsEventLog;
+
+    public function testPartialPaymentsAddUpAndTheLastOneRecordsThePaidEvent(): void
+    {
+        $id = $this->recorded();
+
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('500.00', Currency::CZK), PaymentMethod::BankTransfer);
+        $paid = $this->balances()->of($id);
+        self::assertSame(50_000, $paid->balance->paid->minor());
+        self::assertSame(71_000, $paid->balance->remaining->minor());
+        self::assertFalse($paid->balance->isPaid());
+        self::assertSame([], $this->events('received-documents.received_document.paid'));
+
+        $last = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('710.00', Currency::CZK), PaymentMethod::Cash);
+        $paid = $this->balances()->of($id);
+        self::assertTrue($paid->balance->isPaid());
+        self::assertSame('2026-11-14', $paid->balance->lastPaidOn?->format('Y-m-d'));
+        self::assertCount(2, $paid->payments);
+        $events = $this->events('received-documents.received_document.paid');
+        self::assertCount(1, $events);
+        self::assertSame($id, $events[0]['subject']);
+        self::assertSame(['received_document_id' => $id, 'firm_id' => $this->firm->id(), 'payment_id' => $last->id(), 'paid_on' => '2026-11-14'], $events[0]['data']);
+    }
+
+    public function testAPaymentIsNeverMoreThanWhatRemains(): void
+    {
+        $id = $this->recorded();
+        $this->assertRefused(ReceivedDocumentRefused::OVERPAID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1210.01', Currency::CZK), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('0', Currency::CZK), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::PAYMENT_AMOUNT, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::EUR), PaymentMethod::BankTransfer));
+        $this->assertRefused(ReceivedDocumentRefused::BANK_MOVEMENT_INVALID, fn (): ReceivedDocumentPayment => $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('10.00', Currency::CZK), PaymentMethod::BankTransfer, 'nope'));
+
+        $this->payments()->markPaid($id, PaymentMethod::Card);
+        $this->assertRefused(ReceivedDocumentRefused::PAID, fn (): ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Card));
+        self::assertCount(1, $this->events('received-documents.received_document.paid'));
+    }
+
+    public function testAPaymentRecordedByMistakeIsRemoved(): void
+    {
+        $id = $this->recorded();
+        $wrong = $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('1200.00', Currency::CZK), PaymentMethod::BankTransfer);
+
+        $this->payments()->remove($id, $wrong->id());
+
+        $paid = $this->balances()->of($id);
+        self::assertSame([], $paid->payments);
+        self::assertSame(121_000, $paid->balance->remaining->minor());
+        $this->expectException(UnknownReceivedDocument::class);
+        $this->payments()->remove($id, $wrong->id());
+    }
+
+    public function testMarkAsPaidPaysWhatRemainsOnTheInstancesToday(): void
+    {
+        $id = $this->recorded();
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('210.00', Currency::CZK), PaymentMethod::BankTransfer);
+        // 23:30 UTC on 30 November is already 1 December in Prague.
+        $this->clock->modify('2026-11-30 23:30:00');
+
+        $payment = $this->payments()->markPaid($id, PaymentMethod::BankTransfer, '01940000-0000-7000-8000-000000000001');
+
+        self::assertSame('2026-12-01', $payment->paidOn()->format('Y-m-d'));
+        self::assertSame(100_000, $payment->amount()->minor());
+        self::assertSame('01940000-0000-7000-8000-000000000001', $payment->bankMovementId());
+        self::assertTrue($this->balances()->of($id)->balance->isPaid());
+    }
+
+    public function testJustBeforePragueMidnightItIsStillThatDay(): void
+    {
+        $id = $this->recorded();
+        // 22:59 UTC on 30 November is 23:59 in Prague.
+        $this->clock->modify('2026-11-30 22:59:00');
+
+        self::assertSame('2026-11-30', $this->payments()->markPaid($id, PaymentMethod::Cash)->paidOn()->format('Y-m-d'));
+    }
+
+    public function testACreditNoteIsPaidBackWithAPositiveAmount(): void
+    {
+        $original = $this->recorded();
+        $note = $this->recording()->create($this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'DB-1', base: -10_000, originalDocumentId: $original))->document->id();
+
+        $paid = $this->balances()->of($note);
+        self::assertSame(12_100, $paid->balance->remaining->minor());
+        $this->payments()->pay($note, new \DateTimeImmutable('2026-11-20'), Money::of('121.00', Currency::CZK), PaymentMethod::BankTransfer);
+        self::assertTrue($this->balances()->of($note)->balance->isPaid());
+    }
+
+    public function testADraftAndADocumentInTheTrashTakeNoPayment(): void
+    {
+        $draft = $this->draft();
+        $this->assertRefused(ReceivedDocumentRefused::NOT_RECORDED, fn (): ReceivedDocumentPayment => $this->payments()->markPaid($draft, PaymentMethod::Cash));
+
+        $id = $this->recorded();
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Recorded twice.');
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn (): ReceivedDocumentPayment => $this->payments()->markPaid($id, PaymentMethod::Cash));
+    }
+
+    public function testAGuestPaysNothing(): void
+    {
+        $id = $this->recorded();
+        $this->signIn($this->guest);
+
+        $this->expectException(PurchasingNotAllowed::class);
+        $this->payments()->markPaid($id, PaymentMethod::Cash);
+    }
+
+    public function testTheSliceFindsWhatIsUnpaidAndDueBeforeADay(): void
+    {
+        $paid = $this->recorded('FV-1');
+        $open = $this->recorded('FV-2');
+        $draft = $this->draft();
+        $this->payments()->markPaid($paid, PaymentMethod::Cash);
+
+        $ids = fn (ReceivedDocumentSliceFilter $filter): array => array_map(static fn (\Foresi\ReceivedDocuments\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice($filter, null, 10)->items);
+
+        self::assertSame([$draft, $open, $paid], $ids(new ReceivedDocumentSliceFilter()));
+        self::assertSame([$open], $ids(new ReceivedDocumentSliceFilter(unpaid: true)));
+        $balances = array_map(static fn (\Foresi\ReceivedDocuments\Application\Query\PayableDocument $item): int => $item->balance->paid->minor(), $this->balances()->slice(new ReceivedDocumentSliceFilter(state: ReceivedDocumentState::Recorded), null, 10)->items);
+        self::assertSame([0, 121_000], $balances);
+        // The input of the test case is due on 11 November.
+        self::assertSame([$open], $ids(new ReceivedDocumentSliceFilter(unpaid: true, dueBefore: new \DateTimeImmutable('2026-11-12'))));
+        self::assertSame([], $ids(new ReceivedDocumentSliceFilter(unpaid: true, dueBefore: new \DateTimeImmutable('2026-11-11'))));
+        $slice = $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 2);
+        self::assertTrue($slice->hasMore);
+        self::assertSame([$paid], array_map(static fn (\Foresi\ReceivedDocuments\Application\Query\PayableDocument $item): string => $item->document->id(), $this->balances()->slice(new ReceivedDocumentSliceFilter(), $slice->lastId(), 2)->items));
+    }
+
+    public function testRecordingADocumentRecordsItsEventOnceAndADraftNone(): void
+    {
+        // Uploading a draft records nothing; recording it once does, saving it again does not.
+        $draft = $this->draft();
+        $this->recording()->record($draft, $this->input());
+        $events = $this->events('received-documents.received_document.recorded');
+        self::assertCount(1, $events);
+        $this->editing()->edit($draft, $this->input(supplierNumber: 'FV-2026-124'));
+
+        self::assertSame(1, $this->recordedEvents());
+        self::assertSame(['received_document_id' => $draft, 'firm_id' => $this->firm->id(), 'kind' => 'tax_invoice', 'supplier_id' => $this->supplier->id(), 'total' => '1210.00', 'currency' => 'CZK', 'due_date' => '2026-11-11'], $events[0]['data']);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function testAGuestNeitherReadsNorRemovesPayments(): void
+    {
+        $id = $this->recorded();
+        $payment = $this->payments()->markPaid($id, PaymentMethod::Cash);
+        $this->signIn($this->guest);
+
+        foreach ([
+            fn (): \Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentSlice => $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 10),
+            fn (): \Foresi\ReceivedDocuments\Application\Query\PaidDocument => $this->balances()->of($id),
+            fn () => $this->payments()->remove($id, $payment->id()),
+            fn () => self::getContainer()->get(ReceivedDocumentWrites::class)->addPayment(new AddReceivedDocumentPaymentInput('01940000-0000-7000-8000-000000000009', '2026-11-12', '1.00')),
+        ] as $read) {
+            try {
+                $read();
+                self::fail('A guest got through.');
+            } catch (PurchasingNotAllowed) {
+            }
+        }
+    }
+
+    public function testAnUnknownDocumentIsNotFound(): void
+    {
+        try {
+            $this->balances()->of('01940000-0000-7000-8000-000000000009');
+            self::fail('An unknown document was found.');
+        } catch (UnknownReceivedDocument $unknown) {
+            self::assertStringStartsWith('The organisation has no received document with this id.', $unknown->getMessage());
+        }
+    }
+
+    public function testAPaymentOfADocumentInTheTrashStays(): void
+    {
+        $id = $this->recorded();
+        $payment = $this->payments()->markPaid($id, PaymentMethod::Cash);
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($id, 'Recorded twice.');
+
+        $this->assertRefused(ReceivedDocumentRefused::TRASHED, fn () => $this->payments()->remove($id, $payment->id()));
+    }
+
+    public function testADraftHasNothingToPayAndALowerTotalLeavesNothingBelowZero(): void
+    {
+        $draft = $this->balances()->of($this->draft())->balance;
+        self::assertSame([0, 0, 0], [$draft->due->minor(), $draft->paid->minor(), $draft->remaining->minor()]);
+        self::assertFalse($draft->isPaid());
+
+        $id = $this->recorded();
+        $this->payments()->markPaid($id, PaymentMethod::Cash);
+        $this->editing()->edit($id, $this->input(base: 50_000));
+
+        $balance = $this->balances()->of($id)->balance;
+        self::assertSame([60_500, 121_000, 0], [$balance->due->minor(), $balance->paid->minor(), $balance->remaining->minor()]);
+        self::assertTrue($balance->isPaid());
+    }
+
+    public function testTheLatestPaymentDayIsTheLastPaid(): void
+    {
+        $id = $this->recorded();
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-14'), Money::of('100.00', Currency::CZK), PaymentMethod::Cash);
+        $this->payments()->pay($id, new \DateTimeImmutable('2026-11-12'), Money::of('100.00', Currency::CZK), PaymentMethod::Cash);
+
+        self::assertSame('2026-11-14', $this->balances()->of($id)->balance->lastPaidOn?->format('Y-m-d'));
+        $item = $this->balances()->slice(new ReceivedDocumentSliceFilter(), null, 10)->items[0];
+        self::assertSame(20_000, $item->balance->paid->minor());
+        self::assertSame('2026-11-14', $item->balance->lastPaidOn?->format('Y-m-d'));
+    }
+
+    /**
+     * How many received-documents.received_document.recorded events the log holds.
+     */
+    private function recordedEvents(): int
+    {
+        $count = $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ?', ['received-documents.received_document.recorded']);
+        self::assertIsNumeric($count);
+
+        return (int) $count;
+    }
+
+    private function recorded(string $number = 'FV-2026-123'): string
+    {
+        return $this->recording()->create($this->input(supplierNumber: $number))->document->id();
+    }
+
+    private function payments(): PayReceivedDocument
+    {
+        return self::getContainer()->get(PayReceivedDocument::class);
+    }
+
+    private function balances(): ReceivedDocumentBalances
+    {
+        return self::getContainer()->get(ReceivedDocumentBalances::class);
+    }
+}

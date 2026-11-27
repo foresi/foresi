@@ -10,7 +10,9 @@ namespace Foresi\Banking\Application;
 
 /**
  * A movement was not paired or unpaired, and nothing was stored. The reason is one
- * of the constants, a stable name the screen translates.
+ * of the constants, a stable name the screen translates. A document that refused
+ * the payment gives the problem itself: the translation key its module shows for
+ * it, with its parameters.
  */
 final class PairingRefused extends \DomainException
 {
@@ -30,8 +32,21 @@ final class PairingRefused extends \DomainException
     public const string INVOICE_SETTLED = 'invoice_settled';
     /** Unpairing a movement that has no payment. */
     public const string NOT_PAIRED = 'not_paired';
+    /** No installed module pays documents from movements. */
+    public const string NO_PAIRING = 'no_pairing';
+    /** A document chosen does not exist. */
+    public const string UNKNOWN_DOCUMENT = 'unknown_document';
+    /** The document refused the payment; the problem says why. */
+    public const string PAYMENT_REFUSED = 'payment_refused';
+    /** The document is in another currency than the movement. */
+    public const string CURRENCY_MISMATCH = 'currency_mismatch';
+    /** The document is in the trash. */
+    public const string DOCUMENT_TRASHED = 'document_trashed';
 
-    public function __construct(public readonly string $reason)
+    /**
+     * @param array<string, int|string> $parameters
+     */
+    public function __construct(public readonly string $reason, public readonly ?string $problem = null, public readonly array $parameters = [])
     {
         parent::__construct(\sprintf('The pairing was refused: %s.', $reason));
     }

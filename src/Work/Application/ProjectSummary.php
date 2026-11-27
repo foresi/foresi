@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
-use Foresi\Shared\Domain\Money;
 use Foresi\Work\Domain\ProjectVisibility;
 use Foresi\Work\Domain\WorkflowTemplate;
 
@@ -34,10 +33,6 @@ final readonly class ProjectSummary
         public bool $open = false,
         /** Whether the signed-in person may add a task somewhere in it: the whole project or a section they see. */
         public bool $taskable = false,
-        /** Whether new time on it starts as billable. */
-        public bool $billable = false,
-        /** The project's own hourly rate, for an owner only: null for none and for everyone else. */
-        public ?Money $hourlyRate = null,
     ) {
     }
 }

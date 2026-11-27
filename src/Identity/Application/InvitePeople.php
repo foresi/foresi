@@ -19,8 +19,8 @@ use Foresi\Shared\Application\SystemMailUnavailable;
 use Psr\Clock\ClockInterface;
 
 /**
- * The owner invites a person by e-mail: a member, or a guest who
- * represents a contact. A pending invitation of the same address gives way to the
+ * The owner invites a person by e-mail: a member or a guest, linked to the
+ * contact they represent when the owner picks one. A pending invitation of the same address gives way to the
  * new one; someone who already belongs to the organisation is not invited again.
  * Without system mail the link is handed to the owner instead.
  */
@@ -54,9 +54,6 @@ final readonly class InvitePeople
             throw new InvitationRefused('role');
         }
         $party = $this->contact($contactId);
-        if (Role::Guest === $role && !$party instanceof Party) {
-            throw new InvitationRefused('contact');
-        }
         $user = $this->users->findByEmail($email);
         if ($user instanceof User && $this->people->membershipOf($user->id()) instanceof \Foresi\Identity\Domain\Membership) {
             throw new InvitationRefused('member');

@@ -16,16 +16,16 @@ use Foresi\Banking\Contract\ParseFailure;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Country\Integration\Banking\CzechRepublic\KbNotificationParser;
 use Foresi\Invoicing\Application\PaymentState;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceInboundTestCase;
 use Foresi\Tests\Banking\Support\FixedParser;
 use Foresi\Tests\Banking\Support\InboundMailKit;
-use Foresi\Tests\Banking\Support\InboundTestCase;
 use Psr\Log\NullLogger;
 
 /**
  * Failed and unrecognised messages are read again by the hourly job once the
  * parsers changed, and only then: a parser fix pays what its bug left unpaid.
  */
-final class ReparseFailedMessagesTest extends InboundTestCase
+final class ReparseFailedMessagesTest extends InvoiceInboundTestCase
 {
     public function testItRunsHourlyInUtc(): void
     {

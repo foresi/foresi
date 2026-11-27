@@ -15,7 +15,7 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringDelivery;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 

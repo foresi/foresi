@@ -1,8 +1,8 @@
 # Documents
 
-The Documents module (`src/Documents`, id `documents`, scope `documents`) makes contracts and other documents from templates: an NDA filled with the data of the firm and of a client, frozen as a PDF, signed by the people it names, and kept with its signed copy beside the record it belongs to.
+The Documents module (`src/DocumentTemplates`, id `document-templates`, scope `documents`) makes contracts and other documents from templates: an NDA filled with the data of the firm and of a client, frozen as a PDF, signed by the people it names, and kept with its signed copy beside the record it belongs to.
 
-The module is optional. It requires Attachment, Audit, Identity, Instance, Ui and the shared core. Other modules plug into it through `Foresi\Documents\Contract`: they offer **variables** for templates (`DocumentVariableSource`, such as `firm.name` or `client.name`) and **records** a document can link to (`DocumentLinkTarget`, such as a contact). The records of a kind no installed module offers cannot be linked.
+The module is optional. It requires Attachment, Audit, Identity, Instance, Ui and the shared core. Other modules plug into it through `Foresi\DocumentTemplates\Contract`: they offer **variables** for templates (`DocumentVariableSource`, such as `firm.name` or `client.name`) and **records** a document can link to (`DocumentLinkTarget`, such as a contact). The records of a kind no installed module offers cannot be linked.
 
 ## Staff only
 
@@ -87,7 +87,7 @@ Once every signer is signed and the signed copy is attached, the document is com
 
 ### SignatureProvider: designed, not built
 
-`Foresi\Documents\Contract\SignatureProvider` declares how an electronic signature service would plug in: `code()`, `send(DocumentForSigning): string` (the envelope id) and `fetchFinal(string $envelopeId): SignedFiles` (the signed PDF and the certificate). Nothing implements it yet. The document already keeps `provider`, `envelope_id` and a `certificate` file for it; they stay empty with manual signing.
+`Foresi\DocumentTemplates\Contract\SignatureProvider` declares how an electronic signature service would plug in: `code()`, `send(DocumentForSigning): string` (the envelope id) and `fetchFinal(string $envelopeId): SignedFiles` (the signed PDF and the certificate). Nothing implements it yet. The document already keeps `provider`, `envelope_id` and a `certificate` file for it; they stay empty with manual signing.
 
 ## API
 
@@ -116,4 +116,4 @@ The read tools are `foresi_list_documents`, `foresi_get_document`, `foresi_list_
 
 ## Events
 
-`documents.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined`, `.cancelled`, `.trashed` and `.restored`, and `documents.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.
+`document-templates.document.created`, `.generated`, `.sent_for_signature`, `.completed`, `.declined`, `.cancelled`, `.trashed` and `.restored`, and `document-templates.signer.signed`. Their payloads hold ids, the type code and the status, never names or e-mails. The owners and members read them.

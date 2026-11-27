@@ -35,13 +35,13 @@ final class MarginScreenTest extends KernelTestCase
     public function testTheNoteCountsTheDocumentsAndLinksTheOnesItCanName(): void
     {
         $source = new FixedCostSource();
-        $source->documents['d1'] = new CostDocument('d1', null, new \DateTimeImmutable('2026-11-03'), [], false, 'USD-0042', '/purchasing/documents/d1');
+        $source->documents['d1'] = new CostDocument('d1', null, new \DateTimeImmutable('2026-11-03'), [], false, 'USD-0042', '/received-documents/documents/d1');
 
         $page = $this->screen($source)->table($this->table([new KnownGap('missing_exchange_rate', ['d1', 'gone'])]));
 
         self::assertNotNull($page['gaps']);
         self::assertSame('The cost of 2 documents is not counted, their exchange rate is missing.', $page['gaps']['text']);
-        self::assertSame([['label' => 'USD-0042', 'href' => '/purchasing/documents/d1'], ['label' => 'gone', 'href' => null]], $page['gaps']['documents']);
+        self::assertSame([['label' => 'USD-0042', 'href' => '/received-documents/documents/d1'], ['label' => 'gone', 'href' => null]], $page['gaps']['documents']);
     }
 
     public function testADocumentIdThatIsNoUuidGetsNoAssignLinkInsteadOfAnError(): void

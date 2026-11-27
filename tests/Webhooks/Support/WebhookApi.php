@@ -55,7 +55,7 @@ trait WebhookApi
      *
      * @param list<string> $eventTypes
      */
-    protected function created(array $eventTypes = ['party.contact.archived'], string $url = 'https://hooks.example.com/foresi'): string
+    protected function created(array $eventTypes = ['party.firm.vat_status_changed'], string $url = 'https://hooks.example.com/foresi'): string
     {
         $this->send('POST', self::ENDPOINTS, ['url' => $url, 'event_types' => $eventTypes]);
         self::assertResponseStatusCodeSame(201);

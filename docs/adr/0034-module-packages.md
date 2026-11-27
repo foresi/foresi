@@ -92,7 +92,7 @@ Party is in the core because every business module and Identity need it: a membe
 
 Each core module stays a package of its own. The metapackage `foresi/core` (in `packages/core/`, outside `src/` so that it is not read as a module) requires them all, and an application requires `foresi/core` plus the business modules it wants.
 
-Until the headless step separates the screens from the core, a core module may require Ui: Identity, Party and Webhooks have screens, and Ui is part of every application today. The module graph does not report a core module requiring Ui as a problem. The headless step removes this exception, and the graph reports such a requirement again.
+A core module requires only other core modules, never Ui: its screens are an integration with Ui ([ADR 0038](0038-core-screens-in-integrations.md)), and the module graph reports a core module that requires anything else.
 
 ### Integrations may hold controllers
 

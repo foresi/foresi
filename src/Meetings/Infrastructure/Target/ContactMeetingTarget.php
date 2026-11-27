@@ -10,21 +10,22 @@ namespace Foresi\Meetings\Infrastructure\Target;
 
 use Foresi\Meetings\Contract\MeetingTarget;
 use Foresi\Party\Application\PartyNotAllowed;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Shared\Domain\Id;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * A meeting about a contact of the address book, such as a client met or a
  * person from outside the firm who attended. An archived contact counts as
- * gone: the link stays and shows nothing.
+ * gone: the link stays and shows nothing. Without the address book the contact is
+ * named, not linked (ContactPages).
  */
 final readonly class ContactMeetingTarget implements MeetingTarget
 {
     public const string KIND = 'contact';
 
-    public function __construct(private PartyDirectory $directory, private UrlGeneratorInterface $urls)
+    public function __construct(private PartyDirectory $directory, private ?ContactPages $pages = null)
     {
     }
 
@@ -52,7 +53,7 @@ final readonly class ContactMeetingTarget implements MeetingTarget
     {
         $contact = $this->contact($kind, $id);
 
-        return $contact instanceof PartySummary ? $this->urls->generate('app_contact_show', ['id' => $contact->id]) : null;
+        return $contact instanceof PartySummary ? $this->pages?->urlFor($contact->id) : null;
     }
 
     private function contact(string $kind, string $id): ?PartySummary

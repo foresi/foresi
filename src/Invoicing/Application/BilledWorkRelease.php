@@ -14,13 +14,12 @@ use Foresi\Invoicing\Domain\Invoice;
  * Told when an invoice goes to the trash and when it comes back, and when the
  * lines of an issued invoice are edited, inside the same transaction, so the
  * module whose work the invoice billed frees that work, bills it again or keeps
- * it with its line. Invoicing declares the port and knows nothing of what is
- * behind it.
+ * it with its line. The modules that bill work implement
+ * Foresi\Invoicing\Contract\BilledWorkRelease; CollectedBilledWorkRelease tells
+ * them. Invoicing knows nothing of what is behind it.
  */
 interface BilledWorkRelease
 {
-    public const string TAG = 'foresi.invoicing.billed_work_release';
-
     /**
      * @param Invoice $invoice in the trash already
      */

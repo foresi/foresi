@@ -150,7 +150,7 @@ final class MeetingsApiTest extends ApiTestCase
         self::assertResponseIsSuccessful();
         $this->send('POST', '/api/v1/meetings/series', ['name' => 'Board'], $this->secret);
         $this->assertProblem(403, 'insufficient_scope');
-        $this->get('/api/v1/meetings', [], $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/meetings', [], $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
 
         foreach ([ListSeriesTool::class, SearchMeetingsTool::class, GetMeetingTool::class] as $tool) {

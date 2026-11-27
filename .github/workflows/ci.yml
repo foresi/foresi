@@ -308,35 +308,44 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Mutation testing, on the coverage above, with no initial test run. A pull request
-  # mutates only the lines it adds or modifies, and must reach the minimum scores on them
-  # (shard 0). The merge queue does not repeat that: the lines are the same. A push to main
-  # does not either: the full run of all shards after every merge held the runners that pull
-  # requests wait for, so it runs every night instead. Every night on main and when started by
-  # hand the whole code is mutated in parallel shards: Infection has no sharding of its own, so a
-  # shard is a set of source files (bin/infection-shard), balanced by the time their mutants
-  # took in the last full run, and the quality gate judges the total of all shards. Keep SHARD_COUNT and the matrix in step; a shard
-  # that is missing fails the gate.
+  # Mutation testing, on the coverage above, with no initial test run, in parallel shards.
+  # Infection has no sharding of its own, so a shard is a set of source files
+  # (bin/infection-shard), and the quality gate judges the total of all shards against the
+  # minimum scores. Every night on main and when started by hand the whole code is mutated,
+  # balanced by the time the mutants of each file took in the last full run. A pull request
+  # mutates only the lines it adds or modifies, balanced by the time of the tests that cover
+  # those lines. That ran in one job before, which ran into the job timeout when a pull
+  # request added code that hundreds of slow tests cover (PR #366: 623 mutants, 450 of them
+  # done when the job was cancelled after two hours). The merge queue does not repeat it: the
+  # lines are the same. A push to main does not either: the full run of all shards after
+  # every merge held the runners that pull requests wait for, so it runs every night instead.
+  # Keep SHARD_COUNT and the matrix in step; a shard that is missing fails the gate.
   mutation:
-    name: ${{ matrix.shard == 0 && 'Mutation testing (changed lines)' || format('Mutation testing (shard {0})', matrix.shard) }}
+    name: ${{ github.event_name == 'pull_request' && format('Mutation testing (changed lines, shard {0})', matrix.shard) || format('Mutation testing (shard {0})', matrix.shard) }}
     needs: coverage
     if: ${{ github.event_name != 'merge_group' && github.event_name != 'push' }}
     runs-on: ubuntu-latest
     # Generous on purpose: a mutant may wait up to 30 minutes for slow covering tests
-    # (infection.json5), and no shard may be cut short. A full shard stops Infection itself
-    # at 105 minutes, so that the times of what it did measure are kept for the next split.
+    # (infection.json5), and no shard may be cut short. A shard stops Infection itself at
+    # 105 minutes, so that the times of what a full shard did measure are kept for the next
+    # split.
     timeout-minutes: 120
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        # Sixteen shards: with ten, a shard of about 3,000 mutants took 60 to 115 minutes and some
-        # ran into the job timeout as the code grew (November 2026).
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[0]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]') }}
+        # Sixteen shards for the whole code: with ten, a shard of about 3,000 mutants took 60
+        # to 115 minutes and some ran into the job timeout as the code grew (November 2026).
+        # Eight for a pull request: most change a few files, and a shard without any stops
+        # after the split.
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6, 7, 8]' || '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]') }}
     env:
-      SHARD_COUNT: '16'
+      SHARD_COUNT: ${{ github.event_name == 'pull_request' && '8' || '16' }}
       INFECTION_SHARD_TIMES: var/coverage/mutation-times.json
+      INFECTION_SHARD_COVERAGE: var/coverage/coverage-xml
+      # Set on a pull request only: the shards then hold the files changed since it.
+      INFECTION_SHARD_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -367,16 +376,49 @@ jobs:
           key: composer-${{ hashFiles('composer.lock') }}
           restore-keys: composer-
 
+      # The importmap packages come from cdn.jsdelivr.net, which times out now and then.
+      # Composer's auto-scripts run importmap:install, which downloads only what is missing.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: assets/vendor
+          key: importmap-${{ hashFiles('importmap.php') }}
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Download the coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage
+          path: var/coverage/
+
+      # The split comes first, so that a shard without files skips the tools the mutants need.
+      - name: The files of the shard
+        id: split
+        shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          mkdir -p var/shard
+          INFECTION_SHARD_MANIFEST="var/shard/shard-${SHARD}.files.json" php bin/infection-shard files "$SHARD" "$SHARD_COUNT" > "var/shard/files-${SHARD}.txt"
+          count=$(grep -c . "var/shard/files-${SHARD}.txt" || true)
+          echo "Shard ${SHARD} of ${SHARD_COUNT}: ${count} files"
+          cat "var/shard/files-${SHARD}.txt"
+          echo "files=${count}" >> "$GITHUB_OUTPUT"
+
       # The mutants run the same tests as the coverage run, with the same tools.
       # veraPDF checks the invoice PDFs against PDF/A-3a. The installer is pinned
       # by SHA-256, and a missing binary fails the tests instead of skipping them.
       - name: Set up Java for veraPDF
+        if: ${{ steps.split.outputs.files != '0' }}
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Install veraPDF
+        if: ${{ steps.split.outputs.files != '0' }}
         env:
           VERAPDF_VERSION: 1.30.3
           VERAPDF_SHA256: b512bf24945503a33fc10738ecffc1f2dccaaf8593a448e94ee9ac86a9559a59
@@ -403,69 +445,45 @@ jobs:
 
       # The invoice PDF tests read the file with Poppler, as a person's tools would.
       - name: Install Poppler
+        if: ${{ steps.split.outputs.files != '0' }}
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
-      # The importmap packages come from cdn.jsdelivr.net, which times out now and then.
-      # Composer's auto-scripts run importmap:install, which downloads only what is missing.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: assets/vendor
-          key: importmap-${{ hashFiles('importmap.php') }}
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ steps.split.outputs.files != '0' }}
         with:
           path: var/isdoc-schema
           key: isdoc-schema-${{ hashFiles('bin/fetch-isdoc-schema') }}
 
       - name: Fetch the ISDOC schema
+        if: ${{ steps.split.outputs.files != '0' }}
         run: composer isdoc:schema
 
-      - name: Download the coverage
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: coverage
-          path: var/coverage/
-
-      - name: Mutation testing of the changed lines
-        if: ${{ matrix.shard == 0 }}
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-        run: |
-          php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
-            --coverage=var/coverage --skip-initial-tests \
-            --git-diff-lines --git-diff-base="${BASE}" \
-            --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
-            --only-covering-test-cases \
-            --min-msi=80 --min-covered-msi=90 --ignore-msi-with-no-mutations \
-            --show-mutations=max --no-progress
-
-      # Every escaped mutant of the changed lines, with its diff, for fixing them in one go.
-      - name: Upload the mutants of the changed lines
-        if: ${{ failure() && matrix.shard == 0 }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: infection-changed-lines
-          path: var/infection/infection.log
-          if-no-files-found: ignore
-          retention-days: 7
-
       - name: Mutation testing
-        if: ${{ matrix.shard != 0 }}
+        if: ${{ steps.split.outputs.files != '0' }}
         shell: bash
         env:
           SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
-          mkdir -p var/shard
-          INFECTION_SHARD_MANIFEST="var/shard/shard-${SHARD}.files.json" php bin/infection-shard files "$SHARD" "$SHARD_COUNT" > "var/shard/files-${SHARD}.txt"
           mapfile -t files < "var/shard/files-${SHARD}.txt"
-          echo "Shard ${SHARD} of ${SHARD_COUNT}: ${#files[@]} files"
+          status=0
+          if [ -n "${INFECTION_SHARD_BASE}" ]; then
+            # The changed lines of the shard's files: Infection takes either paths or a git
+            # diff, so the diff is narrowed to these files by the base it is given.
+            base=$(php bin/infection-shard base "${INFECTION_SHARD_BASE}" "var/shard/files-${SHARD}.txt")
+            timeout 105m php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
+              --coverage=var/coverage --skip-initial-tests \
+              --git-diff-lines --git-diff-base="${base}" \
+              --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
+              --only-covering-test-cases \
+              --min-msi=0 --min-covered-msi=0 \
+              --logger-summary-json="var/shard/shard-${SHARD}.json" \
+              --show-mutations=max --no-progress || status=$?
+            [ "${status}" != 124 ] || echo "The shard did not finish in 105 minutes."
+            exit "${status}"
+          fi
           # --teamcity prints each mutant with its duration; the times of the files are taken
           # from that output, also when the time limit stops the shard.
-          status=0
           timeout 105m php -d max_execution_time=0 -d memory_limit=2G vendor/bin/infection \
             --coverage=var/coverage --skip-initial-tests \
             --threads=max --initial-tests-php-options='-d max_execution_time=0 -d memory_limit=2G' \
@@ -478,8 +496,10 @@ jobs:
           [ "${status}" != 124 ] || echo "The shard did not finish in 105 minutes; the next split takes the time it measured."
           exit "${status}"
 
+      # The summary and the files of the shard, for the gate, and every escaped mutant with
+      # its diff (infection.log), for fixing them in one go.
       - name: Upload the result of the shard
-        if: ${{ !cancelled() && matrix.shard != 0 }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: infection-shard-${{ matrix.shard }}
@@ -490,9 +510,10 @@ jobs:
           retention-days: 7
 
   # The required check. It stays named "Quality gate (sqlite)" and passes only when the
-  # static checks, the tests and mutation testing pass. After a full run it also needs the
-  # mutation score of all shards together to reach the minimums (80 MSI, 90 covered MSI)
-  # with no mutant skipped. It runs even when a job before it failed, and then fails on that.
+  # static checks, the tests and mutation testing pass. Where mutation testing ran (a pull
+  # request, a full run) it also needs the mutation score of all shards together to reach the
+  # minimums (80 MSI, 90 covered MSI) with no mutant skipped. It runs even when a job before
+  # it failed, and then fails on that.
   # The move from the global migration history onto the module baselines (ADR 0034): a
   # database built by the last release with the history and then rebased must equal one
   # built from the baselines alone, on PostgreSQL (the schema dump too) and on SQLite.
@@ -587,6 +608,7 @@ jobs:
       contents: read
     env:
       FULL_RUN: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+      MUTATION_RUN: ${{ github.event_name != 'merge_group' && github.event_name != 'push' }}
     steps:
       - name: The jobs before it passed
         env:
@@ -605,19 +627,19 @@ jobs:
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.MUTATION_RUN == 'true' }}
         with:
           persist-credentials: false
 
       - name: Set up PHP
-        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.MUTATION_RUN == 'true' }}
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: '8.4'
           coverage: none
 
       - name: Download the results of the shards
-        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.MUTATION_RUN == 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: infection-shard-*
@@ -640,7 +662,7 @@ jobs:
           key: mutation-times-${{ github.run_id }}
 
       - name: Mutation score of all shards
-        if: ${{ !cancelled() && env.FULL_RUN == 'true' }}
+        if: ${{ !cancelled() && env.MUTATION_RUN == 'true' }}
         run: php bin/infection-shard merge var/shards
 
   # PostgreSQL leg. Static analysis does not depend on the database, so only

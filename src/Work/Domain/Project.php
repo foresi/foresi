@@ -11,9 +11,7 @@ namespace Foresi\Work\Domain;
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
 use Foresi\Party\Domain\Party;
-use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
-use Foresi\Shared\Domain\Money;
 
 /**
  * A body of work of the organisation, for a client or internal. It belongs to
@@ -22,16 +20,8 @@ use Foresi\Shared\Domain\Money;
  * Statuses, sections and tasks point here and are read by query; the project
  * maps no collection of them, as the audit log rejects changed collections.
  *
- * Time logged on the project is billable by default when the project is for a
- * client and not when it is internal (Kimai, Toggl); the default is set when
- * the project is created, not when its client changes, and each entry may
- * differ from it.
- *
- * An hour on the project may be billed at a rate of its own, which comes
- * before the rate of its client and of the person who worked.
- *
- * Its time budget is the sum of its budget changes (ProjectBudgetChange); the
- * project only keeps which of its time uses it.
+ * The time logged on it, its time budget and how its time is billed are kept
+ * by the module that tracks time, under the project's id.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'project')]
@@ -56,18 +46,6 @@ class Project implements Audited
     #[ORM\Column(type: 'string', length: 16, enumType: ProjectVisibility::class, options: ['default' => 'organisation'])]
     private ProjectVisibility $visibility = ProjectVisibility::Organisation;
 
-    #[ORM\Column(name: 'billable_by_default', type: 'boolean', options: ['default' => false])]
-    private bool $billableByDefault;
-
-    #[ORM\Column(name: 'hourly_rate_minor', type: 'bigint', nullable: true)]
-    private ?int $hourlyRateMinor = null;
-
-    #[ORM\Column(name: 'hourly_rate_currency', type: 'string', length: 3, nullable: true, enumType: Currency::class, options: ['fixed' => true])]
-    private ?Currency $hourlyRateCurrency = null;
-
-    #[ORM\Column(name: 'budget_counting', type: 'string', length: 16, enumType: BudgetCounting::class, options: ['default' => 'all'])]
-    private BudgetCounting $budgetCounting = BudgetCounting::All;
-
     public function __construct(
         string $name,
         /** The contact the work is for, of any kind; null for internal work. */
@@ -83,7 +61,6 @@ class Project implements Audited
     ) {
         $this->id = Id::generate();
         $this->rename($name);
-        $this->billableByDefault = $client instanceof Party;
     }
 
     public function rename(string $name): void
@@ -129,52 +106,6 @@ class Project implements Audited
     public function visibility(): ProjectVisibility
     {
         return $this->visibility;
-    }
-
-    /**
-     * Whether time logged on the project is billable unless said otherwise.
-     */
-    public function billTimeByDefault(bool $billable): void
-    {
-        $this->billableByDefault = $billable;
-    }
-
-    public function billsTimeByDefault(): bool
-    {
-        return $this->billableByDefault;
-    }
-
-    /**
-     * Null for none: the client's or the person's rate applies then. Zero is a
-     * rate, for work that is not charged.
-     *
-     * @throws \DomainException for a negative rate
-     */
-    public function changeHourlyRate(?Money $rate): void
-    {
-        if (true === $rate?->isNegative()) {
-            throw new \DomainException('An hourly rate is not negative.');
-        }
-        $this->hourlyRateMinor = $rate?->minor();
-        $this->hourlyRateCurrency = $rate?->currency();
-    }
-
-    public function hourlyRate(): ?Money
-    {
-        return null === $this->hourlyRateMinor || !$this->hourlyRateCurrency instanceof Currency ? null : Money::ofMinor($this->hourlyRateMinor, $this->hourlyRateCurrency);
-    }
-
-    /**
-     * Which time uses the project's time budget: all of it, or the billable time only.
-     */
-    public function countBudget(BudgetCounting $counting): void
-    {
-        $this->budgetCounting = $counting;
-    }
-
-    public function budgetCounting(): BudgetCounting
-    {
-        return $this->budgetCounting;
     }
 
     public function isArchived(): bool

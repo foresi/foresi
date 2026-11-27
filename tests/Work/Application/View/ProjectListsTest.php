@@ -40,18 +40,15 @@ final class ProjectListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['archived', 'client', 'visibility', 'billable', 'open_tasks', 'overdue_tasks', 'unassigned_tasks', 'next_due', 'name'], array_keys($fields));
+        // The client is Work's Contacts integration's (tests/Work/Integration/Contacts); other modules' fields have a prefix.
+        $counts = ['open_tasks', 'overdue_tasks', 'unassigned_tasks', 'next_due'];
+        self::assertSame(['archived', 'visibility', ...$counts, 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => 'client' !== $key && (!str_contains($key, '_') || \in_array($key, $counts, true)))));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
-        self::assertSame(FieldType::Reference, $fields['client']->type);
-        self::assertSame('contact', $fields['client']->source);
-        self::assertSame('work.projects.column.client', $fields['client']->label);
         self::assertSame(FieldType::Enum, $fields['visibility']->type);
         self::assertSame(['organisation', 'chosen'], $fields['visibility']->options);
         self::assertSame(['organisation' => 'work.sharing.visibility.organisation', 'chosen' => 'work.sharing.visibility.chosen'], $fields['visibility']->optionLabels);
         self::assertSame('work.projects.field.visibility', $fields['visibility']->label);
-        self::assertSame(FieldType::Boolean, $fields['billable']->type);
-        self::assertSame('work.projects.field.billable', $fields['billable']->label);
         foreach (['open_tasks', 'overdue_tasks', 'unassigned_tasks'] as $count) {
             self::assertSame(FieldType::Number, $fields[$count]->type);
             self::assertSame('work.projects.field.'.$count, $fields[$count]->label);

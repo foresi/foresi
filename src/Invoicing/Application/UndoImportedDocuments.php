@@ -10,7 +10,8 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\Payment;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

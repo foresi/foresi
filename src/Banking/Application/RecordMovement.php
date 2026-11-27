@@ -12,14 +12,14 @@ use Foresi\Banking\Contract\Event\BankMovementRecorded;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\UnknownFirmBankAccount;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Money;
 

@@ -26,6 +26,7 @@ use Foresi\Work\Application\TaskGroup;
 use Foresi\Work\Application\TaskRow;
 use Foresi\Work\Application\View\MyTaskLists;
 use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Infrastructure\Column\MyTaskColumns;
 use Foresi\Work\Infrastructure\Column\MyTaskLine;
 use Foresi\Work\Infrastructure\View\MyTaskViews;
@@ -59,6 +60,8 @@ final class MyTasksController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly MyTaskLists $lists,
+        private readonly ?ProjectClients $projectClients = null,
     ) {
     }
 
@@ -71,7 +74,7 @@ final class MyTasksController extends AbstractController
             return $this->redirectToRoute(self::ROUTE, $this->builtQuery($input), Response::HTTP_SEE_OTHER);
         }
         [$views, $view, $shown] = $this->myTaskViews->of($input);
-        $list = MyTaskLists::list();
+        $list = $this->lists->list();
         $filterParam = WorkingFilter::param($shown, $view->filter);
         $text = trim(mb_substr($input->getString('q'), 0, self::MAX_SEARCH));
         $groups = TaskGroup::split($this->queries->myTaskList($shown, $text), $this->clock->today());
@@ -135,19 +138,23 @@ final class MyTasksController extends AbstractController
         [, $view] = $this->myTaskViews->of($input);
         $query = array_diff_key($input->all(), [FilterRows::PARAM => true, FilterRows::MARKER => true, WorkingFilter::PARAM => true, 'view' => true, 'tab' => true] + MyTaskViews::OLD_PARAMS);
 
-        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), MyTaskLists::list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
+        return array_filter($query + ['view' => $view->isAll() ? null : $view->key, WorkingFilter::PARAM => WorkingFilter::param(FilterRows::parse($input->all(FilterRows::PARAM), $this->lists->list()), $view->filter)], static fn (mixed $value): bool => null !== $value && '' !== $value);
     }
 
     /**
      * The contacts a client condition picks from, those the client of a project picks
-     * from, and names: the clients of the active projects.
+     * from, and names: the clients of the active projects; none without the address book.
      *
      * @return array<string, array{url: string, name: \Closure(string): ?string}>
      */
     private function references(): array
     {
+        if (!$this->projectClients instanceof ProjectClients) {
+            return [];
+        }
+
         return [MyTaskLists::CONTACT => [
-            'url' => $this->generateUrl('app_project_clients'),
+            'url' => $this->projectClients->pickerUrl(),
             'name' => fn (string $contact): ?string => $this->clients()[$contact] ?? null,
         ]];
     }

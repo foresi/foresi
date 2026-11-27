@@ -12,7 +12,7 @@ use Foresi\Shared\Contract\RefusalKind;
 use Foresi\Shared\Contract\Refused;
 
 /**
- * Why a change to projects, tasks, labels, comments or time is not made; the
+ * Why a change to projects, tasks, labels or comments is not made; the
  * reason is the last part of a translation key under work.refused, and the
  * code the API answers (ADR 0032), unknown as not_found and not_allowed as
  * forbidden. Something the person may not see is
@@ -20,28 +20,27 @@ use Foresi\Shared\Contract\Refused;
  */
 final class WorkRefused extends \DomainException implements Refused
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'estimate', 'date', 'hours_invalid', 'hours_zero', 'budget_below_zero', 'budget_note', 'budget_counting', 'source_not_on_project', 'star_finished', 'star_order', 'schedule', 'create_days_before', 'due_days_after', 'subtasks', 'recurring_ended', 'not_an_occurrence', 'occurrence_created', 'no_date', 'custom_fields'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'client_unavailable', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'estimate', 'date', 'star_finished', 'star_order', 'schedule', 'create_days_before', 'due_days_after', 'subtasks', 'recurring_ended', 'not_an_occurrence', 'occurrence_created', 'no_date', 'custom_fields'];
 
     /** What the person may not do, whatever they send: 403. */
-    private const array FORBIDDEN = ['not_allowed', 'comment_not_yours', 'task_not_yours', 'time_not_yours'];
+    private const array FORBIDDEN = ['not_allowed', 'comment_not_yours', 'task_not_yours'];
 
     /** What the data does not allow now: 409. */
-    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'budget_below_zero', 'star_finished', 'recurring_ended', 'occurrence_created'];
+    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'star_finished', 'recurring_ended', 'occurrence_created'];
 
     /** The input field a reason is about, where it is always the same one. */
     private const array FIELDS = [
-        'client' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body',
-        'duration' => 'minutes', 'time_note' => 'note', 'time_task' => 'taskId', 'estimate' => 'estimateMinutes',
-        'hours_invalid' => 'hours', 'hours_zero' => 'hours', 'budget_note' => 'note', 'budget_counting' => 'counting', 'source_not_on_project' => 'sourceActivityId', 'star_order' => 'taskIds',
-        'create_days_before' => 'createDaysBefore', 'due_days_after' => 'dueDaysAfter', 'subtasks' => 'subtasks', 'not_an_occurrence' => 'on', 'occurrence_created' => 'on', 'custom_fields' => 'customFields',
+        'client' => 'clientId', 'client_unavailable' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body', 'estimate' => 'estimateMinutes',
+        'star_order' => 'taskIds', 'create_days_before' => 'createDaysBefore', 'due_days_after' => 'dueDaysAfter', 'subtasks' => 'subtasks', 'not_an_occurrence' => 'on', 'occurrence_created' => 'on', 'custom_fields' => 'customFields',
     ];
 
     /** For people and agents; never quoting what someone wrote. */
     private const array MESSAGES = [
-        'unknown' => 'No such project, section, status, task, label, comment or time entry, or not one the person sees.',
+        'unknown' => 'No such project, section, status, task, label or comment, or not one the person sees.',
         'not_allowed' => 'Only the owners and team members of the organisation may do this.',
         'name' => 'The name or title is empty or too long.',
         'client' => 'The client must be a contact of the address book.',
+        'client_unavailable' => 'This Foresi has no address book, so a project has no client; leave client_id out.',
         'archived' => 'The project is archived; restore it first.',
         'parent' => 'A subtask goes under a task of the same project that is not a subtask itself.',
         'responsible' => 'The responsible must be an active person of the organisation who sees the task; find them with foresi_list_project_people.',
@@ -59,22 +58,8 @@ final class WorkRefused extends \DomainException implements Refused
         'task_not_yours' => 'Only whoever created the task or an owner of the organisation may put it in the trash or restore it.',
         'parent_in_trash' => 'The task of this subtask is in the trash; restore it first.',
         'share_person' => 'Share with an active person of the organisation.',
-        'duration' => 'The time is at least a minute and at most a day: minutes, or a start and an end after it, not both.',
-        'time_note' => 'A note of time has at most 2,000 characters.',
-        'time_task' => 'The task must be one of the project.',
-        'time_not_yours' => 'Only whoever logged the time or an owner of the organisation may change it.',
-        'time_invoiced' => 'The time is invoiced and no longer changes.',
-        'time_task_in_trash' => 'The task of the time is in the trash; restore it first.',
-        'timer_running' => 'The timer is running; stop it first.',
-        'timer_not_running' => 'No timer of the person runs.',
         'estimate' => 'An estimate is at least a minute and at most 9,999 hours.',
         'date' => 'A date is YYYY-MM-DD and a moment ISO 8601 with its offset, such as 2026-11-19T09:30:00+01:00.',
-        'hours_invalid' => 'Send either hours, a decimal number with at most two decimal places such as "8" or "-2.5", or minutes, a whole number; at most 999,999 minutes either way.',
-        'hours_zero' => 'A budget change is not zero.',
-        'budget_below_zero' => 'The budget of the project would go below zero.',
-        'budget_note' => 'A note of a budget change has at most 500 characters.',
-        'budget_counting' => 'Counting is all or billable.',
-        'source_not_on_project' => 'The source must be an activity linked to the project.',
         'star_finished' => 'The task is finished; a finished task leaves My priorities, so it is not starred.',
         'star_order' => 'Name every task of My priorities once, in the new order; foresi_search_tasks with starred lists them.',
         'schedule' => 'The schedule does not hold together: first_on is YYYY-MM-DD, repeat day, week, month or year, every 1 to 99, last_day_of_month only monthly or yearly, and at most one of ends_on (not before the first date) and ends_after (1 to 999).',

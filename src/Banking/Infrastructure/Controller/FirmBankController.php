@@ -13,16 +13,16 @@ use Foresi\Banking\Application\AddressRefusal;
 use Foresi\Banking\Application\AddressRefused;
 use Foresi\Banking\Application\BankFeedPurpose;
 use Foresi\Banking\Application\BankFeeds;
+use Foresi\Banking\Application\BankingCountries;
 use Foresi\Banking\Application\ChangePairing;
 use Foresi\Banking\Application\FirmPairingRules;
 use Foresi\Banking\Application\GenerateAddress;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\TrustCheck;
 use Foresi\Banking\Application\TrustChecks;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankFeed;
 use Foresi\Identity\Application\OwnerCheck;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Contract\AddressUnavailable;
 use Foresi\Party\Application\BankAccountRefused;
@@ -82,7 +82,8 @@ final class FirmBankController extends AbstractController
         private readonly AddressIssuer $addresses,
         private readonly FirmPairingRules $pairing,
         private readonly ChangePairing $changePairing,
-        private readonly InvoicingCountries $countries,
+        private readonly PaymentPairing $payments,
+        private readonly BankingCountries $countries,
         private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
         private readonly TrustChecks $checks,
@@ -99,17 +100,21 @@ final class FirmBankController extends AbstractController
         $feeds = $this->feeds->ofAccounts(array_map(static fn (FirmBankAccount $account): string => $account->id(), $all));
         $rules = $this->pairing->get();
         $url = $this->generateUrl('app_firm_bank');
+        // The switches of pairing mean something only when a module pays documents from movements (Invoicing);
+        // without one the second tab holds the addresses for bank e-mail alone.
+        $pairs = $this->payments->isAvailable();
 
         return $this->render('@Banking/firm/bank.html.twig', parameters: [
             'firm' => $firm,
             'tab' => $tab,
             'tabs' => [
                 ['label' => $this->translator->trans('bank.account.tab.accounts'), 'href' => $url, 'active' => self::ACCOUNTS === $tab],
-                ['label' => $this->translator->trans('bank.account.tab.pairing'), 'href' => $url.'?tab='.self::PAIRING, 'active' => self::PAIRING === $tab],
+                ['label' => $this->translator->trans($pairs ? 'bank.account.tab.pairing' : 'bank.account.tab.addresses'), 'href' => $url.'?tab='.self::PAIRING, 'active' => self::PAIRING === $tab],
             ],
             'columns' => $this->columns(),
             'rows' => array_map(fn (FirmBankAccount $account): array => $this->row($firm, $account, $feeds[$account->id()] ?? null), $all),
             'feeds' => array_map(fn (FirmBankAccount $account): array => $this->feedView($firm, $account, $feeds[$account->id()] ?? null), array_values(array_filter($all, static fn (FirmBankAccount $account): bool => !$account->isArchived()))),
+            'pairs' => $pairs,
             'autoPairing' => $rules->autoPairing,
             'smallDifference' => $rules->smallDifference,
             'unavailable' => $this->unavailable(),
@@ -274,6 +279,9 @@ final class FirmBankController extends AbstractController
     public function pairing(Request $request): RedirectResponse
     {
         $this->denyUnlessOwner();
+        if (!$this->payments->isAvailable()) {
+            throw $this->createNotFoundException('No module pairs movements, so there are no switches of pairing.');
+        }
         // Before the first-run setup there is no firm to set the switches of.
         $this->firm();
         $this->checkToken($request, self::PAIRING_TOKEN);
@@ -451,11 +459,7 @@ final class FirmBankController extends AbstractController
 
     private function domestic(LegalEntity $firm, string $iban): ?string
     {
-        try {
-            return $this->countries->for($firm->address()->countryCode)->domesticAccount($iban);
-        } catch (UnsupportedCountry) {
-            return null;
-        }
+        return $this->countries->for($firm->address()->countryCode)?->domesticAccount($iban);
     }
 
     private function grouped(string $iban): string

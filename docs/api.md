@@ -59,7 +59,7 @@ A scope says what a token may reach. A token has one or more:
 | `<resource>:read` | Reading one kind of record. |
 | `<resource>:write` | Changing one kind of record, and reading it. |
 
-The resources are `calendar`, `cashflow`, `mail_addresses`, `catalog`, `contacts`, `documents`, `exchange_rates`, `inbox`, `inbox_suggestions` (an agent proposes suggestions for your inbox items), `inbox_decisions` (accepting and rejecting them), `invoices`, `meetings`, `payments`, `received_documents`, `sales`, `events`, `projects`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
+The resources are `activities`, `calendar`, `cashflow`, `catalog`, `contacts` (the address book), `deals`, `documents`, `events`, `exchange_rates`, `firm` (the firm of the instance and its VAT statuses), `inbox`, `inbox_suggestions` (an agent proposes suggestions for your inbox items), `inbox_decisions` (accepting and rejecting them), `invoices`, `mail_addresses`, `margin`, `meetings`, `payments`, `projects`, `received_documents`, `tasks` (comments and labels included), `taxes`, `time_entries`, `vat`, `views`, `webhooks` and `profile` (the person's own name and language, guests included); each module declares its own, and only the resources of the installed modules can be given. Every endpoint needs one resource scope, named in the tables below. `GET /api/v1/me` needs a valid token and no scope. A request without the scope it needs is answered `403 insufficient_scope`, and `WWW-Authenticate` names the scope. Tokens issued before scopes per resource keep what they had: `read` reads everything, and `write` now also reads.
 
 ## Using the API
 
@@ -119,7 +119,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/invoices/{invoiceId}` | `invoices:read` | One document with its lines, payments, corrections and balances. Each line has its `id` (what the [margin rebill pairing](#margin) takes as `invoice_line_id`) and `source_line_id`, the id of the template line it was issued from, or `null`. |
 | `/api/v1/contacts` | `contacts:read` | Contacts, newest first. |
 | `/api/v1/contacts/{contactId}` | `contacts:read` | One contact with its addresses, e-mails, bank accounts and contact persons. |
-| `/api/v1/firm` | `contacts:read` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today (`vat_status`), its VAT statuses over time (`vat_statuses`, see [Firm VAT statuses](#firm-vat-statuses)), register entry and address. `404` before the first-run setup. |
+| `/api/v1/firm` | `firm:read` | The firm of the instance: id, name, registration number, VAT ID, the VAT status of today (`vat_status`), its VAT statuses over time (`vat_statuses`, see [Firm VAT statuses](#firm-vat-statuses)), register entry and address. `404` before the first-run setup. |
 | `/api/v1/payments` | `payments:read` | Payments, newest first. |
 | `/api/v1/payments/{id}` | `payments:read` | One payment with the invoices it pays. |
 | `/api/v1/received-documents` | `received_documents:read` | Received documents, newest first, with what is paid and what remains. |
@@ -128,7 +128,7 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/events` | `events:read` | Domain events of the last 30 days, oldest first. |
 | `/api/v1/projects` | `projects:read` | Projects the token's person sees, newest first. |
 | `/api/v1/projects/{projectId}` | `projects:read` | One project with its statuses and the sections the person sees. |
-| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. The project itself carries `budget {hours, used_hours, left_hours, counting, estimate_hours}`, or `null` without one. |
+| `/api/v1/projects/{projectId}/budget` | `projects:read` | The time budget of the project: budget, used and left in hours and minutes, `counting`, the sum of the task estimates and the changes, the latest first; `changes` is `null` for a guest. With Timesheet installed. |
 | `/api/v1/projects/{projectId}/people` | `tasks:read` | Who may be responsible for a task of the project; `task_id` narrows it to who sees that task. |
 | `/api/v1/tasks` | `tasks:read` | Tasks the token's person sees, subtasks included, newest first or in the `sort` asked for. |
 | `/api/v1/tasks/{taskId}` | `tasks:read` | One task with its description, watchers and subtasks. |
@@ -149,10 +149,10 @@ The endpoints below are `GET`. The writes of invoices are under [Invoice writes]
 | `/api/v1/meetings/series/{seriesId}` | `meetings:read` | One series with its members. |
 | `/api/v1/meetings` | `meetings:read` | The meetings you see, newest first, without their minutes; `q` finds a text in the title or the minutes, and `series_id`, `attendee_id`, `from`, `to`, `link_kind` with `link_id`, and `trashed=true` narrow them. |
 | `/api/v1/meetings/{meetingId}` | `meetings:read` | One meeting with its minutes in Markdown and their `version`. |
-| `/api/v1/sales/deals` | `sales:read` | The deals not in the trash, newest first; see [Sales](#sales). |
-| `/api/v1/sales/deals/{dealId}` | `sales:read` | One deal with its lines, value, links and contact persons. |
-| `/api/v1/sales/stages` | `sales:read` | The stages of a deal, in order. |
-| `/api/v1/sales/lost-reasons` | `sales:read` | The reasons a deal is lost for, in order. |
+| `/api/v1/deals` | `deals:read` | The deals not in the trash, newest first; see [Deals](#deals). |
+| `/api/v1/deals/{dealId}` | `deals:read` | One deal with its lines, value, links and contact persons. |
+| `/api/v1/deal-stages` | `deals:read` | The stages of a deal, in order. |
+| `/api/v1/lost-reasons` | `deals:read` | The reasons a deal is lost for, in order. |
 | `/api/v1/taxes-and-contributions/profile` | `taxes:read` | The owner profile, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/taxes-and-contributions/amounts` | `taxes:read` | The actual income and costs to date, for the owner only; see [Taxes and contributions](#taxes-and-contributions). |
 | `/api/v1/vat/periods` | `vat:read` | The VAT periods of the firm with their due dates and amounts, an estimate; see [VAT](#vat). |
@@ -315,7 +315,7 @@ My priorities, the person's own shortlist (see [projects](projects.md)), is `GET
 
 Query parameters of `GET /api/v1/projects`: `q` (the name), `archived` (`true` lists the archived projects), `client_id`, `view` (a saved view of the list `work.projects`), `filter`, `limit` and `cursor`. Each project carries `open_tasks`, `overdue_tasks` and `unassigned_tasks`, counts of the unfinished tasks and subtasks the token's person sees, and `nearest_due_on`; `filter` and views take them as the fields `open_tasks`, `overdue_tasks`, `unassigned_tasks` (numbers) and `next_due` (a date), such as `{"conditions":[{"field":"overdue_tasks","op":"gt","value":0}]}`. `GET /api/v1/time-entries` takes `project_id`, `task_id`, `person` (`me` or the id of a person), `from` and `until` (`YYYY-MM-DD`, both included), `limit` and `cursor`; a running timer has `minutes` `null` and `running` `true`. Hourly rates and sharing stay on the screens.
 
-A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task and `billable_by_default` of a project are `null`, and the people of a project are the organisation's own, not other guests.
+A guest's agent reads the same answers over MCP, as the guest's screens show them: `estimate_minutes` of a task is `null` and the custom fields not open to guests, such as `timesheet_billable_by_default` of a project, are left out, and the people of a project are the organisation's own, not other guests.
 
 ## Custom fields
 
@@ -354,7 +354,7 @@ A view has `id`, `list`, `name`, `system_key`, `visibility` (`private` or `share
 
 | Method and path | Body | What it does |
 | --- | --- | --- |
-| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `work.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
+| `POST /api/v1/views` | `list_key`, `name`, optional `visibility` (`private`), `conditions`, `sort` (`{field, dir}`, at most 3), `columns` (column keys or `{key, width}`; `null` for the list's default), `group_by` (what the rows are grouped by, on a list that groups them, such as `person` on `timesheet.time_report`), `pinned` (the quick filters shown as chips under the tabs, keys of the list's fields in order, at most 4; `[]` pins none, `null` the list's own), `show_count`, `placement` | Creates a view, `201` with its `Location`. Any owner or member may share one. |
 | `PATCH /api/v1/views/{viewId}` | Any of the fields above but `list_key`, plus `position` and `hidden` | Changes the fields sent; `conditions`, `sort` and `columns` replace what the view had. A shared view is changed by its creator and the owners, a view a module ships by the owners only, who also hide it with `hidden`. |
 | `DELETE /api/v1/views/{viewId}` | none | Deletes a view for everyone. A view a module ships is refused with `409 default_view`. |
 | `POST /api/v1/views/restore-defaults` | `list_key` | Brings the views a module ships on a list back to what it declares. Owners only. |
@@ -416,7 +416,7 @@ There is no upsert. To keep a contact you may have created before, search for it
 
 The VAT status of the firm over time: each status holds from its day (`valid_from`) until the next one begins. `GET /api/v1/firm` lists them in `vat_statuses`, oldest first, each `{id, status, period_length, valid_from}`, and keeps `vat_status` as the status that holds today. `status` is `registered` (a VAT payer), `not_registered` or `identified_person`. `period_length` is `month` or `quarter` for a registered payer, and `null` for every other status. `valid_from` is `null` only for a status that held from the start, before the statuses had days: the status the firm had before this was added, or one set up without a day. Add a change with its day, so the day VAT is counted from is known.
 
-The writes need the `contacts:write` scope, and only the **owner** of the organisation may use them, as the firm's settings: anyone else is refused with `403 owner_only`. Bodies are JSON with snake case fields.
+The writes need the `firm:write` scope, and only the **owner** of the organisation may use them, as the firm's settings: anyone else is refused with `403 owner_only`. Bodies are JSON with snake case fields.
 
 | Method and path | Answer |
 | --- | --- |
@@ -620,7 +620,7 @@ An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `rec
 | `GET /api/v1/inbox/items` | Your items outside the trash, newest first; `state`, `unmatched=true` and `suggestions=with` or `suggestions=without` (an open suggestion or none) narrow them. Paged with `limit` and `cursor`. |
 | `GET /api/v1/inbox/items/{itemId}` | One item with its mail. |
 | `PUT /api/v1/inbox/items/{itemId}/contact` | Matches the item to `contact_id` by hand, or to none with `null`; a person with exactly one company gives that company too. Refused: `contact_unknown`, `contact_archived` (400). |
-| `POST /api/v1/inbox/items/{itemId}/contact` | `201`: creates a contact for the sender with the fields of `POST /api/v1/contacts` (`kind`, `display_name`, the billing address `street`, `city`, `postal_code`, `country_code`, then `registration_number`, `vat_id`, `email`, `phone`) and matches the item to it. `email` is the sender's (the original sender of a forward) when left out. The token needs `contacts:write` too (`403 insufficient_scope`). The address book's refusals come unchanged, a duplicate as `409 duplicate` with `existing_ids`. |
+| `POST /api/v1/inbox/items/{itemId}/contact` | `201`: creates a contact for the sender with the fields of `POST /api/v1/contacts` (`kind`, `display_name`, the billing address `street`, `city`, `postal_code`, `country_code`, then `registration_number`, `vat_id`, `email`, `phone`) and matches the item to it. `email` is the sender's (the original sender of a forward) when left out. The token needs `contacts:write` too (`403 insufficient_scope`). The address book's refusals come unchanged, a duplicate as `409 duplicate` with `existing_ids`; without the Contacts module `409 address_book_missing`. |
 | `POST /api/v1/inbox/items/{itemId}/match-again` | Matches the item by its sender again, as on arrival: one contact with the address, else one company of the domain when the sender is verified, else none. |
 | `POST /api/v1/inbox/items/{itemId}/done` | The item done. Done already is `409 already_done`. A discarded item keeps its mail again. While suggestions on it wait, it is refused `409 open_suggestions` (with `open`, their number) unless the body says `"suggestions": "reject"` (rejects them) or `"keep"` (leaves them open on the done item). |
 | `POST /api/v1/inbox/items/{itemId}/discard` | The item discarded; unless something came of it, its mail is removed 30 days later. Its open suggestions are rejected. Discarded already is `409 already_discarded`. |
@@ -631,7 +631,7 @@ An item has `id`, `state` (`new`, `done`, `discarded`), `state_changed_at`, `rec
 | `POST /api/v1/inbox/items/{inboxItemId}/tasks` | `201` with the task, as `POST /api/v1/tasks` answers it: creates a task (`project_id`, `title`, optional `description`, `responsible_id`, `due_on`) from the item, copies the files of the mail onto it unless `copy_attachments` is false, adds it to the item as an output and links the e-mail activity to the task and its project. Needs `tasks:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/time-entries` | `201` with the time entry, as `POST /api/v1/time-entries` answers it (`project_id`, `worked_on`, optional `task_id`, `minutes` or `started_at` and `ended_at`, `note`, `billable`); the e-mail activity is linked to the project. Needs `time_entries:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/budget-changes` | `201` with the budget, as `POST /api/v1/projects/{projectId}/budget-changes` answers it, plus `id`, the id of the change made (`project_id`, `hours` or `minutes`, optional `effective_on`, `note`); the item's e-mail activity, made first when it has none, is linked to the project and is the source of the change. For an item whose client has an active project. Needs `projects:write` and `inbox:read`. |
-| `POST /api/v1/inbox/items/{inboxItemId}/deals` | `201` with the deal, as `POST /api/v1/sales/deals` answers it (`title`, `client_party_id`, optional `description`), for an item matched to a contact; the e-mail activity is linked to the deal. Needs `sales:write` and `inbox:read`. |
+| `POST /api/v1/inbox/items/{inboxItemId}/deals` | `201` with the deal, as `POST /api/v1/deals` answers it (`title`, `client_party_id`, optional `description`), for an item matched to a contact; the e-mail activity is linked to the deal. Needs `deals:write` and `inbox:read`. |
 | `POST /api/v1/inbox/items/{inboxItemId}/activities` | `201` with the activity, as `POST /api/v1/activities` answers it (`type_id`, `subject`, optional `planned_on` or `planned_at`, `done`, `outcome`), linked to the item's contact, its company and the outputs that take activities. Needs `activities:write` and `inbox:read`. |
 
 The four actions above mark the item done unless `mark_done` is false, and the record they make becomes an output of the item. `GET /api/v1/inbox/items/{itemId}` lists under `available_actions` the actions that apply to the item and that the token may run: `operation`, `tool`, `label`, `input_schema`, `prefill` (the values to start from by field, `inbox_item_id` included) and `choices` for a field to pick from, such as the client's projects. An action on another person's item is `404 not_found` and makes nothing; one on an item in the trash is `409 item_trashed`, one whose condition does not hold, such as a deal for an unmatched item, `409 action_not_applicable`, and one on an item without its e-mail activity while the activity type E-mail is archived `409 email_activity_unavailable`; none of them makes anything. The module's own refusals come unchanged. If the record is made but cannot be added to the item, the answer is still `201` and its summary says so: a task or a deal you then link with `POST .../outputs`; a time entry or an activity cannot be linked by hand and stays as made, so do not send the action again.
@@ -716,55 +716,55 @@ curl -X PUT -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: appli
   "https://app.example.com/api/v1/meetings/0192f000-0000-7000-8000-000000000000/minutes"
 ```
 
-## Sales
+## Deals
 
-The deals of the firm with their stages, lines and links. What each field means is in [sales.md](sales.md). The reads need `sales:read`, the writes `sales:write`; only the owners and members of the organisation may use them, never a guest. Bodies are JSON with snake case fields.
+The deals of the firm with their stages, lines and links. What each field means is in [sales.md](sales.md). The reads need `deals:read`, the writes `deals:write`; only the owners and members of the organisation may use them, never a guest. Bodies are JSON with snake case fields.
 
 Reads:
 
 | Method and path | Answer |
 | --- | --- |
-| `GET /api/v1/sales/deals` | The deals not in the trash, newest first, each with its `status`, `client`, `owner_user_id`, `stage`, `won_at`, `lost_at` and `lost_reason`. Filters: `status` (`open`, `won`, `lost`), `stage_id`, `owner_user_id`, `client_party_id` (the deals of a client) and `q` (a text in the title). |
-| `GET /api/v1/sales/deals/{dealId}` | One deal, also one in the trash, with its `contacts`, `lines`, `value`, `links` and `billing_plan`. `billing_plan` holds the `entries` (each with its `id`, `kind`, `line_id`, `amount` of one invoice, `expected_on` or `null`, `text`, `state` `planned`, `overdue` or `invoiced`, and `fulfilled_by` with the `type`, `id` and `label` of its document, or `null`), and per currency what is `not_planned` of the one-off value and `not_invoiced` of the plan. `value` holds `one_off`, `monthly`, `hourly` and `approximate`: the first two are one amount per currency and never converted, `approximate` is true when a weekly or daily line was put on a month's terms, and `hourly` lists each `time_based` line with its `rate`, `expected_hours` and `expected_amount` (the last two `null` without expected hours), never added into the others. A `follows_from` link is outgoing when this deal follows from the other. |
-| `GET /api/v1/sales/stages` | The stages in their order; archived ones with `include_archived=true`. |
-| `GET /api/v1/sales/lost-reasons` | The lost reasons in their order; archived ones with `include_archived=true`. |
+| `GET /api/v1/deals` | The deals not in the trash, newest first, each with its `status`, `client`, `owner_user_id`, `stage`, `won_at`, `lost_at` and `lost_reason`. Filters: `status` (`open`, `won`, `lost`), `stage_id`, `owner_user_id`, `client_party_id` (the deals of a client) and `q` (a text in the title). |
+| `GET /api/v1/deals/{dealId}` | One deal, also one in the trash, with its `contacts`, `lines`, `value`, `links` and `billing_plan`. `billing_plan` holds the `entries` (each with its `id`, `kind`, `line_id`, `amount` of one invoice, `expected_on` or `null`, `text`, `state` `planned`, `overdue` or `invoiced`, and `fulfilled_by` with the `type`, `id` and `label` of its document, or `null`), and per currency what is `not_planned` of the one-off value and `not_invoiced` of the plan. `value` holds `one_off`, `monthly`, `hourly` and `approximate`: the first two are one amount per currency and never converted, `approximate` is true when a weekly or daily line was put on a month's terms, and `hourly` lists each `time_based` line with its `rate`, `expected_hours` and `expected_amount` (the last two `null` without expected hours), never added into the others. A `follows_from` link is outgoing when this deal follows from the other. |
+| `GET /api/v1/deal-stages` | The stages in their order; archived ones with `include_archived=true`. |
+| `GET /api/v1/lost-reasons` | The lost reasons in their order; archived ones with `include_archived=true`. |
 
-Writes, each an operation that answers the deal as `GET /api/v1/sales/deals/{dealId}` shows it unless it says otherwise:
+Writes, each an operation that answers the deal as `GET /api/v1/deals/{dealId}` shows it unless it says otherwise:
 
 | Method and path | Answer |
 | --- | --- |
-| `POST /api/v1/sales/deals` | `201` with the new deal: `title`, `client_party_id`, and optionally `stage_id`, `owner_user_id`, `description` and `contact_person_ids`. The first stage and the caller are the defaults. |
-| `PATCH /api/v1/sales/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `client_party_id`, `contact_person_ids` (the whole list; an empty list removes them all). Another client takes the `contact_person_ids` of the same call, checked against it, or none; an archived client is refused with `client_archived`, a deal linked to other deals with `client_has_links` (`409`) until its links are removed, and a deal whose line links a project of its client with `client_has_projects` (`409`) until the project is unlinked. |
-| `POST /api/v1/sales/deals/{dealId}/stage` | An open deal moved to `stage_id`. A won or lost deal is refused with `deal_not_open`. |
-| `POST /api/v1/sales/deals/{dealId}/win` | The open deal won. |
-| `POST /api/v1/sales/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `note`. |
-| `POST /api/v1/sales/deals/{dealId}/reopen` | The won or lost deal open again. |
-| `POST /api/v1/sales/deals/{dealId}/trash` | The deal in the trash. Trashing it again changes nothing. |
-| `POST /api/v1/sales/deals/{dealId}/restore` | The deal back from the trash. |
-| `POST /api/v1/sales/deals/{dealId}/follow-ups` | `201` with a new deal for the same client and contact persons that follows from this one: `title`, optionally `line_ids` to copy as they are, `stage_id` and `owner_user_id`. |
-| `POST /api/v1/sales/deals/{dealId}/links` | `201` with a link: `to_deal_id`, the deal it follows from, and `type` (`follows_from`). |
-| `DELETE /api/v1/sales/deals/{dealId}/links/{linkId}` | The link removed; both deals stay. |
-| `POST /api/v1/sales/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). A `time_based` line has the unit `h` (`time_based_unit` for another), its `unit_price` is the hourly rate (`rate_required` without one), `quantity` is the optional hours expected, and it has no recurrence (`time_based_recurrence`). Its optional `project_id` links the project whose billable time it bills at its rate (refusals in [Sales](sales.md#lines-and-value)). |
-| `PATCH /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` or `time_based` clears its period. `project_id` links a `time_based` line to a project, `null` unlinks it. The product it was copied from does not change. |
-| `DELETE /api/v1/sales/deals/{dealId}/lines/{lineId}` | The line removed; the lines after it move up. |
-| `POST /api/v1/sales/deals/{dealId}/billing-plan` | `201` with a planned invoice of a won deal: `kind` (`one_off` by default, or `recurring`), for `one_off` an `amount` or a `percent` of the one-off value and an optional `currency`, for `recurring` the `line_id` it follows; an optional `expected_on` and `text`. Rules and refusals in [Sales](sales.md#billing-plan). |
-| `PATCH /api/v1/sales/deals/{dealId}/billing-plan/{entryId}` | The planned invoice with what was given changed: `amount`, `percent` or `currency` of a `one_off` entry, `expected_on` (`null` takes the day away) and `text`. |
-| `DELETE /api/v1/sales/deals/{dealId}/billing-plan/{entryId}` | The planned invoice removed. |
-| `PUT /api/v1/sales/deals/{dealId}/billing-plan/{entryId}/fulfilment` | The planned invoice linked to the document that fulfils it: `type` (`invoice` for a one-off entry, `recurring_invoice` for a recurring one) and `document_id`, of the deal's client. |
-| `DELETE /api/v1/sales/deals/{dealId}/billing-plan/{entryId}/fulfilment` | The link removed; the forecast counts the entry again. |
-| `POST /api/v1/sales/deals/{dealId}/lines/reorder` | The lines in the order given: `line_ids`, naming every line once. |
-| `POST /api/v1/sales/stages` | `201` with a stage at the end of the order: `name` and an optional `key`, a lowercase identifier that never changes. |
-| `PATCH /api/v1/sales/stages/{stageId}` | The stage renamed; a stage Foresi seeded may be given `null` to show under its own name again. |
-| `POST /api/v1/sales/stages/reorder` | The stages in the order given: `stage_ids`, naming every stage that is not archived once. |
-| `POST /api/v1/sales/stages/{stageId}/archive` | The archived stage, or `stage_has_open_deals` while open deals sit in it. |
-| `POST /api/v1/sales/lost-reasons` | `201` with a lost reason at the end of the list: `name` and an optional `key`. |
-| `PATCH /api/v1/sales/lost-reasons/{reasonId}` | The lost reason renamed, as a stage. |
-| `POST /api/v1/sales/lost-reasons/{reasonId}/archive` | The archived lost reason; the deals lost for it keep it. |
+| `POST /api/v1/deals` | `201` with the new deal: `title`, `client_party_id`, and optionally `stage_id`, `owner_user_id`, `description` and `contact_person_ids`. The first stage and the caller are the defaults. |
+| `PATCH /api/v1/deals/{dealId}` | The deal with what was given changed: `title`, `description`, `owner_user_id`, `client_party_id`, `contact_person_ids` (the whole list; an empty list removes them all). Another client takes the `contact_person_ids` of the same call, checked against it, or none; an archived client is refused with `client_archived`, a deal linked to other deals with `client_has_links` (`409`) until its links are removed, and a deal whose line links a project of its client with `client_has_projects` (`409`) until the project is unlinked. |
+| `POST /api/v1/deals/{dealId}/stage` | An open deal moved to `stage_id`. A won or lost deal is refused with `deal_not_open`. |
+| `POST /api/v1/deals/{dealId}/win` | The open deal won. |
+| `POST /api/v1/deals/{dealId}/lose` | The open deal lost, with an optional `lost_reason_id` and `note`. |
+| `POST /api/v1/deals/{dealId}/reopen` | The won or lost deal open again. |
+| `POST /api/v1/deals/{dealId}/trash` | The deal in the trash. Trashing it again changes nothing. |
+| `POST /api/v1/deals/{dealId}/restore` | The deal back from the trash. |
+| `POST /api/v1/deals/{dealId}/follow-ups` | `201` with a new deal for the same client and contact persons that follows from this one: `title`, optionally `line_ids` to copy as they are, `stage_id` and `owner_user_id`. |
+| `POST /api/v1/deals/{dealId}/links` | `201` with a link: `to_deal_id`, the deal it follows from, and `type` (`follows_from`). |
+| `DELETE /api/v1/deals/{dealId}/links/{linkId}` | The link removed; both deals stay. |
+| `POST /api/v1/deals/{dealId}/lines` | `201` with a line: a `product_id` of the catalog and `quantity`, or a typed `name`, `unit`, `unit_price`, `currency`, `billing_kind`, `recurrence_unit`, `interval` and `cycles`, as in [Catalog](#catalog). A `time_based` line has the unit `h` (`time_based_unit` for another), its `unit_price` is the hourly rate (`rate_required` without one), `quantity` is the optional hours expected, and it has no recurrence (`time_based_recurrence`). Its optional `project_id` links the project whose billable time it bills at its rate (refusals in [Sales](sales.md#lines-and-value)). |
+| `PATCH /api/v1/deals/{dealId}/lines/{lineId}` | The line with what was given changed; `unit_price: null` leaves it without a price, and making it `one_off` or `time_based` clears its period. `project_id` links a `time_based` line to a project, `null` unlinks it. The product it was copied from does not change. |
+| `DELETE /api/v1/deals/{dealId}/lines/{lineId}` | The line removed; the lines after it move up. |
+| `POST /api/v1/deals/{dealId}/billing-plan` | `201` with a planned invoice of a won deal: `kind` (`one_off` by default, or `recurring`), for `one_off` an `amount` or a `percent` of the one-off value and an optional `currency`, for `recurring` the `line_id` it follows; an optional `expected_on` and `text`. Rules and refusals in [Sales](sales.md#billing-plan). |
+| `PATCH /api/v1/deals/{dealId}/billing-plan/{entryId}` | The planned invoice with what was given changed: `amount`, `percent` or `currency` of a `one_off` entry, `expected_on` (`null` takes the day away) and `text`. |
+| `DELETE /api/v1/deals/{dealId}/billing-plan/{entryId}` | The planned invoice removed. |
+| `PUT /api/v1/deals/{dealId}/billing-plan/{entryId}/fulfilment` | The planned invoice linked to the document that fulfils it: `type` (`invoice` for a one-off entry, `recurring_invoice` for a recurring one) and `document_id`, of the deal's client. |
+| `DELETE /api/v1/deals/{dealId}/billing-plan/{entryId}/fulfilment` | The link removed; the forecast counts the entry again. |
+| `POST /api/v1/deals/{dealId}/lines/reorder` | The lines in the order given: `line_ids`, naming every line once. |
+| `POST /api/v1/deal-stages` | `201` with a stage at the end of the order: `name` and an optional `key`, a lowercase identifier that never changes. |
+| `PATCH /api/v1/deal-stages/{stageId}` | The stage renamed; a stage Foresi seeded may be given `null` to show under its own name again. |
+| `POST /api/v1/deal-stages/reorder` | The stages in the order given: `stage_ids`, naming every stage that is not archived once. |
+| `POST /api/v1/deal-stages/{stageId}/archive` | The archived stage, or `stage_has_open_deals` while open deals sit in it. |
+| `POST /api/v1/lost-reasons` | `201` with a lost reason at the end of the list: `name` and an optional `key`. |
+| `PATCH /api/v1/lost-reasons/{reasonId}` | The lost reason renamed, as a stage. |
+| `POST /api/v1/lost-reasons/{reasonId}/archive` | The archived lost reason; the deals lost for it keep it. |
 
 ```bash
 curl -X POST -H "Authorization: Bearer $FORESI_API_TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
   -d '{"title": "Roof audit for the warehouse", "client_party_id": "'$CLIENT_ID'"}' \
-  "https://app.example.com/api/v1/sales/deals"
+  "https://app.example.com/api/v1/deals"
 ```
 
 A refused field is answered `400 invalid_parameter` with the `parameter` and a `reason`; a refused state change is answered with a code such as `deal_not_open`, `deal_not_closed`, `link_self`, `link_other_client`, `link_duplicate`, `client_archived`, `contact_person_not_of_client` or `stage_has_open_deals`.
@@ -795,7 +795,7 @@ The VAT periods of the firm, the bank payments that settle them, and where it pa
 
 | Method and path | Answer |
 | --- | --- |
-| `GET /api/v1/vat/periods?from=2026-11&to=2027-12` | The periods from the day the firm became a payer, oldest first, each with `key` (`2026-11` or `2026-Q4`), `length`, `start` and `end` (clipped to the days the firm is a payer), `due_on`, `refund_expected_on`, `output`, `input`, `result` (positive to pay, negative to get back), `breakdown` (`documents`, `schedules`, `plans`, each with `output` and `input`), `steps` (`output`, `input` and `result`, each with its `amount`, `rule` and `sources`), `warnings` (`missing_czk_vat`) and `missing_czk` (the documents counted without a CZK amount of their VAT); and `reason`, `country`, `from`, `to`, `warnings`, `unverified`, `known_gaps` and `unavailable_sources` (the document sources not installed or not readable, `invoicing.issued_vat` and `purchasing.received_vat`). `from` and `to` are months or quarters; without `from` the list starts with the first period, without `to` it ends with the period that holds the twelfth month after this one. A `to` more than 24 months ahead is `400 invalid_parameter` with the reason `range_too_long`; a month that cannot be read is `from_invalid` or `to_invalid`, and a `from` after `to` is `range_invalid`. With nothing to compute, `periods` is empty and `reason` is `payer_date_missing`, `not_a_payer` or `country_not_supported`. The amounts count the documents, the recurring invoices and the plans (see [vat.md](vat.md#amounts)). Each period also has `return_amount` (entered by a person, `null` until then), `expected` (the return amount, else the result), `state` (`estimated`, `return_entered`, `settled` or `not_yet_paid`; never overdue), `payments` (the bank movements that pay it, each with `movement_id`, `on`, `amount`, `direction`, `rule`, `period`, `manual` and `unverified`), `paid` and `difference` (paid minus expected, information only), both `null` without a payment, and `settled_mark` (`at`, `note`) when a person marked it settled. The list has `unassigned_payments`, the movements to or from the tax office that pay no period, and `possible_duplicates`, the planned items of the category `vat` (`id`, `name`, `url`). |
+| `GET /api/v1/vat/periods?from=2026-11&to=2027-12` | The periods from the day the firm became a payer, oldest first, each with `key` (`2026-11` or `2026-Q4`), `length`, `start` and `end` (clipped to the days the firm is a payer), `due_on`, `refund_expected_on`, `output`, `input`, `result` (positive to pay, negative to get back), `breakdown` (`documents`, `schedules`, `plans`, each with `output` and `input`), `steps` (`output`, `input` and `result`, each with its `amount`, `rule` and `sources`), `warnings` (`missing_czk_vat`) and `missing_czk` (the documents counted without a CZK amount of their VAT); and `reason`, `country`, `from`, `to`, `warnings`, `unverified`, `known_gaps` and `unavailable_sources` (the document sources not installed or not readable, `invoicing.issued_vat` and `received-documents.received_vat`). `from` and `to` are months or quarters; without `from` the list starts with the first period, without `to` it ends with the period that holds the twelfth month after this one. A `to` more than 24 months ahead is `400 invalid_parameter` with the reason `range_too_long`; a month that cannot be read is `from_invalid` or `to_invalid`, and a `from` after `to` is `range_invalid`. With nothing to compute, `periods` is empty and `reason` is `payer_date_missing`, `not_a_payer` or `country_not_supported`. The amounts count the documents, the recurring invoices and the plans (see [vat.md](vat.md#amounts)). Each period also has `return_amount` (entered by a person, `null` until then), `expected` (the return amount, else the result), `state` (`estimated`, `return_entered`, `settled` or `not_yet_paid`; never overdue), `payments` (the bank movements that pay it, each with `movement_id`, `on`, `amount`, `direction`, `rule`, `period`, `manual` and `unverified`), `paid` and `difference` (paid minus expected, information only), both `null` without a payment, and `settled_mark` (`at`, `note`) when a person marked it settled. The list has `unassigned_payments`, the movements to or from the tax office that pay no period, and `possible_duplicates`, the planned items of the category `vat` (`id`, `name`, `url`). |
 | `GET /api/v1/vat/periods/{key}` | The period `key` (`2026-11` or `2026-Q4`) as in the list, under `period`, with the same `reason`, `country`, `unverified`, `known_gaps` and `unavailable_sources`, and `documents`: each counted document with `source`, `subject` (`type`, `id`, `url`), `label`, `counts_on`, `tax_point_on`, `output`, `input` and `missing_czk`. With them come `schedules` (the recurring invoices not issued yet) and `plans`: each counted plan with `source` (`cash-flow.planned_vat`), `subject` (`planned_item`), `label`, `on`, `output` and `input`. The documents, schedules or plans of a source the token may not read (`invoices:read`, `received_documents:read`, `cashflow:read`) are left out and the source is listed in `restricted_sources`; they still count in the totals. A key that is no month or quarter is `400 invalid_parameter` with `key_invalid`, and a key the firm has no period for is `404`. |
 | `GET /api/v1/vat/settings` | `{office_account, variable_symbol, suggestion}`: the account of the tax office and the variable symbol, `null` until they are set, and the country's `suggestion` (`account_hint`, `variable_symbol`, `source_url`), `null` without its rules. |
 | `PUT /api/v1/vat/settings` | Replaces them: `office_account` (required, up to 64 characters) and `variable_symbol` (up to 35; empty takes the suggested one). Answers as the read. |
@@ -924,13 +924,13 @@ Query parameters of `GET /api/v1/received-documents`:
 | `unpaid` | `true` lists only recorded documents with something left to pay. Default `false`. |
 | `due_before` | `YYYY-MM-DD`: only documents due before this day, not on it. |
 | `trashed` | `true` lists only the documents in the trash. Default `false`. |
-| `view` | The id of a saved view of the list `purchasing.received`, or the system key of one it ships, such as `purchasing.received.drafts`: only the documents it holds. Needs `views:read` too. |
+| `view` | The id of a saved view of the list `received_documents.received`, or the system key of one it ships, such as `received_documents.received.drafts`: only the documents it holds. Needs `views:read` too. |
 | `filter` | Conditions as JSON in the format of [Saved views](#saved-views), such as `{"conditions": [{"field": "kind", "op": "is", "value": "credit_note"}]}`. A condition on `trashed` decides it instead of the `trashed` parameter. |
 | `reading` | `reading`, `read`, `nothing_found` or `failed`: only documents whose file is in that state of reading. |
 | `source` | `manual`, `upload`, `api` or `mail`: only documents that came in that way. |
 | `limit`, `cursor` | Paging, as above. |
 
-The view `purchasing.received.to_review` lists the drafts whose file was read, found nothing or failed. The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
+The view `received_documents.received.to_review` lists the drafts whose file was read, found nothing or failed. The answer has `data`, `next_cursor` and `applied_view`, and refuses a view or filter as the invoices do; a view of another list is refused with `parameter` `view`.
 
 The payables of a month are `?unpaid=true&due_before=` the first day of the next month.
 

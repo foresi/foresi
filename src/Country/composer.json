@@ -10,7 +10,7 @@
     },
     "require": {
         "chillerlan/php-qrcode": "^6.0.1",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "psr/clock": "^1.0",
@@ -32,7 +32,7 @@
                 "exchange-rate",
                 "invoicing",
                 "mail",
-                "purchasing",
+                "received-documents",
                 "taxes-and-contributions",
                 "vat"
             ]

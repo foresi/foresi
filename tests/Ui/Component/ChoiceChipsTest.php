@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Contacts\ContactsBundle;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
 
@@ -43,6 +44,9 @@ final class ChoiceChipsTest extends KernelTestCase
 
     public function testAChosenChipOfAnAttributeWearsTheBadgeOfItsValue(): void
     {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('The list of contacts is the contacts module\'s, which is not installed.');
+        }
         $html = (string) $this->renderTwigComponent('Ui:ChoiceChips', [
             'name' => 'roles[]',
             'id' => 'roles',

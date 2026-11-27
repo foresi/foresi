@@ -37,7 +37,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
     private const string SQL = <<<'SQL'
         SELECT i.id, r.steps, r.last_at
         FROM invoice i
-        INNER JOIN party p ON p.id = i.customer_id
+        LEFT JOIN invoicing_party_default d ON d.party_id = i.customer_id
         LEFT JOIN (
             SELECT invoice_id, MAX(reminder_step) AS steps, MAX(created_at) AS last_at
             FROM invoice_send
@@ -47,7 +47,7 @@ final readonly class DoctrineRemindableInvoices implements RemindableInvoices
         WHERE i.deleted_at IS NULL
             AND i.delivered_at IS NOT NULL
             AND i.due_date >= :enabledOn
-            AND p.invoicing_send_reminders = :yes
+            AND COALESCE(d.send_reminders, :yes) = :yes
             AND (
                 (r.steps IS NULL AND i.due_date <= :firstDueBy)
                 OR (r.steps < :maxSteps AND r.last_at < :nextBefore)

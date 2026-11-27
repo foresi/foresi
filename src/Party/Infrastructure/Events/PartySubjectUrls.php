@@ -8,14 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Infrastructure\Events;
 
-use Foresi\Party\Infrastructure\Api\ContactApiController;
 use Foresi\Party\Infrastructure\Api\FirmApiController;
 use Foresi\Shared\Application\Event\EventSubjectUrl;
 use Foresi\Shared\Contract\Event\EventSubject;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Where a contact, or the firm, can be read in the API.
+ * Where the firm can be read in the API. A contact's events are the address book's
+ * (ContactsSubjectUrls).
  */
 final readonly class PartySubjectUrls implements EventSubjectUrl
 {
@@ -31,7 +31,6 @@ final readonly class PartySubjectUrls implements EventSubjectUrl
     public function url(EventSubject $subject): ?string
     {
         return match ($subject->type) {
-            'contact' => $this->urls->generate(ContactApiController::SHOW, ['contactId' => $subject->id], UrlGeneratorInterface::ABSOLUTE_PATH),
             'firm' => $this->urls->generate(FirmApiController::SHOW, [], UrlGeneratorInterface::ABSOLUTE_PATH),
             default => null,
         };

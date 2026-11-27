@@ -47,10 +47,10 @@ final class InstalledModulesTest extends TestCase
         }
         $installed = $this->installed();
 
-        self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared', 'webhooks'], $kinds[ModuleKind::Core->value] ?? []);
-        self::assertSame(['ui'], $kinds[ModuleKind::Ui->value] ?? []);
+        self::assertSame(['attachment', 'audit', 'events', 'identity', 'instance', 'party', 'shared'], $kinds[ModuleKind::Core->value] ?? []);
+        self::assertSame(array_values(array_intersect(['ui'], $installed)), $kinds[ModuleKind::Ui->value] ?? []);
         self::assertSame(
-            array_values(array_intersect(['activities', 'ai-reader', 'banking', 'calendar', 'cash-flow', 'catalog', 'country', 'documents', 'exchange-rate', 'idoklad', 'import', 'inbox', 'invoicing', 'mail', 'margin', 'meetings', 'purchasing', 'sales', 'taxes-and-contributions', 'timesheet', 'vat', 'work'], $installed)),
+            array_values(array_intersect(['activities', 'ai-reader', 'banking', 'calendar', 'cash-flow', 'catalog', 'contacts', 'country', 'deals', 'document-templates', 'exchange-rate', 'idoklad', 'import', 'inbox', 'invoicing', 'mail', 'margin', 'meetings', 'received-documents', 'taxes-and-contributions', 'timesheet', 'vat', 'webhooks', 'work'], $installed)),
             $kinds[ModuleKind::Module->value] ?? [],
         );
     }
@@ -94,11 +94,11 @@ final class InstalledModulesTest extends TestCase
         $graph = new InstalledModules(\dirname(__DIR__, 4))->graph();
 
         // The resources of each module that declares some, as many as are installed.
-        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'documents' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox', 'inbox_suggestions', 'inbox_decisions'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'meetings' => ['meetings'], 'party' => ['contacts'], 'purchasing' => ['received_documents'], 'sales' => ['sales'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'work' => ['projects', 'tasks', 'time_entries']];
+        $resources = ['activities' => ['activities'], 'calendar' => ['calendar'], 'cash-flow' => ['cashflow'], 'catalog' => ['catalog'], 'document-templates' => ['documents'], 'events' => ['events'], 'exchange-rate' => ['exchange_rates'], 'identity' => ['profile'], 'inbox' => ['inbox', 'inbox_suggestions', 'inbox_decisions'], 'invoicing' => ['invoices', 'payments'], 'mail' => ['mail_addresses'], 'margin' => ['margin'], 'meetings' => ['meetings'], 'contacts' => ['contacts'], 'party' => ['firm'], 'received-documents' => ['received_documents'], 'deals' => ['deals'], 'shared' => ['views'], 'taxes-and-contributions' => ['taxes'], 'vat' => ['vat'], 'webhooks' => ['webhooks'], 'timesheet' => ['time_entries'], 'work' => ['projects', 'tasks']];
         $expected = array_merge(...array_values(array_intersect_key($resources, array_flip($this->installed()))));
         sort($expected);
         self::assertSame($expected, $graph->resources());
-        self::assertSame(['contacts'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
+        self::assertSame(['firm'], $graph->get(\Foresi\Shared\Domain\Module\ModuleId::of('party'))->scopes);
         self::assertSame([], InstalledModules::manifestFrom(self::composer(), [])->scopes);
         // A guest may change tasks and read projects, and nothing else (ADR 0041).
         $guest = ['identity' => ['profile:write'], 'work' => ['projects:read', 'tasks:write']];
@@ -140,7 +140,7 @@ final class InstalledModulesTest extends TestCase
         yield 'a namespace the autoload does not declare' => [array_replace($composer, ['autoload' => ['psr-4' => ['Foresi\\Time\\' => '']]])];
         yield 'an id the namespace does not give' => [array_replace_recursive($composer, ['extra' => ['foresi' => ['module' => 'hours']], 'name' => 'foresi/hours'])];
         yield 'a package name that is not one' => [array_replace($composer, ['name' => 'Foresi Timesheet'])];
-        yield 'the module API without a range' => [array_replace_recursive($composer, ['require' => ['foresi/module-api' => ['^1.0']]])];
+        yield 'the module API without a range' => [array_replace_recursive($composer, ['require' => ['foresi/module-api' => ['^2.0']]])];
         yield 'another vendor in the Foresi namespace' => [self::acme(['extra' => ['foresi' => ['namespace' => 'Foresi\\Garage\\', 'module' => 'garage', 'bundle' => 'Foresi\\Garage\\GarageBundle']], 'autoload' => ['psr-4' => ['Foresi\\Garage\\' => '']]])];
         yield 'another vendor with an id its namespace does not give' => [self::acme(['extra' => ['foresi' => ['module' => 'garage']]])];
         yield 'another vendor with a bundle not named after the id' => [self::acme(['extra' => ['foresi' => ['bundle' => 'Acme\\Garage\\FleetBundle']]])];
@@ -178,7 +178,7 @@ final class InstalledModulesTest extends TestCase
         self::assertSame('Acme\\Garage\\', $manifest->namespace);
         self::assertSame('Acme\\Garage\\AcmeGarageBundle', $manifest->bundle);
         self::assertSame(['shared', 'party'], array_map(static fn (\Foresi\Shared\Domain\Module\ModuleId $id): string => $id->value, $manifest->requires));
-        self::assertSame('^1.0', $manifest->moduleApi);
+        self::assertSame('^2.0', $manifest->moduleApi);
     }
 
     public function testARequiredModuleIsFoundByItsPackageWhateverItsVendor(): void
@@ -198,7 +198,7 @@ final class InstalledModulesTest extends TestCase
     public function testEveryModuleRequiresTheModuleApi(): void
     {
         foreach ($this->modules()->graph()->all() as $module) {
-            self::assertSame('^1.0', $module->moduleApi, $module->id->value);
+            self::assertSame('^2.0', $module->moduleApi, $module->id->value);
         }
     }
 
@@ -261,7 +261,7 @@ final class InstalledModulesTest extends TestCase
         return array_replace_recursive([
             'name' => 'acme/garage',
             'type' => 'foresi-module',
-            'require' => ['foresi/module-api' => '^1.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
+            'require' => ['foresi/module-api' => '^2.0', 'foresi/shared' => '*', 'foresi/party' => '*'],
             'autoload' => ['psr-4' => ['Acme\\Garage\\' => '']],
             'extra' => ['foresi' => [
                 'module' => 'acme-garage',

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Inbox\Support;
 
-use Foresi\Party\Contract\ContactsByEmail;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Inbox\Application\InboxAddressBook;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Shared\Domain\Id;
 
@@ -18,7 +18,7 @@ use Foresi\Shared\Domain\Id;
  * archived contacts are left out of the lookups by address and domain, and
  * flagged among a person's companies.
  */
-final class FakeContactsByEmail implements ContactsByEmail
+final class FakeContactsByEmail implements InboxAddressBook
 {
     /** @var list<array{PartySummary, list<string>}> */
     private array $contacts = [];
@@ -63,6 +63,11 @@ final class FakeContactsByEmail implements ContactsByEmail
         $ids = $this->links[$personId] ?? [];
 
         return $this->where(static fn (PartySummary $contact): bool => \in_array($contact->id, $ids, true));
+    }
+
+    public function create(string $kind, string $displayName, string $street, string $city, string $postalCode, string $countryCode, string $registrationNumber, string $vatId, string $email, string $phone): string
+    {
+        throw new \LogicException('The fake address book only matches senders.');
     }
 
     /**

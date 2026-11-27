@@ -10,13 +10,10 @@ namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\OpenToGuest;
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\PartyRow;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Application\View\Condition;
@@ -48,10 +45,7 @@ use Foresi\Work\Application\SectionTasks;
 use Foresi\Work\Application\StatusTasks;
 use Foresi\Work\Application\TaskFilter;
 use Foresi\Work\Application\TaskRow;
-use Foresi\Work\Application\TimeQueries;
-use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\TrashedTask;
-use Foresi\Work\Application\TrashedTime;
 use Foresi\Work\Application\View\ProjectLists;
 use Foresi\Work\Application\View\ProjectTaskLists;
 use Foresi\Work\Application\View\TaskConditions;
@@ -60,12 +54,13 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectColumns;
 use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
 use Foresi\Work\Infrastructure\Column\ProjectTaskColumns;
 use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
-use Foresi\Work\Infrastructure\Twig\TimeFunctions;
+use Foresi\Work\Infrastructure\Trash\ProjectTrashPage;
 use Foresi\Work\Infrastructure\View\ProjectTaskViews;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\InputBag;
@@ -111,16 +106,12 @@ final class ProjectController extends AbstractController
         private readonly WorkQueries $queries,
         private readonly ManageProjects $projects,
         private readonly ManageTasks $tasks,
-        private readonly PartyQuery $parties,
         private readonly People $people,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
-        private readonly TimeQueries $time,
-        private readonly OwnerCheck $owner,
         private readonly InlineTaskEdits $edits,
-        private readonly TimeFunctions $timeFormat,
         private readonly ProjectTaskViews $taskViews,
         private readonly ProjectTaskColumns $taskColumns,
         private readonly ListViews $listViews,
@@ -129,7 +120,9 @@ final class ProjectController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly ProjectPageSlots $pageSlots,
+        private readonly ProjectTrashPage $trashPage,
         private readonly CustomFieldForm $customFields,
+        private readonly ?ProjectClients $clients = null,
     ) {
     }
 
@@ -197,6 +190,11 @@ final class ProjectController extends AbstractController
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
+            // Without the address book a project has no client, whatever the form sends.
+            if (!$this->clients instanceof ProjectClients) {
+                $values['clientId'] = '';
+                $values['clientQuery'] = '';
+            }
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             }
@@ -220,26 +218,14 @@ final class ProjectController extends AbstractController
 
         return $this->render('@Work/projects/new.html.twig', [
             'values' => $values,
+            // The client field, only where the address book is installed.
+            'clientPicker' => $this->clients?->pickerUrl(),
             'errors' => $errors,
             'customValues' => $custom?->values,
             'customErrors' => $custom->errors ?? [],
+            // What other modules add to the form (ProjectSlots::NEW_FORM), such as Timesheet's billable box following the client.
+            'formItems' => $this->pageSlots->newForm(),
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
-    }
-
-    /**
-     * The contacts the client field offers: any contact of the address book.
-     */
-    #[Route('/projects/clients', name: 'app_project_clients', methods: ['GET'])]
-    public function clients(Request $request): JsonResponse
-    {
-        $this->denyUnlessStaff();
-        $page = $this->parties->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), null, false, 'name', 1);
-
-        return $this->json(['results' => array_map(fn (PartyRow $row): array => [
-            'id' => $row->id,
-            'label' => $row->displayName,
-            'hint' => $row->email ?? $row->registrationNumber ?? $this->translator->trans('party.kind.'.$row->kind->value),
-        ], $page->rows)]);
     }
 
     /**
@@ -303,10 +289,7 @@ final class ProjectController extends AbstractController
             ...$this->tabs($id, $views, $view->key, $bar['viewBar']['modified'], $text),
             'columns' => $working->display->table(),
             'picker' => $this->taskPicker($id, $working, $query),
-            'trashCount' => $this->queries->trashCount($id) + $this->time->trashCount($id),
-            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner sees the actions that bill time.
-            'timeBilling' => $this->owner->isOwner(),
+            'trashCount' => $this->trashPage->count($id),
         ]);
     }
 
@@ -367,9 +350,6 @@ final class ProjectController extends AbstractController
             'filtered' => '' !== $text || '' !== $query['responsible'] || '' !== $query['due'],
             'responsibles' => $this->responsibles(),
             'dues' => $this->dues(),
-            'timeLoggable' => $this->time->projectTarget($id) instanceof TimeTarget,
-            // Only an owner sees rates, so only an owner sees the actions that bill time.
-            'timeBilling' => $this->owner->isOwner(),
             'columns' => array_map(fn (StatusTasks $column): array => [
                 'id' => $column->id,
                 'name' => $column->name,
@@ -386,16 +366,16 @@ final class ProjectController extends AbstractController
     }
 
     /**
-     * The tasks and the time deleted from the project, the last first: the
-     * subtasks deleted with their task are restored with it, so only it is
-     * listed. Restoring is offered to whom may restore each one.
+     * The tasks deleted from the project, the last first, and what other
+     * modules keep of it in the trash: the subtasks deleted with their task are
+     * restored with it, so only it is listed. Restoring is offered to whom may
+     * restore each one.
      */
     #[Route('/projects/{id}/trash', name: self::TRASH_ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET'])]
     public function trash(string $id): Response
     {
         $this->denyUnlessStaff();
         $trash = $this->queries->trash($id) ?? throw new NotFoundHttpException();
-        $here = $this->generateUrl(self::TRASH_ROUTE, ['id' => $id]);
         $deletedBy = ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false];
         $deletedAt = ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')];
 
@@ -426,34 +406,8 @@ final class ProjectController extends AbstractController
                     'fields' => ['from' => 'trash', 'project' => $trash->project->id],
                 ]] : [],
             ], $trash->tasks),
-            'timeColumns' => [
-                ['key' => 'workedOn', 'label' => $this->translator->trans('work.time.trash.column.worked_on')],
-                ['key' => 'person', 'label' => $this->translator->trans('work.time.trash.column.person'), 'truncate' => true, 'phone' => false],
-                ['key' => 'duration', 'label' => $this->translator->trans('work.time.trash.column.duration'), 'align' => 'right'],
-                ['key' => 'task', 'label' => $this->translator->trans('work.time.trash.column.task'), 'truncate' => true, 'phone' => false],
-                $deletedBy,
-                $deletedAt,
-            ],
-            'timeRows' => array_map(fn (TrashedTime $time): array => [
-                'id' => $time->id,
-                'label' => $this->timeFormat->duration($time->minutes).' · '.$time->workedOn->format($this->translator->trans('format.date')),
-                'secondary' => $time->taskTitle,
-                'cells' => [
-                    'workedOn' => $time->workedOn->format($this->translator->trans('format.date')),
-                    'person' => $time->personName,
-                    'duration' => $this->timeFormat->duration($time->minutes),
-                    'task' => $time->taskTitle,
-                    'deletedBy' => $time->deletedByName,
-                    'deletedAt' => $time->deletedAt->format($this->translator->trans('format.datetime')),
-                ],
-                'actions' => $time->restorable ? [[
-                    'label' => $this->translator->trans('work.trash.restore'),
-                    'href' => $this->generateUrl('app_time_restore', ['id' => $time->id]),
-                    'method' => 'POST',
-                    'icon' => 'archive-restore',
-                    'fields' => ['return' => $here],
-                ]] : [],
-            ], $this->time->trash($id)),
+            // What other modules keep of the project in its trash, each a section after the tasks.
+            'trashSections' => $this->trashPage->sections($id),
         ]);
     }
 
@@ -930,11 +884,11 @@ final class ProjectController extends AbstractController
             // A project is a place to work in, not a record: it opens as a page (docs/design/overlays.md).
             'opens' => Opens::PAGE,
             'label' => $project->name,
-            'secondary' => $project->clientName,
+            'secondary' => $this->clients instanceof ProjectClients ? $project->clientName : null,
             'cells' => $working->display->cells(new ProjectIndexRow(
                 $project->name,
                 $project->clientName,
-                null === $project->clientId ? null : $this->generateUrl('app_contact_show', ['id' => $project->clientId]),
+                null === $project->clientId ? null : $this->clients?->pageUrl($project->clientId),
                 $project->openTasks,
                 $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
                 $project->id,
@@ -998,15 +952,20 @@ final class ProjectController extends AbstractController
 
     /**
      * The contacts a client condition picks from and names: any contact of the address
-     * book, as the client field of a project offers.
+     * book, as the client field of a project offers; none without the address book.
      *
      * @return array<string, array{url: string, name: \Closure(string): ?string}>
      */
     private function clientReferences(): array
     {
+        $clients = $this->clients;
+        if (!$clients instanceof ProjectClients) {
+            return [];
+        }
+
         return [ProjectLists::CONTACT => [
-            'url' => $this->generateUrl('app_project_clients'),
-            'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName(),
+            'url' => $clients->pickerUrl(),
+            'name' => $clients->name(...),
         ]];
     }
 

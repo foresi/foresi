@@ -258,7 +258,10 @@ export default class extends Controller {
         this.field('customer[registerEntry]').value = '';
         this.customerBoxTarget.classList.remove('hidden');
         this.summaryTarget.textContent = this.summaryOf(customer);
-        this.contactLinkTarget.href = this.contactUrlValue.replace(/[0-9a-f-]{36}/, customer.id);
+        // Without the address book there is no contact page to link the customer to.
+        if (this.hasContactLinkTarget) {
+            this.contactLinkTarget.href = this.contactUrlValue.replace(/[0-9a-f-]{36}/, customer.id);
+        }
 
         this.dueDaysValue = customer.dueDays;
         if (this.hasDueDateTarget && this.dueDateFollows && this.issueDateTarget.value !== '') {

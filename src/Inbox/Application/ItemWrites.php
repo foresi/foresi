@@ -34,8 +34,6 @@ use Foresi\Mail\Contract\MailMessageView;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\SenderCheck;
-use Foresi\Party\Contract\ContactCreation;
-use Foresi\Party\Contract\NewContact;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Shared\Contract\Event\DomainEventPayload;
@@ -74,13 +72,13 @@ final readonly class ItemWrites
         private EventRecorder $events,
         private InstanceClock $clock,
         private PartyDirectory $contacts,
-        private ContactCreation $creation,
         private SenderMatching $matching,
         private Messages $messages,
         private MessageRetention $retention,
         private LinkableRecords $records,
         private EmailActivity $emailActivity,
         private SuggestionStore $suggestions,
+        private ?InboxAddressBook $addressBook = null,
     ) {
     }
 
@@ -140,13 +138,16 @@ final readonly class ItemWrites
      * Creates the contact through the address book, whose refusals come
      * unchanged (a duplicate with the ids it matched), and matches the item to it.
      *
-     * @throws Refused the address book's refusal; InboxRefused not_found, forbidden
+     * @throws Refused the address book's refusal; InboxRefused not_found, forbidden, address_book_missing
      */
     public function createContact(CreateContactFromItemInput $input): InboxItem
     {
         return $this->transaction->run(function () use ($input): InboxItem {
             $item = $this->access->own($input->itemId);
-            $id = $this->creation->create(new NewContact(
+            if (!$this->addressBook instanceof InboxAddressBook) {
+                throw InboxRefused::addressBookMissing();
+            }
+            $id = $this->addressBook->create(
                 $input->kind,
                 $input->displayName,
                 $input->street,
@@ -157,7 +158,7 @@ final readonly class ItemWrites
                 $input->vatId,
                 $input->email ?? $this->senderOf($item),
                 $input->phone,
-            ));
+            );
             // A new contact is linked to no company yet.
             $item->match($id, null, MatchBasis::Manual);
             $this->emailActivity->linkContacts($item);

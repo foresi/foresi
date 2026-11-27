@@ -84,7 +84,7 @@ final class ManageWebhookEndpointsTest extends KernelTestCase
 
     public function testEndpointOfAModuleTheCallerCannotReadIsHidden(): void
     {
-        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.contact.archived'], 1)->endpoint->id();
+        $id = $this->manage->create('https://hooks.example.com/foresi', null, ['party.firm.vat_status_changed'], 1)->endpoint->id();
         $this->signIn($this->guest);
 
         self::assertSame([], $this->list->slice(null, 25)->endpoints);

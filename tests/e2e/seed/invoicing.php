@@ -7,17 +7,17 @@
 declare(strict_types=1);
 
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\MailEncryption;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -38,8 +38,11 @@ $createParty->createFrom($party(PartyKind::Company, 'Example Domestic a.s.', [Pa
 $createParty->createFrom($party(PartyKind::Company, 'Example Builder a.s.', [PartyRole::Customer], 'builder@example.com', 4, '00000019', 'CZ00000019'));
 $createParty->createFrom($party(PartyKind::Company, 'Example Euro a.s.', [PartyRole::Customer], 'euro@example.com', 5, '00000001', 'CZ00000001'));
 $createParty->createFrom($party(PartyKind::SoleTrader, 'Example Vendor', [PartyRole::Supplier], 'vendor@example.com', 6));
-$defaultsOf = static function (string $name, InvoicingDefaults $defaults) use ($entityManager): void {
-    $entityManager->getRepository(Party::class)->findOneBy(['displayName' => $name])?->changeInvoicingDefaults($defaults);
+$defaultsOf = static function (string $name, InvoicingDefaults $defaults) use ($entityManager, $partyInvoicingDefaults): void {
+    $party = $entityManager->getRepository(Party::class)->findOneBy(['displayName' => $name]);
+    if (null !== $party) {
+        $partyInvoicingDefaults->change($party->id(), $defaults);
+    }
 };
 $defaultsOf('Example Builder a.s.', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
 $defaultsOf('Example German GmbH', new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));

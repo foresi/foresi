@@ -13,9 +13,12 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * The baseline of Work: its 13 tables as the global migrations left
+ * The baseline of Work: its 12 tables as the global migrations left
  * them (ADR 0034). A database migrated before the module packages moves onto
- * it with app:migrations:rebase, which runs none of this.
+ * it with app:migrations:rebase, which runs none of this. The time logged on
+ * projects (time_entry) and the project's time settings were created here
+ * until they moved to Timesheet, whose migrations create them where they are
+ * missing; a database that ran this before keeps them.
  */
 final class Version20261120000000 extends AbstractMigration
 {
@@ -37,14 +40,12 @@ final class Version20261120000000 extends AbstractMigration
         $this->taskComment($schema);
         $this->taskLabel($schema);
         $this->taskWatcher($schema);
-        $this->timeEntry($schema);
         $this->workShare($schema);
     }
 
     public function down(Schema $schema): void
     {
         $schema->dropTable('work_share');
-        $schema->dropTable('time_entry');
         $schema->dropTable('task_watcher');
         $schema->dropTable('task_label');
         $schema->dropTable('task_comment');
@@ -143,9 +144,6 @@ final class Version20261120000000 extends AbstractMigration
         $table->addColumn('created_by', Types::GUID);
         $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
         $table->addColumn('visibility', Types::STRING, ['length' => 16, 'default' => 'organisation']);
-        $table->addColumn('billable_by_default', Types::BOOLEAN, ['default' => false]);
-        $table->addColumn('hourly_rate_minor', Types::BIGINT, ['notnull' => false]);
-        $table->addColumn('hourly_rate_currency', Types::STRING, ['length' => 3, 'fixed' => true, 'notnull' => false]);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['client_id'], 'idx_project_client');
         $table->addForeignKeyConstraint('party', ['client_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_project_client');
@@ -263,43 +261,6 @@ final class Version20261120000000 extends AbstractMigration
         $table->addUniqueIndex(['task_id', 'membership_id'], 'uniq_task_watcher');
         $table->addForeignKeyConstraint('membership', ['membership_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_task_watcher_membership');
         $table->addForeignKeyConstraint('task', ['task_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_task_watcher_task');
-    }
-
-    private function timeEntry(Schema $schema): void
-    {
-        $table = $schema->createTable('time_entry');
-        $table->addColumn('id', Types::GUID);
-        $table->addColumn('project_id', Types::GUID);
-        $table->addColumn('task_id', Types::GUID, ['notnull' => false]);
-        $table->addColumn('membership_id', Types::GUID);
-        $table->addColumn('worked_on', Types::DATE_IMMUTABLE);
-        $table->addColumn('minutes', Types::INTEGER, ['notnull' => false]);
-        $table->addColumn('started_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
-        $table->addColumn('ended_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
-        $table->addColumn('note', Types::TEXT);
-        $table->addColumn('billable', Types::BOOLEAN);
-        $table->addColumn('running_for', Types::GUID, ['notnull' => false]);
-        $table->addColumn('invoice_line_id', Types::GUID, ['notnull' => false]);
-        $table->addColumn('created_by', Types::GUID);
-        $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
-        $table->addColumn('invoice_id', Types::GUID, ['notnull' => false]);
-        $table->addColumn('invoiced_rate_minor', Types::BIGINT, ['notnull' => false]);
-        $table->addColumn('invoiced_rate_currency', Types::STRING, ['length' => 3, 'fixed' => true, 'notnull' => false]);
-        $table->addColumn('invoiced_minutes', Types::INTEGER, ['notnull' => false]);
-        $table->addColumn('deleted_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
-        $table->addColumn('deleted_by', Types::GUID, ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
-        $table->addIndex(['project_id'], 'idx_6e537c0c166d1f9c');
-        $table->addIndex(['membership_id'], 'idx_6e537c0c1fb354cd');
-        $table->addIndex(['project_id', 'deleted_at'], 'idx_time_entry_deleted');
-        $table->addIndex(['invoice_id'], 'idx_time_entry_invoice');
-        $table->addIndex(['membership_id', 'worked_on'], 'idx_time_entry_membership');
-        $table->addIndex(['project_id', 'worked_on'], 'idx_time_entry_project');
-        $table->addIndex(['task_id'], 'idx_time_entry_task');
-        $table->addUniqueIndex(['running_for'], 'uniq_time_entry_running');
-        $table->addForeignKeyConstraint('membership', ['membership_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_time_entry_membership');
-        $table->addForeignKeyConstraint('project', ['project_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_time_entry_project');
-        $table->addForeignKeyConstraint('task', ['task_id'], ['id'], ['onDelete' => 'RESTRICT'], 'fk_time_entry_task');
     }
 
     private function workShare(Schema $schema): void

@@ -197,10 +197,10 @@ final readonly class WorkScope
     }
 
     /**
-     * Whether time on the task, or on the project without a task, is seen: with
-     * the task, or where the whole project is open to the person.
+     * Whether what is recorded on the task, or on the project without a task,
+     * is seen: with the task, or where the whole project is open to the person.
      */
-    public function seesTime(Project $project, ?Task $task): bool
+    public function seesWorkOn(Project $project, ?Task $task): bool
     {
         return $task instanceof Task ? $this->seesTask($task) : $this->opens($project);
     }

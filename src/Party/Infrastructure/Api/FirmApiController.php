@@ -21,12 +21,14 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * The one firm of the instance (ADR 0039), read by a personal API token with the
- * contacts:read scope.
+ * firm:read scope.
  */
 #[AsController]
 final readonly class FirmApiController
 {
     public const string SHOW = 'api_v1_firm';
+    /** The scope of the firm, which Party declares. */
+    public const string READ_SCOPE = 'firm:read';
 
     public function __construct(private ScopeGuard $scope, private FirmDetails $firm)
     {
@@ -36,12 +38,12 @@ final readonly class FirmApiController
     #[OA\Tag(name: 'Contacts')]
     #[OA\Response(response: 200, description: 'The firm of the instance: the company that issues its documents and receives its payments.', content: new OA\JsonContent(properties: [new OA\Property(property: 'data', ref: '#/components/schemas/Firm')], type: 'object'))]
     #[OA\Response(response: 401, description: 'No valid token.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
-    #[OA\Response(response: 403, description: 'The token lacks the contacts:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
+    #[OA\Response(response: 403, description: 'The token lacks the firm:read scope, or its person is a guest.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 404, description: 'The instance has no firm yet: its first-run setup has not happened.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function show(): JsonResponse
     {
-        $this->scope->require(ContactApiController::READ_SCOPE);
+        $this->scope->require(self::READ_SCOPE);
         try {
             $firm = $this->firm->get();
         } catch (PartyNotAllowed $refused) {

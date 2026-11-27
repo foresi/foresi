@@ -15,6 +15,7 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Webhooks\Domain\EndpointUrl;
 use Foresi\Webhooks\Domain\EventTypes;
 use Foresi\Webhooks\Domain\WebhookEndpoint;
+use Foresi\Webhooks\WebhooksBundle;
 use Foresi\Work\Infrastructure\Mcp\GetTaskTool;
 use Foresi\Work\Infrastructure\Mcp\SearchProjectsTool;
 use Foresi\Work\Infrastructure\Mcp\SearchTasksTool;
@@ -63,7 +64,7 @@ final class WorkVisibilityApiTest extends WorkApiTestCase
         self::assertSame([], $this->ids());
         $this->get('/api/v1/tasks/'.$private);
         $this->assertProblem(404, 'not_found');
-        $this->assertRefused('not_found', 'No such project, section, status, task, label, comment or time entry, or not one the person sees.', GetTaskTool::class, ['task_id' => $private]);
+        $this->assertRefused('not_found', 'No such project, section, status, task, label or comment, or not one the person sees.', GetTaskTool::class, ['task_id' => $private]);
 
         // Nor can it be changed or commented on.
         $this->send('PATCH', '/api/v1/tasks/'.$private, ['title' => 'Mine now']);
@@ -101,6 +102,9 @@ final class WorkVisibilityApiTest extends WorkApiTestCase
 
     public function testAWebhookOfAMemberIsNotSentTheEventsOfTasksTheyDoNotSee(): void
     {
+        if (!class_exists(WebhooksBundle::class)) {
+            self::markTestSkipped('The webhooks module is not installed (it is no longer in the core).');
+        }
         $endpoint = $this->flushed(function (): string {
             $endpoint = WebhookEndpoint::create(Id::generate(), new EndpointUrl('https://hooks.example.com/work'), null, EventTypes::of(['work.*']), 1, 'sealed', $this->user->id(), new \DateTimeImmutable('2026-11-19 10:00:00'));
             $this->em()->persist($endpoint);

@@ -79,23 +79,23 @@ final class AmountsTest extends TaxesTestCase
                 $this->amount('invoicing.payments', 'b', AmountKind::Income, '2026-11-02', 605_000, 500_000),
                 $this->amount('invoicing.payments', 'c', AmountKind::Income, '2026-11-03', -121_000, -100_000),
             ]),
-            new FakeAmountSource('purchasing.payments', [
-                $this->amount('purchasing.payments', 'd', AmountKind::Cost, '2026-11-04', 242_000, 200_000),
+            new FakeAmountSource('received-documents.payments', [
+                $this->amount('received-documents.payments', 'd', AmountKind::Cost, '2026-11-04', 242_000, 200_000),
             ]),
         ])->year(2026);
 
         self::assertSame(['2026-01-01', '2026-11-20'], [$amounts->from->format('Y-m-d'), $amounts->to->format('Y-m-d')]);
         self::assertSame([
             ['2026-10', 'income', 'invoicing.payments', 1_210_000, 1_000_000, 210_000, 1_210_000],
-            ['2026-11', 'cost', 'purchasing.payments', 242_000, 200_000, 42_000, 242_000],
+            ['2026-11', 'cost', 'received-documents.payments', 242_000, 200_000, 42_000, 242_000],
             ['2026-11', 'income', 'invoicing.payments', 484_000, 400_000, 84_000, 484_000],
         ], array_map(static fn (AmountSum $sum): array => [$sum->month, $sum->kind->value, $sum->source, $sum->gross->minor(), $sum->net->minor(), $sum->vat->minor(), $sum->counted->minor()], $amounts->sums));
         self::assertSame([1_694_000, 1_400_000, 294_000, 1_694_000], $this->figures($amounts->totalOf(AmountKind::Income)));
         $sources = $this->amounts([
-            new FakeAmountSource('purchasing.payments', [$this->amount('purchasing.payments', 'x', AmountKind::Income, '2026-11-02', 100, 100)]),
+            new FakeAmountSource('received-documents.payments', [$this->amount('received-documents.payments', 'x', AmountKind::Income, '2026-11-02', 100, 100)]),
             new FakeAmountSource('invoicing.payments', [$this->amount('invoicing.payments', 'y', AmountKind::Income, '2026-11-02', 200, 200)]),
         ])->year(2026);
-        self::assertSame(['invoicing.payments', 'purchasing.payments'], array_map(static fn (AmountSum $sum): string => $sum->source, $sources->sums), 'Sources sort by key within a month and kind.');
+        self::assertSame(['invoicing.payments', 'received-documents.payments'], array_map(static fn (AmountSum $sum): string => $sum->source, $sources->sums), 'Sources sort by key within a month and kind.');
         self::assertSame([242_000, 200_000, 42_000, 242_000], $this->figures($amounts->totalOf(AmountKind::Cost)));
         self::assertCount(4, $amounts->lines);
         self::assertSame([], $amounts->unavailableSources);
@@ -111,7 +111,7 @@ final class AmountsTest extends TaxesTestCase
                 $this->amount('invoicing.payments', 'eur', AmountKind::Income, '2026-11-13', 100_000, 100_000, Currency::EUR),
                 $this->amount('invoicing.payments', 'later', AmountKind::Income, '2026-11-17', 12_100, 10_000, Currency::EUR),
             ]),
-            new FakeAmountSource('purchasing.payments', []),
+            new FakeAmountSource('received-documents.payments', []),
         ])->year(2026);
 
         // 1,000 EUR at 25.000 on 13 November, not at today's 26.000.
@@ -132,7 +132,7 @@ final class AmountsTest extends TaxesTestCase
                 $this->amount('invoicing.payments', 'usd2', AmountKind::Income, '2026-11-14', 100_000, 100_000, Currency::USD),
                 $this->amount('invoicing.payments', 'czk', AmountKind::Income, '2026-11-13', 50_000, 50_000),
             ]),
-            new FakeAmountSource('purchasing.payments', []),
+            new FakeAmountSource('received-documents.payments', []),
         ], $logger)->year(2026);
 
         self::assertSame(['USD'], $amounts->missingRates);
@@ -156,8 +156,8 @@ final class AmountsTest extends TaxesTestCase
                 $this->amount('other.payments', 'eur', AmountKind::Income, '2026-11-13', 0, 0, Currency::EUR),
                 $this->amount('other.payments', 'eur2', AmountKind::Income, '2026-11-13', 0, 0, Currency::EUR),
             ]),
-            new FakeAmountSource('purchasing.payments', [
-                $this->amount('purchasing.payments', 'cost', AmountKind::Cost, '2026-11-12', 121_000, 100_000),
+            new FakeAmountSource('received-documents.payments', [
+                $this->amount('received-documents.payments', 'cost', AmountKind::Cost, '2026-11-12', 121_000, 100_000),
             ]),
         ])->year(2026);
 
@@ -195,13 +195,13 @@ final class AmountsTest extends TaxesTestCase
         $amounts = $this->amounts([
             new FakeAmountSource('invoicing.payments', [$this->amount('invoicing.payments', 'hidden', AmountKind::Income, '2026-11-02', 121_000, 100_000)], details: false),
             new FakeAmountSource('invoicing.payments', [], details: false),
-            new FakeAmountSource('purchasing.payments', [$this->amount('purchasing.payments', 'shown', AmountKind::Cost, '2026-11-02', 1_000, 1_000)]),
+            new FakeAmountSource('received-documents.payments', [$this->amount('received-documents.payments', 'shown', AmountKind::Cost, '2026-11-02', 1_000, 1_000)]),
         ])->year(2026);
 
         self::assertSame(['invoicing.payments'], $amounts->restrictedSources);
         self::assertSame(['shown'], array_map(static fn (AmountLine $line): string => $line->amount->subject->id, $amounts->lines));
         self::assertSame(121_000, $amounts->totalOf(AmountKind::Income)->gross->minor(), 'It still counts in the sums.');
-        self::assertSame(['purchasing.payments', 'invoicing.payments'], array_map(static fn (AmountSum $sum): string => $sum->source, $amounts->sums), 'Costs sort before income within a month.');
+        self::assertSame(['received-documents.payments', 'invoicing.payments'], array_map(static fn (AmountSum $sum): string => $sum->source, $amounts->sums), 'Costs sort before income within a month.');
     }
 
     public function testModuleRunsWithoutInvoicingAndPurchasing(): void
@@ -209,7 +209,7 @@ final class AmountsTest extends TaxesTestCase
         // Without the modules no source is registered, and the sources expected are named.
         $amounts = $this->amounts([])->year(2026);
 
-        self::assertSame(['invoicing.payments', 'purchasing.payments'], $amounts->unavailableSources);
+        self::assertSame(['invoicing.payments', 'received-documents.payments'], $amounts->unavailableSources);
         self::assertSame([0, 0, 0, 0], $this->figures($amounts->totalOf(AmountKind::Income)));
         self::assertSame([0, 0, 0, 0], $this->figures($amounts->totalOf(AmountKind::Cost)));
         self::assertSame(Currency::CZK, $amounts->totalOf(AmountKind::Cost)->counted->currency());
@@ -221,7 +221,7 @@ final class AmountsTest extends TaxesTestCase
         $amounts = $this->amounts([
             new FakeAmountSource('invoicing.payments', [], fails: true),
             new FakeAmountSource('invoicing.payments', [], fails: true),
-            new FakeAmountSource('purchasing.payments', [$this->amount('purchasing.payments', 'cost', AmountKind::Cost, '2026-11-02', 1_000, 1_000)]),
+            new FakeAmountSource('received-documents.payments', [$this->amount('received-documents.payments', 'cost', AmountKind::Cost, '2026-11-02', 1_000, 1_000)]),
         ], $logger = new RecordingLogger())->year(2026);
 
         self::assertSame(['invoicing.payments'], $amounts->unavailableSources, 'A source is listed once.');

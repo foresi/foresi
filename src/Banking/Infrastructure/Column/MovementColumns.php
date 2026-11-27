@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Banking\Infrastructure\Column;
 
 use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Infrastructure\Controller\BankText;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\DataSource;
 use Foresi\Ui\Contract\Opens;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -29,7 +29,7 @@ final readonly class MovementColumns implements DataSource
     /** The context key: whether the firm has more than one account. */
     public const string ACCOUNT_COLUMN = 'accountColumn';
 
-    public function __construct(private BankText $text, private TranslatorInterface $translator, private UrlGeneratorInterface $urls)
+    public function __construct(private BankText $text, private TranslatorInterface $translator, private PaymentPairing $pairing)
     {
     }
 
@@ -83,6 +83,6 @@ final readonly class MovementColumns implements DataSource
             return $this->text->state($row->state, $row->reason);
         }
 
-        return ['links' => array_map(fn (string $invoiceId, string $number): array => ['text' => $number, 'href' => $this->urls->generate('app_invoice_show', ['id' => $invoiceId]), 'opens' => Opens::SHEET], array_keys($row->invoices), array_map(strval(...), array_values($row->invoices)))];
+        return ['links' => array_map(fn (string $documentId, string $number): array => ['text' => $number, 'href' => $this->pairing->documentUrl($documentId), 'opens' => Opens::SHEET], array_map(strval(...), array_keys($row->invoices)), array_map(strval(...), array_values($row->invoices)))];
     }
 }

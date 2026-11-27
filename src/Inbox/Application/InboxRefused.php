@@ -98,6 +98,14 @@ final class InboxRefused extends \DomainException implements Refused
     }
 
     /**
+     * A contact to create from a message while no address book is installed.
+     */
+    public static function addressBookMissing(): self
+    {
+        return self::conflict('address_book_missing', 'This Foresi has no address book, so no contact can be created from the inbox item.');
+    }
+
+    /**
      * A field of a suggestion, or of a step's input, that does not fit: named by
      * its path, such as suggestions.0.steps.1.input.projectId (input.project_id on the wire).
      */

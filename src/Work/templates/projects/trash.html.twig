@@ -2,7 +2,8 @@
 {#
     The trash of a project: the tasks deleted from it, the last first, each restored by its button.
     A subtask deleted with its task is not listed on its own; it comes back with the task.
-    Time deleted from the project has a section of its own, shown when there is some.
+    What other modules keep of the project in the trash (ProjectTrashSources), such as its time, has a
+    section of its own after the tasks, shown when there is some.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -14,8 +15,8 @@
 {% block content %}
     {{ include('@Work/_flashes.html.twig') }}
     <div class="grid grid-cols-1 gap-4" data-project-trash-page>
-        <p class="m-0 text-small text-muted" data-trash-purge>{{ 'work.time.trash.purge'|trans({days: days}) }}</p>
-        {% if timeRows is empty %}
+        <p class="m-0 text-small text-muted" data-trash-purge>{{ 'work.trash.purge'|trans({days: days}) }}</p>
+        {% if trashSections is empty %}
             <twig:Ui:DataTable :caption="'work.trash.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))">
                 <twig:block name="empty">
                     <twig:Ui:EmptyState icon="trash-2" :title="'work.trash.empty.title'|trans" :text="'work.trash.empty.text'|trans" />
@@ -24,14 +25,16 @@
         {% else %}
             {% if rows is not empty %}
                 <section class="grid grid-cols-1 gap-2" aria-labelledby="trash-tasks-title" data-trash-tasks>
-                    <h2 id="trash-tasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.time.trash.tasks'|trans }}</h2>
-                    <twig:Ui:DataTable :caption="'work.time.trash.tasks'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))" />
+                    <h2 id="trash-tasks-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.trash.tasks'|trans }}</h2>
+                    <twig:Ui:DataTable :caption="'work.trash.tasks'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TRASH_TOKEN'))" />
                 </section>
             {% endif %}
-            <section class="grid grid-cols-1 gap-2" aria-labelledby="trash-time-title" data-trash-time>
-                <h2 id="trash-time-title" class="m-0 text-heading font-semibold text-ink">{{ 'work.time.trash.section'|trans }}</h2>
-                <twig:Ui:DataTable :caption="'work.time.trash.section'|trans" :columns="timeColumns" :rows="timeRows" :actionToken="csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN'))" />
-            </section>
+            {% for section in trashSections %}
+                <section class="grid grid-cols-1 gap-2" aria-labelledby="trash-{{ section.key }}-title" data-trash-{{ section.key }}>
+                    <h2 id="trash-{{ section.key }}-title" class="m-0 text-heading font-semibold text-ink">{{ section.title }}</h2>
+                    <twig:Ui:DataTable :caption="section.title" :columns="section.columns" :rows="section.rows" :actionToken="csrf_token(section.tokenId)" />
+                </section>
+            {% endfor %}
         {% endif %}
     </div>
 {% endblock %}

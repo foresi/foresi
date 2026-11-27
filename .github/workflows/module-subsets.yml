@@ -145,6 +145,30 @@ jobs:
           bin/console doctrine:schema:validate
           bin/console app:migrations:owners
 
+      # A module that needs only the core installs no Ui (ADR 0038): the application has no
+      # sign-in page, and answers the REST API and MCP with a token issued from the console.
+      # The built-in server reads the environment of the job (variables_order), so it runs in
+      # the test environment like the commands.
+      - name: The core without Ui
+        run: |
+          if [ -d src/Ui ]; then
+            echo "Ui is installed, so this is not the core alone."
+            exit 0
+          fi
+          if bin/console router:match /login > /dev/null; then
+            echo "The core without Ui has a sign-in page."
+            exit 1
+          fi
+          password=$(php -r 'echo bin2hex(random_bytes(16));')
+          printf 'Core Check\n%s\n%s\n' "${password}" "${password}" | bin/console app:user:create core@example.com owner
+          token=$(bin/console app:api-token:issue core@example.com --name 'Core check' --scope read | grep -o 'foresi_pat_[A-Za-z0-9_-]*')
+          php -d variables_order=EGPCS -S 127.0.0.1:8000 -t public > server.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8000/api/v1/openapi.json && break; sleep 1; done
+          curl -sf -o /dev/null -H "Authorization: Bearer ${token}" http://127.0.0.1:8000/api/v1/me || { cat server.log; exit 1; }
+          curl -sf -H "Authorization: Bearer ${token}" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"core-check","version":"1"}}}' \
+            http://127.0.0.1:8000/mcp | grep -F '"serverInfo"' || { cat server.log; exit 1; }
+
       # The tests build their own schema with the schema tool, which cannot drop the
       # foreign keys the migrations named, so they start from an empty database. ParaTest
       # runs one process per CPU, each in a database of its own (tests/bootstrap.php).

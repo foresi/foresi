@@ -17,6 +17,7 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Party\Domain\VatStatusPeriod;
 use Foresi\Shared\Application\ActorRole;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**

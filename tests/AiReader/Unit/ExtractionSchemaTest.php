@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\AiReader\Unit;
 
 use Foresi\AiReader\Application\ExtractionSchema;
-use Foresi\Purchasing\Domain\ReceivedDocumentKind;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentKind;
 use PHPUnit\Framework\TestCase;
 
 final class ExtractionSchemaTest extends TestCase

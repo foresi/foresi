@@ -269,7 +269,7 @@ final class CashFlowApiTest extends ApiTestCase
 
     public function testATokenWithoutTheCashFlowScopeReadsNothing(): void
     {
-        $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('firm:read')]));
 
         $this->assertProblem(403, 'insufficient_scope');
     }

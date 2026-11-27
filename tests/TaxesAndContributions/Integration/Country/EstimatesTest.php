@@ -68,7 +68,7 @@ final class EstimatesTest extends TaxesTestCase
         $forecast = new FakeForecastSource([$this->expected('a', '2026-12-15', 605_000)]);
         $invoices = new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-11-10', 605_000, 500_000)], shares: ['a' => new VatShare(1_000_000, 1_210_000)]);
 
-        $estimate = $this->estimates([$invoices, new FakeAmountSource('purchasing.payments', [])], [$forecast])->of(2026);
+        $estimate = $this->estimates([$invoices, new FakeAmountSource('received-documents.payments', [])], [$forecast])->of(2026);
 
         self::assertInstanceOf(RegimeResult::class, $estimate->toDate);
         self::assertInstanceOf(RegimeResult::class, $estimate->yearEnd);
@@ -145,7 +145,7 @@ final class EstimatesTest extends TaxesTestCase
 
     public function testWithoutCashFlowYearEndIsNullWithReason(): void
     {
-        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('purchasing.payments', [])])->of(2026);
+        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('received-documents.payments', [])])->of(2026);
 
         self::assertInstanceOf(RegimeResult::class, $estimate->toDate);
         self::assertNull($estimate->yearEnd);
@@ -251,10 +251,10 @@ final class EstimatesTest extends TaxesTestCase
     {
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $amounts = [$this->amount('a', '2026-01-10', 100_000, 100_000), $this->amount('b', '2026-03-10', 31_000_000, 31_000_000)];
-        $costs = [new ActualAmount('purchasing.payments', new Subject('received_document', 'd', null), AmountKind::Cost, new \DateTimeImmutable('2026-03-12', new \DateTimeZone('Europe/Prague')), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(0, Currency::CZK), null, false)];
+        $costs = [new ActualAmount('received-documents.payments', new Subject('received_document', 'd', null), AmountKind::Cost, new \DateTimeImmutable('2026-03-12', new \DateTimeZone('Europe/Prague')), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(1_000_000, Currency::CZK), Money::ofMinor(0, Currency::CZK), null, false)];
         $forecast = new FakeForecastSource([$this->expected('c', '2026-12-15', 60_000_000, ForecastCertainty::Plan)]);
 
-        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', $amounts), new FakeAmountSource('purchasing.payments', $costs)], [$forecast])->of(2026);
+        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', $amounts), new FakeAmountSource('received-documents.payments', $costs)], [$forecast])->of(2026);
 
         self::assertInstanceOf(RegimeResult::class, $estimate->yearEnd);
         self::assertSame(['actual', 'lump_60'], array_keys($estimate->accruals));
@@ -322,7 +322,7 @@ final class EstimatesTest extends TaxesTestCase
                 $this->amount('a', '2026-11-11', 1_210_000, 1_000_000),
                 $this->amount('b', '2026-11-12', 1_210_000, 1_000_000),
             ]),
-            new FakeAmountSource('purchasing.payments', []),
+            new FakeAmountSource('received-documents.payments', []),
         ])->of(2026);
 
         self::assertInstanceOf(RegimeResult::class, $estimate->toDate);
@@ -342,7 +342,7 @@ final class EstimatesTest extends TaxesTestCase
 
         self::assertContains(EstimateView::WARNING_SOURCES_UNAVAILABLE, $estimate->warnings);
         self::assertNotNull($estimate->amounts);
-        self::assertSame(['invoicing.payments', 'purchasing.payments'], $estimate->amounts->unavailableSources);
+        self::assertSame(['invoicing.payments', 'received-documents.payments'], $estimate->amounts->unavailableSources);
         self::assertContains(CzechSoleTrader::WARNING_ACTIVITY_ASSUMED_MAIN, $estimate->warnings);
     }
 
@@ -383,7 +383,7 @@ final class EstimatesTest extends TaxesTestCase
         $this->writes()->addStatus(new AddStatusInput('activity', 'secondary', '2026-01-01'));
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-06-01'));
 
-        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('purchasing.payments', [])])->of(2026);
+        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('received-documents.payments', [])])->of(2026);
 
         self::assertSame(['insurance_profit_definition', 'mixed_year'], $estimate->unverified);
         self::assertSame(['non_deductible_costs', 'assets', 'assets_and_depreciation', 'loss_carry_forward', 'starter_relief'], $estimate->knownGaps);
@@ -395,7 +395,7 @@ final class EstimatesTest extends TaxesTestCase
         $this->writes()->addStatus(new AddStatusInput('activity', 'main', '2026-01-01'));
         $this->writes()->setAuthority(new SetAuthorityAccountInput('social', '123/0100', '42'));
         $this->writes()->setYear(new SetYearInputsInput('2026', ['actual'], 'actual'));
-        $income = [new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-05-10', 90_000_000, 90_000_000)]), new FakeAmountSource('purchasing.payments', [])];
+        $income = [new FakeAmountSource('invoicing.payments', [$this->amount('a', '2026-05-10', 90_000_000, 90_000_000)]), new FakeAmountSource('received-documents.payments', [])];
         $settlement = $this->payment($this->estimatesWith($income, [])->of(2026), 'social.settlement.2026');
         $bank = new FakeLevyPayments([
             new LevyPayment(Authority::Social, 'jan', new \DateTimeImmutable('2027-01-29', new \DateTimeZone('Europe/Prague')), Money::ofMinor(100, Currency::CZK)),
@@ -421,7 +421,7 @@ final class EstimatesTest extends TaxesTestCase
         $this->writes()->setAuthority(new SetAuthorityAccountInput('social', '123/0100', '42'));
         $this->writes()->setAuthority(new SetAuthorityAccountInput('health', '456/0300', '42'));
 
-        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('purchasing.payments', [])])->of(2026);
+        $estimate = $this->estimates([new FakeAmountSource('invoicing.payments', []), new FakeAmountSource('received-documents.payments', [])])->of(2026);
 
         self::assertNotSame([], $estimate->payments);
         self::assertSame([], $estimate->warnings);

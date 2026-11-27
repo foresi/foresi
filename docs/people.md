@@ -8,7 +8,7 @@ Every person has one role in an organisation (see [ADR 0025](adr/0025-roles-owne
 
 - **Owner**: everything a team member can do, plus the firms, the import and the people of the organisation.
 - **Team member**: the staff. Sees the modules of the organisation and the list of its people. A team member may be linked to their own contact.
-- **Guest**: someone the organisation shares work with, such as a client, a supplier or a subcontractor. What they are comes from the contact they represent, which a guest must always have. They see only what is shared with them, never the people screen or any module.
+- **Guest**: someone the organisation shares work with, such as a client, a supplier or a subcontractor. What a guest sees comes from what is shared with them, never from a contact: they see only that, never the people screen or any module. With the address book (the Contacts module) installed, the owner may link the contact a guest represents; it is never required ([ADR 0049](adr/0049-optional-guest-contact.md)).
 
 A person may belong to several organisations, with a different role in each.
 
@@ -62,7 +62,7 @@ Before the two-factor enrolment, a new API token and a change of the sign-in e-m
 
 ## Invitations
 
-The owner clicks **Invite** and enters the e-mail address, the name, the role (team member or guest), the language of the e-mail and, for a guest, the contact they represent. A team member may be linked to their own contact too.
+The owner clicks **Invite** and enters the e-mail address, the name, the role (team member or guest) and the language of the e-mail. With the address book installed the form also offers the contact the person represents, for a guest or a team member alike; it may stay empty.
 
 - The invitation is sent by the installation's system mail (`SYSTEM_MAILER_DSN`, `SYSTEM_MAIL_FROM`; see [operations](operations.md)). Without system mail the owner sees the link instead, to pass on themselves.
 - The link works **once** and for **seven days**. Only a SHA-256 hash of its token is stored, so the link cannot be read back from the database.
@@ -78,9 +78,9 @@ Following the link:
 
 ## Managing people
 
-The owner sees, for each person, their role, the linked contact, whether two-factor sign-in is on and whether they are active, and can:
+The owner sees, for each person, their role, the linked contact (a column shown only with the address book), whether two-factor sign-in is on and whether they are active, and can:
 
-- **Edit**: change the role, the linked contact and the hourly rate. A guest needs a contact; clearing the contact unlinks it. The rate, an amount and its currency, is what the person's time is billed at when neither the project nor its client has one; only owners see it (see [projects](projects.md)).
+- **Edit**: change the role, the linked contact and the hourly rate. The contact is optional for every role; clearing the field unlinks it. Without the address book the form has no contact field, and saving it keeps the contact a person already has. The rate, an amount and its currency, is what the person's time is billed at when neither the project nor its client has one; only owners see it (see [projects](projects.md)).
 - **Deactivate**: the person can no longer sign in to this organisation. The membership and everything they did stay, and **Reactivate** lets them in again. Nobody deactivates themselves.
 - **Reset two-factor sign-in**: the person sets it up again on the next sign-in and trusted browsers are forgotten. This is offered only for someone who belongs to this organisation alone; for anyone else the operator runs `bin/console app:user:reset-2fa <email>`, so the owner of one organisation never weakens the sign-in to another.
 
@@ -109,14 +109,14 @@ interface PartyDirectory
 }
 ```
 
-- `PartySummary` has the `id`, the `kind` (`Foresi\Party\Contract\Event\ContactKind`: person, sole trader or company), the `displayName`, the `registrationNumber` and the `vatId` (null when the contact has none), the `addressLines` of the billing address (else the first address; street, postal code and city, country code), the general `email`, the `phone` (else the mobile), the `roles` (`customer`, `supplier`, `partner`, `authority`) and `archived`.
+- `PartySummary` has the `id`, the `kind` (`Foresi\Party\Contract\ContactKind`: person, sole trader or company), the `displayName`, the `registrationNumber` and the `vatId` (null when the contact has none), the `addressLines` of the billing address (else the first address; street, postal code and city, country code), the general `email`, the `phone` (else the mobile), the `roles` (`customer`, `supplier`, `partner`, `authority`) and `archived`.
 - `PartyPersonSummary` has the person's `id`, `displayName`, `email` and `phone`, and the `position` the link to the company gives (null when it gives none).
 - `personsOf()` of a person, or of an unknown id, is an empty list.
 - It reads as the person signed in: only the owners and members of the organisation read contacts, and a guest is refused, as on the address book's screens, API and MCP tools.
 
 ### Adding a contact person
 
-`Foresi\Party\Contract\ContactPersonWrites` adds a contact person to a company or sole trader for modules such as Sales (a person added to the client from the deal's dialog), the same two ways as the contact's own dialog:
+`Foresi\Contacts\Contract\ContactPersonWrites` adds a contact person to a company or sole trader for modules such as Sales (a person added to the client from the deal's dialog), the same two ways as the contact's own dialog:
 
 ```php
 interface ContactPersonWrites
@@ -138,13 +138,13 @@ interface ContactPersonWrites
 
 ### Finding and creating contacts for incoming mail
 
-`Foresi\Party\Contract\ContactsByEmail` matches an e-mail address to the address book for a module that receives mail (Inbox): `byAddress()` returns the contacts that have the address among their e-mails (compared without regard to case), `byDomain()` the companies and sole traders, never persons, with an e-mail of exactly that domain (`sub.example.com` is not `example.com`), and `companiesOfPerson()` the companies a person is linked to, in the order linked, archived ones flagged. Archived contacts are left out of the first two. Unlike `PartyDirectory` it does not read as the person signed in, as mail arrives with nobody signed in; it returns summaries only, and the caller restricts what it shows to whom.
+`Foresi\Contacts\Contract\ContactsByEmail` matches an e-mail address to the address book for a module that receives mail (Inbox): `byAddress()` returns the contacts that have the address among their e-mails (compared without regard to case), `byDomain()` the companies and sole traders, never persons, with an e-mail of exactly that domain (`sub.example.com` is not `example.com`), and `companiesOfPerson()` the companies a person is linked to, in the order linked, archived ones flagged. Archived contacts are left out of the first two. Unlike `PartyDirectory` it does not read as the person signed in, as mail arrives with nobody signed in; it returns summaries only, and the caller restricts what it shows to whom.
 
-`Foresi\Party\Contract\ContactCreation::create(NewContact)` creates a contact for such a module (a person, sole trader or company with its billing address, and an optional registration number, VAT id, e-mail and phone) through the address book's own create, so the same rules, staff check, audit, events and duplicate refusal apply. The address book's refusal reaches the caller unchanged: a missing street is `required` on `street`, a registration number or VAT id the organisation has already is `duplicate` with `existing_ids` in its details.
+`Foresi\Contacts\Contract\ContactCreation::create(NewContact)` creates a contact for such a module (a person, sole trader or company with its billing address, and an optional registration number, VAT id, e-mail and phone) through the address book's own create, so the same rules, staff check, audit, events and duplicate refusal apply. The address book's refusal reaches the caller unchanged: a missing street is `required` on `street`, a registration number or VAT id the organisation has already is `duplicate` with `existing_ids` in its details.
 
 ### Adding a tab to a contact
 
-A module that keeps something of a contact, such as its deals, adds a tab after the contact's own five (Overview, Contact persons, Addresses, Bank accounts, History). It implements `Foresi\Ui\Contract\Slot\SlotProvider` and answers the slot `Foresi\Party\Contract\ContactTabs::SLOT` (`party.contact_tabs`), whose context holds `contactId`, with a `SlotItem` whose data holds:
+A module that keeps something of a contact, such as its deals, adds a tab after the contact's own five (Overview, Contact persons, Addresses, Bank accounts, History). It implements `Foresi\Ui\Contract\Slot\SlotProvider` and answers the slot `Foresi\Contacts\Contract\ContactTabs::SLOT` (`party.contact_tabs`), whose context holds `contactId`, with a `SlotItem` whose data holds:
 
 - `key`: the tab's key; the tab opens at `/contacts/<id>?tab=<key>`. A key the address book uses itself is ignored.
 - `label`: the tab's name, already translated.

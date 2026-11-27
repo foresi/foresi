@@ -33,6 +33,6 @@ final class FakeForecastReader implements ForecastReader
     {
         $this->queries[] = $query;
 
-        return new ForecastRead($this->flows, ['purchasing.received_documents'], ['invoicing.invoices'], true);
+        return new ForecastRead($this->flows, ['received-documents.received_documents'], ['invoicing.invoices'], true);
     }
 }

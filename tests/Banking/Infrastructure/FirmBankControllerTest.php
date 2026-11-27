@@ -239,6 +239,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testPairingSwitchesAreStored(): void
     {
+        $this->needsPairing();
         $this->signedInFirm();
         $crawler = $this->client->request('GET', $this->url('pairing'));
         $form = $crawler->filter('#bank-pairing')->form();
@@ -258,6 +259,7 @@ final class FirmBankControllerTest extends WebTestCase
 
     public function testDefaultsAreOnAndOffWithoutARow(): void
     {
+        $this->needsPairing();
         $this->signedInFirm();
 
         $crawler = $this->client->request('GET', $this->url('pairing'));
@@ -266,6 +268,26 @@ final class FirmBankControllerTest extends WebTestCase
         self::assertNull($crawler->filter('#smallDifference')->attr('checked'));
         self::assertStringContainsString('Settles a difference up to 0.99 Kč onto the invoice total', $crawler->filter('#smallDifference-help')->text());
         self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_pairing')));
+    }
+
+    public function testTheSwitchesOfPairingShowOnlyWhenAModulePairsMovements(): void
+    {
+        $pairs = $this->pairs();
+        $this->signedInFirm();
+
+        $crawler = $this->client->request('GET', $this->url('pairing'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount($pairs ? 1 : 0, $crawler->filter('#bank-pairing'));
+        self::assertSame($pairs ? 'Payment pairing' : 'Bank e-mail', trim($crawler->filter('nav[aria-label="Bank settings sections"] a[aria-current="page"]')->text()));
+        // The addresses for bank e-mail are there either way: statements come in without pairing too.
+        self::assertStringContainsString('Addresses for bank e-mail', $crawler->filter('main')->text());
+
+        if (!$pairs) {
+            $this->client->request('POST', '/settings/firm/bank/pairing', ['autoPairing' => '1']);
+            self::assertResponseStatusCodeSame(404);
+            self::assertSame(0, Scalars::int($this->connection()->fetchOne('SELECT COUNT(*) FROM firm_bank_pairing')));
+        }
     }
 
     public function testWithoutAnAddressTemplateGeneratingIsRefused(): void
@@ -349,6 +371,21 @@ final class FirmBankControllerTest extends WebTestCase
         $_SERVER[$name] = $_ENV[$name] = $value;
         self::ensureKernelShutdown();
         $this->boot();
+    }
+
+    /**
+     * Whether a module pays documents from movements (Invoicing): only then are there switches of pairing.
+     */
+    private function pairs(): bool
+    {
+        return \in_array(\Foresi\Invoicing\InvoicingBundle::class, self::getContainer()->getParameter('kernel.bundles'), true);
+    }
+
+    private function needsPairing(): void
+    {
+        if (!$this->pairs()) {
+            self::markTestSkipped('No module pays documents from movements, so there are no switches of pairing.');
+        }
     }
 
     private function signedInFirm(): void

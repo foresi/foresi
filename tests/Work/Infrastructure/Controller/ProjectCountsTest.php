@@ -131,7 +131,7 @@ final class ProjectCountsTest extends WebTestCase
         self::assertSame(['Mobile app', 'Website'], $this->names($this->filtered(new Condition('open_tasks', 'ge', 1), new Condition('unassigned_tasks', 'lt', 3))));
         self::assertSame(['Empty'], $this->names($this->filtered(new Condition('next_due', 'is_empty'))));
         self::assertSame(['Mobile app'], $this->names($this->filtered(new Condition('next_due', 'after', new \DateTimeImmutable()->format('Y-m-d')))));
-        self::assertSame(['Website'], $this->names($this->filtered(new Condition('unassigned_tasks', 'between', ['from' => 2, 'to' => 2]), new Condition('billable', 'is', true))));
+        self::assertSame(['Website'], $this->names($this->filtered(new Condition('unassigned_tasks', 'between', ['from' => 2, 'to' => 2]), new Condition('visibility', 'is', 'organisation'))));
     }
 
     public function testAMemberCountsOnlyTheTasksTheySee(): void
@@ -153,7 +153,7 @@ final class ProjectCountsTest extends WebTestCase
     }
 
     /**
-     * Website (billable): Brief unassigned and due yesterday, Wireframes mine and due today
+     * Website: Brief unassigned and due yesterday, Wireframes mine and due today
      * with its subtask Logo unassigned, Launch done and due in a day, Old draft in the trash
      * and overdue. Mobile app: Spec mine and due in 5 days (and the private Secret, unassigned
      * and overdue, when asked). Empty has no task; Archive is archived with one unassigned task.
@@ -185,7 +185,6 @@ final class ProjectCountsTest extends WebTestCase
             return $task;
         };
         [$website, [$open, $active, $done]] = $project('Website');
-        $website->billTimeByDefault(true);
         $task($website, $open, 'Brief', '-1 day');
         $wireframes = $task($website, $active, 'Wireframes', 'today', $me);
         $task($website, $open, 'Logo', null, null, $wireframes);

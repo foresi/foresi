@@ -12,13 +12,13 @@ use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
 use Foresi\AiReader\Application\ExtractionSchema;
 use Foresi\AiReader\Application\Iso4217;
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\FallbackReader;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
-use Foresi\Purchasing\Contract\Reading\ReadField;
-use Foresi\Purchasing\Contract\Reading\ReadFormat;
-use Foresi\Purchasing\Contract\Reading\Reading;
-use Foresi\Purchasing\Contract\Reading\ReadValue;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\FallbackReader;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Contract\Reading\ReadField;
+use Foresi\ReceivedDocuments\Contract\Reading\ReadFormat;
+use Foresi\ReceivedDocuments\Contract\Reading\Reading;
+use Foresi\ReceivedDocuments\Contract\Reading\ReadValue;
 use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
 
 /**

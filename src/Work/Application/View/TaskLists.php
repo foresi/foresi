@@ -17,6 +17,7 @@ use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Work\Application\DueBucket;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\StatusType;
 
@@ -39,6 +40,9 @@ use Foresi\Work\Domain\StatusType;
  *
  * What a view groups by and how it sorts are kept with it; a shipped view that keeps
  * neither shows its own (groupOf, sortOf): Mine by when it is due, the rest ungrouped.
+ *
+ * The client is a field and a grouping only where the address book is installed
+ * (ProjectClients); without it a project has no client.
  */
 final class TaskLists implements ListDefinitionSource
 {
@@ -103,7 +107,7 @@ final class TaskLists implements ListDefinitionSource
     /** @var array<string, ListDefinition> by the audience of the fields (ListFields::audience()) */
     private array $list = [];
 
-    public function __construct(private readonly ListFields $fields)
+    public function __construct(private readonly ListFields $fields, private readonly ?ProjectClients $clients = null)
     {
     }
 
@@ -114,29 +118,41 @@ final class TaskLists implements ListDefinitionSource
 
     public function list(): ListDefinition
     {
-        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, self::ownFields()), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
+        return $this->list[$this->fields->audience()] ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, self::ownFields($this->hasClients())), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
     }
 
     /**
      * The list's definition without the fields other modules add: what code that knows no
      * ListFields reads, such as a test.
+     *
+     * @param bool $clients whether the address book is installed, so a project has a client
      */
-    public static function plain(): ListDefinition
+    public static function plain(bool $clients = true): ListDefinition
     {
-        return new ListDefinition(self::KEY, self::ownFields(), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
+        return new ListDefinition(self::KEY, self::ownFields($clients), self::defaults(), [self::PROJECT, self::RESPONSIBLE, self::PRIORITY, self::DUE]);
+    }
+
+    /**
+     * Whether a project has a client: where the address book is installed.
+     */
+    public function hasClients(): bool
+    {
+        return $this->clients instanceof ProjectClients;
     }
 
     /**
      * What a view groups by when it keeps nothing of its own: Mine by when its tasks are due,
-     * as My tasks did, every other view not at all.
+     * as My tasks did, every other view not at all. The client is no grouping without the
+     * address book.
      *
      * @return list<string> the groupings, the view's own first, as WorkingDisplay takes them
      */
-    public static function groupsOf(?string $slug): array
+    public static function groupsOf(?string $slug, bool $clients = true): array
     {
         $first = self::MINE === $slug ? self::GROUP_DUE : self::GROUP_NONE;
+        $groups = $clients ? self::GROUPS : array_diff(self::GROUPS, [self::GROUP_CLIENT]);
 
-        return [$first, ...array_values(array_diff(self::GROUPS, [$first]))];
+        return [$first, ...array_values(array_diff($groups, [$first]))];
     }
 
     /**
@@ -163,7 +179,7 @@ final class TaskLists implements ListDefinitionSource
     /**
      * @return list<Field>
      */
-    private static function ownFields(): array
+    private static function ownFields(bool $clients): array
     {
         $person = static fn (string $key, string $label): Field => new Field($key, FieldType::Reference, $label, source: self::SOURCE_PERSON);
         $priorities = array_column(Priority::cases(), 'value');
@@ -173,7 +189,7 @@ final class TaskLists implements ListDefinitionSource
         return [
             new Field(self::TITLE, FieldType::Text, 'work.task.field.title'),
             new Field(self::PROJECT, FieldType::Reference, 'work.task.field.project', source: self::SOURCE_PROJECT),
-            new Field(self::CLIENT, FieldType::Reference, 'work.tasks.field.client', source: self::SOURCE_CONTACT),
+            ...$clients ? [new Field(self::CLIENT, FieldType::Reference, 'work.tasks.field.client', source: self::SOURCE_CONTACT)] : [],
             $person(self::RESPONSIBLE, 'work.filter.responsible'),
             new Field(self::INVOLVEMENT, FieldType::Enum, 'work.my_tasks.involvement', options: [MyTaskLists::RESPONSIBLE, MyTaskLists::WATCHER], optionLabels: [
                 MyTaskLists::RESPONSIBLE => 'work.my_tasks.involvement_option.'.MyTaskLists::RESPONSIBLE,

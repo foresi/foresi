@@ -14,7 +14,6 @@ use Foresi\Shared\Application\View\DefaultView;
 use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
-use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
 
@@ -27,9 +26,12 @@ use Foresi\Shared\Application\View\ViewFilter;
  * views kept before the roles were a set.
  *
  * The list leaves out the archived contacts unless a condition asks for them: All
- * holds no condition, as every list's All, and still shows no archived contact.
+ * holds no condition, as every list's All, and still shows no archived contact. *
+ * Its fields come from the address book's data source, so the list exists only
+ * with the contacts module, which registers it (Contacts' AddressBookLists);
+ * Party's query compiles the list's views against it.
  */
-final class ContactLists implements ListDefinitionSource
+final class ContactLists
 {
     public const string KEY = 'party.contacts';
     public const string ARCHIVED = 'archived';
@@ -41,11 +43,6 @@ final class ContactLists implements ListDefinitionSource
 
     public function __construct(private readonly ListFields $fields)
     {
-    }
-
-    public function lists(): iterable
-    {
-        yield $this->list();
     }
 
     public function list(): ListDefinition

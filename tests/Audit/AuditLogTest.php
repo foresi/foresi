@@ -22,15 +22,14 @@ use Foresi\Identity\Infrastructure\Security\ApiFirewalls;
 use Foresi\Identity\Infrastructure\Security\SecurityApiTokenContext;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Party\Domain\AddressType;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -76,7 +75,6 @@ final class AuditLogTest extends KernelTestCase
         self::assertSame([null, 'Example Company'], $changes['displayName']);
         self::assertSame([null, 'company'], $changes['kind']);
         self::assertSame([null, 'CZ12345695'], $changes['vatId']);
-        self::assertSame([null, 14], $changes['invoicingDefaults.dueDays']);
         self::assertSame([null, ['customer']], $changes['roles']);
         self::assertArrayNotHasKey('id', $changes);
     }
@@ -99,17 +97,24 @@ final class AuditLogTest extends KernelTestCase
     public function testEmbeddedAndEnumChangesAreScalars(): void
     {
         $party = $this->party();
+        $address = new PartyAddress($party, AddressType::Billing, new Address('Example Street 1', 'Example City', '100 00', 'CZ'));
         $this->em->persist($party);
+        $this->em->persist($address);
         $this->em->flush();
 
-        $this->setProperty($party, 'invoicingDefaults', new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        $this->setProperty($address, 'address', new Address('Example Street 1', 'Other City', '100 00', 'CZ'));
         $this->setProperty($party, 'kind', PartyKind::Person);
         $this->setProperty($party, 'vatId', null);
         $this->em->flush();
 
-        $changes = $this->entries(AuditAction::Updated)[0]->changes();
-        ksort($changes);
-        self::assertSame(['invoicingDefaults.dueDays' => [14, 30], 'kind' => ['company', 'person'], 'vatId' => ['CZ12345695', null]], $changes);
+        $changes = [];
+        foreach ($this->entries(AuditAction::Updated) as $entry) {
+            $changes[$entry->entityClass()] = $entry->changes();
+        }
+        $partyChanges = $changes[Party::class];
+        ksort($partyChanges);
+        self::assertSame(['kind' => ['company', 'person'], 'vatId' => ['CZ12345695', null]], $partyChanges);
+        self::assertSame(['address.city' => ['Example City', 'Other City']], $changes[PartyAddress::class]);
     }
 
     public function testFlushWithoutChangesWritesNothing(): void
@@ -326,13 +331,20 @@ final class AuditLogTest extends KernelTestCase
     }
 
     /**
+     * The entries of the records these tests write. Invoicing, where it is installed, keeps a
+     * contact's invoicing defaults in a row of its own made with the party; its entries are not
+     * what these tests are about.
+     *
      * @return list<AuditEntry>
      */
     private function entries(?AuditAction $action = null): array
     {
         $criteria = $action instanceof AuditAction ? ['action' => $action] : [];
 
-        return $this->em->getRepository(AuditEntry::class)->findBy($criteria, ['id' => 'ASC']);
+        return array_values(array_filter(
+            $this->em->getRepository(AuditEntry::class)->findBy($criteria, ['id' => 'ASC']),
+            static fn (AuditEntry $entry): bool => !str_starts_with($entry->entityClass(), 'Foresi\\Invoicing\\'),
+        ));
     }
 
     private function setProperty(object $object, string $property, mixed $value): void

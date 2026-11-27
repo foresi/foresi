@@ -15,7 +15,7 @@ use Foresi\CashFlow\Contract\PairingState;
 use Foresi\CashFlow\Domain\DocumentPairing;
 use Foresi\CashFlow\Domain\PairingCandidate;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

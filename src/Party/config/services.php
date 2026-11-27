@@ -9,34 +9,24 @@ declare(strict_types=1);
 use Foresi\Party\Application\AccountNumbers;
 use Foresi\Party\Application\CompanyRegistry;
 use Foresi\Party\Application\ContactImports;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\ManageFirmBankAccounts;
 use Foresi\Party\Application\Parties;
 use Foresi\Party\Application\RegistrationNumberFactory;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Application\VatPayerReliability;
 use Foresi\Party\Application\VatRegistry;
 use Foresi\Party\Contract\BankAccountUsage;
-use Foresi\Party\Contract\ContactCreation;
-use Foresi\Party\Contract\ContactPersonWrites;
-use Foresi\Party\Contract\ContactsByEmail;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\RegistrationNumberValidator;
 use Foresi\Party\Infrastructure\CollectedBankAccountUsage;
 use Foresi\Party\Infrastructure\CollectedContactImports;
-use Foresi\Party\Infrastructure\Directory\DoctrineContactCreation;
-use Foresi\Party\Infrastructure\Directory\DoctrineContactPersonWrites;
 use Foresi\Party\Infrastructure\Directory\DoctrinePartyDirectory;
-use Foresi\Party\Infrastructure\Doctrine\DoctrineContactsByEmail;
 use Foresi\Party\Infrastructure\Doctrine\DoctrineFirmBankAccounts;
-use Foresi\Party\Infrastructure\Doctrine\DoctrineTransactionalWork;
 use Foresi\Party\Infrastructure\Http\FilesystemFirmImages;
 use Foresi\Party\Infrastructure\Registry\CollectedCompanyRegistry;
 use Foresi\Party\Infrastructure\Registry\CollectedVatPayerReliability;
-use Foresi\Tests\Party\Infrastructure\Support\ExampleContactTab;
 use Foresi\Tests\Party\Infrastructure\Support\RejectingParties;
 use Foresi\Tests\Support\Registry\FakeCompanyRegistry;
 use Foresi\Tests\Support\Registry\FakeVatPayerReliability;
@@ -85,11 +75,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(ContactImports::class, CollectedContactImports::class);
     // Other modules read contacts through the contract (Sales, Outreach).
     $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class);
-    // Sales adds a contact person to a deal's client through the contract.
-    $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class);
-    // Inbox matches a sender to the address book, with nobody signed in, and creates a contact from a message.
-    $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class);
-    $services->alias(ContactCreation::class, DoctrineContactCreation::class);
 
     $services->set(FilesystemFirmImages::class)
         ->arg('$root', param('app.firm_image_dir'));
@@ -105,7 +90,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $container->parameters()->set('app.firm_image_dir', '%kernel.cache_dir%/firm-images%env(default::TEST_TOKEN)%');
 
         // Public for the tests, which use the ports directly.
-        $services->alias(TransactionalWork::class, DoctrineTransactionalWork::class)->public();
         $services->alias(BankAccountUsage::class, CollectedBankAccountUsage::class)->public();
         // With Party alone only ManageFirmBankAccounts takes the accounts, and the container
         // would inline them into it.
@@ -113,12 +97,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
         // Lets a test make storing a party fail with a domain error after it was written.
         $services->set(RejectingParties::class)->decorate(Parties::class);
-        // Lets a test add a module's tab to a contact.
-        $services->set(ExampleContactTab::class);
         $services->alias(PartyDirectory::class, DoctrinePartyDirectory::class)->public();
-        $services->alias(ContactPersonWrites::class, DoctrineContactPersonWrites::class)->public();
-        $services->alias(ContactsByEmail::class, DoctrineContactsByEmail::class)->public();
-        $services->alias(ContactCreation::class, DoctrineContactCreation::class)->public();
 
         // Public alias in the test env only, so the wiring of the factory can be tested.
         $services->alias('test.registration_number_factory', RegistrationNumberFactory::class)->public();
@@ -141,7 +120,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     if ('e2e' === $container->env()) {
         // Public handles for tests/e2e/seed.php.
-        $services->alias('e2e.create_party', CreateParty::class)->public();
         $services->alias('e2e.registration_numbers', RegistrationNumberFactory::class)->public();
     }
 };

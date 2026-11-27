@@ -12,16 +12,12 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Work\Application\ManageComments;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\NotificationQueries;
 use Foresi\Work\Application\NotificationRow;
 use Foresi\Work\Application\ProjectList;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\TaskFilter;
 use Foresi\Work\Application\TaskRow;
-use Foresi\Work\Application\TimeGrouping;
-use Foresi\Work\Application\TimeQueries;
-use Foresi\Work\Application\TimeReportFilter;
 use Foresi\Work\Domain\Project;
 
 /**
@@ -100,35 +96,6 @@ final class WorkSearchTest extends WorkTestCase
         self::assertSame(['Write the brief'], $found('marek'), 'by whoever did it');
         self::assertSame([], $found('audit'));
         self::assertSame([], $found('%'));
-    }
-
-    public function testTimeIsFoundByItsNoteTaskProjectOrClient(): void
-    {
-        $time = self::getContainer()->get(ManageTime::class);
-        $queries = self::getContainer()->get(TimeQueries::class);
-        $brief = $this->tasks->create($this->website->id(), 'Write the brief');
-        $day = new \DateTimeImmutable('2026-11-09');
-        $time->log($this->website->id(), $brief->id(), $day, 60, note: 'Drafted the outline');
-        $time->log($this->audit->id(), null, $day, 30, note: 'Counted');
-
-        $minutes = static function (string $text) use ($queries, $day): int {
-            $week = $queries->week($day, null, $text);
-            self::assertNotNull($week);
-
-            return $week->totalMinutes;
-        };
-        self::assertSame(90, $minutes(''));
-        self::assertSame(60, $minutes('OUTLINE'), 'by the note');
-        self::assertSame(60, $minutes('brief'), 'by the task');
-        self::assertSame(30, $minutes('annual audit'), 'by the project');
-        self::assertSame(30, $minutes('beta example'), 'by the client');
-        self::assertSame(0, $minutes('%'));
-
-        $report = static fn (string $text): array => [$queries->report(TimeReportFilter::ofView(new ViewFilter(), $text), TimeGrouping::Project)->totalMinutes, $queries->report(TimeReportFilter::ofView(new ViewFilter(), $text), TimeGrouping::Task)->entryCount];
-        self::assertSame([90, 2], $report(''));
-        self::assertSame([60, 1], $report('outline'));
-        self::assertSame([30, 1], $report('Beta'));
-        self::assertSame([0, 0], $report('%'));
     }
 
     private function listOf(TaskFilter $filter): ProjectList

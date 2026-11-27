@@ -16,14 +16,14 @@ use Foresi\Banking\Contract\ParsedMovement;
 use Foresi\Banking\Contract\ParseFailed;
 use Foresi\Banking\Contract\StatementIntake;
 use Foresi\Banking\Domain\InboundStatus;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Mail\Contract\Messages;
 use Foresi\Mail\Contract\SenderCheck;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

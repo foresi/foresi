@@ -18,7 +18,7 @@ use Symfony\Component\Clock\NativeClock;
 
 /**
  * The firm's VAT statuses over time on REST and MCP: added and removed by the
- * owner with contacts:write, read with the firm.
+ * owner with firm:write, read with the firm.
  */
 final class FirmVatStatusApiTest extends ApiTestCase
 {
@@ -32,8 +32,8 @@ final class FirmVatStatusApiTest extends ApiTestCase
         Clock::set(new MockClock('2026-11-20 10:00:00', 'UTC'));
         $owner = $this->fixtures->user('owner@example.com');
         $this->fixtures->join($owner, Role::Owner);
-        $this->owner = $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($owner->id(), 'Firm', [ApiScope::from('contacts:write')])->secret);
-        $this->memberWriter = $this->issued([ApiScope::from('contacts:write')]);
+        $this->owner = $this->flushed(fn (): string => self::getContainer()->get(ManageApiTokens::class)->issueAsOperator($owner->id(), 'Firm', [ApiScope::from('firm:write')])->secret);
+        $this->memberWriter = $this->issued([ApiScope::from('firm:write')]);
     }
 
     protected function tearDown(): void

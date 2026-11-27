@@ -10,7 +10,6 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Audit\Domain\ActorKind;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\LineAmounts;
@@ -18,7 +17,8 @@ use Foresi\Invoicing\Domain\DocumentTotals;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\LineValues;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;

@@ -15,6 +15,10 @@ use Foresi\Invoicing\Application\MailMessage;
 use Foresi\Invoicing\Application\MailRefused;
 use Foresi\Invoicing\Application\RequeueStuckSends;
 use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
@@ -24,10 +28,7 @@ use Foresi\Invoicing\Infrastructure\Doctrine\PaymentBalances;
 use Foresi\Invoicing\Infrastructure\Mail\SymfonyMailGateway;
 use Foresi\Invoicing\Infrastructure\Messenger\MarkSendFailed;
 use Foresi\Invoicing\Infrastructure\Messenger\SendLeaseHeld;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\PartyEmail;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Invoicing\Application\SendingTestCase;
@@ -561,7 +562,7 @@ final class DeliverInvoiceSendTest extends SendingTestCase
     public function testDeliveryCancelsAReminderWhoseContactWasSwitchedOffMeanwhile(): void
     {
         [, $reminder] = $this->queuedReminder();
-        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, false));
         $this->em->flush();
 
         $this->worker->run();

@@ -53,7 +53,7 @@ final readonly class VatPeriods
     public const int MAX_MONTHS = 24;
 
     /** The document sources the amounts count when their modules are installed. */
-    public const array EXPECTED_SOURCES = ['invoicing.issued_vat', 'purchasing.received_vat'];
+    public const array EXPECTED_SOURCES = ['invoicing.issued_vat', 'received-documents.received_vat'];
 
     /** The schedule sources the amounts count when their modules are installed. */
     public const array EXPECTED_SCHEDULE_SOURCES = ['invoicing.recurring_vat'];

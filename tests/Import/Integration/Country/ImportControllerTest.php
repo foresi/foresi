@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Integration\Country;
 
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Import\Application\Imports;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportState;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
@@ -35,7 +35,7 @@ final class ImportControllerTest extends WebTestCase
 {
     use ClockSensitiveTrait;
 
-    private const string FIXTURE = __DIR__.'/../../../Party/Fixtures/idoklad-contacts.csv';
+    private const string FIXTURE = __DIR__.'/../../../Contacts/Fixtures/idoklad-contacts.csv';
 
     private KernelBrowser $client;
     private RunMessages $worker;

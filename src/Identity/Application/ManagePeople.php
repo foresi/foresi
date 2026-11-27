@@ -12,7 +12,6 @@ use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -34,19 +33,19 @@ final readonly class ManagePeople
     }
 
     /**
-     * @param ?Money $hourlyRate what the person's time is billed at when neither its project nor its client has a rate; null for none
+     * @param ?string $contactId    the contact the person represents, null or empty for none
+     * @param ?Money  $hourlyRate   what the person's time is billed at when neither its project nor its client has a rate; null for none
+     * @param bool    $linksContact whether the change sets the contact at all; when it does not, as without the
+     *                              address book's field, the stored contact stays and $contactId is ignored
      *
      * @throws PeopleRefused
      */
-    public function change(string $membershipId, Role $role, ?string $contactId, ?Money $hourlyRate): void
+    public function change(string $membershipId, Role $role, ?string $contactId, ?Money $hourlyRate, bool $linksContact = true): void
     {
         $membership = $this->membership($membershipId);
-        $party = null;
-        if (null !== $contactId && '' !== $contactId) {
-            $party = $this->parties->find($contactId) ?? throw new PeopleRefused('contact');
-        }
-        if (Role::Guest === $role && !$party instanceof Party) {
-            throw new PeopleRefused('contact');
+        $party = $membership->party();
+        if ($linksContact) {
+            $party = null === $contactId || '' === $contactId ? null : ($this->parties->find($contactId) ?? throw new PeopleRefused('contact'));
         }
         if (Role::Owner !== $role) {
             $this->keepAnOwner($membership);

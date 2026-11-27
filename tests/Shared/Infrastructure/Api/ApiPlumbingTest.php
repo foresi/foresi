@@ -43,7 +43,7 @@ final class ApiPlumbingTest extends ApiTestCase
         self::assertResponseHeaderSame('RateLimit-Remaining', '599');
         self::assertResponseHeaderSame('RateLimit-Reset', '0');
 
-        $this->get('/api/v1/contacts/nothing');
+        $this->get('/api/v1/views/nothing');
 
         $this->assertProblem(404, 'not_found');
         self::assertResponseHeaderSame('RateLimit-Remaining', '598');
@@ -145,7 +145,15 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/end' => ['post' => '200'],
                 '/api/v1/cash-flow/planned-items/{plannedItemId}/skip' => ['post' => '200'],
             ],
-            'documents' => [
+            'contacts' => [
+                '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
+                '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
+                '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
+            ],
+            'document-templates' => [
                 '/api/v1/document-types' => ['get' => '200', 'post' => '201'],
                 '/api/v1/document-types/{typeId}' => ['patch' => '200'],
                 '/api/v1/document-types/{typeId}/archive' => ['post' => '200'],
@@ -239,14 +247,8 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/firm' => ['get' => '200'],
                 '/api/v1/firm/vat-statuses' => ['post' => '201'],
                 '/api/v1/firm/vat-statuses/{vatStatusId}' => ['delete' => '200'],
-                '/api/v1/contacts' => ['get' => '200', 'post' => '201'],
-                '/api/v1/contacts/{contactId}' => ['get' => '200', 'patch' => '200'],
-                '/api/v1/contacts/{contactId}/archive' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/contact-persons' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/restore' => ['post' => '200'],
-                '/api/v1/contacts/{contactId}/contact-persons/{personId}' => ['delete' => '200'],
             ],
-            'purchasing' => [
+            'received-documents' => [
                 '/api/v1/received-documents' => ['get' => '200', 'post' => '201'],
                 '/api/v1/received-documents/{documentId}' => ['get' => '200'],
                 '/api/v1/received-documents/{documentId}/payments' => ['get' => '200', 'post' => '201'],
@@ -257,31 +259,31 @@ final class ApiPlumbingTest extends ApiTestCase
                 '/api/v1/received-documents/{documentId}/read-again' => ['post' => '202'],
                 '/api/v1/received-documents/upload' => ['post' => '201'],
             ],
-            'sales' => [
-                '/api/v1/sales/deals' => ['get' => '200', 'post' => '201'],
-                '/api/v1/sales/deals/{dealId}' => ['get' => '200', 'patch' => '200'],
-                '/api/v1/sales/deals/{dealId}/billing-plan' => ['post' => '201'],
-                '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}' => ['delete' => '200', 'patch' => '200'],
-                '/api/v1/sales/deals/{dealId}/billing-plan/{entryId}/fulfilment' => ['put' => '200', 'delete' => '200'],
-                '/api/v1/sales/deals/{dealId}/follow-ups' => ['post' => '201'],
-                '/api/v1/sales/deals/{dealId}/lines' => ['post' => '201'],
-                '/api/v1/sales/deals/{dealId}/lines/reorder' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/lines/{lineId}' => ['delete' => '200', 'patch' => '200'],
-                '/api/v1/sales/deals/{dealId}/links' => ['post' => '201'],
-                '/api/v1/sales/deals/{dealId}/links/{linkId}' => ['delete' => '200'],
-                '/api/v1/sales/deals/{dealId}/lose' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/reopen' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/restore' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/stage' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/trash' => ['post' => '200'],
-                '/api/v1/sales/deals/{dealId}/win' => ['post' => '200'],
-                '/api/v1/sales/lost-reasons' => ['get' => '200', 'post' => '201'],
-                '/api/v1/sales/lost-reasons/{reasonId}' => ['patch' => '200'],
-                '/api/v1/sales/lost-reasons/{reasonId}/archive' => ['post' => '200'],
-                '/api/v1/sales/stages' => ['get' => '200', 'post' => '201'],
-                '/api/v1/sales/stages/reorder' => ['post' => '200'],
-                '/api/v1/sales/stages/{stageId}' => ['patch' => '200'],
-                '/api/v1/sales/stages/{stageId}/archive' => ['post' => '200'],
+            'deals' => [
+                '/api/v1/deals' => ['get' => '200', 'post' => '201'],
+                '/api/v1/deals/{dealId}' => ['get' => '200', 'patch' => '200'],
+                '/api/v1/deals/{dealId}/billing-plan' => ['post' => '201'],
+                '/api/v1/deals/{dealId}/billing-plan/{entryId}' => ['delete' => '200', 'patch' => '200'],
+                '/api/v1/deals/{dealId}/billing-plan/{entryId}/fulfilment' => ['put' => '200', 'delete' => '200'],
+                '/api/v1/deals/{dealId}/follow-ups' => ['post' => '201'],
+                '/api/v1/deals/{dealId}/lines' => ['post' => '201'],
+                '/api/v1/deals/{dealId}/lines/reorder' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/lines/{lineId}' => ['delete' => '200', 'patch' => '200'],
+                '/api/v1/deals/{dealId}/links' => ['post' => '201'],
+                '/api/v1/deals/{dealId}/links/{linkId}' => ['delete' => '200'],
+                '/api/v1/deals/{dealId}/lose' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/reopen' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/restore' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/stage' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/trash' => ['post' => '200'],
+                '/api/v1/deals/{dealId}/win' => ['post' => '200'],
+                '/api/v1/lost-reasons' => ['get' => '200', 'post' => '201'],
+                '/api/v1/lost-reasons/{reasonId}' => ['patch' => '200'],
+                '/api/v1/lost-reasons/{reasonId}/archive' => ['post' => '200'],
+                '/api/v1/deal-stages' => ['get' => '200', 'post' => '201'],
+                '/api/v1/deal-stages/reorder' => ['post' => '200'],
+                '/api/v1/deal-stages/{stageId}' => ['patch' => '200'],
+                '/api/v1/deal-stages/{stageId}/archive' => ['post' => '200'],
             ],
             'taxes-and-contributions' => [
                 '/api/v1/taxes-and-contributions/amounts' => ['get' => '200'],

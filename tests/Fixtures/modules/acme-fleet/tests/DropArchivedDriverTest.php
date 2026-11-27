@@ -11,8 +11,8 @@ namespace Acme\Fleet\Tests;
 use Acme\Fleet\Domain\Vehicle;
 use Acme\Fleet\Infrastructure\Listener\DropArchivedDriver;
 use Doctrine\ORM\EntityManagerInterface;
-use Foresi\Party\Contract\Event\ContactKind;
-use Foresi\Party\Contract\Event\ContactArchived;
+use Foresi\Contacts\Contract\Event\ContactKind;
+use Foresi\Contacts\Contract\Event\ContactArchived;
 use Foresi\Shared\Contract\Event\RecordedEvent;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -31,9 +31,9 @@ final class DropArchivedDriverTest extends KernelTestCase
         $em->persist(new Vehicle('0192f1a4-0000-7000-8000-000000000002', 'Pick-up', '2CD 3456', '0192f1a4-0000-7000-8000-00000000d002', new \DateTimeImmutable()));
         $em->flush();
         $listener = self::getContainer()->get(DropArchivedDriver::class);
-        self::assertSame('party.contact.archived', $listener->listensTo());
+        self::assertSame('contacts.contact.archived', $listener->listensTo());
 
-        $event = new RecordedEvent('0192f1a4-0000-7000-8000-00000000e001', 'party.contact.archived', 1, new \DateTimeImmutable(), null, new ContactArchived($driver, ContactKind::Person));
+        $event = new RecordedEvent('0192f1a4-0000-7000-8000-00000000e001', 'contacts.contact.archived', 1, new \DateTimeImmutable(), null, new ContactArchived($driver, ContactKind::Person));
         $listener($event);
         $listener($event);
         $em->flush();

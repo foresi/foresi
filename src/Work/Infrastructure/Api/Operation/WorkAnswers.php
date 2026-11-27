@@ -9,8 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Api\Operation;
 
 use Foresi\Shared\Contract\Operation\OperationOutput;
-use Foresi\Work\Application\ProjectBudgetReads;
-use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Infrastructure\Api\ProjectApiController;
@@ -20,11 +18,11 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * What the writes of Work answer: what the read endpoints and tools answer for
- * the task, project, comment or time entry as it is now.
+ * the task, project or comment as it is now.
  */
 final readonly class WorkAnswers
 {
-    public function __construct(private WorkQueries $queries, private TimeQueries $time, private WorkJson $json, private UrlGeneratorInterface $urls, private ProjectBudgetReads $budgets)
+    public function __construct(private WorkQueries $queries, private WorkJson $json, private UrlGeneratorInterface $urls)
     {
     }
 
@@ -45,19 +43,7 @@ final readonly class WorkAnswers
     {
         $project = $this->queries->project($id) ?? throw new WorkRefused('unknown');
 
-        return new OperationOutput($this->json->projectDetail($project, $this->budgets->find($id)), \sprintf($summary, $project->row->name), $created ? $this->urls->generate(ProjectApiController::SHOW, ['projectId' => $id]) : null);
-    }
-
-    /**
-     * The time budget of the project as it is now.
-     *
-     * @param string|null $created the address of the change created, for REST
-     */
-    public function budget(string $projectId, string $summary, ?string $created = null): OperationOutput
-    {
-        $budget = $this->budgets->budget($projectId);
-
-        return new OperationOutput(WorkJson::budget($budget), $summary, $created);
+        return new OperationOutput($this->json->projectDetail($project), \sprintf($summary, $project->row->name), $created ? $this->urls->generate(ProjectApiController::SHOW, ['projectId' => $id]) : null);
     }
 
     public function comment(string $commentId, string $taskId, string $summary, bool $created = false): OperationOutput
@@ -69,12 +55,5 @@ final readonly class WorkAnswers
         }
 
         throw new WorkRefused('unknown');
-    }
-
-    public function timeEntry(string $id, string $summary): OperationOutput
-    {
-        $entry = $this->time->entry($id) ?? throw new WorkRefused('unknown');
-
-        return new OperationOutput(WorkJson::timeEntry($entry), $summary);
     }
 }

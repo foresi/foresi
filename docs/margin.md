@@ -2,7 +2,7 @@
 
 The Margin module (`src/Margin`, id `margin`, package `foresi/margin`, scopes `margin:read` and `margin:write`) says **who bears the cost** of a received document: the firm itself (`own`) or one of its clients, a contact. It keeps that mapping and turns it into **cost shares**: for every line of a document, how many Czech crowns each recipient bears, in the month of the document.
 
-The module is optional. It requires Shared, Instance, Party, Identity, Audit and Ui. Cash flow, Invoicing and Purchasing are optional and list Margin as optional (ADR 0033). Margin owns its contracts (`Foresi\Margin\Contract`); Purchasing implements them in `Foresi\Purchasing\Integration\Margin` and shows the panel of Margin on a received document in `Foresi\Margin\Integration\Purchasing`. Without Purchasing there are no costs to map, and without Margin Purchasing works as before. The mappings of planned items need Cash flow; without it only lines, documents and supplier defaults map costs.
+The module is optional. It requires Shared, Instance, Party, Identity, Audit and Ui. Cash flow, Invoicing and Purchasing are optional and list Margin as optional (ADR 0033). Margin owns its contracts (`Foresi\Margin\Contract`); Purchasing implements them in `Foresi\ReceivedDocuments\Integration\Margin` and shows the panel of Margin on a received document in `Foresi\Margin\Integration\ReceivedDocuments`. Without Purchasing there are no costs to map, and without Margin Purchasing works as before. The mappings of planned items need Cash flow; without it only lines, documents and supplier defaults map costs.
 
 ## Who works with it
 

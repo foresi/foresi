@@ -58,7 +58,7 @@ final readonly class IssueApiTokenCommand
         string $name = '',
         #[Option(description: 'Days until it expires: 30, 90 or 365')]
         int $days = ManageApiTokens::DEFAULT_EXPIRY_DAYS,
-        #[Option(description: 'read, write, or a resource such as contacts:read or contacts:write; repeat for more')]
+        #[Option(description: 'read, write, or a resource such as firm:read or firm:write; repeat for more')]
         array $scope = [],
     ): int {
         if ([] === $scope) {
@@ -70,7 +70,7 @@ final readonly class IssueApiTokenCommand
         foreach ($scope as $value) {
             $parsed = ApiScope::tryFrom($value);
             if (!$parsed instanceof ApiScope) {
-                $io->error(\sprintf('Unknown scope "%s", expected read, write, or a resource such as contacts:write.', $value));
+                $io->error(\sprintf('Unknown scope "%s", expected read, write, or a resource such as firm:write.', $value));
 
                 return Command::INVALID;
             }

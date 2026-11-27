@@ -8,14 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Timesheet\Integration\Country;
 
-use Foresi\Invoicing\Application\BilledLine;
 use Foresi\Invoicing\Application\BilledWork;
-use Foresi\Invoicing\Application\BilledWorkDraft;
 use Foresi\Invoicing\Application\EditInvoice;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\InvoiceStore;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Contract\BilledLine;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\TaxTreatment;
@@ -24,12 +26,10 @@ use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -37,14 +37,15 @@ use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Work\Application\WorkTestCase;
-use Foresi\Timesheet\Application\TimeInvoicing;
-use Foresi\Timesheet\Application\TimeScope;
-use Foresi\Timesheet\Domain\LineGrouping;
-use Foresi\Timesheet\Domain\TimeRounding;
-use Foresi\Work\Application\ManageTime;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
+use Foresi\Timesheet\Domain\TimeEntry;
+use Foresi\Timesheet\Integration\Invoicing\LineGrouping;
+use Foresi\Timesheet\Integration\Invoicing\TimeInvoicing;
+use Foresi\Timesheet\Integration\Invoicing\TimeRounding;
+use Foresi\Timesheet\Integration\Invoicing\TimeScope;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
-use Foresi\Work\Domain\TimeEntry;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -97,7 +98,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
         $this->website = $this->projects->create('Website', $this->customer->id(), \Foresi\Work\Domain\WorkflowTemplate::Simple);
         $this->homepage = $this->tasks->create($this->website->id(), 'Design the homepage');
         $this->contact = $this->tasks->create($this->website->id(), 'Build the contact page');
-        $this->time->setProjectHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
+        self::getContainer()->get(ProjectTimeSettings::class)->setHourlyRate($this->website->id(), Money::of('1000', Currency::CZK));
     }
 
     public function testTheTimeOfARowRemovedIsFreeAndTheRestStaysOnItsLine(): void
@@ -247,7 +248,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
      */
     private function candidateIds(): array
     {
-        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope()));
+        $ids = array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($this->scope()));
         sort($ids);
 
         return $ids;
@@ -264,7 +265,7 @@ final class TimeInvoiceEditTest extends WorkTestCase
     private function chosen(): BilledWorkDraft
     {
         $scope = $this->scope();
-        $ids = array_map(static fn (\Foresi\Timesheet\Application\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
+        $ids = array_map(static fn (\Foresi\Timesheet\Integration\Invoicing\TimeCandidate $candidate): string => $candidate->entry->id, $this->invoicing->candidates($scope));
         $reference = $this->invoicing->select($scope, $this->invoicing->lines($scope, $ids, LineGrouping::Task, TimeRounding::None), 'hod', 'j. n. Y');
 
         return $this->billed->draft($reference) ?? throw new \LogicException('The time chosen waits.');

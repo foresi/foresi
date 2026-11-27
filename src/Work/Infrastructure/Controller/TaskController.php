@@ -24,6 +24,7 @@ use Foresi\Ui\Contract\Opens;
 use Foresi\Ui\Field\CustomFieldForm;
 use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Ui\FileSize;
+use Foresi\Ui\Format\DurationText;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\Comments;
 use Foresi\Work\Application\CommentView;
@@ -39,19 +40,15 @@ use Foresi\Work\Application\MentionCandidate;
 use Foresi\Work\Application\TaskDetail;
 use Foresi\Work\Application\TaskHistoryEntry;
 use Foresi\Work\Application\TaskRow;
-use Foresi\Work\Application\TaskTime;
-use Foresi\Work\Application\TimeEntryRow;
-use Foresi\Work\Application\TimeQueries;
-use Foresi\Work\Application\TimeTarget;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\TaskExtension;
-use Foresi\Work\Contract\InvoiceNumbers;
+use Foresi\Work\Domain\Duration;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
+use Foresi\Work\Domain\Task;
 use Foresi\Work\Infrastructure\Attachment\TaskAttachmentAccess;
 use Foresi\Work\Infrastructure\Slot\TaskPageSlots;
-use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -72,9 +69,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The discussion is one timeline, oldest first, with the comment box under it
  * as in Linear. The files of the task are listed under the description.
  *
- * The time logged on the task follows its subtasks for the people of the
- * organisation, with the total against the estimate (Teamwork); the estimate
- * is a property of the panel, and the timer starts from the header.
+ * The estimate is a property of the panel for the people of the organisation.
+ * What other modules keep of the task shows through TaskSlots: facts under the
+ * header, and for the people of the organisation the main action of the header,
+ * such as a timer, and sections under the subtasks, such as the time logged.
  *
  * A task is deleted from the menu of its page, of its row in the list or of its
  * card on the board, without a question: it goes to the trash of its project,
@@ -126,9 +124,7 @@ final class TaskController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly VisibleAttachments $attachments,
         private readonly ManageNotifications $notifications,
-        private readonly TimeQueries $time,
-        private readonly InvoiceNumbers $invoiceNumbers,
-        private readonly TimeFunctions $duration,
+        private readonly DurationText $duration,
         private readonly CustomFieldForm $customFields,
         private readonly Fields $fields,
         private readonly VisibleFields $visibleFields,
@@ -393,6 +389,26 @@ final class TaskController extends AbstractController
                 return;
             }
             $this->tasks->setDue($id, $due);
+        });
+    }
+
+    /**
+     * The time the task should take, typed as a duration; the clear button takes it away.
+     */
+    #[Route('/tasks/{id}/estimate', name: 'app_task_estimate', requirements: ['id' => Requirement::UUID_V7], methods: ['POST'])]
+    public function estimate(string $id, Request $request): RedirectResponse
+    {
+        $text = $request->request->has('clear') ? '' : trim($request->request->getString('estimate'));
+
+        return $this->save($id, $request, function () use ($id, $text): void {
+            try {
+                $minutes = '' === $text ? null : Duration::parse($text, Task::MAX_ESTIMATE_MINUTES)->minutes;
+            } catch (\DomainException) {
+                $this->addFlash('error', $this->translator->trans('work.refused.estimate'));
+
+                return;
+            }
+            $this->tasks->setEstimate($id, $minutes);
         });
     }
 
@@ -697,9 +713,6 @@ final class TaskController extends AbstractController
         $names = array_column(array_map(static fn (Person $person): array => [$person->userId, $person->name], $people), 1, 0);
         $discussion = $this->queries->discussion($row->id, $filter) ?? [];
         $editable = array_filter($discussion, static fn (DiscussionItem $item): bool => $item->comment instanceof CommentView && $item->comment->canEdit && $item->comment->id === $editComment);
-        // Time is the organisation's, as internal comments are: a guest neither sees nor logs it.
-        $time = $task->manageable ? $this->time->ofTask($row->id) : null;
-        $timer = $task->manageable ? $this->time->running() : null;
 
         return $this->render('@Work/task/show.html.twig', [
             'read' => $read,
@@ -709,6 +722,8 @@ final class TaskController extends AbstractController
             'errors' => array_filter($errors, \is_string(...)),
             'statusTone' => self::STATUS_TONES[$row->statusType->value],
             'headerFacts' => $this->pageSlots->headerFacts($row->id, $row->projectId),
+            // What other modules add for the organisation, as internal comments are: a guest sees none of it.
+            ...($task->manageable ? $this->pageSlots->internal($row->id, $row->projectId) : ['headerActions' => [], 'slotSections' => []]),
             'statuses' => $statuses,
             'responsibles' => array_values($responsibles),
             'priorities' => $priorities,
@@ -748,41 +763,10 @@ final class TaskController extends AbstractController
             'attachments' => array_map(fn (Attachment $file): array => $this->attachmentItem($file, $names), $this->attachments->of(TaskAttachmentAccess::KIND, $row->id)),
             'deletedAttachments' => array_map(fn (Attachment $file): array => $this->deletedAttachmentItem($file, $names), $this->attachments->deletedOf(TaskAttachmentAccess::KIND, $row->id)),
             'attachmentKind' => TaskAttachmentAccess::KIND,
-            'time' => $time instanceof TaskTime ? $this->timeView($time) : null,
-            'timeLoggable' => $task->manageable && $this->time->taskTarget($row->id) instanceof TimeTarget,
-            'timerHere' => $timer instanceof TimeEntryRow && $timer->taskId === $row->id,
-            'estimateValue' => null === $time?->estimateMinutes ? '' : $this->duration->duration($time->estimateMinutes),
+            // The estimate is the organisation's, as the time against it: a guest neither sees nor sets it.
+            'estimable' => $task->manageable,
+            'estimateValue' => null === $task->estimateMinutes ? '' : $this->duration->shown($task->estimateMinutes),
         ], new Response(status: $status));
-    }
-
-    /**
-     * The time block: the total against the estimate, and each entry newest first.
-     *
-     * @return array{total: string, entries: list<array<string, mixed>>, empty: bool}
-     */
-    private function timeView(TaskTime $time): array
-    {
-        $total = $this->duration->duration($time->totalMinutes);
-        $date = $this->translator->trans('format.date');
-
-        return [
-            'total' => null === $time->estimateMinutes ? $total : $this->translator->trans('work.time.total_of', ['total' => $total, 'estimate' => $this->duration->duration($time->estimateMinutes)]),
-            'empty' => [] === $time->entries,
-            'entries' => array_map(fn (TimeEntryRow $entry): array => [
-                'id' => $entry->id,
-                'date' => $entry->workedOn->format($date),
-                'datetime' => $entry->workedOn->format('Y-m-d'),
-                'person' => $entry->personName,
-                'duration' => null === $entry->minutes ? null : $this->duration->duration($entry->minutes),
-                'note' => $entry->note,
-                'billable' => $entry->billable,
-                'running' => $entry->running,
-                'invoiced' => $entry->invoiced,
-                'invoice' => null === $entry->invoiceId || null === $entry->invoiceNumber || null === ($href = $this->invoiceNumbers->url($entry->invoiceId)) ? null : ['number' => $entry->invoiceNumber, 'href' => $href],
-                'editable' => $entry->editable && !$entry->running,
-                'deletable' => $entry->editable,
-            ], $time->entries),
-        ];
     }
 
     /**

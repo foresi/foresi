@@ -11,12 +11,14 @@ namespace Foresi\Work\Migrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
+use Foresi\Shared\Infrastructure\Doctrine\RunsOnlyForReal;
 
 /**
  * Recurring tasks (plan 37.4): the pattern under a project, and on each task the
- * recurring task and the date it was created for, once per date.
+ * recurring task and the date it was created for, once per date. Going down drops
+ * the table in postDown(), so a rehearsal would drop it for real (RunsOnlyForReal).
  */
-final class Version20261128120000 extends AbstractMigration
+final class Version20261128120000 extends AbstractMigration implements RunsOnlyForReal
 {
     public function getDescription(): string
     {
@@ -83,6 +85,12 @@ final class Version20261128120000 extends AbstractMigration
         $task->dropIndex('uniq_task_occurrence');
         $task->dropColumn('occurrence_on');
         $task->dropColumn('recurring_task_id');
-        $schema->dropTable('recurring_task');
+    }
+
+    public function postDown(Schema $schema): void
+    {
+        // Dropped after the task's foreign key to it: a schema change drops the tables
+        // before it alters the others, which PostgreSQL refuses while the key exists.
+        $this->connection->createSchemaManager()->dropTable('recurring_task');
     }
 }

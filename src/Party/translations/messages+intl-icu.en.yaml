@@ -2,62 +2,22 @@
 party:
   relation:
     contact_persons: Contact persons
-  quick:
-    title: New customer
-    intro: A name and a seat are enough; the rest can follow later.
-    full: Open the full form
-    create: Create customer
-    errors_title: The customer is not saved yet
-    contact:
-      title: New contact
-      create: Create contact
-      errors_title: The contact is not saved yet
   header:
-    import: Import
     export: Export
-    export_csv: Export as CSV
-    export_xlsx: 'Export as Excel (XLSX)'
-  imported_by:
-    create: 'Contacts the import of {name} created.'
-    update: 'Contacts the import of {name} updated.'
-    restore: 'Contacts the import of {name} restored from the archive.'
-    archive: 'Contacts the import of {name} archived.'
-    changed_after_import: 'Contacts of the import of {name} that someone changed after the import.'
-    summary: Import summary
-  title: Address book
-  new: New contact
-  edit: Edit
   save: Save
   cancel: Cancel
-  archive: Archive
-  restore: Restore
   archived: Archived
   # The status of a contact that is neither archived nor an unreliable VAT payer.
   active: Active
   yes: Yes
   no: 'No'
-  views: Contact views
-  sections: Contact sections
-  empty:
-    title: Your address book is empty
-    text: Add your first contact and it will show up here with your customers and suppliers.
-  empty_filtered:
-    title: Nothing found
-    text: Try another search or clear the filter.
-    reset: Clear filter
   view:
     all: All
     customers: Customers
     suppliers: Suppliers
     archived: Archived
   search:
-    label: Search contacts
     placeholder: Name, registration number, VAT ID or e-mail
-  pagination:
-    summary: '{total, plural, one {# contact} other {# contacts}}'
-  bulk:
-    archive: Archive
-    export: Export CSV
   column:
     name: Name
     kind: Kind
@@ -72,13 +32,6 @@ party:
     registration_country: Register country
     billing_city: Billing city
     billing_country: Billing country
-    default_due_days: Due period (days)
-    currency: Currency
-    payment_method: Payment method
-    language: Document language
-    reverse_charge: Reverse charge
-    reminders: Payment reminders
-    hourly_rate: Hourly rate
     vies_result: VIES
     unreliable_payer: Unreliable payer register
     archived_at: Archived at
@@ -98,42 +51,8 @@ party:
     supplier: Supplier
     partner: Partner
     authority: Authority
-  address_type:
-    billing: Billing
-    delivery: Delivery
-    postal: Postal
-    other: Other
-  tab:
-    overview: Overview
-    contacts: Contact persons
-    addresses: Addresses
-    bank-accounts: Bank accounts
-    history: History
-    activities: Activities
-    documents: Documents
-  document_variable:
-    firm:
-      name: 'Firm name'
-      address_lines: 'Firm address, line by line'
-      registration_number: 'Firm registration number'
-      vat_id: 'Firm VAT ID'
-      bank_account: 'Firm bank account (IBAN)'
-      logo: 'Firm logo'
-    client:
-      name: 'Client name'
-      address_lines: 'Client address, line by line'
-      registration_number: 'Client registration number'
-      vat_id: 'Client VAT ID'
-      persons: 'Client contact persons'
   card:
     identification: Identification
-    contact: Contact
-    billing: Billing address
-    roles: Roles and note
-    checks: Register checks
-    defaults: Document defaults
-    note: Private note
-    note_empty: No note yet.
   field:
     kind: Kind
     displayName: Name
@@ -164,152 +83,25 @@ party:
     unreliablePayerResult: Unreliable payer
     viesResult: VIES
     invoicingDefaults: Document defaults
-    invoicingDueDays: Due period
     legalEntity: Firm
-    invoicingCurrency: Currency
-    invoicingLanguage: Document language
-    invoicingPaymentMethod: Payment method
-    invoicingReverseCharge: Reverse charge
   lookup:
     label: Find in a register
     help: Registration number or at least three letters of a name
     existing: Already in your address book
     empty: Nothing found in the register.
     limited: Too many searches. Try again in a minute.
-  duplicate:
-    title: You already have this contact
-    text: A contact with the same registration number or VAT ID is in the address book already. You can still save this one.
-    confirm: Save anyway
-  check:
-    vies: VIES
-    unreliable_payer: Unreliable payer register
-    at: 'checked {time}'
-  checks:
-    no_vat_id: This contact has no VAT ID, so there is nothing to check.
-    never: Not checked yet. The check runs after saving.
-    accounts: 'Bank accounts published by the payer:'
-    refresh: Check again
-  contacts:
-    empty: There is no contact person yet.
-    empty_text: Choose a person from the address book, or create a new one right here.
-    empty_person: This person is not a contact of any company yet.
-    add: Add a contact person
-    person: Person
-    person_placeholder: Choose a person
-    name: Full name
-    primary: Primary contact person
-    primary_help: Replaces the current primary contact person.
-    position_help: For example director or accountant.
-    link: Add person
-    create: Create and add
-    no_candidates: There is no person in the address book to add. Create one under New person.
-    person_invalid: Choose a person who is not listed for the company yet.
-    mode:
-      label: How to add the person
-      existing: From the address book
-      new: New person
-    action:
-      primary: Make primary
-      unlink: Remove from the company
-    confirm:
-      unlink: 'Remove {name} from the company?'
-      unlink_text: The person stays in the address book; only the link to this company goes.
-      unlink_accept: Remove
-  accounts:
-    empty: There is no bank account yet.
-    empty_text: Add the account the contact pays from or that you send money to.
-    add: Add account
-    edit: Edit account
-    submit: Add account
-    number: Account number
-    number_help: 'An IBAN, or a domestic number like 19-2000145399/0800.'
-    number_locked_help: Fixed once saved. Delete a wrong account and add it again.
-    bic_help: Optional, for payments abroad.
-    label_help: For example Main or Euro account.
-    primary: Primary account
-    primary_help: Replaces the contact's current primary account.
-    primary_kept_help: It stays primary until you make another account primary.
-    action:
-      primary: Make primary
-      delete: Delete
-    confirm:
-      delete: 'Delete the account {iban}?'
-      delete_text: The account goes from the contact. Documents that already show it do not change.
-      delete_accept: Delete
-    error:
-      number: Enter an IBAN or a domestic account number with a bank code.
-      bic: A BIC has 8 or 11 characters, for example GIBACZPX.
-      duplicate: The contact has this account already.
-  addresses:
-    add: Add address
-    edit: Edit address
-    submit: Add address
-    label_help: For example Warehouse or Brno branch.
-    billing_kept: The billing address cannot be deleted, only changed.
-    action:
-      delete: Delete
-    confirm:
-      delete: Delete the address?
-      delete_text: The address goes from the contact. Documents that already show it do not change.
-      delete_accept: Delete
-  defaults:
-    due_days: Due period
-    days: '{count, plural, one {# day} other {# days}}'
-    currency: Currency
-    language: Document language
-    reverse_charge: Reverse charge
-  payment_method:
-    bank_transfer: Bank transfer
-    cash: Cash
-    card: Card
-  language:
-    cs: Czech
-    en: English
-  history:
-    empty: There is no change yet.
-    entry: '{action}: {subject} ({fields})'
-    action:
-      created: Created
-      updated: Changed
-      deleted: Removed
-    subject:
-      party: contact
-      address: address
-      email: e-mail
-      bank_account: bank account
-      contact: contact person
-      firm_settings: firm settings
-  flash:
-    created: The contact is saved.
-    updated: The changes are saved.
-    archived: The contact is archived.
-    archived_many: '{count, plural, one {# contact archived.} other {# contacts archived.}}'
-    restored: The contact is restored.
-    linked: The contact person is added.
-    person_created: The person is created and added as a contact person.
-    person_primary: The primary contact person is changed.
-    unlinked: '{name} is no longer a contact person of the company.'
-    account_added: The bank account is added.
-    account_changed: The bank account is saved.
-    account_primary: The primary account is changed.
-    account_deleted: The bank account is deleted.
-    address_added: The address is added.
-    address_changed: The address is saved.
-    address_deleted: The address is deleted.
-    checks_refreshed: The register checks are updated.
-    checks_recent: 'The registers were checked recently ({time}), so these are their answers. They are asked again after 24 hours at the earliest.'
-    checks_rate_limited: Too many refreshes. Try again in a minute.
   error:
     required: Fill in this field.
     too_long: The value is too long.
-    kind: Choose the kind of contact.
     country: Choose a country from the list.
-    email: Enter a valid e-mail address.
     registration_number: Invalid registration number. Check the digits.
     vat_id: Invalid VAT ID. Enter for example CZ12345678.
-    company_identifier: A company needs a registration number or a VAT ID.
-    save_failed: The contact could not be saved. Check the details and try again.
     expired: The form has expired. Check the details and send it again.
-    due_days: Enter a whole number of days from 0 to 365.
-    choice: Choose one of the options.
-    hourly_rate: Enter a rate, such as 1500 or 1500.50.
+registry:
+  result:
+    valid: Valid in VIES
+    invalid: Not valid in VIES
+    reliable: Reliable VAT payer
+    unreliable: Unreliable VAT payer
+    not_registered: Not a registered VAT payer
+    unavailable: Register unavailable

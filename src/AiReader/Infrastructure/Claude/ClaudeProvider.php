@@ -10,8 +10,8 @@ namespace Foresi\AiReader\Infrastructure\Claude;
 
 use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 

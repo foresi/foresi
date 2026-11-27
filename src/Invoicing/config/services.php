@@ -11,7 +11,6 @@ use Foresi\Invoicing\Application\Api\RecurringWrites;
 use Foresi\Invoicing\Application\BilledWork;
 use Foresi\Invoicing\Application\BilledWorkRelease;
 use Foresi\Invoicing\Application\CancelPayment;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\CustomerCopies;
 use Foresi\Invoicing\Application\CustomerPicker;
 use Foresi\Invoicing\Application\DocumentLinks;
@@ -61,19 +60,26 @@ use Foresi\Invoicing\Application\SentFiles;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Application\UndoImportedDocuments;
+use Foresi\Invoicing\Contract\BankPayments;
+use Foresi\Invoicing\Contract\InvoiceNumbers;
 use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PayableInvoices;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWork;
 use Foresi\Invoicing\Infrastructure\CollectedBilledWorkRelease;
 use Foresi\Invoicing\Infrastructure\CollectedPaymentSourceRelease;
-use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineConflictRetry;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineBankPayments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineFirmInvoicingSettings;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineImportedDocuments;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceNumbers;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoicePayments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceSends;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineInvoiceStore;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailServers;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineMailTemplates;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineNumberCounter;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePartyInvoicingDefaults;
+use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePayableInvoices;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrinePublicDocuments;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineRecurringInvoices;
 use Foresi\Invoicing\Infrastructure\Doctrine\DoctrineSeriesCatalog;
@@ -126,9 +132,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // A country module plugs into invoicing with its rules.
     // Ports served by other modules; each collects its providers (ADR 0034, rule 3).
-    $builder->registerForAutoconfiguration(BilledWork::class)->addTag(BilledWork::TAG);
-    $builder->registerForAutoconfiguration(BilledWorkRelease::class)->addTag(BilledWorkRelease::TAG);
-    $builder->registerForAutoconfiguration(PaymentSourceRelease::class)->addTag(PaymentSourceRelease::TAG);
+    // Foresi\Invoicing\Contract\BilledWork, BilledWorkRelease and BankPaymentRelease are tagged by their own attribute.
 
     $services->set(InvoicingCountries::class)
         ->arg('$countries', tagged_iterator(InvoicingCountry::TAG));
@@ -137,6 +141,8 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
 
     // Mail goes out through the firm's own server. Named here so the test and e2e
     // environments can swap the gateway, and PHPStan, which reads the dev container, knows the ids.
+    $services->alias(PartyInvoicingDefaults::class, DoctrinePartyInvoicingDefaults::class);
+    $services->alias(InvoiceNumbers::class, DoctrineInvoiceNumbers::class);
     $services->alias(MailGateway::class, SymfonyMailGateway::class);
     $services->alias(MailServers::class, DoctrineMailServers::class);
     $services->alias(MailSecrets::class, SodiumMailSecrets::class);
@@ -159,6 +165,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
     $services->alias(InvoicePayments::class, DoctrineInvoicePayments::class);
     // A cancelled bank payment returns its movement to the unmatched ones.
     $services->alias(PaymentSourceRelease::class, CollectedPaymentSourceRelease::class);
+    // A module that owns bank movements pairs them with invoices through these.
+    $services->alias(BankPayments::class, DoctrineBankPayments::class);
+    $services->alias(PayableInvoices::class, DoctrinePayableInvoices::class);
     // Time is the work an invoice may bill; issuing it locks the time.
     $services->alias(BilledWork::class, CollectedBilledWork::class);
     // An invoice in the trash frees its time, and restoring it bills the time again.
@@ -208,7 +217,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias(InvoiceStore::class, DoctrineInvoiceStore::class)->public();
         $services->alias(InvoiceBalances::class, PaymentBalances::class)->public();
         $services->alias('test.invoice_balances', InvoiceBalances::class)->public();
-        $services->alias(ConflictRetry::class, DoctrineConflictRetry::class)->public();
         foreach ([
             IssueInvoice::class, EditInvoice::class, NewInvoiceDefaults::class, CustomerPicker::class, TrashInvoice::class,
             MarkDelivered::class, IssuedDocumentFactory::class, IssueRules::class, CustomerCopies::class, LinePricing::class,
@@ -249,6 +257,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias('e2e.issue_invoice', IssueInvoice::class)->public();
         $services->alias('e2e.send_invoice', SendInvoice::class)->public();
         $services->alias('e2e.link_tokens', LinkTokens::class)->public();
+        $services->alias('e2e.party_invoicing_defaults', PartyInvoicingDefaults::class)->public();
         $services->alias('e2e.record_payment', RecordPayment::class)->public();
         $services->alias('e2e.save_recurring', SaveRecurringInvoice::class)->public();
         $services->alias('e2e.recurring_lifecycle', RecurringLifecycle::class)->public();

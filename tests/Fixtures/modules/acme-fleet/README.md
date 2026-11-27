@@ -15,7 +15,7 @@ another vendor fails there. It is not installed in the repository otherwise.
   and the MCP tool `acme_fleet_add_vehicle`, scope `acme_fleet_vehicles:write`.
 - The read tool `acme_fleet_list_vehicles`, scope `acme_fleet_vehicles:read`.
 - The event `acme-fleet.vehicle.added`, and a listener of Party's
-  `party.contact.archived` that takes the archived contact off as a driver.
+  `contacts.contact.archived` that takes the archived contact off as a driver.
 - The setting `acme_fleet.max_vehicles` (bundle configuration, default 25).
 - Custom fields of a contact (`Domain/ContactExtra`, table
   `acme_fleet_contact_extra`, module API 1.4): an industry (a select), a contract

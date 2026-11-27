@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Domain;
 
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Schedule\Recurrence;
 
 /**

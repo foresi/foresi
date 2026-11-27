@@ -19,6 +19,10 @@ use Foresi\Invoicing\Application\RemindableInvoices;
 use Foresi\Invoicing\Application\ReminderPreview;
 use Foresi\Invoicing\Application\ReminderSettings;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
@@ -26,12 +30,9 @@ use Foresi\Invoicing\Domain\PaymentSource;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Id;
@@ -313,7 +314,7 @@ final class RemindableInvoicesTest extends InvoiceTestCase
     private function customerWithFlag(bool $send): Party
     {
         $party = $this->customer();
-        $party->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false, $send));
         $this->em->flush();
 
         return $party;

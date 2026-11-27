@@ -12,8 +12,6 @@ shared_with_me:
 work:
   inbox_action:
     create_task: Vytvořit úkol
-    log_time: Zapsat čas
-    add_to_budget: Přidat do rozpočtu projektu
   relation:
     projects: Projekty
   status:
@@ -39,11 +37,7 @@ work:
       project: Projekt
       watchers: Sledující
       estimate: Odhad
-      worked_on: Den
-      duration: Doba
-      note: Poznámka
-      billable: Fakturovatelné
-      task: Úkol
+      estimate_help: Třeba 5 h nebo 2h 30m.
     no_description: Bez popisu.
     no_subtasks: Zatím žádné podúkoly.
     subtasks: 'Podúkoly'
@@ -85,6 +79,7 @@ work:
     not_allowed: Tohle mohou jen lidé z organizace.
     name: Zadejte název, který není příliš dlouhý.
     client: Jako klienta vyberte existující kontakt.
+    client_unavailable: Tento Foresi nemá adresář, takže projekt nemá klienta.
     archived: Projekt je archivovaný. Nejdřív ho obnovte.
     parent: Podúkol patří pod úkol stejného projektu, který sám není podúkolem.
     responsible: Jako odpovědnou osobu vyberte aktivního člověka z organizace.
@@ -102,22 +97,8 @@ work:
     task_not_yours: Úkol smaže nebo obnoví jen jeho autor nebo vlastník organizace.
     parent_in_trash: Nejdřív je potřeba obnovit nadřazený úkol.
     share_person: Vyberte aktivního člověka z organizace, se kterým chcete sdílet.
-    duration: Zadejte čas jako 1:30, 1,5 nebo 1h 30m, alespoň minutu a nejvýš den, nebo začátek a konec po něm.
-    time_note: Poznámka může mít nejvýš 2 000 znaků.
-    time_task: Vyberte úkol tohoto projektu.
-    time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
-    time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
-    timer_running: Nejdřív zastavte časovač.
-    timer_not_running: Neběží žádný časovač.
-    time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
     estimate: Zadejte odhad alespoň minutu a nejvýš 9 999 hodin.
     date: Zadejte datum jako RRRR-MM-DD.
-    hours_invalid: Zadejte hodiny jako číslo s nejvýš dvěma desetinnými místy, třeba 8 nebo -2,5.
-    hours_zero: Zadejte jiný počet hodin než nulu.
-    budget_below_zero: Rozpočet projektu by klesl pod nulu.
-    budget_note: Poznámka může mít nejvýš 500 znaků.
-    budget_counting: Vyberte veškerý čas, nebo jen fakturovatelný.
-    source_not_on_project: Zdrojem musí být aktivita tohoto projektu.
     star_finished: Hotový úkol se do priorit nepřidává.
     star_order: Seřaďte všechny úkoly z Mých priorit, každý jednou.
     schedule: 'Opakování nedává smysl: zkontrolujte první datum, interval a konec.'
@@ -129,110 +110,6 @@ work:
     occurrence_created: 'Úkol pro tento den už je založený nebo jeho datum minulo.'
     no_date: 'Opakování už nedává žádné další datum.'
     custom_fields: 'Vlastní pole nejdou uložit: zkontrolujte jejich hodnoty.'
-  time:
-    title: Čas
-    log: Zapsat čas
-    edit: Upravit čas
-    edit_label: 'Upravit čas ze dne {date}'
-    delete: Smazat
-    delete_label: 'Smazat čas ze dne {date}'
-    none: Zatím žádný zapsaný čas.
-    hours: '{hours} h'
-    minutes: '{minutes} min'
-    total_of: '{total} z {estimate}'
-    running: Běží
-    billable: Fakturovatelné
-    invoiced: Vyfakturováno
-    invoice_time: Vyfakturovat čas
-    invoiced_by: 'Faktura {number}'
-    duration_help: Třeba 1:30, 1,5 nebo 1h 30m.
-    estimate_help: Třeba 5 h nebo 2h 30m.
-    logged: 'Zapsáno {duration}.'
-    edited: Čas je upravený.
-    stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
-    trash:
-      deleted: Čas je v koši.
-      restored: Čas je obnovený.
-      tasks: Úkoly
-      section: Čas
-      purge: '{days, plural, one {Úkoly a čas v koši se po # dni smažou natrvalo.} other {Úkoly a čas v koši se po # dnech smažou natrvalo.}}'
-      column:
-        worked_on: Den
-        person: Kdo
-        duration: Délka
-        task: Úkol
-    error:
-      worked_on: Zadejte den jako datum.
-      project: Vyberte projekt.
-      task: Vyberte úkol, nebo žádný.
-    timer:
-      start: Spustit časovač
-      stop: Zastavit časovač
-      stop_short: Zastavit
-      region: Běžící časovač
-      started: Časovač běží.
-    choose_project: Vyberte projekt
-    no_task: Bez úkolu, na projekt
-    pick_project: Zobrazit jeho úkoly
-    tab:
-      week: Týden
-      report: Výkaz
-    views: Pohledy na čas
-    previous_week: Předchozí týden
-    next_week: Další týden
-    this_week: Tento týden
-    week_range: '{from} – {until}'
-    week_total: 'Za týden'
-    today: Dnes
-    person: Osoba
-    person_me: Já
-    person_inactive: '{name} (neaktivní)'
-    report:
-      title: Výkaz
-      view:
-        all: Vše
-        this_month: Tento měsíc
-        last_month: Minulý měsíc
-      views: Pohledy na výkaz
-      group: Součty podle
-      by:
-        project: Projekt
-        person: Osoba
-        task: Úkol
-      totals:
-        project: Součty po projektech
-        person: Součty po lidech
-        task: Součty po úkolech
-      total: Celkem
-      billable_total: Fakturovatelné
-      unbillable_total: Nefakturovatelné
-      entries: Záznamy
-      column:
-        work: Práce
-        person: Osoba
-        date: Den
-        time: Čas
-      export: Exportovat CSV
-      file: vykaz-casu
-      archived: '{name} (archivovaný)'
-      empty_title: V tomto období žádný čas
-      empty_text: Zvolte jiný pohled nebo filtr, nebo zapište čas na úkol.
-      range_all: Celá doba
-      csv:
-        date: Datum
-        person: Osoba
-        client: Klient
-        project: Projekt
-        task: Úkol
-        minutes: Minuty
-        hours: Hodiny
-        billable: Fakturovatelné
-        note: Poznámka
-        decimal: ','
-        'yes': ano
-        'no': ne
-      search_label: Hledat ve výkazu
-    search_label: Hledat v záznamech času
   cancel: Zrušit
   save: Uložit
   history:
@@ -394,7 +271,7 @@ work:
     undo: Vrátit zpět
     restore: Obnovit
     restored: 'Úkol „{title}“ je obnovený.'
-    purge: '{days, plural, one {Úkoly v koši se po # dni smažou natrvalo.} other {Úkoly v koši se po # dnech smažou natrvalo.}}'
+    purge: '{days, plural, one {Co je v koši, se po # dni smaže natrvalo.} other {Co je v koši, se po # dnech smaže natrvalo.}}'
     subtask_of: 'Podúkol úkolu {title}'
     column:
       parent: Nadřazený úkol
@@ -403,6 +280,7 @@ work:
     empty:
       title: Koš je prázdný
       text: Smazané úkoly tu čekají, než zmizí natrvalo.
+    tasks: Úkoly
   labels:
     title: Štítky
     new: Nový štítek
@@ -575,7 +453,6 @@ work:
     field:
       archived: Archivovaný
       visibility: Kdo projekt vidí
-      billable: Fakturovat čas
       open_tasks: Otevřené úkoly
       overdue_tasks: Úkoly po termínu
       unassigned_tasks: Úkoly bez řešitele
@@ -604,7 +481,6 @@ work:
       list: Seznam
       board: Nástěnka
       activities: Aktivity
-      budget: Rozpočet
     field:
       name: Název
       client: Klient
@@ -612,61 +488,9 @@ work:
       client_placeholder: Napište jméno kontaktu
       client_empty: Žádný kontakt nenalezen
       description: Popis
-      billable: Fakturovat čas
-      billable_help: Nový zápis času na tomto projektu je předem fakturovatelný.
-      rate: Hodinová sazba
-      rate_help: Má přednost před sazbou klienta i člověka.
-      rate_currency: Měna
     error:
       name_required: Zadejte název projektu.
       workflow: Vyberte jeden z postupů.
-      rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
-  budget:
-    title: Časový rozpočet
-    fact: 'Rozpočet {budget, number} h · čerpáno {used, number} h · zbývá {left, number} h'
-    over: Přečerpáno
-    hours: '{hours, number} h'
-    signed_hours: '{hours, number, :: sign-always} h'
-    add: Přidat změnu
-    save: Uložit
-    added: Změna je přidaná do rozpočtu.
-    removed: Změna je z rozpočtu odebraná.
-    remove: Odebrat
-    remove_confirm:
-      title: 'Odebrat změnu {hours}?'
-      text: Odeberte změnu zadanou omylem. Správný rozpočet snížíte přidáním změny s minusem.
-    changes: Změny rozpočtu
-    source_activity: Aktivita
-    kpi:
-      budget: Rozpočet
-      used_all: Čerpáno (veškerý čas)
-      used_billable: Čerpáno (fakturovatelný čas)
-      left: Zbývá
-      estimate: Odhady úkolů
-    column:
-      effective_on: Datum
-      hours: Hodiny
-      note: Poznámka
-      source: Zdroj
-      author: Zadal(a)
-    field:
-      hours: Hodiny
-      hours_help: Plus nebo minus, třeba 8 nebo -2,5.
-      effective_on: Datum
-      note: Poznámka
-      note_placeholder: Třeba kdo hodiny schválil
-    empty:
-      title: Zatím žádný časový rozpočet
-      text: Přidejte hodiny schválené pro projekt. Přečerpání se ukáže, nikdy neblokuje.
-    counting:
-      open: Počítání
-      title: Který čas čerpá rozpočet
-      legend: Počítat
-      all: Veškerý čas
-      all_help: Fakturovatelný i nefakturovatelný čas.
-      billable: Jen fakturovatelný čas
-      billable_help: Nefakturovatelný čas, třeba práce za paušál, se nepočítá.
-      saved: Rozpočet počítá zvolený čas.
   workflow:
     simple: Jednoduchý
     simple_text: K udělání, Probíhá, Hotovo
@@ -909,18 +733,3 @@ inbox_action:
         responsibleId: Odpovědná osoba
         dueOn: Termín
         copyAttachments: Zkopírovat přílohy k úkolu
-      log_time:
-        projectId: Projekt
-        workedOn: Den práce
-        taskId: Úkol
-        minutes: Minuty
-        startedAt: Začátek
-        endedAt: Konec
-        note: Poznámka
-        billable: Fakturovatelné
-      add_to_budget:
-        projectId: Projekt
-        hours: Hodiny
-        minutes: Minuty
-        effectiveOn: Datum změny
-        note: Poznámka

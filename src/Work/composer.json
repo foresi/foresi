@@ -18,11 +18,10 @@
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
-        "openspout/openspout": "^5.12",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -54,7 +53,8 @@
             "bundle": "Foresi\\Work\\WorkBundle",
             "optional": [
                 "activities",
-                "inbox"
+                "inbox",
+                "contacts"
             ],
             "scopes": [
                 {
@@ -64,8 +64,7 @@
                 {
                     "resource": "tasks",
                     "guest": "write"
-                },
-                "time_entries"
+                }
             ]
         }
     }

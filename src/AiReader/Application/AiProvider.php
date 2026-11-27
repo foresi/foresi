@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\AiReader\Application;
 
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
 
 /**
  * One AI service that answers a question about a file with a JSON object. The

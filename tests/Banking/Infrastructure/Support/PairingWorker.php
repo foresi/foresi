@@ -10,6 +10,7 @@ namespace Foresi\Tests\Banking\Infrastructure\Support;
 
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\PairingRefused;
 use Foresi\Banking\Application\PairMovement;
@@ -18,12 +19,13 @@ use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Application\UnpairMovement;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\MovementTrust;
-use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\CancelPayment;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\IssueInvoice;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\Quantity;
@@ -33,12 +35,10 @@ use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -101,7 +101,7 @@ abstract class PairingWorker extends KernelTestCase
                 $ids[$notice][] = $record->record($input, $verified)->id();
             }
             if ($paired) {
-                $container->get(PairMovement::class)->pair($ids['first'][$i], [new AllocationRequest($invoice->id(), Money::of(self::AMOUNT, Currency::CZK))]);
+                $container->get(PairMovement::class)->pair($ids['first'][$i], [new Allocation($invoice->id(), Money::of(self::AMOUNT, Currency::CZK))]);
             }
         }
 
@@ -128,7 +128,7 @@ abstract class PairingWorker extends KernelTestCase
                 $results[] = match ($job) {
                     'auto-first' => null === $pairing->auto($ids['first'][$slot]) ? 'left' : 'paired',
                     'auto-second' => null === $pairing->auto($ids['second'][$slot]) ? 'left' : 'paired',
-                    'manual-first' => '' !== $pairing->pair($ids['first'][$slot], [new AllocationRequest($invoice, Money::of(self::AMOUNT, Currency::CZK))])->id() ? 'paired' : 'no id',
+                    'manual-first' => '' !== $pairing->pair($ids['first'][$slot], [new Allocation($invoice, Money::of(self::AMOUNT, Currency::CZK))]) ? 'paired' : 'no id',
                     'unpair-first' => self::unpaired($ids['first'][$slot]),
                     'cancel-first' => self::cancelled($ids['first'][$slot]),
                     default => throw new \InvalidArgumentException('Unknown job.'),

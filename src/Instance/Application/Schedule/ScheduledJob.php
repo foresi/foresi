@@ -14,7 +14,7 @@ class_alias(\Foresi\Instance\Contract\ScheduledJob::class, ScheduledJob::class);
 
 if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Instance\Contract\ScheduledJob instead
+     * @deprecated since module API 1.0, removed in 3.0, use \Foresi\Instance\Contract\ScheduledJob instead
      */
     interface ScheduledJob extends \Foresi\Instance\Contract\ScheduledJob
     {

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Identity;
 
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Shared\Infrastructure\Module\InstalledModules;
@@ -28,7 +29,8 @@ final class McpServerTest extends ApiTestCase
         'calendar' => ['foresi_create_calendar_feed', 'foresi_list_calendar_feeds', 'foresi_rename_calendar_feed', 'foresi_revoke_calendar_feed'],
         'cash-flow' => ['foresi_cash_flow_forecast', 'foresi_change_planned_item', 'foresi_clear_expected_date', 'foresi_create_planned_item', 'foresi_delete_planned_item', 'foresi_end_planned_item', 'foresi_list_pairings', 'foresi_list_planned_items', 'foresi_pair_document', 'foresi_record_balance_checkpoint', 'foresi_set_expected_date', 'foresi_set_minimum_balance', 'foresi_skip_planned_occurrence', 'foresi_unpair_document'],
         'catalog' => ['foresi_archive_product', 'foresi_create_product', 'foresi_get_product', 'foresi_restore_product', 'foresi_search_products', 'foresi_update_product'],
-        'documents' => ['foresi_add_document_signer', 'foresi_archive_document_template', 'foresi_archive_document_type', 'foresi_attach_signed_document_copy', 'foresi_cancel_document', 'foresi_create_document', 'foresi_create_document_template', 'foresi_create_document_type', 'foresi_generate_document', 'foresi_generate_document_again', 'foresi_get_document', 'foresi_get_document_template', 'foresi_list_document_templates', 'foresi_list_document_types', 'foresi_list_documents', 'foresi_mark_document_sent', 'foresi_mark_document_signer_declined', 'foresi_mark_document_signer_signed', 'foresi_remove_document_signer', 'foresi_restore_document', 'foresi_save_document_template_version', 'foresi_trash_document', 'foresi_update_document', 'foresi_update_document_signer', 'foresi_update_document_type'],
+        'contacts' => ['foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_link_contact_person', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
+        'document-templates' => ['foresi_add_document_signer', 'foresi_archive_document_template', 'foresi_archive_document_type', 'foresi_attach_signed_document_copy', 'foresi_cancel_document', 'foresi_create_document', 'foresi_create_document_template', 'foresi_create_document_type', 'foresi_generate_document', 'foresi_generate_document_again', 'foresi_get_document', 'foresi_get_document_template', 'foresi_list_document_templates', 'foresi_list_document_types', 'foresi_list_documents', 'foresi_mark_document_sent', 'foresi_mark_document_signer_declined', 'foresi_mark_document_signer_signed', 'foresi_remove_document_signer', 'foresi_restore_document', 'foresi_save_document_template_version', 'foresi_trash_document', 'foresi_update_document', 'foresi_update_document_signer', 'foresi_update_document_type'],
         'events' => ['foresi_list_event_types', 'foresi_list_events'],
         'exchange-rate' => ['foresi_get_exchange_rate_source', 'foresi_set_exchange_rate_source'],
         'identity' => ['foresi_update_profile', 'foresi_whoami'],
@@ -38,9 +40,9 @@ final class McpServerTest extends ApiTestCase
         'mail' => ['foresi_create_mail_address', 'foresi_list_mail_addresses', 'foresi_rename_mail_address', 'foresi_replace_mail_address', 'foresi_revoke_mail_address'],
         'margin' => ['foresi_assign_received_document', 'foresi_client_margin', 'foresi_client_margin_cell', 'foresi_get_document_allocation', 'foresi_get_planned_item_allocation', 'foresi_get_supplier_default_recipient', 'foresi_list_unrebilled_costs', 'foresi_pair_rebill_line', 'foresi_set_line_allocation', 'foresi_set_planned_item_allocation', 'foresi_set_rebill_link', 'foresi_set_supplier_default_recipient', 'foresi_unpair_rebill_line'],
         'meetings' => ['foresi_archive_meeting_series', 'foresi_create_meeting', 'foresi_create_meeting_action_item', 'foresi_create_meeting_series', 'foresi_get_meeting', 'foresi_list_meeting_series', 'foresi_restore_meeting', 'foresi_search_meetings', 'foresi_set_meeting_minutes', 'foresi_trash_meeting', 'foresi_update_meeting', 'foresi_update_meeting_series'],
-        'party' => ['foresi_add_firm_vat_status', 'foresi_archive_contact', 'foresi_create_contact', 'foresi_get_contact', 'foresi_get_firm', 'foresi_link_contact_person', 'foresi_remove_firm_vat_status', 'foresi_restore_contact', 'foresi_search_contacts', 'foresi_unlink_contact_person', 'foresi_update_contact'],
-        'purchasing' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_read_received_document_again', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_set_received_document_lines', 'foresi_trash_received_document', 'foresi_upload_received_document'],
-        'sales' => ['foresi_add_deal_line', 'foresi_add_deal_link', 'foresi_archive_deal_stage', 'foresi_archive_lost_reason', 'foresi_change_deal_stage', 'foresi_create_billing_entry', 'foresi_create_deal', 'foresi_create_deal_stage', 'foresi_create_follow_up_deal', 'foresi_create_lost_reason', 'foresi_delete_billing_entry', 'foresi_get_deal', 'foresi_link_billing_entry', 'foresi_list_deal_stages', 'foresi_lose_deal', 'foresi_remove_deal_line', 'foresi_remove_deal_link', 'foresi_reopen_deal', 'foresi_reorder_deal_lines', 'foresi_reorder_deal_stages', 'foresi_restore_deal', 'foresi_search_deals', 'foresi_trash_deal', 'foresi_unlink_billing_entry', 'foresi_update_billing_entry', 'foresi_update_deal', 'foresi_update_deal_line', 'foresi_update_deal_stage', 'foresi_update_lost_reason', 'foresi_win_deal'],
+        'party' => ['foresi_add_firm_vat_status', 'foresi_get_firm', 'foresi_remove_firm_vat_status'],
+        'received-documents' => ['foresi_add_received_document_payment', 'foresi_get_received_document', 'foresi_list_received_document_payments', 'foresi_mark_received_document_paid', 'foresi_read_received_document_again', 'foresi_record_received_document', 'foresi_remove_received_document_payment', 'foresi_search_received_documents', 'foresi_set_received_document_lines', 'foresi_trash_received_document', 'foresi_upload_received_document'],
+        'deals' => ['foresi_add_deal_line', 'foresi_add_deal_link', 'foresi_archive_deal_stage', 'foresi_archive_lost_reason', 'foresi_change_deal_stage', 'foresi_create_billing_entry', 'foresi_create_deal', 'foresi_create_deal_stage', 'foresi_create_follow_up_deal', 'foresi_create_lost_reason', 'foresi_delete_billing_entry', 'foresi_get_deal', 'foresi_link_billing_entry', 'foresi_list_deal_stages', 'foresi_lose_deal', 'foresi_remove_deal_line', 'foresi_remove_deal_link', 'foresi_reopen_deal', 'foresi_reorder_deal_lines', 'foresi_reorder_deal_stages', 'foresi_restore_deal', 'foresi_search_deals', 'foresi_trash_deal', 'foresi_unlink_billing_entry', 'foresi_update_billing_entry', 'foresi_update_deal', 'foresi_update_deal_line', 'foresi_update_deal_stage', 'foresi_update_lost_reason', 'foresi_win_deal'],
         'shared' => ['foresi_create_view', 'foresi_delete_view', 'foresi_get_view', 'foresi_list_fields', 'foresi_list_lists', 'foresi_list_modules', 'foresi_list_views', 'foresi_restore_default_views', 'foresi_update_view'],
         'taxes-and-contributions' => ['foresi_add_tax_status', 'foresi_get_tax_profile', 'foresi_remove_tax_status', 'foresi_set_tax_authority_account', 'foresi_set_tax_year', 'foresi_tax_amounts', 'foresi_tax_estimate'],
         'vat' => ['foresi_assign_vat_payment', 'foresi_clear_vat_return_amount', 'foresi_get_vat_period', 'foresi_reopen_vat_period', 'foresi_reset_vat_payment', 'foresi_set_vat_return_amount', 'foresi_set_vat_settings', 'foresi_settle_vat_period', 'foresi_vat_periods'],
@@ -293,6 +295,7 @@ final class McpServerTest extends ApiTestCase
 
     public function testASearchAnswersTheRestDataMarkedAsData(): void
     {
+        $this->needsTheAddressBook();
         $this->get('/api/v1/contacts');
         $rest = $this->at('data');
         $this->rpc('initialize', $this->initialize());
@@ -311,6 +314,7 @@ final class McpServerTest extends ApiTestCase
 
     public function testAnUnknownIdIsAnErrorResultTheModelCanReadAndABadDayAnInvalidCall(): void
     {
+        $this->needsTheAddressBook();
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
 
@@ -341,7 +345,7 @@ final class McpServerTest extends ApiTestCase
 
     public function testATokenListsOnlyTheToolsItsScopesAllow(): void
     {
-        $this->secret = $this->issued([ApiScope::from('contacts:read')]);
+        $this->secret = $this->issued([ApiScope::from('events:read')]);
 
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
@@ -350,11 +354,26 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        self::assertSame(['foresi_get_contact', 'foresi_get_firm', 'foresi_list_fields', 'foresi_list_modules', 'foresi_search_contacts', 'foresi_whoami'], $names);
+        self::assertSame(['foresi_list_event_types', 'foresi_list_events', 'foresi_list_fields', 'foresi_list_modules', 'foresi_whoami'], $names);
+    }
+
+    public function testTheFirmHasAScopeOfItsOwn(): void
+    {
+        $this->secret = $this->issued([ApiScope::from('firm:write')]);
+
+        $this->rpc('initialize', $this->initialize());
+        $this->notify('notifications/initialized');
+        $tools = $this->in($this->rpc('tools/list'), 'result', 'tools');
+        self::assertIsArray($tools);
+        $names = array_column($tools, 'name');
+        sort($names);
+
+        self::assertSame(['foresi_add_firm_vat_status', 'foresi_get_firm', 'foresi_list_fields', 'foresi_list_modules', 'foresi_remove_firm_vat_status', 'foresi_whoami'], $names);
     }
 
     public function testAContactsWriteTokenListsTheContactToolsAlone(): void
     {
+        $this->needsTheAddressBook();
         $this->secret = $this->issued([ApiScope::from('contacts:write')]);
 
         $this->rpc('initialize', $this->initialize());
@@ -364,17 +383,14 @@ final class McpServerTest extends ApiTestCase
         $names = array_column($tools, 'name');
         sort($names);
 
-        // contacts:write grants contacts:read, and nothing of invoices, payments, events or webhooks.
+        // contacts:write grants contacts:read, and nothing of the firm, invoices, payments, events or webhooks.
         self::assertSame([
-            'foresi_add_firm_vat_status',
             'foresi_archive_contact',
             'foresi_create_contact',
             'foresi_get_contact',
-            'foresi_get_firm',
             'foresi_link_contact_person',
             'foresi_list_fields',
             'foresi_list_modules',
-            'foresi_remove_firm_vat_status',
             'foresi_restore_contact',
             'foresi_search_contacts',
             'foresi_unlink_contact_person',
@@ -385,7 +401,7 @@ final class McpServerTest extends ApiTestCase
 
     public function testAToolOutsideTheScopesOfTheTokenGetsAnErrorResult(): void
     {
-        $this->secret = $this->issued([ApiScope::from('contacts:read')]);
+        $this->secret = $this->issued([ApiScope::from('firm:read')]);
 
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
@@ -401,11 +417,11 @@ final class McpServerTest extends ApiTestCase
         $this->rpc('initialize', $this->initialize());
         $this->notify('notifications/initialized');
 
-        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_delete_webhook_endpoint', 'arguments' => ['endpoint_id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
+        $call = $this->in($this->rpc('tools/call', ['name' => 'foresi_remove_firm_vat_status', 'arguments' => ['vat_status_id' => '01963c5e-0000-7000-8000-000000000001']]), 'result');
 
         self::assertTrue($this->in($call, 'isError'));
         self::assertSame('insufficient_scope', $this->in($call, 'structuredContent', 'error', 'code'));
-        self::assertSame('The token does not have the "webhooks:write" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
+        self::assertSame('The token does not have the "firm:write" scope.', $this->in($call, 'structuredContent', 'error', 'message'));
     }
 
     /**
@@ -514,5 +530,15 @@ final class McpServerTest extends ApiTestCase
         sort($tools);
 
         return $tools;
+    }
+
+    /**
+     * The contact tools are the contacts module's; a core without the address book has none.
+     */
+    private function needsTheAddressBook(): void
+    {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('Without the contacts module there are no contact tools.');
+        }
     }
 }

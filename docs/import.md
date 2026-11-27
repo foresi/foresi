@@ -76,7 +76,7 @@ The address book exports all or the filtered contacts as CSV (UTF-8 with a byte 
 Reading, checking, running and undoing happen in a worker, not in the web request. Without a running worker an import stays in its current step. Messages are stored in the database. The worker consumes the schedule's ticks (`scheduler_foresi`), the outgoing mail (`mail`, see [sending.md](sending.md)), the `async` transport and `registry`, at low priority, for the register re-checks:
 
 ```bash
-php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+php bin/console messenger:consume $(php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600
 ```
 
 The worker exits after an hour or at the memory limit, so run it under a supervisor that restarts it. With systemd (`/etc/systemd/system/foresi-worker@.service`):
@@ -89,7 +89,7 @@ After=network.target
 [Service]
 WorkingDirectory=/var/www/foresi
 Environment=APP_ENV=prod
-ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+ExecStart=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $$(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 Restart=always
 RestartSec=5
 User=www-data
@@ -102,7 +102,7 @@ Start one instance with `systemctl enable --now foresi-worker@1`. With superviso
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /var/www/foresi/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+command=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 directory=/var/www/foresi
 user=www-data
 environment=APP_ENV="prod"
@@ -157,6 +157,6 @@ Run the database migrations (`bin/console doctrine:migrations:migrate`) and star
 
 ### Upgrading to 0.4.0
 
-Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps in the changelog](../CHANGELOG.md#upgrading).
+Version 0.4.0 identifies every record by a UUID instead of a whole number, in a one-way migration. Follow the [upgrade steps of 0.4.0](upgrading.md#040-from-the-changelog).
 
 Links to imports (`/imports/<number>`) and to contacts that were saved or sent before the upgrade stop working; open them again from the lists.

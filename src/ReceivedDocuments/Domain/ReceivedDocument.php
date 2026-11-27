@@ -1,0 +1,788 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\ReceivedDocuments\Domain;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Foresi\Audit\Domain\Audited;
+use Foresi\Audit\Domain\AuditExcluded;
+use Foresi\Party\Domain\Party;
+use Foresi\Shared\Domain\Currency;
+use Foresi\Shared\Domain\Id;
+use Foresi\Shared\Domain\Money;
+
+/**
+ * A document a firm received: a supplier's invoice, a receipt, a credit note, an
+ * advance request or any other document of a cost (ADR 0028). It starts as a
+ * draft, usually an uploaded file, and is recorded once complete; every change
+ * is audited. Recording needs the evidence number of the firm's series, which
+ * the document keeps for good, apart from the number the supplier gave it.
+ *
+ * The supplier is a contact with a frozen copy of what the document says about
+ * it. The VAT recap holds the VAT per rate in the document's currency and in
+ * CZK; the totals beside it are its sums, kept for lists and reports. The
+ * deduction period and the latest deduction date follow from the treatment, the
+ * tax point and the received date on every save.
+ *
+ * The lines split the bases of the recap by what the cost was for; they are
+ * checked against the recap on every save (DocumentLines) and never change it.
+ *
+ * The original file is an attachment of the kind ATTACHMENT_KIND, named by id; a
+ * credit note names the document it corrects by id. The source says how the
+ * document came in and never changes. In the trash a document
+ * keeps its number and content and takes no change until it is restored.
+ */
+#[ORM\Entity]
+#[ORM\Table(name: 'received_document')]
+#[ORM\Index(name: 'idx_received_document_received', columns: ['received_date'])]
+#[ORM\Index(name: 'idx_received_document_deduction', columns: ['deduction_period'])]
+#[ORM\Index(name: 'idx_received_document_supplier', columns: ['supplier_id'])]
+#[ORM\Index(name: 'idx_received_document_original', columns: ['original_document_id'])]
+#[ORM\Index(name: 'idx_received_document_source_mail', columns: ['source_mail_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_received_document_evidence', columns: ['evidence_number'])]
+class ReceivedDocument implements Audited
+{
+    /** The owner kind of the original file in the attachment store. */
+    public const string ATTACHMENT_KIND = 'received_document';
+    public const int MAX_EVIDENCE_NUMBER_LENGTH = 64;
+    public const int MAX_SUPPLIER_NUMBER_LENGTH = 64;
+    public const int MAX_REASON_LENGTH = 500;
+    public const int MAX_SUPPLY_CODE_LENGTH = 8;
+    private const string VARIABLE_SYMBOL = '/^\d{1,10}$/D';
+    private const string SUPPLY_CODE = '/^[0-9A-Za-z]{1,8}$/D';
+
+    #[ORM\Id]
+    #[ORM\Column(type: 'guid')]
+    private string $id;
+
+    // Goes up with every save, so a form can tell it was opened before the last one. A technical
+    // value, so left out of the audit log: a save that changes nothing leaves no entry.
+    #[AuditExcluded]
+    #[ORM\Column(type: 'integer')]
+    private int $version = 1;
+
+    #[ORM\Column(type: 'string', length: 16, enumType: ReceivedDocumentState::class)]
+    private ReceivedDocumentState $state = ReceivedDocumentState::Draft;
+
+    #[ORM\Column(type: 'string', length: 32, enumType: ReceivedDocumentKind::class)]
+    private ReceivedDocumentKind $kind;
+
+    #[ORM\Column(type: 'string', length: 32, enumType: PurchaseTaxTreatment::class)]
+    private PurchaseTaxTreatment $treatment;
+
+    // Given when the document is first recorded; a draft has none.
+    #[ORM\Column(name: 'evidence_number', type: 'string', length: self::MAX_EVIDENCE_NUMBER_LENGTH, nullable: true)]
+    private ?string $evidenceNumber = null;
+
+    #[ORM\ManyToOne(targetEntity: Party::class)]
+    #[ORM\JoinColumn(name: 'supplier_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?Party $supplierParty;
+
+    #[ORM\Embedded(class: SupplierSnapshot::class, columnPrefix: 'supplier_')]
+    private SupplierSnapshot $supplier;
+
+    // The number the supplier gave the document, which the VAT reports name.
+    #[ORM\Column(name: 'supplier_document_number', type: 'string', length: self::MAX_SUPPLIER_NUMBER_LENGTH)]
+    private string $supplierNumber;
+
+    #[ORM\Column(name: 'variable_symbol', type: 'string', length: 10)]
+    private string $variableSymbol;
+
+    #[ORM\Column(name: 'issue_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $issueDate;
+
+    // The issue date when the document names no other; set so on recording.
+    #[ORM\Column(name: 'tax_point_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $taxPointDate;
+
+    #[ORM\Column(name: 'due_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $dueDate;
+
+    #[ORM\Column(name: 'received_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $receivedDate;
+
+    #[ORM\Column(type: 'string', length: 3, enumType: Currency::class, options: ['fixed' => true])]
+    private Currency $currency;
+
+    // What the document asks to be paid, in its currency.
+    #[ORM\Column(name: 'total_minor', type: 'bigint', nullable: true)]
+    private ?int $totalMinor;
+
+    #[ORM\Column(name: 'base_minor', type: 'bigint')]
+    private int $baseMinor;
+
+    #[ORM\Column(name: 'vat_minor', type: 'bigint')]
+    private int $vatMinor;
+
+    // NULL while a document in another currency has no exchange rate.
+    #[ORM\Column(name: 'base_czk_minor', type: 'bigint', nullable: true)]
+    private ?int $baseCzkMinor;
+
+    #[ORM\Column(name: 'vat_czk_minor', type: 'bigint', nullable: true)]
+    private ?int $vatCzkMinor;
+
+    // NULL while a document in another currency has none; always 1 on a CZK document.
+    #[ORM\Column(name: 'exchange_rate', type: 'string', length: ExchangeRate::MAX_LENGTH, nullable: true)]
+    private ?string $exchangeRate;
+
+    // The day the rate was published for, as its source says.
+    #[ORM\Column(name: 'exchange_rate_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $exchangeRateDate;
+
+    /** @var list<array{rate: string, base: int, vat: int, stated_vat_czk: ?int, base_czk: ?int, vat_czk: ?int}> */
+    #[ORM\Column(name: 'vat_recap', type: 'json')]
+    private array $vatRecap;
+
+    // The first day of the first month the VAT can be deducted in.
+    #[ORM\Column(name: 'deduction_period', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deductionPeriod;
+
+    #[ORM\Column(name: 'latest_deduction_date', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $latestDeductionDate;
+
+    // The code of the supply of a domestic reverse charge, for KH B.1; optional.
+    #[ORM\Column(name: 'supply_code', type: 'string', length: self::MAX_SUPPLY_CODE_LENGTH, nullable: true)]
+    private ?string $supplyCode;
+
+    #[ORM\Column(name: 'original_attachment_id', type: 'guid', nullable: true)]
+    private ?string $originalAttachmentId = null;
+
+    // Only a credit note names the received document it corrects.
+    #[ORM\Column(name: 'original_document_id', type: 'guid', nullable: true)]
+    private ?string $originalDocumentId;
+
+    #[ORM\Column(name: 'recorded_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $recordedAt = null;
+
+    #[ORM\Column(name: 'recorded_by', type: 'guid', nullable: true)]
+    private ?string $recordedBy = null;
+
+    #[ORM\Column(name: 'deleted_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
+    private ?string $deletedBy = null;
+
+    #[ORM\Column(name: 'deleted_reason', type: 'text', nullable: true)]
+    private ?string $deletedReason = null;
+
+    /** @var Collection<int, ReceivedDocumentLine> */
+    #[ORM\OneToMany(targetEntity: ReceivedDocumentLine::class, mappedBy: 'document', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['position' => 'ASC'])]
+    private Collection $lines;
+
+    /**
+     * A draft with these values; it checks what fits together, not what is missing.
+     *
+     * @throws ReceivedDocumentRefused when the values do not fit together
+     */
+    public function __construct(
+        ReceivedDocumentContent $content,
+        #[ORM\Column(name: 'created_by', type: 'guid', nullable: true)]
+        private readonly ?string $createdBy,
+        #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
+        private readonly \DateTimeImmutable $createdAt,
+        #[ORM\Column(type: 'string', length: 16, enumType: DocumentSource::class, options: ['default' => 'manual'])]
+        private readonly DocumentSource $source = DocumentSource::Manual,
+        // The Mail message a draft was filed from, set with the source Mail and never changed.
+        #[ORM\Column(name: 'source_mail_id', type: 'guid', nullable: true)]
+        private readonly ?string $sourceMailId = null,
+    ) {
+        $this->id = Id::generate();
+        $this->lines = new ArrayCollection();
+        $this->apply($content, false);
+    }
+
+    /**
+     * Saves a draft, complete or not.
+     *
+     * @throws ReceivedDocumentRefused in the trash, once recorded, or when the values do not fit together
+     */
+    public function saveDraft(ReceivedDocumentContent $content): void
+    {
+        $this->refuseTrashed();
+        if (ReceivedDocumentState::Recorded === $this->state) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::RECORDED);
+        }
+        $this->apply($content, false);
+        ++$this->version;
+    }
+
+    /**
+     * Records a draft, or saves a recorded document again; both need complete values.
+     *
+     * @throws ReceivedDocumentRefused in the trash, without an evidence number, or for values incomplete or not fitting together
+     */
+    public function record(ReceivedDocumentContent $content, ?string $userId, \DateTimeImmutable $at): void
+    {
+        $this->refuseTrashed();
+        if (null === $this->evidenceNumber) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::EVIDENCE_NUMBER_MISSING);
+        }
+        $this->apply($content, true);
+        if (ReceivedDocumentState::Draft === $this->state) {
+            $this->state = ReceivedDocumentState::Recorded;
+            $this->recordedAt = $at;
+            $this->recordedBy = $userId;
+        }
+        ++$this->version;
+    }
+
+    /**
+     * Refuses what record() would refuse but the missing evidence number, so a
+     * number is only taken for a document that can be recorded.
+     *
+     * @throws ReceivedDocumentRefused in the trash, or for values incomplete or not fitting together
+     */
+    public function checkRecordable(ReceivedDocumentContent $content): void
+    {
+        $this->refuseTrashed();
+        $this->refuseUnfit($content);
+        $this->refuseIncomplete($content);
+        $this->linesOf($content, $this->recapOf($content));
+    }
+
+    /**
+     * Replaces the lines; an empty list removes them. They split the recap as it
+     * stands. Lines that come out the same as the stored ones, once checked,
+     * change nothing, the version neither.
+     *
+     * @param list<ReceivedDocumentLineInput> $lines
+     *
+     * @return bool whether the lines changed
+     *
+     * @throws ReceivedDocumentRefused in the trash, or for lines that do not fit the recap
+     */
+    public function setLines(array $lines): bool
+    {
+        $this->refuseTrashed();
+        $checked = DocumentLines::check($lines, $this->vatRecap(), $this->total(), $this->currency);
+        if ($this->sameLines($checked)) {
+            return false;
+        }
+        $this->keepLines($checked);
+        ++$this->version;
+
+        return true;
+    }
+
+    /**
+     * Once, from the firm's evidence series, before the document is first recorded.
+     *
+     * @throws ReceivedDocumentRefused in the trash, when it has a number already, or for an empty or too long one
+     */
+    public function assignEvidenceNumber(string $number): void
+    {
+        $this->refuseTrashed();
+        if (null !== $this->evidenceNumber) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::EVIDENCE_NUMBER_FIXED);
+        }
+        $number = trim($number);
+        if ('' === $number || \strlen($number) > self::MAX_EVIDENCE_NUMBER_LENGTH) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::EVIDENCE_NUMBER_INVALID);
+        }
+        $this->evidenceNumber = $number;
+    }
+
+    /**
+     * Names the stored original file. A draft may take another one; a recorded
+     * document keeps the file it was recorded from.
+     *
+     * @throws ReceivedDocumentRefused in the trash, for an id that is none, or for another file once recorded
+     */
+    public function attachOriginal(string $attachmentId): void
+    {
+        $this->refuseTrashed();
+        if (!Id::isValid($attachmentId)) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::ORIGINAL_FILE_INVALID);
+        }
+        if ($attachmentId === $this->originalAttachmentId) {
+            return;
+        }
+        if (ReceivedDocumentState::Recorded === $this->state && null !== $this->originalAttachmentId) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::ORIGINAL_FILE_FIXED);
+        }
+        $this->originalAttachmentId = $attachmentId;
+        ++$this->version;
+    }
+
+    /**
+     * @throws ReceivedDocumentRefused when it is in the trash already, or without a usable reason
+     */
+    public function trash(\DateTimeImmutable $at, ?string $userId, string $reason): void
+    {
+        $this->refuseTrashed();
+        $reason = trim($reason);
+        if ('' === $reason) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::REASON_MISSING);
+        }
+        if (mb_strlen($reason) > self::MAX_REASON_LENGTH) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::REASON_TOO_LONG);
+        }
+        $this->deletedAt = $at;
+        $this->deletedBy = $userId;
+        $this->deletedReason = $reason;
+        ++$this->version;
+    }
+
+    /**
+     * The audit log keeps who deleted it, when and why.
+     */
+    public function restore(): void
+    {
+        if (!$this->isTrashed()) {
+            return;
+        }
+        $this->deletedAt = null;
+        $this->deletedBy = null;
+        $this->deletedReason = null;
+        ++$this->version;
+    }
+
+    public function id(): string
+    {
+        return $this->id;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
+    }
+
+    public function state(): ReceivedDocumentState
+    {
+        return $this->state;
+    }
+
+    public function isRecorded(): bool
+    {
+        return ReceivedDocumentState::Recorded === $this->state;
+    }
+
+    public function kind(): ReceivedDocumentKind
+    {
+        return $this->kind;
+    }
+
+    public function treatment(): PurchaseTaxTreatment
+    {
+        return $this->treatment;
+    }
+
+    public function evidenceNumber(): ?string
+    {
+        return $this->evidenceNumber;
+    }
+
+    public function supplierParty(): ?Party
+    {
+        return $this->supplierParty;
+    }
+
+    public function supplier(): SupplierSnapshot
+    {
+        return $this->supplier;
+    }
+
+    public function supplierNumber(): string
+    {
+        return $this->supplierNumber;
+    }
+
+    public function variableSymbol(): string
+    {
+        return $this->variableSymbol;
+    }
+
+    public function issueDate(): ?\DateTimeImmutable
+    {
+        return $this->issueDate;
+    }
+
+    public function taxPointDate(): ?\DateTimeImmutable
+    {
+        return $this->taxPointDate;
+    }
+
+    public function dueDate(): ?\DateTimeImmutable
+    {
+        return $this->dueDate;
+    }
+
+    public function receivedDate(): ?\DateTimeImmutable
+    {
+        return $this->receivedDate;
+    }
+
+    public function currency(): Currency
+    {
+        return $this->currency;
+    }
+
+    public function total(): ?Money
+    {
+        return null === $this->totalMinor ? null : Money::ofMinor($this->totalMinor, $this->currency);
+    }
+
+    public function base(): Money
+    {
+        return Money::ofMinor($this->baseMinor, $this->currency);
+    }
+
+    public function vat(): Money
+    {
+        return Money::ofMinor($this->vatMinor, $this->currency);
+    }
+
+    public function baseCzk(): ?Money
+    {
+        return null === $this->baseCzkMinor ? null : Money::ofMinor($this->baseCzkMinor, Currency::CZK);
+    }
+
+    public function vatCzk(): ?Money
+    {
+        return null === $this->vatCzkMinor ? null : Money::ofMinor($this->vatCzkMinor, Currency::CZK);
+    }
+
+    public function exchangeRate(): ?ExchangeRate
+    {
+        return null === $this->exchangeRate ? null : ExchangeRate::of($this->exchangeRate);
+    }
+
+    public function exchangeRateDate(): ?\DateTimeImmutable
+    {
+        return $this->exchangeRateDate;
+    }
+
+    public function vatRecap(): VatRecap
+    {
+        return VatRecap::fromArray($this->vatRecap, $this->currency);
+    }
+
+    /**
+     * The stored lines in their order; none when the document splits nothing.
+     *
+     * @return list<ReceivedDocumentLine>
+     */
+    public function lines(): array
+    {
+        $lines = $this->lines->toArray();
+        // Lines kept in place may have moved since they were loaded.
+        usort($lines, static fn (ReceivedDocumentLine $a, ReceivedDocumentLine $b): int => $a->position() <=> $b->position());
+
+        return $lines;
+    }
+
+    /**
+     * The stored lines, or one implicit line per rate of the recap, with their bases in CZK.
+     *
+     * @return list<LineView>
+     */
+    public function effectiveLines(): array
+    {
+        return DocumentLines::views($this->lines(), $this->vatRecap(), $this->total(), $this->exchangeRate(), $this->kind);
+    }
+
+    public function deductionPeriod(): ?\DateTimeImmutable
+    {
+        return $this->deductionPeriod;
+    }
+
+    public function latestDeductionDate(): ?\DateTimeImmutable
+    {
+        return $this->latestDeductionDate;
+    }
+
+    public function supplyCode(): ?string
+    {
+        return $this->supplyCode;
+    }
+
+    public function originalAttachmentId(): ?string
+    {
+        return $this->originalAttachmentId;
+    }
+
+    public function originalDocumentId(): ?string
+    {
+        return $this->originalDocumentId;
+    }
+
+    public function recordedAt(): ?\DateTimeImmutable
+    {
+        return $this->recordedAt;
+    }
+
+    public function recordedBy(): ?string
+    {
+        return $this->recordedBy;
+    }
+
+    public function isTrashed(): bool
+    {
+        return $this->deletedAt instanceof \DateTimeImmutable;
+    }
+
+    public function deletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function deletedBy(): ?string
+    {
+        return $this->deletedBy;
+    }
+
+    public function deletedReason(): ?string
+    {
+        return $this->deletedReason;
+    }
+
+    public function createdBy(): ?string
+    {
+        return $this->createdBy;
+    }
+
+    public function createdAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function source(): DocumentSource
+    {
+        return $this->source;
+    }
+
+    public function sourceMailId(): ?string
+    {
+        return $this->sourceMailId;
+    }
+
+    /**
+     * @throws ReceivedDocumentRefused
+     */
+    private function apply(ReceivedDocumentContent $content, bool $complete): void
+    {
+        $this->refuseUnfit($content);
+        if ($complete) {
+            $this->refuseIncomplete($content);
+        }
+        $rate = $this->rateOf($content);
+        $recap = $this->recapOf($content);
+        $lines = $this->linesOf($content, $recap);
+        // A tax point the document does not name is its issue date (ADR 0028).
+        $taxPoint = $complete ? ($content->taxPointDate ?? $content->issueDate) : $content->taxPointDate;
+        $deduction = DeductionDates::of($content->treatment, $taxPoint ?? $content->issueDate, $content->receivedDate);
+
+        $this->kind = $content->kind;
+        $this->treatment = $content->treatment;
+        $this->supplierParty = $content->supplierParty;
+        $this->supplier = $content->supplier;
+        $this->supplierNumber = trim($content->supplierNumber);
+        $this->variableSymbol = trim($content->variableSymbol);
+        // A new object for the same day would count as a change and reach the audit log. The
+        // first save runs in the constructor, before the dates hold anything, hence the ??.
+        $this->issueDate = $this->keepDay($this->issueDate ?? null, $content->issueDate);
+        $this->taxPointDate = $this->keepDay($this->taxPointDate ?? null, $taxPoint);
+        $this->dueDate = $this->keepDay($this->dueDate ?? null, $content->dueDate);
+        $this->receivedDate = $this->keepDay($this->receivedDate ?? null, $content->receivedDate);
+        $this->currency = $content->currency;
+        $this->totalMinor = $content->total?->minor();
+        $this->exchangeRate = $rate?->toString();
+        $this->exchangeRateDate = Currency::CZK === $content->currency ? null : $this->keepDay($this->exchangeRateDate ?? null, $content->exchangeRateDate);
+        $this->vatRecap = $recap->toArray();
+        $this->baseMinor = $recap->base()->minor();
+        $this->vatMinor = $recap->vat()->minor();
+        $this->baseCzkMinor = $recap->baseCzk()?->minor();
+        $this->vatCzkMinor = $recap->vatCzk()?->minor();
+        $this->deductionPeriod = $this->keepDay($this->deductionPeriod ?? null, $deduction->periodStart);
+        $this->latestDeductionDate = $this->keepDay($this->latestDeductionDate ?? null, $deduction->latestDate);
+        $this->originalDocumentId = $content->originalDocumentId;
+        $this->supplyCode = $this->supplyCodeOf($content);
+        if (null !== $content->lines) {
+            $this->keepLines($lines);
+        }
+    }
+
+    private function rateOf(ReceivedDocumentContent $content): ?ExchangeRate
+    {
+        return Currency::CZK === $content->currency ? ExchangeRate::one() : $content->exchangeRate;
+    }
+
+    /**
+     * @throws ReceivedDocumentRefused for a recap that does not fit the document
+     */
+    private function recapOf(ReceivedDocumentContent $content): VatRecap
+    {
+        return VatRecap::of($content->vatRecap, $content->currency, $this->rateOf($content), $content->treatment);
+    }
+
+    /**
+     * The given lines, or the stored ones, checked against the recap saved with them.
+     *
+     * @return list<ReceivedDocumentLineInput>
+     *
+     * @throws ReceivedDocumentRefused for lines that do not fit the recap
+     */
+    private function linesOf(ReceivedDocumentContent $content, VatRecap $recap): array
+    {
+        $lines = $content->lines ?? array_map(static fn (ReceivedDocumentLine $line): ReceivedDocumentLineInput => $line->toInput(), $this->lines());
+
+        return DocumentLines::check($lines, $recap, $content->total, $content->currency);
+    }
+
+    /**
+     * @param list<ReceivedDocumentLineInput> $lines checked ones
+     */
+    private function sameLines(array $lines): bool
+    {
+        $stored = $this->lines();
+        if (\count($stored) !== \count($lines)) {
+            return false;
+        }
+        foreach ($lines as $position => $line) {
+            $kept = $stored[$position];
+            if ($kept->id() !== $line->id || $kept->text() !== $line->text || !$kept->base()->equals($line->base) || $kept->vatRate() !== $line->vatRate) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Keeps the lines as checked ones say: a line with the id of a stored one
+     * rewrites it in place, so it keeps its id whatever else changes; any other
+     * line is new, and a stored line the list leaves out goes. The position is
+     * the order of the list.
+     *
+     * @param list<ReceivedDocumentLineInput> $lines
+     */
+    private function keepLines(array $lines): void
+    {
+        $stored = [];
+        foreach ($this->lines() as $line) {
+            $stored[$line->id()] = $line;
+        }
+        foreach ($lines as $position => $line) {
+            $kept = null !== $line->id ? ($stored[$line->id] ?? null) : null;
+            if ($kept instanceof ReceivedDocumentLine) {
+                $kept->rewrite($line, $position);
+                unset($stored[$line->id]);
+            } else {
+                $this->lines->add(new ReceivedDocumentLine(Id::generate(), $this, $position, $line->text, $line->base, $line->vatRate));
+            }
+        }
+        foreach ($stored as $gone) {
+            $this->lines->removeElement($gone);
+        }
+    }
+
+    /**
+     * What never fits together, in a draft or a recorded document.
+     *
+     * @throws ReceivedDocumentRefused
+     */
+    private function refuseUnfit(ReceivedDocumentContent $content): void
+    {
+        if (!$content->kind->carriesVat() && PurchaseTaxTreatment::NotVatDocument !== $content->treatment) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::TREATMENT_FOR_KIND);
+        }
+        // A simplified document is never allowed where the recipient owes the tax (ADR 0028).
+        if (ReceivedDocumentKind::SimplifiedReceipt === $content->kind && $content->treatment->isSelfAssessed()) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SIMPLIFIED_SELF_ASSESSED);
+        }
+        if (null !== $content->originalDocumentId) {
+            if (ReceivedDocumentKind::CreditNote !== $content->kind) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::ORIGINAL_NOT_CREDIT_NOTE);
+            }
+            if (!Id::isValid($content->originalDocumentId) || $content->originalDocumentId === $this->id) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::ORIGINAL_INVALID);
+            }
+        }
+        if (mb_strlen(trim($content->supplierNumber)) > self::MAX_SUPPLIER_NUMBER_LENGTH) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SUPPLIER_NUMBER_TOO_LONG);
+        }
+        $symbol = trim($content->variableSymbol);
+        if ('' !== $symbol && 1 !== preg_match(self::VARIABLE_SYMBOL, $symbol)) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::VARIABLE_SYMBOL);
+        }
+        if (Currency::CZK === $content->currency && $content->exchangeRate instanceof ExchangeRate && !$content->exchangeRate->isOne()) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::CZK_RATE_NOT_ONE);
+        }
+        if ($content->total instanceof Money && $content->total->currency() !== $content->currency) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::CURRENCY_MISMATCH);
+        }
+        $code = $this->supplyCodeOf($content);
+        if (null !== $code) {
+            // Only the supply the firm self-assesses at home has a code (KH B.1).
+            if (PurchaseTaxTreatment::DomesticReverseCharge !== $content->treatment) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SUPPLY_CODE_NOT_ALLOWED);
+            }
+            if (1 !== preg_match(self::SUPPLY_CODE, $code)) {
+                throw new ReceivedDocumentRefused(ReceivedDocumentRefused::SUPPLY_CODE_INVALID);
+            }
+        }
+    }
+
+    /**
+     * The code as given, without spaces around it; none for an empty one.
+     */
+    private function supplyCodeOf(ReceivedDocumentContent $content): ?string
+    {
+        $code = trim($content->supplyCode ?? '');
+
+        return '' === $code ? null : $code;
+    }
+
+    /**
+     * What a recorded document needs.
+     *
+     * @throws ReceivedDocumentRefused
+     */
+    private function refuseIncomplete(ReceivedDocumentContent $content): void
+    {
+        $missing = match (true) {
+            !$content->supplierParty instanceof Party => ReceivedDocumentRefused::SUPPLIER_MISSING,
+            !$content->issueDate instanceof \DateTimeImmutable => ReceivedDocumentRefused::ISSUE_DATE_MISSING,
+            !$content->receivedDate instanceof \DateTimeImmutable => ReceivedDocumentRefused::RECEIVED_DATE_MISSING,
+            !$content->total instanceof Money => ReceivedDocumentRefused::TOTAL_MISSING,
+            $content->kind->needsVatRecap() && [] === $content->vatRecap => ReceivedDocumentRefused::VAT_RECAP_MISSING,
+            ReceivedDocumentKind::CreditNote === $content->kind && null === $content->originalDocumentId => ReceivedDocumentRefused::ORIGINAL_MISSING,
+            Currency::CZK !== $content->currency && !$content->exchangeRate instanceof ExchangeRate => ReceivedDocumentRefused::EXCHANGE_RATE_MISSING,
+            default => null,
+        };
+        if (null !== $missing) {
+            throw new ReceivedDocumentRefused($missing);
+        }
+    }
+
+    private function refuseTrashed(): void
+    {
+        if ($this->isTrashed()) {
+            throw new ReceivedDocumentRefused(ReceivedDocumentRefused::TRASHED);
+        }
+    }
+
+    /**
+     * The given day without its time, or the stored object when it is the same day.
+     */
+    private function keepDay(?\DateTimeImmutable $stored, ?\DateTimeImmutable $given): ?\DateTimeImmutable
+    {
+        if (!$given instanceof \DateTimeImmutable) {
+            return null;
+        }
+        if ($stored instanceof \DateTimeImmutable && $stored->format('Y-m-d') === $given->format('Y-m-d')) {
+            return $stored;
+        }
+
+        return new \DateTimeImmutable($given->format('Y-m-d'));
+    }
+}

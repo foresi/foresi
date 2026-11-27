@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\InvoiceChange;
 use Foresi\Invoicing\Domain\TaxOnReceiptChoice;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What a save asks for, on a new invoice and on an edit alike. Dates are calendar

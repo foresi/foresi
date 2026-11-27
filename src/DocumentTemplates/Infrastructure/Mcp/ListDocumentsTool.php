@@ -1,0 +1,112 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\DocumentTemplates\Infrastructure\Mcp;
+
+use Foresi\DocumentTemplates\Application\DocumentFilter;
+use Foresi\DocumentTemplates\Application\DocumentReads;
+use Foresi\DocumentTemplates\Application\DocumentsRefused;
+use Foresi\DocumentTemplates\Domain\DocumentStatus;
+use Foresi\DocumentTemplates\Infrastructure\Api\DocumentsJson;
+use Foresi\Shared\Contract\Mcp\ReadTool;
+use Foresi\Shared\Contract\Mcp\StaffOnlyTool;
+use Foresi\Shared\Contract\Mcp\ToolOutput;
+use Foresi\Shared\Contract\Mcp\ToolRefusal;
+use Foresi\Shared\Contract\Mcp\ToolSchema;
+
+/**
+ * The documents, as GET /api/v1/documents writes them.
+ */
+final readonly class ListDocumentsTool implements ReadTool, StaffOnlyTool
+{
+    public function __construct(private DocumentReads $reads, private DocumentsJson $json)
+    {
+    }
+
+    public function name(): string
+    {
+        return 'foresi_list_documents';
+    }
+
+    public function title(): string
+    {
+        return 'List documents';
+    }
+
+    public function scope(): string
+    {
+        return 'documents:read';
+    }
+
+    public function description(): string
+    {
+        return 'Returns the documents not in the trash, newest first: {items} with the id, title, status, type, the days it was created, generated and completed, and trashed. '
+            .'Filter by type_id, status, or linked_kind with linked_id for the documents of a record, such as a contact. Page with limit and offset; trashed true lists the documents in the trash instead. '
+            .'foresi_get_document gives the links, signers, files and frozen values of one.';
+    }
+
+    public function staffOnly(): bool
+    {
+        return true;
+    }
+
+    public function inputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'type_id' => ToolSchema::idSchema('Only the documents of this type, from foresi_list_document_types.'),
+                'status' => ToolSchema::choiceSchema(array_column(DocumentStatus::cases(), 'value'), 'Only the documents in this status.'),
+                'linked_kind' => ['type' => 'string', 'description' => 'With linked_id: the kind of the record the documents are linked to, such as contact.'],
+                'linked_id' => ToolSchema::idSchema('With linked_kind: the id of the record.'),
+                'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => DocumentFilter::MAX_LIMIT, 'default' => 50, 'description' => 'How many to return at most.'],
+                'offset' => ['type' => 'integer', 'minimum' => 0, 'default' => 0, 'description' => 'How many of the newest to skip.'],
+                'trashed' => ['type' => 'boolean', 'default' => false, 'description' => 'True lists the documents in the trash instead of the others.'],
+            ],
+            'additionalProperties' => false,
+        ];
+    }
+
+    public function call(array $arguments): ToolOutput
+    {
+        try {
+            $documents = $this->reads->documents(
+                ToolSchema::text($arguments, 'type_id'),
+                ToolSchema::text($arguments, 'status'),
+                ToolSchema::text($arguments, 'linked_kind'),
+                ToolSchema::text($arguments, 'linked_id'),
+                $this->number($arguments, 'limit'),
+                $this->number($arguments, 'offset'),
+                ToolSchema::flag($arguments, 'trashed'),
+            );
+        } catch (DocumentsRefused $refused) {
+            throw ToolRefusal::of($refused);
+        }
+        $count = \count($documents);
+
+        return new ToolOutput(
+            ['items' => array_map($this->json->documentRow(...), $documents)],
+            1 === $count ? '1 document.' : \sprintf('%d documents, newest first.', $count),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $arguments
+     *
+     * @throws ToolRefusal for a value that is no integer
+     */
+    private function number(array $arguments, string $name): ?int
+    {
+        $value = $arguments[$name] ?? null;
+        if (null !== $value && !\is_int($value)) {
+            throw ToolRefusal::invalidArgument(\sprintf('The argument "%s" must be an integer.', $name));
+        }
+
+        return $value;
+    }
+}

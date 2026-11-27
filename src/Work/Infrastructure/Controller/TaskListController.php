@@ -32,6 +32,7 @@ use Foresi\Work\Application\TaskSearch;
 use Foresi\Work\Application\View\TaskLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Infrastructure\Column\MyTaskLine;
 use Foresi\Work\Infrastructure\Column\TaskColumns;
 use Foresi\Work\Infrastructure\Doctrine\TaskListDql;
@@ -76,6 +77,7 @@ final class TaskListController extends AbstractController
         private readonly WorkVisibility $visibility,
         private readonly People $people,
         private readonly CsrfTokenManagerInterface $tokens,
+        private readonly ?ProjectClients $projectClients = null,
     ) {
     }
 
@@ -96,9 +98,9 @@ final class TaskListController extends AbstractController
         $query = array_filter(['view' => $view->key, 'q' => '' === $text ? null : $text, 'sort' => $viewSort === $sort ? null : $sort, WorkingFilter::PARAM => $filterParam], static fn (?string $value): bool => null !== $value);
         // The quick filters, columns and grouping changed in the Settings sheet, kept in the address and for the person (spec D10, D-display-3).
         $context = ['manage' => $this->visibility->canManage()];
-        $working = $this->rememberedDisplay->read(TaskColumns::LIST, $context, $list->key, $view, $input->all(), groups: TaskLists::groupsOf($view->slug), filters: $list);
+        $working = $this->rememberedDisplay->read(TaskColumns::LIST, $context, $list->key, $view, $input->all(), groups: TaskLists::groupsOf($view->slug, $this->taskLists->hasClients()), filters: $list);
         $query += $working->query;
-        $group = $working->display->groupBy ?? TaskLists::groupsOf($view->slug)[0];
+        $group = $working->display->groupBy ?? TaskLists::groupsOf($view->slug, $this->taskLists->hasClients())[0];
 
         $page = max(1, $input->getInt('page', 1));
         $index = $this->queries->taskIndex(new TaskSearch($shown, $text, $sort, $group), ($page - 1) * self::PAGE, self::PAGE);
@@ -146,7 +148,10 @@ final class TaskListController extends AbstractController
         $text = $request->query->getString('q');
         $rows = $request->query->getBoolean('new') ? $this->queries->taskableProjects($text, self::MAX_LOOKUP) : $this->matching($text);
 
-        return $this->json(['results' => array_map(static fn (ProjectRow $row): array => ['id' => $row->id, 'label' => $row->name, 'hint' => $row->clientName ?? ''], $rows)]);
+        // A project's client is its hint where the address book is installed.
+        $clients = $this->projectClients instanceof ProjectClients;
+
+        return $this->json(['results' => array_map(static fn (ProjectRow $row): array => ['id' => $row->id, 'label' => $row->name, 'hint' => $clients ? $row->clientName ?? '' : ''], $rows)]);
     }
 
     /**
@@ -318,7 +323,8 @@ final class TaskListController extends AbstractController
 
         return [
             TaskLists::SOURCE_PROJECT => ['url' => $this->generateUrl('app_task_list_projects'), 'name' => static fn (string $id): ?string => $projects[$id] ?? null],
-            TaskLists::SOURCE_CONTACT => ['url' => $this->generateUrl('app_project_clients'), 'name' => static fn (string $id): ?string => $clients[$id] ?? null],
+            // The clients, only where the address book is installed.
+            ...$this->projectClients instanceof ProjectClients ? [TaskLists::SOURCE_CONTACT => ['url' => $this->projectClients->pickerUrl(), 'name' => static fn (string $id): ?string => $clients[$id] ?? null]] : [],
             TaskLists::SOURCE_PERSON => ['url' => $this->generateUrl(ProjectController::PEOPLE_ROUTE), 'name' => static fn (string $id): ?string => $people[$id] ?? null],
             TaskLists::SOURCE_LABEL => ['url' => $this->generateUrl('app_task_list_labels'), 'name' => static fn (string $id): ?string => $labels[$id] ?? null],
         ];
@@ -364,7 +370,7 @@ final class TaskListController extends AbstractController
             'resetHref' => $this->generateUrl(self::ROUTE, $kept + [WorkingDisplay::WIDTHS => '']),
             'modified' => $working->modified,
             'group' => $group,
-            'groups' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.group_by.'.$key)], TaskLists::groupsOf($view->slug)),
+            'groups' => array_map(fn (string $key): array => ['value' => $key, 'label' => $this->translator->trans('work.tasks.group_by.'.$key)], TaskLists::groupsOf($view->slug, $this->taskLists->hasClients())),
         ];
     }
 

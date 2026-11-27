@@ -10,7 +10,7 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Schedule\RecurrenceEnd;
 use Foresi\Tests\Invoicing\Application\RecurringTestCase;
 
