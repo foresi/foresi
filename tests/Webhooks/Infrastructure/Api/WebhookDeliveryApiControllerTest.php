@@ -31,7 +31,7 @@ final class WebhookDeliveryApiControllerTest extends WebhookApiTestCase
         self::assertSame([[$newest, $middle], [$older]], $this->pages(self::ENDPOINTS.'/'.$id.'/deliveries', 2));
 
         $this->get(self::ENDPOINTS.'/'.$id.'/deliveries');
-        self::assertSame('party.contact.created', $this->at('data', 2, 'event_type'));
+        self::assertSame('contacts.contact.created', $this->at('data', 2, 'event_type'));
         self::assertSame('failed', $this->at('data', 2, 'status'));
         self::assertSame(2, $this->at('data', 2, 'attempt_count'));
         self::assertSame('event', $this->at('data', 2, 'kind'));

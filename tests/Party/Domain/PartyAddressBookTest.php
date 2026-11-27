@@ -8,18 +8,14 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Party\Domain;
 
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\RegistryCheck;
 use Foresi\Party\Domain\RegistryResult;
 use Foresi\Party\Domain\RegistrySource;
 use Foresi\Party\Domain\VatId;
-use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\TestCase;
 
 final class PartyAddressBookTest extends TestCase
@@ -140,18 +136,14 @@ final class PartyAddressBookTest extends TestCase
         self::assertNull($party->registrationNumber());
     }
 
-    public function testNoteAndInvoicingDefaults(): void
+    public function testNote(): void
     {
         $party = $this->company();
 
         self::assertSame('', $party->privateNote());
-        self::assertEquals(InvoicingDefaults::standard(), $party->invoicingDefaults());
 
-        $defaults = new InvoicingDefaults(30, Currency::EUR, DocumentLanguage::English, PaymentMethod::Card, true);
-        $party->changeInvoicingDefaults($defaults);
         $party->changePrivateNote('Pays late');
 
-        self::assertSame($defaults, $party->invoicingDefaults());
         self::assertSame('Pays late', $party->privateNote());
     }
 

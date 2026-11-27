@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
@@ -29,6 +30,7 @@ final readonly class CustomerPicker
     public function __construct(
         private PartyQuery $parties,
         private PartyDetails $details,
+        private PartyInvoicingDefaults $defaults,
     ) {
     }
 
@@ -83,7 +85,7 @@ final readonly class CustomerPicker
             $party->registrationNumber()?->toString(),
             $party->vatId()?->toString(),
             $this->details->billingAddress($party)?->address() ?? new Address('', '', '', ''),
-            $party->invoicingDefaults(),
+            $this->defaults->of($party->id()),
             $email?->address(),
         );
     }

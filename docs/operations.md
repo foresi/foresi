@@ -110,9 +110,10 @@ start fresh after a deploy.
    ```
 
    The role is `owner`, `member` (a team member of the staff) or `guest` (someone
-   the organisation shares work with, who sees none of its modules). A guest
-   represents a contact of the organisation: pass its id with `--contact=<id>`.
-   A team member may pass their own person record the same way.
+   the organisation shares work with, who sees none of its modules). To link
+   the contact a person represents, pass its id with `--contact=<id>`; it is
+   optional for every role, a guest included, and a team member may pass their
+   own person record the same way.
 
 6. Sign in. With `APP_REQUIRE_2FA=true` the first sign-in asks to scan a QR code
    with an authenticator app and to keep the recovery codes. A user who loses
@@ -128,6 +129,15 @@ reminders, bank polling, exchange rates), domain events, outbound webhooks,
 imports and register checks; see the [background worker](development.md#background-worker). It must
 run all the time.
 
+The worker consumes the transports of the installed modules, which
+`bin/console app:worker:receivers` prints in the order the worker takes them:
+`scheduler_foresi mail events async`, then the transports a module brings
+along, then `registry`. The `webhooks` transport belongs to `foresi/webhooks`
+and exists only where that module is installed, so the commands below ask for
+the list instead of naming it; an instance without webhooks never consumes a
+`webhooks` queue. Run the command again after installing or removing a module,
+or restart the worker, which asks every time it starts.
+
 With systemd, use [`ops/systemd/foresi-worker@.service`](../ops/systemd/foresi-worker@.service):
 
 ```bash
@@ -142,7 +152,7 @@ supervisor:
 
 ```ini
 [program:foresi-worker]
-command=/usr/bin/php /srv/foresi/current/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+command=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 directory=/srv/foresi/current
 user=www-data
 environment=APP_ENV="prod"
@@ -153,7 +163,7 @@ autorestart=true
 stopwaitsecs=3600
 ```
 
-The `webhooks` transport carries one message per delivery attempt, and an attempt may take up to 15 s. The worker takes a transport only while the ones before it are empty, so `webhooks` comes after `async`: a slow receiver never holds up imports or the timed jobs. An installation with many endpoints runs a second worker with `messenger:consume webhooks --memory-limit=256M --time-limit=3600` (another `foresi-worker@` unit or supervisor program with that command) beside the first one; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
+Where `foresi/webhooks` is installed, the `webhooks` transport carries one message per delivery attempt, and an attempt may take up to 15 s. The worker takes a transport only while the ones before it are empty, so `webhooks` comes after `async`: a slow receiver never holds up imports or the timed jobs. An installation with many endpoints runs a second worker with `messenger:consume webhooks --memory-limit=256M --time-limit=3600` (another `foresi-worker@` unit or supervisor program with that command) beside the first one; the schedule's `webhook-sweep` (queues lost attempts again) and `webhook-delivery-prune` (deliveries older than 30 days) need the worker consuming `scheduler_foresi` as well. A webhook endpoint may not be in a private, loopback or link-local network, when saved and again when connecting, unless the operator sets `app.webhooks.allow_private_hosts: true` in `config/services.yaml`; the SSRF check and the retry schedule are in [ADR 0031](adr/0031-webhooks.md).
 
 On PostgreSQL more workers may run (`foresi-worker@2`, `numprocs=2`); on SQLite
 exactly one. Under **Ploi**, add a daemon (Server › Daemons) with the same
@@ -476,6 +486,32 @@ migrated before moves onto the baselines once, by its version rows alone:
 `app:migrations:rebase --check` changes nothing and tells the state by its
 exit code: 0 for a new database or one on the baselines, 2 for one on the
 global history, 1 otherwise.
+
+### Modules that change their name
+
+A migration is known by its class name, so a module that moves to another
+namespace would run its migrations again. `app:migrations:rename` gives the
+executed versions of such a module the new namespace, by their rows alone: in
+one transaction, with no DDL, and with no effect when nothing is left to
+rename. The map is `MigrationHistoryRename::RENAMES`: `Purchasing` became
+`ReceivedDocuments`, `Sales` became `Deals` and `Documents` became
+`DocumentTemplates`. `ops/deploy.sh` runs it before it looks at the
+migrations. `--check` changes nothing and tells the state by its exit code: 0
+when nothing is left to rename, 2 when a rename is due, 1 when the old and the
+new row of one version both exist (the deploy stops).
+
+### The address book as its own module
+
+The address book (the contact screens, their API and MCP tools) is the module
+`foresi/contacts`; Party, in the core, keeps the record of a contact and the
+firm. An instance that shows contacts installs `foresi/contacts`
+(`composer require foresi/contacts`); one without it keeps every stored
+contact, but has no Contacts item, no client on its projects and no contact
+link on its records. No table moves. A Party migration renames the stored
+events of a contact from `party.contact.*` to `contacts.contact.*` in the event
+log and the webhook deliveries, and gives an endpoint that took `party.*` the
+events of `contacts.*` too, on every instance. The token scope `contacts` stays
+Party's, so the firm's tools keep working without the address book.
 
 ## Monitoring
 

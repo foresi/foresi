@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+system_mail:
+  footer: 'Sent by {product}'
+  footer_organisation: 'Sent by {product} on behalf of {organisation}'

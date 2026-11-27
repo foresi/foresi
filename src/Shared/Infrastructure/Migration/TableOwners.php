@@ -20,7 +20,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * Which module owns each table (ADR 0034): the module whose migrations create
  * it. The migrations of the installed modules are played on an empty schema
  * in the order they run, without a database, so a table created with raw SQL
- * instead of the schema API has no owner either.
+ * instead of the schema API has no owner either. A table a migration renames
+ * (RenamesTables) belongs under its new name to the module of that migration.
  *
  * The problems are a table of the database that no installed module creates
  * (a table without an owner, or one of a module that is not installed) and an
@@ -45,10 +46,20 @@ final readonly class TableOwners
         $owners = [];
         foreach ($this->migrations->getMigrationRepository()->getMigrations()->getItems() as $available) {
             $module = $this->moduleOf((string) $available->getVersion());
+            $migration = $available->getMigration();
             $before = $this->tableNames($schema);
-            $available->getMigration()->up($schema);
+            $migration->up($schema);
             foreach (array_diff($this->tableNames($schema), $before) as $table) {
                 $owners[$this->unqualified($table)] = $module ?? (string) $available->getVersion();
+            }
+            if ($migration instanceof RenamesTables) {
+                $schema = self::renamed($schema, $migration);
+                foreach ($migration->renamedTables() as $from => $to) {
+                    if (isset($owners[$from])) {
+                        unset($owners[$from]);
+                        $owners[$to] = $module ?? (string) $available->getVersion();
+                    }
+                }
             }
         }
         ksort($owners, \SORT_STRING);
@@ -102,6 +113,23 @@ final readonly class TableOwners
         }
 
         return null;
+    }
+
+    /**
+     * The schema with the tables the migration renames under their new names.
+     */
+    public static function renamed(Schema $schema, RenamesTables $migration): Schema
+    {
+        $editor = $schema->edit();
+        $renamed = false;
+        foreach ($migration->renamedTables() as $from => $to) {
+            if ($schema->hasTable($from)) {
+                $editor->renameTableByUnquotedName($from, $to);
+                $renamed = true;
+            }
+        }
+
+        return $renamed ? $editor->create() : $schema;
     }
 
     /**

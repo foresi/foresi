@@ -14,6 +14,7 @@ use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
 use Foresi\Party\Domain\LegalEntity;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 

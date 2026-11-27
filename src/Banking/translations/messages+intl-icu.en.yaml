@@ -16,6 +16,7 @@ bank:
     tab:
       accounts: Accounts
       pairing: Payment pairing
+      addresses: Bank e-mail
     card:
       accounts: Bank accounts
     intro: The accounts your customers pay to. New invoices get the primary one.
@@ -208,6 +209,7 @@ bank:
       refused: The invoice refused the payment. Pair it by hand.
       account_currency: The movement is in another currency than its account. Check the account's currency.
       refund_amount_differs: The amount is not what is to refund
+      no_pairing: No invoicing installed, nothing to pair with
     action:
       pair: Pair
       unpair: Unpair
@@ -221,6 +223,8 @@ bank:
       not_checked_in_bank: This payment cannot be paired until you confirm you checked it in the bank.
       invoice_settled: 'This payment cannot be paired: the invoice is paid already.'
       not_paired: The payment is not paired, or not any more.
+      no_pairing: 'This payment cannot be paired: no invoicing is installed.'
+      unknown_document: 'This payment cannot be paired: the invoice no longer exists.'
     flash:
       paired: 'Paired with {numbers}.'
       undo: Undo

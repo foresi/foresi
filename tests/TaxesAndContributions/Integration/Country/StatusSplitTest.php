@@ -221,7 +221,7 @@ final class StatusSplitTest extends TaxesTestCase
     private function estimates(array $income): Estimates
     {
         $container = self::getContainer();
-        $sources = [new DatedAmountSource('invoicing.payments', $income), new DatedAmountSource('purchasing.payments')];
+        $sources = [new DatedAmountSource('invoicing.payments', $income), new DatedAmountSource('received-documents.payments')];
         $amounts = new Amounts($container->get(ProfileReads::class), $sources, $container->get(ExchangeRates::class), $container->get(InstanceClock::class), new NullLogger());
 
         return new Estimates($container->get(ProfileReads::class), $amounts, [new CzechSoleTrader()], $container->get(InstanceClock::class), [], new YearEndForecast($sources));

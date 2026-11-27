@@ -22,6 +22,7 @@ declare(strict_types=1);
  */
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
@@ -32,8 +33,8 @@ use Foresi\Invoicing\Application\LinkTokens;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\SendInvoice;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Kernel;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Application\RegistrationNumberFactory;
 use Foresi\Party\Domain\Address;
@@ -129,8 +130,10 @@ $mailSecrets = $container->get('e2e.mail_secrets');
 $issueInvoice = $container->get('e2e.issue_invoice');
 $sendInvoice = $container->get('e2e.send_invoice');
 $linkTokens = $container->get('e2e.link_tokens');
+$partyInvoicingDefaults = $container->get('e2e.party_invoicing_defaults');
 \assert($entityManager instanceof EntityManagerInterface);
 \assert($createParty instanceof CreateParty);
+\assert($partyInvoicingDefaults instanceof PartyInvoicingDefaults);
 \assert($registrationNumbers instanceof RegistrationNumberFactory);
 \assert($hashers instanceof PasswordHasherFactoryInterface);
 \assert($mailSecrets instanceof MailSecrets);

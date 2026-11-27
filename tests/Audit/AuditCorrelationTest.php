@@ -185,10 +185,17 @@ final class AuditCorrelationTest extends KernelTestCase
     }
 
     /**
+     * The entries of the records these tests write. Invoicing, where it is installed, keeps a
+     * contact's invoicing defaults in a row of its own made with the party; its entries are not
+     * what these tests are about.
+     *
      * @return list<AuditEntry>
      */
     private function entries(): array
     {
-        return $this->em->getRepository(AuditEntry::class)->findBy([], ['id' => 'ASC']);
+        return array_values(array_filter(
+            $this->em->getRepository(AuditEntry::class)->findBy([], ['id' => 'ASC']),
+            static fn (AuditEntry $entry): bool => !str_starts_with($entry->entityClass(), 'Foresi\\Invoicing\\'),
+        ));
     }
 }

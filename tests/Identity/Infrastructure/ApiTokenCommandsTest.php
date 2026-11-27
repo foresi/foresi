@@ -64,10 +64,10 @@ final class ApiTokenCommandsTest extends KernelTestCase
     {
         $tester = $this->tester('app:api-token:issue');
 
-        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--name' => 'Outreach', '--scope' => ['contacts:write']]));
+        self::assertSame(Command::SUCCESS, $tester->execute(['email' => IdentityFixtures::EMAIL, '--name' => 'Outreach', '--scope' => ['firm:write']]));
 
         $record = $this->tokens()->records()[0];
-        self::assertEquals([ApiScope::from('contacts:write')], $record->scopes);
+        self::assertEquals([ApiScope::from('firm:write')], $record->scopes);
         self::assertSame(90, $record->createdAt->diff($record->expiresAt)->days);
     }
 
@@ -91,7 +91,7 @@ final class ApiTokenCommandsTest extends KernelTestCase
      */
     public static function refusedIssues(): iterable
     {
-        yield 'bad scope' => [['--scope' => ['read', 'admin']], Command::INVALID, 'Unknown scope "admin", expected read, write, or a resource such as contacts:write.'];
+        yield 'bad scope' => [['--scope' => ['read', 'admin']], Command::INVALID, 'Unknown scope "admin", expected read, write, or a resource such as firm:write.'];
         yield 'undeclared resource' => [['--scope' => ['ledger:read']], Command::FAILURE, 'A scope names a resource no installed module declares'];
         yield 'unknown user' => [['email' => 'nobody@example.com'], Command::FAILURE, 'No user has this e-mail.'];
         yield 'no name' => [['--name' => ''], Command::FAILURE, 'Pass a name of 1 to 80 characters with --name.'];

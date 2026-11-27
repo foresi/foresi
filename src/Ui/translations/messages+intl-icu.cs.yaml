@@ -23,14 +23,6 @@ dashboard:
     debtors_empty: Žádný odběratel nic nedluží.
     pending: '{month} ještě není předané účetní ({count, plural, one {# doklad} few {# doklady} other {# dokladů}})'
     pending_link: Předat účetní
-registry:
-  result:
-    valid: Platné ve VIES
-    invalid: Neplatné ve VIES
-    reliable: Spolehlivý plátce DPH
-    unreliable: Nespolehlivý plátce DPH
-    not_registered: Není plátce DPH
-    unavailable: Rejstřík není dostupný
 nav:
   area:
     overview: Přehled
@@ -287,6 +279,10 @@ ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Ověřte
+  # A number of minutes, such as an estimate or the time logged: "2 h 30 min".
+  duration:
+    hours: '{hours} h'
+    minutes: '{minutes} min'
   empty_state:
     title: Zatím tu nic není
   # A value that is not filled in, in a list cell or on a detail page.
@@ -624,9 +620,6 @@ firm:
       email: Zadejte platný e-mail.
       save_failed: Nastavení se nepodařilo uložit. Zkuste to znovu.
 # The footer of mail the installation sends itself, such as invitations.
-system_mail:
-  footer: 'Odesláno systémem {product}'
-  footer_organisation: 'Odesláno systémem {product} jménem {organisation}'
 saved_view:
   save: Uložit
   save_to_view: Uložit do pohledu

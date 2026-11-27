@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 
 /**
  * What the send dialog opens with. The subject and body are filled in, in the

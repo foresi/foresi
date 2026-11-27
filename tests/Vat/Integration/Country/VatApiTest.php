@@ -107,7 +107,7 @@ final class VatApiTest extends ApiTestCase
         $data = $this->json()['data'];
         self::assertIsArray($data);
         self::assertSame([true, '2026-11', '2026-11-12', []], [$data['estimate'], $this->at('data', 'period', 'key'), $this->at('data', 'period', 'start'), $data['documents']]);
-        self::assertSame(['invoicing.issued_vat', 'purchasing.received_vat', 'invoicing.recurring_vat', 'cash-flow.planned_vat'], $data['restricted_sources'], 'A token with vat:write alone reads no invoice, received document nor planned item.');
+        self::assertSame(['invoicing.issued_vat', 'received-documents.received_vat', 'invoicing.recurring_vat', 'cash-flow.planned_vat'], $data['restricted_sources'], 'A token with vat:write alone reads no invoice, received document nor planned item.');
         self::assertSame([[], []], [$data['schedules'], $data['plans']]);
         self::assertSame([], $data['unavailable_sources']);
         self::assertSame(['deduction_before_registration'], $data['known_gaps']);

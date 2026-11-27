@@ -47,7 +47,7 @@ final readonly class DoctrinePaymentQueries implements PaymentQueries
             $where[] = 'p.source = :source';
             $parameters['source'] = [$filter->source, null];
         }
-        if ($filter->method instanceof \Foresi\Party\Domain\PaymentMethod) {
+        if ($filter->method instanceof \Foresi\Invoicing\Contract\PaymentMethod) {
             $where[] = 'p.method = :method';
             $parameters['method'] = [$filter->method, null];
         }

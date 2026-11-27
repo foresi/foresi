@@ -12,7 +12,7 @@ use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\IdokladRecord;
 use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Invoicing\Application\MailSecrets;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

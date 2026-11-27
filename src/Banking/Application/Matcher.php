@@ -11,10 +11,6 @@ namespace Foresi\Banking\Application;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\AllocationRequest;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\UnsupportedCountry;
-use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Money;
 
 /**
@@ -38,6 +34,9 @@ use Foresi\Shared\Domain\Money;
  * A small difference is settled only when the firm wants it, on one invoice, and
  * only up to the limit the firm's country gives in the currency: none, no settling.
  *
+ * Without a PaymentPairing nothing is paired: past the gate, every movement stays
+ * unmatched as one with nothing to pair with.
+ *
  * An outgoing movement refunds under the same gate, and only more narrowly: its
  * symbol picks exactly one invoice with something to refund, and the movement is
  * exactly what that invoice has to refund. No difference is settled on a refund;
@@ -47,7 +46,7 @@ use Foresi\Shared\Domain\Money;
  */
 final readonly class Matcher
 {
-    public function __construct(private Candidates $candidates, private InvoicingCountries $countries, private InstanceFirm $firm)
+    public function __construct(private Candidates $candidates, private PaymentPairing $pairing)
     {
     }
 
@@ -57,11 +56,7 @@ final readonly class Matcher
      */
     public function settlementLimit(BankMovement $movement): ?int
     {
-        try {
-            return $this->countries->for($this->firm->get()->address()->countryCode)->settlementLimit($movement->amount()->currency());
-        } catch (UnsupportedCountry) {
-            return null;
-        }
+        return $this->pairing->settlementLimit($movement->amount()->currency());
     }
 
     /**
@@ -83,7 +78,8 @@ final readonly class Matcher
     }
 
     /**
-     * Pure: the same movement, candidates, rules and limit always give the same decision.
+     * Pure: the same movement, candidates, rules and limit always give the same decision,
+     * once a PaymentPairing is installed or not.
      *
      * @param list<Candidate> $candidates      as candidates() gives them
      * @param ?int            $settlementLimit as settlementLimit() gives it
@@ -99,6 +95,9 @@ final readonly class Matcher
         $gate = $this->gate($movement, $rules);
         if ($gate instanceof UnmatchedReason) {
             return MatchDecision::unmatched($gate, $suggestions);
+        }
+        if (!$this->pairing->isAvailable()) {
+            return MatchDecision::unmatched(UnmatchedReason::NoPairing, []);
         }
         if (null === self::normalised($movement->variableSymbol())) {
             return MatchDecision::unmatched(UnmatchedReason::NoSymbol, []);
@@ -132,7 +131,7 @@ final readonly class Matcher
 
         $sum = array_sum(array_map(static fn (Candidate $candidate): int => $candidate->remaining->minor(), $eligible));
         if ($sum === $amount->minor()) {
-            return MatchDecision::pair(array_map(static fn (Candidate $candidate): AllocationRequest => new AllocationRequest($candidate->invoiceId, $candidate->remaining), $eligible));
+            return MatchDecision::pair(array_map(static fn (Candidate $candidate): Allocation => new Allocation($candidate->invoiceId, $candidate->remaining), $eligible));
         }
 
         return MatchDecision::unmatched(UnmatchedReason::Ambiguous, $suggestions);
@@ -173,20 +172,20 @@ final readonly class Matcher
             return MatchDecision::unmatched(UnmatchedReason::RefundAmountDiffers, $suggestions);
         }
 
-        return MatchDecision::pair([new AllocationRequest($eligible[0]->invoiceId, $amount)]);
+        return MatchDecision::pair([new Allocation($eligible[0]->invoiceId, $amount)]);
     }
 
     /**
      * The whole movement on one invoice, and the small difference settled when allowed.
      */
-    private function whole(Candidate $candidate, Money $amount, PairingRules $rules, ?int $settlementLimit): AllocationRequest
+    private function whole(Candidate $candidate, Money $amount, PairingRules $rules, ?int $settlementLimit): Allocation
     {
         $difference = $candidate->remaining->minor() - $amount->minor();
         if (0 !== $difference && $rules->smallDifference && null !== $settlementLimit && abs($difference) <= $settlementLimit) {
-            return new AllocationRequest($candidate->invoiceId, $amount, Money::ofMinor($difference, $amount->currency()));
+            return new Allocation($candidate->invoiceId, $amount, Money::ofMinor($difference, $amount->currency()));
         }
 
-        return new AllocationRequest($candidate->invoiceId, $amount);
+        return new Allocation($candidate->invoiceId, $amount);
     }
 
     /**

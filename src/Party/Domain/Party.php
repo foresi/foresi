@@ -63,9 +63,6 @@ class Party implements Audited
     #[ORM\Column(type: 'string', length: 255, options: ['default' => ''])]
     private string $website = '';
 
-    #[ORM\Embedded(class: InvoicingDefaults::class, columnPrefix: 'invoicing_')]
-    private InvoicingDefaults $invoicingDefaults;
-
     // The registry checks are plain nullable columns, like the registration number: the source is
     // implied by the column pair, and Doctrine cannot hydrate a never-checked embeddable as null.
     #[ORM\Column(name: 'vies_result', type: 'string', length: 32, nullable: true, enumType: RegistryResult::class)]
@@ -101,7 +98,6 @@ class Party implements Audited
         $this->rename($displayName);
         $this->setIdentifiers($registrationNumber, $vatId);
         $this->assignRoles($roles);
-        $this->invoicingDefaults = InvoicingDefaults::standard();
     }
 
     public function id(): string
@@ -174,11 +170,6 @@ class Party implements Audited
     public function privateNote(): string
     {
         return $this->privateNote;
-    }
-
-    public function invoicingDefaults(): InvoicingDefaults
-    {
-        return $this->invoicingDefaults;
     }
 
     public function viesCheck(): ?RegistryCheck
@@ -267,11 +258,6 @@ class Party implements Audited
     public function changePrivateNote(string $note): void
     {
         $this->privateNote = $note;
-    }
-
-    public function changeInvoicingDefaults(InvoicingDefaults $defaults): void
-    {
-        $this->invoicingDefaults = $defaults;
     }
 
     /**

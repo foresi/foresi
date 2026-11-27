@@ -69,7 +69,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         self::assertSame([['invoicing.recurring_vat', '2026-11-01', '2027-01-31 2026-11-20 Europe/Prague']], $this->reads->getArrayCopy(), 'The whole periods, with today in the instance\'s zone.');
         self::assertSame([], $this->asked->getArrayCopy(), 'CZK needs no rate.');
         self::assertSame([false, false], [$list->periods[1]->amounts->schedules[0]->fxToday, $list->periods[1]->amounts->schedules[0]->missingCzk]);
-        self::assertSame(['invoicing.issued_vat', 'purchasing.received_vat'], $list->unavailableSources);
+        self::assertSame(['invoicing.issued_vat', 'received-documents.received_vat'], $list->unavailableSources);
     }
 
     public function testAnEurTemplateCountsAtTodaysRate(): void
@@ -124,7 +124,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
             }
         };
 
-        $list = $this->with([$this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)]), $this->source('purchasing.received_vat', [])], [$failing, $this->schedules('other.schedules', [$this->scheduled('2026-11-30', Money::ofMinor(5, Currency::CZK))])])->list('2026-11', '2026-11');
+        $list = $this->with([$this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)]), $this->source('received-documents.received_vat', [])], [$failing, $this->schedules('other.schedules', [$this->scheduled('2026-11-30', Money::ofMinor(5, Currency::CZK))])])->list('2026-11', '2026-11');
 
         self::assertSame(['invoicing.recurring_vat'], $list->unavailableSources);
         self::assertSame(105, $list->periods[0]->result->minor());
@@ -153,7 +153,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         $list = $this->with([
             $this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 210_000, 0)]),
-            $this->source('purchasing.received_vat', [$this->document('purchasing.received_vat', '2026-11-01', '2026-11-24', 0, 21_000), $this->document('purchasing.received_vat', '2026-11-01', '2026-11-05', 0, 50_000)]),
+            $this->source('received-documents.received_vat', [$this->document('received-documents.received_vat', '2026-11-01', '2026-11-24', 0, 21_000), $this->document('received-documents.received_vat', '2026-11-01', '2026-11-05', 0, 50_000)]),
         ])->list('2026-11', '2026-12');
 
         [$november, $december] = $list->periods;
@@ -180,7 +180,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         $list = $this->with([], [])->list('2026-11', '2026-11');
 
-        self::assertSame(['invoicing.issued_vat', 'purchasing.received_vat', 'invoicing.recurring_vat'], $list->unavailableSources);
+        self::assertSame(['invoicing.issued_vat', 'received-documents.received_vat', 'invoicing.recurring_vat'], $list->unavailableSources);
         self::assertSame(0, $list->periods[0]->result->minor());
     }
 
@@ -190,7 +190,7 @@ final class VatPeriodDocumentsTest extends VatTestCase
         $failing = new class implements VatDocumentSource {
             public function key(): string
             {
-                return 'purchasing.received_vat';
+                return 'received-documents.received_vat';
             }
 
             public function mayReadDetails(): bool
@@ -208,19 +208,19 @@ final class VatPeriodDocumentsTest extends VatTestCase
 
         $list = $this->with([$failing, $this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 100, 0)])])->list('2026-11', '2026-11');
 
-        self::assertSame(['purchasing.received_vat'], $list->unavailableSources);
+        self::assertSame(['received-documents.received_vat'], $list->unavailableSources);
         self::assertSame(100, $list->periods[0]->result->minor());
-        self::assertSame([['The VAT of the documents of {source} could not be read.', 'purchasing.received_vat']], $this->logged->getArrayCopy());
+        self::assertSame([['The VAT of the documents of {source} could not be read.', 'received-documents.received_vat']], $this->logged->getArrayCopy());
     }
 
     public function testWithoutInvoicesReadThePeriodHasTotalsOnly(): void
     {
         $this->martin();
-        $received = $this->document('purchasing.received_vat', '2026-11-01', '2026-11-24', 0, 21_000);
+        $received = $this->document('received-documents.received_vat', '2026-11-01', '2026-11-24', 0, 21_000);
 
         $detail = $this->with([
             $this->source('invoicing.issued_vat', [$this->document('invoicing.issued_vat', '2026-11-20', '2026-11-20', 210_000, 0)], false),
-            $this->source('purchasing.received_vat', [$received]),
+            $this->source('received-documents.received_vat', [$received]),
         ])->get(' 2026-11 ');
 
         self::assertSame(['2026-11', 189_000], [$detail->period->period->key, $detail->period->result->minor()]);

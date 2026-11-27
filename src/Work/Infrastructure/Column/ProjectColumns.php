@@ -18,6 +18,7 @@ use Foresi\Work\Application\View\ProjectLists;
  * The columns of the projects index; each cell renders one ProjectIndexRow. The name
  * leads and stays. The server sorts by the name, a count or the next due date
  * (ProjectOrder); a count that counts any task opens them in the list of all tasks.
+ * The client's column is Work's Contacts integration's (ProjectClientColumns).
  */
 final readonly class ProjectColumns implements DataSource
 {
@@ -32,7 +33,6 @@ final readonly class ProjectColumns implements DataSource
 
         return [
             new Attribute('name', $label('name'), AttributeType::Text, static fn (ProjectIndexRow $row): string => $row->name, sort: 'p.name', defaultVisible: true, defaultPosition: 10, cell: static fn (ProjectIndexRow $row): string => $row->name, locked: true, truncate: true, filterable: true),
-            new Attribute('client', $label('client'), AttributeType::Reference, static fn (ProjectIndexRow $row): ?string => $row->client, defaultVisible: true, defaultPosition: 20, cell: static fn (ProjectIndexRow $row): ?array => null === $row->clientHref ? null : ['links' => [['text' => $row->client ?? '', 'href' => $row->clientHref]]], phone: false, truncate: true),
             new Attribute('open', $label('open'), AttributeType::Number, static fn (ProjectIndexRow $row): int => $row->openTasks, sort: ProjectOrder::OPEN, defaultVisible: true, defaultPosition: 30, cell: static fn (ProjectIndexRow $row): string|array => self::count($row->openTasks, $row->openHref)),
             new Attribute('overdue', $label('overdue'), AttributeType::Number, static fn (ProjectIndexRow $row): int => $row->overdueTasks, sort: ProjectOrder::OVERDUE, defaultVisible: true, defaultPosition: 32, cell: static fn (ProjectIndexRow $row): string|array => self::count($row->overdueTasks, $row->overdueHref)),
             new Attribute('unassigned', $label('unassigned'), AttributeType::Number, static fn (ProjectIndexRow $row): int => $row->unassignedTasks, sort: ProjectOrder::UNASSIGNED, defaultVisible: true, defaultPosition: 34, cell: static fn (ProjectIndexRow $row): string|array => self::count($row->unassignedTasks, $row->unassignedHref), phone: false),

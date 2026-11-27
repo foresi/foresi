@@ -93,7 +93,7 @@ final class InvoicingErrorsTest extends TestCase
         $refusal = new InvoicingNotAllowed();
         $other = new \RuntimeException('Something else.');
 
-        self::assertSame($refusal, $this->handle('app_purchasing_list', $refusal));
+        self::assertSame($refusal, $this->handle('app_received_document_list', $refusal));
         self::assertSame($refusal, $this->handle(null, $refusal));
         self::assertSame($refusal, $this->handle('app_recurring', $refusal));
         self::assertSame($refusal, $this->handle('api_v1_contacts', $refusal));

@@ -19,6 +19,7 @@ use Foresi\Identity\Domain\User;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Ui\UiBundle;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -162,7 +163,7 @@ final class ApiTokenSignInTest extends WebTestCase
     public function testATokenOfAnyScopeTellsWhatItIs(): void
     {
         $this->start();
-        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
+        $secret = $this->issued(scopes: [ApiScope::from('firm:write')]);
 
         $this->get($secret);
 
@@ -172,7 +173,7 @@ final class ApiTokenSignInTest extends WebTestCase
     public function testATokenWithoutTheScopeIsForbiddenAndToldWhichOne(): void
     {
         $this->start();
-        $secret = $this->issued(scopes: [ApiScope::from('contacts:write')]);
+        $secret = $this->issued(scopes: [ApiScope::from('firm:write')]);
 
         $this->client->request('GET', '/api/v1/events', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$secret]);
 
@@ -182,6 +183,9 @@ final class ApiTokenSignInTest extends WebTestCase
 
     public function testASignInOnTheScreensDoesNotReachTheApi(): void
     {
+        if (!class_exists(UiBundle::class)) {
+            self::markTestSkipped('Without Ui there is no sign-in on the screens (ADR 0038).');
+        }
         $this->start();
         $crawler = $this->client->request('GET', '/login');
         $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => IdentityFixtures::EMAIL, '_password' => IdentityFixtures::PASSWORD]));

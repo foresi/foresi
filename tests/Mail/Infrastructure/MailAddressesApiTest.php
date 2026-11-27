@@ -273,7 +273,7 @@ final class MailAddressesApiTest extends ApiTestCase
         $this->assertProblem(403, 'insufficient_scope');
         self::assertSame([], $this->em()->getRepository(InboundAddress::class)->findAll());
 
-        $this->get('/api/v1/mail/addresses', secret: $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/mail/addresses', secret: $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
     }
 

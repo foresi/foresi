@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Fixtures\PartyConsumer\Good;
 
-use Foresi\Party\Contract\ContactTabs;
+use Foresi\Contacts\Contract\ContactTabs;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\UnknownParty;

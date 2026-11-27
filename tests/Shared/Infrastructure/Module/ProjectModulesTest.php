@@ -71,7 +71,7 @@ final class ProjectModulesTest extends TestCase
             foreach ((array) ($composer['require'] ?? []) as $dependency => $constraint) {
                 // The module API has a version of its own, not the release's (ADR 0044).
                 if (ModuleApi::PACKAGE === $dependency) {
-                    self::assertSame('^1.0', $constraint, \sprintf('%s must require %s at ^1.0, the major this Foresi provides.', $package, $dependency));
+                    self::assertSame('^2.0', $constraint, \sprintf('%s must require %s at ^2.0, the major this Foresi provides.', $package, $dependency));
                 } elseif (str_starts_with((string) $dependency, 'foresi/')) {
                     self::assertSame('self.version', $constraint, \sprintf('%s must require %s at self.version.', $package, $dependency));
                 }
@@ -108,10 +108,13 @@ final class ProjectModulesTest extends TestCase
         'Foresi\\Audit\\Application\\AuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
         'Foresi\\Audit\\Application\\TokenAuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
         'Foresi\\Identity\\Contract\\GuestHome -> Foresi\\Work\\Infrastructure\\Identity\\SharedWorkGuestHome',
+        'Foresi\\Identity\\Contract\\PersonContactPicker -> Foresi\\Contacts\\Infrastructure\\Identity\\RoutedPersonContactPicker',
+        'Foresi\\Party\\Contract\\ContactPages -> Foresi\\Contacts\\Infrastructure\\Routing\\RoutedContactPages',
         'Foresi\\Shared\\Application\\ActorRole -> Foresi\\Identity\\Infrastructure\\Security\\MembershipActorRole',
         'Foresi\\Shared\\Application\\Api\\ApiClient -> Foresi\\Identity\\Infrastructure\\Security\\TokenApiClient',
         'Foresi\\Shared\\Application\\Api\\IdempotencyKeys -> Foresi\\Identity\\Infrastructure\\Idempotency\\DbalIdempotencyKeys',
         'Foresi\\Shared\\Application\\Api\\ScopeGuard -> Foresi\\Identity\\Infrastructure\\Security\\TokenScopeGuard',
+        'Foresi\\Shared\\Application\\ConflictRetry -> Foresi\\Audit\\Infrastructure\\Doctrine\\DoctrineConflictRetry',
         'Foresi\\Shared\\Application\\Event\\EventOutbox -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
         'Foresi\\Shared\\Contract\\Event\\EventRecorder -> Foresi\\Events\\Infrastructure\\Dbal\\DbalEventRecorder',
         'Foresi\\Shared\\Infrastructure\\Mcp\\ToolCaller -> Foresi\\Identity\\Infrastructure\\Console\\McpStdioSignIn',

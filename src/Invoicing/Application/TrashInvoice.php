@@ -13,7 +13,8 @@ use Foresi\Invoicing\Contract\Event\InvoiceRestored;
 use Foresi\Invoicing\Contract\Event\InvoiceTrashed;
 use Foresi\Invoicing\Domain\InvalidDeletionReason;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

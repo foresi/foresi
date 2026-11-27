@@ -20,6 +20,24 @@ declare(strict_types=1);
  *       2026-11-25 one file of 437 lines took a sixth of the whole run. The size of a file
  *       stands in for a file that was not measured, scaled to seconds by the files that were.
  *
+ *       With INFECTION_SHARD_BASE set (a pull request), the files are only the source files
+ *       that changed since that commit, and a file weighs what its changed lines cost: for
+ *       each changed line, the seconds of the tests that cover it, from the coverage in
+ *       INFECTION_SHARD_COVERAGE (the XML directory of PHPUnit). A full run's time does not
+ *       fit there: a few changed lines of a file cost a fraction of all its mutants, and a
+ *       new or moved file has no time yet. A mutant that escapes runs every test covering its
+ *       line, so a line that many slow tests reach is the dear one (PR #366: one new file of
+ *       102 lines was covered by 672 tests). No file can be a shard of its own changed lines
+ *       otherwise, so there may be fewer files than shards; a shard without files is empty.
+ *
+ *   bin/infection-shard base BASE FILES
+ *       Prints a commit to give Infection as --git-diff-base, so that --git-diff-lines finds
+ *       the changed lines of the files FILES lists and of no other. Infection takes either
+ *       paths or a git diff, not both, so the diff is narrowed instead: the commit has the
+ *       tree of HEAD with these files as they are at the merge base of BASE and HEAD (and
+ *       without them when they are new there). It has no parent, so Infection finds no merge
+ *       base with HEAD and compares with the commit itself.
+ *
  *   bin/infection-shard times LOG FILES [PREVIOUS]
  *       Prints the seconds the mutants of each source file took, as JSON, from the output of
  *       Infection with --teamcity in LOG. FILES lists the files of the shard, one per line;
@@ -32,7 +50,9 @@ declare(strict_types=1);
  *   bin/infection-shard merge DIRECTORY...
  *       Reads shard-INDEX.json (the Infection summary of a shard, from --logger-summary-json)
  *       and shard-INDEX.files.json (the manifest) from the directories, checks that every
- *       shard of the run is there, and enforces the two minimum scores over the total.
+ *       shard of the run is there, and enforces the two minimum scores over the total. An
+ *       empty shard has no summary and counts nothing; a run without mutants passes, as
+ *       Infection's --ignore-msi-with-no-mutations does.
  */
 
 const MIN_MSI = 80.0;
@@ -46,10 +66,11 @@ $command = array_shift($arguments);
 
 exit(match ($command) {
     'files' => files($root, $arguments),
+    'base' => base($root, $arguments),
     'merge' => merge($arguments),
     'times' => times($root, $arguments),
     'collect' => collect($arguments),
-    default => fail("Usage: bin/infection-shard files INDEX COUNT [PATH...] | merge DIRECTORY... | times LOG FILES [PREVIOUS] | collect DIRECTORY...\n"),
+    default => fail("Usage: bin/infection-shard files INDEX COUNT [PATH...] | base BASE FILES | merge DIRECTORY... | times LOG FILES [PREVIOUS] | collect DIRECTORY...\n"),
 });
 
 function fail(string $message): int
@@ -57,6 +78,169 @@ function fail(string $message): int
     fwrite(\STDERR, $message);
 
     return 1;
+}
+
+/**
+ * Runs a command in the root and returns what it printed, or null when it failed.
+ *
+ * @param list<string>          $command
+ * @param array<string, string> $env     added to the environment of this process
+ */
+function run(string $root, array $command, string $input = '', array $env = []): ?string
+{
+    $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $root, [] === $env ? null : array_merge(getenv(), $env));
+    if (!\is_resource($process)) {
+        return null;
+    }
+    fwrite($pipes[0], $input);
+    fclose($pipes[0]);
+    $output = (string) stream_get_contents($pipes[1]);
+    $errors = (string) stream_get_contents($pipes[2]);
+    if (0 !== proc_close($process)) {
+        fwrite(\STDERR, $errors);
+
+        return null;
+    }
+
+    return $output;
+}
+
+/**
+ * The merge base of BASE and HEAD, which Infection compares with too; BASE itself when
+ * there is none.
+ */
+function mergeBase(string $root, string $base): string
+{
+    $mergeBase = trim((string) run($root, ['git', 'merge-base', $base, 'HEAD']));
+
+    return '' === $mergeBase ? $base : $mergeBase;
+}
+
+/**
+ * The lines each added or modified file under src has since the commit, as Infection's
+ * --git-diff-lines reads them (git diff --diff-filter=AM --unified=0).
+ *
+ * @return array<string, list<int>>|null null when git fails
+ */
+function changedLines(string $root, string $commit): ?array
+{
+    $diff = run($root, ['git', '--no-pager', 'diff', $commit, '--no-ext-diff', '--no-color', '--unified=0', '--diff-filter=AM', '--', 'src']);
+    if (null === $diff) {
+        return null;
+    }
+    $lines = [];
+    $file = null;
+    foreach (explode("\n", $diff) as $line) {
+        if (str_starts_with($line, '+++ ')) {
+            $file = str_starts_with($line, '+++ b/') ? substr($line, 6) : null;
+            if (null !== $file) {
+                $lines[$file] ??= [];
+            }
+        } elseif (null !== $file && preg_match('/^@@ -\S+ \+(\d+)(?:,(\d+))? @@/', $line, $match)) {
+            $count = isset($match[2]) ? (int) $match[2] : 1;
+            for ($number = (int) $match[1]; $number < (int) $match[1] + $count; ++$number) {
+                $lines[$file][] = $number;
+            }
+        }
+    }
+
+    return $lines;
+}
+
+/**
+ * What the changed lines of each file cost: the seconds of the tests covering each line,
+ * added up. A file the coverage does not know costs nothing; none of its mutants runs a test.
+ *
+ * @param list<string>             $paths
+ * @param array<string, list<int>> $changed
+ *
+ * @return array<string, float>
+ */
+function coverageCosts(string $coverage, array $paths, array $changed): array
+{
+    $namespace = 'https://schema.phpunit.de/coverage/1.0';
+    $seconds = [];
+    $index = is_file("$coverage/index.xml") ? simplexml_load_file("$coverage/index.xml") : false;
+    if (false !== $index) {
+        $index->registerXPathNamespace('c', $namespace);
+        foreach ($index->xpath('//c:tests/c:test') ?: [] as $test) {
+            $seconds[(string) $test['name']] = (float) $test['time'];
+        }
+    }
+
+    $costs = [];
+    foreach ($paths as $path) {
+        $costs[$path] = 0.0;
+        $file = $coverage.'/'.preg_replace('#^src/#', '', $path).'.xml';
+        $xml = is_file($file) ? simplexml_load_file($file) : false;
+        if (false === $xml) {
+            continue;
+        }
+        $xml->registerXPathNamespace('c', $namespace);
+        $wanted = array_flip($changed[$path] ?? []);
+        foreach ($xml->xpath('//c:coverage/c:line') ?: [] as $line) {
+            if (!isset($wanted[(int) $line['nr']])) {
+                continue;
+            }
+            foreach ($line->children($namespace)->covered as $covered) {
+                // An element read in a namespace looks for its attributes there too; attributes() reads the plain ones.
+                $costs[$path] += $seconds[(string) $covered->attributes()['by']] ?? 0.0;
+            }
+        }
+    }
+
+    return $costs;
+}
+
+/**
+ * @param list<string> $arguments
+ */
+function base(string $root, array $arguments): int
+{
+    [$base, $list] = [$arguments[0] ?? '', $arguments[1] ?? ''];
+    if ('' === $base || !is_file($list)) {
+        return fail("Usage: bin/infection-shard base BASE FILES\n");
+    }
+    $files = array_values(array_filter(array_map('trim', file($list) ?: []), static fn (string $path): bool => '' !== $path));
+    if ([] === $files) {
+        return fail("$list lists no file.\n");
+    }
+    $mergeBase = mergeBase($root, $base);
+
+    // A file as it is at the merge base, or a removal (mode 0) when it is new since.
+    $entries = '';
+    foreach ($files as $file) {
+        $entry = run($root, ['git', 'ls-tree', $mergeBase, '--', $file]);
+        if (null === $entry) {
+            return fail("$file cannot be read at $mergeBase.\n");
+        }
+        $entries .= '' !== trim($entry) ? $entry : "0 0000000000000000000000000000000000000000\t$file\n";
+    }
+
+    // A separate index, so the checkout's own stays as it is.
+    $index = tempnam(sys_get_temp_dir(), 'infection-shard-index');
+    if (false === $index) {
+        return fail("No temporary index can be made.\n");
+    }
+    unlink($index);
+    $env = [
+        'GIT_INDEX_FILE' => $index,
+        'GIT_AUTHOR_NAME' => 'infection-shard', 'GIT_AUTHOR_EMAIL' => 'infection-shard@example.com',
+        'GIT_COMMITTER_NAME' => 'infection-shard', 'GIT_COMMITTER_EMAIL' => 'infection-shard@example.com',
+    ];
+    $commit = null;
+    if (null !== run($root, ['git', 'read-tree', 'HEAD'], '', $env)
+        && null !== run($root, ['git', 'update-index', '--index-info'], $entries, $env)
+        && null !== ($tree = run($root, ['git', 'write-tree'], '', $env))) {
+        $commit = run($root, ['git', 'commit-tree', trim($tree), '-m', 'The base of a mutation shard'], '', $env);
+    }
+    @unlink($index);
+    if (null === $commit) {
+        return fail("The base commit cannot be made.\n");
+    }
+    echo trim($commit), "\n";
+
+    return 0;
 }
 
 /**
@@ -74,14 +258,9 @@ function files(string $root, array $arguments): int
         [\PHP_BINARY, $root.'/vendor/bin/infection', 'config:list-sources', '--no-interaction'],
         array_slice($arguments, 2),
     );
-    $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $root);
-    if (!\is_resource($process)) {
-        return fail("Infection cannot be started.\n");
-    }
-    $output = (string) stream_get_contents($pipes[1]);
-    $errors = (string) stream_get_contents($pipes[2]);
-    if (0 !== proc_close($process)) {
-        return fail("Infection cannot list the source files.\n$output$errors");
+    $output = run($root, $command);
+    if (null === $output) {
+        return fail("Infection cannot list the source files.\n");
     }
 
     $paths = array_values(array_filter(array_map('trim', explode("\n", $output)), static fn (string $line): bool => '' !== $line));
@@ -89,7 +268,20 @@ function files(string $root, array $arguments): int
         return fail("Infection lists no source file.\n");
     }
 
-    $costs = costs($root, $paths, readTimes((string) getenv('INFECTION_SHARD_TIMES')));
+    $base = (string) getenv('INFECTION_SHARD_BASE');
+    if ('' !== $base) {
+        // The source files Infection mutates, of those changed: a change to a file it
+        // excludes (a controller, a migration) has nothing to mutate, nor has a file that
+        // only lost lines.
+        $changed = changedLines($root, mergeBase($root, $base));
+        if (null === $changed) {
+            return fail("The changed lines since $base cannot be read.\n");
+        }
+        $paths = array_values(array_filter($paths, static fn (string $path): bool => [] !== ($changed[$path] ?? [])));
+        $costs = coverageCosts((string) getenv('INFECTION_SHARD_COVERAGE'), $paths, $changed);
+    } else {
+        $costs = costs($root, $paths, readTimes((string) getenv('INFECTION_SHARD_TIMES')));
+    }
 
     // Longest processing time first: each file goes to the shard with the least so far. Ties
     // are broken by path, so every job that runs this on the same checkout and times gets the
@@ -99,14 +291,21 @@ function files(string $root, array $arguments): int
     $load = array_fill(1, $count, 0.0);
     $shards = array_fill(1, $count, []);
     foreach ($costs as $path => $cost) {
-        $target = array_search(min($load), $load, true);
+        // Of equal loads, the shard with fewer files: files that cost nothing (no test covers
+        // their changed lines) are spread too, instead of all going to the first shard.
+        $target = 1;
+        foreach ($load as $shard => $value) {
+            if ([$value, \count($shards[$shard])] < [$load[$target], \count($shards[$target])]) {
+                $target = $shard;
+            }
+        }
         $load[$target] += $cost;
         $shards[$target][] = $path;
     }
 
     $mine = $shards[$index];
     sort($mine);
-    echo implode("\n", $mine), "\n";
+    echo [] === $mine ? '' : implode("\n", $mine)."\n";
 
     $manifest = getenv('INFECTION_SHARD_MANIFEST');
     if (false !== $manifest && '' !== $manifest) {
@@ -270,7 +469,12 @@ function merge(array $directories): int
 
     // A shard that is missing would leave its files out of the score, so every shard from 1
     // to COUNT must be there. This also catches a job matrix that is smaller than the count.
+    $keys = ['totalMutantsCount', 'killedCount', 'notCoveredCount', 'escapedCount', 'errorCount', 'syntaxErrorCount', 'skippedCount', 'ignoredCount', 'timeOutCount'];
     for ($index = 1; $index <= $count; ++$index) {
+        // A shard of a pull request without files runs no Infection and has no summary.
+        if (isset($manifests[$index]) && [] === $manifests[$index]['files'] && !isset($summaries[$index])) {
+            $summaries[$index] = array_fill_keys($keys, 0) + ['msi' => 0, 'coveredCodeMsi' => 0];
+        }
         if (!isset($manifests[$index], $summaries[$index])) {
             return fail("Shard $index of $count is missing.\n");
         }
@@ -286,7 +490,7 @@ function merge(array $directories): int
         }
     }
 
-    $total = array_fill_keys(['totalMutantsCount', 'killedCount', 'notCoveredCount', 'escapedCount', 'errorCount', 'syntaxErrorCount', 'skippedCount', 'ignoredCount', 'timeOutCount'], 0);
+    $total = array_fill_keys($keys, 0);
     ksort($summaries);
     foreach ($summaries as $index => $stats) {
         printf("Shard %d: %d mutants, MSI %s%%, covered MSI %s%%\n", $index, $stats['totalMutantsCount'], $stats['msi'], $stats['coveredCodeMsi']);
@@ -304,6 +508,11 @@ function merge(array $directories): int
     $coveredMsi = $covered > 0 ? round(100 * $detected / $covered, PRECISION) : 0.0;
 
     printf("Total of %d shards, %d files: %d mutants, %d skipped, %d escaped, %d not covered\n", $count, \count($files), $total['totalMutantsCount'], $total['skippedCount'], $total['escapedCount'], $total['notCoveredCount']);
+    if (0 === $tested && 0 === $total['skippedCount']) {
+        echo "No mutant was tested, so there is no score to reach.\n";
+
+        return 0;
+    }
     printf("Mutation Score Indicator (MSI): %s%% (minimum %s%%)\n", $msi, MIN_MSI);
     printf("Covered Code MSI: %s%% (minimum %s%%)\n", $coveredMsi, MIN_COVERED_MSI);
 

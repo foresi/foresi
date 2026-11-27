@@ -10,12 +10,12 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Invoicing\Application\MailVariables;
 use Foresi\Invoicing\Application\RenderedMail;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\MailEncryption;
 use Foresi\Invoicing\Domain\MailTemplate;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Infrastructure\Http\TypedNumber;

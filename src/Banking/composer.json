@@ -15,9 +15,8 @@
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
-        "foresi/invoicing": "self.version",
         "foresi/mail": "self.version",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
@@ -47,7 +46,8 @@
             "namespace": "Foresi\\Banking\\",
             "bundle": "Foresi\\Banking\\BankingBundle",
             "optional": [
-                "cash-flow"
+                "cash-flow",
+                "invoicing"
             ]
         }
     }

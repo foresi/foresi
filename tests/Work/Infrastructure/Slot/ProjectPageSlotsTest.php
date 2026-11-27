@@ -12,6 +12,7 @@ use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
 use Foresi\Ui\Slot\SlotRegistry;
 use Foresi\Work\Application\ProjectSummary;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Contract\ProjectSlots;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
@@ -71,18 +72,28 @@ final class ProjectPageSlotsTest extends TestCase
         }
     }
 
+    public function testTheFormOfANewProjectNamesItsClientFieldWhereThereIsOne(): void
+    {
+        $form = [new SlotItem('@Example/_follow.html.twig', ['field' => 'example_flag']), new SlotItem(data: ['no' => 'template'])];
+
+        self::assertSame([['template' => '@Example/_follow.html.twig', 'data' => ['field' => 'example_flag', 'clientField' => null]]], $this->slots([], [], $form)->newForm());
+        self::assertSame([['template' => '@Example/_follow.html.twig', 'data' => ['field' => 'example_flag', 'clientField' => 'client']]], $this->slots([], [], $form, self::createStub(ProjectClients::class))->newForm());
+    }
+
     /**
      * @param list<SlotItem> $sections
      * @param list<SlotItem> $facts
+     * @param list<SlotItem> $form
      */
-    private function slots(array $sections, array $facts): ProjectPageSlots
+    private function slots(array $sections, array $facts, array $form = [], ?ProjectClients $clients = null): ProjectPageSlots
     {
-        $provider = new readonly class($sections, $facts) implements SlotProvider {
+        $provider = new readonly class($sections, $facts, $form) implements SlotProvider {
             /**
              * @param list<SlotItem> $sections
              * @param list<SlotItem> $facts
+             * @param list<SlotItem> $form
              */
-            public function __construct(private array $sections, private array $facts)
+            public function __construct(private array $sections, private array $facts, private array $form)
             {
             }
 
@@ -91,6 +102,7 @@ final class ProjectPageSlotsTest extends TestCase
                 return match ($slot) {
                     ProjectSlots::SECTIONS => $this->sections,
                     ProjectSlots::HEADER_FACTS => $this->facts,
+                    ProjectSlots::NEW_FORM => $this->form,
                     default => [],
                 };
             }
@@ -104,7 +116,7 @@ final class ProjectPageSlotsTest extends TestCase
             return '/projects/'.$id.(\is_string($tab) ? '?tab='.$tab : '');
         });
 
-        return new ProjectPageSlots(new SlotRegistry([$provider]), $urls);
+        return new ProjectPageSlots(new SlotRegistry([$provider]), $urls, $clients);
     }
 
     private function project(): ProjectSummary

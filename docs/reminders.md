@@ -49,7 +49,7 @@ While reminders are off, the settings page shows which first reminders the comin
 
 ## The contact flag
 
-The contact form has **Send reminders** in its invoicing panel, on by default. Like the other invoicing defaults it is shared by all firms or set per firm. With it off, the contact's invoices get no automatic reminder from that firm; a reminder by hand still goes.
+Each contact has **Payment reminders** among its invoicing defaults, on by default. Invoicing keeps the defaults of each contact in a table of its own (`invoicing_party_default`), beside the contact; the contact list shows them as columns and the iDoklad import takes the flag from iDoklad. With it off, the contact's invoices get no automatic reminder; a reminder by hand still goes.
 
 ## Reminders by hand
 

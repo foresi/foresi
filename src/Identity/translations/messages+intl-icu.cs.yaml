@@ -53,8 +53,8 @@ people:
     locale: Jazyk e-mailu
     locale_help: V tomto jazyce bude pozvánka napsaná
     contact: Kontakt
-    contact_help: Povinný pro hosta
-    contact_edit_help: Povinný pro hosta; prázdný kontakt odpojí
+    contact_help: Kontakt, který člověk zastupuje, pokud nějaký
+    contact_edit_help: Nepovinný; prázdný kontakt odpojí
     contact_placeholder: Začněte psát jméno
     contact_empty: Žádný kontakt nenalezen
     rate: Hodinová sazba
@@ -117,7 +117,7 @@ people:
     email: Zadejte platnou e-mailovou adresu.
     name: Zadejte jméno člověka.
     role: Vyberte člena týmu nebo hosta.
-    contact: Vyberte kontakt, který člověk zastupuje.
+    contact: Vyberte kontakt z adresáře.
     member: Tento člověk už do organizace patří.
     unknown: Tento člověk nebo pozvánka už neexistuje.
     not_pending: Tato pozvánka už byla přijata nebo zrušena.
@@ -170,6 +170,7 @@ api_tokens:
     resource_write: '{resource}: číst a měnit'
   resource:
     contacts: Kontakty
+    firm: Firma
     invoices: Faktury
     payments: Platby
     webhooks: Webhooky
@@ -179,7 +180,7 @@ api_tokens:
     profile: Váš profil
     cashflow: Cash flow
     catalog: Katalog
-    sales: Obchod
+    deals: Obchody
     taxes: Daně a odvody
     vat: DPH
     exchange_rates: Kurzy měn

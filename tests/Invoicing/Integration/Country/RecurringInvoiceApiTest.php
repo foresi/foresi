@@ -11,19 +11,20 @@ namespace Foresi\Tests\Invoicing\Integration\Country;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Invoicing\Application\IssueRecurringTemplate;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Shared\Domain\Currency;
@@ -547,8 +548,8 @@ final class RecurringInvoiceApiTest extends ApiTestCase
         return $this->flushed(function (): string {
             $em = $this->em();
             $customer = new Party(PartyKind::Company, 'Example Buyer GmbH', new RegistrationNumber('CZ', '27082440'), VatId::fromString('CZ27082440'), '+420 000 000 001');
-            $customer->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $em->persist($customer);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($customer->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $em->persist(new PartyAddress($customer, AddressType::Billing, new Address('Buyer Street 3', 'Buyer City', '300 00', 'CZ')));
             $em->persist(new PartyEmail($customer, 'buyer@example.com', EmailPurpose::Invoices));
 

@@ -37,7 +37,7 @@ final readonly class GetFirmTool implements ReadTool
 
     public function scope(): string
     {
-        return 'contacts:read';
+        return 'firm:read';
     }
 
     public function description(): string

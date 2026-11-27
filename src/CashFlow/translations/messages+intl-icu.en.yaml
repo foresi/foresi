@@ -99,7 +99,7 @@ cash_flow:
     cash_flow_planned_items: The planned items
     invoicing_invoices: The invoices
     invoicing_recurring_invoices: The recurring invoices
-    purchasing_received_documents: The received documents
+    received_documents_received_documents: The received documents
     banking_movements: The bank movements
   empty:
     no_firm_title: Set up the firm first

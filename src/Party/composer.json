@@ -1,6 +1,6 @@
 {
     "name": "foresi/party",
-    "description": "Address book of people and organisations.",
+    "description": "The party record: the people and organisations other modules name, and the firm of the instance.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",
@@ -14,9 +14,8 @@
         "doctrine/orm": "^3.7.5",
         "foresi/audit": "self.version",
         "foresi/instance": "self.version",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/shared": "self.version",
-        "foresi/ui": "self.version",
         "psr/clock": "^1.0",
         "psr/log": "^3.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
@@ -27,10 +26,9 @@
         "symfony/messenger": "^7.4.24",
         "symfony/rate-limiter": "7.4.*",
         "symfony/routing": "^7.4",
-        "symfony/serializer": "7.4.*",
         "symfony/service-contracts": "^3.8",
         "symfony/translation-contracts": "^3.8",
-        "symfony/validator": "7.4.*",
+        "twig/twig": "^3.30",
         "zircote/swagger-php": "^7.5"
     },
     "autoload": {
@@ -48,12 +46,10 @@
             "namespace": "Foresi\\Party\\",
             "bundle": "Foresi\\Party\\PartyBundle",
             "optional": [
-                "activities",
-                "documents",
-                "import"
+                "ui"
             ],
             "scopes": [
-                "contacts"
+                "firm"
             ]
         }
     }

@@ -291,6 +291,10 @@ What never pairs by itself:
 
 A movement pays through at most one live payment: the database refuses a second one.
 
+### Without Invoicing
+
+Banking runs without the Invoicing module: accounts, bank mail, statements and the movement list work as above, but nothing pays an invoice. Every movement past the gate (M0) stays unmatched with "No invoicing installed, nothing to pair with", the list offers no Pair or Unpair, the pair and unpair pages refuse with a message, and the notice of incoming payments waiting for a pairing is not shown. Installing Invoicing turns pairing on (its integration in `src/Banking/Integration/Invoicing/` is loaded); movements recorded before it stay unmatched until a person pairs them.
+
 A payment of an advance invoice, paired by itself or by a person, gets its tax document in the same step, as one recorded by hand does; see [invoicing.md](invoicing.md#advances). A tax document on payment is paid by that payment and is never a candidate. A final invoice that deducts advances asks only for its own total, which the deductions already lowered, so the advance's money is never counted twice. Unpairing a payment of an advance trashes its tax document while the customer has not got it, and corrects a delivered one.
 
 ### Outgoing refunds
@@ -420,5 +424,6 @@ Raw bank messages hold the names and account numbers of payers, the amounts, and
 - **New environment variables**, all empty by default, so bank mail stays off until set (they were called `BANK_INBOX_*` until the Mail module took them over, see [mail.md](mail.md#settings)): `MAIL_INBOUND_ADDRESS`, `MAIL_INBOUND_TRUSTED_AUTHSERV`, `MAIL_INBOUND_TRUSTED_ARC`, `MAIL_INBOUND_HOST`, `MAIL_INBOUND_PORT` (993), `MAIL_INBOUND_ENCRYPTION` (`ssl`), `MAIL_INBOUND_USER`, `MAIL_INBOUND_PASSWORD`, `MAIL_INBOUND_FOLDER` (`INBOX`), `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV`. Inbound addresses also need `MAIL_SECRET_KEYS`.
 - **The settings were renamed** from `BANK_INBOX_*` to `MAIL_INBOUND_*`, one for one. The old names still work for one more release and log a deprecation warning; rename them in `.env.local` or the service environment. `INBOUND_WEBHOOK_SECRET` and `INBOUND_WEBHOOK_TRUSTED_AUTHSERV` keep their names. The operator task `bank-inbox` is now `mail-inbox`.
 - **Statements (module API 1.2).** The migration adds the table `bank_statement` and gives every movement a channel and a source: `mail` and the parser that read its message, or `mail` when none is known. `Foresi\Banking\Domain\MessageTrust` is now `Foresi\Banking\Contract\MovementTrust`, the trust scale of every channel; Domain is internal, so a module that used the old name moves to the contract one.
+- **Banking without Invoicing.** `foresi/banking` no longer requires `foresi/invoicing`; the payment side of pairing is Banking's integration with it. A country module that writes accounts its own way or keeps its bank days in its own time zone implements `Foresi\Banking\Contract\BankingCountry` (tag `foresi.banking.country`); Banking no longer reads `InvoicingCountry` for that. A module that implemented Invoicing's internal `PaymentSourceRelease` implements `Foresi\Invoicing\Contract\BankPaymentRelease` instead, by the ids of the movement and the payment.
 - Include `inbound-mail` in backups.
 - The worker command is unchanged.

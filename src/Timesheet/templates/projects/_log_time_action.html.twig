@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# "Log time" in the header of a project's list and board (Work's ProjectSlots::HEADER_ACTIONS): a button, and an item of "⋯" on a phone. #}
+{% if place|default('') == 'buttons' %}
+    <twig:Ui:Button icon="clock-3" :href="path('app_project_time_new', {id: projectId})" data-dialog aria-haspopup="dialog" data-project-time-new>{{ 'timesheet.time.log'|trans }}</twig:Ui:Button>
+{% elseif place|default('') == 'phone' %}
+    <twig:Ui:MenuItem icon="clock-3" :href="path('app_project_time_new', {id: projectId})" data-dialog aria-haspopup="dialog">{{ 'timesheet.time.log'|trans }}</twig:Ui:MenuItem>
+{% endif %}

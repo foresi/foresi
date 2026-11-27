@@ -65,7 +65,7 @@ final readonly class ForecastScreen
     public const array RECORDS = [
         'invoice' => 'app_invoice_show',
         'recurring_invoice' => 'app_recurring_show',
-        'received_document' => 'app_purchasing_document',
+        'received_document' => 'app_received_document',
         'planned_item:in' => 'app_cash_flow_planned_income_item',
         'planned_item:out' => 'app_cash_flow_planned_costs_item',
     ];
@@ -76,7 +76,7 @@ final readonly class ForecastScreen
      * invoice is dated on the deal's billing plan.
      */
     public const array DAYS = [
-        'deal_billing_entry' => 'app_sales_billing_entry_day',
+        'deal_billing_entry' => 'app_deal_billing_entry_day',
     ];
 
     /** Where an item that is no record is read: a page of its own, which closes the sheet. */
@@ -86,7 +86,7 @@ final readonly class ForecastScreen
 
     /** Where an item is read on the page of the record it belongs to, by its own id, which closes the sheet: a planned invoice on its deal. */
     private const array OWNER_PAGES = [
-        'deal_billing_entry' => 'app_sales_billing_entry',
+        'deal_billing_entry' => 'app_deal_billing_entry',
     ];
 
     public function __construct(

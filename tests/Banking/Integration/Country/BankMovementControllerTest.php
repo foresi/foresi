@@ -17,6 +17,7 @@ use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Application\View\Condition;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\BankInvoices;
 use Foresi\Tests\Banking\Support\BankScreenTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\Scalars;
@@ -33,6 +34,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class BankMovementControllerTest extends BankScreenTestCase
 {
+    use BankInvoices;
+
     public function testTabsListTheRightMovementsAndFilterByAccount(): void
     {
         $this->signedIn();

@@ -14,23 +14,23 @@ use Foresi\Work\Application\Comments;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageTasks;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\Projects;
-use Foresi\Work\Application\TimeEntryRow;
-use Foresi\Work\Application\TimeQueries;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Application\WorkUnit;
 use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 
 /**
- * The writes of projects, tasks, comments and time over the API and MCP (ADR
+ * The writes of projects, tasks and comments over the API and MCP (ADR
  * 0032). Each runs the use cases the screens run, so WorkVisibility decides
  * who may, and in one unit of work: a call that changes several fields of a
  * task is saved whole or not at all, and is one step of its history. Every
- * method answers the id of what to read back.
+ * method answers the id of what to read back. Without the address book
+ * (ProjectClients) a project has no client: a write that names one is refused,
+ * while the reads still return the client a project keeps.
  */
 final readonly class WorkWrites
 {
@@ -38,13 +38,12 @@ final readonly class WorkWrites
         private ManageTasks $tasks,
         private ManageProjects $projects,
         private ManageComments $comments,
-        private ManageTime $time,
         private WorkQueries $queries,
-        private TimeQueries $timeQueries,
         private Comments $commentStore,
         private WorkUnit $unit,
         private Projects $store,
         private WorkVisibility $visibility,
+        private ?ProjectClients $clients = null,
     ) {
     }
 
@@ -193,6 +192,8 @@ final readonly class WorkWrites
      */
     public function createProject(CreateProjectInput $input, ?array $customFields = null): string
     {
+        $this->unlessClientUnavailable($input->clientId);
+
         return $this->named(fn (): \Foresi\Work\Domain\Project => $this->projects->create($input->name, $input->clientId, WorkflowTemplate::from($input->workflow), $input->description, $customFields))->id();
     }
 
@@ -204,6 +205,9 @@ final readonly class WorkWrites
      */
     public function updateProject(UpdateProjectInput $input, ?array $customFields = null): string
     {
+        if (!$input->clientId instanceof Omitted) {
+            $this->unlessClientUnavailable($input->clientId);
+        }
         $project = $this->queries->project($input->projectId) ?? throw new WorkRefused('unknown');
         $this->named(fn () => $this->projects->edit(
             $input->projectId,
@@ -234,46 +238,6 @@ final readonly class WorkWrites
         $this->projects->restore($input->projectId);
 
         return $input->projectId;
-    }
-
-    /**
-     * @throws WorkRefused
-     */
-    public function logTime(LogTimeInput $input): string
-    {
-        return $this->time->log(
-            $input->projectId,
-            $input->taskId,
-            $this->day($input->workedOn, 'workedOn'),
-            $input->minutes,
-            $this->moment($input->startedAt, 'startedAt'),
-            $this->moment($input->endedAt, 'endedAt'),
-            $input->note,
-            $input->billable,
-        )->id();
-    }
-
-    /**
-     * @throws WorkRefused
-     */
-    public function startTimer(StartTimerInput $input): string
-    {
-        return $this->time->startTimer($input->projectId, $input->taskId, $input->note, $input->billable)->id();
-    }
-
-    /**
-     * @throws WorkRefused when the entry is not the running timer of the person
-     */
-    public function stopTimer(StopTimerInput $input): string
-    {
-        $running = $this->timeQueries->running();
-        if (!$running instanceof TimeEntryRow || $running->id !== $input->entryId) {
-            throw new WorkRefused('timer_not_running', 'entryId');
-        }
-
-        $this->time->stopTimer();
-
-        return $input->entryId;
     }
 
     /**
@@ -318,16 +282,15 @@ final readonly class WorkWrites
         return $day;
     }
 
-    private function moment(?string $value, string $field): ?\DateTimeImmutable
+    /**
+     * Refuses a client where the address book is not installed, so a project has none.
+     *
+     * @throws WorkRefused
+     */
+    private function unlessClientUnavailable(?string $clientId): void
     {
-        if (null === $value) {
-            return null;
+        if (null !== $clientId && !$this->clients instanceof ProjectClients) {
+            throw new WorkRefused('client_unavailable');
         }
-        $moment = \DateTimeImmutable::createFromFormat(\DATE_ATOM, $value);
-        if (!$moment instanceof \DateTimeImmutable) {
-            throw new WorkRefused('date', $field);
-        }
-
-        return $moment;
     }
 }

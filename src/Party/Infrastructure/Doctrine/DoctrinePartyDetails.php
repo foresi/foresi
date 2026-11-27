@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Doctrine;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Audit\Domain\AuditAction;
 use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyHistoryEntry;
@@ -19,6 +20,7 @@ use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyBankAccount;
 use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Contract\Field\RecordExtension;
 
 final readonly class DoctrinePartyDetails implements PartyDetails
 {
@@ -108,6 +110,9 @@ final readonly class DoctrinePartyDetails implements PartyDetails
         if ([] !== $links) {
             $entries = $this->merged($entries, $this->auditEntries('a.entityClass = :class AND a.entityId IN (:ids)', ContactLink::class, $links));
         }
+        // The row another module keeps for every contact is made with it and shows only its changes;
+        // the custom fields a contact is made with (ADR 0045) show as an entry of their own.
+        $entries = array_values(array_filter($entries, static fn (AuditEntry $entry): bool => AuditAction::Created !== $entry->action() || isset(self::SUBJECTS[$entry->entityClass()]) || is_a($entry->entityClass(), RecordExtension::class, true)));
 
         return array_map(
             static fn (AuditEntry $entry): PartyHistoryEntry => new PartyHistoryEntry($entry->occurredAt(), self::SUBJECTS[$entry->entityClass()] ?? 'party', $entry->action()->value, array_keys($entry->changes()), $entry->entityClass()),

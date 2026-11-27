@@ -20,13 +20,13 @@ use Foresi\Banking\Contract\StatementRefused;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\ReceivedStatement;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

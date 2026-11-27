@@ -12,11 +12,11 @@ use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
 use Foresi\AiReader\Application\ExtractionSchema;
 use Foresi\AiReader\Infrastructure\AiDocumentReader;
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\FallbackReader;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
-use Foresi\Purchasing\Contract\Reading\ReadField;
-use Foresi\Purchasing\Contract\Reading\Reading;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\FallbackReader;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Contract\Reading\ReadField;
+use Foresi\ReceivedDocuments\Contract\Reading\Reading;
 use PHPUnit\Framework\TestCase;
 
 final class AiDocumentReaderTest extends TestCase
@@ -55,7 +55,7 @@ final class AiDocumentReaderTest extends TestCase
                 'vat_recap' => [['rate' => '19', 'baseMinor' => 10_000, 'vatMinor' => 1_900]],
                 'bank_account' => 'DE89370400440532013000',
             ],
-            array_map(static fn (\Foresi\Purchasing\Contract\Reading\ReadValue $value): string|int|array => $value->value, $reading->values),
+            array_map(static fn (\Foresi\ReceivedDocuments\Contract\Reading\ReadValue $value): string|int|array => $value->value, $reading->values),
         );
         foreach ($reading->values as $value) {
             self::assertSame('ai', $value->source);
@@ -90,7 +90,7 @@ final class AiDocumentReaderTest extends TestCase
                 'supplier_number' => 'RE-2026-0042',
                 'due_date' => '2026-11-16',
             ],
-            array_map(static fn (\Foresi\Purchasing\Contract\Reading\ReadValue $value): string|int|array => $value->value, $reading->values),
+            array_map(static fn (\Foresi\ReceivedDocuments\Contract\Reading\ReadValue $value): string|int|array => $value->value, $reading->values),
         );
     }
 

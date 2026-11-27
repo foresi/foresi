@@ -105,6 +105,17 @@ final class InvitePeopleTest extends TestCase
         $this->service()->invite('jana@example.com', 'Jana Example', Role::Member, Id::generate(), 'en');
     }
 
+    public function testAGuestIsInvitedWithoutAContact(): void
+    {
+        $this->users->method('findByEmail')->willReturn(null);
+        $this->invitations->method('pendingFor')->willReturn([]);
+
+        $issued = $this->service()->invite('alex@example.com', 'Alex Example', Role::Guest, null, 'en');
+
+        self::assertSame(Role::Guest, $issued->invitation->role());
+        self::assertNull($issued->invitation->party());
+    }
+
     public function testOnlyASignedInOwnerInvites(): void
     {
         $this->actorId = null;

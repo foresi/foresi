@@ -12,7 +12,7 @@ use Doctrine\DBAL\Connection;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Shared\Fixtures\Field\LentFields;
 use Foresi\Work\Application\Api\CreateRecurringTaskInput;
 use Foresi\Work\Application\CreateRecurringOccurrence;

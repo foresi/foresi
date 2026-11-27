@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Integration\Country;
 
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\Candidates;
 use Foresi\Banking\Application\FirmPairingRules;
@@ -15,6 +16,7 @@ use Foresi\Banking\Application\Matcher;
 use Foresi\Banking\Application\PairingRefused;
 use Foresi\Banking\Application\PairingRules;
 use Foresi\Banking\Application\PairMovement;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Contract\MovementDirection;
@@ -23,26 +25,21 @@ use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\AllocationRequest;
 use Foresi\Invoicing\Application\CancelPayment;
-use Foresi\Invoicing\Application\ConflictRetry;
-use Foresi\Invoicing\Application\InvoicePayments;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\PaymentRefused;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Invoicing\Application\RecordPayment;
-use Foresi\Invoicing\Application\UnknownInvoice;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Application\TransactionalWork;
-use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 use Foresi\Tests\Banking\Support\LockLog;
-use Foresi\Tests\Banking\Support\LoggingInvoiceStore;
+use Foresi\Tests\Banking\Support\LoggingPaymentPairing;
 
-final class PairMovementTest extends BankingTestCase
+final class PairMovementTest extends InvoiceBankingTestCase
 {
     public function testUnpairingCancelsThePaymentAndBlocksAutoPairing(): void
     {
@@ -55,7 +52,7 @@ final class PairMovementTest extends BankingTestCase
 
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Blocked, null, true], [$stored->state(), $stored->unmatchedReason(), $stored->paymentId(), $stored->isAutoPairBlocked()]);
-        self::assertTrue($this->payments->get($payment->id())->isCancelled());
+        self::assertTrue($this->payments->get($payment)->isCancelled());
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
 
         self::assertNull($this->pairing->auto($movement->id()), 'never paired by itself again');
@@ -72,10 +69,10 @@ final class PairMovementTest extends BankingTestCase
         $this->pairing->auto($movement->id());
         $this->unpairing->unpair($movement->id());
 
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]);
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]);
 
         $stored = $this->storedMovement($movement->id());
-        self::assertSame([MovementState::Paired, $payment->id()], [$stored->state(), $stored->paymentId()]);
+        self::assertSame([MovementState::Paired, $payment], [$stored->state(), $stored->paymentId()]);
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
 
@@ -86,11 +83,11 @@ final class PairMovementTest extends BankingTestCase
         $payment = $this->pairing->auto($movement->id());
         self::assertNotNull($payment);
 
-        self::getContainer()->get(CancelPayment::class)->cancel($payment->id());
+        self::getContainer()->get(CancelPayment::class)->cancel($payment);
 
         $stored = $this->storedMovement($movement->id());
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Blocked, null, true], [$stored->state(), $stored->unmatchedReason(), $stored->paymentId(), $stored->isAutoPairBlocked()]);
-        self::assertTrue($this->payments->get($payment->id())->isCancelled());
+        self::assertTrue($this->payments->get($payment)->isCancelled());
         self::assertSame(1, $this->paymentCount(), 'no second cancellation, no new payment');
         self::assertSame(PaymentState::Unpaid, $this->stateOf($invoice));
     }
@@ -102,32 +99,32 @@ final class PairMovementTest extends BankingTestCase
         $movement = $this->recordMovement->record($this->incoming('2000.00', vs: null), self::verified());
 
         try {
-            $this->pairing->pair($movement->id(), [new AllocationRequest($first->id(), $this->czk('1210.00')), new AllocationRequest($second->id(), $this->czk('700.00'))]);
+            $this->pairing->pair($movement->id(), [new Allocation($first->id(), $this->czk('1210.00')), new Allocation($second->id(), $this->czk('700.00'))]);
             self::fail('A wrong sum should be refused.');
-        } catch (PaymentRefused $refused) {
-            self::assertSame(PaymentRefused::AMOUNT_MISMATCH, $refused->reason);
+        } catch (PairingRefused $refused) {
+            self::assertSame([PairingRefused::PAYMENT_REFUSED, 'invoice.payment.refused.amount_mismatch'], [$refused->reason, $refused->problem]);
         }
         self::assertSame([MovementState::Unmatched, null], [$this->storedMovement($movement->id())->state(), $this->storedMovement($movement->id())->paymentId()]);
         self::assertSame(0, $this->paymentCount());
 
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($second->id(), $this->czk('790.00')), new AllocationRequest($first->id(), $this->czk('1210.00'))]);
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($second->id(), $this->czk('790.00')), new Allocation($first->id(), $this->czk('1210.00'))]);
 
-        self::assertSame([MovementState::Paired, $payment->id()], [$this->storedMovement($movement->id())->state(), $this->storedMovement($movement->id())->paymentId()]);
+        self::assertSame([MovementState::Paired, $payment], [$this->storedMovement($movement->id())->state(), $this->storedMovement($movement->id())->paymentId()]);
         self::assertSame(PaymentState::Paid, $this->stateOf($first));
         self::assertSame(PaymentState::PartlyPaid, $this->stateOf($second));
-        self::assertSame(200000, $this->payments->get($payment->id())->amount()->minor());
+        self::assertSame(200000, $this->payments->get($payment)->amount()->minor());
     }
 
     public function testPairingTwiceIsRefusedAndAutoAfterAManualPairingDoesNothing(): void
     {
         $invoice = $this->issue->issue($this->input());
         $movement = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true);
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))], checkedInBank: true);
 
         self::assertNull($this->pairing->auto($movement->id()));
-        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): string => $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
 
-        self::assertSame($payment->id(), $this->storedMovement($movement->id())->paymentId());
+        self::assertSame($payment, $this->storedMovement($movement->id())->paymentId());
         self::assertSame(1, $this->paymentCount());
     }
 
@@ -138,7 +135,7 @@ final class PairMovementTest extends BankingTestCase
         self::getContainer()->get(RecordPayment::class)->record(new PaymentRequest(new \DateTimeImmutable('2026-11-20'), $this->czk('1210.00'), PaymentMethod::BankTransfer, PaymentSource::BankMovement, $movement->id(), '', [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
 
         self::assertNull($this->pairing->auto($movement->id()));
-        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): string => $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
         self::assertSame(1, $this->paymentCount());
     }
 
@@ -147,10 +144,10 @@ final class PairMovementTest extends BankingTestCase
         $invoice = $this->issue->issue($this->input());
         $unverified = $this->recordMovement->record($this->incoming('1210.00'), self::unverified());
         $accepted = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), new TrustVerdict(MovementTrust::Unverified, TrustVerdict::ACCEPTED_BY_USER));
-        $allocation = [new AllocationRequest($invoice->id(), $this->czk('1210.00'))];
+        $allocation = [new Allocation($invoice->id(), $this->czk('1210.00'))];
 
-        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($unverified->id(), $allocation));
-        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($accepted->id(), $allocation, checkedInBank: false));
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): string => $this->pairing->pair($unverified->id(), $allocation));
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): string => $this->pairing->pair($accepted->id(), $allocation, checkedInBank: false));
         self::assertSame(0, $this->paymentCount());
         self::assertSame(MovementState::Unmatched, $this->storedMovement($unverified->id())->state());
 
@@ -170,7 +167,7 @@ final class PairMovementTest extends BankingTestCase
         $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'no_invoice' WHERE id = ?", [$failed->id()]);
         $this->em->clear();
 
-        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($failed->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
+        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): string => $this->pairing->pair($failed->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
         self::assertSame(0, $this->paymentCount());
     }
 
@@ -182,7 +179,7 @@ final class PairMovementTest extends BankingTestCase
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
         $second = $this->recordMovement->record($this->incoming('1210.00', vs: null, bookedOn: '2026-11-19'), self::verified());
 
-        $this->expectPairingRefused(PairingRefused::INVOICE_SETTLED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($second->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::INVOICE_SETTLED, fn (): string => $this->pairing->pair($second->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
         self::assertSame(1, $this->paymentCount());
         self::assertSame(MovementState::Unmatched, $this->storedMovement($second->id())->state());
     }
@@ -195,12 +192,12 @@ final class PairMovementTest extends BankingTestCase
         $duplicate = $this->recordMovement->record($this->incoming('10.00', messageId: '01963c5e-0000-7000-8000-000000000002'), self::verified());
         $rejected = $this->recordMovement->record($this->incoming('11.00'), new TrustVerdict(MovementTrust::Failed, TrustVerdict::DKIM_FAIL));
         $own = $this->recordMovement->record($this->incoming('12.00', counterIban: self::IBAN), self::verified());
-        $allocation = [new AllocationRequest($invoice->id(), $this->czk('10.00'))];
+        $allocation = [new Allocation($invoice->id(), $this->czk('10.00'))];
 
-        $this->expectPairingRefused(PairingRefused::NOT_INCOMING, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($outgoing->id(), $allocation));
-        $this->expectPairingRefused(PairingRefused::POSSIBLE_DUPLICATE, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($duplicate->id(), $allocation));
-        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($rejected->id(), [new AllocationRequest($invoice->id(), $this->czk('11.00'))]));
-        $this->expectPairingRefused(PairingRefused::OWN_TRANSFER, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($own->id(), [new AllocationRequest($invoice->id(), $this->czk('12.00'))]));
+        $this->expectPairingRefused(PairingRefused::NOT_INCOMING, fn (): string => $this->pairing->pair($outgoing->id(), $allocation));
+        $this->expectPairingRefused(PairingRefused::POSSIBLE_DUPLICATE, fn (): string => $this->pairing->pair($duplicate->id(), $allocation));
+        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): string => $this->pairing->pair($rejected->id(), [new Allocation($invoice->id(), $this->czk('11.00'))]));
+        $this->expectPairingRefused(PairingRefused::OWN_TRANSFER, fn (): string => $this->pairing->pair($own->id(), [new Allocation($invoice->id(), $this->czk('12.00'))]));
         self::assertSame(UnmatchedReason::Rejected, $this->storedMovement($rejected->id())->unmatchedReason());
         self::assertSame(0, $this->paymentCount());
     }
@@ -229,7 +226,7 @@ final class PairMovementTest extends BankingTestCase
 
         self::assertNotNull($payment);
         self::assertSame('lock:'.$invoice->id(), $log->entries[1], 'the decision is made after the lock');
-        $allocation = $this->em->getConnection()->fetchAssociative('SELECT amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment->id()]);
+        $allocation = $this->em->getConnection()->fetchAssociative('SELECT amount_minor, settlement_minor FROM payment_allocation WHERE payment_id = ?', [$payment]);
         self::assertSame([99901, 49], [self::int($allocation['amount_minor'] ?? 0), self::int($allocation['settlement_minor'] ?? 0)], 'the settlement is what is left after the 0.50, not what the first read saw');
         self::assertSame(PaymentState::Paid, $this->stateOf($invoice));
     }
@@ -337,7 +334,7 @@ final class PairMovementTest extends BankingTestCase
         $movement = $this->recordMovement->record($this->incoming('1210.00', vs: null), self::verified());
         $log = new LockLog(self::getContainer()->get(Candidates::class));
 
-        $this->pairingWith($log)->pair($movement->id(), [new AllocationRequest($ids[1], $this->czk('605.00')), new AllocationRequest($ids[0], $this->czk('605.00'))]);
+        $this->pairingWith($log)->pair($movement->id(), [new Allocation($ids[1], $this->czk('605.00')), new Allocation($ids[0], $this->czk('605.00'))]);
 
         self::assertSame(['lock:'.$ids[0], 'lock:'.$ids[1]], $log->entries);
     }
@@ -349,7 +346,7 @@ final class PairMovementTest extends BankingTestCase
         $this->em->getConnection()->executeStatement("UPDATE bank_movement SET state = 'paired', unmatched_reason = NULL WHERE id = ?", [$movement->id()]);
         $this->em->clear();
 
-        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): string => $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
         self::assertSame(0, $this->paymentCount());
     }
 
@@ -359,7 +356,7 @@ final class PairMovementTest extends BankingTestCase
         $movement = $this->recordMovement->record($this->incoming('1210.00'), self::verified());
         $this->payFromAnotherPath($movement->id(), $invoice->id());
 
-        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): string => $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
     }
 
     public function testARejectedMovementIsRefusedWhateverItsTrustSays(): void
@@ -369,7 +366,7 @@ final class PairMovementTest extends BankingTestCase
         $this->em->getConnection()->executeStatement("UPDATE bank_movement SET unmatched_reason = 'rejected' WHERE id = ?", [$movement->id()]);
         $this->em->clear();
 
-        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
+        $this->expectPairingRefused(PairingRefused::REJECTED, fn (): string => $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))], checkedInBank: true));
         self::assertSame(0, $this->paymentCount());
     }
 
@@ -383,7 +380,7 @@ final class PairMovementTest extends BankingTestCase
         $this->em->clear();
 
         $this->expectPairingRefused(PairingRefused::NOT_PAIRED, fn () => $this->unpairing->unpair($movement->id()));
-        self::assertFalse($this->payments->get($payment->id())->isCancelled());
+        self::assertFalse($this->payments->get($payment)->isCancelled());
     }
 
     public function testARefusalStandsWhenAnotherPathPaidTheMovementMeanwhile(): void
@@ -394,17 +391,18 @@ final class PairMovementTest extends BankingTestCase
         $short = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-19'), self::verified());
         $unknownInvoice = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-18'), self::verified());
 
-        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unverified->id(), $other->id(), '1.00'))->pair($unverified->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::NOT_CHECKED_IN_BANK, fn (): string => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unverified->id(), $other->id(), '1.00'))->pair($unverified->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
         try {
-            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($short->id(), $other->id(), '1.00'))->pair($short->id(), [new AllocationRequest($invoice->id(), $this->czk('1000.00'))]);
+            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($short->id(), $other->id(), '1.00'))->pair($short->id(), [new Allocation($invoice->id(), $this->czk('1000.00'))]);
             self::fail('A wrong sum should be refused.');
-        } catch (PaymentRefused $refused) {
-            self::assertSame(PaymentRefused::AMOUNT_MISMATCH, $refused->reason);
+        } catch (PairingRefused $refused) {
+            self::assertSame([PairingRefused::PAYMENT_REFUSED, 'invoice.payment.refused.amount_mismatch'], [$refused->reason, $refused->problem]);
         }
         try {
-            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unknownInvoice->id(), $other->id(), '1.00'))->pair($unknownInvoice->id(), [new AllocationRequest('01963c5e-0000-7000-8000-00000000dead', $this->czk('1210.00'))]);
+            $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($unknownInvoice->id(), $other->id(), '1.00'))->pair($unknownInvoice->id(), [new Allocation('01963c5e-0000-7000-8000-00000000dead', $this->czk('1210.00'))]);
             self::fail('An unknown invoice should not be found.');
-        } catch (UnknownInvoice) {
+        } catch (PairingRefused $refused) {
+            self::assertSame(PairingRefused::UNKNOWN_DOCUMENT, $refused->reason);
         }
         self::assertSame(3, $this->paymentCount(), 'only the payments of the other path');
     }
@@ -417,7 +415,7 @@ final class PairMovementTest extends BankingTestCase
         $unpaid = $this->recordMovement->record($this->incoming('1210.00', bookedOn: '2026-11-18'), self::verified());
         $lost = new \RuntimeException('The unique index of live payments refused the insert.');
 
-        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): \Foresi\Invoicing\Domain\Payment => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($manual->id(), $invoice->id(), '1.00'), $lost)->pair($manual->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]));
+        $this->expectPairingRefused(PairingRefused::ALREADY_PAIRED, fn (): string => $this->pairingMeanwhile(fn () => $this->payFromAnotherPath($manual->id(), $invoice->id(), '1.00'), $lost)->pair($manual->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]));
         self::assertNull($this->pairingMeanwhile(fn () => $this->payFromAnotherPath($automatic->id(), $invoice->id(), '1.00'), $lost)->auto($automatic->id()));
 
         try {
@@ -435,7 +433,7 @@ final class PairMovementTest extends BankingTestCase
         $this->payFromAnotherPath($missing, $invoice->id(), '1.00');
 
         try {
-            $this->pairing->pair($missing, [new AllocationRequest($invoice->id(), $this->czk('1.00'))]);
+            $this->pairing->pair($missing, [new Allocation($invoice->id(), $this->czk('1.00'))]);
             self::fail('The movement should not be found.');
         } catch (UnknownBankMovement $unknown) {
             self::assertSame('The bank movement does not exist.', $unknown->getMessage());
@@ -512,11 +510,9 @@ final class PairMovementTest extends BankingTestCase
             $this->movements,
             $this->matcher,
             $container->get(FirmPairingRules::class),
-            $container->get(RecordPayment::class),
-            $this->store,
+            $container->get(PaymentPairing::class),
             $work,
             $container->get(ConflictRetry::class),
-            $container->get(InvoicePayments::class),
         );
     }
 
@@ -532,13 +528,11 @@ final class PairMovementTest extends BankingTestCase
 
         return new PairMovement(
             $this->movements,
-            new Matcher($log, $container->get(InvoicingCountries::class), $container->get(InstanceFirm::class)),
+            new Matcher($log, $container->get(PaymentPairing::class)),
             $rules ?? $container->get(FirmPairingRules::class),
-            $container->get(RecordPayment::class),
-            new LoggingInvoiceStore($this->store, $log),
+            new LoggingPaymentPairing($container->get(PaymentPairing::class), $log),
             $container->get(TransactionalWork::class),
             $container->get(ConflictRetry::class),
-            $container->get(InvoicePayments::class),
         );
     }
 

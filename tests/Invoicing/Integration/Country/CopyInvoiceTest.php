@@ -12,6 +12,10 @@ use Foresi\Audit\Domain\AuditEntry;
 use Foresi\Invoicing\Application\CopyInvoice;
 use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\Quantity;
@@ -24,9 +28,6 @@ use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesCounter;
 use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -61,7 +62,7 @@ final class CopyInvoiceTest extends InvoiceTestCase
     public function testNumberAndDatesStartOver(): void
     {
         $source = $this->source();
-        $this->customer->changeInvoicingDefaults(new InvoicingDefaults(21, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+        self::getContainer()->get(PartyInvoicingDefaults::class)->change($this->customer->id(), new InvoicingDefaults(21, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
         $this->em->flush();
 
         $draft = $this->copy->valuesFrom($source);

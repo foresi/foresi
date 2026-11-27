@@ -8,15 +8,15 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\FirmReminders;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;

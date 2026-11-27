@@ -53,8 +53,8 @@ people:
     locale: Language of the e-mail
     locale_help: The invitation is written in this language
     contact: Contact
-    contact_help: Required for a guest
-    contact_edit_help: Required for a guest; empty unlinks it
+    contact_help: The contact the person represents, if any
+    contact_edit_help: Optional; empty unlinks it
     contact_placeholder: Start typing a name
     contact_empty: No contact found
     rate: Hourly rate
@@ -117,7 +117,7 @@ people:
     email: Enter a valid e-mail address.
     name: Enter the name of the person.
     role: Choose a team member or a guest.
-    contact: Choose the contact the person represents.
+    contact: Choose a contact from the address book.
     member: This person already belongs to the organisation.
     unknown: This person or invitation no longer exists.
     not_pending: This invitation was accepted or revoked already.
@@ -170,6 +170,7 @@ api_tokens:
     resource_write: '{resource}: read and change'
   resource:
     contacts: Contacts
+    firm: Firm
     invoices: Invoices
     payments: Payments
     webhooks: Webhooks
@@ -179,7 +180,7 @@ api_tokens:
     profile: Your profile
     cashflow: Cash flow
     catalog: Catalog
-    sales: Sales
+    deals: Deals
     taxes: Taxes and contributions
     vat: VAT
     exchange_rates: Exchange rates

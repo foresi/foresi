@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Banking\Application;
 
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\AllocationRequest;
 
 /**
  * What the matcher decided for a movement: how to split it over invoices, or why
@@ -18,8 +17,8 @@ use Foresi\Invoicing\Application\AllocationRequest;
 final readonly class MatchDecision
 {
     /**
-     * @param list<AllocationRequest> $allocations
-     * @param list<Candidate>         $suggestions
+     * @param list<Allocation> $allocations
+     * @param list<Candidate>  $suggestions
      */
     private function __construct(
         public array $allocations,
@@ -29,7 +28,7 @@ final readonly class MatchDecision
     }
 
     /**
-     * @param non-empty-list<AllocationRequest> $allocations
+     * @param non-empty-list<Allocation> $allocations
      */
     public static function pair(array $allocations): self
     {

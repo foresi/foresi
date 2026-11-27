@@ -23,9 +23,9 @@ use Foresi\Banking\Domain\UnmatchedReason;
 use Foresi\Invoicing\Application\PaymentState;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 
-final class IntakeStatementTest extends BankingTestCase
+final class IntakeStatementTest extends InvoiceBankingTestCase
 {
     private const string ACTOR = '01963c5e-0000-7000-8000-0000000000aa';
 

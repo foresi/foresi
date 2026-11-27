@@ -31,7 +31,7 @@ use Foresi\Idoklad\Infrastructure\Http\HttpIdokladSession;
 use Foresi\Invoicing\Application\MailSecrets;
 use Foresi\Invoicing\Application\ReminderSettings;
 use Foresi\Invoicing\Domain\FirmReminders;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpClient\MockHttpClient;

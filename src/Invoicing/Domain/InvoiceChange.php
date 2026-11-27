@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What can change on an invoice after it is issued. A tax point only on a tax

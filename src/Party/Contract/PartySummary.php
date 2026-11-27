@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Party\Contract;
 
-use Foresi\Party\Contract\Event\ContactKind;
-
 /**
  * One contact as another module shows it, for example on a document it issues to the contact.
  */

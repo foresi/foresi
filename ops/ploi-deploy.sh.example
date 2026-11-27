@@ -25,7 +25,9 @@
 #   mkdir -p ~/example.com-deploy/shared/var/share ~/example.com-deploy/shared/var/imports
 #   install -m 600 /dev/null ~/example.com-deploy/shared/.env.local   # then fill it in
 # Web directory of the site: /public. Daemon (Ploi > Server > Daemons), user ploi:
-#   php /home/ploi/example.com/bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+#   sh -c 'exec php bin/console messenger:consume $(php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
+# The transports come from the installed modules: webhooks, for one, only where
+# foresi/webhooks is installed (docs/operations.md, the worker).
 # The daemon's directory is the site symlink, resolved when the worker starts.
 
 set -euo pipefail
@@ -55,6 +57,17 @@ $PHP bin/console tailwind:build --minify
 $PHP bin/console asset-map:compile
 $PHP bin/console cache:clear
 $PHP bin/console cache:warmup
+
+# The executed migrations of a module that changed its name get its new namespace
+# (no DDL), before the history is compared with the release's migrations.
+renamed=0
+$PHP bin/console app:migrations:rename --check >/dev/null 2>&1 || renamed=$?
+if [ "$renamed" = 2 ]; then
+    $PHP bin/console app:migrations:rename
+elif [ "$renamed" != 0 ]; then
+    echo "app:migrations:rename --check failed." >&2
+    exit 1
+fi
 
 # A database still on the global migration history (before the module baselines,
 # ADR 0034) is left alone: back it up and run app:migrations:rebase (see the CHANGELOG).

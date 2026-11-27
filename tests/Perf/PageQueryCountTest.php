@@ -35,25 +35,28 @@ final class PageQueryCountTest extends WebTestCase
      * @var array<string, int>
      */
     private const array BUDGETS = [
-        'dashboard' => 156,
-        'contacts' => 168,
-        'contacts search' => 143,
-        'contact' => 129,
-        'invoices' => 198,
-        'invoice' => 158,
-        'received documents' => 179,
+        // Since the module rename pass every screen asks its own modules: the navigation of
+        // timesheet and contacts and the events of contacts check the staff role each, the
+        // shell reads the membership twice more, and a project's time fields are their own table.
+        'dashboard' => 162,
+        'contacts' => 176,
+        'contacts search' => 150,
+        'contact' => 135,
+        'invoices' => 204,
+        'invoice' => 164,
+        'received documents' => 185,
         // The project rows count overdue tasks, so the pages that list projects read the
         // firm's timezone for today once (InstanceClock).
-        'projects' => 141,
-        'project' => 224,
+        'projects' => 152,
+        'project' => 232,
         // My priorities is a seventh shipped view of the task list, which a first visit stores
         // one lookup by system key at a time (SavedViews).
-        'tasks' => 220,
-        'task' => 181,
-        'time week' => 130,
-        'time report' => 163,
-        'deals' => 197,
-        'cash flow' => 160,
+        'tasks' => 227,
+        'task' => 192,
+        'time week' => 136,
+        'time report' => 170,
+        'deals' => 205,
+        'cash flow' => 166,
         'api contacts' => 10,
         'api invoices' => 10,
         'api time entries' => 9,
@@ -62,12 +65,12 @@ final class PageQueryCountTest extends WebTestCase
     /**
      * Pages known to run a query per record, with the queries they may run on the larger
      * set until that is fixed. The deals board loads each deal's contact (its addresses,
-     * bank accounts and links) and lines one at a time.
+     * bank accounts, links and invoicing defaults) and lines one at a time.
      *
      * @var array<string, int>
      */
     private const array KNOWN_GROWTH = [
-        'deals' => 360,
+        'deals' => 385,
     ];
 
     private KernelBrowser $client;

@@ -1,6 +1,6 @@
 {
     "name": "foresi/timesheet",
-    "description": "Time tracking against tasks.",
+    "description": "Time tracking against projects and tasks, the time budget of a project, and the billing of time.",
     "type": "foresi-module",
     "license": "AGPL-3.0-only",
     "homepage": "https://foresi.app",
@@ -10,24 +10,29 @@
     },
     "require": {
         "doctrine/dbal": "^4.5",
+        "doctrine/doctrine-bundle": "^3.3.4",
         "doctrine/migrations": "^3.9",
         "doctrine/orm": "^3.7.5",
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
-        "foresi/invoicing": "self.version",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/party": "self.version",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "foresi/work": "self.version",
+        "openspout/openspout": "^5.12",
         "psr/clock": "^1.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/framework-bundle": "7.4.*",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
         "symfony/routing": "^7.4",
-        "symfony/translation-contracts": "^3.8"
+        "symfony/serializer": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/validator": "7.4.*",
+        "twig/twig": "^3.30",
+        "zircote/swagger-php": "^7.5"
     },
     "autoload": {
         "psr-4": {
@@ -43,7 +48,14 @@
             "kind": "module",
             "namespace": "Foresi\\Timesheet\\",
             "bundle": "Foresi\\Timesheet\\TimesheetBundle",
-            "optional": []
+            "optional": [
+                "activities",
+                "inbox",
+                "invoicing"
+            ],
+            "scopes": [
+                "time_entries"
+            ]
         }
     }
 }

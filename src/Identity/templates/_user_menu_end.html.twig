@@ -1,6 +1,0 @@
-{# SPDX-License-Identifier: AGPL-3.0-only #}
-{# The last section of the account menu (Foresi\Identity\Infrastructure\Slot\IdentitySlots). #}
-<form method="post" action="{{ path('app_logout') }}" data-turbo="false" role="none">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-    <twig:Ui:MenuItem type="submit" icon="log-out">{{ 'auth.logout'|trans }}</twig:Ui:MenuItem>
-</form>

@@ -101,9 +101,9 @@ final readonly class NavigationRegistry
     public function current(?string $currentRoute): ?NavigationItem
     {
         $items = $this->items();
-        $owned = array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute);
+        $covered = $this->covered($items, $currentRoute);
 
-        return array_find($items, fn (NavigationItem $item): bool => $this->isCurrent($item, $currentRoute, $owned));
+        return array_find($items, fn (NavigationItem $item): bool => $this->isCurrent($item, $currentRoute, $covered));
     }
 
     /**
@@ -130,8 +130,7 @@ final readonly class NavigationRegistry
     {
         $items = $this->items();
 
-        // A page that is an item of its own is that item's, even where another item's prefix covers it.
-        $owned = array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute);
+        $covered = $this->covered($items, $currentRoute);
         $entries = [];
         foreach ($items as $order => $item) {
             $entries[] = [$item, $order, new NavigationEntry(
@@ -139,7 +138,7 @@ final readonly class NavigationRegistry
                 $item->icon,
                 $item->route,
                 $member ? $item->countProvider?->count() : null,
-                $this->isCurrent($item, $currentRoute, $owned),
+                $this->isCurrent($item, $currentRoute, $covered),
                 $item->commandLabelKey,
                 $item->commandRoute,
                 $item->countCap,
@@ -179,7 +178,41 @@ final readonly class NavigationRegistry
         return $sections;
     }
 
-    private function isCurrent(NavigationItem $item, ?string $currentRoute, bool $owned): bool
+    /**
+     * How the page is covered: -1 when it is an item of its own, which makes it that item's even where
+     * another item's prefix covers it; else the length of the longest prefix of an item that covers it,
+     * so the item with the most specific prefix has the page (0 when none does).
+     *
+     * @param list<NavigationItem> $items
+     */
+    private function covered(array $items, ?string $currentRoute): int
+    {
+        if (null === $currentRoute) {
+            return 0;
+        }
+        if (array_any($items, static fn (NavigationItem $item): bool => $item->route === $currentRoute)) {
+            return -1;
+        }
+
+        return max([0, ...array_map(static fn (NavigationItem $item): int => self::coverage($item, $currentRoute), $items)]);
+    }
+
+    /**
+     * The length of the longest prefix of the item that covers the route, 0 when none does.
+     */
+    private static function coverage(NavigationItem $item, string $currentRoute): int
+    {
+        $longest = 0;
+        foreach ($item->routePrefixes as $prefix) {
+            if (str_starts_with($currentRoute, $prefix)) {
+                $longest = max($longest, \strlen($prefix));
+            }
+        }
+
+        return $longest;
+    }
+
+    private function isCurrent(NavigationItem $item, ?string $currentRoute, int $covered): bool
     {
         if (null === $currentRoute) {
             return false;
@@ -188,6 +221,6 @@ final readonly class NavigationRegistry
             return true;
         }
 
-        return !$owned && array_any($item->routePrefixes, static fn (string $prefix): bool => str_starts_with($currentRoute, $prefix));
+        return $covered > 0 && self::coverage($item, $currentRoute) === $covered;
     }
 }

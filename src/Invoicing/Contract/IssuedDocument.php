@@ -8,8 +8,6 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Contract;
 
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 

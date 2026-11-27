@@ -23,14 +23,6 @@ dashboard:
     debtors_empty: No customer owes anything.
     pending: '{month} has not gone to the accountant yet ({count, plural, one {# document} other {# documents}})'
     pending_link: Pass to the accountant
-registry:
-  result:
-    valid: Valid in VIES
-    invalid: Not valid in VIES
-    reliable: Reliable VAT payer
-    unreliable: Unreliable VAT payer
-    not_registered: Not a registered VAT payer
-    unavailable: Register unavailable
 nav:
   area:
     overview: Overview
@@ -287,6 +279,10 @@ ui:
   mapping_row:
     # Next to a select whose proposed choice is a guess the user should check.
     review: Check this
+  # A number of minutes, such as an estimate or the time logged: "2 h 30 min".
+  duration:
+    hours: '{hours} h'
+    minutes: '{minutes} min'
   empty_state:
     title: Nothing here yet
   # A value that is not filled in, in a list cell or on a detail page.
@@ -624,9 +620,6 @@ firm:
       email: Enter a valid e-mail address.
       save_failed: The settings could not be saved. Try it again.
 # The footer of mail the installation sends itself, such as invitations.
-system_mail:
-  footer: 'Sent by {product}'
-  footer_organisation: 'Sent by {product} on behalf of {organisation}'
 saved_view:
   save: Save
   save_to_view: Save to view

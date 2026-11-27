@@ -134,7 +134,7 @@ test.describe('the week', () => {
     await expect(page.locator('[data-task-trashed]')).toContainText('Čas je v koši.');
     await page.goto(project);
     await page.getByRole('link', { name: 'Koš (1)' }).click();
-    await expect(page.locator('[data-trash-purge]')).toHaveText('Úkoly a čas v koši se po 30 dnech smažou natrvalo.');
+    await expect(page.locator('[data-trash-purge]')).toHaveText('Co je v koši, se po 30 dnech smaže natrvalo.');
     const trashed = page.locator('[data-trash-time] tbody tr');
     await expect(trashed).toHaveCount(1);
     await expect(trashed).toContainText('30 min');

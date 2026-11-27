@@ -10,8 +10,8 @@ namespace Foresi\Invoicing\Infrastructure\Form;
 
 use Foresi\Invoicing\Application\MailText;
 use Foresi\Invoicing\Application\MailVariables;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\MailTemplateKind;
-use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

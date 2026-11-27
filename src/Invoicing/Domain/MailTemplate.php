@@ -10,7 +10,7 @@ namespace Foresi\Invoicing\Domain;
 
 use Doctrine\ORM\Mapping as ORM;
 use Foresi\Audit\Domain\Audited;
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Shared\Domain\Id;
 
 /**

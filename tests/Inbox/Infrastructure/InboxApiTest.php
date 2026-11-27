@@ -23,6 +23,7 @@ use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Infrastructure\Mcp\ReadToolCall;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\NeedsTheAddressBook;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 use Psr\Clock\ClockInterface;
 
@@ -33,6 +34,8 @@ use Psr\Clock\ClockInterface;
  */
 final class InboxApiTest extends ApiTestCase
 {
+    use NeedsTheAddressBook;
+
     private string $address;
     private string $writer;
     private ?string $session = null;
@@ -131,6 +134,9 @@ final class InboxApiTest extends ApiTestCase
 
     public function testTheWritesAnswerTheItemAndRefuseOverBothSurfacesAlike(): void
     {
+        // A contact is the record the inbox links to and makes here.
+        self::needsTheAddressBook();
+
         $itemId = $this->receive(InboxMail::plain($this->address));
 
         $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/done');
@@ -157,6 +163,9 @@ final class InboxApiTest extends ApiTestCase
 
     public function testTheSameLinkTwiceUnderTwoKeysIsAlreadyLinked(): void
     {
+        // A contact is the record the inbox links to and makes here.
+        self::needsTheAddressBook();
+
         $itemId = $this->receive(InboxMail::plain($this->address));
 
         $this->send('POST', '/api/v1/inbox/items/'.$itemId.'/outputs', ['kind' => 'contact', 'id' => $this->customerId], key: 'link-one');
@@ -171,6 +180,9 @@ final class InboxApiTest extends ApiTestCase
 
     public function testCreatingAContactNeedsTheContactsScopeToo(): void
     {
+        // A contact is the record the inbox links to and makes here.
+        self::needsTheAddressBook();
+
         $itemId = $this->receive(InboxMail::plain($this->address));
         $contact = ['kind' => 'person', 'display_name' => 'Client A', 'street' => 'Example Street 2', 'city' => 'Example City', 'postal_code' => '110 00', 'country_code' => 'CZ'];
 

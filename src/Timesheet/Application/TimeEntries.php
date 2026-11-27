@@ -1,0 +1,67 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Timesheet\Application;
+
+use Foresi\Identity\Domain\Membership;
+use Foresi\Timesheet\Domain\TimeEntry;
+
+/**
+ * The time logged.
+ */
+interface TimeEntries
+{
+    public function entry(string $id): ?TimeEntry;
+
+    /**
+     * The timer the person runs, if any.
+     */
+    public function running(Membership $membership): ?TimeEntry;
+
+    /**
+     * Every entry of the tasks, those in the trash too.
+     *
+     * @param list<string> $taskIds
+     *
+     * @return list<TimeEntry>
+     */
+    public function onTasks(array $taskIds): array;
+
+    /**
+     * The entries, locked for the rest of the transaction, so two invoices
+     * never bill one of them; one waiting on the lock reads them as the other
+     * left them. Unknown ids are left out. Call it inside a transaction, before
+     * anything else of the request loaded them.
+     *
+     * @param list<string> $ids
+     *
+     * @return array<string, TimeEntry> by id
+     */
+    public function lockForInvoicing(array $ids): array;
+
+    /**
+     * The ids of the entries the invoice bills, in no particular order.
+     *
+     * @return list<string>
+     */
+    public function idsInvoicedBy(string $invoiceId): array;
+
+    /**
+     * The entries put in the trash before the moment, of every project.
+     *
+     * @return list<TimeEntry>
+     */
+    public function trashedBefore(\DateTimeImmutable $moment): array;
+
+    public function add(TimeEntry $entry): void;
+
+    /**
+     * Removes for good; the audit log keeps what it was.
+     */
+    public function remove(TimeEntry $entry): void;
+}

@@ -38,7 +38,7 @@ final class CashFlowInvoicesApiTest extends ApiTestCase
     public function testATokenWithoutTheDocumentScopesSeesTheirTotalsButNotTheItems(): void
     {
         $invoice = $this->flushed(fn (): string => $this->invoice()->id());
-        $restricted = ['invoicing.invoices', 'invoicing.recurring_invoices', 'purchasing.received_documents', 'sales.billing_plan', 'taxes-and-contributions.estimate', 'vat.periods'];
+        $restricted = ['deals.billing_plan', 'invoicing.invoices', 'invoicing.recurring_invoices', 'received-documents.received_documents', 'taxes-and-contributions.estimate', 'vat.periods'];
 
         $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('cashflow:read')]));
 
@@ -56,7 +56,7 @@ final class CashFlowInvoicesApiTest extends ApiTestCase
 
         $this->get('/api/v1/cash-flow/forecast', [], $this->issued([ApiScope::from('cashflow:read'), ApiScope::from('invoices:read')]));
 
-        self::assertSame(['purchasing.received_documents', 'sales.billing_plan', 'taxes-and-contributions.estimate', 'vat.periods'], $this->at('data', 'restricted_sources'));
+        self::assertSame(['deals.billing_plan', 'received-documents.received_documents', 'taxes-and-contributions.estimate', 'vat.periods'], $this->at('data', 'restricted_sources'));
         self::assertSame([], $this->at('data', 'periods', 0, 'hidden_items'));
         self::assertSame([$invoice, ['overdue']], [$this->at('data', 'periods', 0, 'items', 0, 'subject', 'id'), $this->at('data', 'periods', 0, 'items', 0, 'flags')]);
     }

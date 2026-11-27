@@ -19,30 +19,16 @@ use Foresi\Banking\Application\TrustVerdict;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Contract\MovementTrust;
 use Foresi\Identity\Domain\Role;
-use Foresi\Invoicing\Application\InvoiceInput;
-use Foresi\Invoicing\Application\IssueInvoice;
-use Foresi\Invoicing\Application\LineInput;
-use Foresi\Invoicing\Contract\DocumentKind;
-use Foresi\Invoicing\Contract\Percent;
-use Foresi\Invoicing\Contract\PriceType;
-use Foresi\Invoicing\Contract\Quantity;
-use Foresi\Invoicing\Contract\TaxTreatment;
-use Foresi\Invoicing\Contract\VatRateKind;
-use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Invoicing\Domain\Series;
-use Foresi\Invoicing\Domain\SeriesFormat;
 use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyKind;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -59,8 +45,8 @@ use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * A signed-in owner with the payer firm, its account on the test IBAN, a series
- * and a customer, on 20 November 2026 at noon UTC; movements and bank mail are
+ * A signed-in owner with the payer firm, its account on the test IBAN and a
+ * customer, on 20 November 2026 at noon UTC; movements and bank mail are
  * recorded through the application, as the bank screens would find them.
  */
 abstract class BankScreenTestCase extends WebTestCase
@@ -76,7 +62,6 @@ abstract class BankScreenTestCase extends WebTestCase
     protected SignedInBrowser $browser;
     protected LegalEntity $firm;
     protected FirmBankAccount $account;
-    protected Series $series;
     protected Party $customer;
     /** @var array<string, string> by account id */
     private array $addresses = [];
@@ -99,25 +84,22 @@ abstract class BankScreenTestCase extends WebTestCase
     {
         $this->browser->seed(role: $role);
         $this->scoped(function (): void {
-            [$this->firm, $this->account, $this->series, $this->customer] = $this->firmWithSeries(self::IBAN);
+            [$this->firm, $this->account, $this->customer] = $this->firmWithAccount(self::IBAN);
         });
         $this->browser->signIn();
     }
 
     /**
-     * @return array{LegalEntity, FirmBankAccount, Series, Party}
+     * @return array{LegalEntity, FirmBankAccount, Party}
      */
-    private function firmWithSeries(string $iban, string $customer = 'Example Customer a.s.'): array
+    private function firmWithAccount(string $iban, string $customer = 'Example Customer a.s.'): array
     {
         $firm = new LegalEntity('Example Firm s.r.o.', new RegistrationNumber('CZ', '12345695'), VatId::fromString('CZ12345695'), new Address('Example Street 1', 'Example City', '100 00', 'CZ'), VatStatus::Registered, 'Example register, entry C 1');
         $this->em()->persist($firm);
         $account = FirmAccounts::add($this->em(), $iban);
-        $series = new Series(Series::STANDARD, SeriesFormat::fromString(Series::STANDARD_FORMAT), DocumentKind::Invoice);
-        $series->markDefault();
-        $this->em()->persist($series);
         $party = $this->party($customer);
 
-        return [$firm, $account, $series, $party];
+        return [$firm, $account, $party];
     }
 
     /**
@@ -148,18 +130,6 @@ abstract class BankScreenTestCase extends WebTestCase
         $this->em()->flush();
 
         return $party;
-    }
-
-    /**
-     * An invoice, price without VAT; 1 000.00 is 1 210.00 to pay.
-     */
-    protected function invoice(string $price = '1000.00', string $vs = '', string $due = '2026-11-15', ?Series $series = null, Currency $currency = Currency::CZK, ?Party $customer = null, string $iban = self::IBAN): Invoice
-    {
-        return $this->scoped(function () use ($price, $vs, $due, $series, $currency, $customer, $iban): Invoice {
-            $line = new LineInput('Work', Quantity::fromString('1'), 'h', Money::of($price, $currency), PriceType::WithoutVat, TaxTreatment::Standard, VatRateKind::Base, null, Percent::fromString('0'));
-
-            return self::getContainer()->get(IssueInvoice::class)->issue(new InvoiceInput(($series ?? $this->series)->id(), null, ($customer ?? $this->customer)->id(), null, new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable($due), PaymentMethod::BankTransfer, $iban, $vs, '', '', 'Consulting', '', '', DocumentLanguage::Czech, [$line], '' === $vs));
-        });
     }
 
     /**

@@ -10,7 +10,6 @@ namespace Foresi\Identity\Infrastructure\Mail;
 
 use Foresi\Identity\Application\EmailChangeMail;
 use Foresi\Identity\Domain\User;
-use Foresi\Identity\Infrastructure\Controller\EmailController;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Application\SystemMailer;
@@ -27,6 +26,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class SystemEmailChangeMailer implements EmailChangeMail
 {
+    /** The page that confirms a new address, which exists with Ui only (Integration/Ui), as do the screens that start a change. */
+    public const string CONFIRM_ROUTE = 'app_account_email_confirm';
+
     public function __construct(
         private SystemMailer $mailer,
         private TranslatorInterface $translator,
@@ -51,7 +53,7 @@ final readonly class SystemEmailChangeMailer implements EmailChangeMail
         $action = $this->translator->trans('email.mail.confirm.action', [], null, $locale);
         $validity = $this->translator->trans('email.mail.confirm.validity', $arguments, null, $locale);
         $ignore = $this->translator->trans('email.mail.confirm.ignore', $arguments, null, $locale);
-        $link = $this->urls->generate(EmailController::CONFIRM_ROUTE, ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
+        $link = $this->urls->generate(self::CONFIRM_ROUTE, ['token' => $token], UrlGeneratorInterface::ABSOLUTE_URL);
         $escape = self::escape(...);
         $html = \sprintf(
             '<p style="margin:0 0 16px;">%s</p><p style="margin:0 0 16px;"><a href="%s" style="color:#2f4a3a;font-weight:bold;">%s</a></p><p style="margin:0 0 16px;">%s</p><p style="margin:0;color:#616e7c;">%s</p>',

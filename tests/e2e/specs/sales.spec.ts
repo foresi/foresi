@@ -31,7 +31,7 @@ test.describe('sales', () => {
     await expect(create.locator('[data-deal-client]')).toContainText(CLIENT);
     await create.getByLabel('Název').fill('Roof audit');
     await create.getByRole('button', { name: 'Vytvořit obchod' }).click();
-    await expect(page).toHaveURL(/\/sales\/deals\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/deals\/[0-9a-f-]{36}$/);
     const audit = page.url();
     await expect(page.locator('h1')).toHaveText('Roof audit');
 

@@ -123,7 +123,7 @@ final class MarginTableApiTest extends ApiTestCase
 
     public function testATokenWithoutTheScopeIsRefused(): void
     {
-        $other = $this->issued([ApiScope::from('contacts:read')]);
+        $other = $this->issued([ApiScope::from('firm:read')]);
 
         $this->get('/api/v1/margin', secret: $other);
         $this->assertProblem(403, 'insufficient_scope');

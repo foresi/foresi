@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\RecurringInvoice;
@@ -17,7 +18,6 @@ use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 
 /**
  * What a recurring template must be to be saved. It meets the firm and line checks

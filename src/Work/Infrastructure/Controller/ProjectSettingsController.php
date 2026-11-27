@@ -8,26 +8,24 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Infrastructure\Controller;
 
-use Foresi\Identity\Application\OwnerCheck;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Shared\Application\Field\FieldRefused;
-use Foresi\Shared\Domain\Currency;
-use Foresi\Shared\Domain\Money;
-use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Foresi\Ui\Field\CustomFieldForm;
 use Foresi\Ui\Field\CustomFieldSubmission;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageSections;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Application\ManageWorkflow;
 use Foresi\Work\Application\ProjectSettings;
 use Foresi\Work\Application\StatusChoice;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\WorkflowTemplate;
+use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
+use Foresi\Work\Infrastructure\Trash\ProjectTrashPage;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,9 +37,9 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The settings of a project, for the staff: what it is and for whom, whether
- * its time is billable and, for an owner only, its hourly rate, its archiving,
- * its sections and its statuses. Each change is a plain form that
+ * The settings of a project, for the staff: what it is and for whom, its
+ * custom fields, its archiving, its sections and its statuses, and the cards
+ * other modules add (ProjectSlots::SETTINGS). Each change is a plain form that
  * comes back to the page, where a refusal is told; a new section and a new
  * status are named in a dialog, the removal of a status asks in a dialog
  * where its tasks go, and a workflow template replacing all the statuses is
@@ -58,19 +56,19 @@ final class ProjectSettingsController extends AbstractController
         private readonly ManageProjects $projects,
         private readonly ManageSections $sections,
         private readonly ManageWorkflow $workflow,
-        private readonly ManageTime $time,
         private readonly StaffCheck $staff,
-        private readonly OwnerCheck $owner,
         private readonly TranslatorInterface $translator,
         private readonly CustomFieldForm $customFields,
+        private readonly ProjectPageSlots $pageSlots,
+        private readonly ProjectTrashPage $trash,
+        private readonly ?ProjectClients $clients = null,
     ) {
     }
 
     /**
      * The page, and the save of its general part: the name, the client, the
-     * description, whether new time on it starts as billable and, for an owner,
-     * its hourly rate, and its custom fields under "Additional details". Anyone else's
-     * form has no rate, and a rate they post is ignored.
+     * description and its custom fields under "Additional details". Without the
+     * address book the form has no client, and the save keeps the one the project has.
      */
     #[Route('/projects/{id}/settings', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function settings(string $id, Request $request): Response
@@ -79,9 +77,6 @@ final class ProjectSettingsController extends AbstractController
         $settings = $this->load($id);
         $project = $settings->project;
         $values = ['name' => $project->name, 'clientId' => $project->clientId ?? '', 'clientQuery' => $project->clientName ?? '', 'description' => $project->description];
-        $billable = $project->billable;
-        $owner = $this->owner->isOwner();
-        $rate = ['rate' => TypedAmount::field($project->hourlyRate, $request->getLocale()), 'rateCurrency' => ($project->hourlyRate?->currency() ?? Currency::CZK)->value];
         $errors = [];
         $custom = null;
         if ($request->isMethod('POST')) {
@@ -90,15 +85,9 @@ final class ProjectSettingsController extends AbstractController
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
-            $billable = '1' === $request->request->getString('billable');
-            $hourlyRate = $project->hourlyRate;
-            if ($owner) {
-                $rate = ['rate' => trim($request->request->getString('rate')), 'rateCurrency' => $request->request->getString('rateCurrency')];
-                $currency = Currency::tryFrom($rate['rateCurrency']);
-                $hourlyRate = $currency instanceof Currency ? TypedAmount::read($rate['rate'], $currency, $request->getLocale()) : false;
-                if (false === $hourlyRate) {
-                    $errors['rate'] = $this->translator->trans('work.project.error.rate');
-                }
+            if (!$this->clients instanceof ProjectClients) {
+                $values['clientId'] = $project->clientId ?? '';
+                $values['clientQuery'] = $project->clientName ?? '';
             }
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
@@ -106,12 +95,6 @@ final class ProjectSettingsController extends AbstractController
             if ([] === $errors && $custom->valid()) {
                 try {
                     $this->projects->edit($id, $values['name'], '' === $values['clientId'] ? null : $values['clientId'], $values['description'], $custom->parsed);
-                    if ($billable !== $project->billable) {
-                        $this->time->setProjectBillableDefault($id, $billable);
-                    }
-                    if ($owner && !$this->sameRate($hourlyRate, $project->hourlyRate)) {
-                        $this->time->setProjectHourlyRate($id, $hourlyRate);
-                    }
                     $this->addFlash('success', $this->translator->trans('work.settings.saved'));
 
                     return $this->back($id);
@@ -131,18 +114,18 @@ final class ProjectSettingsController extends AbstractController
         return $this->render('@Work/projects/settings.html.twig', [
             'project' => $project,
             'values' => $values,
+            // The client field, only where the address book is installed.
+            'clientPicker' => $this->clients?->pickerUrl(),
             'customValues' => $custom?->values,
             'customErrors' => $custom->errors ?? [],
-            'billable' => $billable,
-            'owner' => $owner,
-            'rate' => $rate,
-            'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
+            // The cards other modules add after the general settings, such as the rate of the project's time.
+            'settingsCards' => $this->pageSlots->settings($project, $this->generateUrl(self::ROUTE, ['id' => $id])),
             'errors' => $errors,
             'sections' => $settings->sections,
             'privateSections' => $settings->privateSections,
             'statuses' => $settings->statuses,
             'types' => $this->types(),
-            'trashCount' => $this->queries->trashCount($id),
+            'trashCount' => $this->trash->count($id),
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
@@ -464,11 +447,6 @@ final class ProjectSettingsController extends AbstractController
     private function back(string $id): RedirectResponse
     {
         return $this->redirectToRoute(self::ROUTE, ['id' => $id], Response::HTTP_SEE_OTHER);
-    }
-
-    private function sameRate(?Money $one, ?Money $other): bool
-    {
-        return $one instanceof Money && $other instanceof Money ? $one->equals($other) : $one === $other;
     }
 
     private function notFoundIfUnknown(WorkRefused $refused): void

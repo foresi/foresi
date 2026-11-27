@@ -21,7 +21,6 @@ use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageSections;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -43,7 +42,7 @@ abstract class WorkApiTestCase extends ReadToolTestCase
         parent::setUp();
         $this->owner = $this->fixtures->user('owner@example.com');
         $this->fixtures->join($this->owner, Role::Owner);
-        $this->writer = $this->issued([ApiScope::from('projects:write'), ApiScope::from('tasks:write'), ApiScope::from('time_entries:write')]);
+        $this->writer = $this->issued([ApiScope::from('projects:write'), ApiScope::from('tasks:write')]);
     }
 
     /**
@@ -108,11 +107,6 @@ abstract class WorkApiTestCase extends ReadToolTestCase
     protected function section(Project $project, string $name): string
     {
         return $this->as(fn (): string => $this->service(ManageSections::class)->add($project->id(), $name)->id());
-    }
-
-    protected function logged(Project $project, ?string $taskId, int $minutes, ?User $as = null): string
-    {
-        return $this->as(fn (): string => $this->service(ManageTime::class)->log($project->id(), $taskId, new \DateTimeImmutable('2026-11-18'), $minutes)->id(), $as);
     }
 
     /**

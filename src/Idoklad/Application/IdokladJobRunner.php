@@ -14,7 +14,7 @@ use Foresi\Idoklad\Domain\IdokladJobKind;
 use Foresi\Idoklad\Domain\IdokladPull;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Invoicing\Application\ReminderSettings;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

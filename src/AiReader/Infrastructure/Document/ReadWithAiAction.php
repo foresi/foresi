@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\AiReader\Infrastructure\Document;
 
 use Foresi\AiReader\Application\AiReaderSettings;
-use Foresi\Purchasing\Contract\PurchasingSlots;
+use Foresi\ReceivedDocuments\Contract\PurchasingSlots;
 use Foresi\Ui\Contract\Slot\SlotItem;
 use Foresi\Ui\Contract\Slot\SlotProvider;
 

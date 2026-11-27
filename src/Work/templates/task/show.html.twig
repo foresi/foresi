@@ -10,9 +10,9 @@
     to this page with the form open (?edit=title or ?edit=description).
     The files of the task follow the description; an image or a PDF, in the list or in a text,
     opens in the viewer dialog. A new subtask opens in a dialog from the header, and so does the sharing
-    dialog; a private task has its badge next to the title. The people of the organisation see the time
-    logged on the task under its subtasks, log it in a dialog, run the timer from the header and set the
-    estimate in the panel; a guest sees none of it. The custom fields follow the properties under "Additional
+    dialog; a private task has its badge next to the title. The people of the organisation set the estimate
+    in the panel, and see what other modules add for them (TaskSlots): the main action of the header, such as
+    a timer, and sections under the subtasks, such as the time logged; a guest sees none of it. The custom fields follow the properties under "Additional
     details", each a form of its own; a guest sees only those open to guests. A guest finds the way back through what is
     shared with them, and the project by its name only when they do not see it.
     A row of a list opens the task in the sheet (layout/record.html.twig, docs/design/overlays.md), as
@@ -28,7 +28,6 @@
 {% set crumbs = crumbs|merge([{label: row.title}]) %}
 {% set focus = constant('Foresi\\Ui\\Component\\Style::FOCUS') %}
 {% set token = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TaskController::TOKEN')) %}
-{% set timeToken = csrf_token(constant('Foresi\\Work\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
 {% set taskUrl = path('app_task', {id: row.id}) %}
 {% set autosubmit = 'data-controller="autosubmit" data-action="change->autosubmit#submit"' %}
 {% if row.private %}{% set badges = [{label: 'work.sharing.private_badge'|trans, tone: 'gray', icon: 'lock'}] %}{% endif %}
@@ -47,25 +46,12 @@
 {% block title %}{{ row.title }}{% endblock %}
 
 {% block actions %}
-    {# The timer, the task's main action, comes first on every screen; a new subtask is the secondary button, sharing sits in "⋯", deleting last. #}
+    {# The main action other modules add (TaskSlots::HEADER_ACTIONS), such as the timer, comes first on every screen; a new subtask is the secondary button, sharing sits in "⋯", deleting last. #}
     {% set subtaskable = not task.parent and not task.projectArchived %}
     {# My priorities: the star is the person's own, on and off with one press; a finished task leaves the list, so it offers only taking the star off. #}
     {% set starrable = row.starred or not row.done %}
     <twig:Ui:MoreActions menuId="task-menu" :menuSize="record_action_size" data-task-menu>
-        <twig:block name="primary">
-            {% if timerHere %}
-                <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
-                    <input type="hidden" name="_token" value="{{ timeToken }}">
-                    <input type="hidden" name="return" value="{{ taskUrl }}">
-                    <twig:Ui:Button type="submit" icon="square" :size="record_action_size">{{ 'work.time.timer.stop'|trans }}</twig:Ui:Button>
-                </form>
-            {% elseif timeLoggable %}
-                <form method="post" action="{{ path('app_task_timer_start', {id: row.id}) }}" data-task-timer="start">
-                    <input type="hidden" name="_token" value="{{ timeToken }}">
-                    <twig:Ui:Button type="submit" icon="play" :size="record_action_size">{{ 'work.time.timer.start'|trans }}</twig:Ui:Button>
-                </form>
-            {% endif %}
-        </twig:block>
+        <twig:block name="primary">{% for action in headerActions %}{{ include(action.template, action.data) }}{% endfor %}</twig:block>
         <twig:block name="buttons">
             {%- if starrable -%}
                 <form method="post" action="{{ path(row.starred ? 'app_task_unstar' : 'app_task_star', {id: row.id}) }}" data-task-star>
@@ -156,7 +142,8 @@
                 </section>
             {% endif %}
 
-            {% if time %}{{ include('@Work/task/_time.html.twig') }}{% endif %}
+            {# The sections other modules add (TaskSlots::SECTIONS), such as the time logged on the task. #}
+            {% for section in slotSections %}{{ include(section.template, section.data) }}{% endfor %}
 
             {{ include('@Work/task/_discussion.html.twig') }}
 
@@ -226,10 +213,10 @@
                 {{ save }}
             </form>
 
-            {% if time %}
+            {% if estimable %}
                 <form method="post" action="{{ path('app_task_estimate', {id: row.id}) }}" class="grid gap-1.5" {{ autosubmit|raw }} data-task-property="estimate">
-                    <input type="hidden" name="_token" value="{{ timeToken }}">
-                    <twig:Ui:TextInput name="estimate" id="task-estimate" :label="'work.task.field.estimate'|trans" :help="'work.time.estimate_help'|trans" :value="estimateValue" autocomplete="off" spellcheck="false" />
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <twig:Ui:TextInput name="estimate" id="task-estimate" :label="'work.task.field.estimate'|trans" :help="'work.task.field.estimate_help'|trans" :value="estimateValue" autocomplete="off" spellcheck="false" />
                     <div class="flex flex-wrap gap-2">
                         {{ save }}
                         {% if estimateValue %}<twig:Ui:Button type="submit" size="sm" variant="ghost" icon="x" name="clear" value="1">{{ 'work.task.due_clear'|trans }}</twig:Ui:Button>{% endif %}

@@ -1,0 +1,43 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\ReceivedDocuments\Infrastructure\Api\Operation;
+
+use Foresi\Party\Application\InstanceFirm;
+use Foresi\ReceivedDocuments\Application\Mail\MailSources;
+use Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentBalances;
+use Foresi\ReceivedDocuments\Infrastructure\Api\ReceivedDocumentApiController;
+use Foresi\ReceivedDocuments\Infrastructure\Api\ReceivedDocumentJson;
+use Foresi\Shared\Contract\Operation\OperationOutput;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * What every received document write answers: the document with its lines and payments,
+ * as GET /api/v1/received-documents/{id} and foresi_get_received_document answer it.
+ */
+final readonly class ReceivedDocumentAnswer
+{
+    public function __construct(private ReceivedDocumentBalances $balances, private UrlGeneratorInterface $urls, private InstanceFirm $firm, private TranslatorInterface $translator, private MailSources $mailSources)
+    {
+    }
+
+    /**
+     * @param string $summary with %s for the evidence number of the document
+     */
+    public function of(string $id, string $summary, bool $created = false): OperationOutput
+    {
+        $paid = $this->balances->of($id);
+
+        return new OperationOutput(
+            ReceivedDocumentJson::detail($paid, $this->firm->get(), $this->translator, $this->mailSources->of($paid->document)),
+            \sprintf($summary, $paid->document->evidenceNumber() ?? $id),
+            $created ? $this->urls->generate(ReceivedDocumentApiController::SHOW, ['documentId' => $id]) : null,
+        );
+    }
+}

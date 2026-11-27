@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Pdf;
 
 use Foresi\Invoicing\Application\PaymentTaxDocumentTexts;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Domain\DocumentLanguage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**

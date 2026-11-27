@@ -8,12 +8,13 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Party\Infrastructure\Api;
 
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
 
 /**
- * GET /api/v1/firm: the one firm of the instance, read with the contacts:read scope.
+ * GET /api/v1/firm: the one firm of the instance, read with the firm:read scope.
  */
 final class FirmApiTest extends ApiTestCase
 {
@@ -35,11 +36,29 @@ final class FirmApiTest extends ApiTestCase
         ]], $this->json());
     }
 
-    public function testATokenWithoutTheContactsReadScopeReadsNoFirm(): void
+    public function testATokenWithoutTheFirmReadScopeReadsNoFirm(): void
     {
-        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('webhooks:write')]));
+        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('views:write')]));
 
         $this->assertProblem(403, 'insufficient_scope');
+    }
+
+    public function testTheScopeOfAnotherResourceReadsNoFirm(): void
+    {
+        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('events:read')]));
+
+        $this->assertProblem(403, 'insufficient_scope');
+
+        // Nor the scope of the address book, when it is installed: the firm has a scope of its own.
+        if (class_exists(ContactsBundle::class)) {
+            $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('contacts:write')]));
+
+            $this->assertProblem(403, 'insufficient_scope');
+        }
+
+        $this->get('/api/v1/firm', secret: $this->issued([ApiScope::from('firm:read')]));
+
+        self::assertResponseIsSuccessful();
     }
 
     public function testAnInstanceWithoutAFirmAnswersNotFound(): void

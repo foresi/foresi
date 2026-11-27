@@ -15,6 +15,7 @@ use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Shared\Domain\Id;
 use Foresi\Tests\Inbox\Fixtures\Action\FixtureNotes;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\NeedsTheAddressBook;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\DomCrawler\Form;
@@ -28,6 +29,8 @@ use Symfony\Component\DomCrawler\Form;
  */
 final class InboxActionScreensTest extends InboxScreenTestCase
 {
+    use NeedsTheAddressBook;
+
     private const string NOTE = 'inbox.actions.fixture_note';
     private const string CONTACT_NOTE = 'inbox.actions.fixture_contact_note';
 
@@ -256,6 +259,7 @@ final class InboxActionScreensTest extends InboxScreenTestCase
 
     private function createContact(string $id): void
     {
+        self::needsTheAddressBook();
         $this->client->request('POST', '/inbox/'.$id.'/contact/new', ['_token' => $this->tokenFrom('/inbox/'.$id), 'kind' => 'person', 'displayName' => 'Client A', 'street' => 'Example Street 1', 'city' => 'Example City', 'postalCode' => '110 00', 'countryCode' => 'CZ', 'email' => 'client.a@client-a.example.com']);
         self::assertResponseRedirects('/inbox/'.$id);
     }

@@ -8,7 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\BilledLine;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\Quantity;
@@ -19,9 +24,6 @@ use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\InvoicingDefaults;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;

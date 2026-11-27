@@ -1,8 +1,0 @@
-{# SPDX-License-Identifier: AGPL-3.0-only #}
-{# Identity's items of the account menu (Foresi\Identity\Infrastructure\Slot\IdentitySlots). Variables: shell (ShellView). #}
-<form method="post" action="{{ path('app_account_language') }}" data-turbo="false" role="none">
-    <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Infrastructure\\Controller\\LanguageController::TOKEN_ID')) }}">
-    <input type="hidden" name="locale" value="{{ shell.otherLocale }}">
-    <input type="hidden" name="redirect" value="{{ app.request.requestUri }}" data-nav-sync>
-    <twig:Ui:MenuItem type="submit" icon="languages">{{ 'shell.user_menu.language'|trans({language: ('locale.' ~ shell.otherLocale)|trans}) }}</twig:Ui:MenuItem>
-</form>

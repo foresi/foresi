@@ -1,0 +1,33 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Invoicing\Contract;
+
+use Foresi\Shared\Domain\Currency;
+
+/**
+ * The customer, the currency and the lines of work to bill, as the
+ * module that bills it proposes them. The tax of the lines is the firm's, as
+ * on any new invoice.
+ */
+final readonly class BilledWorkDraft
+{
+    /** The most lines an invoice holds, so the module offers no more. */
+    public const int MAX_LINES = 100;
+
+    /**
+     * @param list<BilledLine> $lines
+     */
+    public function __construct(
+        public string $reference,
+        public string $customerId,
+        public Currency $currency,
+        public array $lines,
+    ) {
+    }
+}

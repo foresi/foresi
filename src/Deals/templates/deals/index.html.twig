@@ -1,0 +1,58 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The deals on saved views, as every list has them: All, Open, Won, Lost and Trash, the person's own views,
+    the filter sheet (stage, status, owner, client) and the Settings sheet. The open deals are grouped by stage, one table per
+    stage in the order of the stages with its count and value, as Odoo's list grouped by stage shows only the
+    groups it holds; the won and then the lost deals follow in a table each, whatever stage they were closed in. A row opens the deal's page. A new deal starts in a dialog over the list; without
+    JavaScript the same link is a page.
+    Variables: sections (id, title, rows, count, total), columns, tabs, moreViews, chips, builder,
+    picker, view, working, sortKept, workingQuery, filtered, resetHref, emptyTitle.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans}] %}
+
+{% block title %}{{ 'deals.deals.title'|trans }}{% endblock %}
+
+{% block actions %}
+    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_deal_new')" id="deal-new" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'deals.deal.new'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {{ include('@Deals/_flashes.html.twig') }}
+    <div class="grid grid-cols-1 gap-4">
+        {% set search = {name: 'q', value: text ?? '', label: 'deals.deals.search_label'|trans} %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: tabs, toolbarMore: moreViews, toolbarLabel: 'deals.deals.views'|trans, toolsFilter: 'deal-filters', toolsSearch: search, toolsColumns: {id: 'deal-columns', action: path('app_deals')}}) }}
+        {# The status, the owner and the client are conditions of the filter sheet (saved views D11). #}
+        <twig:Ui:FilterBar id="deal-filters" :search="search" :action="path('app_deals')" :keep="{view: view != '' ? view : null, sort: sortKept, f: working != '' ? working : null}|merge(workingQuery)"
+            :conditions="chips" :quick="quick" :viewBar="viewBar" :builder="builder" :empty="sections is empty">
+        </twig:Ui:FilterBar>
+
+        {% for section in sections %}
+            <section class="grid gap-2" aria-labelledby="deal-stage-{{ section.id }}" data-deal-stage="{{ section.id }}">
+                <h2 id="deal-stage-{{ section.id }}" class="m-0 flex flex-wrap items-baseline gap-x-2 text-body font-semibold text-ink">
+                    {{ section.title }}
+                    <span class="num font-normal text-muted">{{ section.count }}{% if section.total %} · {{ section.total }}{% endif %}</span>
+                </h2>
+                <twig:Ui:DataTable :caption="section.title" :columns="columns" :resizable="true" :rows="section.rows" />
+            </section>
+        {% else %}
+            <twig:Ui:DataTable :caption="'deals.deals.title'|trans" :columns="columns" :resizable="true" :rows="[]">
+                <twig:block name="empty">
+                    {% if filtered %}
+                        <twig:Ui:EmptyState icon="search" :title="'deals.deals.empty.filtered_title'|trans">
+                            <twig:Ui:Button :href="resetHref">{{ 'deals.deals.empty.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% elseif view == '' %}
+                        <twig:Ui:EmptyState icon="trending-up" :title="'deals.deals.empty.title'|trans" :text="'deals.deals.empty.text'|trans">
+                            <twig:Ui:Button variant="primary" icon="plus" :href="path('app_deal_new')" data-dialog data-dialog-then="follow" aria-haspopup="dialog">{{ 'deals.deal.new'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    {% else %}
+                        <twig:Ui:EmptyState :icon="view == 'trashed' ? 'trash-2' : 'trending-up'" :title="emptyTitle" />
+                    {% endif %}
+                </twig:block>
+            </twig:Ui:DataTable>
+        {% endfor %}
+    </div>
+    {{ include('@Ui/components/_view_dialogs.html.twig') }}
+{% endblock %}

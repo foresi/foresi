@@ -12,6 +12,7 @@ use Foresi\Identity\Application\GuestScopes;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\User;
 use Foresi\Tests\Shared\Infrastructure\Api\ApiTestCase;
+use Foresi\Ui\UiBundle;
 
 /**
  * A person's own name, language and appearance over REST and MCP, and what /api/v1/me tells about them.
@@ -40,7 +41,8 @@ final class ProfileApiTest extends ApiTestCase
 
         $this->flushed(fn () => $this->user->changePhoto());
         $this->get('/api/v1/me', secret: $this->secret);
-        self::assertSame('http://localhost/people/'.$this->user->id().'/photo?v='.$this->user->photoVersion(), $this->at('user', 'photo_url'));
+        // The photo is served by the profile screens, so without Ui it has no address (ADR 0038).
+        self::assertSame(class_exists(UiBundle::class) ? 'http://localhost/people/'.$this->user->id().'/photo?v='.$this->user->photoVersion() : null, $this->at('user', 'photo_url'));
     }
 
     public function testANameAloneKeepsTheLanguage(): void
@@ -99,7 +101,7 @@ final class ProfileApiTest extends ApiTestCase
 
     public function testATokenWithoutTheProfileScopeIsRefused(): void
     {
-        $this->writer = $this->issued([ApiScope::from('contacts:write')]);
+        $this->writer = $this->issued([ApiScope::from('firm:write')]);
 
         $this->send('PATCH', '/api/v1/me', ['display_name' => 'Jane Example']);
 

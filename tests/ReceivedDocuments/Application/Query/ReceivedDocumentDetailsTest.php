@@ -1,0 +1,126 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Tests\ReceivedDocuments\Application\Query;
+
+use Foresi\ReceivedDocuments\Application\PurchasingNotAllowed;
+use Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentDetails;
+use Foresi\ReceivedDocuments\Application\TrashReceivedDocument;
+use Foresi\ReceivedDocuments\Application\UnknownReceivedDocument;
+use Foresi\ReceivedDocuments\Domain\ReceivedDocumentKind;
+use Foresi\Tests\ReceivedDocuments\Application\PurchasingTestCase;
+
+final class ReceivedDocumentDetailsTest extends PurchasingTestCase
+{
+    public function testACreditNoteShowsTheDocumentItCorrectsAmongTheOthersOffered(): void
+    {
+        $other = $this->recording()->create($this->input(supplierNumber: 'FV-1'))->document->id();
+        $original = $this->recording()->create($this->input(supplierNumber: 'FV-2'))->document->id();
+        $note = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-1', base: -10_000, originalDocumentId: $original))->document->id();
+
+        $detail = $this->details()->of($note);
+
+        self::assertSame($note, $detail->document->id());
+        self::assertSame($original, $detail->corrected?->id);
+        self::assertSame('FV-2', $detail->corrected->supplierNumber);
+        self::assertSame('Supplier Example s.r.o.', $detail->corrected->supplierName);
+        self::assertEqualsCanonicalizing([$other, $original], array_map(static fn (\Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentRow $row): string => $row->id, $detail->correctable));
+        self::assertNotEmpty($detail->history);
+        self::assertNotNull($detail->document->originalAttachmentId());
+        self::assertSame($detail->document->originalAttachmentId(), $detail->original?->id());
+    }
+
+    public function testADocumentThatCorrectsNothingShowsNoOriginal(): void
+    {
+        $this->recording()->create($this->input(supplierNumber: 'FV-1'));
+        $id = $this->recording()->create($this->input(supplierNumber: 'FV-2'))->document->id();
+
+        $detail = $this->details()->of($id);
+
+        self::assertNull($detail->corrected);
+        self::assertCount(1, $detail->correctable, 'The document itself is not offered.');
+    }
+
+    public function testACreditNoteStillShowsAnOriginalThatWentToTheTrash(): void
+    {
+        $original = $this->recording()->create($this->input(supplierNumber: 'FV-1'))->document->id();
+        $note = $this->recording()->record($this->draft(), $this->input(kind: ReceivedDocumentKind::CreditNote, supplierNumber: 'D-1', base: -10_000, originalDocumentId: $original))->document->id();
+        self::getContainer()->get(TrashReceivedDocument::class)->trash($original, 'Not ours');
+
+        $detail = $this->details()->of($note);
+
+        self::assertSame($original, $detail->corrected?->id);
+        self::assertTrue($detail->corrected->isTrashed());
+        self::assertSame([], $detail->correctable);
+    }
+
+    public function testAnUnknownDocumentIsUnknown(): void
+    {
+        $this->expectException(UnknownReceivedDocument::class);
+
+        $this->details()->of('0190b4a1-0000-7000-8000-000000000000');
+    }
+
+    public function testAGuestReadsNoDocument(): void
+    {
+        $id = $this->draft();
+        $this->signIn($this->guest);
+        $this->expectException(PurchasingNotAllowed::class);
+
+        $this->details()->of($id);
+    }
+
+    public function testTheReadingOfAnUnknownDocumentIsUnknown(): void
+    {
+        $this->expectException(UnknownReceivedDocument::class);
+
+        $this->details()->reading('0190b4a1-0000-7000-8000-000000000000');
+    }
+
+    public function testAGuestReadsNoReadingNotEvenOfAnUnknownDocument(): void
+    {
+        $this->signIn($this->guest);
+        $this->expectException(PurchasingNotAllowed::class);
+
+        $this->details()->reading('0190b4a1-0000-7000-8000-000000000000');
+    }
+
+    public function testTheReadingOfADocumentComesWithTheDocument(): void
+    {
+        $id = $this->draft();
+
+        [$document, $reading] = $this->details()->reading($id);
+
+        self::assertSame($id, $document->id());
+        self::assertSame($id, $reading?->documentId());
+    }
+
+    public function testAGuestReadsNoCorrectableDocuments(): void
+    {
+        $this->signIn($this->guest);
+        $this->expectException(PurchasingNotAllowed::class);
+
+        $this->details()->correctable();
+    }
+
+    public function testTheCorrectableDocumentsAreTheRecordedOnes(): void
+    {
+        $first = $this->recording()->create($this->input(supplierNumber: 'FV-1', received: '2026-11-01'))->document->id();
+        $second = $this->recording()->create($this->input(supplierNumber: 'FV-2', received: '2026-11-03'))->document->id();
+        $this->draft('%PDF-1.4 draft');
+
+        $rows = $this->details()->correctable();
+
+        self::assertSame([$second, $first], array_map(static fn (\Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentRow $row): string => $row->id, $rows));
+    }
+
+    private function details(): ReceivedDocumentDetails
+    {
+        return self::getContainer()->get(ReceivedDocumentDetails::class);
+    }
+}

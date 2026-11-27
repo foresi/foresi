@@ -1,6 +1,6 @@
 # 25. Roles: owner, team member and guest
 
-* Status: accepted
+* Status: accepted, superseded in part by [ADR 0049](0049-optional-guest-contact.md) (a guest's contact)
 * Date: 2026-11-07
 
 ## Context and problem statement
@@ -22,6 +22,8 @@ A membership carried one of four roles: owner, member, subcontractor and client.
 ## Decision outcome
 
 Three roles: owner, team member and guest, stored as `owner`, `member` and `guest`. A migration turns the stored `client` and `subcontractor` into `guest`; going down makes every guest membership a client one, as the two cannot be told apart again. A guest membership must link a contact (`Membership` refuses one without); the owner and a team member may link their own person record. `app:user:create` takes `owner`, `member` or `guest`, the contact with `--contact=<id>`, required for a guest.
+
+> Superseded in part by [ADR 0049](0049-optional-guest-contact.md): a guest no longer needs a contact, and `--contact` is optional for every role.
 
 `GuestAccessGuard` turns a guest of the active organisation away with 403 from every controller that does not carry `#[OpenToGuest]`: the sign-in and its code step, the account (language, two-factor), the choice of organisation, the public document links, the start page and the "Shared with me" page. The start page sends a guest on to "Shared with me", which the projects module serves (ADR 0026, sharing); the Work routes a guest uses on what is shared with them carry the attribute too. The health check and the inbound mail webhook run on firewalls without a session, so no person is ever signed in there. The sidebar shows guests "Shared with me" and, since sharing, "My tasks"; every module's navigation, notices and dashboard sections stay for the staff (`StaffCheck`), the address book included.
 

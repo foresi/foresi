@@ -15,8 +15,8 @@ use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
-use Foresi\Purchasing\Application\Reading\ReadReceivedDocument;
-use Foresi\Purchasing\Infrastructure\Messenger\ReadReceivedDocumentHandler;
+use Foresi\ReceivedDocuments\Application\Reading\ReadReceivedDocument;
+use Foresi\ReceivedDocuments\Infrastructure\Messenger\ReadReceivedDocumentHandler;
 use Foresi\Tests\ExchangeRate\Support\FakeRateSource;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -99,7 +99,7 @@ final class AiReaderStatusTest extends WebTestCase
 
         $id = $this->draft();
         $this->readQueued();
-        self::assertCount(0, $this->page('/purchasing/'.$id)->filter('[data-ai-reader-read]'));
+        self::assertCount(0, $this->page('/received-documents/'.$id)->filter('[data-ai-reader-read]'));
     }
 
     public function testReadWithAiActionOnlyOnClickMode(): void
@@ -108,15 +108,15 @@ final class AiReaderStatusTest extends WebTestCase
         $id = $this->draft();
         $this->readQueued();
 
-        $page = $this->page('/purchasing/'.$id);
+        $page = $this->page('/received-documents/'.$id);
 
         $form = $page->filter('[data-page-actions] form[data-ai-reader-read]');
         self::assertCount(1, $form);
-        self::assertSame('/purchasing/'.$id.'/read-again', $form->attr('action'));
+        self::assertSame('/received-documents/'.$id.'/read-again', $form->attr('action'));
         self::assertStringContainsString('Read with AI', $form->text());
         // It posts to the route of Read again, with the CSRF token of the page.
         $this->client->submit($form->form());
-        self::assertResponseRedirects('/purchasing/'.$id, 303);
+        self::assertResponseRedirects('/received-documents/'.$id, 303);
         $this->client->followRedirect();
         self::assertStringContainsString('The file is being read again', (string) $this->client->getResponse()->getContent());
 
@@ -124,13 +124,13 @@ final class AiReaderStatusTest extends WebTestCase
         $this->start(['AI_READER_PROVIDER' => 'claude', 'AI_READER_API_KEY' => self::KEY, 'AI_READER_TRIGGER' => 'arrival']);
         $id = $this->draft();
         $this->readQueued();
-        self::assertCount(0, $this->page('/purchasing/'.$id)->filter('[data-ai-reader-read]'));
+        self::assertCount(0, $this->page('/received-documents/'.$id)->filter('[data-ai-reader-read]'));
 
         // Without a key there is nothing to read with.
         $this->start(['AI_READER_TRIGGER' => 'click']);
         $id = $this->draft();
         $this->readQueued();
-        self::assertCount(0, $this->page('/purchasing/'.$id)->filter('[data-ai-reader-read]'));
+        self::assertCount(0, $this->page('/received-documents/'.$id)->filter('[data-ai-reader-read]'));
     }
 
     /**
@@ -161,15 +161,15 @@ final class AiReaderStatusTest extends WebTestCase
 
     private function draft(): string
     {
-        $this->client->request('GET', '/purchasing/upload');
+        $this->client->request('GET', '/received-documents/upload');
         self::assertResponseIsSuccessful();
-        $token = $this->client->getCrawler()->filter('main form[action^="/purchasing"] input[name="_token"]')->first()->attr('value');
+        $token = $this->client->getCrawler()->filter('main form[action^="/received-documents"] input[name="_token"]')->first()->attr('value');
         $path = tempnam(sys_get_temp_dir(), 'received');
         self::assertIsString($path);
         // An ISDOC file, which the AI reader never takes: whatever a country module reads of it, no AI request is made.
         file_put_contents($path, '<?xml version="1.0" encoding="UTF-8"?><Invoice/>');
         $this->paths[] = $path;
-        $this->client->request('POST', '/purchasing/upload', ['_token' => $token], ['file' => new UploadedFile($path, 'invoice.isdoc', null, null, true)], ['HTTP_ACCEPT' => 'application/json']);
+        $this->client->request('POST', '/received-documents/upload', ['_token' => $token], ['file' => new UploadedFile($path, 'invoice.isdoc', null, null, true)], ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame(201);
         $decoded = json_decode((string) $this->client->getResponse()->getContent(), true);
         self::assertIsArray($decoded);

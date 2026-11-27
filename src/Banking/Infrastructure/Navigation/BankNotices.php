@@ -11,6 +11,7 @@ namespace Foresi\Banking\Infrastructure\Navigation;
 use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\BankScreen;
 use Foresi\Banking\Application\InboundMessages;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\ReceivedStatements;
 use Foresi\Banking\Application\StatementChain;
 use Foresi\Identity\Contract\StaffCheck;
@@ -26,7 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Tells staff on every page that bank mail needs them: messages that failed or
  * were rejected, until someone tries them again, records them anyway or dismisses
  * them, and messages the queue gave up on, still waiting after an hour; and
- * incoming payments no invoice was paired with; and bank statements that do not
+ * incoming payments no invoice was paired with, while anything pairs them; and bank statements that do not
  * follow on, on the Statements tab. All lead to the bank screen, which does not
  * repeat them. Without that screen there is nowhere to send
  * anyone, so nothing is shown.
@@ -45,6 +46,7 @@ final readonly class BankNotices implements ShellNoticeProvider
         private RequestStack $requests,
         private ClockInterface $clock,
         private ReceivedStatements $statements,
+        private PaymentPairing $pairing,
     ) {
     }
 
@@ -57,7 +59,7 @@ final readonly class BankNotices implements ShellNoticeProvider
         if ($messages > 0 && null !== ($href = $this->href('messages'))) {
             yield new ShellNotice('error', $this->translator->trans('bank.inbox.notice.failed', ['count' => $messages]), $this->translator->trans('bank.inbox.notice.link'), $href);
         }
-        $unmatched = $this->movements->unmatchedIncoming();
+        $unmatched = $this->pairing->isAvailable() ? $this->movements->unmatchedIncoming() : 0;
         if ($unmatched > 0 && null !== ($href = $this->href('unmatched'))) {
             yield new ShellNotice('info', $this->translator->trans('bank.inbox.notice.unmatched', ['count' => $unmatched]), $this->translator->trans('bank.inbox.notice.link'), $href);
         }

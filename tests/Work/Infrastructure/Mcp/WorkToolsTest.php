@@ -16,7 +16,6 @@ use Foresi\Work\Infrastructure\Mcp\ListProjectPeopleTool;
 use Foresi\Work\Infrastructure\Mcp\ListTaskCommentsTool;
 use Foresi\Work\Infrastructure\Mcp\SearchProjectsTool;
 use Foresi\Work\Infrastructure\Mcp\SearchTasksTool;
-use Foresi\Work\Infrastructure\Mcp\SearchTimeEntriesTool;
 
 /**
  * The read tools of Work answer what the REST endpoints answer, with the same
@@ -34,7 +33,6 @@ final class WorkToolsTest extends WorkApiTestCase
             GetTaskTool::class => ['foresi_get_task', 'tasks:read', ['task_id']],
             ListTaskCommentsTool::class => ['foresi_list_task_comments', 'tasks:read', ['task_id']],
             ListLabelsTool::class => ['foresi_list_labels', 'tasks:read', []],
-            SearchTimeEntriesTool::class => ['foresi_search_time_entries', 'time_entries:read', ['project_id', 'task_id', 'person', 'from', 'until', 'limit', 'cursor']],
         ];
         foreach ($tools as $class => [$name, $scope, $arguments]) {
             $tool = $this->tool($class);
@@ -59,7 +57,6 @@ final class WorkToolsTest extends WorkApiTestCase
         $this->task($project, 'Theirs');
         $this->comment($task, 'A note');
         $this->label('Urgent');
-        $this->logged($project, $task, 30, $this->user);
 
         self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'me']), self::wire($this->call(SearchTasksTool::class, ['assignee' => 'me'])->data)['items']);
         self::assertSame($this->rest('/api/v1/tasks', ['assignee' => 'none', 'priority' => 'none,low', 'sort' => '-title']), self::wire($this->call(SearchTasksTool::class, ['assignee' => 'none', 'priority' => ['none', 'low'], 'sort' => '-title'])->data)['items']);
@@ -69,7 +66,6 @@ final class WorkToolsTest extends WorkApiTestCase
         self::assertSame($this->rest('/api/v1/projects/'.$project->id()), self::wire($this->call(GetProjectTool::class, ['project_id' => $project->id()])->data));
         self::assertSame($this->rest('/api/v1/projects/'.$project->id().'/people', ['task_id' => $task]), $this->call(ListProjectPeopleTool::class, ['project_id' => $project->id(), 'task_id' => $task])->data['items']);
         self::assertSame($this->rest('/api/v1/labels'), $this->call(ListLabelsTool::class)->data['items']);
-        self::assertSame($this->rest('/api/v1/time-entries'), $this->call(SearchTimeEntriesTool::class)->data['items']);
 
         // A saved view needs the views:read scope, which only a token carries.
         $this->assertRefused('insufficient_scope', 'The token does not have the "views:read" scope a saved view needs.', SearchTasksTool::class, ['view_id' => 'work.my_tasks.assigned']);

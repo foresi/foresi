@@ -14,7 +14,7 @@ class_alias(\Foresi\Shared\Contract\Mcp\WriteTool::class, WriteTool::class);
 
 if (false) { // @phpstan-ignore if.alwaysFalse (a declaration for IDEs and static analysis only)
     /**
-     * @deprecated since module API 1.0, removed in 2.0, use \Foresi\Shared\Contract\Mcp\WriteTool instead
+     * @deprecated since module API 1.0, removed in 3.0, use \Foresi\Shared\Contract\Mcp\WriteTool instead
      */
     interface WriteTool extends \Foresi\Shared\Contract\Mcp\WriteTool
     {

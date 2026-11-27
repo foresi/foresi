@@ -1,0 +1,3 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{# "Invoice time" in the "⋯" menu of a project, filling Work's slot ProjectSlots::HEADER_ACTIONS in its menu place. #}
+{% if place|default('') == 'menu' %}<twig:Ui:MenuItem icon="receipt-text" :href="href" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-time-invoice-open>{{ 'timesheet.time.invoice_time'|trans }}</twig:Ui:MenuItem>{% endif %}

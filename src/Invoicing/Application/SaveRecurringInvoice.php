@@ -10,6 +10,7 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\RecurringContent;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringInvoiceLine;
@@ -17,9 +18,9 @@ use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Iban;
-use Foresi\Party\Domain\PaymentMethod;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

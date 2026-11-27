@@ -59,7 +59,7 @@ vat:
       invoicing:
         issued_vat: vydané faktury
         recurring_vat: opakované faktury
-      purchasing:
+      received-documents:
         received_vat: přijaté doklady
       cash-flow:
         vat_payments: platby z banky

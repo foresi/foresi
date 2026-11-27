@@ -13,7 +13,7 @@ use Foresi\Invoicing\Contract\Event\RecurringInvoiceDeleted;
 use Foresi\Invoicing\Contract\Event\RecurringInvoiceEnded;
 use Foresi\Invoicing\Domain\RecurringInvoice;
 use Foresi\Invoicing\Domain\RecurringState;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

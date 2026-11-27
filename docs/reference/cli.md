@@ -17,7 +17,7 @@ and the libraries, which are not listed here.
 - Instance: [`app:health`](#apphealth)
 - Invoicing: [`app:invoice:revoke-link`](#appinvoicerevoke-link)
 - Margin: [`margin:recalculate`](#marginrecalculate)
-- Shared: [`app:migrations:owners`](#appmigrationsowners), [`app:migrations:rebase`](#appmigrationsrebase), [`app:modules`](#appmodules), [`app:modules:check`](#appmodulescheck), [`app:modules:deptrac`](#appmodulesdeptrac), [`app:ops:test-alert`](#appopstest-alert), [`app:ops:test-mail`](#appopstest-mail), [`app:views:sync`](#appviewssync)
+- Shared: [`app:migrations:owners`](#appmigrationsowners), [`app:migrations:rebase`](#appmigrationsrebase), [`app:migrations:rename`](#appmigrationsrename), [`app:modules`](#appmodules), [`app:modules:check`](#appmodulescheck), [`app:modules:deptrac`](#appmodulesdeptrac), [`app:ops:test-alert`](#appopstest-alert), [`app:ops:test-mail`](#appopstest-mail), [`app:views:sync`](#appviewssync), [`app:worker:receivers`](#appworkerreceivers)
 
 ## AI reader
 
@@ -142,7 +142,7 @@ bin/console app:api-token:issue [options] [--] <email>
 | --- | --- | --- | --- |
 | `--name` | required |  | What the token is for, 1 to 80 characters. |
 | `--days` | required | `90` | Days until it expires: 30, 90 or 365. |
-| `--scope` | required, repeatable |  | read, write, or a resource such as contacts:read or contacts:write; repeat for more. |
+| `--scope` | required, repeatable |  | read, write, or a resource such as firm:read or firm:write; repeat for more. |
 
 ### app:api-token:list
 
@@ -199,7 +199,7 @@ bin/console app:user:create [options] [--] <email> <role>
 
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
-| `--contact` | required |  | Id of the contact the user represents; required for a guest. |
+| `--contact` | required |  | Id of the contact the user represents, if any. |
 
 ### app:user:reset-2fa
 
@@ -349,6 +349,18 @@ bin/console app:migrations:rebase [options]
 | --- | --- | --- | --- |
 | `--check` | none |  | Only tell the state: exit 0 with nothing to rebase, 2 when a rebase is due, 1 otherwise. |
 
+### app:migrations:rename
+
+Rename the executed migration versions of the modules that changed their name, without DDL.
+
+```
+bin/console app:migrations:rename [options]
+```
+
+| Option | Value | Default | Description |
+| --- | --- | --- | --- |
+| `--check` | none |  | Only tell the state: exit 0 with nothing to rename, 2 when a rename is due, 1 otherwise. |
+
 ### app:modules
 
 List the installed modules, their dependencies, their integrations and the problems of the module graph.
@@ -387,7 +399,7 @@ bin/console app:modules:check [options]
 
 | Option | Value | Default | Description |
 | --- | --- | --- | --- |
-| `--api` | required | `'1.10.0'` | The module API version to check against, such as 2.0; the one this Foresi provides when left out. |
+| `--api` | required | `'2.0.0'` | The module API version to check against, such as 2.0; the one this Foresi provides when left out. |
 
 ### app:modules:deptrac
 
@@ -454,4 +466,12 @@ after adding a module. It is safe to repeat: a second run changes nothing.
 
 ```
 bin/console app:views:sync
+```
+
+### app:worker:receivers
+
+Print the transports a worker consumes, in the order it takes them.
+
+```
+bin/console app:worker:receivers
 ```

@@ -16,6 +16,7 @@ use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\Field\CustomFieldForm;
 use Foresi\Ui\Field\CustomFieldSubmission;
+use Foresi\Ui\Format\DurationText;
 use Foresi\Ui\View\ListTable;
 use Foresi\Work\Application\Api\CreateRecurringTaskInput;
 use Foresi\Work\Application\Api\UpdateRecurringTaskInput;
@@ -35,7 +36,6 @@ use Foresi\Work\Domain\Task;
 use Foresi\Work\Infrastructure\Api\RecurringTaskJson;
 use Foresi\Work\Infrastructure\Column\RecurringTaskColumns;
 use Foresi\Work\Infrastructure\Column\RecurringTaskRow;
-use Foresi\Work\Infrastructure\Twig\TimeFunctions;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -70,7 +70,7 @@ final class RecurringTaskController extends AbstractController
         private readonly ListTable $listTable,
         private readonly FilterSheet $filterSheet,
         private readonly CustomFieldForm $customFields,
-        private readonly TimeFunctions $duration,
+        private readonly DurationText $duration,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -157,7 +157,7 @@ final class RecurringTaskController extends AbstractController
                 ['label' => $this->translator->trans('work.task.field.section'), 'value' => $recurring->section()?->name()],
                 ['label' => $this->translator->trans('work.task.field.responsible'), 'value' => $recurring->responsible()?->user()->displayName()],
                 ['label' => $this->translator->trans('work.recurring.field.priority'), 'value' => $this->translator->trans('work.priority.'.$recurring->priority()->value)],
-                ['label' => $this->translator->trans('work.recurring.field.estimate'), 'value' => null === $recurring->estimateMinutes() ? null : $this->duration->duration($recurring->estimateMinutes())],
+                ['label' => $this->translator->trans('work.recurring.field.estimate'), 'value' => null === $recurring->estimateMinutes() ? null : $this->duration->shown($recurring->estimateMinutes())],
                 ['label' => $this->translator->trans('work.recurring.field.due'), 'value' => null === $template->dueDaysAfter ? $this->translator->trans('work.recurring.due.period') : $this->translator->trans('work.recurring.due.days_text', ['days' => $template->dueDaysAfter])],
                 ['label' => $this->translator->trans('work.recurring.field.create_days_before'), 'value' => 0 === $template->createDaysBefore ? $this->translator->trans('work.recurring.lead.on_the_day') : $this->translator->trans('work.recurring.lead.days_text', ['days' => $template->createDaysBefore])],
                 ['label' => $this->translator->trans('work.recurring.field.watchers'), 'value' => [] === $watchers ? null : implode(', ', $watchers)],
@@ -324,7 +324,7 @@ final class RecurringTaskController extends AbstractController
         return [
             'project' => $recurring->project()->id(), 'title' => $recurring->title(), 'description' => $recurring->description(),
             'section' => $recurring->section()?->id() ?? '', 'responsible' => $recurring->responsible()?->id() ?? '', 'priority' => $recurring->priority()->value,
-            'estimate' => null === $recurring->estimateMinutes() ? '' : $this->duration->duration($recurring->estimateMinutes()),
+            'estimate' => null === $recurring->estimateMinutes() ? '' : $this->duration->shown($recurring->estimateMinutes()),
             'labels' => $recurring->labelIds(), 'watchers' => $recurring->watcherIds(), 'private' => $recurring->isPrivate(), 'subtasks' => implode("\n", $recurring->subtasks()),
             'first_on' => $recurrence->firstIssueOn()->format('Y-m-d'), 'repeat' => $recurrence->unit()->value, 'every' => (string) $recurrence->every(), 'last_day' => $recurrence->onLastDayOfMonth(),
             'end' => $recurrence->end()->value, 'ends_on' => $recurrence->endOn()?->format('Y-m-d') ?? '', 'ends_after' => null === $recurrence->endAfter() ? '' : (string) $recurrence->endAfter(),

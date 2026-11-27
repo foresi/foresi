@@ -3,74 +3,9 @@ security:
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
-    providers:
-        app_user_provider:
-            id: Foresi\Identity\Infrastructure\Security\UserProvider
-
-    firewalls:
-        dev:
-            # Ensure dev tools and static assets are always allowed
-            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
-            security: false
-        # The public routes that are stateless too, such as the health check for an uptime
-        # monitor and the inbound mail webhook, which checks its own bearer secret: no user
-        # and no session. A module marks its route with the default
-        # _public and the option stateless (Foresi\Shared\Infrastructure\Security\PublicRoute).
-        public_stateless:
-            request_matcher: foresi.security.public_stateless_route
-            stateless: true
-        # REST and MCP sign in with a personal API token on every request: no session, no cookie, no CSRF.
-        api:
-            pattern: ^/api/
-            stateless: true
-            provider: app_user_provider
-            entry_point: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
-            access_token:
-                token_handler: Foresi\Identity\Infrastructure\Security\ApiTokenHandler
-                failure_handler: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
-        mcp:
-            pattern: ^/mcp(/|$)
-            stateless: true
-            provider: app_user_provider
-            entry_point: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
-            access_token:
-                token_handler: foresi.mcp_token_handler
-                failure_handler: Foresi\Identity\Infrastructure\Security\ApiTokenFailure
-        main:
-            lazy: true
-            provider: app_user_provider
-
-            form_login:
-                login_path: app_login
-                check_path: app_login
-                enable_csrf: true
-                default_target_path: app_dashboard
-
-            logout:
-                path: app_logout
-                target: app_login
-                enable_csrf: true
-
-            login_throttling:
-                max_attempts: 5
-                interval: '1 minute'
-
-            # The code step after the password; see config/packages/scheb_2fa.yaml.
-            two_factor:
-                auth_form_path: 2fa_login
-                check_path: 2fa_login_check
-                default_target_path: app_dashboard
-                enable_csrf: true
-                csrf_token_id: two_factor
-                auth_code_parameter_name: _auth_code
-                trusted_parameter_name: _trusted
-
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+    # The user provider and the firewalls are declared by Foresi\Identity\IdentityBundle:
+    # the api and mcp firewalls always, the session firewall (main) with its sign-in pages
+    # and second factor only when Ui is installed (ADR 0038).
 
     # Note: Only the *first* matching rule is applied
     access_control:
@@ -95,11 +30,6 @@ security:
 
 when@test:
     security:
-        firewalls:
-            main:
-                login_throttling:
-                    # In memory, so attempts never leak between test runs.
-                    storage_service: test.login_throttling_storage
         password_hashers:
             # Password hashers are resource-intensive by design to ensure security.
             # In tests, it's safe to reduce their cost to improve performance.

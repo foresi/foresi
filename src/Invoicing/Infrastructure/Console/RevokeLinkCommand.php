@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Console;
 
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\InvoiceSends;
 use Foresi\Invoicing\Application\PublicDocuments;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;

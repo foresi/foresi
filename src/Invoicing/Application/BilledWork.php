@@ -8,18 +8,16 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\BilledWorkDraft;
+
 /**
- * Port: work another module bills on a new invoice, such as time on projects.
- * That module prefills the invoice form, and its origin records what was
- * billed in the transaction that issues the invoice. The form carries the
- * reference, and every line it prefilled carries its source, so the module
- * finds which line bills what however the lines were edited. Invoicing
- * declares the port and knows nothing of what is behind it.
+ * Port: work another module bills on a new invoice, such as time on projects,
+ * as the invoice form and IssueInvoice ask for it. The modules that bill work
+ * implement Foresi\Invoicing\Contract\BilledWork; CollectedBilledWork asks
+ * them. Invoicing knows nothing of what is behind it.
  */
 interface BilledWork
 {
-    public const string TAG = 'foresi.invoicing.billed_work';
-
     /**
      * What a new invoice opens with; null when the reference no longer holds.
      */

@@ -211,6 +211,26 @@ final readonly class ManageTasks
     }
 
     /**
+     * The time the task should take, set against the time logged on it
+     * (Teamwork); whom may record work on the task sets it.
+     *
+     * @param ?int $minutes null for no estimate
+     *
+     * @throws WorkRefused
+     */
+    public function setEstimate(string $taskId, ?int $minutes): void
+    {
+        $task = $this->work->task($taskId);
+        if (!$this->visibility->canRecordWork($task->project(), $task)) {
+            throw new WorkRefused('not_allowed');
+        }
+        if (null !== $minutes && ($minutes < 1 || $minutes > Task::MAX_ESTIMATE_MINUTES)) {
+            throw new WorkRefused('estimate');
+        }
+        $this->unit->run(static fn () => $task->estimate($minutes));
+    }
+
+    /**
      * One custom field of the task, null clearing it.
      *
      * @throws WorkRefused

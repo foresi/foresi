@@ -83,27 +83,6 @@ final class WorkInboxScreensTest extends InboxScreenTestCase
         self::assertEquals(0, $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM task'));
     }
 
-    public function testTheLogTimeDialogTakesANumberADateAndTimeAndABillableLeftToTheProject(): void
-    {
-        $id = $this->receive(InboxMail::plain($this->address));
-        $clientId = $this->createContact($id);
-        $project = $this->project('Office move', $clientId);
-
-        $crawler = $this->client->request('GET', '/inbox/'.$id.'/actions/inbox.actions.log_time');
-        self::assertResponseIsSuccessful();
-        self::assertSame(['number', 'datetime-local', 'date'], [$crawler->filter('#inbox-action-minutes')->attr('type'), $crawler->filter('#inbox-action-started_at')->attr('type'), $crawler->filter('#inbox-action-worked_on')->attr('type')]);
-        self::assertSame(['', '1', '0'], $crawler->filter('#inbox-action-billable option')->each(static fn ($option): string => (string) $option->attr('value')));
-        $form = $crawler->filter('#inbox-action-form')->form();
-        $form['minutes'] = '45';
-        $form['billable'] = '0';
-        $this->client->submit($form);
-
-        self::assertResponseRedirects('/inbox/'.$id);
-        $entry = $this->em->getConnection()->fetchAssociative('SELECT minutes, billable, project_id FROM time_entry');
-        self::assertIsArray($entry);
-        self::assertEquals([45, false, $project], [$entry['minutes'], (bool) $entry['billable'], $entry['project_id']]);
-    }
-
     private function createContact(string $id): string
     {
         $page = $this->client->request('GET', '/inbox/'.$id);

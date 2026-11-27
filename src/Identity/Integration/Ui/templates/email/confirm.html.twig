@@ -1,0 +1,29 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The page of the link that confirms a new sign-in e-mail, in the sign-in frame since it may be opened
+    in a browser that is not signed in. Steps: confirm (Confirm, so a mail scanner opening the link
+    changes nothing), done (sign in with the new address), taken, and unknown (expired, cancelled or used).
+    Variables: step, email, newEmail.
+#}
+{% extends '@Ui/layout/auth.html.twig' %}
+
+{% block title %}{{ ('email.confirm.' ~ step ~ '.title')|trans }}{% endblock %}
+
+{% block content %}
+    <div data-email-confirm="{{ step }}">
+        {% if step == 'confirm' %}
+            <p class="m-0 mb-4 text-text">{{ 'email.confirm.confirm.text'|trans({email: email, new: newEmail}) }}</p>
+            <form method="post" class="grid gap-3">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Identity\\Integration\\Ui\\Controller\\EmailController::CONFIRM_TOKEN')) }}">
+                <twig:Ui:Button type="submit" variant="primary" class="w-full">{{ 'email.confirm.confirm.submit'|trans }}</twig:Ui:Button>
+            </form>
+        {% elseif step == 'done' %}
+            <p class="m-0 mb-4 text-text">{{ 'email.confirm.done.text'|trans({new: newEmail}) }}</p>
+            <twig:Ui:Button variant="primary" class="w-full" :href="path('app_login')">{{ 'email.confirm.done.submit'|trans }}</twig:Ui:Button>
+        {% elseif step == 'taken' %}
+            <p class="m-0 text-text">{{ 'email.confirm.taken.text'|trans({new: newEmail}) }}</p>
+        {% else %}
+            <p class="m-0 text-text">{{ 'email.confirm.unknown.text'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

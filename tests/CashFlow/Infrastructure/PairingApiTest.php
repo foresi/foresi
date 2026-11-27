@@ -18,10 +18,10 @@ use Foresi\CashFlow\Contract\PairableDocument;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\RegistrationNumber;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -258,7 +258,7 @@ final class PairingApiTest extends ApiTestCase
     {
         $this->client->request('POST', '/api/v1/cash-flow/pairings', server: ['HTTP_AUTHORIZATION' => 'Bearer '.$this->reader, 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], content: '{}');
         $this->assertProblem(403, 'insufficient_scope');
-        $this->get('/api/v1/cash-flow/pairings', [], $this->issued([ApiScope::from('contacts:read')]));
+        $this->get('/api/v1/cash-flow/pairings', [], $this->issued([ApiScope::from('firm:read')]));
         $this->assertProblem(403, 'insufficient_scope');
     }
 

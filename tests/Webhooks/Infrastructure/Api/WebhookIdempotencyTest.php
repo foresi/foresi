@@ -106,7 +106,7 @@ final class WebhookIdempotencyTest extends WebhookApiTestCase
 
     public function testAMissingScopeIsNotKept(): void
     {
-        $this->send('POST', self::ENDPOINTS, self::BODY, $this->issued([ApiScope::from('contacts:write')]), idempotencyKey: 'create-1');
+        $this->send('POST', self::ENDPOINTS, self::BODY, $this->issued([ApiScope::from('firm:write')]), idempotencyKey: 'create-1');
         $this->assertProblem(403, 'insufficient_scope');
 
         self::assertSame([], $this->em()->getConnection()->fetchFirstColumn('SELECT '.IdempotencyKeyTable::IDEMPOTENCY_KEY.' FROM '.IdempotencyKeyTable::TABLE));

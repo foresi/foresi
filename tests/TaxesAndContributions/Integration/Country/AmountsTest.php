@@ -51,7 +51,7 @@ final class AmountsTest extends TaxesTestCase
             $this->amount('invoicing.payments', 'december', AmountKind::Income, '2026-12-01', 10_000, 10_000),
         ]);
 
-        $amounts = $this->amounts([$source, new FakeAmountSource('purchasing.payments', [])])->year(2026);
+        $amounts = $this->amounts([$source, new FakeAmountSource('received-documents.payments', [])])->year(2026);
 
         self::assertSame('2026-12-01', $amounts->to->format('Y-m-d'));
         self::assertSame(['2026-01-01', '2026-12-01', 'Europe/Prague'], [$source->asked[0][0]->format('Y-m-d'), $source->asked[0][1]->format('Y-m-d'), $source->asked[0][0]->getTimezone()->getName()]);
