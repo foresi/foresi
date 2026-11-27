@@ -20,19 +20,20 @@ use Foresi\Shared\Contract\Refused;
  */
 final class WorkRefused extends \DomainException implements Refused
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'estimate', 'date', 'hours_invalid', 'hours_zero', 'budget_below_zero', 'budget_note', 'budget_counting', 'source_not_on_project', 'star_finished', 'star_order'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'duration', 'time_note', 'time_task', 'time_not_yours', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'estimate', 'date', 'hours_invalid', 'hours_zero', 'budget_below_zero', 'budget_note', 'budget_counting', 'source_not_on_project', 'star_finished', 'star_order', 'schedule', 'create_days_before', 'due_days_after', 'subtasks', 'recurring_ended', 'not_an_occurrence', 'occurrence_created', 'no_date', 'custom_fields'];
 
     /** What the person may not do, whatever they send: 403. */
     private const array FORBIDDEN = ['not_allowed', 'comment_not_yours', 'task_not_yours', 'time_not_yours'];
 
     /** What the data does not allow now: 409. */
-    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'budget_below_zero', 'star_finished'];
+    private const array CONFLICTS = ['archived', 'last_open', 'last_done', 'label_taken', 'label_restore_taken', 'comment_deleted', 'comment_purged', 'parent_in_trash', 'time_invoiced', 'time_task_in_trash', 'timer_running', 'timer_not_running', 'budget_below_zero', 'star_finished', 'recurring_ended', 'occurrence_created'];
 
     /** The input field a reason is about, where it is always the same one. */
     private const array FIELDS = [
         'client' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body',
         'duration' => 'minutes', 'time_note' => 'note', 'time_task' => 'taskId', 'estimate' => 'estimateMinutes',
         'hours_invalid' => 'hours', 'hours_zero' => 'hours', 'budget_note' => 'note', 'budget_counting' => 'counting', 'source_not_on_project' => 'sourceActivityId', 'star_order' => 'taskIds',
+        'create_days_before' => 'createDaysBefore', 'due_days_after' => 'dueDaysAfter', 'subtasks' => 'subtasks', 'not_an_occurrence' => 'on', 'occurrence_created' => 'on', 'custom_fields' => 'customFields',
     ];
 
     /** For people and agents; never quoting what someone wrote. */
@@ -76,6 +77,15 @@ final class WorkRefused extends \DomainException implements Refused
         'source_not_on_project' => 'The source must be an activity linked to the project.',
         'star_finished' => 'The task is finished; a finished task leaves My priorities, so it is not starred.',
         'star_order' => 'Name every task of My priorities once, in the new order; foresi_search_tasks with starred lists them.',
+        'schedule' => 'The schedule does not hold together: first_on is YYYY-MM-DD, repeat day, week, month or year, every 1 to 99, last_day_of_month only monthly or yearly, and at most one of ends_on (not before the first date) and ends_after (1 to 999).',
+        'create_days_before' => 'A task is created 0 to 90 days before its date.',
+        'due_days_after' => 'A task is due 0 to 365 days after its date; leave it out (null) for the end of its period.',
+        'subtasks' => 'A recurring task starts with at most 50 subtasks, each with a title of at most 500 characters.',
+        'recurring_ended' => 'The recurring task has ended; it stays ended. Create a new one instead.',
+        'not_an_occurrence' => 'The recurring task does not fall on this day; skip a day foresi_preview_recurring_task lists.',
+        'occurrence_created' => 'The task of this day is created already or its date has passed; trash the task instead.',
+        'no_date' => 'The schedule leaves no date to create a task on.',
+        'custom_fields' => 'The custom fields are given by key as foresi_list_fields lists them for tasks, with values their kinds take.',
     ];
 
     public function __construct(public readonly string $reason, private readonly ?string $field = null)

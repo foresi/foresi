@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace Foresi\Tests\Invoicing\Domain;
+namespace Foresi\Tests\Shared\Domain\Schedule;
 
-use Foresi\Invoicing\Domain\PeriodText;
+use Foresi\Shared\Domain\Schedule\PeriodText;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -144,10 +144,21 @@ final class PeriodTextTest extends TestCase
         self::assertSame('{3}', PeriodText::resolve('{{month}}', new \DateTimeImmutable('2027-03-01')));
     }
 
-    public function testTokensListsTheFiveVariables(): void
+    public function testWeekIsTheIsoWeekAndItsOffsetCountsWeeks(): void
+    {
+        self::assertSame('1', PeriodText::resolve('{week}', new \DateTimeImmutable('2027-01-04')), 'a Monday starts week 1');
+        self::assertSame('53', PeriodText::resolve('{week}', new \DateTimeImmutable('2027-01-03')), 'the Sunday before is week 53 of 2026');
+        self::assertSame('53/2027', PeriodText::resolve('{week}/{year}', new \DateTimeImmutable('2027-01-01')));
+        self::assertSame('2', PeriodText::resolve('{week+1}', new \DateTimeImmutable('2027-01-04')));
+        self::assertSame('53', PeriodText::resolve('{week-1}', new \DateTimeImmutable('2027-01-04')));
+        self::assertSame('5', PeriodText::resolve('{week+4}', new \DateTimeImmutable('2027-01-10')));
+        self::assertSame('Slot 48 11/2026', PeriodText::resolve('Slot {week} {month}/{year}', new \DateTimeImmutable('2026-11-23')));
+    }
+
+    public function testTokensListsTheSixVariables(): void
     {
         self::assertSame(
-            '7 3 2027 1 3/2027',
+            '7 9 3 2027 1 3/2027',
             PeriodText::resolve(implode(' ', PeriodText::TOKENS), new \DateTimeImmutable('2027-03-07')),
         );
     }

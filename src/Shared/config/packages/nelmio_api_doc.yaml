@@ -576,6 +576,75 @@ nelmio_api_doc:
                               project_archived: { type: boolean }
                               created_at: { type: string, format: date-time }
                               completed_at: { type: string, format: date-time, nullable: true }
+                              recurring_task: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true, description: 'The recurring task that created it, named by its title; null for any other task, and for a guest.' }
+                              occurrence_on: { type: string, format: date, nullable: true, description: 'The date of the recurring task it was created for.' }
+                RecurringTaskSchedule:
+                    type: object
+                    required: [first_on, repeat, every, last_day_of_month, end, ends_on, ends_after]
+                    properties:
+                        first_on: { type: string, format: date }
+                        repeat: { type: string, enum: [day, week, month, year] }
+                        every: { type: integer }
+                        last_day_of_month: { type: boolean }
+                        end: { type: string, enum: [never, on_date, after_count] }
+                        ends_on: { type: string, format: date, nullable: true }
+                        ends_after: { type: integer, nullable: true }
+                RecurringTaskOccurrence:
+                    type: object
+                    description: A task a recurring task will create.
+                    required: [on, create_on, due_on, title]
+                    properties:
+                        on: { type: string, format: date, description: 'The date of the schedule.' }
+                        create_on: { type: string, format: date, description: 'The day the task is created.' }
+                        due_on: { type: string, format: date }
+                        title: { type: string, description: 'The title with the period variables of its date.' }
+                RecurringTask:
+                    type: object
+                    required: [id, title, project, state, next_on, created_count, failing]
+                    properties:
+                        id: { type: string, format: uuid }
+                        title: { type: string, description: 'As typed, with its period variables.' }
+                        project: { $ref: '#/components/schemas/Reference' }
+                        state: { type: string, enum: [active, paused, ended] }
+                        next_on: { type: string, format: date, nullable: true, description: 'The date of the next task; null once ended.' }
+                        created_count: { type: integer }
+                        failing: { type: boolean, description: 'Whether the last run could not create its task; last_failure in the detail says why.' }
+                RecurringTaskPage:
+                    type: object
+                    required: [data]
+                    properties:
+                        data: { type: array, items: { $ref: '#/components/schemas/RecurringTask' } }
+                RecurringTaskDetail:
+                    allOf:
+                        - $ref: '#/components/schemas/RecurringTask'
+                        - type: object
+                          properties:
+                              description: { type: string, description: 'Markdown, with its period variables.' }
+                              section: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                              responsible: { allOf: [{ $ref: '#/components/schemas/Reference' }], nullable: true }
+                              priority: { type: string, enum: [none, low, medium, high, urgent] }
+                              private: { type: boolean }
+                              estimate_minutes: { type: integer, nullable: true }
+                              label_ids: { type: array, items: { type: string, format: uuid } }
+                              watcher_ids: { type: array, items: { type: string, format: uuid } }
+                              subtasks: { type: array, items: { type: string } }
+                              custom_fields: { type: object, additionalProperties: true, description: 'The custom fields each task gets, by key.' }
+                              schedule: { $ref: '#/components/schemas/RecurringTaskSchedule' }
+                              create_days_before: { type: integer }
+                              due_days_after: { type: integer, nullable: true, description: 'Null: due at the end of its period.' }
+                              skipped_on: { type: array, items: { type: string, format: date } }
+                              last_on: { type: string, format: date, nullable: true }
+                              paused_at: { type: string, format: date-time, nullable: true }
+                              ended_at: { type: string, format: date-time, nullable: true }
+                              last_failure:
+                                  type: object
+                                  nullable: true
+                                  properties:
+                                      at: { type: string, format: date-time }
+                                      code: { type: string, enum: [archived, custom_fields, no_status] }
+                              next_tasks: { type: array, items: { $ref: '#/components/schemas/RecurringTaskOccurrence' }, description: 'The next five tasks it creates; none while paused or ended.' }
+                              tasks: { type: array, items: { $ref: '#/components/schemas/Reference' }, description: 'The last ten tasks it created that the person sees, the latest first, named by their title.' }
+                              created_at: { type: string, format: date-time }
                 TaskPage:
                     type: object
                     required: [data, next_cursor]

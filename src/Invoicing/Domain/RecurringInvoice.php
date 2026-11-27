@@ -211,11 +211,7 @@ class RecurringInvoice implements Audited
      */
     public static function firstOccurrenceFrom(Recurrence $recurrence, int $issued, \DateTimeImmutable $from): ?\DateTimeImmutable
     {
-        // The end rule counts issued invoices, not the dates passed, so it is applied here.
-        $open = new Recurrence($recurrence->firstIssueOn(), $recurrence->unit(), $recurrence->every(), $recurrence->onLastDayOfMonth(), RecurrenceEnd::Never, null, null);
-        $date = RecurringSchedule::next($open, 0, $from, 1)[0] ?? throw new \LogicException('A schedule that never ends has a next date.');
-
-        return RecurringSchedule::isOver($recurrence, $issued, $date) ? null : $date;
+        return RecurringSchedule::firstFrom($recurrence, $issued, $from);
     }
 
     /**

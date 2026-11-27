@@ -197,6 +197,8 @@ final readonly class WorkJson
             'project_archived' => $detail->projectArchived,
             'created_at' => JsonValues::timestamp($detail->createdAt),
             'completed_at' => JsonValues::timestamp($detail->completedAt),
+            'recurring_task' => $detail->recurringTask instanceof Choice ? ['id' => $detail->recurringTask->id, 'name' => $detail->recurringTask->name] : null,
+            'occurrence_on' => $detail->occurrenceOn?->format('Y-m-d'),
         ];
     }
 

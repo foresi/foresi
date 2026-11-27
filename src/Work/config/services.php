@@ -7,9 +7,11 @@
 declare(strict_types=1);
 
 use Foresi\Identity\Contract\GuestHome;
+use Foresi\Work\Application\CreateRecurringTasks;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageLabels;
 use Foresi\Work\Application\ManageProjects;
+use Foresi\Work\Application\ManageRecurringTasks;
 use Foresi\Work\Application\ManageSections;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
@@ -22,6 +24,7 @@ use Foresi\Work\Application\PurgeDeletedComments;
 use Foresi\Work\Application\PurgeDeletedTasks;
 use Foresi\Work\Application\PurgeTrashedLabels;
 use Foresi\Work\Application\PurgeTrashedTime;
+use Foresi\Work\Application\RecurringTasks;
 use Foresi\Work\Application\SharedWorkVisibility;
 use Foresi\Work\Application\TaskHistory;
 use Foresi\Work\Application\TimeQueries;
@@ -37,6 +40,7 @@ use Foresi\Work\Infrastructure\CollectedInvoiceNumbers;
 use Foresi\Work\Infrastructure\Directory\WorkProjectDirectory;
 use Foresi\Work\Infrastructure\Directory\WorkTaskDirectory;
 use Foresi\Work\Infrastructure\Directory\WorkTimeTotals;
+use Foresi\Work\Infrastructure\Doctrine\DoctrineRecurringTasks;
 use Foresi\Work\Infrastructure\Doctrine\DoctrineTimeQueries;
 use Foresi\Work\Infrastructure\Doctrine\DoctrineWorkQueries;
 use Foresi\Work\Infrastructure\Identity\SharedWorkGuestHome;
@@ -64,11 +68,12 @@ return static function (ContainerConfigurator $container): void {
         foreach ([
             ManageProjects::class, ManageSections::class, ManageWorkflow::class, ManageTasks::class, ManageLabels::class,
             TaskHistory::class, ManageComments::class, PurgeDeletedTasks::class, PurgeDeletedComments::class, PurgeTrashedTime::class, PurgeTrashedLabels::class, ManageSharing::class, ManageTime::class,
-            ProjectBudgets::class, ProjectBudgetReads::class, ManageTaskStars::class,
+            ProjectBudgets::class, ProjectBudgetReads::class, ManageTaskStars::class, ManageRecurringTasks::class, CreateRecurringTasks::class,
         ] as $service) {
             $services->set($service)->public();
         }
         $services->alias(TimeQueries::class, DoctrineTimeQueries::class)->public();
+        $services->alias(RecurringTasks::class, DoctrineRecurringTasks::class)->public();
         $services->alias(WorkVisibility::class, SharedWorkVisibility::class)->public();
         $services->alias(WorkQueries::class, DoctrineWorkQueries::class)->public();
         // Contracts only other modules use, reached by the Work tests as such a module would.

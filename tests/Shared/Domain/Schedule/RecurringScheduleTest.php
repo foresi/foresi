@@ -329,6 +329,14 @@ final class RecurringScheduleTest extends TestCase
         RecurringSchedule::occurrence($this->recurrence('2027-01-31', RecurrenceUnit::Month), -1);
     }
 
+    public function testThePeriodOfADateBeforeTheFirstOneEndsTheDayBeforeTheFirst(): void
+    {
+        $r = $this->recurrence('2026-11-30', RecurrenceUnit::Week);
+
+        self::assertSame('2026-11-29', $this->day(RecurringSchedule::periodEnd($r, new \DateTimeImmutable('2026-11-27'))));
+        self::assertSame('2026-12-06', $this->day(RecurringSchedule::periodEnd($r, new \DateTimeImmutable('2026-11-30'))));
+    }
+
     private function recurrence(
         string $first,
         RecurrenceUnit $unit,

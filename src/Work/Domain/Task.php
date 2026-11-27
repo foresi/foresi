@@ -39,6 +39,9 @@ use Foresi\Shared\Domain\Id;
  *
  * The estimate is the time the work should take, in minutes, set against the
  * time logged on the task (Teamwork); a subtask has one of its own.
+ *
+ * A task a recurring task created names it and the date it was created for;
+ * a recurring task creates one task for each date, never two.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'task')]
@@ -50,6 +53,7 @@ use Foresi\Shared\Domain\Id;
 #[ORM\Index(name: 'idx_task_status', columns: ['status_id'])]
 #[ORM\Index(name: 'idx_task_responsible', columns: ['responsible_id'])]
 #[ORM\Index(name: 'idx_task_deleted', columns: ['deleted_at'])]
+#[ORM\UniqueConstraint(name: 'uniq_task_occurrence', columns: ['recurring_task_id', 'occurrence_on'])]
 class Task implements Audited
 {
     public const int MAX_TITLE_LENGTH = 500;
@@ -99,6 +103,13 @@ class Task implements Audited
     /** The user who put the task in the trash. */
     #[ORM\Column(name: 'deleted_by', type: 'guid', nullable: true)]
     private ?string $deletedBy = null;
+
+    #[ORM\ManyToOne(targetEntity: RecurringTask::class)]
+    #[ORM\JoinColumn(name: 'recurring_task_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?RecurringTask $recurringTask = null;
+
+    #[ORM\Column(name: 'occurrence_on', type: 'date_immutable', nullable: true)]
+    private ?\DateTimeImmutable $occurrenceOn = null;
 
     /** When the task or its labels last changed; the history says what changed, so the log leaves it out. */
     #[AuditExcluded]
@@ -213,6 +224,31 @@ class Task implements Audited
     public function isPrivate(): bool
     {
         return $this->private;
+    }
+
+    /**
+     * Links the task to the recurring task that created it for $on, once.
+     *
+     * @throws \DomainException when it is linked already, is a subtask, or the recurring task is of another project
+     */
+    public function occurrenceOf(RecurringTask $recurringTask, \DateTimeImmutable $on): void
+    {
+        if ($this->recurringTask instanceof RecurringTask || $this->isSubtask()) {
+            throw new \DomainException('Only a task that is no subtask is created by a recurring task, once.');
+        }
+        $this->assertSameProject($recurringTask->project(), 'The recurring task');
+        $this->recurringTask = $recurringTask;
+        $this->occurrenceOn = new \DateTimeImmutable($on->format('Y-m-d'));
+    }
+
+    public function recurringTask(): ?RecurringTask
+    {
+        return $this->recurringTask;
+    }
+
+    public function occurrenceOn(): ?\DateTimeImmutable
+    {
+        return $this->occurrenceOn;
     }
 
     public function moveTo(int $position): void

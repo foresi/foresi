@@ -40,13 +40,14 @@ The order number, the description, the line texts and the texts before and after
 | Token | Gives, for the occurrence 1 March 2027 |
 |---|---|
 | `{day}` | `1` |
+| `{week}` | `9`, the ISO 8601 week, which starts on Monday |
 | `{month}` | `3` |
 | `{year}` | `2027` |
 | `{quarter}` | `1` |
 | `{month/year}` | `3/2027` |
 | `{document_number}` | the invoice's own number, for example `20270042` |
 
-Numbers have no leading zero. Each period token takes an optional offset, such as `{month+1}`, `{year-1}` or `{day+14}`.
+Numbers have no leading zero. Each period token takes an optional offset, such as `{month+1}`, `{year-1}`, `{day+14}` or `{week+1}`; the offset of `{week}` counts weeks. Around New Year the ISO week can belong to the other year: 1 January 2027 is in week 53 of 2026, so `{week}/{year}` gives `53/2027` there.
 
 **Tokens are independent.** Each token moves the occurrence date by its own offset only and shows its own part of the result; no offset carries into another token. So on 1 December 2026:
 

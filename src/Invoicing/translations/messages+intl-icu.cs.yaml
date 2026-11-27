@@ -1000,6 +1000,7 @@ recurring:
     help: Vloží se do posledního pole – popisu, textu či položky.
   variable:
     day: Den
+    week: Týden
     month: Měsíc
     year: Rok
     quarter: Čtvrtletí

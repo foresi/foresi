@@ -77,6 +77,7 @@ use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Domain\Label;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
+use Foresi\Work\Domain\RecurringTask;
 use Foresi\Work\Domain\Section;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\Task;
@@ -414,6 +415,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             }
         }
         $parent = $task->parent();
+        $recurring = $task->recurringTask();
 
         return new TaskDetail(
             $this->row($task, $labels, $deletable, $scope, \count($subtasks), $subtaskRows, $starred),
@@ -433,6 +435,9 @@ final readonly class DoctrineWorkQueries implements WorkQueries
             $scope->opens($project),
             // The estimate sits in the time block, which a guest never sees.
             $this->visibility->canManage() ? $task->estimateMinutes() : null,
+            // The recurring task is seen by the people of the organisation only.
+            $recurring instanceof RecurringTask && $this->visibility->canManage() ? new Choice($recurring->id(), $recurring->title()) : null,
+            $task->occurrenceOn(),
         );
     }
 
