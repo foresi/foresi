@@ -89,7 +89,7 @@ Party moves what the screens checked into its application layer:
 * The write use cases ask `PartyAccess::denyUnlessMayChange()`: the owners and members of the organisation. Work without a signed-in person (an import worker, the console) is the application's own and passes; no route reaches these use cases without a sign-in, as the firewalls keep every screen and API route behind one.
 * `PartyRules` holds the lengths, the e-mail check, "a company needs a registration number or VAT id" and the kinds a link needs. The form reader and the link screen read through it and keep their messages through a map from reason to translation key.
 * `UpdateContact` changes only the fields given; `UnlinkContactPerson` removes a link.
-* Party records `party.contact.created`, `party.contact.updated`, `party.contact.archived` and `party.contact.restored`, version 1, with the contact id and kind only, in the transaction of the change.
+* Party records `contacts.contact.created`, `contacts.contact.updated`, `contacts.contact.archived` and `contacts.contact.restored`, version 1, with the contact id and kind only, in the transaction of the change.
 
 The operations, all with `contacts:write` and the contact detail as the answer:
 

@@ -14,8 +14,8 @@ use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Event\EventReadAccess;
 
 /**
- * The events of the address book tell about contacts, so they are read by those
- * who read the address book: the owners and members of the organisation.
+ * The events of Party tell about the firm, so they are read by those who read the
+ * firm: the owners and members of the organisation.
  */
 final readonly class PartyEventAccess implements EventReadAccess
 {

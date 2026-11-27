@@ -1,8 +1,8 @@
 # Sales
 
-The Sales module (`src/Sales`, id `sales`, scope `sales`) keeps the deals of the firm: what is being sold to a client, how far along it is, what it is worth, and whether it was won or lost. A deal has stages, lines copied from the catalog, links to the deals it follows from, and, when those modules are installed, its documents and activities.
+The Sales module (`src/Deals`, id `deals`, scope `deals`) keeps the deals of the firm: what is being sold to a client, how far along it is, what it is worth, and whether it was won or lost. A deal has stages, lines copied from the catalog, links to the deals it follows from, and, when those modules are installed, its documents and activities.
 
-The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents and Activities are optional, and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Sales\Contract\SalesSlots`.
+The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents, Activities and Contacts are optional (without Contacts a deal adds no new contact person to its client and links no contact page), and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Deals\Contract\SalesSlots`.
 
 ## Staff only
 
@@ -72,7 +72,7 @@ A deal can **follow from** another deal of the same client, such as a monthly se
 
 ## The deals list
 
-**Sales → Deals** (`/sales/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, the search (title, client), the Filter icon (stage, status, owner, client, the trash; Fáze and Vlastník are the quick filters under the tabs) and the Settings sheet (title, client, owner, value, status and more). A row opens the deal.
+**Sales → Deals** (`/deals`) lists the deals on saved views, as the other lists: All, Open, Won, Lost and Trash, the person's own views, the search (title, client), the Filter icon (stage, status, owner, client, the trash; Fáze and Vlastník are the quick filters under the tabs) and the Settings sheet (title, client, owner, value, status and more). A row opens the deal.
 
 - **New deal** in the page header opens a dialog with the title, the client, the owner, the stage and the contact persons. Without JavaScript the dialog is a page.
 - **Edit** on a deal opens the same dialog with its client in the same search field; a linked deal shows its client read-only, with a note that it changes once the links are removed.
@@ -85,7 +85,7 @@ When Sales is installed, the page of a contact has a **Deals** tab: the deals of
 
 ## Documents and Activities
 
-These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same (`Foresi\Sales\Integration\Documents` and `Integration\Activities` are then not registered). A deal in the trash shows neither.
+These appear on a deal only when the modules are installed; without them the deal shows none of this and works the same (`Foresi\Deals\Integration\DocumentTemplates` and `Integration\Activities` are then not registered). A deal in the trash shows neither.
 
 - **Documents:** the deal's header has **New document**, which opens the dialog of Documents with the deal and its client linked, and the deal's page has a **Documents** section listing the documents linked to the deal. A document can link to a deal (record kind `deal`); a deal in the trash shows as unavailable on the document until it is restored. Templates read the deal under `{{ deal.* }}`:
 
@@ -105,9 +105,9 @@ The new-document and new-activity screens take several links as `links[]=kind:id
 
 ## Events
 
-`sales.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the client, the lines, the links or the contact persons records `.updated`.
+`deals.deal.created`, `.updated`, `.stage_changed`, `.won`, `.lost`, `.reopened`, `.trashed` and `.restored`, version 1, about a subject of type `deal`. The payload holds the `dealId` and the `status` after the change; `stage_changed` adds the `fromStageId` and `toStageId`, and `lost` the `lostReasonId`. Changing the client, the lines, the links or the contact persons records `.updated`.
 
-The billing plan records `sales.billing_entry.created`, `.updated`, `.deleted`, `.fulfilled` and `.unfulfilled`, version 1, about the subject of type `deal`. The payload holds the `entryId`, the `dealId` and the `kind` (`one_off` or `recurring`); `.fulfilled` and `.unfulfilled` add the `documentType` (`invoice` or `recurring_invoice`) and the `documentId`. Amounts and texts never travel in an event. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
+The billing plan records `deals.billing_entry.created`, `.updated`, `.deleted`, `.fulfilled` and `.unfulfilled`, version 1, about the subject of type `deal`. The payload holds the `entryId`, the `dealId` and the `kind` (`one_off` or `recurring`); `.fulfilled` and `.unfulfilled` add the `documentType` (`invoice` or `recurring_invoice`) and the `documentId`. Amounts and texts never travel in an event. The title, notes, prices and the lost note never travel in an event ([ADR 0030](adr/0030-domain-events.md)).
 
 ## API and MCP
 

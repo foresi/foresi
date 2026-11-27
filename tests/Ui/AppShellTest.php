@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui;
 
+use Foresi\Contacts\ContactsBundle;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -84,9 +85,10 @@ final class AppShellTest extends WebTestCase
         self::assertNotNull($rail->attr('data-turbo-permanent'));
         $areas = $rail->filter('a[data-nav-area]')->each(static fn ($a): string => (string) $a->attr('data-nav-area'));
         // The installed modules decide which areas there are; their order is fixed, the overview
-        // first, the contacts always and the settings last.
+        // first and the settings last, with the contacts where the address book is installed.
         self::assertSame(array_values(array_intersect(['overview', 'sales', 'purchasing', 'money', 'contacts', 'projects', 'extensions', 'settings'], $areas)), $areas);
-        self::assertSame(['overview', 'contacts', 'settings'], array_values(array_intersect($areas, ['overview', 'contacts', 'settings'])));
+        $always = class_exists(ContactsBundle::class) ? ['overview', 'contacts', 'settings'] : ['overview', 'settings'];
+        self::assertSame($always, array_values(array_intersect($areas, ['overview', 'contacts', 'settings'])));
         self::assertSame('settings', end($areas));
         self::assertSame(['overview'], $rail->filter('a[aria-current="true"]')->each(static fn ($a): string => (string) $a->attr('data-nav-area')));
         self::assertSame('/', $rail->filter('a[data-nav-area="overview"]')->attr('href'));
@@ -172,7 +174,7 @@ final class AppShellTest extends WebTestCase
         }
         self::assertSame(['selling', 'billing'], $sales->filter('[data-nav-section]')->each(static fn ($s): string => (string) $s->attr('data-nav-section')));
         self::assertSame(['Selling', 'Billing'], $sales->filter('[data-nav-section] > h3')->each(static fn ($h): string => trim($h->text())));
-        self::assertSame(['/sales/deals', '/documents', '/catalog/products'], $sales->filter('[data-nav-section="selling"] a')->each(static fn ($a): string => (string) $a->attr('href')));
+        self::assertSame(['/deals', '/documents', '/catalog/products'], $sales->filter('[data-nav-section="selling"] a')->each(static fn ($a): string => (string) $a->attr('href')));
         self::assertSame('nav-section-sales-billing', $sales->filter('[data-nav-section="billing"]')->attr('aria-labelledby'));
         self::assertCount(0, $crawler->filter('#sidebar [data-nav-area="projects"] h3'));
         self::assertNull($crawler->filter('#sidebar [data-nav-area="projects"] [data-nav-section]')->attr('aria-labelledby'));

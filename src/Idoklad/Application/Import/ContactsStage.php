@@ -18,10 +18,11 @@ use Foresi\Import\Contract\RecordMatch;
 use Foresi\Import\Contract\RowError;
 use Foresi\Import\Domain\NormalisationOptions;
 use Foresi\Import\Domain\ValueNormaliser;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Countries;
 
@@ -78,6 +79,7 @@ final readonly class ContactsStage implements ImportStage
         private PartyQuery $parties,
         private PartyDetails $details,
         private ContactNames $names,
+        private PartyInvoicingDefaults $invoicingDefaults,
     ) {
     }
 
@@ -290,10 +292,9 @@ final readonly class ContactsStage implements ImportStage
         if (!\is_bool($sendReminders)) {
             return;
         }
-        $party = $this->parties->find($partyId) ?? throw new \LogicException('The created contact is stored.');
-        $defaults = $party->invoicingDefaults();
+        $defaults = $this->invoicingDefaults->of($partyId);
         if ($defaults->sendReminders !== $sendReminders) {
-            $party->changeInvoicingDefaults(new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders, $defaults->hourlyRate()));
+            $this->invoicingDefaults->change($partyId, new InvoicingDefaults($defaults->dueDays, $defaults->currency, $defaults->language, $defaults->paymentMethod, $defaults->reverseCharge, $sendReminders, $defaults->hourlyRate()));
         }
     }
 

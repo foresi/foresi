@@ -55,7 +55,7 @@ async function fillRecapRow(page: Page, index: number, rate: string, base: strin
 
 test.describe('received documents', () => {
   test('a PDF uploaded from the list becomes a draft to complete', async ({ page }) => {
-    await page.goto('/purchasing');
+    await page.goto('/received-documents');
     await expect(page.locator('main h1')).toHaveText('Náklady');
     await expect(page.getByRole('link', { name: /^K doplnění/ })).toBeVisible();
     await page.locator('main header').getByRole('link', { name: 'Nahrát doklady' }).click();
@@ -72,14 +72,14 @@ test.describe('received documents', () => {
     // The row opens the document in the side sheet at its own URL, full screen: a document with lines is a form.
     const sheet = page.locator('dialog#sheet');
     await expect(sheet.getByRole('heading', { level: 2 }).first()).toContainText('Koncept z');
-    await expect(page).toHaveURL(/\/purchasing\/[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/received-documents\/[0-9a-f-]{36}$/);
     // The original beside its values, nothing recorded and no number yet.
     await expect(sheet.locator('[data-purchasing-preview="pdf"]')).toBeVisible();
     await expect(sheet.getByRole('button', { name: 'Zaevidovat' })).toBeVisible();
     // Back closes the sheet over the list.
     await page.goBack();
     await expect(sheet).toBeHidden();
-    await expect(page).toHaveURL(/\/purchasing$/);
+    await expect(page).toHaveURL(/\/received-documents$/);
     // The same URL is the page of the document.
     await row.getByRole('link', { name: /Koncept z/ }).click();
     await sheet.getByRole('link', { name: 'Otevřít jako stránku' }).click();
@@ -90,7 +90,7 @@ test.describe('received documents', () => {
   });
 
   test('a service from outside the EU in dollars is recorded with the rate typed by hand', async ({ page }) => {
-    await page.goto('/purchasing');
+    await page.goto('/received-documents');
     await page.locator('main header').getByRole('link', { name: 'Nový doklad' }).click();
     const dialog = page.getByRole('dialog', { name: 'Nový doklad' });
     await expect(dialog.locator('#kind')).toBeVisible();
@@ -124,7 +124,7 @@ test.describe('received documents', () => {
   });
 
   test('the draft is completed with two VAT rates and recorded', async ({ page }) => {
-    await page.goto('/purchasing');
+    await page.goto('/received-documents');
     await page.locator('tbody tr').filter({ hasText: 'Koncept z' }).getByRole('link', { name: /Koncept z/ }).click();
     // Completed and recorded in place, in the sheet over the list.
     const sheet = page.locator('dialog#sheet');
@@ -158,7 +158,7 @@ test.describe('received documents', () => {
     // Domestic VAT is deducted from the month of the later of the tax point and the received date, until the end of the second year after.
     await expect(page.locator('[data-purchasing-deduction]')).toHaveText(/^Odpočet DPH od období 10\/2026, nejpozději 31\.\s12\.\s2028\.$/);
 
-    await page.goto('/purchasing');
+    await page.goto('/received-documents');
     await expect(page.getByRole('link', { name: /^K doplnění 0/ })).toBeVisible();
     await page.getByRole('link', { name: /^Zaevidované/ }).click();
     // All, the view the list opens on, holds the same four rows: wait for the visit to land,
@@ -171,7 +171,7 @@ test.describe('received documents', () => {
   });
 
   test('a document in the trash keeps its number and comes back', async ({ page }) => {
-    await page.goto('/purchasing?tab=recorded');
+    await page.goto('/received-documents?tab=recorded');
     await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260004' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     await expect(page.locator('main h1')).toHaveText('R20260004');
@@ -182,7 +182,7 @@ test.describe('received documents', () => {
     await dialog.getByRole('button', { name: 'Smazat doklad', exact: true }).click();
     await expect(page.locator('[role=status]').filter({ hasText: 'Doklad R20260004 je v koši.' })).toBeVisible();
 
-    await page.goto('/purchasing?tab=trash');
+    await page.goto('/received-documents?tab=trash');
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await page.getByRole('link', { name: 'R20260004' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
@@ -197,12 +197,12 @@ test.describe('received documents', () => {
     await expect(page.locator('[data-purchasing-trashed]')).toHaveCount(0);
     await expect(page.locator('#supplierNumber')).toHaveValue('FV-7741');
 
-    await page.goto('/purchasing?tab=trash');
+    await page.goto('/received-documents?tab=trash');
     await expect(page.locator('tbody tr')).toHaveCount(0);
   });
 
   test('an uploaded ISDOC file is read into the draft, each value with its source, and recorded', async ({ page }) => {
-    await page.goto('/purchasing');
+    await page.goto('/received-documents');
     await page.locator('main header').getByRole('link', { name: 'Nahrát doklady' }).click();
     const dialog = page.getByRole('dialog', { name: 'Nahrát přijaté doklady' });
     await dialog.locator('#upload-files').setInputFiles({ name: 'faktura-20260001.isdoc', mimeType: 'application/xml', buffer: ISDOC });
@@ -236,7 +236,7 @@ test.describe('received documents', () => {
 
 test.describe('margin', () => {
   test('a document is assigned to own use and the panel shows the recipient', async ({ page }) => {
-    await page.goto('/purchasing?tab=recorded');
+    await page.goto('/received-documents?tab=recorded');
     await page.locator('tbody tr').filter({ hasText: 'FV-7741' }).getByRole('link', { name: 'R20260004' }).click();
     await page.locator('dialog#sheet').getByRole('link', { name: 'Otevřít jako stránku' }).click();
     const panel = page.locator('[data-purchasing-margin]');
@@ -282,7 +282,7 @@ test.describe('capture address', () => {
 test.describe('screens', () => {
   test('the list and the detail look as approved @visual', async ({ page }) => {
     // An instance holds one firm (ADR 0039), so the list holds the seeded documents too.
-    await page.goto('/purchasing?tab=recorded');
+    await page.goto('/received-documents?tab=recorded');
     await expect(page.getByRole('link', { name: 'R20260001' })).toBeVisible();
     await page.mouse.move(0, 0);
     await expect(page.locator('main')).toHaveScreenshot('list-content.png');
@@ -300,7 +300,7 @@ test.describe('guests', () => {
   test.use({ storageState: PROJECTS_GUEST_STATE });
 
   test('a guest has no received documents', async ({ page }) => {
-    const response = await page.goto('/purchasing');
+    const response = await page.goto('/received-documents');
     expect(response?.status()).toBe(403);
     await page.goto('/projects');
     await expect(page.getByRole('link', { name: 'Náklady' })).toHaveCount(0);

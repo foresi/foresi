@@ -10,9 +10,9 @@ namespace Foresi\Invoicing\Application;
 
 use Foresi\Audit\Application\AuditActor;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Domain\MailTemplateKind;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Psr\Clock\ClockInterface;

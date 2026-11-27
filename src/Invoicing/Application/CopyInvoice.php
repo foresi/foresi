@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Application;
 
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\TaxTreatment;
 use Foresi\Invoicing\Contract\VatRateKind;
@@ -17,7 +19,6 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\VariableSymbol;
 use Foresi\Party\Application\FirmBankAccounts;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\Party;
 
 /**
@@ -35,6 +36,7 @@ final readonly class CopyInvoice
         private InvoiceStore $store,
         private NumberCounter $counter,
         private FirmBankAccounts $accounts,
+        private PartyInvoicingDefaults $partyDefaults,
     ) {
     }
 
@@ -84,7 +86,7 @@ final readonly class CopyInvoice
 
     private function dueDate(InvoiceDraftValues $draft, bool $customer, Party $party): \DateTimeImmutable
     {
-        $days = $customer ? $party->invoicingDefaults()->dueDays : InvoicingDefaults::DEFAULT_DUE_DAYS;
+        $days = $customer ? $this->partyDefaults->of($party->id())->dueDays : InvoicingDefaults::DEFAULT_DUE_DAYS;
 
         return $draft->issueDate->modify(\sprintf('+%d days', $days));
     }

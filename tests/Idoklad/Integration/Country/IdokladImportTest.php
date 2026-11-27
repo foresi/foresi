@@ -10,6 +10,7 @@ namespace Foresi\Tests\Idoklad\Integration\Country;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Idoklad\Application\Import\ContactsStage;
 use Foresi\Idoklad\Application\Import\IdokladImportRuns;
 use Foresi\Idoklad\Application\Import\RunIdokladImport;
@@ -22,9 +23,9 @@ use Foresi\Idoklad\Domain\IdokladResource;
 use Foresi\Idoklad\Domain\ImportMode;
 use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyDetails;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Domain\Address;
@@ -99,7 +100,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertSame('+420 123 456 789', $party->phone());
         self::assertSame('https://example.com', $party->website());
         self::assertSame([PartyRole::Customer], $party->roles());
-        self::assertSame(21, $party->invoicingDefaults()->dueDays);
+        self::assertSame(21, self::getContainer()->get(PartyInvoicingDefaults::class)->of($party->id())->dueDays);
         $details = self::getContainer()->get(PartyDetails::class);
         self::assertSame('billing@example.com', $details->generalEmail($party)?->address());
         self::assertSame('Example Street 9', $details->billingAddress($party)?->address()->street);
@@ -111,7 +112,7 @@ final class IdokladImportTest extends KernelTestCase
         self::assertCount(1, $links);
         self::assertSame('Ing. Jana Example', $links[0]->person()->displayName());
 
-        self::assertFalse($party->invoicingDefaults()->sendReminders);
+        self::assertFalse(self::getContainer()->get(PartyInvoicingDefaults::class)->of($party->id())->sendReminders);
 
         $link = $this->links()[0];
         self::assertSame(IdokladResource::Contacts, $link->resource());
@@ -130,7 +131,7 @@ final class IdokladImportTest extends KernelTestCase
         $party = $this->party($this->entry($run, ContactsStage::KEY, 502)['target_id']);
         self::assertSame('Petr Example', $party->displayName());
         self::assertSame(PartyKind::Person, $party->kind());
-        self::assertTrue($party->invoicingDefaults()->sendReminders);
+        self::assertTrue(self::getContainer()->get(PartyInvoicingDefaults::class)->of($party->id())->sendReminders);
     }
 
     public function testAContactIsMatchedByRegistrationNumberAndGetsOnlyWhatItLacks(): void

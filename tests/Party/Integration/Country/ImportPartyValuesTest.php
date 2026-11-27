@@ -15,11 +15,8 @@ use Foresi\Party\Application\ImportPartyValues;
 use Foresi\Party\Application\RegistrationNumberFactory;
 use Foresi\Party\Domain\DomesticBankAccount;
 use Foresi\Party\Domain\InvalidIban;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Shared\Domain\Currency;
 use PHPUnit\Framework\TestCase;
 
 final class ImportPartyValuesTest extends TestCase
@@ -137,14 +134,6 @@ final class ImportPartyValuesTest extends TestCase
         self::assertSame([], $row->roles);
     }
 
-    public function testTheDuePeriodIsBetweenZeroAndAYear(): void
-    {
-        self::assertSame([], $this->read(['display_name' => 'Acme', 'due_days' => 0])->errors);
-        self::assertSame([], $this->read(['display_name' => 'Acme', 'due_days' => 365])->errors);
-        self::assertSame(['import.error.out_of_range', ['value' => -1, 'min' => 0, 'max' => 365]], $this->read(['display_name' => 'Acme', 'due_days' => -1])->errors['due_days']);
-        self::assertSame(['import.error.out_of_range', ['value' => 366, 'min' => 0, 'max' => 365]], $this->read(['display_name' => 'Acme', 'due_days' => 366])->errors['due_days']);
-    }
-
     public function testBankDetailsNameTheValueThatWasRead(): void
     {
         $row = $this->read(['display_name' => 'Acme', 'bank_account_bic' => 'bad']);
@@ -200,22 +189,6 @@ final class ImportPartyValuesTest extends TestCase
 
         self::assertNull($row->iban);
         self::assertArrayHasKey('bank_account_number', $row->errors);
-    }
-
-    public function testInvoicingDefaultsTakeWhatTheRowSaysAndKeepTheBase(): void
-    {
-        $base = new InvoicingDefaults(30, Currency::EUR, InvoicingDefaults::standard()->language, PaymentMethod::Cash, true);
-        $values = $this->values();
-
-        $defaults = $values->invoicingDefaults($this->read(['display_name' => 'Acme', 'due_days' => 7, 'currency' => 'USD']), $base, false);
-
-        self::assertSame(7, $defaults->dueDays);
-        self::assertSame(Currency::USD, $defaults->currency);
-        self::assertSame(PaymentMethod::Cash, $defaults->paymentMethod);
-        self::assertTrue($defaults->reverseCharge);
-
-        $cleared = $values->invoicingDefaults($this->read(['display_name' => 'Acme', 'due_days' => null, 'currency' => null, 'payment_method' => null]), $base, true);
-        self::assertTrue($cleared->equals(new InvoicingDefaults(14, Currency::CZK, $base->language, PaymentMethod::BankTransfer, true)));
     }
 
     /**

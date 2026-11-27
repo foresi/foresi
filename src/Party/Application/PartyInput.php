@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Party\Application;
 
 use Foresi\Party\Domain\Address;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistrationNumber;
@@ -41,7 +40,6 @@ final readonly class PartyInput
         public string $privateNote = '',
         public string $mobile = '',
         public string $website = '',
-        public ?InvoicingDefaults $invoicingDefaults = null,
         public ?array $customFields = null,
     ) {
     }
@@ -53,6 +51,6 @@ final readonly class PartyInput
      */
     public function withCustomFields(array $customFields): self
     {
-        return new self($this->kind, $this->displayName, $this->registrationNumber, $this->vatId, $this->email, $this->phone, $this->roles, $this->billingAddress, $this->privateNote, $this->mobile, $this->website, $this->invoicingDefaults, $customFields);
+        return new self($this->kind, $this->displayName, $this->registrationNumber, $this->vatId, $this->email, $this->phone, $this->roles, $this->billingAddress, $this->privateNote, $this->mobile, $this->website, $customFields);
     }
 }

@@ -50,12 +50,12 @@ final readonly class ScopedDql
     }
 
     /**
-     * The time seen, on the aliases of the project of the entry and of its
-     * task, joined with LEFT JOIN: time on a task with the task, time without
-     * one where the whole project is open to the person (WorkScope::seesTime).
-     * Whether the task is in the trash is the query's to say.
+     * What is recorded on work and seen, such as time, on the aliases of the
+     * project of the record and of its task, joined with LEFT JOIN: on a task
+     * with the task, without one where the whole project is open to the person
+     * (WorkScope::seesWorkOn). Whether the task is in the trash is the query's to say.
      */
-    public static function time(WorkScope $scope, string $project, string $task): self
+    public static function recorded(WorkScope $scope, string $project, string $task): self
     {
         if ($scope->isEverything()) {
             return new self('', '', []);
@@ -71,7 +71,7 @@ final readonly class ScopedDql
     }
 
     /**
-     * The condition a task seen meets, on the joins of tasks() and time().
+     * The condition a task seen meets, on the joins of tasks() and recorded().
      *
      * @param array<string, array{mixed, ArrayParameterType|string}> $parameters
      */

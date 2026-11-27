@@ -35,4 +35,6 @@ enum UnmatchedReason: string
     case AccountCurrency = 'account_currency';
     /** Outgoing: one invoice has its symbol, and what it has to refund is another amount. */
     case RefundAmountDiffers = 'refund_amount_differs';
+    /** No installed module pays documents from movements, such as Invoicing. */
+    case NoPairing = 'no_pairing';
 }

@@ -19,7 +19,7 @@ use Foresi\Shared\Contract\Operation\Operation;
     method: 'DELETE',
     path: '/api/v1/firm/vat-statuses/{vatStatusId}',
     tool: 'foresi_remove_firm_vat_status',
-    scope: 'contacts:write',
+    scope: 'firm:write',
     title: 'Remove a VAT status of the firm',
     description: 'Removes a VAT status of the firm, found in vat_statuses of foresi_get_firm; the one before it then holds until the next one. The last status is never removed: add the new one first. Only the owner of the organisation may do this.',
     destructive: true,

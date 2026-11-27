@@ -73,6 +73,19 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame([true, false], [$onEdit[0]->current, $onEdit[1]->current]);
     }
 
+    public function testTheItemWithTheLongerPrefixHasThePage(): void
+    {
+        $deals = new NavigationItem('overview', 'a', 'plus', 'app_deals', routePrefixes: ['app_deal']);
+        $settings = new NavigationItem('overview', 'b', 'plus', 'app_deal_settings', routePrefixes: ['app_deal_stage_']);
+
+        $onStageEdit = $this->overview('app_deal_stage_edit', $deals, $settings);
+        $onDealStage = $this->overview('app_deal_stage', $deals, $settings);
+
+        self::assertSame([false, true], [$onStageEdit[0]->current, $onStageEdit[1]->current]);
+        self::assertSame([true, false], [$onDealStage[0]->current, $onDealStage[1]->current]);
+        self::assertSame('b', $this->registry($deals, $settings)->current('app_deal_stage_new')?->labelKey);
+    }
+
     public function testCountsAreEvaluatedForAMember(): void
     {
         $items = $this->overview(null, new NavigationItem('overview', 'a', 'plus', 'r1', $this->counter(7)), new NavigationItem('overview', 'b', 'plus', 'r2'));
@@ -430,6 +443,21 @@ final class NavigationRegistryTest extends TestCase
         self::assertSame('mine', $registry->current('app_project_mine')?->labelKey);
         self::assertNull($registry->current('app_login'));
         self::assertNull($registry->current(null));
+    }
+
+    public function testAPageThatIsAnItemOfItsOwnIsNoOtherItemsEvenByAPrefixOfOneLetter(): void
+    {
+        $short = new NavigationItem('overview', 'a', 'plus', 'x_list', routePrefixes: ['b']);
+        $own = new NavigationItem('overview', 'b', 'plus', 'b_page');
+
+        $items = $this->overview('b_page', $short, $own);
+
+        self::assertSame([false, true], [$items[0]->current, $items[1]->current]);
+    }
+
+    public function testWithoutItemsNoPageIsCurrent(): void
+    {
+        self::assertNull($this->registry()->current('app_inbox'));
     }
 
     public function testCurrentRunsNoCount(): void

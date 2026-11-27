@@ -119,6 +119,8 @@ Every merge to `main` that users notice is a release; there is no release branch
 
 The version follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Before 1.0.0, a breaking change raises the minor version (0.5.3 to 0.6.0) and anything else the patch (0.5.3 to 0.5.4). From 1.0.0, a breaking change raises the major version, a feature the minor one and a fix the patch.
 
+Release notes with `### Upgrading` say what an operator or integrator must do, and they also go into [docs/upgrading.md](docs/upgrading.md), the one upgrade guide. The pull request adds a section there, at the top of its minor version (`### 0.11`, or a new line for the next minor version when the change is breaking), headed `#### [<version>](https://github.com/foresi/foresi/releases/tag/v<version>): <title> (#<pull request>)`, with the same text as its Upgrading section; links to `docs/` drop that prefix there. The Commits workflow checks it by the pull request number; `bin/pr-check`, run before the pull request exists, checks the text alone. If another release lands first and takes the version, correct it in the heading.
+
 After the release, the `Split packages` job pushes every `src/<Module>/` and `packages/core/` to its read-only repository `foresi/<name>`, and Packagist publishes the tag from there (ADR 0034).
 
 ### The extension contract
@@ -146,5 +148,5 @@ The split pushes only to repositories that exist, so a new module needs these st
 
 A module that is removed from this repository is marked abandoned on Packagist, so instances that follow every release stop requiring it.
 
-Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between say what else to do. The one exception is the move onto the module baselines in 0.9.0: a database must reach 0.8.0, the last release with the global migration history, before it is rebased ([operations](docs/operations.md#the-module-baselines)). [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
+Operators may skip versions: the migrations run in order whatever the gap, and the Upgrading notes of every release in between, collected in [docs/upgrading.md](docs/upgrading.md#upgrade-notes-by-version), say what else to do. The one exception is the move onto the module baselines in 0.9.0: a database must reach 0.8.0, the last release with the global migration history, before it is rebased ([upgrading](docs/upgrading.md#several-versions-at-once)). [CHANGELOG.md](CHANGELOG.md) holds the history up to 0.5.0.
 

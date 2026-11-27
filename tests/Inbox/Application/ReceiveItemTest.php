@@ -11,6 +11,8 @@ namespace Foresi\Tests\Inbox\Application;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
 use Foresi\Audit\Application\AuditActor;
+use Foresi\Contacts\Contract\ContactCreation;
+use Foresi\Contacts\Contract\NewContact;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
@@ -26,10 +28,9 @@ use Foresi\Mail\Application\ReceiveMail;
 use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\AddressIssuer;
 use Foresi\Mail\Domain\InboundChannel;
-use Foresi\Party\Contract\ContactCreation;
-use Foresi\Party\Contract\NewContact;
 use Foresi\Shared\Contract\Event\EventSubject;
 use Foresi\Tests\Inbox\Support\InboxMail;
+use Foresi\Tests\Inbox\Support\NeedsTheAddressBook;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -39,6 +40,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class ReceiveItemTest extends KernelTestCase
 {
+    use NeedsTheAddressBook;
+
     private const string OWNER = 'owner@example.com';
     private const string CLIENT = 'client.a@client-a.example.com';
 
@@ -215,6 +218,8 @@ final class ReceiveItemTest extends KernelTestCase
 
     private function contact(string $kind, string $name, string $email, string $registrationNumber = ''): string
     {
+        self::needsTheAddressBook();
+
         return self::getContainer()->get(ContactCreation::class)->create(new NewContact($kind, $name, 'Example Street 2', 'Example City', '110 00', 'CZ', $registrationNumber, email: $email));
     }
 

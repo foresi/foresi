@@ -99,7 +99,7 @@ cash_flow:
     cash_flow_planned_items: Plánované položky
     invoicing_invoices: Faktury
     invoicing_recurring_invoices: Opakované faktury
-    purchasing_received_documents: Přijaté doklady
+    received_documents_received_documents: Přijaté doklady
     banking_movements: Pohyby na účtu
   empty:
     no_firm_title: Nejdřív nastavte firmu

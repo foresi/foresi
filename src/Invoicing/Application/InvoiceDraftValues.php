@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Application;
 
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\VatRegime;
-use Foresi\Party\Domain\DocumentLanguage;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 
 /**

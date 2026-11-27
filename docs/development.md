@@ -39,10 +39,10 @@ Firm logos and stamps are stored in `<APP_SHARE_DIR>/<environment>/firm-images`,
 
 ## Background worker
 
-Long-running work (imports, register re-checks, sending e-mail, timed jobs) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) Run migrations, then start one worker; it consumes the schedule's ticks (`scheduler_foresi`) and the outgoing mail (`mail`) first, then the domain events (`events`: their relay and the delivery to listeners), then `async`, then the outbound webhooks (`webhooks`: one attempt per message, after `async` so a slow receiver never holds up imports or timed jobs), and `registry` (low priority) last. An installation with many webhook endpoints also runs a second worker, `messenger:consume webhooks` (see [operations](operations.md)). The first worker:
+Long-running work (imports, register re-checks, sending e-mail, timed jobs) runs in a worker, not in the web request. Messages are stored in the database (`messenger_messages`, created by a migration) Run migrations, then start one worker; it consumes the schedule's ticks (`scheduler_foresi`) and the outgoing mail (`mail`) first, then the domain events (`events`: their relay and the delivery to listeners), then `async`, then the transports a module brings along, such as the outbound webhooks (`webhooks`, only where `foresi/webhooks` is installed: one attempt per message, after `async` so a slow receiver never holds up imports or timed jobs), and `registry` (low priority) last. `bin/console app:worker:receivers` prints that list for the installed modules. An installation with many webhook endpoints also runs a second worker, `messenger:consume webhooks` (see [operations](operations.md)). The first worker:
 
 ```bash
-php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+php bin/console messenger:consume $(php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600
 ```
 
 The worker exits after an hour or at the memory limit, so run it under a supervisor that restarts it. With systemd:
@@ -50,7 +50,7 @@ The worker exits after an hour or at the memory limit, so run it under a supervi
 ```ini
 [Service]
 WorkingDirectory=/var/www/foresi
-ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+ExecStart=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $$(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 Restart=always
 RestartSec=5
 User=www-data

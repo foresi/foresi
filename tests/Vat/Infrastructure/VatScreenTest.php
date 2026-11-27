@@ -136,7 +136,7 @@ final class VatScreenTest extends KernelTestCase
     {
         $missing = $this->view(warnings: [PeriodAmounts::WARNING_MISSING_CZK_VAT]);
         $december = $this->view(key: '2026-12', start: '2026-12-01', end: '2026-12-31', warnings: [PeriodAmounts::WARNING_MISSING_CZK_VAT, 'something_new']);
-        $list = $this->list([$missing, $december], warnings: ['quarter_not_allowed', 'unknown_status'], unavailable: ['purchasing.received_vat', 'elsewhere.vat']);
+        $list = $this->list([$missing, $december], warnings: ['quarter_not_allowed', 'unknown_status'], unavailable: ['received-documents.received_vat', 'elsewhere.vat']);
 
         self::assertSame([
             ['key' => 'quarter_not_allowed', 'text' => 'Firma platí DPH čtvrtletně, ale nový plátce podává v prvním roce měsíčně (§ 99a ZDPH). Zkontroluj délku období v DPH firmy.'],
@@ -178,7 +178,7 @@ final class VatScreenTest extends KernelTestCase
         $document = new DocumentVat('invoicing.issued_vat', new VatSubject('invoice', 'i1', '/invoices/i1'), 'FV-1', $this->day('2026-11-20'), $this->day('2026-11-20'), Money::ofMinor(210_000, Currency::CZK), Money::ofMinor(0, Currency::CZK), true);
         $schedule = new ScheduleAmount(new ScheduledVat('invoicing.recurring_vat', new VatSubject('recurring_invoice', 'r1', null), 'Hosting', $this->day('2026-11-30'), Money::ofMinor(10_000, Currency::EUR)), Money::ofMinor(25_000, Currency::CZK), true, false);
 
-        $detail = $this->screen->detail(new PeriodDetail($this->list([$view]), $view, [$document], ['purchasing.received_vat'], [$schedule]));
+        $detail = $this->screen->detail(new PeriodDetail($this->list([$view]), $view, [$document], ['received-documents.received_vat'], [$schedule]));
 
         self::assertSame('listopad 2026', $detail['title']);
         self::assertSame('12. 11. 2026 – 30. 11. 2026', $detail['span']);

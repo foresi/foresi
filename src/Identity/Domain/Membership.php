@@ -16,10 +16,10 @@ use Foresi\Shared\Domain\Id;
 use Foresi\Shared\Domain\Money;
 
 /**
- * Links a user to the organisation with a role. A guest membership always points at
- * the contact (party) the person represents, of whatever kind; a member may
- * point at their own person record. A deactivated membership keeps its history
- * but no longer lets the person into the organisation.
+ * Links a user to the organisation with a role. Any membership may point at a
+ * contact (party): the one a guest represents, or a member's own person record;
+ * none is required (ADR 0049). A deactivated membership keeps its history but
+ * no longer lets the person into the organisation.
  *
  * The person's hourly rate is what their time is billed at when neither the
  * project nor its client has a rate; only owners see it.
@@ -52,23 +52,15 @@ class Membership implements Audited
         #[ORM\JoinColumn(name: 'party_id', nullable: true)]
         private ?Party $party = null,
     ) {
-        $this->assertContact($role, $party);
         $this->id = Id::generate();
     }
 
     /**
-     * A new role, with the contact the person represents in it.
+     * A new role, with the contact the person represents in it, or none.
      */
     public function changeRole(Role $role, ?Party $party): void
     {
-        $this->assertContact($role, $party);
         $this->role = $role;
-        $this->party = $party;
-    }
-
-    public function linkContact(?Party $party): void
-    {
-        $this->assertContact($this->role, $party);
         $this->party = $party;
     }
 
@@ -124,12 +116,5 @@ class Membership implements Audited
     public function party(): ?Party
     {
         return $this->party;
-    }
-
-    private function assertContact(Role $role, ?Party $party): void
-    {
-        if (Role::Guest === $role && !$party instanceof Party) {
-            throw new \InvalidArgumentException('A guest membership must link the contact the person represents.');
-        }
     }
 }

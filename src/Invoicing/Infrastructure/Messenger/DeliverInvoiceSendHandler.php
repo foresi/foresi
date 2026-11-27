@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure\Messenger;
 
 use Doctrine\ORM\EntityNotFoundException;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\DeliverInvoiceSend;
 use Foresi\Invoicing\Application\DocumentLinks;
 use Foresi\Invoicing\Application\FirmInvoicingSettings;
@@ -31,15 +30,17 @@ use Foresi\Invoicing\Application\UnknownInvoiceSend;
 use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Invoicing\Contract\Event\DeliveryChannel;
 use Foresi\Invoicing\Contract\Event\InvoiceDelivered;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Invoicing\Domain\FirmMailServer;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\InvoiceSend;
 use Foresi\Invoicing\Domain\LinkAudience;
 use Foresi\Invoicing\Domain\SendPurpose;
 use Foresi\Invoicing\Domain\SendStatus;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\PartyEmail;
+use Foresi\Shared\Application\ConflictRetry;
 use Foresi\Shared\Application\Markdown;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -108,6 +109,7 @@ final readonly class DeliverInvoiceSendHandler
         private LoggerInterface $logger,
         private InvoiceBalances $balances,
         private ReminderSettings $reminders,
+        private PartyInvoicingDefaults $partyDefaults,
         private SendDraft $drafts,
         private EventRecorder $events,
         private Markdown $markdown,
@@ -235,7 +237,7 @@ final readonly class DeliverInvoiceSendHandler
 
     private function stillReminded(Invoice $invoice): bool
     {
-        return $this->reminders->get()->enabled() && $invoice->customerParty()->invoicingDefaults()->sendReminders;
+        return $this->reminders->get()->enabled() && $this->partyDefaults->of($invoice->customerParty()->id())->sendReminders;
     }
 
     /**

@@ -11,6 +11,7 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Contract\DocumentParty;
 use Foresi\Invoicing\Contract\InvoicingCountry;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\VatRegime;
 use Foresi\Invoicing\Domain\DocumentParties;
 use Foresi\Invoicing\Domain\Invoice;
@@ -22,7 +23,6 @@ use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Domain\Iban;
 use Foresi\Party\Domain\InvalidIban;
 use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\VatId;
 
 /**

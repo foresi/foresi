@@ -155,7 +155,7 @@ final class TaskTrashControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Trash');
         self::assertSelectorTextContains('main', 'The trash is empty');
-        self::assertSame('Tasks and time in the trash are deleted for good after 30 days.', trim($crawler->filter('[data-trash-purge]')->text()));
+        self::assertSame('What is in the trash is deleted for good after 30 days.', trim($crawler->filter('[data-trash-purge]')->text()));
         $crawler = $this->client->request('GET', '/projects/'.$project.'/settings');
         self::assertSame('Trash', trim($crawler->filter('[data-project-trash]')->text()));
 

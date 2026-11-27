@@ -12,8 +12,6 @@ shared_with_me:
 work:
   inbox_action:
     create_task: Create task
-    log_time: Log time
-    add_to_budget: Add to project budget
   relation:
     projects: Projects
   status:
@@ -39,11 +37,7 @@ work:
       project: Project
       watchers: Watchers
       estimate: Estimate
-      worked_on: Day
-      duration: Duration
-      note: Note
-      billable: Billable
-      task: Task
+      estimate_help: For example 5 h or 2h 30m.
     no_description: No description.
     no_subtasks: No subtasks yet.
     subtasks: 'Subtasks'
@@ -85,6 +79,7 @@ work:
     not_allowed: Only people of the organisation can do this.
     name: Enter a name that is not too long.
     client: Choose an existing contact as the client.
+    client_unavailable: This Foresi has no address book, so a project has no client.
     archived: The project is archived. Restore it first.
     parent: A subtask goes under a task of the same project that is not a subtask itself.
     responsible: Choose an active person of the organisation as responsible.
@@ -102,22 +97,8 @@ work:
     task_not_yours: Only whoever created the task or an owner of the organisation can delete or restore it.
     parent_in_trash: The parent task has to be restored first.
     share_person: Choose an active person of the organisation to share with.
-    duration: Enter the time as 1:30, 1,5 or 1h 30m, at least a minute and at most a day, or a start and an end after it.
-    time_note: A note can have at most 2,000 characters.
-    time_task: Choose a task of this project.
-    time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
-    time_invoiced: This time has been invoiced and can no longer be changed.
-    timer_running: Stop the timer first.
-    timer_not_running: No timer is running.
-    time_task_in_trash: Restore the task the time belongs to first.
     estimate: Enter an estimate of at least a minute and at most 9,999 hours.
     date: Enter the date as YYYY-MM-DD.
-    hours_invalid: Enter the hours as a number with at most two decimal places, such as 8 or -2.5.
-    hours_zero: Enter hours other than zero.
-    budget_below_zero: The budget of the project would go below zero.
-    budget_note: A note can have at most 500 characters.
-    budget_counting: Choose all time or billable time only.
-    source_not_on_project: The source must be an activity of this project.
     star_finished: A finished task leaves My priorities, so it cannot be starred.
     star_order: Put every task of My priorities in the new order, each once.
     schedule: 'The schedule does not hold together: check the first date, the interval and the end.'
@@ -129,110 +110,6 @@ work:
     occurrence_created: 'The task of this day is created already, or its date has passed.'
     no_date: 'The schedule gives no further date.'
     custom_fields: 'The custom fields cannot be saved: check their values.'
-  time:
-    title: Time
-    log: Log time
-    edit: Edit time
-    edit_label: 'Edit the time of {date}'
-    delete: Delete
-    delete_label: 'Delete the time of {date}'
-    none: No time logged yet.
-    hours: '{hours} h'
-    minutes: '{minutes} min'
-    total_of: '{total} of {estimate}'
-    running: Running
-    billable: Billable
-    invoiced: Invoiced
-    invoice_time: Invoice time
-    invoiced_by: 'Invoice {number}'
-    duration_help: For example 1:30, 1.5 or 1h 30m.
-    estimate_help: For example 5 h or 2h 30m.
-    logged: '{duration} logged.'
-    edited: The time is changed.
-    stopped: 'The timer is stopped, {duration} logged on “{title}”.'
-    trash:
-      deleted: The time is in the trash.
-      restored: The time is restored.
-      tasks: Tasks
-      section: Time
-      purge: '{days, plural, one {Tasks and time in the trash are deleted for good after # day.} other {Tasks and time in the trash are deleted for good after # days.}}'
-      column:
-        worked_on: Day
-        person: Who
-        duration: Duration
-        task: Task
-    error:
-      worked_on: Enter the day as a date.
-      project: Choose a project.
-      task: Choose a task, or none.
-    timer:
-      start: Start timer
-      stop: Stop timer
-      stop_short: Stop
-      region: Running timer
-      started: The timer is running.
-    choose_project: Choose a project
-    no_task: No task, the project itself
-    pick_project: Show its tasks
-    tab:
-      week: Week
-      report: Report
-    views: Views of time
-    previous_week: Previous week
-    next_week: Next week
-    this_week: This week
-    week_range: '{from} – {until}'
-    week_total: 'Week total'
-    today: Today
-    person: Person
-    person_me: Me
-    person_inactive: '{name} (inactive)'
-    report:
-      title: Time report
-      view:
-        all: All
-        this_month: This month
-        last_month: Last month
-      views: Report views
-      group: Totals by
-      by:
-        project: Project
-        person: Person
-        task: Task
-      totals:
-        project: Totals by project
-        person: Totals by person
-        task: Totals by task
-      total: Total time
-      billable_total: Billable time
-      unbillable_total: Not billable
-      entries: Entries
-      column:
-        work: Work
-        person: Person
-        date: Day
-        time: Time
-      export: Export CSV
-      file: time-report
-      archived: '{name} (archived)'
-      empty_title: No time in this period
-      empty_text: Choose another view or filter, or log time on a task.
-      range_all: All time
-      csv:
-        date: Date
-        person: Person
-        client: Client
-        project: Project
-        task: Task
-        minutes: Minutes
-        hours: Hours
-        billable: Billable
-        note: Note
-        decimal: '.'
-        'yes': 'yes'
-        'no': 'no'
-      search_label: Search the report
-    search_label: Search time entries
   cancel: Cancel
   save: Save
   history:
@@ -394,7 +271,7 @@ work:
     undo: Undo
     restore: Restore
     restored: 'The task “{title}” is restored.'
-    purge: '{days, plural, one {Tasks in the trash are deleted for good after # day.} other {Tasks in the trash are deleted for good after # days.}}'
+    purge: '{days, plural, one {What is in the trash is deleted for good after # day.} other {What is in the trash is deleted for good after # days.}}'
     subtask_of: 'Subtask of {title}'
     column:
       parent: Parent task
@@ -403,6 +280,7 @@ work:
     empty:
       title: The trash is empty
       text: Deleted tasks wait here before they go for good.
+    tasks: Tasks
   labels:
     title: Labels
     new: New label
@@ -575,7 +453,6 @@ work:
     field:
       archived: Archived
       visibility: Who sees the project
-      billable: Bill the time
       open_tasks: Open tasks
       overdue_tasks: Overdue tasks
       unassigned_tasks: Unassigned tasks
@@ -604,7 +481,6 @@ work:
       list: List
       board: Board
       activities: Activities
-      budget: Budget
     field:
       name: Name
       client: Client
@@ -612,61 +488,9 @@ work:
       client_placeholder: Type the name of a contact
       client_empty: No contact found
       description: Description
-      billable: Bill time
-      billable_help: New time on this project starts as billable.
-      rate: Hourly rate
-      rate_help: Comes before the rate of the client and of the person.
-      rate_currency: Currency
     error:
       name_required: Enter the name of the project.
       workflow: Choose one of the workflows.
-      rate: Enter a rate, such as 1500 or 1500.50.
-  budget:
-    title: Time budget
-    fact: 'Budget {budget, number} h · used {used, number} h · left {left, number} h'
-    over: Over budget
-    hours: '{hours, number} h'
-    signed_hours: '{hours, number, :: sign-always} h'
-    add: Add change
-    save: Save
-    added: The change is added to the budget.
-    removed: The change is removed from the budget.
-    remove: Remove
-    remove_confirm:
-      title: 'Remove the change {hours}?'
-      text: Remove a change entered by mistake. To lower a budget that was right, add a minus change instead.
-    changes: Changes of the budget
-    source_activity: Activity
-    kpi:
-      budget: Budget
-      used_all: Used (all time)
-      used_billable: Used (billable time)
-      left: Left
-      estimate: Task estimates
-    column:
-      effective_on: Date
-      hours: Hours
-      note: Note
-      source: Source
-      author: Entered by
-    field:
-      hours: Hours
-      hours_help: Plus or minus, such as 8 or -2.5.
-      effective_on: Date
-      note: Note
-      note_placeholder: Such as who approved the hours
-    empty:
-      title: No time budget yet
-      text: Add the hours approved for the project. Over budget is shown, never blocked.
-    counting:
-      open: Counting
-      title: Which time uses the budget
-      legend: Count
-      all: All time
-      all_help: Billable and non-billable time.
-      billable: Billable time only
-      billable_help: Non-billable time, such as flat-fee work, does not count.
-      saved: The budget counts the chosen time.
   workflow:
     simple: Simple
     simple_text: To do, In progress, Done
@@ -909,18 +733,3 @@ inbox_action:
         responsibleId: Responsible
         dueOn: Due on
         copyAttachments: Copy the attachments onto the task
-      log_time:
-        projectId: Project
-        workedOn: Day worked
-        taskId: Task
-        minutes: Minutes
-        startedAt: Started at
-        endedAt: Ended at
-        note: Note
-        billable: Billable
-      add_to_budget:
-        projectId: Project
-        hours: Hours
-        minutes: Minutes
-        effectiveOn: Date of the change
-        note: Note

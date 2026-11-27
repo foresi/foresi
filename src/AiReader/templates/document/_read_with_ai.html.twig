@@ -3,7 +3,7 @@
     "Read with AI" in the menu of the page of a draft (PurchasingSlots::DOCUMENT_ACTIONS): it posts to Read again of
     Purchasing with the CSRF token of the page. Variables: documentId, token.
 #}
-<form method="post" action="{{ path('app_purchasing_read_again', {id: documentId}) }}" role="none" data-ai-reader-read>
+<form method="post" action="{{ path('app_received_document_read_again', {id: documentId}) }}" role="none" data-ai-reader-read>
     <input type="hidden" name="_token" value="{{ token }}">
     <twig:Ui:MenuItem type="submit" icon="file-text">{{ 'ai_reader.document.read'|trans }}</twig:Ui:MenuItem>
 </form>

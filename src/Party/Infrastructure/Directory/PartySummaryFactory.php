@@ -9,10 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Party\Infrastructure\Directory;
 
 use Foresi\Party\Application\Query\ContactRow;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactDueDays;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyRole;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The one place that turns a contact into the PartySummary other modules read, for the
@@ -20,6 +22,17 @@ use Foresi\Party\Domain\PartyRole;
  */
 final readonly class PartySummaryFactory
 {
+    private const int DUE_DAYS = 14;
+
+    /**
+     * @param iterable<ContactDueDays> $dueDays
+     */
+    public function __construct(
+        #[AutowireIterator(ContactDueDays::TAG)]
+        private iterable $dueDays = [],
+    ) {
+    }
+
     /**
      * @param Address|null $address the billing address, else the first address
      */
@@ -36,8 +49,20 @@ final readonly class PartySummaryFactory
             '' !== $phone ? $phone : ('' !== $mobile ? $mobile : null),
             array_map(static fn (PartyRole $role): string => $role->value, $contact->roles),
             $contact->archived,
-            $contact->dueDays,
+            $this->dueDaysOf($contact->id),
         );
+    }
+
+    private function dueDaysOf(string $contactId): int
+    {
+        foreach ($this->dueDays as $source) {
+            $days = $source->dueDaysOf($contactId);
+            if (null !== $days) {
+                return $days;
+            }
+        }
+
+        return self::DUE_DAYS;
     }
 
     /**

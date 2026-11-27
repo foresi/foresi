@@ -19,13 +19,13 @@ use Foresi\Party\Application\FirmBankAccounts;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Party\Application\LegalEntities;
 use Foresi\Party\Application\ManageFirmBankAccounts;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Contract\BankAccountUsage;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\FirmBankAccount;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatStatus;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

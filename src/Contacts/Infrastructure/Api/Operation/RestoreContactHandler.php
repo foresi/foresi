@@ -1,0 +1,36 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Contacts\Infrastructure\Api\Operation;
+
+use Foresi\Contacts\Application\Contact\ContactWrites;
+use Foresi\Contacts\Application\Contact\RestoreContactInput;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
+
+/**
+ * contacts.restore: the restored contact.
+ */
+final readonly class RestoreContactHandler implements OperationHandler
+{
+    public function __construct(private ContactWrites $writes, private ContactAnswer $answer)
+    {
+    }
+
+    public static function input(): string
+    {
+        return RestoreContactInput::class;
+    }
+
+    public function handle(object $input): OperationOutput
+    {
+        \assert($input instanceof RestoreContactInput);
+
+        return $this->answer->of($this->writes->restore($input), 'Restored the contact %s.');
+    }
+}

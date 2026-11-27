@@ -44,7 +44,7 @@ final readonly class OperationDocs implements DescriberInterface
             $parameters[] = ['name' => Idempotency::HEADER, 'in' => 'header', 'required' => false, 'schema' => ['type' => 'string', 'maxLength' => 255], 'description' => 'A unique key per change, such as a UUID. A retry with the same key and body answers what the first request answered (Idempotent-Replayed: true), for 24 hours.'];
             $data = null === $operation->response ? ['type' => 'object'] : ['$ref' => '#/components/schemas/'.$operation->response];
             $spec = [
-                'tags' => [ucfirst(explode('.', $operation->name)[0])],
+                'tags' => [ucfirst(str_replace(['_', '-'], ' ', explode('.', $operation->name)[0]))],
                 'summary' => $operation->title,
                 'description' => $operation->description.\sprintf(' MCP tool: %s. Scope: %s.', $operation->tool, $operation->scope),
                 'operationId' => $operation->name,

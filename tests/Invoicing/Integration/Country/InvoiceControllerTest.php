@@ -29,7 +29,11 @@ use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\TrashInvoice;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Foresi\Invoicing\Contract\DocumentParty;
+use Foresi\Invoicing\Contract\InvoicingDefaults;
+use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\Quantity;
@@ -49,16 +53,13 @@ use Foresi\Invoicing\Infrastructure\Form\InvoiceFormReader;
 use Foresi\Invoicing\Infrastructure\View\TaxDocumentQueueRecordCounter;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\AddressType;
-use Foresi\Party\Domain\DocumentLanguage;
 use Foresi\Party\Domain\EmailPurpose;
-use Foresi\Party\Domain\InvoicingDefaults;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyAddress;
 use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
@@ -1868,7 +1869,8 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
-            $party?->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            self::assertNotNull($party);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
             $this->em()->flush();
         });
 
@@ -2112,7 +2114,8 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
-            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            self::assertNotNull($party);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
             $this->em()->flush();
         });
 
@@ -2127,8 +2130,8 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $foreign = $this->scoped(function (): Party {
             $party = new Party(PartyKind::Company, 'Example German GmbH', null, VatId::fromString('DE123456789'), '');
-            $party->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $this->em()->persist($party);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::English, PaymentMethod::BankTransfer, true));
             $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Strasse 1', 'Berlin', '10115', 'DE')));
             $this->em()->flush();
 
@@ -2151,7 +2154,8 @@ final class InvoiceControllerTest extends WebTestCase
             $firm = $this->em()->getRepository(LegalEntity::class)->find($this->firm->id()) ?? throw new \LogicException('Firm.');
             $firm->update($firm->name(), $firm->registrationNumber(), null, $firm->address(), VatStatus::NotRegistered, $firm->registerEntry());
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
-            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
+            self::assertNotNull($party);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::CZK, DocumentLanguage::Czech, PaymentMethod::BankTransfer, true));
             $this->em()->flush();
         });
         $values = $this->openEdit($invoice);
@@ -2338,7 +2342,7 @@ final class InvoiceControllerTest extends WebTestCase
             $party = new Party(PartyKind::Person, 'Example Customer Two a.s.', null, null, '');
             $this->em()->persist($party);
             $this->em()->persist(new PartyAddress($party, AddressType::Billing, new Address('Second Street', 'Customer City', '200 00', 'CZ')));
-            $party->changeInvoicingDefaults(new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(30, Currency::CZK, DocumentLanguage::English, PaymentMethod::Cash, true));
             $this->em()->flush();
 
             return $party;
@@ -2374,7 +2378,8 @@ final class InvoiceControllerTest extends WebTestCase
         $this->signedIn();
         $this->scoped(function (): void {
             $party = $this->em()->getRepository(Party::class)->find($this->customer->id());
-            $party?->changeInvoicingDefaults(new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
+            self::assertNotNull($party);
+            self::getContainer()->get(PartyInvoicingDefaults::class)->change($party->id(), new InvoicingDefaults(14, Currency::EUR, DocumentLanguage::Czech, PaymentMethod::BankTransfer, false));
             $this->em()->flush();
         });
         $values = $this->filled();

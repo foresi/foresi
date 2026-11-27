@@ -15,8 +15,8 @@ use Foresi\Invoicing\Application\ImportedPaymentInput;
 use Foresi\Invoicing\Application\ImportOutcome as PaymentOutcome;
 use Foresi\Invoicing\Application\ImportPayment;
 use Foresi\Invoicing\Application\InvoicingCountries;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Party\Application\InstanceFirm;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Money;
 
 /**

@@ -10,26 +10,23 @@ namespace Foresi\Work\Infrastructure\Api;
 
 use Foresi\Shared\Application\Field\CustomFieldPayload;
 use Foresi\Shared\Infrastructure\Api\JsonValues;
-use Foresi\Work\Application\BudgetChangeRow;
 use Foresi\Work\Application\Choice;
 use Foresi\Work\Application\CommentView;
 use Foresi\Work\Application\LabelBadge;
-use Foresi\Work\Application\ProjectBudget;
 use Foresi\Work\Application\ProjectDetail;
 use Foresi\Work\Application\ProjectRow;
 use Foresi\Work\Application\StatusChoice;
 use Foresi\Work\Application\TaskDetail;
 use Foresi\Work\Application\TaskRow;
-use Foresi\Work\Application\TimeEntryRow;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
 use Foresi\Work\Infrastructure\Controller\TaskController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Projects, tasks, comments, labels and time as the REST API and the MCP tools
+ * Projects, tasks, comments and labels as the REST API and the MCP tools
  * write them. A person is their membership id and name, as responsible_id takes
- * it. Hourly rates, sharing and the history stay on the screens. The url of a
+ * it. Sharing and the history stay on the screens. The url of a
  * task is its page, for a person to open. A project and a task carry their
  * custom fields, a list read in one go.
  */
@@ -79,65 +76,13 @@ final readonly class WorkJson
     /**
      * @return array<string, mixed>
      */
-    public function projectDetail(ProjectDetail $detail, ?ProjectBudget $budget = null): array
+    public function projectDetail(ProjectDetail $detail): array
     {
         return $this->project($detail->row) + [
             'description' => $detail->description,
-            'billable_by_default' => $detail->billableByDefault,
             'statuses' => array_map(static fn (StatusChoice $status, int $position): array => ['id' => $status->id, 'name' => $status->name, 'type' => $status->type->value, 'position' => $position], $detail->statuses, array_keys($detail->statuses)),
             'sections' => array_map(static fn (Choice $section, int $position): array => ['id' => $section->id, 'name' => $section->name, 'position' => $position], $detail->sections, array_keys($detail->sections)),
-            'budget' => $budget instanceof ProjectBudget && $budget->hasBudget() ? self::budgetSummary($budget) : null,
         ];
-    }
-
-    /**
-     * The time budget of a project in hours, as foresi_get_project shows it.
-     *
-     * @return array{hours: float|null, used_hours: float, left_hours: float|null, counting: string, estimate_hours: float}
-     */
-    public static function budgetSummary(ProjectBudget $budget): array
-    {
-        return [
-            'hours' => self::hours($budget->budgetMinutes),
-            'used_hours' => self::hours($budget->usedMinutes),
-            'left_hours' => self::hours($budget->leftMinutes()),
-            'counting' => $budget->counting->value,
-            'estimate_hours' => self::hours($budget->estimateMinutes),
-        ];
-    }
-
-    /**
-     * The time budget of a project with its change log; the changes are null for a guest.
-     *
-     * @return array<string, mixed>
-     */
-    public static function budget(ProjectBudget $budget): array
-    {
-        return ['project_id' => $budget->projectId] + self::budgetSummary($budget) + [
-            'minutes' => $budget->budgetMinutes,
-            'used_minutes' => $budget->usedMinutes,
-            'left_minutes' => $budget->leftMinutes(),
-            'over_budget' => $budget->isOver(),
-            'estimate_minutes' => $budget->estimateMinutes,
-            'changes' => null === $budget->changes ? null : array_map(static fn (BudgetChangeRow $change): array => [
-                'id' => $change->id,
-                'effective_on' => JsonValues::date($change->effectiveOn),
-                'hours' => self::hours($change->minutes),
-                'minutes' => $change->minutes,
-                'note' => $change->note,
-                'source_activity_id' => $change->sourceActivityId,
-                'created_by' => ['id' => $change->createdBy, 'name' => $change->authorName],
-                'created_at' => JsonValues::timestamp($change->createdAt),
-            ], $budget->changes),
-        ];
-    }
-
-    /**
-     * @return ($minutes is int ? float : null)
-     */
-    private static function hours(?int $minutes): ?float
-    {
-        return null === $minutes ? null : round($minutes / 60, 2);
     }
 
     /**
@@ -231,26 +176,5 @@ final readonly class WorkJson
     public static function person(Choice $person): array
     {
         return ['id' => $person->id, 'name' => $person->name];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function timeEntry(TimeEntryRow $entry): array
-    {
-        return [
-            'id' => $entry->id,
-            'project' => ['id' => $entry->projectId, 'name' => $entry->projectName],
-            'task' => null === $entry->taskId ? null : ['id' => $entry->taskId, 'title' => $entry->taskTitle],
-            'person' => ['id' => $entry->membershipId, 'name' => $entry->personName],
-            'worked_on' => JsonValues::date($entry->workedOn),
-            'minutes' => $entry->minutes,
-            'started_at' => JsonValues::timestamp($entry->startedAt),
-            'ended_at' => JsonValues::timestamp($entry->endedAt),
-            'note' => $entry->note,
-            'billable' => $entry->billable,
-            'running' => $entry->running,
-            'invoiced' => $entry->invoiced,
-        ];
     }
 }

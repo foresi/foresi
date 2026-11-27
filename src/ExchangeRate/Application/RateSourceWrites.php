@@ -10,7 +10,7 @@ namespace Foresi\ExchangeRate\Application;
 
 use Foresi\ExchangeRate\Contract\Event\RateSourceChanged;
 use Foresi\ExchangeRate\Domain\RateSourceSetting;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 
 /**

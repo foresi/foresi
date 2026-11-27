@@ -69,6 +69,14 @@ deptrac:
       collectors:
         - type: directory
           value: src/Party/Infrastructure/.*
+    - name: ContactsApplication
+      collectors:
+        - type: directory
+          value: src/Contacts/Application/.*
+    - name: ContactsInfrastructure
+      collectors:
+        - type: directory
+          value: src/Contacts/Infrastructure/.*
     - name: ImportDomain
       collectors:
         - type: directory
@@ -235,18 +243,18 @@ deptrac:
         - type: directory
           value: src/Attachment/Infrastructure/.*
     # Received documents: the cost side of a firm (ADR 0028).
-    - name: PurchasingDomain
+    - name: ReceivedDocumentsDomain
       collectors:
         - type: directory
-          value: src/Purchasing/Domain/.*
-    - name: PurchasingApplication
+          value: src/ReceivedDocuments/Domain/.*
+    - name: ReceivedDocumentsApplication
       collectors:
         - type: directory
-          value: src/Purchasing/Application/.*
-    - name: PurchasingInfrastructure
+          value: src/ReceivedDocuments/Application/.*
+    - name: ReceivedDocumentsInfrastructure
       collectors:
         - type: directory
-          value: src/Purchasing/Infrastructure/.*
+          value: src/ReceivedDocuments/Infrastructure/.*
     # Cash flow: planned items, balance checkpoints and the forecast (plan 30).
     - name: CashFlowDomain
       collectors:
@@ -504,13 +512,43 @@ deptrac:
       - AuditApplication
       # The history of a party reads its audit entries.
       - AuditDomain
-      # Contributes the sidebar item and its count.
+      # The firm's settings screens.
       - Ui
-      # Contacts are an import target with a preset for the iDoklad export,
-      # and the import screens link to the address book.
-      - ImportDomain
-      - ImportApplication
-      - ImportInfrastructure
+    # The address book builds on Party, the record of a contact, and keeps no
+    # data of its own; Party never uses it.
+    ContactsApplication:
+      - Contract
+      - PartyDomain
+      - PartyApplication
+      - InstanceDomain
+      - SharedDomain
+      - SharedApplication
+      - InstanceApplication
+      - IdentityApplication
+      - AuditApplication
+    ContactsInfrastructure:
+      - Contract
+      - SharedInfrastructure
+      - PartyDomain
+      - PartyApplication
+      - PartyInfrastructure
+      - ContactsApplication
+      - InstanceDomain
+      - VendorSymfony
+      - VendorOpenApi
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - InstanceApplication
+      - IdentityApplication
+      - AuditApplication
+      # The history of a contact reads its audit entries.
+      - AuditDomain
+      # Contributes the sidebar item and its count, and the contact screens.
+      - Ui
     ImportDomain:
       - Contract
       - VendorDoctrineOrmMapping
@@ -559,6 +597,7 @@ deptrac:
       - Contract
       - IdokladDomain
       - SharedDomain
+      - SharedApplication
       - InstanceDomain
       - PartyDomain
       - PartyApplication
@@ -854,14 +893,14 @@ deptrac:
       - IdentityApplication
       # The project screens, the sidebar item and "Shared with me".
       - Ui
-      # The time report as CSV, as the address book and the invoice list export.
-      - VendorOpenSpout
       # Who reaches the files of a task.
       - AttachmentDomain
       - AttachmentApplication
-    # Timesheet builds on Work (projects and time), Party (clients and firms),
-    # Identity (people) and Invoicing; none of them uses Timesheet, which reads
-    # them through their application ports, as Banking reads Party.
+    # Timesheet builds on Work (the projects and tasks time is logged on), Party
+    # (clients), Identity (people) and Invoicing (the billing of time, through
+    # Invoicing's application ports); none of them uses Timesheet. Its screens
+    # fill Work's slots and ports and link Work's screens, so its infrastructure
+    # may use Work's.
     TimesheetDomain:
       - Contract
       - VendorDoctrineOrmMapping
@@ -913,6 +952,11 @@ deptrac:
       - IdentityApplication
       - InvoicingDomain
       - InvoicingApplication
+      - WorkInfrastructure
+      # The REST endpoints describe themselves for the OpenAPI document.
+      - VendorOpenApi
+      # The time report as CSV, as the address book and the invoice list export.
+      - VendorOpenSpout
       - Ui
     # Attachments build on Instance and Audit only; modules plug into them with
     # AttachmentAccess (Work -> Attachment), never the other way round.
@@ -986,20 +1030,20 @@ deptrac:
       - IdentityApplication
       # The screens: the navigation, the components and how an amount is shown.
       - Ui
-    # Purchasing builds on Party (firms and suppliers), Identity (people), the
+    # Received documents builds on Party (firms and suppliers), Identity (people), the
     # attachment store, which keeps the original files, and the exchange rates;
-    # no module uses Purchasing but the navigation of Ui, and it never uses
+    # no module uses Received documents but the navigation of Ui, and it never uses
     # Invoicing.
-    PurchasingDomain:
+    ReceivedDocumentsDomain:
       - Contract
       - VendorDoctrineOrmMapping
       - SharedDomain
       - InstanceDomain
       - AuditDomain
       - PartyDomain
-    PurchasingApplication:
+    ReceivedDocumentsApplication:
       - Contract
-      - PurchasingDomain
+      - ReceivedDocumentsDomain
       - SharedDomain
       - SharedApplication
       - InstanceDomain
@@ -1015,11 +1059,11 @@ deptrac:
       - ExchangeRateDomain
       - ExchangeRateApplication
       - VendorBrick
-    PurchasingInfrastructure:
+    ReceivedDocumentsInfrastructure:
       - Contract
       - SharedInfrastructure
-      - PurchasingDomain
-      - PurchasingApplication
+      - ReceivedDocumentsDomain
+      - ReceivedDocumentsApplication
       - VendorSymfony
       - VendorOpenApi
       - VendorUid

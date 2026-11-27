@@ -6,10 +6,10 @@
 
 declare(strict_types=1);
 
-use Foresi\Documents\Domain\DocumentTemplate;
-use Foresi\Documents\Domain\DocumentType;
-use Foresi\Documents\Domain\PageSettings;
-use Foresi\Documents\Domain\TemplateVersion;
+use Foresi\DocumentTemplates\Domain\DocumentTemplate;
+use Foresi\DocumentTemplates\Domain\DocumentType;
+use Foresi\DocumentTemplates\Domain\PageSettings;
+use Foresi\DocumentTemplates\Domain\TemplateVersion;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;

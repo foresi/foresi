@@ -18,7 +18,7 @@ final readonly class RecurringRow
     public function __construct(
         public string $name,
         public string $customer,
-        public string $customerHref,
+        public ?string $customerHref,
         public string $description,
         public string $interval,
         public string $next,

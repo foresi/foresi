@@ -2,7 +2,7 @@
 
 The Inbox module (`src/Inbox`, id `inbox`, package `foresi/inbox`, scopes `inbox:read`, `inbox:write`, `inbox_suggestions:write` and `inbox_decisions:write`) gives every owner and member an e-mail address of their own in Foresi. Mail they forward to it becomes an **item** in their Inbox: Foresi finds the sender in the address book, shows the mail as plain text, and lets the person link it to the records it led to, such as a deal, and mark it done. An agent you connect can read the mail and **suggest** what to do with it, for you to accept, edit or reject (see [Suggestions](#suggestions)). It builds on [Mail](mail.md), which receives the mail, and on [Activities](activities.md), where a linked mail shows on the timeline of the record.
 
-The module is optional. It requires Shared, Instance, Identity, Audit, Mail, Party, Activities and Ui. Without a mail server for inbound mail (see [mail.md](mail.md#settings)) no address can be made and the Inbox stays empty.
+The module is optional. It requires Shared, Instance, Identity, Audit, Mail, Party, Activities and Ui; Contacts is optional. Without the address book no sender is matched to a contact and no contact is created from a message. Without a mail server for inbound mail (see [mail.md](mail.md#settings)) no address can be made and the Inbox stays empty.
 
 ## Who sees what
 
@@ -180,7 +180,7 @@ Every action of the screens is an operation with an idempotency key ([ADR 0032](
 | `inbox.actions.create_task` | Creates a task from the item (Projects; also needs `tasks:write`) |
 | `inbox.actions.log_time` | Logs time from the item (Projects; also needs `time_entries:write`) |
 | `inbox.actions.add_to_budget` | Adds hours to a project's budget from the item (Projects; also needs `projects:write`) |
-| `inbox.actions.create_deal` | Opens a deal from a matched item (Sales; also needs `sales:write`) |
+| `inbox.actions.create_deal` | Opens a deal from a matched item (Sales; also needs `deals:write`) |
 | `inbox.actions.log_activity` | Logs an activity from the item (Activities; also needs `activities:write`) |
 
 An action needs `inbox:read` and the scope of its operation, not `inbox:write`. `inbox.items.get` lists the actions that apply to the item and that the token may run under `available_actions`, each with its operation, tool, label, input schema and the values to start from (`prefill`, and `choices` for a field to pick from).

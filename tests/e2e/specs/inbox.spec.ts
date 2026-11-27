@@ -84,7 +84,7 @@ test.describe('the inbox', () => {
     await expect(page.locator('main')).toContainText(CLIENT);
 
     // Linked to the deal: its id is the last part of its address.
-    await page.goto('/sales/deals');
+    await page.goto('/deals');
     const deal = (await page.getByRole('link', { name: 'Roof audit' }).first().getAttribute('href')) ?? '';
     const dealId = deal.split('/').pop() ?? '';
     expect(dealId).toMatch(/^[0-9a-f-]{36}$/);

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Work\Application;
 
+use Foresi\Work\Contract\TaskPurge;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
 
@@ -15,8 +16,9 @@ use Foresi\Work\Domain\TaskComment;
  * Removes for good the tasks that have been in the trash for more than 30
  * days, each with its subtasks, comments and the people they mention,
  * watchers, stars, labels, shares, notifications and files. The audit log keeps what they were: it
- * is the record of the organisation, as for invoices (ADR 0013). The time logged
- * on them stays, on their project without a task: it was worked, and may be billed.
+ * is the record of the organisation, as for invoices (ADR 0013). What other
+ * modules keep of them lets go of them first (TaskPurge), such as the time
+ * logged on them, which stays on their project.
  *
  * Each task goes as one step, in one transaction with the records of its
  * files; the files themselves go once it is committed. When the step fails,
@@ -33,9 +35,10 @@ final readonly class PurgeDeletedTasks
         private Projects $projects,
         private WorkShares $shares,
         private Notifications $notifications,
-        private TimeEntries $time,
         private WorkUnit $unit,
         private TaskStars $stars,
+        /** @var iterable<TaskPurge> what other modules keep of a task, in config/services.php */
+        private iterable $purges = [],
     ) {
     }
 
@@ -67,6 +70,10 @@ final readonly class PurgeDeletedTasks
         }
 
         $files = $this->unit->run(fn (): array => $this->projects->transactional(function () use ($task, $tasks, $comments): array {
+            // What other modules keep of the tasks lets go of them first, such as the time logged on them.
+            foreach ($this->purges as $purge) {
+                $purge->purge(array_map(static fn (Task $one): string => $one->id(), $tasks));
+            }
             $files = $this->files->forget(
                 array_map(static fn (Task $one): string => $one->id(), $tasks),
                 array_map(static fn (TaskComment $comment): string => $comment->id(), $comments),
@@ -89,9 +96,6 @@ final readonly class PurgeDeletedTasks
                 }
                 foreach ($this->notifications->ofTask($one) as $notification) {
                     $this->notifications->remove($notification);
-                }
-                foreach ($this->time->ofTask($one) as $entry) {
-                    $entry->leaveTask();
                 }
                 if ($one !== $task) {
                     $this->tasks->remove($one);

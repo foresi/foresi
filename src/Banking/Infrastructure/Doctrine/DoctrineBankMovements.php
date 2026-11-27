@@ -15,24 +15,24 @@ use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\MovementFilter;
 use Foresi\Banking\Application\MovementInput;
 use Foresi\Banking\Application\MovementRow;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\UnknownBankMovement;
 use Foresi\Banking\Contract\MovementDirection;
 use Foresi\Banking\Domain\BankMovement;
 use Foresi\Banking\Domain\MovementState;
-use Foresi\Invoicing\Domain\Payment;
-use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Party\Domain\FirmBankAccount;
 
 /**
  * Reads go through the ORM; the two locks are plain statements. A page of the
- * screen takes one query for its movements and one for the invoice numbers of all of them.
+ * screen takes one query for its movements, and the PaymentPairing one read for the
+ * numbers of the documents all of them paid.
  */
 final readonly class DoctrineBankMovements implements BankMovements
 {
     private const string LOCK = 'UPDATE bank_movement SET version = version WHERE id = :id';
     private const string LOCK_ACCOUNT = 'UPDATE firm_bank_account SET position = position WHERE id = :id';
 
-    public function __construct(private EntityManagerInterface $em, private MovementConditions $conditions)
+    public function __construct(private EntityManagerInterface $em, private MovementConditions $conditions, private PaymentPairing $pairing)
     {
     }
 
@@ -139,15 +139,6 @@ final readonly class DoctrineBankMovements implements BankMovements
         return strtoupper((string) preg_replace('/\s+/u', '', (string) $account));
     }
 
-    public function hasLivePayment(string $movementId): bool
-    {
-        $count = $this->em->createQuery('SELECT COUNT(p.id) FROM '.Payment::class.' p WHERE p.bankMovementId = :movement AND p.cancelledAt IS NULL')
-            ->setParameter('movement', $movementId)
-            ->getSingleScalarResult();
-
-        return 0 < (int) $count;
-    }
-
     public function anyOnAccount(string $accountId): bool
     {
         $found = $this->em->createQuery('SELECT m.id FROM '.BankMovement::class.' m JOIN m.account a WHERE m.account = :account AND m.currency = a.currency')
@@ -216,7 +207,7 @@ final readonly class DoctrineBankMovements implements BankMovements
         $query = MovementConditions::bind($this->em->createQuery('SELECT m, a FROM '.BankMovement::class.' m JOIN m.account a WHERE '.$where.' ORDER BY m.bookedOn DESC, m.id DESC'), $parameters);
         /** @var list<BankMovement> $movements */
         $movements = $query->setFirstResult(max(0, $offset))->setMaxResults(max(1, $limit))->getResult();
-        $invoices = $this->invoicesOf(array_values(array_filter(array_map(static fn (BankMovement $movement): ?string => $movement->paymentId(), $movements), \is_string(...))));
+        $invoices = $this->pairing->documentsOf(array_values(array_filter(array_map(static fn (BankMovement $movement): ?string => $movement->paymentId(), $movements), \is_string(...))));
 
         return array_map(static fn (BankMovement $movement): MovementRow => new MovementRow(
             $movement->id(),
@@ -276,29 +267,5 @@ final readonly class DoctrineBankMovements implements BankMovements
         }
 
         return ['('.implode(' OR ', $found).')', $parameters];
-    }
-
-    /**
-     * The numbers of the invoices each payment pays, in one query for all of them.
-     *
-     * @param list<string> $paymentIds
-     *
-     * @return array<string, array<string, string>> number by invoice id, by payment id
-     */
-    private function invoicesOf(array $paymentIds): array
-    {
-        if ([] === $paymentIds) {
-            return [];
-        }
-        /** @var list<array{payment: string, id: string, number: string}> $rows */
-        $rows = $this->em->createQuery('SELECT IDENTITY(a.payment) AS payment, i.id AS id, i.number AS number FROM '.PaymentAllocation::class.' a JOIN a.invoice i WHERE a.payment IN (:payments) ORDER BY i.number, i.id')
-            ->setParameter('payments', $paymentIds)
-            ->getArrayResult();
-        $invoices = [];
-        foreach ($rows as $row) {
-            $invoices[$row['payment']][$row['id']] = $row['number'];
-        }
-
-        return $invoices;
     }
 }

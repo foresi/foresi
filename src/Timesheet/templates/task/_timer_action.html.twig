@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The timer, the main action of a task's header (Work's TaskSlots::HEADER_ACTIONS): stop where the person's
+    timer runs on the task, coming back to it; start where they may log time on it.
+#}
+{% set timeToken = csrf_token(constant('Foresi\\Timesheet\\Infrastructure\\Controller\\TimeController::TOKEN')) %}
+{% if timerHere %}
+    <form method="post" action="{{ path('app_timer_stop') }}" data-task-timer="stop">
+        <input type="hidden" name="_token" value="{{ timeToken }}">
+        <input type="hidden" name="return" value="{{ return }}">
+        <twig:Ui:Button type="submit" icon="square" :size="record_action_size|default('md')">{{ 'timesheet.time.timer.stop'|trans }}</twig:Ui:Button>
+    </form>
+{% else %}
+    <form method="post" action="{{ path('app_task_timer_start', {id: taskId}) }}" data-task-timer="start">
+        <input type="hidden" name="_token" value="{{ timeToken }}">
+        <twig:Ui:Button type="submit" icon="play" :size="record_action_size|default('md')">{{ 'timesheet.time.timer.start'|trans }}</twig:Ui:Button>
+    </form>
+{% endif %}

@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Acme\Fleet\Tests;
 
 use Foresi\Audit\Application\AuditCorrelation;
-use Foresi\Documents\Application\DocumentVariables;
-use Foresi\Documents\Application\TemplateRenderer;
-use Foresi\Documents\Contract\RecordLink;
-use Foresi\Documents\Contract\VariableDefinition;
+use Foresi\DocumentTemplates\Application\DocumentVariables;
+use Foresi\DocumentTemplates\Application\TemplateRenderer;
+use Foresi\DocumentTemplates\Contract\RecordLink;
+use Foresi\DocumentTemplates\Contract\VariableDefinition;
 use Foresi\Import\Application\Target\TargetRegistry;
 use Foresi\Import\Contract\BlankCells;
 use Foresi\Import\Contract\FieldDefinition;

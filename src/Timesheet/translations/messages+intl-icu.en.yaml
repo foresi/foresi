@@ -1,51 +1,204 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 timesheet:
-  invoice:
-    title: Invoice time
-    client: Client
-    choose_client: Choose a client
-    projects: Projects
-    from: From
-    until: Until
-    refresh: Show the time
-    no_client: Choose the client whose time to invoice.
-    none: There is no billable time here in this period that is not invoiced yet.
-    entries: Time to invoice
-    no_rate: No rate
-    per_hour: '{rate}/h'
-    rate_of_deal_line: rate of the deal line
-    hours: '{hours} h'
-    unit: h
-    total_hours: Total hours
-    total_amount: Total before VAT
-    continue: Continue
-    grouping:
-      label: Invoice lines
-      project: One line per project
-      task: A line per task
-      person: A line per person
-      entry: A line per entry
-    rounding:
-      label: Rounding of entries
-      help: Each entry rounds up; the time logged stays as it is.
-      none: No rounding
-      '15': Up to 15 minutes
-      '30': Up to 30 minutes
-    blocked:
-      no_firm: Add a firm to invoice from first.
+  time:
+    title: Time
+    log: Log time
+    edit: Edit time
+    edit_label: 'Edit the time of {date}'
+    delete: Delete
+    delete_label: 'Delete the time of {date}'
+    none: No time logged yet.
+    total_of: '{total} of {estimate}'
+    running: Running
+    billable: Billable
+    invoiced: Invoiced
+    invoiced_by: 'Invoice {number}'
+    duration_help: For example 1:30, 1.5 or 1h 30m.
+    logged: '{duration} logged.'
+    edited: The time is changed.
+    stopped: 'The timer is stopped, {duration} logged on “{title}”.'
+    trash:
+      deleted: The time is in the trash.
+      restored: The time is restored.
+      section: Time
+      column:
+        worked_on: Day
+        person: Who
+        duration: Duration
+        task: Task
+    error:
+      worked_on: Enter the day as a date.
+      project: Choose a project.
+      task: Choose a task, or none.
+    timer:
+      start: Start timer
+      stop: Stop timer
+      stop_short: Stop
+      region: Running timer
+      started: The timer is running.
+    choose_project: Choose a project
+    no_task: No task, the project itself
+    pick_project: Show its tasks
+    tab:
+      week: Week
+      report: Report
+    views: Views of time
+    previous_week: Previous week
+    next_week: Next week
+    this_week: This week
+    week_range: '{from} – {until}'
+    week_total: 'Week total'
+    today: Today
+    person: Person
+    person_me: Me
+    person_inactive: '{name} (inactive)'
+    report:
+      title: Time report
+      view:
+        all: All
+        this_month: This month
+        last_month: Last month
+      views: Report views
+      group: Totals by
+      by:
+        project: Project
+        person: Person
+        task: Task
+      totals:
+        project: Totals by project
+        person: Totals by person
+        task: Totals by task
+      total: Total time
+      billable_total: Billable time
+      unbillable_total: Not billable
+      entries: Entries
+      column:
+        work: Work
+        person: Person
+        date: Day
+        time: Time
+      export: Export CSV
+      file: time-report
+      archived: '{name} (archived)'
+      empty_title: No time in this period
+      empty_text: Choose another view or filter, or log time on a task.
+      range_all: All time
+      csv:
+        date: Date
+        person: Person
+        client: Client
+        project: Project
+        task: Task
+        minutes: Minutes
+        hours: Hours
+        billable: Billable
+        note: Note
+        decimal: '.'
+        'yes': 'yes'
+        'no': 'no'
+      search_label: Search the report
+    search_label: Search time entries
+    field:
+      note: Note
+      duration: Duration
+      worked_on: Day
+      billable: Billable
+      task: Task
+  budget:
+    title: Time budget
+    fact: 'Budget {budget, number} h · used {used, number} h · left {left, number} h'
+    over: Over budget
+    hours: '{hours, number} h'
+    signed_hours: '{hours, number, :: sign-always} h'
+    add: Add change
+    save: Save
+    added: The change is added to the budget.
+    removed: The change is removed from the budget.
+    remove: Remove
+    remove_confirm:
+      title: 'Remove the change {hours}?'
+      text: Remove a change entered by mistake. To lower a budget that was right, add a minus change instead.
+    changes: Changes of the budget
+    source_activity: Activity
+    kpi:
+      budget: Budget
+      used_all: Used (all time)
+      used_billable: Used (billable time)
+      left: Left
+      estimate: Task estimates
+    column:
+      effective_on: Date
+      hours: Hours
+      note: Note
+      source: Source
+      author: Entered by
+    field:
+      hours: Hours
+      hours_help: Plus or minus, such as 8 or -2.5.
+      effective_on: Date
+      note: Note
+      note_placeholder: Such as who approved the hours
+    empty:
+      title: No time budget yet
+      text: Add the hours approved for the project. Over budget is shown, never blocked.
+    counting:
+      open: Counting
+      title: Which time uses the budget
+      legend: Count
+      all: All time
+      all_help: Billable and non-billable time.
+      billable: Billable time only
+      billable_help: Non-billable time, such as flat-fee work, does not count.
+      saved: The budget counts the chosen time.
+    tab: Budget
   refused:
-    not_allowed: Only an owner of the organisation invoices time.
-    client: Choose a client.
-    nothing: Tick at least one entry of time.
-    rate_missing: Ticked time has no hourly rate. Set one on the project, the client or the person, or untick the entry.
-    currencies: Ticked time has rates in different currencies. Choose time in one currency for one invoice.
-    firm_currency: The rates of the ticked time are in another currency than this firm invoices in.
-    country: The firm is from a country we cannot invoice for yet.
-    too_many_lines: That would give the invoice more than 100 lines. Group the time into fewer lines.
-  problem:
-    other_document: The time chosen is invoiced by an invoice of the firm it was priced for. Open the invoicing of time again.
-    time_changed: Some of the time chosen was changed or deleted meanwhile. Open the invoicing of time again.
-    time_invoiced: Some of the time chosen was invoiced by another invoice meanwhile. Open the invoicing of time again.
-    selection_gone: The time chosen no longer waits for this invoice. Open the invoicing of time again.
-    restore_time_changed: Some of the time of this invoice was changed or deleted meanwhile, so the invoice cannot be restored.
-    restore_time_invoiced: Some of the time of this invoice was invoiced by another invoice meanwhile, so the invoice cannot be restored.
+    duration: Enter the time as 1:30, 1,5 or 1h 30m, at least a minute and at most a day, or a start and an end after it.
+    time_note: A note can have at most 2,000 characters.
+    time_task: Choose a task of this project.
+    time_not_yours: Only whoever logged the time or an owner of the organisation can change or delete it.
+    time_invoiced: This time has been invoiced and can no longer be changed.
+    timer_running: Stop the timer first.
+    timer_not_running: No timer is running.
+    time_task_in_trash: Restore the task the time belongs to first.
+    hours_invalid: Enter the hours as a number with at most two decimal places, such as 8 or -2.5.
+    hours_zero: Enter hours other than zero.
+    budget_below_zero: The budget of the project would go below zero.
+    budget_note: A note can have at most 500 characters.
+    budget_counting: Choose all time or billable time only.
+    source_not_on_project: The source must be an activity of this project.
+    unknown: This project, task or time no longer exists.
+    not_allowed: Only people of the organisation can do this.
+    archived: The project is archived. Restore it first.
+    date: Enter the date as YYYY-MM-DD.
+  inbox_action:
+    log_time: Log time
+    add_to_budget: Add to project budget
+  project:
+    field:
+      billable: Bill time
+      rate: Hourly rate
+      rate_help: Comes before the rate of the client and of the person.
+      rate_currency: Currency
+    error:
+      rate: Enter a rate, such as 1500 or 1500.50.
+    settings:
+      title: Time
+      saved: The time settings are saved.
+inbox_action:
+  inbox:
+    actions:
+      log_time:
+        projectId: Project
+        workedOn: Day worked
+        taskId: Task
+        minutes: Minutes
+        startedAt: Started at
+        endedAt: Ended at
+        note: Note
+        billable: Billable
+      add_to_budget:
+        projectId: Project
+        hours: Hours
+        minutes: Minutes
+        effectiveOn: Date of the change
+        note: Note

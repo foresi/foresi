@@ -11,7 +11,7 @@ namespace Acme\Fleet\Tests;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Application\CreateParty;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
@@ -29,7 +29,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 /**
  * The fleet's custom fields on the contact's screens (module API 1.4): the card
  * "Additional details" of the contact's form, saved through the contact's own use case
- * with the changed keys in party.contact.updated, the values on the detail by their
+ * with the changed keys in contacts.contact.updated, the values on the detail by their
  * labels, and the history that names a field by its label.
  */
 final class FleetFieldScreensTest extends WebTestCase
@@ -116,13 +116,13 @@ final class FleetFieldScreensTest extends WebTestCase
     }
 
     /**
-     * @return list<string> the custom fields the last party.contact.updated of the contact names
+     * @return list<string> the custom fields the last contacts.contact.updated of the contact names
      */
     private function updatedKeys(string $id): array
     {
         $data = $this->browser->em()->getConnection()->fetchOne(
             'SELECT '.EventLogTable::DATA.' FROM '.EventLogTable::LOG.' WHERE '.EventLogTable::NAME.' = ? AND '.EventLogTable::SUBJECT_ID.' = ? ORDER BY '.EventLogTable::ID.' DESC',
-            ['party.contact.updated', $id],
+            ['contacts.contact.updated', $id],
         );
         self::assertIsString($data);
         $payload = json_decode($data, true);

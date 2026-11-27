@@ -1,0 +1,6 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The client of a project in its form: any contact of the address book, picked from clientPicker.
+    Variables: values (clientId, clientQuery), errors, clientPicker.
+#}
+<twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="clientPicker" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />

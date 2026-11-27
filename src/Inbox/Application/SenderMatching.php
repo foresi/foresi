@@ -8,8 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Inbox\Application;
 
-use Foresi\Party\Contract\ContactsByEmail;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 
 /**
@@ -24,11 +23,12 @@ use Foresi\Party\Contract\PartySummary;
  *
  * Several contacts at a step leave the sender unmatched and end the search
  * there. Archived contacts never match. It reads with nobody signed in, as mail
- * is received from the webhook or the mailbox poller.
+ * is received from the webhook or the mailbox poller. Without the address book
+ * (InboxAddressBook) no sender is matched.
  */
 final readonly class SenderMatching
 {
-    public function __construct(private ContactsByEmail $contacts)
+    public function __construct(private ?InboxAddressBook $contacts = null)
     {
     }
 
@@ -38,6 +38,9 @@ final readonly class SenderMatching
      */
     public function match(?string $address, bool $verified): SenderMatch
     {
+        if (!$this->contacts instanceof InboxAddressBook) {
+            return SenderMatch::none();
+        }
         $address = mb_strtolower(trim((string) $address));
         $at = strrpos($address, '@');
         if (false === $at || 0 === $at || $at === \strlen($address) - 1) {
@@ -67,7 +70,7 @@ final readonly class SenderMatching
      */
     public function companyOf(PartySummary $contact): ?string
     {
-        if (ContactKind::Person !== $contact->kind) {
+        if (!$this->contacts instanceof InboxAddressBook || ContactKind::Person !== $contact->kind) {
             return null;
         }
         $companies = array_values(array_filter(

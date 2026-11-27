@@ -917,6 +917,30 @@ invoice:
     trashed: Tato faktura je v koši. Pro změny ji obnovte.
     variable_symbol_invalid: Variabilní symbol má 1 až 10 číslic.
     vat_invalid: Vyberte DPH řádku.
+  contact_defaults:
+    card: Výchozí údaje pro doklady
+    due_days: Splatnost
+    days: '{count, plural, one {# den} few {# dny} other {# dní}}'
+    currency: Měna
+    language: Jazyk dokladů
+    reverse_charge: Přenesená daňová povinnost
+    "yes": Ano
+    "no": Ne
+    column:
+      default_due_days: Splatnost (dny)
+      currency: Měna
+      payment_method: Způsob úhrady
+      language: Jazyk dokladů
+      reverse_charge: Přenesená daňová povinnost
+      reminders: Upomínky
+      hourly_rate: Hodinová sazba
+    payment_method:
+      bank_transfer: Převodem
+      cash: Hotově
+      card: Kartou
+    document_language:
+      cs: Čeština
+      en: Angličtina
 recurring:
   notice:
     failing: '{count, plural, one {Pravidelnou fakturu se nepodařilo vystavit nebo odeslat.} few {# pravidelné faktury se nepodařilo vystavit nebo odeslat.} other {# pravidelných faktur se nepodařilo vystavit nebo odeslat.}}'

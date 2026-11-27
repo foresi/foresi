@@ -21,7 +21,7 @@ use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\View\ListTable;
-use Foresi\Ui\View\ListTablePage;
+use Foresi\Ui\Contract\ListTablePage;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Infrastructure\Column\LabelColumns;
 use Foresi\Work\Infrastructure\Column\LabelRow;

@@ -88,11 +88,6 @@ final class ScreenStores
                 throw new \LogicException('Not read by the screen.');
             }
 
-            public function hasLivePayment(string $movementId): bool
-            {
-                throw new \LogicException('Not read by the screen.');
-            }
-
             public function anyOnAccount(string $accountId): bool
             {
                 throw new \LogicException('Not read by the screen.');

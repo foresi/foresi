@@ -8,12 +8,12 @@ declare(strict_types=1);
 
 namespace Foresi\Invoicing\Infrastructure\Messenger;
 
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\DeliverInvoiceSend;
 use Foresi\Invoicing\Application\InvoiceSends;
 use Foresi\Invoicing\Application\MailRefused;
 use Foresi\Invoicing\Application\UnknownInvoiceSend;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;

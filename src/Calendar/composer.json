@@ -15,7 +15,7 @@
         "foresi/audit": "self.version",
         "foresi/identity": "self.version",
         "foresi/instance": "self.version",
-        "foresi/module-api": "^1.0",
+        "foresi/module-api": "^2.0",
         "foresi/shared": "self.version",
         "foresi/ui": "self.version",
         "psr/log": "^3.0",

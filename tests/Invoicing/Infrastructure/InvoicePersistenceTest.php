@@ -11,9 +11,9 @@ namespace Foresi\Tests\Invoicing\Infrastructure;
 use Doctrine\DBAL\Driver\Exception as DriverFailure;
 use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Foresi\Invoicing\Application\ConflictRetry;
 use Foresi\Invoicing\Application\UnknownInvoice;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Tests\Invoicing\Application\InvoiceTestCase;
 
 final class InvoicePersistenceTest extends InvoiceTestCase

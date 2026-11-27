@@ -29,7 +29,7 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Application\SenderVerdict;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Shared\Contract\Event\EventRecorder;
-use Foresi\Tests\Banking\Support\InboundTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceInboundTestCase;
 use Foresi\Tests\Support\Scalars;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
@@ -42,7 +42,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
  * stored, queued, taken off the queue by the bus as a worker would, parsed,
  * judged and paired. Nothing is a real message.
  */
-final class KbEndToEndTest extends InboundTestCase
+final class KbEndToEndTest extends InvoiceInboundTestCase
 {
     public function testAVerifiedKbIncomingNoticePaysTheInvoice(): void
     {

@@ -15,6 +15,9 @@ namespace Foresi\Work\Contract;
  */
 interface ProjectDirectory
 {
+    /** The kind a project is named by in other modules, such as the record an activity is linked to or an inbox item suggests. */
+    public const string KIND = 'project';
+
     /**
      * @return ProjectSummary|null an archived project too, flagged; null for an unknown id or one the person does not see
      */

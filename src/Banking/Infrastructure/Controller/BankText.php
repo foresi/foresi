@@ -8,11 +8,10 @@ declare(strict_types=1);
 
 namespace Foresi\Banking\Infrastructure\Controller;
 
+use Foresi\Banking\Application\BankingCountries;
 use Foresi\Banking\Domain\InboundStatus;
 use Foresi\Banking\Domain\MovementState;
 use Foresi\Banking\Domain\UnmatchedReason;
-use Foresi\Invoicing\Application\InvoicingCountries;
-use Foresi\Invoicing\Application\UnsupportedCountry;
 use Foresi\Party\Application\InstanceFirm;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
@@ -30,7 +29,7 @@ final readonly class BankText
     public function __construct(
         private LocaleSwitcher $locales,
         private TranslatorInterface $translator,
-        private InvoicingCountries $countries,
+        private BankingCountries $countries,
         private InstanceFirm $firm,
     ) {
     }
@@ -84,11 +83,7 @@ final readonly class BankText
         if ('' !== $label) {
             return $label;
         }
-        try {
-            $domestic = $this->countries->for($this->countryCode())->domesticAccount($iban);
-        } catch (UnsupportedCountry) {
-            $domestic = null;
-        }
+        $domestic = $this->countries->for($this->countryCode())?->domesticAccount($iban);
 
         return $domestic ?? trim(chunk_split($iban, 4, ' '));
     }
@@ -98,9 +93,9 @@ final readonly class BankText
      */
     public function time(\DateTimeImmutable $at): string
     {
-        try {
-            $at = $at->setTimezone($this->countries->for($this->countryCode())->timezone());
-        } catch (UnsupportedCountry) {
+        $country = $this->countries->for($this->countryCode());
+        if ($country instanceof \Foresi\Banking\Contract\BankingCountry) {
+            $at = $at->setTimezone($country->timezone());
         }
 
         return $at->format($this->translator->trans('format.datetime'));

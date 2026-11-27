@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Infrastructure\Mail;
 
 use Foresi\Invoicing\Application\RecurringAlertTexts;
-use Foresi\Party\Domain\DocumentLanguage;
+use Foresi\Invoicing\Contract\DocumentLanguage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**

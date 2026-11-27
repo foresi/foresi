@@ -15,7 +15,14 @@ namespace Foresi\Work\Contract;
  * renders the same whether those modules are installed or not. Lower weights
  * come first.
  *
- * Both slots get the same context:
+ * NEW_FORM is the one slot of the dialog of a new project, before the project
+ * exists: inside its form after the custom fields, such as a behaviour of a
+ * field of the module's own. The item's template is included with its data and
+ * the context, which holds "clientField" (string|null): the id of the client
+ * combobox, which sends "combobox:pick" and "combobox:clear", or null where the
+ * address book is not installed; an item without a template is left out.
+ *
+ * The slots of a project's page get the same context:
  *  - "projectId" (string): the project's id;
  *  - "clientId" (string|null): the id of the project's client, a contact of the address book, or null;
  *  - "return" (string): the local address of the project's page as shown, with its ?tab=, to come back to after a dialog.
@@ -32,12 +39,30 @@ namespace Foresi\Work\Contract;
  * HEADER_FACTS: short facts under the page header, next to the client line, such as
  * a budget. The item's template is included with its data and the context; an item
  * without a template is left out.
+ *
+ * HEADER_ACTIONS: actions of the header of the project's list and board, after a new
+ * task, such as logging time. The item's template is included with its data and the
+ * context, with "place" saying where: "buttons" for a button of the header, "phone"
+ * for the same action as an item of the "⋯" menu on a phone, and "menu" for an item
+ * of the "⋯" menu on every screen, such as billing; an item without a template is
+ * left out.
+ *
+ * SETTINGS: cards of the project's settings page after its general settings, such
+ * as the hourly rate of its time. The item's template is included with its data and
+ * the context; an item without a template is left out. Only whom keeps the project's
+ * settings gets this slot.
  */
 final class ProjectSlots
 {
     public const string SECTIONS = 'work.project.sections';
 
     public const string HEADER_FACTS = 'work.project.header_facts';
+
+    public const string HEADER_ACTIONS = 'work.project.header_actions';
+
+    public const string SETTINGS = 'work.project.settings';
+
+    public const string NEW_FORM = 'work.project.new_form';
 
     /** The prefix of the id of the Turbo frame a section's fragment loads into. */
     public const string SECTION_FRAME = 'project-section-';

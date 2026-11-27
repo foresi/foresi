@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Ui\Component;
 
+use Foresi\Contacts\ContactsBundle;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\TwigComponent\Test\InteractsWithTwigComponents;
@@ -53,6 +54,9 @@ final class ValueTest extends KernelTestCase
 
     public function testAnAttributeOfAListIsShownAsItsColumnShowsIt(): void
     {
+        if (!class_exists(ContactsBundle::class)) {
+            self::markTestSkipped('The list of contacts is the contacts module\'s, which is not installed.');
+        }
         $badges = $this->crawler(['list' => 'party.contacts', 'attribute' => 'roles', 'value' => [\Foresi\Party\Domain\PartyRole::Customer]])->filter('[data-badges] > span');
 
         self::assertSame(['Zákazník'], $badges->each(static fn (Crawler $badge): string => $badge->text()));

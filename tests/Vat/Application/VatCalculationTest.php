@@ -44,8 +44,8 @@ final class VatCalculationTest extends TestCase
         self::assertSame([210_000, 21_000], [$november->documentsPart->output->minor(), $november->documentsPart->input->minor()]);
         self::assertSame([0, 0, 0, 0], [$november->schedulesPart->output->minor(), $november->schedulesPart->input->minor(), $november->plansPart->output->minor(), $november->plansPart->input->minor()]);
         self::assertSame([
-            [CalculationStep::OUTPUT, 210_000, VatCalculation::RULE_OUTPUT, ['invoicing.issued_vat', 'purchasing.received_vat']],
-            [CalculationStep::INPUT, 21_000, VatCalculation::RULE_INPUT, ['invoicing.issued_vat', 'purchasing.received_vat']],
+            [CalculationStep::OUTPUT, 210_000, VatCalculation::RULE_OUTPUT, ['invoicing.issued_vat', 'received-documents.received_vat']],
+            [CalculationStep::INPUT, 21_000, VatCalculation::RULE_INPUT, ['invoicing.issued_vat', 'received-documents.received_vat']],
             [CalculationStep::RESULT, 189_000, 'output VAT minus deductible input VAT', ['output', 'input']],
         ], array_map(static fn (CalculationStep $step): array => [$step->name, $step->amount->minor(), $step->rule, $step->sources], $november->steps));
         self::assertSame([[], []], [$november->warnings, $november->missingCzk]);
@@ -108,7 +108,7 @@ final class VatCalculationTest extends TestCase
 
     public function testSelfAssessedVatGivesOutputAndInputInTheTaxPointMonth(): void
     {
-        $service = new DocumentVat('purchasing.received_vat', new VatSubject('received_document', 'eu', null), 'EU-1', $this->day('2026-11-01'), $this->day('2026-11-20'), $this->czk(105_000), $this->czk(105_000));
+        $service = new DocumentVat('received-documents.received_vat', new VatSubject('received_document', 'eu', null), 'EU-1', $this->day('2026-11-01'), $this->day('2026-11-20'), $this->czk(105_000), $this->czk(105_000));
 
         [$november] = VatCalculation::compute([$this->month('2026-11', '2026-11-12', '2026-11-30')], [$service], $this->payer());
 
@@ -153,14 +153,14 @@ final class VatCalculationTest extends TestCase
 
     public function testMissingCzkVatWarnsAndCountsZero(): void
     {
-        $missing = new DocumentVat('purchasing.received_vat', new VatSubject('received_document', 'x', null), 'PD-2026-7', $this->day('2026-11-01'), $this->day('2026-11-20'), $this->czk(0), $this->czk(0), true);
+        $missing = new DocumentVat('received-documents.received_vat', new VatSubject('received_document', 'x', null), 'PD-2026-7', $this->day('2026-11-01'), $this->day('2026-11-20'), $this->czk(0), $this->czk(0), true);
 
         [$november] = VatCalculation::compute([$this->month('2026-11', '2026-11-12', '2026-11-30')], [$missing, $this->received('2026-11-01', '2026-11-20', 500)], $this->payer());
 
         self::assertSame([PeriodAmounts::WARNING_MISSING_CZK_VAT], $november->warnings);
         self::assertSame(['PD-2026-7'], $november->missingCzk);
         self::assertSame([0, 500, -500], $this->totals($november));
-        self::assertSame(['purchasing.received_vat'], $november->steps[1]->sources, 'Each source once.');
+        self::assertSame(['received-documents.received_vat'], $november->steps[1]->sources, 'Each source once.');
     }
 
     public function testAMonthlyTemplateCountsInEachFuturePeriod(): void
@@ -182,8 +182,8 @@ final class VatCalculationTest extends TestCase
         self::assertSame([$december], $dec->schedules);
         self::assertSame([$received], $dec->documents);
         self::assertSame([
-            [CalculationStep::OUTPUT, 210_000, VatCalculation::RULE_OUTPUT, ['invoicing.recurring_vat', 'purchasing.received_vat']],
-            [CalculationStep::INPUT, 21_000, VatCalculation::RULE_INPUT, ['purchasing.received_vat']],
+            [CalculationStep::OUTPUT, 210_000, VatCalculation::RULE_OUTPUT, ['invoicing.recurring_vat', 'received-documents.received_vat']],
+            [CalculationStep::INPUT, 21_000, VatCalculation::RULE_INPUT, ['received-documents.received_vat']],
             [CalculationStep::RESULT, 189_000, VatCalculation::RULE_RESULT, ['output', 'input']],
         ], array_map(static fn (CalculationStep $step): array => [$step->name, $step->amount->minor(), $step->rule, $step->sources], $dec->steps));
         self::assertSame([210_100, 0, 210_100], $this->totals($jan));
@@ -254,7 +254,7 @@ final class VatCalculationTest extends TestCase
 
     private function received(string $countsOn, string $taxPoint, int $vat): DocumentVat
     {
-        return new DocumentVat('purchasing.received_vat', new VatSubject('received_document', 'r-'.$taxPoint, null), 'PD-'.$taxPoint, $this->day($countsOn), $this->day($taxPoint), $this->czk(0), $this->czk($vat));
+        return new DocumentVat('received-documents.received_vat', new VatSubject('received_document', 'r-'.$taxPoint, null), 'PD-'.$taxPoint, $this->day($countsOn), $this->day($taxPoint), $this->czk(0), $this->czk($vat));
     }
 
     private function month(string $key, string $start, string $end): VatPeriod

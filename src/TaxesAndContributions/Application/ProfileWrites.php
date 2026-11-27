@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Foresi\TaxesAndContributions\Application;
 
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;

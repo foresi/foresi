@@ -6,13 +6,13 @@
 
 declare(strict_types=1);
 
+use Foresi\Deals\Domain\Deal;
+use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
-use Foresi\Sales\Domain\Deal;
-use Foresi\Sales\Domain\Stage;
 use Foresi\Work\Application\ManageProjects;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 

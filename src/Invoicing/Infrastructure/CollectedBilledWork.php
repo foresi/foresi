@@ -9,25 +9,28 @@ declare(strict_types=1);
 namespace Foresi\Invoicing\Infrastructure;
 
 use Foresi\Invoicing\Application\BilledWork;
-use Foresi\Invoicing\Application\BilledWorkDraft;
 use Foresi\Invoicing\Application\InvoiceInput;
 use Foresi\Invoicing\Application\IssueOrigin;
 use Foresi\Invoicing\Application\IssueProblem;
 use Foresi\Invoicing\Application\IssueRefused;
+use Foresi\Invoicing\Application\LineInput;
+use Foresi\Invoicing\Contract\BilledWork as ModuleBilledWork;
+use Foresi\Invoicing\Contract\BilledWorkDraft;
+use Foresi\Invoicing\Contract\BilledWorkRefused;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 /**
  * The work every installed module bills, such as Timesheet with time. A
  * reference belongs to the module that recognises it; with none installed,
- * no reference holds.
+ * no reference holds. A module's refusal becomes a problem of the form.
  */
 final readonly class CollectedBilledWork implements BilledWork
 {
     /**
-     * @param iterable<BilledWork> $providers
+     * @param iterable<ModuleBilledWork> $providers
      */
     public function __construct(
-        #[AutowireIterator(BilledWork::TAG)]
+        #[AutowireIterator(ModuleBilledWork::TAG)]
         private iterable $providers,
     ) {
     }
@@ -48,10 +51,13 @@ final readonly class CollectedBilledWork implements BilledWork
     {
         $refused = null;
         foreach ($this->providers as $provider) {
+            if (null === $input->billedWork) {
+                break;
+            }
             try {
-                return $provider->origin($input);
-            } catch (IssueRefused $refusal) {
-                $refused = $refusal;
+                return new BilledWorkIssueOrigin($provider->origin($input->billedWork, array_map(static fn (LineInput $line): ?string => $line->source, $input->lines)));
+            } catch (BilledWorkRefused $refusal) {
+                $refused = BilledWorkIssueOrigin::refused($refusal);
             }
         }
 

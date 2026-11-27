@@ -55,7 +55,7 @@
             data-invoice-form-recount-url-value="{{ path('app_invoice_recount') }}"
             data-invoice-form-number-url-value="{{ path('app_invoice_next_number') }}"
             data-invoice-form-customers-url-value="{{ path('app_invoice_customers') }}"
-            data-invoice-form-contact-url-value="{{ path('app_contact_edit', {id: '00000000-0000-7000-8000-000000000000'}) }}"
+            data-invoice-form-contact-url-value="{{ contact_edit_url('00000000-0000-7000-8000-000000000000') }}"
             data-invoice-form-max-lines-value="{{ maxLines }}"
             data-invoice-form-new-line-vat-value="{{ emptyLine.vat }}"
             data-invoice-form-unsaved-value="{{ app.request.method == 'POST' ? 'true' : 'false' }}"
@@ -108,7 +108,10 @@
                     <twig:Ui:TextInput name="name" id="name" :row="true" width="long" :label="'recurring.field.name'|trans" :help="'recurring.field.name_help'|trans" :value="values.name" :error="errorFields.name|default(null)" :required="true" maxlength="120" autocomplete="off" />
                     <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start justify-start gap-2 md:grid-cols-[minmax(0,calc(var(--spacing-label)+1rem+var(--spacing-field-long)))_auto]">
                         <twig:Ui:Combobox name="customerId" id="customer" textName="customerQuery" :row="true" width="long" :label="'invoice.field.customer'|trans" :placeholder="'invoice.customer.placeholder'|trans" :value="values.customerId" :text="values.customerQuery" :url="path('app_invoice_customers')" :emptyText="'invoice.customer.empty'|trans" :help="noContacts ? 'invoice.customer.none_yet'|trans : null" :error="errorFields.customer|default(null)" :required="true" />
-                        <twig:Ui:Button :href="path('app_contact_new')" id="customer-add" icon="plus" class="mt-6 md:mt-0" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
+                        {# A new customer is written in the address book; without it there is none to add. #}
+                        {% if contact_new_url() %}
+                            <twig:Ui:Button :href="contact_new_url()" id="customer-add" icon="plus" class="mt-6 md:mt-0" target="_blank" rel="noopener" data-dialog aria-haspopup="dialog" data-dialog-focus="#customer" data-action="invoice-form#awaitContact">{{ 'invoice.customer.add'|trans }}</twig:Ui:Button>
+                        {% endif %}
                     </div>
                     {% if candidates is not empty %}
                         <ul class="m-0 grid list-none gap-1 p-0 {{ offset }}" data-customer-candidates aria-label="{{ 'invoice.customer.candidates'|trans }}">
@@ -124,7 +127,9 @@
                             {%- if payer and values.customer.vatId %}{{ 'invoice.field.vatId'|trans }} {{ values.customer.vatId }} · {% endif -%}
                             {{- seat -}}
                         </p>
-                        <a href="{{ values.customerId ? path('app_contact_edit', {id: values.customerId}) : '#' }}" id="customer-contact" target="_blank" rel="noopener" class="justify-self-start text-small font-medium text-text underline underline-offset-2 {{ focus }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
+                        {% if contact_edit_url('00000000-0000-7000-8000-000000000000') %}
+                            <a href="{{ contact_edit_url(values.customerId) ?? '#' }}" id="customer-contact" target="_blank" rel="noopener" class="justify-self-start text-small font-medium text-text underline underline-offset-2 {{ focus }}" data-invoice-form-target="contactLink">{{ 'invoice.customer.edit_contact'|trans }}</a>
+                        {% endif %}
                         {% for field, value in values.customer %}<input type="hidden" name="customer[{{ field }}]" value="{{ value }}">{% endfor %}
                     </div>
                     <div class="{{ offset }}" data-invoice-form-target="notice" hidden>

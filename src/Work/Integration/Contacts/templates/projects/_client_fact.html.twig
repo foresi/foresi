@@ -1,0 +1,5 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The client line under a project's header, linked to the contact for whom keeps the project. Variables: project, focus.
+#}
+<p class="m-0" data-project-client>{{ 'work.project.field.client'|trans }}: {% if project.manageable %}<a href="{{ path('app_contact_show', {id: project.clientId}) }}" class="font-medium text-ink no-underline hover:underline {{ focus }}">{{ project.clientName }}</a>{% else %}<span class="font-medium text-ink">{{ project.clientName }}</span>{% endif %}</p>

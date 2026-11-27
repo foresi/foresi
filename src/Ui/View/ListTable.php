@@ -19,6 +19,8 @@ use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\ViewState;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Ui\Column\RememberedDisplay;
+use Foresi\Ui\Contract\ListTablePage;
+use Foresi\Ui\Contract\ListTables;
 use Foresi\Ui\Contract\WorkingDisplay;
 use Foresi\Ui\Contract\WorkingState;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -33,7 +35,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The filter sheet is the caller's to add (ListTablePage::with()), as it lives in the shared
  * infrastructure.
  */
-final readonly class ListTable
+final readonly class ListTable implements ListTables
 {
     private const int MAX_SEARCH = 100;
 

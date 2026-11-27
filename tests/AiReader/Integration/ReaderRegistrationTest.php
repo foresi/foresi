@@ -10,10 +10,10 @@ namespace Foresi\Tests\AiReader\Integration;
 
 use Foresi\AiReader\Application\AiProvider;
 use Foresi\AiReader\Application\AiReaderSettings;
-use Foresi\Purchasing\Application\Reading\ReadDocument;
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\DocumentReader;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Application\Reading\ReadDocument;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentReader;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class ReaderRegistrationTest extends KernelTestCase

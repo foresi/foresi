@@ -15,7 +15,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * What other modules add to a task's page through TaskSlots: the facts under
- * the header, as a project's page shows its own.
+ * the header, as a project's page shows its own, and for the people of the
+ * organisation the main action of the header and the sections under the
+ * subtasks.
  */
 final readonly class TaskPageSlots
 {
@@ -28,18 +30,37 @@ final readonly class TaskPageSlots
      */
     public function headerFacts(string $taskId, string $projectId): array
     {
+        return $this->items(TaskSlots::HEADER_FACTS, $taskId, $projectId);
+    }
+
+    /**
+     * @return array{headerActions: list<array{template: string, data: array<string, mixed>}>, slotSections: list<array{template: string, data: array<string, mixed>}>}
+     */
+    public function internal(string $taskId, string $projectId): array
+    {
+        return [
+            'headerActions' => $this->items(TaskSlots::HEADER_ACTIONS, $taskId, $projectId),
+            'slotSections' => $this->items(TaskSlots::SECTIONS, $taskId, $projectId),
+        ];
+    }
+
+    /**
+     * @return list<array{template: string, data: array<string, mixed>}>
+     */
+    private function items(string $slot, string $taskId, string $projectId): array
+    {
         $context = [
             'taskId' => $taskId,
             'projectId' => $projectId,
             'return' => $this->urls->generate(TaskController::ROUTE, ['id' => $taskId]),
         ];
-        $facts = [];
-        foreach ($this->slots->items(TaskSlots::HEADER_FACTS, $context) as $item) {
+        $items = [];
+        foreach ($this->slots->items($slot, $context) as $item) {
             if (null !== $item->template) {
-                $facts[] = ['template' => $item->template, 'data' => $item->data + $context];
+                $items[] = ['template' => $item->template, 'data' => $item->data + $context];
             }
         }
 
-        return $facts;
+        return $items;
     }
 }

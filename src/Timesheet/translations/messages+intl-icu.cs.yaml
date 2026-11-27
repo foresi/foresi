@@ -1,51 +1,204 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 timesheet:
-  invoice:
-    title: Vyfakturovat čas
-    client: Klient
-    choose_client: Vyberte klienta
-    projects: Projekty
-    from: Od
-    until: Do
-    refresh: Zobrazit čas
-    no_client: Vyberte klienta, jehož čas chcete vyfakturovat.
-    none: V tomto období tu není žádný fakturovatelný a dosud nevyfakturovaný čas.
-    entries: Čas k vyfakturování
-    no_rate: Bez sazby
-    per_hour: '{rate}/hod'
-    rate_of_deal_line: sazba položky obchodu
-    hours: '{hours} hod'
-    unit: hod
-    total_hours: Celkem hodin
-    total_amount: Celkem bez DPH
-    continue: Pokračovat
-    grouping:
-      label: Řádky faktury
-      project: Jeden řádek za projekt
-      task: Řádek za úkol
-      person: Řádek za osobu
-      entry: Řádek za každý záznam
-    rounding:
-      label: Zaokrouhlení záznamů
-      help: Každý záznam nahoru, zapsaný čas zůstane, jak je.
-      none: Bez zaokrouhlení
-      '15': Nahoru na 15 minut
-      '30': Nahoru na 30 minut
-    blocked:
-      no_firm: Nejdřív přidejte firmu, která bude fakturovat.
+  time:
+    title: Čas
+    log: Zapsat čas
+    edit: Upravit čas
+    edit_label: 'Upravit čas ze dne {date}'
+    delete: Smazat
+    delete_label: 'Smazat čas ze dne {date}'
+    none: Zatím žádný zapsaný čas.
+    total_of: '{total} z {estimate}'
+    running: Běží
+    billable: Fakturovatelné
+    invoiced: Vyfakturováno
+    invoiced_by: 'Faktura {number}'
+    duration_help: Třeba 1:30, 1,5 nebo 1h 30m.
+    logged: 'Zapsáno {duration}.'
+    edited: Čas je upravený.
+    stopped: 'Časovač je zastavený, zapsáno {duration} na „{title}“.'
+    trash:
+      deleted: Čas je v koši.
+      restored: Čas je obnovený.
+      section: Čas
+      column:
+        worked_on: Den
+        person: Kdo
+        duration: Délka
+        task: Úkol
+    error:
+      worked_on: Zadejte den jako datum.
+      project: Vyberte projekt.
+      task: Vyberte úkol, nebo žádný.
+    timer:
+      start: Spustit časovač
+      stop: Zastavit časovač
+      stop_short: Zastavit
+      region: Běžící časovač
+      started: Časovač běží.
+    choose_project: Vyberte projekt
+    no_task: Bez úkolu, na projekt
+    pick_project: Zobrazit jeho úkoly
+    tab:
+      week: Týden
+      report: Výkaz
+    views: Pohledy na čas
+    previous_week: Předchozí týden
+    next_week: Další týden
+    this_week: Tento týden
+    week_range: '{from} – {until}'
+    week_total: 'Za týden'
+    today: Dnes
+    person: Osoba
+    person_me: Já
+    person_inactive: '{name} (neaktivní)'
+    report:
+      title: Výkaz
+      view:
+        all: Vše
+        this_month: Tento měsíc
+        last_month: Minulý měsíc
+      views: Pohledy na výkaz
+      group: Součty podle
+      by:
+        project: Projekt
+        person: Osoba
+        task: Úkol
+      totals:
+        project: Součty po projektech
+        person: Součty po lidech
+        task: Součty po úkolech
+      total: Celkem
+      billable_total: Fakturovatelné
+      unbillable_total: Nefakturovatelné
+      entries: Záznamy
+      column:
+        work: Práce
+        person: Osoba
+        date: Den
+        time: Čas
+      export: Exportovat CSV
+      file: vykaz-casu
+      archived: '{name} (archivovaný)'
+      empty_title: V tomto období žádný čas
+      empty_text: Zvolte jiný pohled nebo filtr, nebo zapište čas na úkol.
+      range_all: Celá doba
+      csv:
+        date: Datum
+        person: Osoba
+        client: Klient
+        project: Projekt
+        task: Úkol
+        minutes: Minuty
+        hours: Hodiny
+        billable: Fakturovatelné
+        note: Poznámka
+        decimal: ','
+        'yes': ano
+        'no': ne
+      search_label: Hledat ve výkazu
+    search_label: Hledat v záznamech času
+    field:
+      note: Poznámka
+      duration: Doba
+      worked_on: Den
+      billable: Fakturovatelné
+      task: Úkol
+  budget:
+    title: Časový rozpočet
+    fact: 'Rozpočet {budget, number} h · čerpáno {used, number} h · zbývá {left, number} h'
+    over: Přečerpáno
+    hours: '{hours, number} h'
+    signed_hours: '{hours, number, :: sign-always} h'
+    add: Přidat změnu
+    save: Uložit
+    added: Změna je přidaná do rozpočtu.
+    removed: Změna je z rozpočtu odebraná.
+    remove: Odebrat
+    remove_confirm:
+      title: 'Odebrat změnu {hours}?'
+      text: Odeberte změnu zadanou omylem. Správný rozpočet snížíte přidáním změny s minusem.
+    changes: Změny rozpočtu
+    source_activity: Aktivita
+    kpi:
+      budget: Rozpočet
+      used_all: Čerpáno (veškerý čas)
+      used_billable: Čerpáno (fakturovatelný čas)
+      left: Zbývá
+      estimate: Odhady úkolů
+    column:
+      effective_on: Datum
+      hours: Hodiny
+      note: Poznámka
+      source: Zdroj
+      author: Zadal(a)
+    field:
+      hours: Hodiny
+      hours_help: Plus nebo minus, třeba 8 nebo -2,5.
+      effective_on: Datum
+      note: Poznámka
+      note_placeholder: Třeba kdo hodiny schválil
+    empty:
+      title: Zatím žádný časový rozpočet
+      text: Přidejte hodiny schválené pro projekt. Přečerpání se ukáže, nikdy neblokuje.
+    counting:
+      open: Počítání
+      title: Který čas čerpá rozpočet
+      legend: Počítat
+      all: Veškerý čas
+      all_help: Fakturovatelný i nefakturovatelný čas.
+      billable: Jen fakturovatelný čas
+      billable_help: Nefakturovatelný čas, třeba práce za paušál, se nepočítá.
+      saved: Rozpočet počítá zvolený čas.
+    tab: Rozpočet
   refused:
-    not_allowed: Čas fakturuje jen vlastník organizace.
-    client: Vyberte klienta.
-    nothing: Zaškrtněte aspoň jeden záznam času.
-    rate_missing: Zaškrtnutý čas nemá hodinovou sazbu. Nastavte ji u projektu, klienta nebo osoby, nebo záznam odškrtněte.
-    currencies: Zaškrtnutý čas má sazby v různých měnách. Na jednu fakturu vyberte čas v jedné měně.
-    firm_currency: Sazby zaškrtnutého času jsou v jiné měně, než ve které tato firma fakturuje.
-    country: Firma je ze země, pro kterou zatím neumíme fakturovat.
-    too_many_lines: Takhle by faktura měla přes 100 řádků. Seskupte čas do méně řádků.
-  problem:
-    other_document: Vybraný čas se fakturuje fakturou firmy, pro kterou byl oceněn. Otevřete znovu fakturaci času.
-    time_changed: Část vybraného času se mezitím změnila nebo smazala. Otevřete znovu fakturaci času.
-    time_invoiced: Část vybraného času je mezitím vyfakturovaná jinou fakturou. Otevřete znovu fakturaci času.
-    selection_gone: Vybraný čas už na tuto fakturu nečeká. Otevřete znovu fakturaci času.
-    restore_time_changed: Část času této faktury se mezitím změnila nebo smazala, takže fakturu nelze obnovit.
-    restore_time_invoiced: Část času této faktury je mezitím vyfakturovaná jinou fakturou, takže fakturu nelze obnovit.
+    duration: Zadejte čas jako 1:30, 1,5 nebo 1h 30m, alespoň minutu a nejvýš den, nebo začátek a konec po něm.
+    time_note: Poznámka může mít nejvýš 2 000 znaků.
+    time_task: Vyberte úkol tohoto projektu.
+    time_not_yours: Čas může změnit nebo smazat jen ten, kdo ho zapsal, nebo vlastník organizace.
+    time_invoiced: Tento čas je vyfakturovaný a už ho nelze měnit.
+    timer_running: Nejdřív zastavte časovač.
+    timer_not_running: Neběží žádný časovač.
+    time_task_in_trash: Nejdřív obnovte úkol, ke kterému čas patří.
+    hours_invalid: Zadejte hodiny jako číslo s nejvýš dvěma desetinnými místy, třeba 8 nebo -2,5.
+    hours_zero: Zadejte jiný počet hodin než nulu.
+    budget_below_zero: Rozpočet projektu by klesl pod nulu.
+    budget_note: Poznámka může mít nejvýš 500 znaků.
+    budget_counting: Vyberte veškerý čas, nebo jen fakturovatelný.
+    source_not_on_project: Zdrojem musí být aktivita tohoto projektu.
+    unknown: Tento projekt, úkol nebo čas už neexistuje.
+    not_allowed: Tohle mohou jen lidé z organizace.
+    archived: Projekt je archivovaný. Nejdřív ho obnovte.
+    date: Zadejte datum jako RRRR-MM-DD.
+  inbox_action:
+    log_time: Zapsat čas
+    add_to_budget: Přidat do rozpočtu projektu
+  project:
+    field:
+      billable: Fakturovat čas
+      rate: Hodinová sazba
+      rate_help: Má přednost před sazbou klienta i člověka.
+      rate_currency: Měna
+    error:
+      rate: Zadejte sazbu, třeba 1500 nebo 1500,50.
+    settings:
+      title: Čas
+      saved: Nastavení času je uložené.
+inbox_action:
+  inbox:
+    actions:
+      log_time:
+        projectId: Projekt
+        workedOn: Den práce
+        taskId: Úkol
+        minutes: Minuty
+        startedAt: Začátek
+        endedAt: Konec
+        note: Poznámka
+        billable: Fakturovatelné
+      add_to_budget:
+        projectId: Projekt
+        hours: Hodiny
+        minutes: Minuty
+        effectiveOn: Datum změny
+        note: Poznámka

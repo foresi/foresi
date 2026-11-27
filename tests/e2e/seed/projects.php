@@ -23,13 +23,14 @@ use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
+use Foresi\Timesheet\Application\ManageTime;
+use Foresi\Timesheet\Application\ProjectTimeSettings;
 use Foresi\Work\Application\ManageComments;
 use Foresi\Work\Application\ManageLabels;
 use Foresi\Work\Application\ManageProjects;
 use Foresi\Work\Application\ManageSections;
 use Foresi\Work\Application\ManageSharing;
 use Foresi\Work\Application\ManageTasks;
-use Foresi\Work\Application\ManageTime;
 use Foresi\Work\Domain\LabelColour;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\ProjectStatus;
@@ -48,11 +49,13 @@ $manageTasks = $container->get('e2e.manage_tasks');
 $manageLabels = $container->get('e2e.manage_labels');
 $manageComments = $container->get('e2e.manage_comments');
 $manageSharing = $container->get('e2e.manage_sharing');
-$manageTime = $container->get('e2e.manage_time');
+$manageTime = $container->get('e2e.timesheet.manage_time');
+$projectTimeSettings = $container->get('e2e.timesheet.project_time_settings');
 $uploadAttachment = $container->get('e2e.upload_attachment');
 \assert($manageComments instanceof ManageComments);
 \assert($manageSharing instanceof ManageSharing);
 \assert($manageTime instanceof ManageTime);
+\assert($projectTimeSettings instanceof ProjectTimeSettings);
 \assert($uploadAttachment instanceof UploadAttachment);
 \assert($manageProjects instanceof ManageProjects);
 \assert($manageSections instanceof ManageSections);
@@ -76,7 +79,8 @@ $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($projectOwner
 
 $design = $manageLabels->create('Design', LabelColour::Green);
 $bug = $manageLabels->create('Bug', LabelColour::Red);
-$website = $manageProjects->create('Website', $projectClient->id(), WorkflowTemplate::Development, 'The new website of the client.');
+// The client's time is billable by default, Timesheet's custom field of the project.
+$website = $manageProjects->create('Website', $projectClient->id(), WorkflowTemplate::Development, 'The new website of the client.', ['timesheet_billable_by_default' => true]);
 $backlog = $manageSections->add($website->id(), 'Backlog');
 $shared = $manageSections->add($website->id(), 'Shared with client');
 // Open, In progress, Review, Testing, Blocked, Done, Closed.
@@ -88,7 +92,7 @@ $homepage = $manageTasks->create($website->id(), 'Design the homepage', $shared-
 $manageTasks->setLabels($homepage->id(), [$design->id()]);
 // Estimated before the comments: a history step in the same second as a comment comes first, so the
 // discussion reads the same in every run.
-$manageTime->setEstimate($homepage->id(), 300);
+$manageTasks->setEstimate($homepage->id(), 300);
 $manageComments->add($homepage->id(), sprintf("First sketch is ready, **please review**.\n\n- hero with the new logo\n- a short pitch\n\n@[Jana Example](membership:%s) can you check the copy?", $teamMember->id()), true);
 $tokenStorage->setToken(new UsernamePasswordToken(new SecurityUser($teamUser->id(), $teamUser->email(), 'hash'), 'main', ['ROLE_USER']));
 $manageComments->add($homepage->id(), 'Looks good, the *pitch* reads well.', false);
@@ -154,7 +158,7 @@ $agencySeries = new Series(Series::STANDARD, SeriesFormat::fromString(Series::ST
 $agencySeries->markDefault();
 $entityManager->persist($agencySeries);
 $entityManager->flush();
-$manageTime->setProjectHourlyRate($website->id(), Money::of('1200.00', Currency::CZK));
+$projectTimeSettings->setHourlyRate($website->id(), Money::of('1200.00', Currency::CZK));
 $lastMonth = $today->modify('first day of last month');
 $manageTime->log($website->id(), $domain->id(), $lastMonth->modify('+1 day'), 90, note: 'DNS records and the certificate');
 $manageTime->log($website->id(), null, $lastMonth->modify('+2 days'), 30, note: 'Kick-off call with the client');

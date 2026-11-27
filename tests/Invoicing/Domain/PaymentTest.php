@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Invoicing\Domain;
 
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\Payment;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use PHPUnit\Framework\Attributes\DataProvider;

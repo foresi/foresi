@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace Foresi\Tests\Invoicing\Integration\Country;
 
 use Foresi\Invoicing\Application\Query\PaymentDetails;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentAllocation;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Domain\Money;
 use Foresi\Tests\Invoicing\Application\Query\PaymentReadTestCase;

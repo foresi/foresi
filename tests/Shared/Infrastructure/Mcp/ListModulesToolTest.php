@@ -44,8 +44,8 @@ final class ListModulesToolTest extends TestCase
         $integrations = new ModuleIntegrations(\dirname(__DIR__, 4).'/src')->of($graph);
         self::assertSame(ModulesView::toArray($graph, $integrations), $output->data);
         self::assertIsArray($json['integrations']);
-        // Party, which every application has, uses Import when it is installed.
-        self::assertContains(['module' => 'party', 'uses' => 'import'], array_map(static fn (mixed $integration): array => \is_array($integration) ? ['module' => $integration['module'], 'uses' => $integration['uses']] : [], $json['integrations']));
+        // Party, which every application has, keeps its screens for Ui, whether Ui is installed or not.
+        self::assertContains(['module' => 'party', 'uses' => 'ui'], array_map(static fn (mixed $integration): array => \is_array($integration) ? ['module' => $integration['module'], 'uses' => $integration['uses']] : [], $json['integrations']));
         self::assertSame(\sprintf('%d installed modules, 0 problems in their dependencies.', $count), $output->summary);
     }
 

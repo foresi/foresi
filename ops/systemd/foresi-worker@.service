@@ -13,7 +13,9 @@ User=www-data
 Group=www-data
 WorkingDirectory=/srv/foresi/current
 Environment=APP_ENV=prod
-ExecStart=/usr/bin/php bin/console messenger:consume scheduler_foresi mail events async webhooks registry --memory-limit=256M --time-limit=3600
+# The transports come from the installed modules (app:worker:receivers): webhooks, for
+# one, only where foresi/webhooks is installed. "$$" is systemd's literal "$".
+ExecStart=/bin/sh -c 'exec /usr/bin/php bin/console messenger:consume $$(/usr/bin/php bin/console app:worker:receivers) --memory-limit=256M --time-limit=3600'
 Restart=always
 RestartSec=5
 # A message may run long (the accountant pack); let it finish on stop.

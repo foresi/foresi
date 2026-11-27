@@ -11,8 +11,9 @@ controllers:
     resource: routing.controllers
 
 when@test:
+    # Ui's probe pages; a glob, so an application without Ui (the core alone) loads none.
     test_probes:
-        resource: ../tests/Ui/Support/ShellProbeController.php
+        resource: ../tests/*/Support/ShellProbeController.php
         type: attribute
 
 # The REST endpoints of the declared operations (ADR 0032), from Foresi\Shared\Infrastructure\Operation\OperationRoutes.

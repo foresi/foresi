@@ -35,10 +35,10 @@ final class ModulesCheckCommandTest extends TestCase
     {
         $output = new BufferedOutput();
 
-        self::assertSame(Command::FAILURE, $this->command()($this->io($output), api: '2.0'));
+        self::assertSame(Command::FAILURE, $this->command()($this->io($output), api: '3.0'));
         $text = $output->fetch();
-        self::assertStringContainsString('not written for the module API 2.0', $text);
-        self::assertStringContainsString('shared (foresi/shared) requires foresi/module-api ^1.0.', $text);
+        self::assertStringContainsString('not written for the module API 3.0', $text);
+        self::assertStringContainsString('shared (foresi/shared) requires foresi/module-api ^2.0.', $text);
     }
 
     public function testAVersionThatIsNoneIsInvalid(): void

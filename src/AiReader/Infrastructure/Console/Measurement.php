@@ -11,10 +11,10 @@ namespace Foresi\AiReader\Infrastructure\Console;
 use Foresi\AiReader\Application\AiReaderSettings;
 use Foresi\AiReader\Infrastructure\AiDocumentReader;
 use Foresi\AiReader\Infrastructure\Claude\ClaudeProvider;
-use Foresi\Purchasing\Contract\Reading\DocumentFile;
-use Foresi\Purchasing\Contract\Reading\ReaderFailed;
-use Foresi\Purchasing\Contract\Reading\ReadField;
-use Foresi\Purchasing\Contract\Reading\Reading;
+use Foresi\ReceivedDocuments\Contract\Reading\DocumentFile;
+use Foresi\ReceivedDocuments\Contract\Reading\ReaderFailed;
+use Foresi\ReceivedDocuments\Contract\Reading\ReadField;
+use Foresi\ReceivedDocuments\Contract\Reading\Reading;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**

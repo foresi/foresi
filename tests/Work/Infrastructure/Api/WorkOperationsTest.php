@@ -17,7 +17,6 @@ use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\Task;
 use Foresi\Work\Domain\TaskComment;
-use Foresi\Work\Domain\TimeEntry;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -40,12 +39,6 @@ final class WorkOperationsTest extends KernelTestCase
         'projects.update' => ['PATCH', '/api/v1/projects/{projectId}', 'foresi_update_project', 'projects:write', false],
         'projects.archive' => ['POST', '/api/v1/projects/{projectId}/archive', 'foresi_archive_project', 'projects:write', false],
         'projects.restore' => ['POST', '/api/v1/projects/{projectId}/restore', 'foresi_restore_project', 'projects:write', false],
-        'time_entries.log' => ['POST', '/api/v1/time-entries', 'foresi_log_time', 'time_entries:write', false],
-        'time_entries.start_timer' => ['POST', '/api/v1/time-entries/timer', 'foresi_start_timer', 'time_entries:write', false],
-        'time_entries.stop_timer' => ['POST', '/api/v1/time-entries/{entryId}/stop', 'foresi_stop_timer', 'time_entries:write', false],
-        'work.project_budget.add_change' => ['POST', '/api/v1/projects/{projectId}/budget-changes', 'foresi_add_project_budget_change', 'projects:write', false],
-        'work.project_budget.remove_change' => ['DELETE', '/api/v1/projects/{projectId}/budget-changes/{changeId}', 'foresi_remove_project_budget_change', 'projects:write', true],
-        'work.project_budget.set_counting' => ['PUT', '/api/v1/projects/{projectId}/budget-counting', 'foresi_set_project_budget_counting', 'projects:write', false],
     ];
 
     public function testEachOperationIsDeclaredUnderTheScopeOfItsResource(): void
@@ -58,7 +51,6 @@ final class WorkOperationsTest extends KernelTestCase
         self::assertSame(201, $operations->get('tasks.create')->operation->status);
         self::assertSame(201, $operations->get('tasks.comment')->operation->status);
         self::assertSame(201, $operations->get('projects.create')->operation->status);
-        self::assertSame(201, $operations->get('time_entries.log')->operation->status);
     }
 
     public function testTheLengthsAndChoicesAreThoseOfTheDomain(): void
@@ -67,7 +59,6 @@ final class WorkOperationsTest extends KernelTestCase
         self::assertSame(['title' => Task::MAX_TITLE_LENGTH], $this->lengths('tasks.update'));
         self::assertSame(['body' => TaskComment::MAX_BODY_LENGTH], $this->lengths('tasks.comment'));
         self::assertSame(['name' => Project::MAX_NAME_LENGTH], $this->lengths('projects.create'));
-        self::assertSame(['note' => TimeEntry::MAX_NOTE_LENGTH], $this->lengths('time_entries.log'));
         self::assertSame(array_column(Priority::cases(), 'value'), $this->property('tasks.create', 'priority')['enum']);
         self::assertSame(array_column(WorkflowTemplate::cases(), 'value'), $this->property('projects.create', 'workflow')['enum']);
         self::assertSame(['project_id', 'title'], InputSchema::of($this->operations()->get('tasks.create')->fields)['required']);

@@ -16,8 +16,9 @@ use Foresi\Shared\Domain\Id;
 
 /**
  * The owner's invitation of a person into the organisation, by e-mail, as a
- * member or as a guest who represents a contact. Only the SHA-256 of
- * its link token is kept; the link works once and for a week.
+ * member or as a guest, with the contact the person represents if the owner
+ * picked one (ADR 0049). Only the SHA-256 of its link token is kept; the link
+ * works once and for a week.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'invitation')]
@@ -74,9 +75,6 @@ class Invitation implements Audited
         }
         if (Role::Owner === $role) {
             throw new \InvalidArgumentException('An invitation is for a member or a guest.');
-        }
-        if (Role::Guest === $role && !$party instanceof Party) {
-            throw new \InvalidArgumentException('A guest represents a contact.');
         }
         if (!\in_array($locale, User::LOCALES, true)) {
             throw new \InvalidArgumentException(sprintf('Unsupported locale "%s".', $locale));

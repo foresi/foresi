@@ -19,9 +19,10 @@ use Foresi\Invoicing\Domain\InvoiceLine;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Party\Application\NoFirmYet;
 use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\TransactionalWork;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyRole;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 

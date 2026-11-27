@@ -32,7 +32,7 @@ use Foresi\Mail\MailBundle;
 use Foresi\Party\Application\RecheckRegistry;
 use Foresi\Party\Infrastructure\Doctrine\VatIdType;
 use Foresi\Party\PartyBundle;
-use Foresi\Purchasing\PurchasingBundle;
+use Foresi\ReceivedDocuments\ReceivedDocumentsBundle;
 use Foresi\Shared\Domain\Module\ModuleGraph;
 use Foresi\Shared\Domain\Module\ModuleId;
 use Foresi\Shared\Domain\Module\ModuleKind;
@@ -89,11 +89,16 @@ final class ModuleBundleTest extends KernelTestCase
     public function testTheExtensionIsNamedAfterTheModule(): void
     {
         self::assertSame('foresi_shared', new SharedBundle()->getContainerExtension()?->getAlias());
-        self::assertSame('foresi_ui', new UiBundle()->getContainerExtension()?->getAlias());
+        if (class_exists(UiBundle::class)) {
+            self::assertSame('foresi_ui', new UiBundle()->getContainerExtension()?->getAlias());
+        }
     }
 
     public function testPrependsTheMappingOfTheEntitiesAndTheRoutingOfTheMessages(): void
     {
+        if (!class_exists(WebhooksBundle::class)) {
+            self::markTestSkipped('Webhooks is a module, not part of the core.');
+        }
         $builder = $this->builder('prod');
         new WebhooksBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
 
@@ -107,7 +112,25 @@ final class ModuleBundleTest extends KernelTestCase
                 'alias' => 'Webhooks',
             ]]],
         ]], $doctrine);
-        self::assertSame([['messenger' => ['routing' => [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']]]], $builder->getExtensionConfig('framework'));
+        self::assertSame([
+            ['messenger' => ['transports' => ['webhooks' => [
+                'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%',
+                'options' => ['queue_name' => 'webhooks', 'redeliver_timeout' => 600],
+                'retry_strategy' => ['max_retries' => 0],
+            ]]]],
+            ['messenger' => ['routing' => [\Foresi\Webhooks\Application\SendWebhook::class => 'webhooks']]],
+        ], $builder->getExtensionConfig('framework'));
+    }
+
+    public function testWebhooksKeepsItsTransportInMemoryInTheTests(): void
+    {
+        if (!class_exists(WebhooksBundle::class)) {
+            self::markTestSkipped('Webhooks is a module, not part of the core.');
+        }
+        $builder = $this->builder('test');
+        new WebhooksBundle()->prependExtension($this->configurator($builder, 'test'), $builder);
+
+        self::assertContains(['messenger' => ['transports' => ['webhooks' => ['dsn' => 'in-memory://']]]], $builder->getExtensionConfig('framework'));
     }
 
     /**
@@ -121,8 +144,8 @@ final class ModuleBundleTest extends KernelTestCase
         $bundle->prependExtension($this->configurator($builder, $env), $builder);
 
         self::assertSame($mappings, $this->mappings($builder));
-        // The translations of an integration are tested on their own, with a fixture.
-        $framework = array_values(array_filter($builder->getExtensionConfig('framework'), static fn (array $config): bool => !isset($config['translator'])));
+        // The translations of an integration and a module's own transport are tested on their own.
+        $framework = array_values(array_filter($builder->getExtensionConfig('framework'), static fn (array $config): bool => !isset($config['translator']) && (!\is_array($config['messenger'] ?? null) || !isset($config['messenger']['transports']))));
         self::assertSame([] === $routing ? [] : [['messenger' => ['routing' => $routing]]], $framework);
         $expected = [];
         foreach ($mappings as $name) {
@@ -197,12 +220,28 @@ final class ModuleBundleTest extends KernelTestCase
             ArchiveMissing::class => 'async',
             UndoImportChunk::class => 'async',
         ]];
-        yield 'purchasing' => [PurchasingBundle::class, 'prod', ['Purchasing'], [
-            \Foresi\Purchasing\Application\Reading\ReadReceivedDocument::class => 'async',
-            \Foresi\Purchasing\Application\Mail\FileMailAttachments::class => 'async',
+        yield 'received documents' => [ReceivedDocumentsBundle::class, 'prod', ['ReceivedDocuments'], [
+            \Foresi\ReceivedDocuments\Application\Reading\ReadReceivedDocument::class => 'async',
+            \Foresi\ReceivedDocuments\Application\Mail\FileMailAttachments::class => 'async',
         ]];
         yield 'timesheet' => [TimesheetBundle::class, 'prod', ['Timesheet'], []];
         yield 'work' => [WorkBundle::class, 'prod', ['Work'], [SendNotificationMail::class => 'async']];
+    }
+
+    public function testIdentityDeclaresTheFirewallsInOrderWithTheSessionOneForItsScreens(): void
+    {
+        $builder = $this->builder('prod');
+        new IdentityBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
+
+        $security = $builder->getExtensionConfig('security');
+        self::assertCount(1, $security);
+        self::assertIsArray($security[0]['firewalls']);
+        // With Ui the sign-in pages and their session firewall come last; without it there is none.
+        $screens = class_exists(UiBundle::class);
+        self::assertSame(['dev', 'public_stateless', 'api', 'mcp', ...($screens ? [IdentityBundle::SESSION_FIREWALL] : [])], array_keys($security[0]['firewalls']));
+        $totp = $builder->getExtensionConfig('scheb_two_factor')[0]['totp'] ?? null;
+        self::assertIsArray($totp);
+        self::assertSame($screens ? '@Identity/two_factor.html.twig' : null, $totp['template'] ?? null);
     }
 
     public function testPartyAddsItsTypeBeforeItsMappingAndRouting(): void
@@ -219,6 +258,9 @@ final class ModuleBundleTest extends KernelTestCase
 
     public function testAModulePrependsItsMigrations(): void
     {
+        if (!class_exists(WebhooksBundle::class)) {
+            self::markTestSkipped('Webhooks is a module, not part of the core.');
+        }
         $builder = $this->builder('prod');
         $builder->registerExtension(new DoctrineMigrationsExtension());
         new WebhooksBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
@@ -230,6 +272,9 @@ final class ModuleBundleTest extends KernelTestCase
 
     public function testAModuleWithoutMigrationsPrependsNone(): void
     {
+        if (!class_exists(UiBundle::class)) {
+            self::markTestSkipped('Ui is not installed: the core runs without it (ADR 0038).');
+        }
         $builder = $this->builder('prod');
         $builder->registerExtension(new DoctrineMigrationsExtension());
         new UiBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
@@ -239,6 +284,9 @@ final class ModuleBundleTest extends KernelTestCase
 
     public function testAModuleWithoutEntitiesGetsNoMapping(): void
     {
+        if (!class_exists(UiBundle::class)) {
+            self::markTestSkipped('Ui is not installed: the core runs without it (ADR 0038).');
+        }
         $builder = $this->builder('prod');
         new UiBundle()->prependExtension($this->configurator($builder, 'prod'), $builder);
 
@@ -259,6 +307,9 @@ final class ModuleBundleTest extends KernelTestCase
 
     public function testUiPointsTheThemeIconsAndUxControllersAtItsOwnAssets(): void
     {
+        if (!class_exists(UiBundle::class)) {
+            self::markTestSkipped('Ui is not installed: the core runs without it (ADR 0038).');
+        }
         $builder = $this->builder('prod');
         foreach (['framework', 'symfonycasts_tailwind', 'ux_icons', 'stimulus'] as $alias) {
             $builder->registerExtension($this->extension($alias));
@@ -279,7 +330,7 @@ final class ModuleBundleTest extends KernelTestCase
     public function testSharedPrependsTheFrameworkConfigurationItShips(): void
     {
         $builder = $this->builder('prod');
-        $aliases = ['doctrine', 'doctrine_migrations', 'framework', 'mcp', 'monolog', 'nelmio_api_doc', 'scheb_two_factor', 'security', 'symfonycasts_tailwind', 'twig', 'twig_component', 'ux_icons'];
+        $aliases = ['doctrine', 'doctrine_migrations', 'framework', 'mcp', 'monolog', 'nelmio_api_doc', 'security', 'symfonycasts_tailwind', 'twig', 'twig_component', 'ux_icons'];
         foreach ($aliases as $alias) {
             $builder->registerExtension($this->extension($alias));
         }

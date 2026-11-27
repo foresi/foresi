@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Banking\Integration\Country;
 
+use Foresi\Banking\Application\Allocation;
 use Foresi\Banking\Application\Candidate;
 use Foresi\Banking\Application\Matcher;
 use Foresi\Banking\Application\PairingChoices;
@@ -22,6 +23,7 @@ use Foresi\Invoicing\Application\LineInput;
 use Foresi\Invoicing\Application\PaymentRequest;
 use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Contract\DocumentKind;
+use Foresi\Invoicing\Contract\PaymentMethod;
 use Foresi\Invoicing\Contract\Percent;
 use Foresi\Invoicing\Contract\PriceType;
 use Foresi\Invoicing\Contract\Quantity;
@@ -31,14 +33,13 @@ use Foresi\Invoicing\Domain\CorrectionType;
 use Foresi\Invoicing\Domain\Invoice;
 use Foresi\Invoicing\Domain\PaymentDirection;
 use Foresi\Invoicing\Domain\PaymentSource;
-use Foresi\Party\Domain\PaymentMethod;
-use Foresi\Tests\Banking\Support\BankingTestCase;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceBankingTestCase;
 
 /**
  * Outgoing money pairs as a refund: to an invoice of 1 210 paid in full and
  * credited by 484, found by its own symbol or by its credit note's.
  */
-final class RefundPairingTest extends BankingTestCase
+final class RefundPairingTest extends InvoiceBankingTestCase
 {
     public function testAnOutgoingMovementWithTheInvoicesSymbolRecordsARefund(): void
     {
@@ -50,10 +51,10 @@ final class RefundPairingTest extends BankingTestCase
         $options = self::getContainer()->get(PairingChoices::class)->of($this->storedMovement($movement->id()));
         self::assertSame([$invoice->id()], array_keys($options->prefill));
 
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('484.00'))]);
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('484.00'))]);
         $this->em->clear();
 
-        self::assertSame(PaymentDirection::Refund, $this->payments->get($payment->id())->direction());
+        self::assertSame(PaymentDirection::Refund, $this->payments->get($payment)->direction());
         self::assertSame(MovementState::Paired, $this->storedMovement($movement->id())->state());
         self::assertSame(0, $this->payments->toRefundOf($this->store->get($invoice->id()))->minor());
     }
@@ -73,9 +74,9 @@ final class RefundPairingTest extends BankingTestCase
     {
         [$invoice] = $this->toRefund();
         $movement = $this->recordMovement->record($this->incoming('484.00', vs: $invoice->variableSymbol(), direction: MovementDirection::Outgoing), self::verified());
-        $payment = $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('484.00'))]);
+        $payment = $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('484.00'))]);
 
-        self::getContainer()->get(CancelPayment::class)->cancel($payment->id());
+        self::getContainer()->get(CancelPayment::class)->cancel($payment);
         $this->em->clear();
 
         self::assertSame([MovementState::Unmatched, UnmatchedReason::Blocked], [$this->storedMovement($movement->id())->state(), $this->storedMovement($movement->id())->unmatchedReason()]);
@@ -90,7 +91,7 @@ final class RefundPairingTest extends BankingTestCase
 
         self::assertSame([], self::getContainer()->get(Matcher::class)->candidates($this->storedMovement($movement->id())));
         try {
-            $this->pairing->pair($movement->id(), [new AllocationRequest($invoice->id(), $this->czk('1210.00'))]);
+            $this->pairing->pair($movement->id(), [new Allocation($invoice->id(), $this->czk('1210.00'))]);
             self::fail('The outgoing movement paid an invoice.');
         } catch (PairingRefused $refused) {
             self::assertSame(PairingRefused::NOT_INCOMING, $refused->reason);

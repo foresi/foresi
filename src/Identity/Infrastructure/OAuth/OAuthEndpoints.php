@@ -22,6 +22,8 @@ final readonly class OAuthEndpoints
 {
     /** The MCP server over Streamable HTTP (config/packages/mcp.yaml). */
     public const string MCP_ROUTE = '_mcp_endpoint_default';
+    /** The consent screen, which exists with Ui only (Identity/Integration/Ui, ADR 0038). */
+    public const string AUTHORIZE_ROUTE = 'oauth_authorize';
     public const string RESOURCE_METADATA_PATH = '/.well-known/oauth-protected-resource';
 
     public function __construct(private UrlGeneratorInterface $urls)

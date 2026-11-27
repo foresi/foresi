@@ -108,11 +108,6 @@ final class Version20261120000000 extends AbstractMigration
         $table->addColumn('roles', Types::JSON);
         $table->addColumn('archived_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $table->addColumn('private_note', Types::TEXT);
-        $table->addColumn('invoicing_due_days', Types::INTEGER);
-        $table->addColumn('invoicing_currency', Types::STRING, ['length' => 3, 'fixed' => true]);
-        $table->addColumn('invoicing_language', Types::STRING, ['length' => 2, 'fixed' => true]);
-        $table->addColumn('invoicing_payment_method', Types::STRING, ['length' => 32]);
-        $table->addColumn('invoicing_reverse_charge', Types::BOOLEAN);
         $table->addColumn('vies_result', Types::STRING, ['length' => 32, 'notnull' => false]);
         $table->addColumn('vies_checked_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
         $table->addColumn('unreliable_payer_result', Types::STRING, ['length' => 32, 'notnull' => false]);
@@ -122,9 +117,6 @@ final class Version20261120000000 extends AbstractMigration
         $table->addColumn('mobile', Types::STRING, ['length' => 64, 'default' => '']);
         $table->addColumn('website', Types::STRING, ['length' => 255, 'default' => '']);
         $table->addColumn('id', Types::GUID);
-        $table->addColumn('invoicing_send_reminders', Types::BOOLEAN, ['default' => true]);
-        $table->addColumn('invoicing_hourly_rate_minor', Types::BIGINT, ['notnull' => false]);
-        $table->addColumn('invoicing_hourly_rate_currency', Types::STRING, ['length' => 3, 'fixed' => true, 'notnull' => false]);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['registration_key'], 'idx_party_registration_key');
         $table->addIndex(['vat_id'], 'idx_party_vat_id');

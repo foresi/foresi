@@ -10,22 +10,22 @@ namespace Foresi\Party\Infrastructure\Field;
 
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Shared\Application\Field\FieldReferenceNames;
 use Foresi\Shared\Contract\Field\FieldKind;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * The contacts a contact field points to: their names, remembered for the request,
  * the active contacts that match a typed text, as the address book searches, and
- * the page of each.
+ * the page of each, where the address book is installed.
  */
 final class ContactFieldNames implements FieldReferenceNames, ResetInterface
 {
     /** @var array<string, string> */
     private array $names = [];
 
-    public function __construct(private readonly PartyQuery $parties, private readonly UrlGeneratorInterface $urls)
+    public function __construct(private readonly PartyQuery $parties, private readonly ?ContactPages $pages = null)
     {
     }
 
@@ -56,9 +56,9 @@ final class ContactFieldNames implements FieldReferenceNames, ResetInterface
         return array_map(static fn (PartyRow $row): array => ['id' => $row->id, 'label' => $row->displayName, 'hint' => $row->email ?? $row->registrationNumber], $rows);
     }
 
-    public function url(string $id): string
+    public function url(string $id): ?string
     {
-        return $this->urls->generate('app_contact_show', ['id' => $id]);
+        return $this->pages?->urlFor($id);
     }
 
     public function reset(): void

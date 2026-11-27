@@ -11,6 +11,7 @@ namespace Foresi\Party\Infrastructure\Doctrine;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query;
+use Foresi\Party\Application\ContactSorts;
 use Foresi\Party\Application\ImportedBy;
 use Foresi\Party\Application\PartyCounts;
 use Foresi\Party\Application\PartyPage;
@@ -26,7 +27,6 @@ use Foresi\Party\Domain\PartyEmail;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
 use Foresi\Party\Domain\RegistryResult;
-use Foresi\Party\Infrastructure\Column\ContactSource;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Contract\Field\Fields;
 use Foresi\Shared\Domain\Id;
@@ -43,7 +43,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
     private const int MAX_TEXT = 100;
 
-    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSource $source, private Fields $fields)
+    public function __construct(private EntityManagerInterface $em, private PartyConditions $conditions, private ContactSorts $source, private Fields $fields)
     {
     }
 
@@ -112,6 +112,10 @@ final readonly class DoctrinePartyQuery implements PartyQuery
         $descending = str_starts_with($sort, '-');
         // A sortable custom field sorts by its column in the row of its extension (ADR 0045).
         [$join, $by] = $this->fieldSort(ltrim($sort, '-'));
+        if (null === $by) {
+            // A column of another module sorts by its row (ContactColumns).
+            $join = $this->source->join(ltrim($sort, '-'));
+        }
         $order = array_values(array_unique([$by ?? $this->source->sorts()[ltrim($sort, '-')] ?? self::ORDER_NAME, self::ORDER_NAME]));
         $ids = PartyConditions::bind($this->em->createQuery(
             'SELECT p.id FROM '.Party::class.' p '.$join.' WHERE '.$where.' ORDER BY '
@@ -197,6 +201,7 @@ final readonly class DoctrinePartyQuery implements PartyQuery
 
         // The custom fields of the page, read once for its columns (ADR 0045).
         $this->fields->values(ContactExtension::RECORD, $ids);
+        $this->source->load($ids);
         $byId = [];
         foreach ($this->findMany($ids) as $party) {
             $id = $party->id();

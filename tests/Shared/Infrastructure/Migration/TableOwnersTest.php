@@ -52,16 +52,16 @@ final class TableOwnersTest extends KernelTestCase
         'webhook_delivery' => 'webhooks',
         'party' => 'party',
         'party_vat_status_period' => 'party',
-        'time_entry' => 'work',
+        'time_entry' => 'timesheet',
         'released_time' => 'timesheet',
-        'documents_document' => 'documents',
+        'document' => 'document-templates',
         'exchange_rate' => 'exchange-rate',
         'exchange_rate_setting' => 'exchange-rate',
         'vat_settings' => 'vat',
         'vat_period_entry' => 'vat',
         'vat_payment_assignment' => 'vat',
         'activities_activity' => 'activities',
-        'sales_deal' => 'sales',
+        'deal' => 'deals',
     ];
 
     public function testEveryTableHasTheModuleThatCreatesIt(): void

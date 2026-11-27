@@ -1,0 +1,63 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A planned invoice of a won deal, new or changed, as Productive plans the invoices of a budget: an amount, or
+    a share of the deal's one-off value (the percent is only a way to type the amount, which is stored), the
+    day it is expected to be invoiced on, which may stay empty (the forecast then shows it under No date,
+    outside the balance), and the text of the invoice. A new one may instead follow a recurring line that has
+    no planned invoice yet; a recurring entry takes its amount from its line. A dialog over the deal; the same
+    URL is a page.
+    Variables: deal, entry (null for a new one), recurring, label, action, values, errors, plans (what a new one
+    plans, by value), currencies, oneOffValue, notPlanned.
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = entry ? 'deals.billing.edit'|trans : 'deals.billing.new'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+{% set dialog_description = recurring ? 'deals.billing.recurring_help'|trans({line: label}) : (oneOffValue ? 'deals.billing.value_help'|trans({value: oneOffValue, left: notPlanned ?: '0'}) : null) %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="billing-entry-form" action="{{ action }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+        <div class="grid gap-4 sm:grid-cols-2">
+            {% if not entry and plans|length > 1 %}
+                <div class="sm:col-span-2">
+                    <twig:Ui:Select name="plan" id="plan" :label="'deals.billing.field.plan'|trans" :options="plans" :value="values.plan" :error="errors.plan|default(null)" :help="'deals.billing.field.plan_help'|trans" />
+                </div>
+            {% endif %}
+            {% if not recurring %}
+                <div class="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
+                    <twig:Ui:TextInput name="amount" id="amount" :label="'deals.billing.field.amount'|trans" :help="'deals.billing.field.amount_help'|trans" :value="values.amount" :error="errors.amount|default(null)" inputmode="decimal" autocomplete="off" />
+                    <twig:Ui:Select name="currency" id="currency" :label="'deals.billing.field.currency'|trans" :options="currencies" :value="values.currency" :error="errors.currency|default(null)" />
+                </div>
+                <twig:Ui:TextInput name="percent" id="percent" :label="'deals.billing.field.percent'|trans" :help="'deals.billing.field.percent_help'|trans" :value="values.percent" :error="errors.percent|default(null)" inputmode="decimal" autocomplete="off" />
+            {% endif %}
+            <twig:Ui:TextInput type="date" name="expectedOn" id="expectedOn" :label="'deals.billing.field.expected_on'|trans" :help="'deals.billing.field.expected_on_help'|trans" :value="values.expectedOn" :error="errors.expectedOn|default(null)" />
+            <div class="sm:col-span-2">
+                <twig:Ui:TextInput name="text" id="text" :label="'deals.billing.field.text'|trans" :help="'deals.billing.field.text_help'|trans" :value="values.text" :error="errors.text|default(null)" maxlength="200" autocomplete="off" />
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="billing-entry-form" variant="primary">{{ (entry ? 'deals.save' : 'deals.billing.add')|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" :icon="entry ? 'pencil' : 'plus'" class="max-w-2xl">
+        {% if dialog_description %}<p class="mt-0 mb-4 text-small text-muted">{{ dialog_description }}</p>{% endif %}
+        {{ body }}
+    </twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="billing-entry-form" variant="primary">{{ (entry ? 'deals.save' : 'deals.billing.add')|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

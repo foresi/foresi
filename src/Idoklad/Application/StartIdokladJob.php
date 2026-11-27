@@ -12,7 +12,7 @@ use Foresi\Idoklad\Application\Message\ProcessIdokladJob;
 use Foresi\Idoklad\Domain\IdokladJob;
 use Foresi\Idoklad\Domain\IdokladJobKind;
 use Foresi\Idoklad\Domain\ImportOptions;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Psr\Clock\ClockInterface;
 
 /**

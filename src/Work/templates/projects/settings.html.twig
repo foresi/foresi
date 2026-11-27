@@ -1,8 +1,7 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
 {#
-    The settings of a project: what it is and for whom, whether its time is billable and, for an owner, its hourly rate,
-    its custom fields under "Additional details",
-    with its archiving; its sections in order,
+    The settings of a project: what it is and for whom, its custom fields under "Additional details",
+    with its archiving; the cards other modules add (ProjectSlots::SETTINGS), such as the rate of its time; its sections in order,
     each renamed, moved or removed by a form of its own, or shared in a dialog, and a header action that adds one in a
     dialog; its statuses in order, each with its name and type, moved, or removed in a dialog that asks where its tasks
     go, a header action that adds one in a dialog, and a workflow template that replaces them all, chosen and confirmed
@@ -55,21 +54,16 @@
                     </twig:Ui:Alert>
                 {% endif %}
                 <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
-                <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
+                {# The client, only where the address book is installed (Work's Contacts integration). #}
+                {% if clientPicker %}{{ include('@Work/projects/_client_field.html.twig') }}{% endif %}
                 <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
-                <twig:Ui:Checkbox name="billable" id="billable" value="1" :label="'work.project.field.billable'|trans" :help="'work.project.field.billable_help'|trans" :checked="billable" />
-                {% if owner %}
-                    {# Only an owner sees and sets the rate. #}
-                    <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]" data-project-rate>
-                        <twig:Ui:TextInput name="rate" id="rate" inputmode="decimal" maxlength="20" :label="'work.project.field.rate'|trans" :help="'work.project.field.rate_help'|trans" :value="rate.rate" :error="errors.rate|default(null)" autocomplete="off" />
-                        <twig:Ui:Select name="rateCurrency" id="rate-currency" :label="'work.project.field.rate_currency'|trans" :options="currencies" :value="rate.rateCurrency" />
-                    </div>
-                {% endif %}
                 {# The custom fields (ADR 0045), saved with the rest of the form. #}
                 <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\ProjectExtension::RECORD')" :id="project.id" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
                 <div><twig:Ui:Button type="submit" variant="primary">{{ 'work.save'|trans }}</twig:Ui:Button></div>
             </form>
         </twig:Ui:Card>
+
+        {% for card in settingsCards %}{{ include(card.template, card.data) }}{% endfor %}
 
         <twig:Ui:Card :title="'work.settings.sections'|trans" icon="columns-3" data-settings-sections>
             <twig:block name="actions">

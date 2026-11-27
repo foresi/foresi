@@ -12,7 +12,7 @@ use Foresi\CashFlow\Domain\Checkpoint;
 use Foresi\CashFlow\Domain\ExpectedDate;
 use Foresi\CashFlow\Domain\MinimumBalance;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Domain\Currency;
 use Psr\Clock\ClockInterface;
 

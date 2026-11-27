@@ -11,7 +11,8 @@ namespace Foresi\Invoicing\Application;
 use Foresi\Invoicing\Contract\Event\DeliveryChannel;
 use Foresi\Invoicing\Contract\Event\InvoiceDelivered;
 use Foresi\Invoicing\Domain\Invoice;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\ConflictRetry;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Contract\Event\EventRecorder;
 use Psr\Clock\ClockInterface;
 

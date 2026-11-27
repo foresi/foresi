@@ -108,13 +108,12 @@ final class CreateUserCommandTest extends KernelTestCase
         self::assertSame([['member', $contact]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
     }
 
-    public function testAGuestUserNeedsAContact(): void
+    public function testAGuestUserNeedsNoContact(): void
     {
         $status = $this->create(['email' => 'guest@example.com', 'role' => 'guest'], self::PASSWORD);
 
-        self::assertSame(Command::INVALID, $status);
-        self::assertStringContainsString('--contact', $this->tester->getDisplay());
-        self::assertNull($this->users()->findByEmail('guest@example.com'));
+        self::assertSame(Command::SUCCESS, $status);
+        self::assertSame([['guest', null]], $this->em()->getConnection()->fetchAllNumeric('SELECT role, party_id FROM membership'));
     }
 
     /**

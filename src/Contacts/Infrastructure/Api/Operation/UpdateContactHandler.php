@@ -1,0 +1,38 @@
+<?php
+
+/*
+ * SPDX-License-Identifier: AGPL-3.0-only
+ */
+
+declare(strict_types=1);
+
+namespace Foresi\Contacts\Infrastructure\Api\Operation;
+
+use Foresi\Contacts\Application\Contact\ContactWrites;
+use Foresi\Contacts\Application\Contact\UpdateContactInput;
+use Foresi\Party\Contract\Field\ContactExtension;
+use Foresi\Shared\Application\Field\CustomFieldPayload;
+use Foresi\Shared\Contract\Operation\OperationHandler;
+use Foresi\Shared\Contract\Operation\OperationOutput;
+
+/**
+ * contacts.update: the contact as it is now.
+ */
+final readonly class UpdateContactHandler implements OperationHandler
+{
+    public function __construct(private ContactWrites $writes, private ContactAnswer $answer, private CustomFieldPayload $customFields)
+    {
+    }
+
+    public static function input(): string
+    {
+        return UpdateContactInput::class;
+    }
+
+    public function handle(object $input): OperationOutput
+    {
+        \assert($input instanceof UpdateContactInput);
+
+        return $this->answer->of($this->writes->update($input, $this->customFields->read(ContactExtension::RECORD, $input->customFields, false)), 'Updated the contact %s.');
+    }
+}

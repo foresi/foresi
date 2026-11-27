@@ -13,7 +13,7 @@ use Foresi\Instance\Application\InstanceClock;
 use Foresi\Margin\Contract\RevenueDocument;
 use Foresi\Margin\Domain\MarginRefused;
 use Foresi\Margin\Domain\RebillPairing;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Symfony\Component\Uid\Uuid;
 
 /**

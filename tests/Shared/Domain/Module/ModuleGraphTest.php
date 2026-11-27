@@ -119,14 +119,15 @@ final class ModuleGraphTest extends TestCase
         self::assertSame(['core-requires-module:identity>party'], $this->codes($graph->problems()));
     }
 
-    public function testCoreMayRequireUi(): void
+    public function testReportsCoreRequiringUi(): void
     {
+        // The core keeps its screens in Integration/Ui/ and lists Ui as optional (ADR 0038).
         $graph = new ModuleGraph([
             $this->module('identity', ModuleKind::Core, requires: ['ui']),
             $this->module('ui', ModuleKind::Ui),
         ]);
 
-        self::assertSame([], $this->codes($graph->problems()));
+        self::assertSame(['core-requires-module:identity>ui'], $this->codes($graph->problems()));
     }
 
     public function testCyclesDoNotBreakOrdering(): void

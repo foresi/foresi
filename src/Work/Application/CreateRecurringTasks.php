@@ -11,7 +11,7 @@ namespace Foresi\Work\Application;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Instance\Application\Schedule\DailyPeriod;
 use Foresi\Instance\Contract\ScheduledJob;
-use Foresi\Party\Application\TransactionalWork;
+use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Work\Domain\RecurringTask;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;

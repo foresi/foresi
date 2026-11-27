@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Shared\Integration\Work;
 
 use Foresi\Catalog\Contract\Field\ProductExtension;
+use Foresi\Deals\Contract\Field\DealExtension;
 use Foresi\Events\Infrastructure\Dbal\EventLogTable;
 use Foresi\Identity\Application\ApiTokens;
 use Foresi\Identity\Application\OAuth\OAuthStore;
@@ -21,7 +22,6 @@ use Foresi\Identity\Domain\Role;
 use Foresi\Party\Application\View\ContactLists;
 use Foresi\Party\Contract\Field\ContactExtension;
 use Foresi\Party\Domain\Party;
-use Foresi\Sales\Contract\Field\DealExtension;
 use Foresi\Shared\Application\View\CreateViewInput;
 use Foresi\Shared\Application\View\ListDefinitions;
 use Foresi\Shared\Application\View\SavedViews;
@@ -74,7 +74,7 @@ final class CustomFieldApiTest extends WorkApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->writer = $this->issued(array_map(ApiScope::from(...), ['contacts:write', 'sales:write', 'catalog:write', 'projects:write', 'tasks:write']));
+        $this->writer = $this->issued(array_map(ApiScope::from(...), ['contacts:write', 'deals:write', 'catalog:write', 'projects:write', 'tasks:write']));
     }
 
     public function testAContactCarriesItsCustomFieldsOnEveryRead(): void
@@ -132,12 +132,12 @@ final class CustomFieldApiTest extends WorkApiTestCase
         $this->send('PATCH', '/api/v1/contacts/'.$id, ['custom_fields' => ['test_fields_size' => 'small', 'test_fields_code' => null]]);
         self::assertResponseIsSuccessful();
         self::assertSame(['test_fields_code' => null, 'test_fields_due' => '2026-12-01', 'test_fields_size' => 'small'], $this->values($this->at('data', 'custom_fields'), 'test_fields_code', 'test_fields_due', 'test_fields_size'));
-        self::assertSame(['test_fields_size', 'test_fields_code'], $this->eventKeys('party.contact.updated', $id));
+        self::assertSame(['test_fields_size', 'test_fields_code'], $this->eventKeys('contacts.contact.updated', $id));
 
         // An update without custom_fields keeps them.
         $this->send('PATCH', '/api/v1/contacts/'.$id, ['phone' => '+420 111 111 111']);
         self::assertSame('small', $this->at('data', 'custom_fields', 'test_fields_size'));
-        self::assertSame([], $this->eventKeys('party.contact.updated', $id));
+        self::assertSame([], $this->eventKeys('contacts.contact.updated', $id));
 
         $call = $this->mcpTool('foresi_update_contact', ['contact_id' => $id, 'custom_fields' => ['test_fields_tags' => ['blue']]]);
         self::assertFalse($call['isError'] ?? false, json_encode($call, \JSON_THROW_ON_ERROR));
@@ -221,8 +221,8 @@ final class CustomFieldApiTest extends WorkApiTestCase
 
         $this->get('/api/v1/fields', [], $this->writer);
         self::assertResponseIsSuccessful();
-        // The fields of every record kind the token reads: the contacts', and those of the test-only record.
-        self::assertSame([...array_fill(0, 13, 'contact'), ...array_fill(0, 13, 'fixture_note')], $this->column('record', 'data'));
+        // The fields of every record kind the token reads: the contacts', those of the test-only record, and the one Timesheet gives a project.
+        self::assertSame([...array_fill(0, 13, 'contact'), ...array_fill(0, 13, 'fixture_note'), 'project'], $this->column('record', 'data'));
         self::assertSame([
             'key' => 'test_fields_size',
             'record' => 'contact',
@@ -258,23 +258,23 @@ final class CustomFieldApiTest extends WorkApiTestCase
     public function testADealCarriesItsCustomFields(): void
     {
         $this->lend(DealExtension::RECORD, ['test_fields_code']);
-        $this->send('POST', '/api/v1/sales/stages', ['name' => 'Inquiry']);
+        $this->send('POST', '/api/v1/deal-stages', ['name' => 'Inquiry']);
         self::assertResponseStatusCodeSame(201);
 
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId]);
         $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'custom_fields.test_fields_code', 'reason' => 'field_required']);
-        $this->send('POST', '/api/v1/sales/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'custom_fields' => ['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01']]);
+        $this->send('POST', '/api/v1/deals', ['title' => 'Roof audit', 'client_party_id' => $this->customerId, 'custom_fields' => ['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01']]);
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
         self::assertIsString($id);
         self::assertSame(['test_fields_code' => 'D-1', 'test_fields_due' => '2026-12-01'], $this->values($this->at('data', 'custom_fields'), 'test_fields_code', 'test_fields_due'));
-        $this->get('/api/v1/sales/deals', [], $this->writer);
+        $this->get('/api/v1/deals', [], $this->writer);
         self::assertSame('D-1', $this->at('data', 0, 'custom_fields', 'test_fields_code'));
 
         $call = $this->mcpTool('foresi_update_deal', ['deal_id' => $id, 'custom_fields' => ['test_fields_size' => 'small']]);
         self::assertFalse($call['isError'] ?? false, json_encode($call, \JSON_THROW_ON_ERROR));
         self::assertSame(['test_fields_code' => 'D-1', 'test_fields_size' => 'small'], $this->values(self::in($call, 'structuredContent', 'data', 'custom_fields'), 'test_fields_code', 'test_fields_size'));
-        self::assertSame(['test_fields_size'], $this->eventKeys('sales.deal.updated', $id));
+        self::assertSame(['test_fields_size'], $this->eventKeys('deals.deal.updated', $id));
         self::assertSame('small', self::in($this->mcpTool('foresi_search_deals', []), 'structuredContent', 'data', 'items', 0, 'custom_fields', 'test_fields_size'));
         $refused = $this->mcpTool('foresi_update_deal', ['deal_id' => $id, 'custom_fields' => ['test_fields_site' => 'mailto:sales@example.com']]);
         self::assertSame('custom_fields.test_fields_site', self::in($refused, 'structuredContent', 'error', 'details', 'parameter'));

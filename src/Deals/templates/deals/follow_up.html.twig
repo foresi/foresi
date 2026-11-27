@@ -1,0 +1,47 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    A new deal that follows from this one: its title and the lines of this deal to copy onto it, as they
+    are. It is for the same client and contact persons. A dialog over the deal that follows the new deal
+    once it is made; the same URL is a page. Variables: deal, values, errors, lines (id, name, text).
+#}
+{% extends in_dialog() ? '@Ui/layout/dialog.html.twig' : '@Ui/layout/app.html.twig' %}
+
+{% set heading = 'deals.follow_up.title'|trans %}
+{% set crumbs = [{label: 'nav.group.sales'|trans}, {label: 'deals.deals.title'|trans, href: path('app_deals')}, {label: deal.title, href: path('app_deal', {id: deal.id})}, {label: heading}] %}
+{% set form_invalid = errors is not empty %}
+{% set dialog_size = 'md' %}
+
+{% block title %}{{ heading }}{% endblock %}
+
+{% block dialog_body %}
+    <form method="post" id="deal-follow-up-form" action="{{ path('app_deal_follow_up', {id: deal.id}) }}" class="grid gap-4" novalidate>
+        <input type="hidden" name="_token" value="{{ csrf_token(constant('Foresi\\Deals\\Infrastructure\\Controller\\DealController::TOKEN')) }}">
+        <p class="m-0 text-small text-muted">{{ 'deals.follow_up.text'|trans({title: deal.title}) }}</p>
+        <twig:Ui:TextInput name="title" id="title" :label="'deals.deal.field.title'|trans" :value="values.title" :error="errors.title|default(null)" maxlength="200" autocomplete="off" required />
+        {% if lines is not empty %}
+            <fieldset class="m-0 grid gap-2 border-0 p-0" data-follow-up-lines>
+                <legend class="mb-1 p-0 text-small text-ink">{{ 'deals.follow_up.lines'|trans }}</legend>
+                {% for line in lines %}
+                    <twig:Ui:Checkbox name="lineIds[]" :id="'line-' ~ line.id" :label="line.name ~ ' · ' ~ line.text" :value="line.id" :checked="line.id in values.lineIds" />
+                {% endfor %}
+                {% if errors.lineIds is defined %}<p class="m-0 text-small text-badge-red-text">{{ errors.lineIds }}</p>{% endif %}
+            </fieldset>
+        {% endif %}
+    </form>
+{% endblock %}
+
+{% block dialog_footer %}
+    <twig:Ui:Button data-action="dialog#dismiss">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+    <twig:Ui:Button type="submit" form="deal-follow-up-form" variant="primary">{{ 'deals.follow_up.submit'|trans }}</twig:Ui:Button>
+{% endblock %}
+
+{% block content %}
+    {% set body %}{{ block('dialog_body') }}{% endset %}
+    <twig:Ui:Card :title="heading" icon="plus" class="max-w-2xl">{{ body }}</twig:Ui:Card>
+    <div class="max-w-2xl">
+        <twig:Ui:ActionBar>
+            <twig:Ui:Button :href="path('app_deal', {id: deal.id})">{{ 'deals.cancel'|trans }}</twig:Ui:Button>
+            <twig:Ui:Button type="submit" form="deal-follow-up-form" variant="primary">{{ 'deals.follow_up.submit'|trans }}</twig:Ui:Button>
+        </twig:Ui:ActionBar>
+    </div>
+{% endblock %}

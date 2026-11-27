@@ -17,6 +17,7 @@ use Foresi\Banking\Application\BankMovements;
 use Foresi\Banking\Application\GenerateAddress;
 use Foresi\Banking\Application\InboundMessages;
 use Foresi\Banking\Application\Ownership;
+use Foresi\Banking\Application\PaymentPairing;
 use Foresi\Banking\Application\PendingChanges;
 use Foresi\Banking\Application\ProcessMessage;
 use Foresi\Banking\Application\ReceivedStatements;
@@ -35,9 +36,9 @@ use Foresi\Mail\Application\ReceiveOutcome;
 use Foresi\Mail\Contract\InboundMail;
 use Foresi\Mail\Domain\InboundChannel;
 use Foresi\Party\Domain\FirmBankAccount;
+use Foresi\Tests\Banking\Integration\Invoicing\Support\InvoiceInboundTestCase;
 use Foresi\Tests\Banking\Support\FixedParser;
 use Foresi\Tests\Banking\Support\InboundMailKit;
-use Foresi\Tests\Banking\Support\InboundTestCase;
 use Foresi\Tests\Party\Support\FirmAccounts;
 use Foresi\Tests\Support\Scalars;
 use Foresi\Ui\Contract\Notice\ShellNotice;
@@ -52,7 +53,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * whose account it is, what a parser could not read, what someone decided, and
  * that processing a message again never records it twice.
  */
-final class ProcessMessageTest extends InboundTestCase
+final class ProcessMessageTest extends InvoiceInboundTestCase
 {
     private const string OTHER_IBAN = 'CZ5508000000001234567899';
 
@@ -453,6 +454,6 @@ final class ProcessMessageTest extends InboundTestCase
         $translator = $container->get(TranslatorInterface::class);
         $translator->setLocale('en');
 
-        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class), $container->get(ReceivedStatements::class));
+        return new BankNotices($container->get(InboundMessages::class), $container->get(BankMovements::class), new StaffCheck($memberships, $actor), $urls, $translator, new RequestStack(), $container->get(ClockInterface::class), $container->get(ReceivedStatements::class), $container->get(PaymentPairing::class));
     }
 }
