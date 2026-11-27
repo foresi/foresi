@@ -401,12 +401,18 @@ work:
     edit_title: 'Edit the label {name}'
     delete: Delete
     saved: 'The label {name} is saved.'
+    views: Views of the labels
+    search: Search by name
+    tab:
+      all: All
+      trash: Trash
     column:
       name: Name
       preview: Preview
       tasks: Tasks
     field:
       name: Name
+      trashed: In the trash
       colour: Colour
     colour:
       gray: Gray
@@ -416,6 +422,8 @@ work:
     empty:
       title: No labels yet
       text: Labels sort tasks across projects.
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
     trash:
       title: Trash of labels
       deleted: 'The label {name} is in the trash.'

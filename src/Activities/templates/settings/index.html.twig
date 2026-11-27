@@ -2,7 +2,8 @@
 {#
     Settings → Activities: the activity types with their timing, as Pipedrive and Odoo let a team keep its
     own. A type is a small record: a new one and a change open in a dialog over the page, and archiving
-    asks first. Variables: columns, rows.
+    asks first. The types are a list with views, search, filters, columns and widths
+    (docs/design/list-pages.md, rule 8). Variables: types, the table ListTable gives.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -19,6 +20,20 @@
     {{ include('@Activities/_flashes.html.twig') }}
     <section class="grid gap-2" aria-labelledby="activity-types-title" data-activity-types>
         <h2 id="activity-types-title" class="m-0 text-body font-semibold text-ink">{{ 'activities.settings.types'|trans }}</h2>
-        <twig:Ui:DataTable :caption="'activities.settings.types'|trans" :columns="columns" :rows="rows" :actionToken="token" />
+        {% set t = types %}
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'activities.settings.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_activity_settings')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_activity_settings')" :keep="t.keep"
+            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+        </twig:Ui:FilterBar>
+        <twig:Ui:DataTable :caption="'activities.settings.types'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token">
+            <twig:block name="empty">
+                {% if t.filtered or t.view != '' %}
+                    <twig:Ui:EmptyState icon="search" :title="'activities.settings.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="t.resetHref">{{ 'activities.settings.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% endif %}
+            </twig:block>
+        </twig:Ui:DataTable>
+        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
     </section>
 {% endblock %}

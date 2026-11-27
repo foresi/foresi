@@ -250,6 +250,10 @@ inbox:
     replace_text: 'Adresa „{label}“ přestane okamžitě fungovat a dostanete novou, zobrazenou jen jednou. Pak upravte své přeposílání.'
     replace_submit: Nahradit adresu
     dropped: '{count, plural, =0 {žádný} one {# e-mail} few {# e-maily} other {# e-mailů}}'
+    views: Pohledy na adresy schránky
+    search: Hledat podle názvu
+    tab:
+      all: Vše
     column:
       label: Název
       address: Adresa
@@ -272,6 +276,8 @@ inbox:
     empty:
       title: Zatím žádná adresa schránky
       text: Vytvořte ji a pak na ni přeposílejte e-maily.
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
     refused:
       label_required: Napište, k čemu adresa slouží.
       label_too_long: Název je příliš dlouhý.

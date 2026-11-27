@@ -9,14 +9,22 @@ declare(strict_types=1);
 namespace Foresi\Work\Infrastructure\Controller;
 
 use Foresi\Identity\Contract\StaffCheck;
+use Foresi\Shared\Application\View\ListSlot;
+use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
 use Foresi\Ui\Contract\Opens;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Foresi\Work\Application\LabelBadge;
 use Foresi\Work\Application\ManageLabels;
 use Foresi\Work\Application\PurgeTrashedLabels;
 use Foresi\Work\Application\TrashedLabel;
+use Foresi\Work\Application\View\LabelLists;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Domain\LabelColour;
+use Foresi\Work\Infrastructure\Column\LabelColumns;
+use Foresi\Work\Infrastructure\Column\LabelRow;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,8 +41,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * in a dialog over it (the same URLs are pages of their own), and the delete,
  * which asks no question: the label goes to the trash and the message undoes
  * it, as for tasks (Shopify's Toast API recommends Undo over a dialog for what
- * can be undone). The trash of labels lists them with who deleted them and
- * when; restoring one puts it back on its tasks.
+ * can be undone). The list has views (docs/design/list-pages.md, rule 8): All,
+ * and Trash, which lists the labels deleted with who deleted them and when;
+ * restoring one puts it back on its tasks.
  */
 final class LabelController extends AbstractController
 {
@@ -47,23 +56,35 @@ final class LabelController extends AbstractController
         private readonly ManageLabels $labels,
         private readonly StaffCheck $staff,
         private readonly TranslatorInterface $translator,
+        private readonly LabelLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/settings/labels', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->denyUnlessStaff();
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
         $usage = $this->queries->labelUsage();
+        $records = [
+            ...array_map(static fn (LabelBadge $label): LabelRow => LabelRow::of($label, $usage[$label->id] ?? 0), $this->queries->labels()),
+            ...array_map(static fn (TrashedLabel $label): LabelRow => LabelRow::trashed($label, $usage[$label->id] ?? 0), $this->queries->labelTrash()),
+        ];
+        $trash = static fn (ViewFilter $shown): bool => [] !== $shown->on(LabelLists::TRASHED);
+        $page = $this->listTable->of($slot, $list, LabelColumns::LIST, self::ROUTE, 'labels', $records, $this->row(...), $this->valueOf(...), static fn (LabelRow $row): string => $row->name, $this->translator->trans('work.labels.search'), LabelLists::TRASHED, static fn (ViewFilter $shown): array => ['trash' => $trash($shown)]);
 
         return $this->render('@Work/labels/index.html.twig', [
-            'trashCount' => \count($this->queries->labelTrash()),
-            'columns' => [
-                ['key' => 'name', 'label' => $this->translator->trans('work.labels.column.name'), 'truncate' => true],
-                ['key' => 'preview', 'label' => $this->translator->trans('work.labels.column.preview')],
-                ['key' => 'tasks', 'label' => $this->translator->trans('work.labels.column.tasks'), 'align' => 'right'],
-            ],
-            'rows' => array_map(fn (LabelBadge $label): array => $this->row($label, $usage[$label->id] ?? 0), $this->queries->labels()),
+            'labels' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
+            'trash' => $trash($page->shown),
+            'days' => PurgeTrashedLabels::DAYS,
         ]);
     }
 
@@ -111,41 +132,14 @@ final class LabelController extends AbstractController
     }
 
     /**
-     * The labels in the trash, the last deleted first, each with the tasks it
-     * comes back on.
+     * The old address of the trash of labels, which is the list's Trash view now.
      */
     #[Route('/settings/labels/trash', name: self::TRASH_ROUTE, methods: ['GET'])]
-    public function trash(): Response
+    public function trash(): RedirectResponse
     {
         $this->denyUnlessStaff();
-        $usage = $this->queries->labelUsage();
 
-        return $this->render('@Work/labels/trash.html.twig', [
-            'days' => PurgeTrashedLabels::DAYS,
-            'columns' => [
-                ['key' => 'name', 'label' => $this->translator->trans('work.labels.column.name'), 'truncate' => true],
-                ['key' => 'tasks', 'label' => $this->translator->trans('work.labels.column.tasks'), 'align' => 'right'],
-                ['key' => 'deletedBy', 'label' => $this->translator->trans('work.trash.column.deleted_by'), 'truncate' => true, 'phone' => false],
-                ['key' => 'deletedAt', 'label' => $this->translator->trans('work.trash.column.deleted_at')],
-            ],
-            'rows' => array_map(fn (TrashedLabel $label): array => [
-                'id' => $label->id,
-                'label' => $label->name,
-                'cells' => [
-                    'name' => ['badges' => [['label' => $label->name, 'tone' => $label->colour->value]]],
-                    'tasks' => ['text' => (string) ($usage[$label->id] ?? 0), 'numeric' => true],
-                    'deletedBy' => $label->deletedByName,
-                    'deletedAt' => $label->deletedAt->format($this->translator->trans('format.datetime')),
-                ],
-                'actions' => [[
-                    'label' => $this->translator->trans('work.trash.restore'),
-                    'href' => $this->generateUrl('app_label_restore', ['id' => $label->id]),
-                    'method' => 'POST',
-                    'icon' => 'archive-restore',
-                    'fields' => ['from' => 'trash'],
-                ]],
-            ], $this->queries->labelTrash()),
-        ]);
+        return $this->redirectToRoute(self::ROUTE, ['view' => LabelLists::TRASH]);
     }
 
     /**
@@ -165,7 +159,7 @@ final class LabelController extends AbstractController
             $this->addFlash('error', $this->translator->trans('work.refused.'.$refused->reason));
         }
 
-        return $this->redirectToRoute('trash' === $request->request->getString('from') ? self::TRASH_ROUTE : self::ROUTE, status: Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute(self::ROUTE, 'trash' === $request->request->getString('from') ? ['view' => LabelLists::TRASH] : [], Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -219,28 +213,44 @@ final class LabelController extends AbstractController
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed> a row of Ui:DataTable
      */
-    private function row(LabelBadge $label, int $tasks): array
+    private function row(LabelRow $label, WorkingState $working): array
     {
+        $row = ['id' => $label->id, 'label' => $label->name, 'cells' => $working->display->cells($label)];
+        if ($label->isTrashed()) {
+            return $row + ['actions' => [[
+                'label' => $this->translator->trans('work.trash.restore'),
+                'href' => $this->generateUrl('app_label_restore', ['id' => $label->id]),
+                'method' => 'POST',
+                'icon' => 'archive-restore',
+                'fields' => ['from' => 'trash'],
+            ]]];
+        }
         $edit = $this->generateUrl('app_label_edit', ['id' => $label->id]);
 
-        return [
-            'id' => $label->id,
+        return $row + [
             'href' => $edit,
             // A label is a small record: it opens in a modal over the list (docs/design/overlays.md).
             'opens' => Opens::DIALOG,
-            'label' => $label->name,
-            'cells' => [
-                'name' => $label->name,
-                'preview' => ['badges' => [['label' => $label->name, 'tone' => $label->colour->value]]],
-                'tasks' => ['text' => (string) $tasks, 'numeric' => true],
-            ],
             'actions' => [
                 ['label' => $this->translator->trans('work.labels.edit'), 'href' => $edit, 'icon' => 'pencil', 'dialog' => true],
                 ['label' => $this->translator->trans('work.labels.delete'), 'href' => $this->generateUrl('app_label_delete', ['id' => $label->id]), 'method' => 'POST'],
             ],
         ];
+    }
+
+    /**
+     * The value of a field of the list on a label, as RowConditions compares it.
+     */
+    private function valueOf(LabelRow $label, string $field): mixed
+    {
+        return match ($field) {
+            LabelLists::NAME => $label->name,
+            LabelLists::TASKS => $label->tasks,
+            LabelLists::TRASHED => $label->isTrashed(),
+            default => null,
+        };
     }
 
     private function label(string $id): LabelBadge

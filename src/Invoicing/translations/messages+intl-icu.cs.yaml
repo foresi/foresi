@@ -16,6 +16,13 @@ series:
     advance: Zálohová faktura
     payment_tax_document: Daňový doklad k přijaté platbě
     correction_document: Opravný daňový doklad
+  views: Pohledy na číselné řady
+  search: Hledat podle názvu
+  tab:
+    all: Vše
+  empty:
+    filtered_title: Filtru nic neodpovídá
+    reset: Zrušit filtr
   column:
     name: Název
     kind: Doklady

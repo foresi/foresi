@@ -8,12 +8,36 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Inbox\Infrastructure;
 
+use Foresi\Inbox\Application\View\InboxAddressLists;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
+use Symfony\Component\DomCrawler\Crawler;
+
 /**
  * The person's inbox addresses in their account: listed, a new one shown once
  * with no-store, the forwarding help linked to the providers' own pages.
  */
 final class AccountInboxControllerTest extends InboxScreenTestCase
 {
+    use ListPageAssertions;
+
+    public function testTheAddressesAreAListWithViews(): void
+    {
+        self::assertListWithViews(self::getContainer()->get(InboxAddressLists::class), 'inbox.addresses', ['label', 'dropped'], ['all' => false]);
+        $rows = static fn (Crawler $crawler): int => $crawler->filter('[data-inbox-addresses] tbody tr[data-id]')->count();
+
+        $crawler = $this->client->request('GET', '/account/inbox');
+        self::assertSame(['label', 'address', 'created', 'dropped'], $crawler->filter('[data-inbox-addresses] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        $crawler = $this->client->request('GET', '/account/inbox?cols=label,dropped');
+        self::assertSame(['label', 'dropped'], $crawler->filter('[data-inbox-addresses] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-inbox-addresses]', ['widths' => '']);
+
+        // A search that finds nothing offers to clear it, not to make a first address.
+        $crawler = $this->client->request('GET', '/account/inbox?q=nothing');
+        self::assertSame(0, $rows($crawler));
+        self::assertCount(0, $crawler->filter('[data-inbox-addresses-empty]'));
+        self::assertSame(1, $rows(self::applyBuilder($this->client, '/account/inbox', 'label', 'inbox')));
+    }
+
     public function testTheAccountMenuLinksThePageAndItListsTheAddressMasked(): void
     {
         $crawler = $this->client->request('GET', '/account/inbox');
@@ -59,7 +83,7 @@ final class AccountInboxControllerTest extends InboxScreenTestCase
         self::assertNotSame('', (string) $crawler->filter('#inbox-address')->attr('value'));
     }
 
-    private function activeId(\Symfony\Component\DomCrawler\Crawler $crawler): string
+    private function activeId(Crawler $crawler): string
     {
         preg_match('#/account/inbox/([0-9a-f-]{36})/revoke#', $crawler->html(), $match);
 

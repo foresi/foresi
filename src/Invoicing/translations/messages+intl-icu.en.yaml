@@ -16,6 +16,13 @@ series:
     advance: Advance invoice
     payment_tax_document: Tax document on payment
     correction_document: Corrective tax document
+  views: Views of the number series
+  search: Search by name
+  tab:
+    all: All
+  empty:
+    filtered_title: Nothing matches the filter
+    reset: Clear the filter
   column:
     name: Name
     kind: Documents

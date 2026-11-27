@@ -14,10 +14,16 @@ use Foresi\Calendar\Application\FeedReads;
 use Foresi\Calendar\Application\FeedWrites;
 use Foresi\Calendar\Application\RenameFeedInput;
 use Foresi\Calendar\Application\RevokeFeedInput;
+use Foresi\Calendar\Application\View\CalendarFeedLists;
 use Foresi\Calendar\Domain\CalendarFeed;
 use Foresi\Calendar\Infrastructure\Api\FeedAddresses;
+use Foresi\Calendar\Infrastructure\Column\CalendarFeedColumns;
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Shared\Application\View\ListSlot;
 use Foresi\Shared\Contract\RefusalKind;
+use Foresi\Shared\Infrastructure\View\FilterSheet;
+use Foresi\Ui\Contract\WorkingState;
+use Foresi\Ui\View\ListTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,7 +40,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * whose answer shows the address once (the way a new API token is shown), and
  * Rename and Revoke in each feed's menu. Patterns: Google Calendar's secret
  * address with its reset, Todoist's "Generate new feed" and GitLab's per-feed
- * token. The staff only; a guest is refused by the use cases.
+ * token. The feeds are a list with views (docs/design/list-pages.md, rule 8).
+ * The staff only; a guest is refused by the use cases.
  */
 final class AccountCalendarController extends AbstractController
 {
@@ -50,21 +57,27 @@ final class AccountCalendarController extends AbstractController
         private readonly FeedAddresses $addresses,
         private readonly InstanceClock $clock,
         private readonly TranslatorInterface $translator,
+        private readonly CalendarFeedLists $lists,
+        private readonly ListTable $listTable,
+        private readonly FilterSheet $filterSheet,
     ) {
     }
 
     #[Route('/account/calendar', name: self::ROUTE, methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $feeds = $this->refused($this->reads->mine(...));
+        $slot = ListSlot::first($request->query->all());
+        $list = $this->lists->list();
+        // The builder's rows (spec D11) become the list's working filter, in its address.
+        $built = $this->listTable->built($slot, $list);
+        if (null !== $built) {
+            return $this->redirectToRoute(self::ROUTE, $built, Response::HTTP_SEE_OTHER);
+        }
+        $page = $this->listTable->of($slot, $list, CalendarFeedColumns::LIST, self::ROUTE, 'calendar-feeds', $feeds, $this->row(...), $this->valueOf(...), static fn (CalendarFeed $feed): string => $feed->name(), $this->translator->trans('calendar.feeds.search'));
 
         return $this->render('@Calendar/feeds/index.html.twig', [
-            'columns' => [
-                ['key' => 'name', 'label' => $this->translator->trans('calendar.feeds.column.name'), 'truncate' => true],
-                ['key' => 'created', 'label' => $this->translator->trans('calendar.feeds.column.created'), 'phone' => false],
-                ['key' => 'lastFetched', 'label' => $this->translator->trans('calendar.feeds.column.last_fetched')],
-            ],
-            'rows' => array_map($this->row(...), $feeds),
+            'feeds' => $page->with($this->filterSheet->of($list, $page->shown, $page->href, pinned: $page->pinned, slot: $slot)),
         ]);
     }
 
@@ -154,22 +167,13 @@ final class AccountCalendarController extends AbstractController
     /**
      * @return array<string, mixed>
      */
-    private function row(CalendarFeed $feed): array
+    private function row(CalendarFeed $feed, WorkingState $working): array
     {
-        $zone = $this->clock->timezone();
-        $format = $this->translator->trans('format.datetime');
-        $fetched = $feed->lastFetchedAt();
-        $created = $feed->createdAt()->setTimezone($zone)->format($format);
-
         return [
             'id' => $feed->id(),
             'label' => $feed->name(),
-            'secondary' => $created,
-            'cells' => [
-                'name' => $feed->isRevoked() ? ['text' => $feed->name(), 'flag' => ['label' => $this->translator->trans('calendar.feeds.state.revoked'), 'tone' => 'red']] : $feed->name(),
-                'created' => $created,
-                'lastFetched' => $fetched instanceof \DateTimeImmutable ? $fetched->setTimezone($zone)->format($format) : $this->translator->trans('calendar.feeds.never'),
-            ],
+            'secondary' => $feed->createdAt()->setTimezone($this->clock->timezone())->format($this->translator->trans('format.datetime')),
+            'cells' => $working->display->cells($feed),
             'actions' => $feed->isRevoked() ? [] : [
                 ['label' => $this->translator->trans('calendar.feeds.action.rename'), 'href' => $this->generateUrl(self::RENAME_ROUTE, ['id' => $feed->id()]), 'method' => 'GET', 'dialog' => true],
                 ['label' => $this->translator->trans('calendar.feeds.action.revoke'), 'href' => $this->generateUrl(self::REVOKE_ROUTE, ['id' => $feed->id()]), 'method' => 'POST', 'confirm' => [
@@ -180,6 +184,18 @@ final class AccountCalendarController extends AbstractController
                 ]],
             ],
         ];
+    }
+
+    /**
+     * The value of a field of the list on a feed, as RowConditions compares it.
+     */
+    private function valueOf(CalendarFeed $feed, string $field): mixed
+    {
+        return match ($field) {
+            CalendarFeedLists::NAME => $feed->name(),
+            CalendarFeedLists::REVOKED => $feed->isRevoked(),
+            default => null,
+        };
     }
 
     private function formError(CalendarRefused $refused): string

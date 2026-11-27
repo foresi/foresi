@@ -1,4 +1,10 @@
 {# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The invoicing settings of the firm: its number series as a list with views, search, filters, columns
+    and widths (docs/design/list-pages.md, rule 8), a new series and a change of one in a dialog over the
+    page, and below them the form of the firm's invoicing defaults, texts and contact.
+    Variables: series, the table ListTable gives; hasSeries; firstNumber; the form's values and errors.
+#}
 {% extends '@Ui/layout/app.html.twig' %}
 
 {% set crumbs = [{label: 'firm.title'|trans, href: cancel}, {label: 'firm.invoicing.title'|trans}] %}
@@ -19,10 +25,24 @@
                 <h2 class="m-0 text-body font-semibold text-ink">{{ 'series.title'|trans }}</h2>
                 <twig:Ui:Button size="sm" icon="plus" :href="path('app_series_new')" data-dialog aria-haspopup="dialog">{{ 'series.new'|trans }}</twig:Ui:Button>
             </div>
-            {% if rows is empty %}
+            {% if not hasSeries %}
                 <twig:Ui:Card><p class="m-0 text-small text-muted">{{ 'series.first'|trans({number: firstNumber}) }}</p></twig:Ui:Card>
             {% else %}
-                <twig:Ui:DataTable :caption="'series.title'|trans" :columns="columns" :rows="rows" />
+                {% set t = series %}
+                <div class="grid grid-cols-1 gap-2" data-series>
+                    {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'series.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_firm_invoicing')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+                    <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_firm_invoicing')" :keep="t.keep"
+                        :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+                    </twig:Ui:FilterBar>
+                    <twig:Ui:DataTable :caption="'series.title'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam">
+                        <twig:block name="empty">
+                            <twig:Ui:EmptyState icon="search" :title="'series.empty.filtered_title'|trans">
+                                <twig:Ui:Button :href="t.resetHref">{{ 'series.empty.reset'|trans }}</twig:Ui:Button>
+                            </twig:Ui:EmptyState>
+                        </twig:block>
+                    </twig:Ui:DataTable>
+                    {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
+                </div>
             {% endif %}
         </section>
 

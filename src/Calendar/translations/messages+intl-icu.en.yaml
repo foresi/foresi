@@ -12,6 +12,10 @@ calendar:
     rename_submit: Save
     cancel: Cancel
     never: Never
+    views: Views of the feeds
+    search: Search by name
+    tab:
+      all: All
     column:
       name: Name
       created: Created
@@ -36,6 +40,8 @@ calendar:
     empty:
       title: No feed addresses yet
       text: Create one and subscribe to it in your calendar app.
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
     created:
       title: Your feed address
       once: This address is shown only now. Copy it or subscribe now; anyone who has it sees your calendar.

@@ -401,12 +401,18 @@ work:
     edit_title: 'Upravit štítek {name}'
     delete: Smazat
     saved: 'Štítek {name} je uložený.'
+    views: Pohledy na štítky
+    search: Hledat podle názvu
+    tab:
+      all: Vše
+      trash: Koš
     column:
       name: Název
       preview: Vzhled
       tasks: Úkoly
     field:
       name: Název
+      trashed: V koši
       colour: Barva
     colour:
       gray: Šedá
@@ -416,6 +422,8 @@ work:
     empty:
       title: Zatím žádné štítky
       text: Štítky třídí úkoly napříč projekty.
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
     trash:
       title: Koš štítků
       deleted: 'Štítek {name} je v koši.'

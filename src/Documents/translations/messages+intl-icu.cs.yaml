@@ -200,6 +200,13 @@ documents:
         example: 'Příklad: {example}'
         preview: Náhled
         preview_help: Šablona vyplněná příklady proměnných.
+        views: 'Pohledy: {list}'
+        search: Hledat podle názvu
+        tab:
+            all: Vše
+        empty:
+            filtered_title: Filtru nic neodpovídá
+            reset: Zrušit filtr
         column:
             name: Název
             code: Kód

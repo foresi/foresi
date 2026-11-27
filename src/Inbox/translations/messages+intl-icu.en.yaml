@@ -250,6 +250,10 @@ inbox:
     replace_text: 'The address "{label}" stops working at once and you get a new one, shown once. Update your forwarding afterwards.'
     replace_submit: Replace the address
     dropped: '{count, plural, =0 {none} one {# mail} other {# mails}}'
+    views: Views of the inbox addresses
+    search: Search by label
+    tab:
+      all: All
     column:
       label: Label
       address: Address
@@ -272,6 +276,8 @@ inbox:
     empty:
       title: No inbox address yet
       text: Make one, then forward mail to it.
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
     refused:
       label_required: Say what the address is for.
       label_too_long: The label is too long.

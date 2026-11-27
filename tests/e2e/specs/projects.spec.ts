@@ -400,8 +400,9 @@ test.describe('projects', () => {
 
     await row.getByRole('button', { name: /Další akce/ }).click();
     await row.getByRole('menuitem', { name: 'Smazat' }).click();
-    await page.getByRole('link', { name: /^Koš \(\d+\)$/ }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Koš štítků');
+    // The trash is the list's Trash view, its tab counting the labels in it.
+    await page.locator('[data-list-toolbar]').getByRole('link', { name: /^Koš\s*\d+$/ }).click();
+    await expect(page).toHaveURL(/[?&]view=trash/);
     await expect(page.locator('[data-trash-purge]')).toHaveText('Štítky v koši se po 30 dnech smažou natrvalo.');
     const trashed = page.locator('tbody tr').filter({ hasText: name });
     await trashed.getByRole('button', { name: /Další akce/ }).click();
