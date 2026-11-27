@@ -32,19 +32,24 @@ interface WorkingDisplay
     public const string PINNED = 'pins';
     /** The widths of the columns as key:px pairs, kept in the payload's columns; empty names the view's own. */
     public const string WIDTHS = 'widths';
+    /** On a list that offers a calendar: list or calendar, kept in the payload as layout (plan 37.5). */
+    public const string LAYOUT = 'layout';
+    /** On a list that offers a calendar: 0 hides Saturday and Sunday, 1 shows them, kept in the payload as weekends. */
+    public const string WEEKENDS = 'weekends';
     /** The query keys of the working state, which a link to another view leaves out. */
-    public const array KEYS = [self::COLUMNS, self::GROUP, self::PINNED, self::WIDTHS];
+    public const array KEYS = [self::COLUMNS, self::GROUP, self::PINNED, self::WIDTHS, self::LAYOUT, self::WEEKENDS];
     /** No column is dragged wider than this many px. */
     public const int MAX_WIDTH = 1200;
     /** At most this many quick filters stand under the tabs (ListDefinition::MAX_PINNED). */
     public const int MAX_PINNED = 4;
 
     /**
-     * @param array<string, mixed>                                    $context the list's context, as the registry of the list's columns takes it
-     * @param array<array-key, mixed>|null                            $saved   the view's stored display payload; null for the registry's defaults
-     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
-     * @param list<string>                                            $groups  what the list can group by, its default first; none for a list that does not group
-     * @param array{fields: list<string>, default: list<string>}|null $pins    the fields a quick filter can be pinned for and those pinned by default; null for a list without quick filters
+     * @param array<string, mixed>                                    $context  the list's context, as the registry of the list's columns takes it
+     * @param array<array-key, mixed>|null                            $saved    the view's stored display payload; null for the registry's defaults
+     * @param array<array-key, mixed>                                 $query    the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
+     * @param list<string>                                            $groups   what the list can group by, its default first; none for a list that does not group
+     * @param array{fields: list<string>, default: list<string>}|null $pins     the fields a quick filter can be pinned for and those pinned by default; null for a list without quick filters
+     * @param bool                                                    $calendar whether the list can be laid out as a calendar (layout, weekends)
      */
-    public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState;
+    public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null, bool $calendar = false): WorkingState;
 }

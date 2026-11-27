@@ -57,7 +57,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $view = $this->views->get($input->getString('ref'));
-            [$columns, $groupBy, $pinned] = $this->display($input);
+            [$columns, $groupBy, $pinned, $layout, $weekends] = $this->display($input);
             // The display goes with it only when it was changed, so a view keeps its own otherwise.
             $changed = $input->getBoolean('displayChanged');
             $this->views->update(new UpdateViewInput(
@@ -67,6 +67,8 @@ final class SavedViewController extends AbstractController
                 columns: $changed ? $columns : new Omitted(),
                 groupBy: $changed ? $groupBy : new Omitted(),
                 pinned: $changed ? $pinned : new Omitted(),
+                layout: $changed ? $layout : new Omitted(),
+                weekends: $changed ? $weekends : new Omitted(),
             ));
             $this->forget($view);
 
@@ -81,7 +83,7 @@ final class SavedViewController extends AbstractController
 
         return $this->attempt($request, function () use ($input): string {
             $list = $input->getString('list');
-            [$columns, $groupBy, $pinned] = $this->display($input);
+            [$columns, $groupBy, $pinned, $layout, $weekends] = $this->display($input);
             $view = $this->views->create(new CreateViewInput(
                 $list,
                 $input->getString('name'),
@@ -93,6 +95,8 @@ final class SavedViewController extends AbstractController
                 $this->placement($list, Placement::Primary->value),
                 $groupBy,
                 $pinned,
+                $layout,
+                $weekends,
             ));
             // The changes now live in the new view; the one they were made on is as saved.
             $from = '' === $input->getString('ref') ? null : $this->views->get($input->getString('ref'));
@@ -162,6 +166,8 @@ final class SavedViewController extends AbstractController
                 $this->placement($from->listKey(), Placement::Primary->value),
                 \is_string($groupBy) ? $groupBy : null,
                 \is_array($pinned) ? array_values($pinned) : null,
+                \is_string($display['layout'] ?? null) ? $display['layout'] : null,
+                \is_bool($display['weekends'] ?? null) ? $display['weekends'] : null,
             ));
 
             return $this->withView($this->return($input->getString('return')), $view->id());
@@ -294,19 +300,21 @@ final class SavedViewController extends AbstractController
      *
      * @param InputBag<string> $input
      *
-     * @return array{list<mixed>|null, string|null, list<mixed>|null}
+     * @return array{list<mixed>|null, string|null, list<mixed>|null, string|null, bool|null}
      */
     private function display(InputBag $input): array
     {
         $display = json_decode($input->getString('display'), true);
         if (!\is_array($display)) {
-            return [null, null, null];
+            return [null, null, null, null, null];
         }
+        $layout = $display['layout'] ?? null;
+        $weekends = $display['weekends'] ?? null;
         $columns = $display['columns'] ?? null;
         $groupBy = $display['group_by'] ?? null;
         $pinned = $display['pinned'] ?? null;
 
-        return [\is_array($columns) ? array_values($columns) : null, \is_string($groupBy) ? $groupBy : null, \is_array($pinned) ? array_values($pinned) : null];
+        return [\is_array($columns) ? array_values($columns) : null, \is_string($groupBy) ? $groupBy : null, \is_array($pinned) ? array_values($pinned) : null, \is_string($layout) ? $layout : null, \is_bool($weekends) ? $weekends : null];
     }
 
     /**

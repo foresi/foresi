@@ -666,6 +666,30 @@ work:
     title: Úkoly
     views: Pohledy na úkoly
     total: '{count, plural, one {# úkol} few {# úkoly} other {# úkolů}}'
+    layout:
+      list: Seznam
+      calendar: Kalendář
+    calendar:
+      label: Kalendář termínů
+      periods: Období
+      month: Měsíc
+      week: Týden
+      today: Dnes
+      previous_month: Předchozí měsíc
+      next_month: Další měsíc
+      previous_week: Předchozí týden
+      next_week: Další týden
+      add: 'Nový úkol na {date}'
+      undated: Bez termínu
+      undated_hint: Přetáhněte úkol na den a naplánujete ho.
+      undated_empty: Všechny úkoly v tomto pohledu mají termín.
+      undated_more: '{count, plural, one {a # další úkol} few {a # další úkoly} other {a # dalších úkolů}}'
+      weekend_hidden: '{count, plural, one {# úkol připadá na víkend.} few {# úkoly připadají na víkend.} other {# úkolů připadá na víkend.}}'
+      show_weekends: Zobrazit víkendy
+      too_many: 'Kalendář ukazuje prvních {count} úkolů. Zužte filtr.'
+      drag: Přetáhněte na jiný den
+      done: hotovo
+      overdue: po termínu
     tab:
       all: Vše otevřené
       mine: Moje

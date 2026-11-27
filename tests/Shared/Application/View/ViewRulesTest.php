@@ -59,6 +59,15 @@ final class ViewRulesTest extends TestCase
         self::assertNull(ViewRules::display(null));
     }
 
+    public function testACalendarIsKeptWithWhetherItHidesTheWeekend(): void
+    {
+        self::assertSame(['layout' => 'calendar', 'weekends' => false], ViewRules::display(null, layout: 'calendar', weekends: false));
+        // A table and a shown weekend are the defaults, left out.
+        self::assertNull(ViewRules::display(null, layout: 'list', weekends: true));
+        self::assertSame(['columns' => [['key' => 'title']], 'layout' => 'calendar'], ViewRules::display(['title'], layout: 'calendar'));
+        $this->assertInvalid('layout', static fn (): ?array => ViewRules::display(null, layout: 'board'));
+    }
+
     public function testColumnsAreKeysOrKeysWithAWidth(): void
     {
         self::assertSame(['columns' => []], ViewRules::display([]));

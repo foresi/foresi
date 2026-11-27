@@ -355,6 +355,39 @@ final class RegistryWorkingDisplayTest extends TestCase
         self::assertSame(['columns' => [['key' => 'name'], ['key' => 'email', 'width' => 250]], 'group_by' => 'email', 'pinned' => ['city']], $state->payload);
     }
 
+    public function testALayoutOrWeekendsAskedOfAListWithoutACalendarAreIgnored(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['layout' => 'calendar', 'weekends' => '0']);
+
+        self::assertFalse($state->modified);
+        self::assertSame([], $state->query);
+        self::assertTrue($state->display->weekends);
+    }
+
+    public function testACalendarAskedIsAChangeKeptInThePayloadAndTheAddress(): void
+    {
+        $state = $this->working()->read(self::LIST, [], null, ['layout' => 'calendar', 'weekends' => '0'], calendar: true);
+
+        self::assertTrue($state->modified);
+        self::assertSame(['layout' => 'calendar', 'weekends' => '0'], $state->query);
+        self::assertSame(['columns' => [['key' => 'name'], ['key' => 'kind'], ['key' => 'email']], 'layout' => 'calendar', 'weekends' => false], $state->payload);
+        self::assertSame('calendar', $state->display->layout);
+        self::assertFalse($state->display->weekends);
+    }
+
+    public function testAViewThatHidesTheWeekendsShowsThemAgainOnlyWhenAsked(): void
+    {
+        $saved = ['layout' => 'calendar', 'weekends' => false];
+        $state = $this->working()->read(self::LIST, [], $saved, [], calendar: true);
+        self::assertFalse($state->modified, 'the view\'s own');
+        self::assertFalse($state->display->weekends);
+
+        $state = $this->working()->read(self::LIST, [], $saved, ['weekends' => '1'], calendar: true);
+        self::assertTrue($state->modified);
+        self::assertSame(['weekends' => '1'], $state->query);
+        self::assertTrue($state->display->weekends);
+    }
+
     public function working(): RegistryWorkingDisplay
     {
         $provider = new class implements DataSource {

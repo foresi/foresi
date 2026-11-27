@@ -9,7 +9,8 @@ declare(strict_types=1);
 namespace Foresi\Ui\Contract;
 
 /**
- * How one list shows: its columns in order with their widths and the field it groups by. How
+ * How one list shows: its columns in order with their widths, the field it groups by, and on a
+ * list that offers a calendar its layout and whether the calendar shows the weekend. How
  * tall its rows are is the person's density (Profile, Appearance), the same on every list.
  */
 final readonly class ListDisplay
@@ -18,7 +19,7 @@ final readonly class ListDisplay
      * @param list<ResolvedColumn> $columns
      * @param array<string, mixed> $context the list's context, which the cells are rendered in
      */
-    public function __construct(public array $columns, public array $context = [], public ?string $groupBy = null)
+    public function __construct(public array $columns, public array $context, public ?string $groupBy, public ?string $layout, public bool $weekends)
     {
     }
 

@@ -13,6 +13,8 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Application\View\Condition;
+use Foresi\Shared\Application\View\CreateViewInput;
+use Foresi\Shared\Application\View\SavedViews;
 use Foresi\Shared\Application\View\ViewFilter;
 use Foresi\Shared\Application\View\WorkingFilter;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
@@ -235,6 +237,81 @@ final class TaskListControllerTest extends WebTestCase
     /**
      * The star of a task's row.
      */
+    public function testTheCalendarShowsTheTasksOfTheViewOnTheirDays(): void
+    {
+        $this->seed();
+
+        $crawler = $this->client->request('GET', '/tasks?view=all&layout=calendar');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-calendar-title-period]', 'November 2026');
+        // Whole weeks from Monday 26 October to Sunday 6 December.
+        $days = $crawler->filter('[data-calendar-day]')->each(static fn (Crawler $day): string => (string) $day->attr('data-calendar-day'));
+        self::assertSame(['2026-10-26', '2026-12-06'], [$days[0], $days[\count($days) - 1]]);
+        self::assertCount(42, $days);
+        // The most urgent first; a finished task and one of an archived project are left out, as the view leaves them.
+        self::assertSame(['Call the client', 'Order the hosting'], $this->dayTitles($crawler, '2026-11-20'));
+        self::assertSame(['Fix the form'], $this->dayTitles($crawler, '2026-11-18'));
+        self::assertSame([], $this->dayTitles($crawler, '2026-11-10'));
+        self::assertSame([], $this->dayTitles($crawler, '2026-11-19'));
+        self::assertCount(1, $crawler->filter('[data-calendar-day="2026-11-18"] [data-calendar-overdue]'));
+        self::assertCount(0, $crawler->filter('[data-calendar-day="2026-11-20"] [data-calendar-overdue]'));
+        self::assertSame('date', $crawler->filter('[data-calendar-day="2026-11-20"]')->attr('aria-current'));
+        // Beside it, the tasks of the view with no due date, to be dragged onto a day.
+        self::assertSame(['Sort the inbox'], $crawler->filter('[data-calendar-undated] [data-calendar-title]')->each(static fn (Crawler $title): string => trim($title->text())));
+        // A drop posts the task's own due date edit, which comes back to the calendar.
+        self::assertStringContainsString('/tasks/__id__/due', (string) $crawler->filter('[data-controller="task-calendar"]')->attr('data-task-calendar-url-value'));
+        // The + of a day opens New task with its date.
+        $add = (string) $crawler->filter('[data-calendar-day="2026-11-25"] a[data-calendar-add]')->attr('href');
+        self::assertStringContainsString('due=2026-11-25', $add);
+        $dialog = $this->client->request('GET', $add);
+        self::assertSame('2026-11-25', $dialog->filter('input[name="due"]')->attr('value'));
+        // The Settings sheet says how the list is laid out.
+        self::assertSame('calendar', $crawler->filter('select[name="layout"] option[selected]')->attr('value'));
+
+        $crawler = $this->client->request('GET', (string) $crawler->filter('a[data-calendar-next]')->attr('href'));
+        self::assertSelectorTextContains('[data-calendar-title-period]', 'December 2026');
+        self::assertSame(['Plan the launch'], $this->dayTitles($crawler, '2026-12-15'));
+    }
+
+    public function testTheCalendarShowsAWeekAndHidesTheWeekendAsTheViewKeepsIt(): void
+    {
+        $this->seed();
+        $task = $this->em->getRepository(Task::class)->findOneBy(['title' => 'Plan the launch']) ?? throw new \LogicException('Task.');
+        $task->dueOn(new \DateTimeImmutable('2026-11-21'));
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/tasks?view=all&layout=calendar&period=week&on=2026-11-18');
+        self::assertSame(['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'], $crawler->filter('[data-calendar-day]')->each(static fn (Crawler $day): string => (string) $day->attr('data-calendar-day')));
+        self::assertSame(['Plan the launch'], $this->dayTitles($crawler, '2026-11-21'));
+
+        $crawler = $this->client->request('GET', '/tasks?view=all&layout=calendar&period=week&on=2026-11-18&weekends=0');
+        self::assertCount(5, $crawler->filter('[data-calendar-day]'));
+        // What falls on the hidden weekend is counted, with a way to show it.
+        self::assertSelectorTextContains('[data-calendar-weekend]', '1 task falls on a weekend.');
+        self::assertStringContainsString('weekends=1', (string) $crawler->filter('[data-calendar-weekend] a')->attr('href'));
+        // The view switches keep where the calendar is opened.
+        self::assertStringContainsString('on=2026-11-18', (string) $crawler->filter('nav[aria-label="Views of the tasks"] a')->first()->attr('href'));
+
+        // Saved with the view, the calendar and the hidden weekend are what the view opens with.
+        $view = self::getContainer()->get(SavedViews::class)->create(new CreateViewInput(TaskLists::KEY, 'Calendar', conditions: [], layout: 'calendar', weekends: false));
+        $crawler = $this->client->request('GET', '/tasks?view='.$view->id());
+        self::assertCount(1, $crawler->filter('[data-task-calendar]'));
+        self::assertSame(['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'], \array_slice($crawler->filter('[data-calendar-day]')->each(static fn (Crawler $day): string => (string) $day->attr('data-calendar-day')), 0, 5));
+        // The table again for this person, from the Settings sheet.
+        $crawler = $this->client->request('GET', '/tasks?view='.$view->id().'&layout=list');
+        self::assertCount(0, $crawler->filter('[data-task-calendar]'));
+        self::assertCount(1, $crawler->filter('[data-task-group]'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function dayTitles(Crawler $crawler, string $day): array
+    {
+        return $crawler->filter('[data-calendar-day="'.$day.'"] [data-calendar-title]')->each(static fn (Crawler $title): string => trim($title->text()));
+    }
+
     private function starOf(Crawler $crawler, string $title): Crawler
     {
         $rows = $crawler->filter('[data-task-group] tbody tr')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), $title));

@@ -20,6 +20,10 @@ final class ViewRules
     public const int MAX_COLUMNS = 40;
     /** As a list pins them (ListDefinition::MAX_PINNED). */
     public const int MAX_PINNED = ListDefinition::MAX_PINNED;
+    /** How a list lays its rows out: a table, or a calendar of a date (plan 37.5). */
+    public const string LAYOUT_LIST = 'list';
+    public const string LAYOUT_CALENDAR = 'calendar';
+    public const array LAYOUTS = [self::LAYOUT_LIST, self::LAYOUT_CALENDAR];
     private const string KEY = '/^[a-z][A-Za-z0-9_.]{0,63}$/';
 
     /**
@@ -54,10 +58,12 @@ final class ViewRules
     }
 
     /**
-     * The display payload {columns: [{key, width?}], group_by?, pinned?}, or null for
-     * the list's defaults. What a list groups by is checked for its shape only; a list
+     * The display payload {columns: [{key, width?}], group_by?, pinned?, layout?, weekends?}, or
+     * null for the list's defaults. What a list groups by is checked for its shape only; a list
      * that does not group by it shows its own grouping (D-display-2). The pinned fields are
-     * the view's quick filters, in their order: none pins none, null keeps the list's own.
+     * the view's quick filters, in their order: none pins none, null keeps the list's own. The
+     * layout is a table (list, the default, left out) or a calendar on a list that offers one;
+     * weekends says whether the calendar shows Saturday and Sunday, kept only when it hides them.
      *
      * @param list<mixed>|null $columns
      * @param list<mixed>|null $pinned
@@ -66,8 +72,11 @@ final class ViewRules
      *
      * @throws InvalidFilter
      */
-    public static function display(?array $columns, ?string $groupBy = null, ?array $pinned = null): ?array
+    public static function display(?array $columns, ?string $groupBy = null, ?array $pinned = null, ?string $layout = null, ?bool $weekends = null): ?array
     {
+        if (null !== $layout && !\in_array($layout, self::LAYOUTS, true)) {
+            throw new InvalidFilter('layout', \sprintf('The layout is one of %s.', implode(', ', self::LAYOUTS)));
+        }
         if (null !== $pinned) {
             if (\count($pinned) > self::MAX_PINNED) {
                 throw new InvalidFilter('pinned', \sprintf('A view pins at most %d quick filters.', self::MAX_PINNED));
@@ -82,7 +91,8 @@ final class ViewRules
         if (null !== $groupBy && 1 !== preg_match(self::KEY, $groupBy)) {
             throw new InvalidFilter('group_by', 'A grouping is named by its key, such as "person".');
         }
-        $rest = (null === $groupBy ? [] : ['group_by' => $groupBy]) + (null === $pinned ? [] : ['pinned' => $pinned]);
+        $rest = (null === $groupBy ? [] : ['group_by' => $groupBy]) + (null === $pinned ? [] : ['pinned' => $pinned])
+            + (null === $layout || self::LAYOUT_LIST === $layout ? [] : ['layout' => $layout]) + (false === $weekends ? ['weekends' => false] : []);
         if (null === $columns) {
             return [] === $rest ? null : $rest;
         }

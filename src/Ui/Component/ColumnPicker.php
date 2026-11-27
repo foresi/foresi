@@ -71,6 +71,12 @@ final class ColumnPicker
     public array $groups = [];
     /** What the list groups by now, one of the groups' values. */
     public ?string $group = null;
+    /** @var list<array{value: string, label: string}> how the list can lay its rows out, as layout=; none for a list with a table only */
+    public array $layouts = [];
+    /** How the list is laid out now, one of the layouts' values. */
+    public ?string $layout = null;
+    /** Whether the calendar shows Saturday and Sunday, as weekends=; null for a list without a calendar. */
+    public ?bool $weekends = null;
     /** Where the list keeps its state on a page of several tables (ListSlot); null for the page's one. */
     public ?ListSlot $slot = null;
 
@@ -159,7 +165,7 @@ final class ColumnPicker
     {
         $hidden = [];
         foreach ($this->keep as $name => $value) {
-            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'pins', 'group', 'page'], true)) {
+            if (null !== $value && '' !== $value && !\in_array($name, ['cols', 'pins', 'group', 'page', 'layout', 'weekends'], true)) {
                 $hidden[$this->name($name)] = \is_bool($value) ? ($value ? '1' : '0') : (string) $value;
             }
         }

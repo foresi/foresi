@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Ui\Column;
 
+use Foresi\Shared\Application\View\ViewRules;
 use Foresi\Ui\Contract\Column;
 use Foresi\Ui\Contract\ListDisplay;
 use Foresi\Ui\Contract\ResolvedColumn;
@@ -26,13 +27,14 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
     }
 
     /**
-     * @param array<string, mixed>                                    $context the list's context, as ListColumnRegistry::display() takes it
-     * @param array<array-key, mixed>|null                            $saved   the view's stored display payload; null for the registry's defaults
-     * @param array<array-key, mixed>                                 $query   the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
-     * @param list<string>                                            $groups  what the list can group by, its default first; none for a list that does not group
-     * @param array{fields: list<string>, default: list<string>}|null $pins    the fields a quick filter can be pinned for and those pinned by default
+     * @param array<string, mixed>                                    $context  the list's context, as ListColumnRegistry::display() takes it
+     * @param array<array-key, mixed>|null                            $saved    the view's stored display payload; null for the registry's defaults
+     * @param array<array-key, mixed>                                 $query    the list's query: cols as a comma separated string (or a list, as a form without JavaScript sends it), group, pins and widths
+     * @param list<string>                                            $groups   what the list can group by, its default first; none for a list that does not group
+     * @param array{fields: list<string>, default: list<string>}|null $pins     the fields a quick filter can be pinned for and those pinned by default
+     * @param bool                                                    $calendar whether the list can be laid out as a calendar
      */
-    public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null): WorkingState
+    public function read(string $list, array $context, ?array $saved, array $query, array $groups = [], ?array $pins = null, bool $calendar = false): WorkingState
     {
         // The view's quick filters, or the list's own while it keeps none (a shipped view).
         $basePins = null === $pins ? [] : (self::pins($saved['pinned'] ?? null, $pins['fields']) ?? self::pins($pins['default'], $pins['fields']) ?? []);
@@ -43,6 +45,10 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $wantedGroup = $query[self::GROUP] ?? null;
         $wantedGroup = \is_string($wantedGroup) && \in_array($wantedGroup, $groups, true) ? $wantedGroup : null;
         $wantedWidths = self::widths($query[self::WIDTHS] ?? null);
+        $baseLayout = $this->layout($calendar, $base->layout);
+        $wantedLayout = $calendar && \is_string($query[self::LAYOUT] ?? null) && \in_array($query[self::LAYOUT], ViewRules::LAYOUTS, true) ? $query[self::LAYOUT] : null;
+        $baseWeekends = !$calendar || $base->weekends;
+        $wantedWeekends = $calendar && \in_array($query[self::WEEKENDS] ?? null, ['0', '1'], true) ? '1' === $query[self::WEEKENDS] : null;
 
         if (null !== $keys) {
             // The column that names the row leads and never moves (the Settings sheet shows it so);
@@ -51,14 +57,16 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
             $keys = [...$locked, ...array_diff($keys, $locked)];
         }
         $payload = $saved;
-        if (null !== $keys || null !== $wantedGroup || null !== $wantedPins || null !== $wantedWidths) {
+        if (null !== $keys || null !== $wantedGroup || null !== $wantedPins || null !== $wantedWidths || null !== $wantedLayout || null !== $wantedWeekends) {
             // The widths asked replace the view's all at once: a column they leave out sizes to its content.
             $widths = $wantedWidths ?? $this->widthsOf($base);
             $columns = null === $keys
                 ? array_map(static fn (ResolvedColumn $column): array => array_filter(['key' => $column->key(), 'width' => $widths[$column->key()] ?? null], static fn (mixed $value): bool => null !== $value), $base->columns)
                 : array_map(static fn (string $key): array => array_filter(['key' => $key, 'width' => $widths[$key] ?? null], static fn (mixed $value): bool => null !== $value), $keys);
             $group = $wantedGroup ?? $base->groupBy;
-            $payload = ['columns' => $columns] + (null === $group ? [] : ['group_by' => $group]) + (null === $pins ? [] : ['pinned' => $wantedPins ?? $basePins]);
+            $payload = ['columns' => $columns] + (null === $group ? [] : ['group_by' => $group]) + (null === $pins ? [] : ['pinned' => $wantedPins ?? $basePins])
+                + (ViewRules::LAYOUT_CALENDAR === ($wantedLayout ?? $baseLayout) ? ['layout' => ViewRules::LAYOUT_CALENDAR] : [])
+                + (false === ($wantedWeekends ?? $baseWeekends) ? ['weekends' => false] : []);
         }
 
         $display = $this->registry->display($list, $context, $payload);
@@ -68,7 +76,9 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         $shownPins = $wantedPins ?? $basePins;
         $shownWidths = $this->widthsOf($display);
         $widthsChanged = $shownWidths !== array_intersect_key($this->widthsOf($base), array_flip($display->keys()));
-        $modified = $display->keys() !== $base->keys() || $shownGroup !== $baseGroup || $shownPins !== $basePins || $widthsChanged;
+        $shownLayout = $this->layout($calendar, $display->layout);
+        $shownWeekends = !$calendar || $display->weekends;
+        $modified = $display->keys() !== $base->keys() || $shownGroup !== $baseGroup || $shownPins !== $basePins || $widthsChanged || $shownLayout !== $baseLayout || $shownWeekends !== $baseWeekends;
         if (!$modified) {
             return new WorkingState($base, $saved, $all, false, [], $basePins);
         }
@@ -79,6 +89,8 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
             // Empty pins none.
             self::PINNED => $shownPins === $basePins ? null : implode(',', $shownPins),
             self::WIDTHS => $widthsChanged ? self::encodeWidths($shownWidths) : null,
+            self::LAYOUT => $shownLayout === $baseLayout ? null : $shownLayout,
+            self::WEEKENDS => $shownWeekends === $baseWeekends ? null : ($shownWeekends ? '1' : '0'),
         ], static fn (?string $value): bool => null !== $value);
 
         return new WorkingState($display, $payload, $all, true, $kept, $shownPins);
@@ -160,6 +172,14 @@ final readonly class RegistryWorkingDisplay implements WorkingDisplay
         }
 
         return $widths;
+    }
+
+    /**
+     * How a display lays the rows out: a calendar only on a list that offers one.
+     */
+    private function layout(bool $calendar, ?string $layout): string
+    {
+        return $calendar && ViewRules::LAYOUT_CALENDAR === $layout ? ViewRules::LAYOUT_CALENDAR : ViewRules::LAYOUT_LIST;
     }
 
     /**
