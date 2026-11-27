@@ -19,19 +19,18 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\PeopleRefused;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Contract\PersonContactPicker;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Identity\Domain\Invitation;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Party\Domain\Party;
 use Foresi\Shared\Domain\Currency;
 use Foresi\Shared\Infrastructure\Http\TypedAmount;
 use Foresi\Ui\Contract\Opens;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -44,14 +43,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The people of the organisation. The staff see who belongs to it; the owner
  * invites people, changes their role, contact and hourly rate, lets them in or
  * not and resets their two-factor sign-in, and keeps the pending invitations.
- * Only the owner sees a rate.
+ * Only the owner sees a rate. The contact field and column come with the address
+ * book's picker; without it they are not shown and a stored contact stays (ADR 0048).
  */
 final class PeopleController extends AbstractController
 {
     public const string ROUTE = 'app_people';
     public const string INVITATIONS_ROUTE = 'app_people_invitations';
     public const string TOKEN = 'people';
-    private const int MAX_QUERY = 100;
     private const int MAX_NAME = 255;
     private const string LINK_KEY = 'identity.invitation_link.';
 
@@ -60,13 +59,14 @@ final class PeopleController extends AbstractController
         private readonly Invitations $invitations,
         private readonly InvitePeople $inviting,
         private readonly ManagePeople $managing,
-        private readonly PartyQuery $parties,
         private readonly UserRepository $users,
         private readonly OwnerCheck $owner,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
+        private readonly ?PersonContactPicker $contactPicker = null,
+        private readonly ?ContactPages $contactPages = null,
     ) {
     }
 
@@ -106,7 +106,10 @@ final class PeopleController extends AbstractController
     public function invite(Request $request): Response
     {
         $this->denyUnlessOwner();
-        $values = ['email' => '', 'name' => '', 'role' => Role::Member->value, 'contactId' => '', 'contactQuery' => '', 'locale' => $this->inviterLocale()];
+        $values = ['email' => '', 'name' => '', 'role' => Role::Member->value, 'locale' => $this->inviterLocale()];
+        if ($this->contactPicker instanceof PersonContactPicker) {
+            $values += ['contactId' => '', 'contactQuery' => ''];
+        }
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
@@ -120,7 +123,8 @@ final class PeopleController extends AbstractController
                 $errors['role'] = $this->translator->trans('people.refused.role');
             } else {
                 try {
-                    $issued = $this->inviting->invite($values['email'], $values['name'], $role, '' === $values['contactId'] ? null : $values['contactId'], $locale);
+                    $contactId = $values['contactId'] ?? '';
+                    $issued = $this->inviting->invite($values['email'], $values['name'], $role, '' === $contactId ? null : $contactId, $locale);
 
                     return $this->issued($issued, $request);
                 } catch (InvitationRefused $refused) {
@@ -134,20 +138,8 @@ final class PeopleController extends AbstractController
             'errors' => $errors,
             'roles' => [Role::Member->value => $this->translator->trans('role.member'), Role::Guest->value => $this->translator->trans('role.guest')],
             'locales' => $this->locales(),
+            'contactSearch' => $this->contactPicker?->searchUrl(),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
-    }
-
-    #[Route('/settings/people/contacts', name: 'app_people_contacts', methods: ['GET'])]
-    public function contacts(Request $request): JsonResponse
-    {
-        $this->denyUnlessOwner();
-        $page = $this->parties->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), null, false, 'name', 1);
-
-        return $this->json(['results' => array_map(fn (PartyRow $row): array => [
-            'id' => $row->id,
-            'label' => $row->displayName,
-            'hint' => $row->email ?? $row->registrationNumber ?? $this->translator->trans('party.kind.'.$row->kind->value),
-        ], $page->rows)]);
     }
 
     #[Route('/settings/people/{id}/edit', name: 'app_people_edit', requirements: ['id' => Requirement::UUID], methods: ['GET', 'POST'])]
@@ -159,16 +151,25 @@ final class PeopleController extends AbstractController
         $rate = $membership->hourlyRate();
         $values = [
             'role' => $membership->role()->value,
-            'contactId' => $party?->id() ?? '',
-            'contactQuery' => $party instanceof Party ? $party->displayName() : '',
             'rate' => TypedAmount::field($rate, $request->getLocale()),
             'rateCurrency' => ($rate?->currency() ?? Currency::CZK)->value,
         ];
+        $picksContact = $this->contactPicker instanceof PersonContactPicker;
+        if ($picksContact) {
+            $values += [
+                'contactId' => $party?->id() ?? '',
+                'contactQuery' => $party instanceof Party ? $party->displayName() : '',
+            ];
+        }
         $errors = [];
         if ($request->isMethod('POST')) {
             $this->checkToken($request);
+            // A submission without the contact field leaves the contact as it is; only an empty field unlinks it.
+            $linksContact = $picksContact && $request->request->has('contactId');
             foreach (array_keys($values) as $field) {
-                $values[$field] = trim($request->request->getString($field));
+                if ($request->request->has($field) || !\in_array($field, ['contactId', 'contactQuery'], true)) {
+                    $values[$field] = trim($request->request->getString($field));
+                }
             }
             $role = Role::tryFrom($values['role']);
             $currency = Currency::tryFrom($values['rateCurrency']);
@@ -181,7 +182,8 @@ final class PeopleController extends AbstractController
             }
             if ([] === $errors && $role instanceof Role) {
                 try {
-                    $this->managing->change($id, $role, '' === $values['contactId'] ? null : $values['contactId'], $rate);
+                    $contactId = $values['contactId'] ?? '';
+                    $this->managing->change($id, $role, '' === $contactId ? null : $contactId, $rate, $linksContact);
                     $this->addFlash('success', $this->translator->trans('people.flash.changed', ['name' => $membership->user()->displayName()]));
 
                     return $this->redirectToRoute(self::ROUTE);
@@ -198,6 +200,7 @@ final class PeopleController extends AbstractController
             'roles' => array_combine(array_map(static fn (Role $role): string => $role->value, Role::cases()), array_map(fn (Role $role): string => $this->translator->trans('role.'.$role->value), Role::cases())),
             'currencies' => array_combine(array_map(static fn (Currency $currency): string => $currency->value, Currency::cases()), array_map(static fn (Currency $currency): string => $currency->value, Currency::cases())),
             'action' => $this->generateUrl('app_people_edit', ['id' => $id]),
+            'contactSearch' => $this->contactPicker?->searchUrl(),
         ], new Response(status: [] === $errors ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 
@@ -311,7 +314,7 @@ final class PeopleController extends AbstractController
             ['key' => 'name', 'label' => $this->translator->trans('people.column.name'), 'truncate' => true],
             ['key' => 'email', 'label' => $this->translator->trans('people.column.email'), 'truncate' => true, 'phone' => false],
             ['key' => 'role', 'label' => $this->translator->trans('people.column.role')],
-            ['key' => 'contact', 'label' => $this->translator->trans('people.column.contact'), 'truncate' => true, 'phone' => false],
+            ...$this->contactColumn(),
             ['key' => 'twoFactor', 'label' => $this->translator->trans('people.column.two_factor'), 'phone' => false],
             ['key' => 'status', 'label' => $this->translator->trans('people.column.status'), 'phone' => false],
         ];
@@ -356,7 +359,7 @@ final class PeopleController extends AbstractController
                 'name' => ['avatar' => $person->userId, 'user' => $person->userId, 'text' => $person->name],
                 'email' => $person->email,
                 'role' => ['text' => $this->translator->trans('role.'.$person->role->value), 'tone' => Role::Owner === $person->role ? 'green' : 'gray'],
-                'contact' => null === $person->contactId ? null : ['links' => [['text' => $person->contactName ?? '', 'href' => $this->generateUrl('app_contact_show', ['id' => $person->contactId])]]],
+                'contact' => $this->contactCell($person->contactId, $person->contactName ?? ''),
                 'twoFactor' => $person->twoFactor ? ['text' => $this->translator->trans('people.two_factor.on'), 'tone' => 'green'] : ['text' => $this->translator->trans('people.two_factor.off'), 'tone' => 'gray'],
                 'status' => $person->active ? ['text' => $this->translator->trans('people.status.active'), 'tone' => 'green'] : ['text' => $this->translator->trans('people.status.deactivated'), 'tone' => 'amber'],
             ],
@@ -373,7 +376,7 @@ final class PeopleController extends AbstractController
             ['key' => 'name', 'label' => $this->translator->trans('people.column.name'), 'truncate' => true],
             ['key' => 'email', 'label' => $this->translator->trans('people.column.email'), 'truncate' => true, 'phone' => false],
             ['key' => 'role', 'label' => $this->translator->trans('people.column.role')],
-            ['key' => 'contact', 'label' => $this->translator->trans('people.column.contact'), 'truncate' => true, 'phone' => false],
+            ...$this->contactColumn(),
             ['key' => 'expires', 'label' => $this->translator->trans('people.column.expires'), 'align' => 'right'],
         ];
     }
@@ -393,7 +396,7 @@ final class PeopleController extends AbstractController
                 'name' => $invitation->displayName(),
                 'email' => $invitation->email(),
                 'role' => ['text' => $this->translator->trans('role.'.$invitation->role()->value), 'tone' => 'gray'],
-                'contact' => $party instanceof Party ? ['links' => [['text' => $party->displayName(), 'href' => $this->generateUrl('app_contact_show', ['id' => $party->id()])]]] : null,
+                'contact' => $party instanceof Party ? $this->contactCell($party->id(), $party->displayName()) : null,
                 'expires' => $this->date($invitation->expiresAt()),
             ],
             'actions' => [
@@ -406,6 +409,33 @@ final class PeopleController extends AbstractController
                 ]],
             ],
         ];
+    }
+
+    /**
+     * The contact column, shown only with the address book's picker.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function contactColumn(): array
+    {
+        return $this->contactPicker instanceof PersonContactPicker
+            ? [['key' => 'contact', 'label' => $this->translator->trans('people.column.contact'), 'truncate' => true, 'phone' => false]]
+            : [];
+    }
+
+    /**
+     * The contact a person represents, linked to its page when the address book has one.
+     *
+     * @return array<string, mixed>|string|null
+     */
+    private function contactCell(?string $id, string $name): array|string|null
+    {
+        if (null === $id) {
+            return null;
+        }
+        $href = $this->contactPages?->urlFor($id);
+
+        return null === $href ? $name : ['links' => [['text' => $name, 'href' => $href]]];
     }
 
     /**

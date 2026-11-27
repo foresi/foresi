@@ -10,6 +10,7 @@ namespace Foresi\Tests\Idoklad\Application;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Idoklad\Application\Import\ContactsStage;
 use Foresi\Idoklad\Application\Import\DocumentsStage;
 use Foresi\Idoklad\Application\Import\IdokladImportRuns;
@@ -28,7 +29,6 @@ use Foresi\Invoicing\Application\SeriesCatalog;
 use Foresi\Invoicing\Contract\DocumentKind;
 use Foresi\Invoicing\Domain\Series;
 use Foresi\Invoicing\Domain\SeriesFormat;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;

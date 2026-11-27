@@ -97,6 +97,14 @@ final class InboxRefused extends \DomainException implements Refused
         return self::conflict('email_activity_unavailable', 'The activity type email is archived or missing, so what the action makes cannot be added to the inbox item; restore the type under Settings, Activities first.');
     }
 
+    /**
+     * A contact to create from a message while no address book is installed.
+     */
+    public static function addressBookMissing(): self
+    {
+        return self::conflict('address_book_missing', 'This Foresi has no address book, so no contact can be created from the inbox item.');
+    }
+
     public function reason(): string
     {
         return $this->reason;

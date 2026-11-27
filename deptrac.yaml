@@ -69,6 +69,14 @@ deptrac:
       collectors:
         - type: directory
           value: src/Party/Infrastructure/.*
+    - name: ContactsApplication
+      collectors:
+        - type: directory
+          value: src/Contacts/Application/.*
+    - name: ContactsInfrastructure
+      collectors:
+        - type: directory
+          value: src/Contacts/Infrastructure/.*
     - name: ImportDomain
       collectors:
         - type: directory
@@ -504,13 +512,43 @@ deptrac:
       - AuditApplication
       # The history of a party reads its audit entries.
       - AuditDomain
-      # Contributes the sidebar item and its count.
+      # The firm's settings screens.
       - Ui
-      # Contacts are an import target with a preset for the iDoklad export,
-      # and the import screens link to the address book.
-      - ImportDomain
-      - ImportApplication
-      - ImportInfrastructure
+    # The address book builds on Party, the record of a contact, and keeps no
+    # data of its own; Party never uses it.
+    ContactsApplication:
+      - Contract
+      - PartyDomain
+      - PartyApplication
+      - InstanceDomain
+      - SharedDomain
+      - SharedApplication
+      - InstanceApplication
+      - IdentityApplication
+      - AuditApplication
+    ContactsInfrastructure:
+      - Contract
+      - SharedInfrastructure
+      - PartyDomain
+      - PartyApplication
+      - PartyInfrastructure
+      - ContactsApplication
+      - InstanceDomain
+      - VendorSymfony
+      - VendorOpenApi
+      - VendorUid
+      - VendorDoctrine
+      - VendorDoctrineOrmMapping
+      - VendorDbalConnection
+      - SharedDomain
+      - SharedApplication
+      - InstanceApplication
+      - IdentityApplication
+      - AuditApplication
+      # The history of a contact reads its audit entries.
+      - AuditDomain
+      # Contributes the sidebar item and its count, and the contact screens.
+      - Ui
     ImportDomain:
       - Contract
       - VendorDoctrineOrmMapping

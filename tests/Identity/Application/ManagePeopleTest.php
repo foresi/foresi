@@ -16,6 +16,8 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Party\Application\PartyQuery;
+use Foresi\Party\Domain\Party;
+use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -24,7 +26,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * What the owner changes about the people, with the ports faked: the refusals,
- * the organisation that keeps an owner, and what the log says about a reset.
+ * the contact that is optional and kept unless the change sets it, the organisation that keeps an owner, and what the log says about a reset.
  */
 final class ManagePeopleTest extends TestCase
 {
@@ -47,6 +49,41 @@ final class ManagePeopleTest extends TestCase
         $this->expectRefusal('contact');
 
         $this->service()->change(Id::generate(), Role::Member, Id::generate(), null);
+    }
+
+    public function testAMemberBecomesAGuestWithoutAContact(): void
+    {
+        $membership = $this->membership(Role::Member);
+        $this->people->method('membership')->willReturn($membership);
+
+        $this->service()->change(Id::generate(), Role::Guest, null, null);
+
+        self::assertSame(Role::Guest, $membership->role());
+        self::assertNull($membership->party());
+    }
+
+    public function testAChangeThatDoesNotSetTheContactKeepsIt(): void
+    {
+        $contact = new Party(PartyKind::Person, 'Alex Example', null, null, '');
+        $membership = new Membership(new User('alex@example.com', 'hash', 'Alex Example'), Role::Guest, $contact);
+        $this->people->method('membership')->willReturn($membership);
+        // Not even looked up: the contact is not part of the change.
+        $this->parties->method('find')->willThrowException(new \LogicException('The contact was looked up.'));
+
+        $this->service()->change(Id::generate(), Role::Member, Id::generate(), null, linksContact: false);
+
+        self::assertSame(Role::Member, $membership->role());
+        self::assertSame($contact, $membership->party());
+    }
+
+    public function testAnEmptyContactUnlinksIt(): void
+    {
+        $membership = new Membership(new User('alex@example.com', 'hash', 'Alex Example'), Role::Guest, new Party(PartyKind::Person, 'Alex Example', null, null, ''));
+        $this->people->method('membership')->willReturn($membership);
+
+        $this->service()->change(Id::generate(), Role::Guest, '', null);
+
+        self::assertNull($membership->party());
     }
 
     public function testAnUnknownPersonIsRefused(): void

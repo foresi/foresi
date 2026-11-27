@@ -78,10 +78,10 @@ final class WebhookEndpointTest extends TestCase
         self::assertSame('https://hooks.example.com/x', $endpoint->url()->value);
         self::assertEquals($later, $endpoint->updatedAt());
 
-        $endpoint->change($later, new EndpointUrl('https://other.example.com/y'), '  ', EventTypes::of(['party.contact.created']));
+        $endpoint->change($later, new EndpointUrl('https://other.example.com/y'), '  ', EventTypes::of(['contacts.contact.created']));
         self::assertSame('https://other.example.com/y', $endpoint->url()->value);
         self::assertNull($endpoint->description(), 'A blank description clears it.');
-        self::assertSame(['party.contact.created'], $endpoint->eventTypes()->patterns());
+        self::assertSame(['contacts.contact.created'], $endpoint->eventTypes()->patterns());
     }
 
     public function testSigningSecretsIncludePreviousUntilItExpires(): void

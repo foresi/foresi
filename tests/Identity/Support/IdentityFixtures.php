@@ -52,7 +52,7 @@ final readonly class IdentityFixtures
      */
     public function join(User $user, Role $role = Role::Owner): void
     {
-        // A guest always represents a contact.
+        // A guest needs no contact (ADR 0048); the fixture gives one, as a guest usually represents somebody.
         $party = null;
         if (Role::Guest === $role) {
             $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');

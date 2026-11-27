@@ -10,6 +10,7 @@ namespace Foresi\Tests\Deals\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Catalog\Domain\Product;
+use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Application\View\DealLists;
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Domain\DealLine;
@@ -18,7 +19,6 @@ use Foresi\Deals\Domain\DealStatus;
 use Foresi\Deals\Domain\LostReason;
 use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Domain\Role;
-use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;

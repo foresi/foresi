@@ -10,8 +10,6 @@ namespace Foresi\Tests\Work\Infrastructure\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Role;
-use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyKind;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
 use Foresi\Work\Domain\Project;
 use Foresi\Work\Domain\ProjectStatus;
@@ -73,11 +71,10 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testTheGeneralPartSavesTheNameTheClientAndTheDescription(): void
+    public function testTheGeneralPartSavesTheNameAndTheDescription(): void
     {
         $this->signIn();
         $id = $this->createProject('Website');
-        $client = $this->contact('Example Client');
         $crawler = $this->client->request('GET', '/projects/'.$id.'/settings');
 
         $crawler = $this->client->submit($crawler->filter('#project-settings-form')->form(['name' => ' ', 'description' => 'Kept.']));
@@ -85,16 +82,11 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertSame('Enter the name of the project.', trim($crawler->filter('#name-error')->text()));
         self::assertSame('Kept.', $crawler->filter('#description')->text());
 
-        $crawler = $this->client->submit($crawler->filter('#project-settings-form')->form(['name' => 'Website', 'clientId' => '01900000-0000-7000-8000-000000000000']));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('Choose an existing contact as the client.', trim($crawler->filter('#client-error')->text()));
-
-        $this->client->submit($crawler->filter('#project-settings-form')->form(['name' => 'New website', 'clientId' => $client, 'description' => 'The new site.']));
+        $this->client->submit($crawler->filter('#project-settings-form')->form(['name' => 'New website', 'description' => 'The new site.']));
         self::assertResponseRedirects('/projects/'.$id.'/settings', 303);
-        $crawler = $this->client->followRedirect();
+        $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Saved.');
-        self::assertSame('Example Client', $crawler->filter('#client')->attr('value'));
-        self::assertSame(['name' => 'New website', 'client_id' => $client, 'description' => 'The new site.'], $this->em->getConnection()->fetchAssociative('SELECT name, client_id, description FROM project WHERE id = ?', [$id]));
+        self::assertSame(['name' => 'New website', 'description' => 'The new site.'], $this->em->getConnection()->fetchAssociative('SELECT name, description FROM project WHERE id = ?', [$id]));
     }
 
     public function testAProjectIsArchivedAndRestoredAfterAQuestion(): void
@@ -386,15 +378,6 @@ final class ProjectSettingsControllerTest extends WebTestCase
         self::assertIsString($userId);
         $this->em->persist(new Task($project, $title, $status, 0, $userId, new \DateTimeImmutable(), $section));
         $this->em->flush();
-    }
-
-    private function contact(string $name): string
-    {
-        $party = new Party(PartyKind::Person, $name, null, null, '');
-        $this->em->persist($party);
-        $this->em->flush();
-
-        return $party->id();
     }
 
     /**

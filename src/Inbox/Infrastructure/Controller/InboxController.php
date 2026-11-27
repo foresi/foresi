@@ -39,6 +39,7 @@ use Foresi\Mail\Contract\SenderCheck;
 use Foresi\Mail\Contract\UnknownMailMessage;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Party\Infrastructure\Form\CountryOptions;
@@ -116,6 +117,7 @@ final class InboxController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly InboxActions $actions,
+        private readonly ?ContactPages $contactPages = null,
     ) {
     }
 
@@ -189,7 +191,7 @@ final class InboxController extends AbstractController
             'received' => $this->time($item->receivedAt()),
             'stateChanged' => $this->time($item->stateChangedAt()),
             'matchBasis' => $item->matchBasis()?->value,
-            'contact' => $contact instanceof PartySummary ? ['name' => $contact->displayName, 'href' => $this->generateUrl('app_contact_show', ['id' => $contact->id]), 'archived' => $contact->archived] : null,
+            'contact' => $contact instanceof PartySummary ? ['name' => $contact->displayName, 'href' => $this->contactPages?->urlFor($contact->id), 'archived' => $contact->archived] : null,
             'matched' => null !== $item->contactId(),
             'warnings' => $detail->warnings(),
             'duplicateOf' => $item->duplicateOfPurpose(),
@@ -757,8 +759,9 @@ final class InboxController extends AbstractController
         $found = [];
         foreach (\is_array($ids) ? $ids : [] as $contactId) {
             $contact = \is_string($contactId) ? $this->contacts->find($contactId) : null;
-            if ($contact instanceof PartySummary) {
-                $found[] = ['name' => $contact->displayName, 'href' => $this->generateUrl('app_contact_show', ['id' => $contact->id])];
+            $href = $contact instanceof PartySummary ? $this->contactPages?->urlFor($contact->id) : null;
+            if ($contact instanceof PartySummary && null !== $href) {
+                $found[] = ['name' => $contact->displayName, 'href' => $href];
             }
         }
 

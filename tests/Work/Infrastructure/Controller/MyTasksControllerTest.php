@@ -30,8 +30,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * My tasks: those I am responsible for, or watch, in groups by when they are
- * due on 20 November 2026, on saved views narrowed by client, and their count in
- * the sidebar.
+ * due on 20 November 2026, on saved views, and their count in the sidebar.
  */
 final class MyTasksControllerTest extends WebTestCase
 {
@@ -140,51 +139,6 @@ final class MyTasksControllerTest extends WebTestCase
         }
     }
 
-    public function testTheOldClientParameterIsAConditionOfTheBuilder(): void
-    {
-        $this->signIn();
-        $this->seed();
-
-        $crawler = $this->client->request('GET', '/my-tasks?tab=assigned&client='.$this->clientId());
-
-        self::assertSame(['Fix the form', 'Call the client', 'Write the copy', 'Plan the launch'], $crawler->filter('[data-task-group] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text())));
-        self::assertSame('Assigned to me, unsaved changes', $this->tabs($crawler)[1]);
-        // No fixed select sits in the filter sheet above its conditions (spec D11).
-        self::assertCount(0, $crawler->filter('select[name="client"]'));
-        self::assertStringContainsString('Example Client', $crawler->filter('main')->text());
-
-        $crawler = $this->client->request('GET', '/my-tasks?tab=watching&client='.$this->clientId());
-        self::assertSelectorTextContains('main', 'No task matches these conditions.');
-        self::assertSame('/my-tasks?view=watching', $crawler->filter('main a')->reduce(static fn (Crawler $a): bool => 'Reset the view' === trim($a->text()))->attr('href'));
-        // What is no contact's id narrows nothing, as the sheet ignored it.
-        $crawler = $this->client->request('GET', '/my-tasks?view=assigned&client=nobody');
-        self::assertCount(5, $crawler->filter('[data-task-group] tbody tr'));
-        self::assertSame('Assigned to me', $this->tabs($crawler)[1]);
-    }
-
-    public function testTheBuilderNarrowsTheViewAndItsChangesAreSavedAsANewView(): void
-    {
-        $this->signIn();
-        $this->seed();
-
-        $this->client->request('GET', '/my-tasks?'.http_build_query(['view' => 'all', 'client' => 'old', 'conditions' => '1', 'c' => [
-            ['field' => 'involvement', 'op' => 'is', 'value' => 'watcher'],
-            ['field' => 'client', 'op' => 'is_empty'],
-        ]]));
-        self::assertResponseStatusCodeSame(303);
-        $location = (string) $this->client->getResponse()->headers->get('Location');
-        self::assertStringNotContainsString('client=', $location);
-        self::assertStringNotContainsString('view=', $location, 'All is the bare list.');
-        $crawler = $this->client->followRedirect();
-
-        self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
-        self::assertSame('All, unsaved changes', $this->tabs($crawler)[0]);
-        $this->client->submit($crawler->filter('[data-view-save-as-form]')->form(['name' => 'Watched, no client']));
-        $crawler = $this->client->followRedirect();
-        self::assertSame(['Review the budget'], $this->titles($crawler, 'no_date'));
-        self::assertContains('Watched, no client', $this->tabs($crawler));
-    }
-
     public function testTheColumnsSheetHidesAColumn(): void
     {
         $this->signIn();
@@ -258,14 +212,6 @@ final class MyTasksControllerTest extends WebTestCase
     private function titles(Crawler $crawler, string $group): array
     {
         return $crawler->filter('[data-task-group="'.$group.'"] tbody tr td:first-child [data-row-link]')->each(static fn (Crawler $cell): string => trim($cell->text()));
-    }
-
-    private function clientId(): string
-    {
-        $id = $this->em->getConnection()->fetchOne('SELECT id FROM party WHERE display_name = ?', ['Example Client']);
-        self::assertIsString($id);
-
-        return $id;
     }
 
     private function taskId(string $title): string

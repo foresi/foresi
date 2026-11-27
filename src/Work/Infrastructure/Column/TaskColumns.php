@@ -28,6 +28,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * responsible, the due date, the priority and the labels, as a project's list has them, and
  * for whom manages work the estimate and, where a module keeps time (TaskTimes), the time
  * logged (the list's context says so, as "manage"). The status, the person, the date and the priority change in the row.
+ * The client's column is Work's Contacts integration's (ProjectClientColumns).
  *
  * Its sorts are TaskLists::SORTS, each under the key of its column; the list's query orders
  * by them, so the expressions here only say the column sorts.
@@ -59,7 +60,6 @@ final readonly class TaskColumns implements DataSource
         return [
             new Attribute('title', $label('title'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->title, sort: 't.title', defaultVisible: true, defaultPosition: 10, cell: static fn (MyTaskLine $line): string => $line->task->title, locked: true, truncate: true),
             new Attribute('project', $label('project'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->projectName, sort: 'p.name', defaultVisible: true, defaultPosition: 20, cell: $this->project(...), phone: false, truncate: true),
-            new Attribute('client', 'work.tasks.field.client', AttributeType::Text, static fn (MyTaskLine $line): ?string => $line->task->clientName, defaultVisible: true, defaultPosition: 25, phone: false, wide: true, truncate: true),
             new Attribute('status', $label('status'), AttributeType::Text, static fn (MyTaskLine $line): string => $line->task->statusName, defaultVisible: true, defaultPosition: 30, cell: static fn (MyTaskLine $line): mixed => TaskEdits::cell(['text' => $line->task->statusName, 'tone' => self::STATUS_TONES[$line->task->statusType->value]], $line->edits->status($line->task))),
             new Attribute('responsible', $label('responsible'), AttributeType::Reference, static fn (MyTaskLine $line): ?string => $line->task->responsibleName, defaultVisible: true, defaultPosition: 40, cell: $this->responsible(...), phone: false, truncate: true),
             new Attribute('due', $label('due_on'), AttributeType::Date, static fn (MyTaskLine $line): ?\DateTimeImmutable => $line->task->dueOn, sort: 't.dueOn', defaultVisible: true, defaultPosition: 50, cell: $this->due(...), phone: false),

@@ -76,6 +76,7 @@ work:
     not_allowed: Only people of the organisation can do this.
     name: Enter a name that is not too long.
     client: Choose an existing contact as the client.
+    client_unavailable: This Foresi has no address book, so a project has no client.
     archived: The project is archived. Restore it first.
     parent: A subtask goes under a task of the same project that is not a subtask itself.
     responsible: Choose an active person of the organisation as responsible.

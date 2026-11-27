@@ -13,6 +13,7 @@ use Foresi\Activities\Infrastructure\Events\ActivitiesEventAccess;
 use Foresi\Banking\Infrastructure\Events\BankingEventAccess;
 use Foresi\CashFlow\Infrastructure\Events\CashFlowEventAccess;
 use Foresi\Catalog\Infrastructure\Events\CatalogEventAccess;
+use Foresi\Contacts\Infrastructure\Events\ContactsEventAccess;
 use Foresi\Deals\Infrastructure\Events\SalesEventAccess;
 use Foresi\DocumentTemplates\Infrastructure\Events\DocumentsEventAccess;
 use Foresi\ExchangeRate\Infrastructure\Events\ExchangeRateEventAccess;
@@ -118,7 +119,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertStringContainsString('<dialog', (string) $this->client->getResponse()->getContent());
         $options = $crawler->filter('input[name="event_types[]"]')->each(static fn (Crawler $box): string => (string) $box->attr('value'));
         self::assertContains('party.*', $options);
-        self::assertContains('party.contact.archived', $options);
+        self::assertContains('contacts.contact.archived', $options);
 
         $this->client->request('POST', '/settings/webhooks/new', [
             '_token' => $this->csrf(),
@@ -202,7 +203,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $id = $this->stored();
         // The person no longer works with the bank, the cash flow, the inbox, invoices, contacts or received documents: the access services
         // of the installed modules say no.
-        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'documents', ExchangeRateEventAccess::class => 'exchange-rate', InboxEventAccess::class => 'inbox', InvoicingEventAccess::class => 'invoicing', MailEventAccess::class => 'mail', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', SalesEventAccess::class => 'sales', TaxesEventAccess::class => 'taxes-and-contributions', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
+        foreach ([ActivitiesEventAccess::class => 'activities', BankingEventAccess::class => 'banking', CashFlowEventAccess::class => 'cash-flow', CatalogEventAccess::class => 'catalog', DocumentsEventAccess::class => 'documents', ExchangeRateEventAccess::class => 'exchange-rate', InboxEventAccess::class => 'inbox', InvoicingEventAccess::class => 'invoicing', MailEventAccess::class => 'mail', ContactsEventAccess::class => 'contacts', PartyEventAccess::class => 'party', PurchasingEventAccess::class => 'purchasing', SalesEventAccess::class => 'sales', TaxesEventAccess::class => 'taxes-and-contributions', VatEventAccess::class => 'vat', WorkEventAccess::class => 'work'] as $service => $module) {
             if (!class_exists($service)) {
                 continue;
             }
@@ -333,7 +334,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
             '_token' => $this->csrf(),
             'url' => 'https://hooks.example.com/changed',
             'description' => '',
-            'event_types' => ['party.contact.archived', 'party.contact.created'],
+            'event_types' => ['contacts.contact.archived', 'contacts.contact.created'],
             'version' => '1',
         ]);
 
@@ -341,7 +342,7 @@ final class WebhookEndpointControllerTest extends WebTestCase
         $endpoint = $this->endpoints()[0];
         self::assertSame('https://hooks.example.com/changed', $endpoint->url()->value);
         self::assertNull($endpoint->description());
-        self::assertEqualsCanonicalizing(['party.contact.archived', 'party.contact.created'], $endpoint->eventTypes()->patterns());
+        self::assertEqualsCanonicalizing(['contacts.contact.archived', 'contacts.contact.created'], $endpoint->eventTypes()->patterns());
     }
 
     public function testRotateAndRevealShowTheSecretInADialog(): void

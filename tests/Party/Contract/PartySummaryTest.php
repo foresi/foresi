@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Party\Contract;
 
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Shared\Domain\Id;
 use PHPUnit\Framework\TestCase;

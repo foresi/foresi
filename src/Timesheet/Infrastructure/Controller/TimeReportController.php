@@ -40,6 +40,7 @@ use Foresi\Ui\Contract\WorkingState;
 use Foresi\Ui\Format\DurationText;
 use Foresi\Ui\View\ViewBar;
 use Foresi\Work\Application\WorkQueries;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Infrastructure\Controller\ProjectController;
 use Foresi\Work\Infrastructure\Controller\TaskController;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -93,6 +94,7 @@ final class TimeReportController extends AbstractController
         private readonly RememberedDisplay $rememberedDisplay,
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
+        private readonly ?ProjectClients $clients = null,
     ) {
     }
 
@@ -364,11 +366,16 @@ final class TimeReportController extends AbstractController
      */
     private function references(array $options): array
     {
-        return [
+        $references = [
             TimeReportLists::PROJECTS => ['url' => $this->generateUrl('app_time_report_projects'), 'name' => static fn (string $id): ?string => $options['projects'][$id] ?? null],
             TimeReportLists::PEOPLE => ['url' => $this->generateUrl('app_time_report_people'), 'name' => static fn (string $id): ?string => $options['people'][$id] ?? null],
-            TimeReportLists::CONTACTS => ['url' => $this->generateUrl('app_project_clients'), 'name' => fn (string $id): ?string => $this->parties->find($id)?->displayName()],
         ];
+        // A client is picked from the address book; without it a project has no client to pick.
+        if (null !== $this->clients) {
+            $references[TimeReportLists::CONTACTS] = ['url' => $this->clients->pickerUrl(), 'name' => fn (string $id): ?string => $this->parties->find($id)?->displayName()];
+        }
+
+        return $references;
     }
 
     /**

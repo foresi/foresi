@@ -108,6 +108,8 @@ final class ProjectModulesTest extends TestCase
         'Foresi\\Audit\\Application\\AuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
         'Foresi\\Audit\\Application\\TokenAuditActor -> Foresi\\Identity\\Infrastructure\\Security\\SecurityAuditActor',
         'Foresi\\Identity\\Contract\\GuestHome -> Foresi\\Work\\Infrastructure\\Identity\\SharedWorkGuestHome',
+        'Foresi\\Identity\\Contract\\PersonContactPicker -> Foresi\\Contacts\\Infrastructure\\Identity\\RoutedPersonContactPicker',
+        'Foresi\\Party\\Contract\\ContactPages -> Foresi\\Contacts\\Infrastructure\\Routing\\RoutedContactPages',
         'Foresi\\Shared\\Application\\ActorRole -> Foresi\\Identity\\Infrastructure\\Security\\MembershipActorRole',
         'Foresi\\Shared\\Application\\Api\\ApiClient -> Foresi\\Identity\\Infrastructure\\Security\\TokenApiClient',
         'Foresi\\Shared\\Application\\Api\\IdempotencyKeys -> Foresi\\Identity\\Infrastructure\\Idempotency\\DbalIdempotencyKeys',

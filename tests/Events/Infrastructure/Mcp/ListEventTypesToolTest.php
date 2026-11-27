@@ -36,13 +36,13 @@ final class ListEventTypesToolTest extends ReadToolTestCase
         self::assertIsArray($items);
         // The owner reads every module that has events: the catalogue of what is installed.
         $names = array_map(static fn (EventType $type): string => $type->name, self::getContainer()->get(EventCatalogue::class)->all());
-        self::assertContains('party.contact.created', $names);
+        self::assertContains('contacts.contact.created', $names);
         // The taxes and contributions are the owner's only, so a member does not read their events.
         $names = array_values(array_filter($names, static fn (string $name): bool => !str_starts_with($name, 'taxes-and-contributions.')));
         self::assertSame(\sprintf('%d event types.', \count($names)), $output->summary);
         self::assertSame($names, array_column($items, 'name'));
-        $created = array_search('party.contact.created', $names, true);
-        self::assertSame(['name' => 'party.contact.created', 'version' => 1, 'module' => 'party', 'subject_type' => 'contact', 'fields' => ['contact_id', 'kind']], $items[$created]);
+        $created = array_search('contacts.contact.created', $names, true);
+        self::assertSame(['name' => 'contacts.contact.created', 'version' => 1, 'module' => 'contacts', 'subject_type' => 'contact', 'fields' => ['contact_id', 'kind']], $items[$created]);
     }
 
     public function testAGuestSeesNoTypes(): void

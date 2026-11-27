@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Deals\Infrastructure;
 
+use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Infrastructure\Mcp\GetDealTool;
 use Foresi\Deals\Infrastructure\Mcp\ListDealStagesTool;
 use Foresi\Deals\Infrastructure\Mcp\SearchDealsTool;
@@ -16,7 +17,6 @@ use Foresi\Identity\Application\ApiTokenRefused;
 use Foresi\Identity\Application\ManageApiTokens;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Role;
-use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Contract\Mcp\StaffOnlyTool;

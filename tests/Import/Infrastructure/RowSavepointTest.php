@@ -10,8 +10,8 @@ namespace Foresi\Tests\Import\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Import\Infrastructure\Doctrine\RowSavepoint;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;

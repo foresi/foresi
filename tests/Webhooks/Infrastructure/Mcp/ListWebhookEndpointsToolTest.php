@@ -27,7 +27,7 @@ final class ListWebhookEndpointsToolTest extends WebhookToolTestCase
     public function testItAnswersAsTheRestApiDoesWithoutSecrets(): void
     {
         $first = $this->stored();
-        $second = $this->stored(['party.contact.archived'], false);
+        $second = $this->stored(['contacts.contact.archived'], false);
 
         $output = $this->call(ListWebhookEndpointsTool::class);
 

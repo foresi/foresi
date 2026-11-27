@@ -40,12 +40,10 @@ final class ProjectListsTest extends KernelTestCase
     {
         $fields = $this->lists()->list()->fields;
 
-        self::assertSame(['archived', 'client', 'visibility', 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => !str_contains($key, '_'))));
+        // The client is Work's Contacts integration's (tests/Work/Integration/Contacts).
+        self::assertSame(['archived', 'visibility', 'name'], array_values(array_filter(array_keys($fields), static fn (string $key): bool => !str_contains($key, '_') && 'client' !== $key)));
         self::assertSame(FieldType::Boolean, $fields['archived']->type);
         self::assertSame('work.projects.field.archived', $fields['archived']->label);
-        self::assertSame(FieldType::Reference, $fields['client']->type);
-        self::assertSame('contact', $fields['client']->source);
-        self::assertSame('work.projects.column.client', $fields['client']->label);
         self::assertSame(FieldType::Enum, $fields['visibility']->type);
         self::assertSame(['organisation', 'chosen'], $fields['visibility']->options);
         self::assertSame(['organisation' => 'work.sharing.visibility.organisation', 'chosen' => 'work.sharing.visibility.chosen'], $fields['visibility']->optionLabels);

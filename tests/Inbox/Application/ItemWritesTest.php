@@ -10,6 +10,7 @@ namespace Foresi\Tests\Inbox\Application;
 
 use Foresi\Activities\Application\ActivityTargets;
 use Foresi\Activities\Contract\LinkableRecords;
+use Foresi\Contacts\Contract\ContactPersonWrites;
 use Foresi\Identity\Domain\Role;
 use Foresi\Inbox\Application\Api\CreateContactFromItemInput;
 use Foresi\Inbox\Application\Api\DiscardItemInput;
@@ -22,6 +23,7 @@ use Foresi\Inbox\Application\Api\RestoreItemInput;
 use Foresi\Inbox\Application\Api\TrashItemInput;
 use Foresi\Inbox\Application\EmailActivity;
 use Foresi\Inbox\Application\InboxAccess;
+use Foresi\Inbox\Application\InboxAddressBook;
 use Foresi\Inbox\Application\InboxTransaction;
 use Foresi\Inbox\Application\ItemReads;
 use Foresi\Inbox\Application\ItemStore;
@@ -39,8 +41,6 @@ use Foresi\Inbox\Infrastructure\Doctrine\DoctrineItemStore;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Mail\Contract\MessageRetention;
 use Foresi\Mail\Contract\Messages;
-use Foresi\Party\Contract\ContactCreation;
-use Foresi\Party\Contract\ContactPersonWrites;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Shared\Application\Markdown;
 use Foresi\Shared\Contract\Event\EventRecorder;
@@ -413,7 +413,7 @@ final class ItemWritesTest extends InboxTestCase
         };
         $this->em->clear();
         $c = self::getContainer();
-        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(ContactCreation::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class));
+        $writes = new ItemWrites($c->get(InboxAccess::class), $blind, $c->get(InboxTransaction::class), $c->get(EventRecorder::class), $c->get(InstanceClock::class), $c->get(PartyDirectory::class), $c->get(SenderMatching::class), $c->get(Messages::class), $c->get(MessageRetention::class), $c->get(LinkableRecords::class), $c->get(EmailActivity::class), $c->get(InboxAddressBook::class));
 
         $this->assertRefused('already_linked', fn (): InboxItem => $writes->link(new LinkItemInput($itemId, 'contact', $person)));
     }

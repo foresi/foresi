@@ -16,6 +16,7 @@ use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ListFields;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\ProjectVisibility;
 
 /**
@@ -27,7 +28,8 @@ use Foresi\Work\Domain\ProjectVisibility;
  * list's All, and shows the projects the Active tab showed, so ?tab=active opens it.
  *
  * The name is a filterable attribute of the list's data source (DS1); the archive, the
- * client and the visibility are the module's own fields.
+ * client and the visibility are the module's own fields. The client, pinned as a quick
+ * filter, is there only where the address book is installed (ProjectClients).
  */
 final class ProjectLists implements ListDefinitionSource
 {
@@ -46,13 +48,13 @@ final class ProjectLists implements ListDefinitionSource
 
     private ?ListDefinition $list = null;
 
-    public function __construct(private readonly ListFields $fields)
+    public function __construct(private readonly ListFields $fields, private readonly ?ProjectClients $clients = null)
     {
     }
 
     public function list(): ListDefinition
     {
-        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), ['client']);
+        return $this->list ??= new ListDefinition(self::KEY, $this->fields->of(self::KEY, $this->ownFields()), $this->defaults(), $this->clients instanceof ProjectClients ? [self::CLIENT] : []);
     }
 
     /**
@@ -64,7 +66,7 @@ final class ProjectLists implements ListDefinitionSource
 
         return [
             new Field(self::ARCHIVED, FieldType::Boolean, 'work.projects.field.archived'),
-            new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT),
+            ...$this->clients instanceof ProjectClients ? [new Field(self::CLIENT, FieldType::Reference, 'work.projects.column.client', source: self::CONTACT)] : [],
             new Field(self::VISIBILITY, FieldType::Enum, 'work.projects.field.visibility', options: $visibilities, optionLabels: array_combine($visibilities, array_map(static fn (string $value): string => 'work.sharing.visibility.'.$value, $visibilities))),
         ];
     }

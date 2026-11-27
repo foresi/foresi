@@ -65,10 +65,10 @@ final class ListEventsToolTest extends ReadToolTestCase
         self::assertSame($this->json()['next_cursor'], $all->data['next_cursor']);
         self::assertSame('3 events, oldest first; call again with the same arguments and next_cursor as cursor to read on.', $all->summary);
 
-        $narrow = $this->call(ListEventsTool::class, ['types' => ['party.contact.updated', 'party.contact.archived'], 'limit' => 5]);
-        $this->get('/api/v1/events', ['types' => 'party.contact.updated,party.contact.archived', 'limit' => '5']);
+        $narrow = $this->call(ListEventsTool::class, ['types' => ['contacts.contact.updated', 'contacts.contact.archived'], 'limit' => 5]);
+        $this->get('/api/v1/events', ['types' => 'contacts.contact.updated,contacts.contact.archived', 'limit' => '5']);
         self::assertSame($this->json()['data'], $narrow->data['items']);
-        self::assertSame(['party.contact.updated', 'party.contact.archived'], $this->column($narrow, 'type'));
+        self::assertSame(['contacts.contact.updated', 'contacts.contact.archived'], $this->column($narrow, 'type'));
     }
 
     public function testTheCursorContinuesAndStaysWhenNothingIsNew(): void
@@ -95,7 +95,7 @@ final class ListEventsToolTest extends ReadToolTestCase
     {
         $this->assertRefused('invalid_argument', 'The argument "types" must be a list of strings.', ListEventsTool::class, ['types' => 'party.*']);
         $this->assertRefused('invalid_argument', 'The argument "types" must be a list of strings.', ListEventsTool::class, ['types' => [1]]);
-        $this->assertRefused('invalid_argument', 'The argument "types" cannot be used: The event type "party.contact.nothing" does not exist. Use an event name or "module.*".', ListEventsTool::class, ['types' => ['party.contact.nothing']]);
+        $this->assertRefused('invalid_argument', 'The argument "types" cannot be used: The event type "contacts.contact.nothing" does not exist. Use an event name or "module.*".', ListEventsTool::class, ['types' => ['contacts.contact.nothing']]);
         $this->assertRefused('invalid_argument', 'The argument "cursor" is not one this tool gave. Pass next_cursor of the previous answer unchanged, or leave cursor out for the first page.', ListEventsTool::class, ['cursor' => Id::generate()]);
         $this->assertRefused('invalid_argument', 'The argument "limit" cannot be used: This value should be between 1 and 100.', ListEventsTool::class, ['limit' => 101]);
         $this->assertRefused('invalid_argument', 'The argument "limit" must be an integer.', ListEventsTool::class, ['limit' => 'ten']);

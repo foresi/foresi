@@ -1,0 +1,37 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    The Deals tab of a contact (Foresi\Contacts\Contract\ContactTabs), as HubSpot and Pipedrive list a company's
+    deals on its record: the newest first, each with its stage, status and value, and "follows from …" under
+    a deal that follows another, so the chain of deals reads down the tab. "New deal" opens the dialog with
+    the client set. The answer is the tab's frame; its links open whole pages (target _top).
+    Variables: frame, client, deals (id, title, href, stage, status, value, follows).
+#}
+<turbo-frame id="{{ frame }}" target="_top">
+    <section class="grid gap-4" aria-labelledby="client-deals-title" data-client-deals>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="client-deals-title" class="m-0 text-heading font-semibold text-ink">{{ 'deals.client.title'|trans }} <span class="num font-normal text-muted">({{ deals|length }})</span></h2>
+            {% if not client.archived %}
+                <twig:Ui:Button variant="primary" icon="plus" size="sm" :href="path('app_sales_deal_new', {client: client.id})" data-dialog data-dialog-then="follow" aria-haspopup="dialog" data-client-deal-new>{{ 'deals.deal.new'|trans }}</twig:Ui:Button>
+            {% endif %}
+        </div>
+        {% if deals is empty %}
+            <twig:Ui:EmptyState icon="trending-up" :title="'deals.client.empty_title'|trans" :text="'deals.client.empty_text'|trans" />
+        {% else %}
+            <ul class="m-0 grid list-none gap-2 p-0">
+                {% for deal in deals %}
+                    <li class="grid gap-1 rounded-panel border border-container px-4 py-3" data-client-deal="{{ deal.id }}">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{{ deal.href }}" class="font-medium text-ink {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ deal.title }}</a>
+                            <twig:Ui:Badge tone="gray">{{ deal.stage }}</twig:Ui:Badge>
+                            <twig:Ui:Badge :tone="deal.status.tone">{{ deal.status.label }}</twig:Ui:Badge>
+                            {% if deal.value %}<span class="num text-small text-muted">{{ deal.value }}</span>{% endif %}
+                        </div>
+                        {% for earlier in deal.follows %}
+                            <p class="m-0 text-small text-muted" data-follows-from>{{ 'deals.client.follows_from'|trans }} <a href="{{ earlier.href }}" class="text-muted {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ earlier.title }}</a></p>
+                        {% endfor %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+</turbo-frame>

@@ -10,6 +10,7 @@ namespace Foresi\Tests\Deals\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Application\Api\AddDealLineInput;
 use Foresi\Deals\Application\Api\CreateDealInput;
 use Foresi\Deals\Application\Api\CreateDealStageInput;
@@ -31,7 +32,6 @@ use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
-use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Domain\Party;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;

@@ -1,0 +1,52 @@
+{
+    "name": "foresi/contacts",
+    "description": "The address book: the contacts screens, their API and MCP tools, and the contact events.",
+    "type": "foresi-module",
+    "license": "AGPL-3.0-only",
+    "homepage": "https://foresi.app",
+    "support": {
+        "issues": "https://github.com/foresi/foresi/issues",
+        "source": "https://github.com/foresi/foresi"
+    },
+    "require": {
+        "doctrine/orm": "^3.7.5",
+        "foresi/audit": "self.version",
+        "foresi/identity": "self.version",
+        "foresi/instance": "self.version",
+        "foresi/module-api": "^1.0",
+        "foresi/party": "self.version",
+        "foresi/shared": "self.version",
+        "foresi/ui": "self.version",
+        "psr/clock": "^1.0",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/messenger": "^7.4.24",
+        "symfony/rate-limiter": "7.4.*",
+        "symfony/routing": "^7.4",
+        "symfony/serializer": "7.4.*",
+        "symfony/translation-contracts": "^3.8",
+        "symfony/validator": "7.4.*",
+        "zircote/swagger-php": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Foresi\\Contacts\\": ""
+        }
+    },
+    "extra": {
+        "foresi": {
+            "module": "contacts",
+            "kind": "module",
+            "namespace": "Foresi\\Contacts\\",
+            "bundle": "Foresi\\Contacts\\ContactsBundle",
+            "optional": [
+                "activities",
+                "document-templates",
+                "import"
+            ]
+        }
+    }
+}

@@ -53,7 +53,7 @@ final class EventApiControllerTest extends ApiTestCase
         self::assertSame([], $this->client->getResponse()->headers->getCookies());
         $data = $this->at('data');
         self::assertIsArray($data);
-        self::assertSame(['party.contact.created', 'party.contact.updated', 'party.contact.archived'], array_column($data, 'type'));
+        self::assertSame(['contacts.contact.created', 'contacts.contact.updated', 'contacts.contact.archived'], array_column($data, 'type'));
         self::assertSame([1, 2, 3], array_column($data, 'position'));
         self::assertSame(PositionCursor::encode(3), $this->at('next_cursor'));
     }
@@ -111,19 +111,19 @@ final class EventApiControllerTest extends ApiTestCase
         $this->events->record(RecordedEvents::restored($contact));
         $this->events->number();
 
-        $this->get('/api/v1/events', ['types' => 'party.contact.archived']);
-        self::assertSame(['party.contact.archived'], array_column($this->dataRows(), 'type'));
+        $this->get('/api/v1/events', ['types' => 'contacts.contact.archived']);
+        self::assertSame(['contacts.contact.archived'], array_column($this->dataRows(), 'type'));
 
-        $this->get('/api/v1/events', ['types' => 'party.contact.updated, party.contact.restored']);
-        self::assertSame(['party.contact.updated', 'party.contact.restored'], array_column($this->dataRows(), 'type'));
+        $this->get('/api/v1/events', ['types' => 'contacts.contact.updated, contacts.contact.restored']);
+        self::assertSame(['contacts.contact.updated', 'contacts.contact.restored'], array_column($this->dataRows(), 'type'));
 
-        $this->get('/api/v1/events', ['types' => 'party.*']);
+        $this->get('/api/v1/events', ['types' => 'contacts.*']);
         self::assertCount(4, $this->dataRows());
     }
 
     public function testUnknownTypeIs400(): void
     {
-        foreach (['party.contact.nothing', 'nothing.*', 'party.contact.archived,wrong'] as $types) {
+        foreach (['contacts.contact.nothing', 'nothing.*', 'contacts.contact.archived,wrong'] as $types) {
             $this->get('/api/v1/events', ['types' => $types]);
 
             $this->assertProblem(400, 'invalid_parameter', ['parameter' => 'types']);
@@ -181,7 +181,7 @@ final class EventApiControllerTest extends ApiTestCase
 
         self::assertSame(['id', 'type', 'version', 'position', 'occurred_at', 'subject', 'data', 'correlation_id', 'actor'], array_keys($this->dataRows()[0]));
         self::assertTrue(Id::isValid($this->text('data', 0, 'id')));
-        self::assertSame('party.contact.created', $this->at('data', 0, 'type'));
+        self::assertSame('contacts.contact.created', $this->at('data', 0, 'type'));
         self::assertSame(1, $this->at('data', 0, 'version'));
         self::assertSame(1, $this->at('data', 0, 'position'));
         self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/', $this->text('data', 0, 'occurred_at'));

@@ -22,6 +22,7 @@ declare(strict_types=1);
  */
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
@@ -34,7 +35,6 @@ use Foresi\Invoicing\Application\RecordPayment;
 use Foresi\Invoicing\Application\SendInvoice;
 use Foresi\Invoicing\Contract\PartyInvoicingDefaults;
 use Foresi\Kernel;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Application\PartyInput;
 use Foresi\Party\Application\RegistrationNumberFactory;
 use Foresi\Party\Domain\Address;

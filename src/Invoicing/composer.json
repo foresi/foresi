@@ -65,7 +65,8 @@
                 "margin",
                 "deals",
                 "taxes-and-contributions",
-                "vat"
+                "vat",
+                "contacts"
             ],
             "scopes": [
                 "invoices",

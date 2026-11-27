@@ -30,7 +30,7 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 {
     public function testCreateReturnsSecret(): void
     {
-        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['party.contact.archived'], 'description' => 'Accounting sync']);
+        $output = $this->call(CreateWebhookEndpointTool::class, ['url' => 'https://hooks.example.com/foresi', 'event_types' => ['contacts.contact.archived'], 'description' => 'Accounting sync']);
 
         $secret = $output->data['secret'];
         self::assertIsString($secret);
@@ -108,14 +108,14 @@ final class WebhookWriteToolTest extends WebhookToolTestCase
 
     public function testUpdateChangesOnlyWhatIsGivenAndEnablesAgain(): void
     {
-        $id = $this->created(['party.contact.archived']);
+        $id = $this->created(['contacts.contact.archived']);
         $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'description' => 'Sync']);
 
         $disabled = $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'active' => false]);
         self::assertFalse($disabled->data['active']);
         self::assertSame('manual', $disabled->data['disabled_reason']);
         self::assertSame('Sync', $disabled->data['description']);
-        self::assertSame(['party.contact.archived'], $disabled->data['event_types']);
+        self::assertSame(['contacts.contact.archived'], $disabled->data['event_types']);
 
         $enabled = $this->call(UpdateWebhookEndpointTool::class, ['endpoint_id' => $id, 'active' => true, 'event_types' => ['party.*'], 'version' => 1, 'url' => 'https://hooks.example.com/other']);
         self::assertTrue($enabled->data['active']);

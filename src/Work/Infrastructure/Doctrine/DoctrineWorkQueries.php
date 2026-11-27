@@ -130,6 +130,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         private TrashPermission $trash,
         private ProjectTaskLists $projectTaskLists,
         private Fields $fields,
+        private MyTaskLists $myTaskLists,
         // The time logged on tasks, by the module that keeps time; none without it.
         private ?TaskTimes $taskTimes = null,
     ) {
@@ -344,7 +345,7 @@ final readonly class DoctrineWorkQueries implements WorkQueries
         }
         // Each condition's subquery has an alias of its own.
         $derived = static fn (Condition $condition, string $name): array => [DqlConditions::derivedEnum($condition, [MyTaskLists::RESPONSIBLE => self::RESPONSIBLE, MyTaskLists::WATCHER => self::watched('w'.$name)]), []];
-        [$where, $parameters] = new DqlConditions(MyTaskLists::list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter, $this->clock->today(...), 'view');
+        [$where, $parameters] = new DqlConditions($this->myTaskLists->list(), [MyTaskLists::CLIENT => 'IDENTITY(p.client)'], $derived)->compile($filter, $this->clock->today(...), 'view');
 
         $text = trim(mb_substr($text, 0, self::MAX_TEXT));
         if ('' !== $text) {

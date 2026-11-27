@@ -19,6 +19,7 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Application\WorkUnit;
 use Foresi\Work\Application\WorkVisibility;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\Priority;
 use Foresi\Work\Domain\WorkflowTemplate;
 
@@ -27,7 +28,9 @@ use Foresi\Work\Domain\WorkflowTemplate;
  * 0032). Each runs the use cases the screens run, so WorkVisibility decides
  * who may, and in one unit of work: a call that changes several fields of a
  * task is saved whole or not at all, and is one step of its history. Every
- * method answers the id of what to read back.
+ * method answers the id of what to read back. Without the address book
+ * (ProjectClients) a project has no client: a write that names one is refused,
+ * while the reads still return the client a project keeps.
  */
 final readonly class WorkWrites
 {
@@ -40,6 +43,7 @@ final readonly class WorkWrites
         private WorkUnit $unit,
         private Projects $store,
         private WorkVisibility $visibility,
+        private ?ProjectClients $clients = null,
     ) {
     }
 
@@ -188,6 +192,8 @@ final readonly class WorkWrites
      */
     public function createProject(CreateProjectInput $input, ?array $customFields = null): string
     {
+        $this->unlessClientUnavailable($input->clientId);
+
         return $this->named(fn (): \Foresi\Work\Domain\Project => $this->projects->create($input->name, $input->clientId, WorkflowTemplate::from($input->workflow), $input->description, $customFields))->id();
     }
 
@@ -199,6 +205,9 @@ final readonly class WorkWrites
      */
     public function updateProject(UpdateProjectInput $input, ?array $customFields = null): string
     {
+        if (!$input->clientId instanceof Omitted) {
+            $this->unlessClientUnavailable($input->clientId);
+        }
         $project = $this->queries->project($input->projectId) ?? throw new WorkRefused('unknown');
         $this->named(fn () => $this->projects->edit(
             $input->projectId,
@@ -271,5 +280,17 @@ final readonly class WorkWrites
         }
 
         return $day;
+    }
+
+    /**
+     * Refuses a client where the address book is not installed, so a project has none.
+     *
+     * @throws WorkRefused
+     */
+    private function unlessClientUnavailable(?string $clientId): void
+    {
+        if (null !== $clientId && !$this->clients instanceof ProjectClients) {
+            throw new WorkRefused('client_unavailable');
+        }
     }
 }

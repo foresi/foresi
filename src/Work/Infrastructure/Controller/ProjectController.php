@@ -14,8 +14,6 @@ use Foresi\Identity\Application\People;
 use Foresi\Identity\Application\Person;
 use Foresi\Identity\Contract\StaffCheck;
 use Foresi\Instance\Application\InstanceClock;
-use Foresi\Party\Application\PartyQuery;
-use Foresi\Party\Application\PartyRow;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\Field\FieldRefused;
 use Foresi\Shared\Application\View\FilterRows;
@@ -52,6 +50,7 @@ use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
 use Foresi\Work\Contract\Field\TaskExtension;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Column\ProjectColumns;
 use Foresi\Work\Infrastructure\Column\ProjectIndexRow;
@@ -103,7 +102,6 @@ final class ProjectController extends AbstractController
         private readonly WorkQueries $queries,
         private readonly ManageProjects $projects,
         private readonly ManageTasks $tasks,
-        private readonly PartyQuery $parties,
         private readonly People $people,
         private readonly StaffCheck $staff,
         private readonly AuditActor $actor,
@@ -120,6 +118,7 @@ final class ProjectController extends AbstractController
         private readonly ProjectPageSlots $pageSlots,
         private readonly ProjectTrashPage $trashPage,
         private readonly CustomFieldForm $customFields,
+        private readonly ?ProjectClients $clients = null,
     ) {
     }
 
@@ -187,6 +186,11 @@ final class ProjectController extends AbstractController
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
             }
+            // Without the address book a project has no client, whatever the form sends.
+            if (!$this->clients instanceof ProjectClients) {
+                $values['clientId'] = '';
+                $values['clientQuery'] = '';
+            }
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
             }
@@ -210,26 +214,12 @@ final class ProjectController extends AbstractController
 
         return $this->render('@Work/projects/new.html.twig', [
             'values' => $values,
+            // The client field, only where the address book is installed.
+            'clientPicker' => $this->clients?->pickerUrl(),
             'errors' => $errors,
             'customValues' => $custom?->values,
             'customErrors' => $custom->errors ?? [],
         ], new Response(status: [] === $errors && (!$custom instanceof CustomFieldSubmission || $custom->valid()) ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
-    }
-
-    /**
-     * The contacts the client field offers: any contact of the address book.
-     */
-    #[Route('/projects/clients', name: 'app_project_clients', methods: ['GET'])]
-    public function clients(Request $request): JsonResponse
-    {
-        $this->denyUnlessStaff();
-        $page = $this->parties->search(mb_substr($request->query->getString('q'), 0, self::MAX_QUERY), null, false, 'name', 1);
-
-        return $this->json(['results' => array_map(fn (PartyRow $row): array => [
-            'id' => $row->id,
-            'label' => $row->displayName,
-            'hint' => $row->email ?? $row->registrationNumber ?? $this->translator->trans('party.kind.'.$row->kind->value),
-        ], $page->rows)]);
     }
 
     /**
@@ -888,11 +878,11 @@ final class ProjectController extends AbstractController
             // A project is a place to work in, not a record: it opens as a page (docs/design/overlays.md).
             'opens' => Opens::PAGE,
             'label' => $project->name,
-            'secondary' => $project->clientName,
+            'secondary' => $this->clients instanceof ProjectClients ? $project->clientName : null,
             'cells' => $working->display->cells(new ProjectIndexRow(
                 $project->name,
                 $project->clientName,
-                null === $project->clientId ? null : $this->generateUrl('app_contact_show', ['id' => $project->clientId]),
+                null === $project->clientId ? null : $this->clients?->pageUrl($project->clientId),
                 $project->openTasks,
                 $project->nearestDue instanceof \DateTimeImmutable ? $this->date($project->nearestDue) : null,
                 $project->id,
@@ -936,15 +926,20 @@ final class ProjectController extends AbstractController
 
     /**
      * The contacts a client condition picks from and names: any contact of the address
-     * book, as the client field of a project offers.
+     * book, as the client field of a project offers; none without the address book.
      *
      * @return array<string, array{url: string, name: \Closure(string): ?string}>
      */
     private function clientReferences(): array
     {
+        $clients = $this->clients;
+        if (!$clients instanceof ProjectClients) {
+            return [];
+        }
+
         return [ProjectLists::CONTACT => [
-            'url' => $this->generateUrl('app_project_clients'),
-            'name' => fn (string $contact): ?string => $this->parties->find($contact)?->displayName(),
+            'url' => $clients->pickerUrl(),
+            'name' => static fn (string $contact): ?string => $clients->name($contact),
         ]];
     }
 

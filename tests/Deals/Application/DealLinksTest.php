@@ -64,7 +64,7 @@ final class DealLinksTest extends SalesTestCase
     public function testFollowUpTakesOnlyTheContactPersonsStillLinked(): void
     {
         $audit = $this->deal('Roof audit', contactPersonIds: [$this->petra->id(), $this->karel->id()]);
-        self::getContainer()->get(\Foresi\Party\Application\UnlinkContactPerson::class)->unlink($this->client, $this->petra);
+        self::getContainer()->get(\Foresi\Contacts\Application\UnlinkContactPerson::class)->unlink($this->client, $this->petra);
 
         $followUp = $this->deals()->createFollowUp(new CreateFollowUpDealInput($audit->id(), 'Roof maintenance'));
 

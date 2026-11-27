@@ -70,8 +70,8 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testMatchingEndpointGetsOneDelivery(): void
     {
-        $endpoint = $this->endpoint(['party.contact.created']);
-        $this->endpoint(['party.contact.archived']);
+        $endpoint = $this->endpoint(['contacts.contact.created']);
+        $this->endpoint(['contacts.contact.archived']);
         $contact = Id::generate();
 
         $this->events->record(RecordedEvents::created($contact));
@@ -81,7 +81,7 @@ final class WebhookFanoutTest extends KernelTestCase
         self::assertCount(1, $deliveries);
         $delivery = $deliveries[0];
         self::assertSame($endpoint, $delivery[WebhookDeliveryTable::ENDPOINT_ID]);
-        self::assertSame('party.contact.created', $delivery[WebhookDeliveryTable::EVENT_TYPE]);
+        self::assertSame('contacts.contact.created', $delivery[WebhookDeliveryTable::EVENT_TYPE]);
         self::assertSame(WebhookDeliveryTable::STATUS_PENDING, $delivery[WebhookDeliveryTable::STATUS]);
         self::assertSame(WebhookDeliveryTable::KIND_EVENT, $delivery[WebhookDeliveryTable::KIND]);
         self::assertEquals(0, $delivery[WebhookDeliveryTable::ATTEMPTS]);
@@ -102,7 +102,7 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testWildcardMatches(): void
     {
-        $endpoint = $this->endpoint(['party.*']);
+        $endpoint = $this->endpoint(['contacts.*']);
 
         $this->events->record(RecordedEvents::created(Id::generate()));
         $this->events->record(RecordedEvents::archived(Id::generate()));
@@ -116,7 +116,7 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testOtherVersionIsSkipped(): void
     {
-        $this->endpoint(['party.contact.created'], version: 2);
+        $this->endpoint(['contacts.contact.created'], version: 2);
 
         $this->events->record(RecordedEvents::created(Id::generate()));
         $this->events->number();
@@ -127,7 +127,7 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testInactiveEndpointIsSkipped(): void
     {
-        $this->endpoint(['party.contact.created'], active: false);
+        $this->endpoint(['contacts.contact.created'], active: false);
 
         $this->events->record(RecordedEvents::created(Id::generate()));
         $this->events->number();
@@ -138,7 +138,7 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testOwnerWhoLostAccessDisablesTheEndpoint(): void
     {
-        $endpoint = $this->endpoint(['party.*']);
+        $endpoint = $this->endpoint(['contacts.*']);
         $this->db->executeStatement('DELETE FROM membership');
 
         $this->events->record(RecordedEvents::created(Id::generate()));
@@ -162,11 +162,11 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testMalformedEndpointIsSkippedAndTheOthersStillReceive(): void
     {
-        $broken = $this->endpoint(['party.*']);
-        $number = $this->endpoint(['party.*']);
-        $endpoint = $this->endpoint(['party.contact.created']);
+        $broken = $this->endpoint(['contacts.*']);
+        $number = $this->endpoint(['contacts.*']);
+        $endpoint = $this->endpoint(['contacts.contact.created']);
         // Valid JSON that is no list, so PostgreSQL's json column takes it as well.
-        $this->db->executeStatement('UPDATE webhook_endpoint SET event_types = ? WHERE id = ?', ['"party.*"', $broken]);
+        $this->db->executeStatement('UPDATE webhook_endpoint SET event_types = ? WHERE id = ?', ['"contacts.*"', $broken]);
         $this->db->executeStatement('UPDATE webhook_endpoint SET event_types = ? WHERE id = ?', ['42', $number]);
 
         $this->events->record(RecordedEvents::created(Id::generate()));
@@ -179,7 +179,7 @@ final class WebhookFanoutTest extends KernelTestCase
 
     public function testRelayTwiceMakesNoSecondDelivery(): void
     {
-        $endpoint = $this->endpoint(['party.contact.created']);
+        $endpoint = $this->endpoint(['contacts.contact.created']);
         $this->events->record(RecordedEvents::created(Id::generate()));
 
         $this->events->number();
@@ -194,7 +194,7 @@ final class WebhookFanoutTest extends KernelTestCase
             WebhookDeliveryTable::ID => Id::generate(),
             WebhookDeliveryTable::ENDPOINT_ID => $endpoint,
             WebhookDeliveryTable::EVENT_ID => $deliveries[0][WebhookDeliveryTable::EVENT_ID],
-            WebhookDeliveryTable::EVENT_TYPE => 'party.contact.created',
+            WebhookDeliveryTable::EVENT_TYPE => 'contacts.contact.created',
             WebhookDeliveryTable::BODY => '{}',
             WebhookDeliveryTable::STATUS => WebhookDeliveryTable::STATUS_PENDING,
             WebhookDeliveryTable::ATTEMPTS => 0,

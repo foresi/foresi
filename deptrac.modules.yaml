@@ -83,6 +83,26 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Catalog\\Contract\\.*
+    - name: contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Contacts\\(?!Contract\\|Integration\\).*
+    - name: contacts_contract
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Contacts\\Contract\\.*
+    - name: contacts_integration_activities
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Contacts\\Integration\\Activities\\.*
+    - name: contacts_integration_document_templates
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Contacts\\Integration\\DocumentTemplates\\.*
+    - name: contacts_integration_import
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Contacts\\Integration\\Import\\.*
     - name: country
       collectors:
         - type: classLike
@@ -135,6 +155,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Deals\\Integration\\CashFlow\\.*
+    - name: deals_integration_contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Deals\\Integration\\Contacts\\.*
     - name: deals_integration_document_templates
       collectors:
         - type: classLike
@@ -211,6 +235,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Inbox\\Contract\\.*
+    - name: inbox_integration_contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Inbox\\Integration\\Contacts\\.*
     - name: instance
       collectors:
         - type: classLike
@@ -231,6 +259,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Invoicing\\Integration\\CashFlow\\.*
+    - name: invoicing_integration_contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Invoicing\\Integration\\Contacts\\.*
     - name: invoicing_integration_deals
       collectors:
         - type: classLike
@@ -267,6 +299,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Margin\\Integration\\CashFlow\\.*
+    - name: margin_integration_contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Margin\\Integration\\Contacts\\.*
     - name: margin_integration_invoicing
       collectors:
         - type: classLike
@@ -283,18 +319,6 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Party\\Contract\\.*
-    - name: party_integration_activities
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Party\\Integration\\Activities\\.*
-    - name: party_integration_document_templates
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Party\\Integration\\DocumentTemplates\\.*
-    - name: party_integration_import
-      collectors:
-        - type: classLike
-          value: ^Foresi\\Party\\Integration\\Import\\.*
     - name: received_documents
       collectors:
         - type: classLike
@@ -415,6 +439,10 @@ deptrac:
       collectors:
         - type: classLike
           value: ^Foresi\\Work\\Integration\\Activities\\.*
+    - name: work_integration_contacts
+      collectors:
+        - type: classLike
+          value: ^Foresi\\Work\\Integration\\Contacts\\.*
     - name: work_integration_inbox
       collectors:
         - type: classLike
@@ -662,6 +690,80 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
+    contacts:
+      - audit
+      - audit_contract
+      - contacts_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    contacts_contract:
+      - audit
+      - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui_contract
+    contacts_integration_activities:
+      - activities_contract
+      - audit
+      - audit_contract
+      - contacts
+      - contacts_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    contacts_integration_document_templates:
+      - audit
+      - audit_contract
+      - contacts
+      - contacts_contract
+      - document_templates_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    contacts_integration_import:
+      - audit
+      - audit_contract
+      - contacts
+      - contacts_contract
+      - identity
+      - identity_contract
+      - import_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     country:
       - country_contract
       - party
@@ -788,6 +890,24 @@ deptrac:
       - cash_flow_contract
       - catalog
       - catalog_contract
+      - deals
+      - deals_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    deals_integration_contacts:
+      - audit
+      - audit_contract
+      - catalog
+      - catalog_contract
+      - contacts_contract
       - deals
       - deals_contract
       - identity
@@ -1062,6 +1182,26 @@ deptrac:
       - shared
       - shared_contract
       - ui_contract
+    inbox_integration_contacts:
+      - activities
+      - activities_contract
+      - audit
+      - audit_contract
+      - contacts_contract
+      - identity
+      - identity_contract
+      - inbox
+      - inbox_contract
+      - instance
+      - instance_contract
+      - mail
+      - mail_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     instance:
       - instance_contract
       - shared
@@ -1100,6 +1240,22 @@ deptrac:
       - audit
       - audit_contract
       - cash_flow_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - invoicing
+      - invoicing_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+    invoicing_integration_contacts:
+      - audit
+      - audit_contract
+      - contacts_contract
       - identity
       - identity_contract
       - instance
@@ -1237,6 +1393,22 @@ deptrac:
       - shared_contract
       - ui
       - ui_contract
+    margin_integration_contacts:
+      - audit
+      - audit_contract
+      - contacts_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - margin
+      - margin_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
     margin_integration_invoicing:
       - audit
       - audit_contract
@@ -1287,42 +1459,6 @@ deptrac:
       - party
       - shared
       - shared_contract
-      - ui_contract
-    party_integration_activities:
-      - activities_contract
-      - audit
-      - audit_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    party_integration_document_templates:
-      - audit
-      - audit_contract
-      - document_templates_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - shared
-      - shared_contract
-      - ui
-      - ui_contract
-    party_integration_import:
-      - audit
-      - audit_contract
-      - import_contract
-      - instance
-      - instance_contract
-      - party
-      - party_contract
-      - shared
-      - shared_contract
-      - ui
       - ui_contract
     received_documents:
       - attachment
@@ -1772,6 +1908,24 @@ deptrac:
       - attachment_contract
       - audit
       - audit_contract
+      - identity
+      - identity_contract
+      - instance
+      - instance_contract
+      - party
+      - party_contract
+      - shared
+      - shared_contract
+      - ui
+      - ui_contract
+      - work
+      - work_contract
+    work_integration_contacts:
+      - attachment
+      - attachment_contract
+      - audit
+      - audit_contract
+      - contacts_contract
       - identity
       - identity_contract
       - instance

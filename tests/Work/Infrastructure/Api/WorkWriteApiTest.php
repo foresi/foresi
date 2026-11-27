@@ -170,13 +170,13 @@ final class WorkWriteApiTest extends WorkApiTestCase
 
     public function testAProjectIsCreatedUpdatedArchivedAndRestored(): void
     {
-        $this->send('POST', '/api/v1/projects', ['name' => 'Launch', 'workflow' => 'development', 'client_id' => $this->customerId]);
+        // The client of a project is the address book's (tests/Work/Integration/Contacts).
+        $this->send('POST', '/api/v1/projects', ['name' => 'Launch', 'workflow' => 'development']);
         self::assertResponseStatusCodeSame(201);
         $id = $this->at('data', 'id');
         self::assertIsString($id);
         self::assertResponseHeaderSame('Location', '/api/v1/projects/'.$id);
         self::assertSame('development', $this->at('data', 'workflow'));
-        self::assertSame($this->customerId, $this->at('data', 'client', 'id'));
 
         $this->send('PATCH', '/api/v1/projects/'.$id, ['description' => 'The **launch**.', 'client_id' => null]);
         self::assertResponseIsSuccessful();

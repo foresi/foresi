@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * An invitation keeps only the hash of its token, works for a week and once,
- * and is for a member or a guest who represents a contact.
+ * and is for a member or a guest, with or without a contact.
  */
 final class InvitationTest extends TestCase
 {
@@ -143,6 +143,14 @@ final class InvitationTest extends TestCase
         self::assertSame(Role::Guest, $invitation->role());
     }
 
+    public function testAGuestMayRepresentNoContact(): void
+    {
+        $invitation = $this->invitation(Role::Guest);
+
+        self::assertNull($invitation->party());
+        self::assertSame(Role::Guest, $invitation->role());
+    }
+
     /**
      * @return iterable<string, array{string, string, Role, bool, string, string}>
      */
@@ -152,7 +160,6 @@ final class InvitationTest extends TestCase
         yield 'e-mail' => ['not an address', 'Jana', Role::Member, false, 'cs', $hash];
         yield 'name' => ['jana@example.com', '  ', Role::Member, false, 'cs', $hash];
         yield 'owner' => ['jana@example.com', 'Jana', Role::Owner, false, 'cs', $hash];
-        yield 'guest without contact' => ['jana@example.com', 'Jana', Role::Guest, false, 'cs', $hash];
         yield 'locale' => ['jana@example.com', 'Jana', Role::Member, false, 'de', $hash];
         yield 'raw token' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', 'token'];
         yield 'token hash with a prefix' => ['jana@example.com', 'Jana', Role::Member, false, 'cs', 'x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];

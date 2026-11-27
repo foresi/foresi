@@ -76,6 +76,7 @@ work:
     not_allowed: Tohle mohou jen lidé z organizace.
     name: Zadejte název, který není příliš dlouhý.
     client: Jako klienta vyberte existující kontakt.
+    client_unavailable: Tento Foresi nemá adresář, takže projekt nemá klienta.
     archived: Projekt je archivovaný. Nejdřív ho obnovte.
     parent: Podúkol patří pod úkol stejného projektu, který sám není podúkolem.
     responsible: Jako odpovědnou osobu vyberte aktivního člověka z organizace.

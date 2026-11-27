@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d99c9c5b6ef6d24cba67d1ed48e76c1a",
+    "content-hash": "03ffd316297ac0aef69712b9e25d194d",
     "packages": [
         {
             "name": "brick/math",
@@ -1768,7 +1768,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Activities",
-                "reference": "2bafc4db21ba6fd87fa409d606fd89138347920f"
+                "reference": "f693b9a19eb19ce0928b838b59b59fbcaa3d4b61"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1836,7 +1836,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/AiReader",
-                "reference": "3f5a489c642f735fb812b29e6d1b1405ef663e7f"
+                "reference": "c75b68a24027bf73aa57c588c4a0adf50761764e"
             },
             "require": {
                 "foresi/module-api": "^1.0",
@@ -1886,7 +1886,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Attachment",
-                "reference": "83a78cb7afdd3caa43fdf5d61f6cc539f1c20245"
+                "reference": "7b055f3210f97c8e682a6bccba8fc3d1b58afa3f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1944,7 +1944,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Audit",
-                "reference": "4a0275b9ba75dd57953ad13a4796916f6c2eff0d"
+                "reference": "79c650f4b346c1244a8fbf5c59bdfb2d2baaee9f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -1994,7 +1994,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Banking",
-                "reference": "dddea62073fbc6f3495b70460c3d717b97499af7"
+                "reference": "87c55178ea768158231221f46b78f65f207929a9"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2060,7 +2060,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Calendar",
-                "reference": "61b51a1b4d26bd95d7ed2d261a87a0a90131bc33"
+                "reference": "f3dde481e4da52df8c3718f03d3591e81db6d5e1"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2123,7 +2123,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/CashFlow",
-                "reference": "13a2b514066a27ff6cb5e287bcf3c3232fa5ac79"
+                "reference": "b6f99ae123a030e0c7ef7d9acd178587ce4ecf9d"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2192,7 +2192,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Catalog",
-                "reference": "1ba627eacd0eb6b7afca8a325456154313188de5"
+                "reference": "2aace36a54975bb5faab185f84cf9e3da3ae9589"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2249,6 +2249,70 @@
             }
         },
         {
+            "name": "foresi/contacts",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/Contacts",
+                "reference": "d7cfb3b9215b155ffa42d2f3cae1cf567f0c2b68"
+            },
+            "require": {
+                "doctrine/orm": "^3.7.5",
+                "foresi/audit": "self.version",
+                "foresi/identity": "self.version",
+                "foresi/instance": "self.version",
+                "foresi/module-api": "^1.0",
+                "foresi/party": "self.version",
+                "foresi/shared": "self.version",
+                "foresi/ui": "self.version",
+                "psr/clock": "^1.0",
+                "symfony/dependency-injection": "^7.4 || ^8.0",
+                "symfony/event-dispatcher": "^7.4",
+                "symfony/framework-bundle": "7.4.*",
+                "symfony/http-foundation": "^7.4 || ^8.0",
+                "symfony/http-kernel": "^7.4 || ^8.0",
+                "symfony/messenger": "^7.4.24",
+                "symfony/rate-limiter": "7.4.*",
+                "symfony/routing": "^7.4",
+                "symfony/serializer": "7.4.*",
+                "symfony/translation-contracts": "^3.8",
+                "symfony/validator": "7.4.*",
+                "zircote/swagger-php": "^7.5"
+            },
+            "type": "foresi-module",
+            "extra": {
+                "foresi": {
+                    "module": "contacts",
+                    "kind": "module",
+                    "namespace": "Foresi\\Contacts\\",
+                    "bundle": "Foresi\\Contacts\\ContactsBundle",
+                    "optional": [
+                        "activities",
+                        "document-templates",
+                        "import"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Foresi\\Contacts\\": ""
+                }
+            },
+            "license": [
+                "AGPL-3.0-only"
+            ],
+            "description": "The address book: the contacts screens, their API and MCP tools, and the contact events.",
+            "homepage": "https://foresi.app",
+            "support": {
+                "issues": "https://github.com/foresi/foresi/issues",
+                "source": "https://github.com/foresi/foresi"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "foresi/core",
             "version": "dev-main",
             "dist": {
@@ -2286,7 +2350,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Country",
-                "reference": "04cffe76e01d89eb667aa84e946e267775191e1a"
+                "reference": "01b8240cad49a55a480f72a18dc39255549dd79b"
             },
             "require": {
                 "chillerlan/php-qrcode": "^6.0.1",
@@ -2339,7 +2403,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Deals",
-                "reference": "7871bea9975d66bba2c6069331970a3b274387b7"
+                "reference": "ddd11c176ad7b5a18eb8972972eb0133b98c379c"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2380,7 +2444,8 @@
                         "invoicing",
                         "timesheet",
                         "work",
-                        "inbox"
+                        "inbox",
+                        "contacts"
                     ],
                     "scopes": [
                         "sales"
@@ -2415,7 +2480,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/DocumentTemplates",
-                "reference": "bc24b9f217788531fe23dce6db14ee8c21622895"
+                "reference": "5f8e7440dde88f024357e741a703cfe7c8fb1874"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2482,7 +2547,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Events",
-                "reference": "293d15b9c33d01eac2dbce73adad08c65febf22e"
+                "reference": "6762cbe3d7ee46dbb937bbcab5b37f37b163ae2a"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2549,7 +2614,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ExchangeRate",
-                "reference": "58d0dc83eeffee6da9f030244187e8afdf9b9fe4"
+                "reference": "6abf9ef77287a58eebff99d71a829abbe3c0cdcc"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -2614,7 +2679,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Identity",
-                "reference": "423493cbe3ed92487726e4684b2b24950a10d76e"
+                "reference": "5ada7e080a0008576b43691068474a6dbdb57344"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2698,7 +2763,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Idoklad",
-                "reference": "4acff4ae50a475093272e6df6de93e5c00c51d47"
+                "reference": "97c06d10007ae3904fdf71aef1596e45d81cfc7c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2763,7 +2828,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Import",
-                "reference": "6bdb0c36d94c64873eeddc34d79d2ad48295f55c"
+                "reference": "926e453f00f66a95be055452dad774254287a331"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2827,7 +2892,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Inbox",
-                "reference": "8044a2ed98741a7d8a8be968bb160ae1e90f5550"
+                "reference": "a0935054dbd82401d21029eace5c22f090a7375b"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2861,7 +2926,9 @@
                     "kind": "module",
                     "namespace": "Foresi\\Inbox\\",
                     "bundle": "Foresi\\Inbox\\InboxBundle",
-                    "optional": [],
+                    "optional": [
+                        "contacts"
+                    ],
                     "scopes": [
                         "inbox"
                     ]
@@ -2895,7 +2962,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Instance",
-                "reference": "97340a4ac8c012b7efbaffb5934623f6fdb97561"
+                "reference": "ae9db5ebb9a13441eb0641fc4c183d760b7e6022"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -2956,7 +3023,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Invoicing",
-                "reference": "b5a13c337438533cc025f2dd667308dc8d1db37b"
+                "reference": "164e3518cd1729e4fea474e8a075e6229e4b5c5c"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3008,7 +3075,8 @@
                         "margin",
                         "deals",
                         "taxes-and-contributions",
-                        "vat"
+                        "vat",
+                        "contacts"
                     ],
                     "scopes": [
                         "invoices",
@@ -3044,7 +3112,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Mail",
-                "reference": "fd3d64141fa27684a825229b09feea5088e4109c"
+                "reference": "b6280a7957911e2fa712e56762497cf74e4e05ef"
             },
             "require": {
                 "directorytree/imapengine": "~1.25.7",
@@ -3111,7 +3179,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Margin",
-                "reference": "6e4721769eee7b7cdba08877ee444792289a215a"
+                "reference": "5ca9303f52e391b2a495d2f678ef41255e858b75"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3147,7 +3215,8 @@
                     "optional": [
                         "cash-flow",
                         "invoicing",
-                        "received-documents"
+                        "received-documents",
+                        "contacts"
                     ],
                     "scopes": [
                         "margin"
@@ -3182,7 +3251,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Party",
-                "reference": "019b08ff4fbe6376bfc9bb9fb2c07c6d818bd80d"
+                "reference": "71e11372d62514c64f9683c5f1d7477348942700"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3203,10 +3272,9 @@
                 "symfony/messenger": "^7.4.24",
                 "symfony/rate-limiter": "7.4.*",
                 "symfony/routing": "^7.4",
-                "symfony/serializer": "7.4.*",
                 "symfony/service-contracts": "^3.8",
                 "symfony/translation-contracts": "^3.8",
-                "symfony/validator": "7.4.*",
+                "twig/twig": "^3.30",
                 "zircote/swagger-php": "^7.5"
             },
             "type": "foresi-module",
@@ -3216,11 +3284,6 @@
                     "kind": "core",
                     "namespace": "Foresi\\Party\\",
                     "bundle": "Foresi\\Party\\PartyBundle",
-                    "optional": [
-                        "activities",
-                        "document-templates",
-                        "import"
-                    ],
                     "scopes": [
                         "contacts"
                     ]
@@ -3237,7 +3300,7 @@
             "license": [
                 "AGPL-3.0-only"
             ],
-            "description": "Address book of people and organisations.",
+            "description": "The party record: the people and organisations other modules name, and the firm of the instance.",
             "homepage": "https://foresi.app",
             "support": {
                 "issues": "https://github.com/foresi/foresi/issues",
@@ -3254,7 +3317,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/ReceivedDocuments",
-                "reference": "220f9caf9a6c35b9e16508088777882ef3c595a5"
+                "reference": "d74fa6a2c0a1292c7bdf57017b70242b9ab5e72b"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3335,7 +3398,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Shared",
-                "reference": "d03296ec6d80ff550402a34c8ffa94eb2d9ddf50"
+                "reference": "eec358b73b78d1a507792f6223556b93bf6ffdc4"
             },
             "require": {
                 "brick/math": "^1.0",
@@ -3451,7 +3514,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/TaxesAndContributions",
-                "reference": "7460b6ec074c8e7b52fe29c7ab7199e5a3d6bc5a"
+                "reference": "d52a8e382949842d516be7a4b44dcbfeaa052271"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3521,7 +3584,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Timesheet",
-                "reference": "3f7f218529083189e707b55e462c48e2b4c99764"
+                "reference": "664e078cf6de7d6465548f586ed0330c5da23c14"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3594,7 +3657,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Ui",
-                "reference": "3f8c650b21cdb673ec2599324a162563d8f138cc"
+                "reference": "560b2ee31bb4800654d879a2497da39a52d2d415"
             },
             "require": {
                 "foresi/module-api": "^1.0",
@@ -3659,7 +3722,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Vat",
-                "reference": "41d6834dfbce0b04730a373960198a8817d137a0"
+                "reference": "803d410dfe47d6ff18b2445459cc48e6c9926a3f"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3729,7 +3792,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Webhooks",
-                "reference": "4f155e7ca840f59db17bc8a1ccea64a4ba8ad740"
+                "reference": "abbdbb0a4dee5397c563c669a55c40249c3b7626"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3803,7 +3866,7 @@
             "dist": {
                 "type": "path",
                 "url": "src/Work",
-                "reference": "9e8ca72d65e9e2ab45983ae2f2a494e40c241997"
+                "reference": "f873b90e73648232916833c523b17729799c120b"
             },
             "require": {
                 "doctrine/dbal": "^4.5",
@@ -3843,7 +3906,8 @@
                     "bundle": "Foresi\\Work\\WorkBundle",
                     "optional": [
                         "activities",
-                        "inbox"
+                        "inbox",
+                        "contacts"
                     ],
                     "scopes": [
                         {
@@ -20575,6 +20639,7 @@
         "foresi/calendar": 20,
         "foresi/cash-flow": 20,
         "foresi/catalog": 20,
+        "foresi/contacts": 20,
         "foresi/core": 20,
         "foresi/country": 20,
         "foresi/deals": 20,

@@ -10,7 +10,7 @@ namespace Foresi\Party\Infrastructure\Directory;
 
 use Foresi\Party\Application\Query\ContactRow;
 use Foresi\Party\Contract\ContactDueDays;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyRole;

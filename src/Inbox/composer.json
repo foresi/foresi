@@ -47,7 +47,9 @@
             "kind": "module",
             "namespace": "Foresi\\Inbox\\",
             "bundle": "Foresi\\Inbox\\InboxBundle",
-            "optional": [],
+            "optional": [
+                "contacts"
+            ],
             "scopes": [
                 "inbox"
             ]

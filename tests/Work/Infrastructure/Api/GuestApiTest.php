@@ -141,10 +141,11 @@ final class GuestApiTest extends WorkApiTestCase
         $member = $this->fixtures->user('member@example.com');
         $this->fixtures->join($member, Role::Member);
         $this->writer = $this->connection($member, [ApiScope::from('contacts:read'), ApiScope::from('tasks:write')]);
-        self::assertFalse($this->mcpTool('foresi_search_contacts', [])['isError'] ?? false);
+        // foresi_get_firm is Party's, so it reads with or without the address book.
+        self::assertNotSame('insufficient_scope', $this->mcpTool('foresi_get_firm', [])['structuredContent']['error']['code'] ?? null);
 
         $this->em()->getConnection()->executeStatement("UPDATE membership SET role = 'guest' WHERE id = ?", [$this->membershipOf($member)->id()]);
-        self::assertSame('insufficient_scope', self::in($this->mcpTool('foresi_search_contacts', []), 'structuredContent', 'error', 'code'));
+        self::assertSame('insufficient_scope', self::in($this->mcpTool('foresi_get_firm', []), 'structuredContent', 'error', 'code'));
         self::assertSame(['tasks:write'], self::in($this->mcpTool('foresi_whoami', []), 'structuredContent', 'data', 'token', 'scopes'));
     }
 

@@ -128,9 +128,10 @@ start fresh after a deploy.
    ```
 
    The role is `owner`, `member` (a team member of the staff) or `guest` (someone
-   the organisation shares work with, who sees none of its modules). A guest
-   represents a contact of the organisation: pass its id with `--contact=<id>`.
-   A team member may pass their own person record the same way.
+   the organisation shares work with, who sees none of its modules). To link
+   the contact a person represents, pass its id with `--contact=<id>`; it is
+   optional for every role, a guest included, and a team member may pass their
+   own person record the same way.
 
 6. Sign in. With `APP_REQUIRE_2FA=true` the first sign-in asks to scan a QR code
    with an authenticator app and to keep the recovery codes. A user who loses
@@ -507,6 +508,19 @@ rename. The map is `MigrationHistoryRename::RENAMES`: `Purchasing` became
 migrations. `--check` changes nothing and tells the state by its exit code: 0
 when nothing is left to rename, 2 when a rename is due, 1 when the old and the
 new row of one version both exist (the deploy stops).
+
+### The address book as its own module
+
+The address book (the contact screens, their API and MCP tools) is the module
+`foresi/contacts`; Party, in the core, keeps the record of a contact and the
+firm. An instance that shows contacts installs `foresi/contacts`
+(`composer require foresi/contacts`); one without it keeps every stored
+contact, but has no Contacts item, no client on its projects and no contact
+link on its records. No table moves. A Party migration renames the stored
+events of a contact from `party.contact.*` to `contacts.contact.*` in the event
+log and the webhook deliveries, and gives an endpoint that took `party.*` the
+events of `contacts.*` too, on every instance. The token scope `contacts` stays
+Party's, so the firm's tools keep working without the address book.
 
 ## Monitoring
 

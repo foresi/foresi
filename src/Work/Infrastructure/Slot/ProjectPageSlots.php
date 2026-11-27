@@ -10,6 +10,7 @@ namespace Foresi\Work\Infrastructure\Slot;
 
 use Foresi\Ui\Slot\SlotRegistry;
 use Foresi\Work\Application\ProjectSummary;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Contract\ProjectSlots;
 use Foresi\Work\Infrastructure\Controller\ProjectController;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -18,19 +19,22 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * What other modules add to a project's page through ProjectSlots: the
  * sections that follow List and Board as tabs, the one asked for by ?tab=, the
  * facts and the actions of the header, and the cards of its settings. The
- * deal's page shows its sections the same way.
+ * deal's page shows its sections the same way. The header's first fact is the
+ * project's client, where the address book is installed (ProjectClients).
  */
 final readonly class ProjectPageSlots
 {
     /** A section's key: lowercase letters, digits and dashes. */
     private const string KEY = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/D';
+    /** The client line of the header, a template of Work's Contacts integration. */
+    private const string CLIENT_FACT = '@Work/projects/_client_fact.html.twig';
 
-    public function __construct(private SlotRegistry $slots, private UrlGeneratorInterface $urls)
+    public function __construct(private SlotRegistry $slots, private UrlGeneratorInterface $urls, private ?ProjectClients $clients = null)
     {
     }
 
     /**
-     * @return array{sectionTabs: list<array{label: string, href: string, active: bool}>, section: array{key: string, label: string, href: ?string, template: ?string, data: array<string, mixed>}|null, headerFacts: list<array{template: string, data: array<string, mixed>}>, headerActions: list<array{template: string, data: array<string, mixed>}>, slotContext: array<string, mixed>}
+     * @return array{sectionTabs: list<array{label: string, href: string, active: bool}>, section: array{key: string, label: string, href: ?string, template: ?string, data: array<string, mixed>}|null, clientFact: ?string, headerFacts: list<array{template: string, data: array<string, mixed>}>, headerActions: list<array{template: string, data: array<string, mixed>}>, slotContext: array<string, mixed>}
      */
     public function of(ProjectSummary $project, string $tab = ''): array
     {
@@ -47,6 +51,7 @@ final readonly class ProjectPageSlots
                 'active' => $item['key'] === ($section['key'] ?? null),
             ], $sections),
             'section' => $section,
+            'clientFact' => $this->clients instanceof ProjectClients && null !== $project->clientId ? self::CLIENT_FACT : null,
             'headerFacts' => $this->templated(ProjectSlots::HEADER_FACTS, $context),
             'headerActions' => $this->templated(ProjectSlots::HEADER_ACTIONS, $context),
             'slotContext' => $context,

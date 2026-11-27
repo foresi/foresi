@@ -16,6 +16,7 @@ use Foresi\Work\Application\View\ProjectLists;
 /**
  * The columns of the projects index, the ones it showed before saved views; each cell
  * renders one ProjectIndexRow. The name leads and stays; the server sorts by it alone.
+ * The client's column is Work's Contacts integration's (ProjectClientColumns).
  */
 final readonly class ProjectColumns implements DataSource
 {
@@ -30,7 +31,6 @@ final readonly class ProjectColumns implements DataSource
 
         return [
             new Attribute('name', $label('name'), AttributeType::Text, static fn (ProjectIndexRow $row): string => $row->name, sort: 'p.name', defaultVisible: true, defaultPosition: 10, cell: static fn (ProjectIndexRow $row): string => $row->name, locked: true, truncate: true, filterable: true),
-            new Attribute('client', $label('client'), AttributeType::Reference, static fn (ProjectIndexRow $row): ?string => $row->client, defaultVisible: true, defaultPosition: 20, cell: static fn (ProjectIndexRow $row): ?array => null === $row->clientHref ? null : ['links' => [['text' => $row->client ?? '', 'href' => $row->clientHref]]], phone: false, truncate: true),
             new Attribute('open', $label('open'), AttributeType::Number, static fn (ProjectIndexRow $row): int => $row->openTasks, defaultVisible: true, defaultPosition: 30, cell: static fn (ProjectIndexRow $row): string => (string) $row->openTasks),
             new Attribute('due', $label('due'), AttributeType::Text, static fn (ProjectIndexRow $row): ?string => $row->due, defaultVisible: true, defaultPosition: 40, cell: static fn (ProjectIndexRow $row): ?string => $row->due, phone: false),
         ];

@@ -27,6 +27,8 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class FirmApiController
 {
     public const string SHOW = 'api_v1_firm';
+    /** The scope of the address book, which Party declares, so the firm is read with or without it. */
+    public const string READ_SCOPE = 'contacts:read';
 
     public function __construct(private ScopeGuard $scope, private FirmDetails $firm)
     {
@@ -41,7 +43,7 @@ final readonly class FirmApiController
     #[OA\Response(response: 429, description: 'The token made too many requests.', content: new OA\JsonContent(ref: '#/components/schemas/Problem'))]
     public function show(): JsonResponse
     {
-        $this->scope->require(ContactApiController::READ_SCOPE);
+        $this->scope->require(self::READ_SCOPE);
         try {
             $firm = $this->firm->get();
         } catch (PartyNotAllowed $refused) {

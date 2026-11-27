@@ -133,9 +133,6 @@ final class TaskListControllerTest extends WebTestCase
         self::assertSame(['Other (2)', 'Website (3)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
         self::assertSame(['Order the hosting', 'Sort the inbox', 'Call the client', 'Fix the form', 'Plan the launch'], $this->titles($crawler));
 
-        $crawler = $this->client->request('GET', '/tasks?view=all&group=client');
-        self::assertSame(['Example Client (3)', 'No client (2)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
-
         $crawler = $this->client->request('GET', '/tasks?view=all&group=responsible&sort=title');
         self::assertSame(['Example Company (3)', 'Unassigned (2)'], $crawler->filter('[data-task-group] h2')->each(static fn (Crawler $title): string => trim($title->text())));
         self::assertSame(['Call the client', 'Fix the form', 'Plan the launch', 'Order the hosting', 'Sort the inbox'], $this->titles($crawler));

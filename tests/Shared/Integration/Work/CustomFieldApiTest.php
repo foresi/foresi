@@ -126,12 +126,12 @@ final class CustomFieldApiTest extends WorkApiTestCase
         $this->send('PATCH', '/api/v1/contacts/'.$id, ['custom_fields' => ['test_fields_size' => 'small', 'test_fields_code' => null]]);
         self::assertResponseIsSuccessful();
         self::assertSame(['test_fields_code' => null, 'test_fields_due' => '2026-12-01', 'test_fields_size' => 'small'], $this->values($this->at('data', 'custom_fields'), 'test_fields_code', 'test_fields_due', 'test_fields_size'));
-        self::assertSame(['test_fields_size', 'test_fields_code'], $this->eventKeys('party.contact.updated', $id));
+        self::assertSame(['test_fields_size', 'test_fields_code'], $this->eventKeys('contacts.contact.updated', $id));
 
         // An update without custom_fields keeps them.
         $this->send('PATCH', '/api/v1/contacts/'.$id, ['phone' => '+420 111 111 111']);
         self::assertSame('small', $this->at('data', 'custom_fields', 'test_fields_size'));
-        self::assertSame([], $this->eventKeys('party.contact.updated', $id));
+        self::assertSame([], $this->eventKeys('contacts.contact.updated', $id));
 
         $call = $this->mcpTool('foresi_update_contact', ['contact_id' => $id, 'custom_fields' => ['test_fields_tags' => ['blue']]]);
         self::assertFalse($call['isError'] ?? false, json_encode($call, \JSON_THROW_ON_ERROR));

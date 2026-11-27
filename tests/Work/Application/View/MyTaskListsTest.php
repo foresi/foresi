@@ -13,18 +13,20 @@ use Foresi\Shared\Application\View\Field;
 use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Domain\View\Placement;
 use Foresi\Work\Application\View\MyTaskLists;
+use Foresi\Work\Contract\ProjectClients;
 use PHPUnit\Framework\TestCase;
 
 /**
- * My tasks' list definition (saved views D3, D12): its fields and the tabs it had, none counted (D9).
+ * My tasks' list definition (saved views D3, D12): its fields, the client only where the address
+ * book is installed, and the tabs it had, none counted (D9).
  */
 final class MyTaskListsTest extends TestCase
 {
     public function testItShipsAllAndTheTabsItHadInTheirOrderWithoutCounts(): void
     {
-        $list = MyTaskLists::list();
+        $list = new MyTaskLists(self::clients())->list();
 
-        self::assertEquals([$list], iterator_to_array(new MyTaskLists()->lists()));
+        self::assertEquals([$list], iterator_to_array(new MyTaskLists(self::clients())->lists()));
         self::assertSame('work.my_tasks', $list->key);
         self::assertSame(
             [
@@ -42,7 +44,7 @@ final class MyTaskListsTest extends TestCase
 
     public function testItsFieldsAreHowTheTaskIsMineAndTheClient(): void
     {
-        $fields = MyTaskLists::list()->fields;
+        $fields = new MyTaskLists(self::clients())->list()->fields;
 
         self::assertSame(['involvement' => 'work.my_tasks.involvement', 'client' => 'work.my_tasks.client'], array_map(static fn (Field $field): string => $field->label, $fields));
         self::assertSame(FieldType::Enum, $fields['involvement']->type);
@@ -50,5 +52,37 @@ final class MyTaskListsTest extends TestCase
         self::assertSame(['responsible', 'watcher'], $fields['involvement']->options);
         self::assertSame(FieldType::Reference, $fields['client']->type);
         self::assertSame('contact', $fields['client']->source);
+    }
+
+    public function testWithoutTheAddressBookItHasNoClient(): void
+    {
+        $list = new MyTaskLists()->list();
+
+        self::assertSame(['involvement'], array_keys($list->fields));
+        self::assertSame([], $list->pinned);
+        self::assertCount(3, $list->defaults);
+    }
+
+    /**
+     * The address book as Work's Contacts integration answers it, without its pages.
+     */
+    private static function clients(): ProjectClients
+    {
+        return new class implements ProjectClients {
+            public function pickerUrl(): string
+            {
+                return '/projects/clients';
+            }
+
+            public function name(string $id): ?string
+            {
+                return null;
+            }
+
+            public function pageUrl(string $id): ?string
+            {
+                return null;
+            }
+        };
     }
 }

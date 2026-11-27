@@ -39,6 +39,7 @@ final readonly class WorkLists
         private ProjectLists $projectLists,
         private TaskLists $taskLists,
         private WorkJson $json,
+        private MyTaskLists $myTaskLists,
     ) {
     }
 
@@ -67,14 +68,14 @@ final readonly class WorkLists
             return $this->taskLists->list();
         }
         if (str_starts_with($viewId, MyTaskLists::KEY.'.')) {
-            return MyTaskLists::list();
+            return $this->myTaskLists->list();
         }
         if (str_starts_with($viewId, TaskLists::KEY.'.')) {
             return $this->taskLists->list();
         }
         $this->scope->require(AppliedView::VIEWS_SCOPE);
 
-        return MyTaskLists::KEY === $this->views->get($viewId)->listKey() ? MyTaskLists::list() : $this->taskLists->list();
+        return MyTaskLists::KEY === $this->views->get($viewId)->listKey() ? $this->myTaskLists->list() : $this->taskLists->list();
     }
 
     /**

@@ -10,7 +10,7 @@ import { openMoreActions } from '../support/header';
 // This spec changes data. It runs in the "lifecycle" project, after the read-only specs.
 test.use({ storageState: OWNER_STATE });
 
-const FIXTURE = path.resolve(__dirname, '../../Party/Fixtures/idoklad-contacts.csv');
+const FIXTURE = path.resolve(__dirname, '../../Contacts/Fixtures/idoklad-contacts.csv');
 const VIEWPORTS = { desktop: { width: 1440, height: 960 }, mobile: { width: 390, height: 844 } } as const;
 // Content captures show the docked action bar where it sits at the end of the page, not where the
 // viewport happened to end during the capture.

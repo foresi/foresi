@@ -54,7 +54,8 @@
                 "invoicing",
                 "timesheet",
                 "work",
-                "inbox"
+                "inbox",
+                "contacts"
             ],
             "scopes": [
                 "sales"

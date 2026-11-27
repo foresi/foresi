@@ -9,11 +9,11 @@ declare(strict_types=1);
 namespace Foresi\Tests\Deals\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Foresi\Contacts\Application\LinkContactPerson;
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Domain\Stage;
 use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Security\SecurityUser;
-use Foresi\Party\Application\LinkContactPerson;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\Party;

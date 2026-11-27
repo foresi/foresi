@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\ReceivedDocuments\Infrastructure\Column;
 
 use Foresi\Instance\Application\InstanceClock;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\ReceivedDocuments\Application\Query\ReceivedDocumentRow;
 use Foresi\ReceivedDocuments\Application\View\ReceivedDocumentLists;
 use Foresi\ReceivedDocuments\Domain\ReadingState;
@@ -18,7 +19,6 @@ use Foresi\Shared\Domain\Money;
 use Foresi\Shared\Domain\View\AttributeType;
 use Foresi\Ui\Contract\Attribute;
 use Foresi\Ui\Contract\DataSource;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -34,10 +34,10 @@ final readonly class ReceivedDocumentColumns implements DataSource
 
     public function __construct(
         private TranslatorInterface $translator,
-        private UrlGeneratorInterface $urls,
         private PurchasingText $text,
         private ReceivedDocumentScreen $screen,
         private InstanceClock $clock,
+        private ?ContactPages $contactPages = null,
     ) {
     }
 
@@ -91,7 +91,9 @@ final readonly class ReceivedDocumentColumns implements DataSource
             return $row->supplierName;
         }
 
-        return ['links' => [['text' => $row->supplierName, 'href' => $this->urls->generate('app_contact_show', ['id' => $row->supplierId])]], 'title' => $row->supplierName];
+        $href = $this->contactPages?->urlFor($row->supplierId);
+
+        return null === $href ? $row->supplierName : ['links' => [['text' => $row->supplierName, 'href' => $href]], 'title' => $row->supplierName];
     }
 
     /**

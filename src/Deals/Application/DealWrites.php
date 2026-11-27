@@ -33,8 +33,6 @@ use Foresi\Deals\Domain\DealLink;
 use Foresi\Deals\Domain\DealLinkType;
 use Foresi\Deals\Domain\LostReason;
 use Foresi\Deals\Domain\Stage;
-use Foresi\Party\Contract\ContactPersonRefused;
-use Foresi\Party\Contract\ContactPersonWrites;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\PartySummary;
@@ -63,10 +61,10 @@ final readonly class DealWrites
         private EventRecorder $events,
         private SalesClock $clock,
         private PartyDirectory $parties,
-        private ContactPersonWrites $contactPersons,
         private LineProjects $projects,
         private CustomFieldWrites $customFields,
         private BillingPlanWrites $billingPlan,
+        private ?ClientPersons $clientPersons = null,
     ) {
     }
 
@@ -77,8 +75,8 @@ final readonly class DealWrites
      * @param array<string, mixed>|null $customFields the custom fields by key, each required one with a value; null when the caller offers none
      *
      * @throws SalesRefused
-     * @throws ContactPersonRefused nothing is stored
-     * @throws FieldRefused         nothing is stored
+     * @throws ClientPersonRefused nothing is stored
+     * @throws FieldRefused        nothing is stored
      */
     public function create(CreateDealInput $input, ?ContactPersonDraft $newPerson = null, ?array $customFields = null): Deal
     {
@@ -121,8 +119,8 @@ final readonly class DealWrites
      * @param array<string, mixed>|null $customFields the custom fields to change by key, null clearing one; null when the caller offers none
      *
      * @throws SalesRefused
-     * @throws ContactPersonRefused nothing is stored
-     * @throws FieldRefused         nothing is stored
+     * @throws ClientPersonRefused nothing is stored
+     * @throws FieldRefused        nothing is stored
      */
     public function update(UpdateDealInput $input, ?ContactPersonDraft $newPerson = null, ?array $customFields = null): Deal
     {
@@ -404,13 +402,17 @@ final readonly class DealWrites
      *
      * @return list<string>
      *
-     * @throws ContactPersonRefused
+     * @throws ClientPersonRefused
      */
     private function withNewPerson(string $clientId, array $persons, ContactPersonDraft $draft): array
     {
+        if (null === $this->clientPersons) {
+            // Without the address book there is no person to add to the client.
+            throw new ClientPersonRefused([$draft->isExisting() ? 'person' : 'name' => ClientPersonRefused::PERSON]);
+        }
         $person = $draft->isExisting()
-            ? $this->contactPersons->link($clientId, (string) $draft->personId, $draft->position)
-            : $this->contactPersons->addNew($clientId, $draft->name, $draft->email, $draft->position);
+            ? $this->clientPersons->link($clientId, (string) $draft->personId, $draft->position)
+            : $this->clientPersons->addNew($clientId, $draft->name, $draft->email, $draft->position);
         if (!\in_array($person->id, $persons, true)) {
             $persons[] = $person->id;
         }

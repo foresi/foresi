@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Import\Application;
 
+use Foresi\Contacts\Integration\Import\PartyImportTarget;
 use Foresi\Import\Application\ImportFiles;
 use Foresi\Import\Application\ImportJobs;
 use Foresi\Import\Application\Imports;
@@ -16,7 +17,6 @@ use Foresi\Import\Application\StartImport;
 use Foresi\Import\Application\Target\TargetRegistry;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Infrastructure\LocalImportFiles;
-use Foresi\Party\Integration\Import\PartyImportTarget;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Filesystem\Filesystem;

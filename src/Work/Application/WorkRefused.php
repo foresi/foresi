@@ -20,7 +20,7 @@ use Foresi\Shared\Contract\Refused;
  */
 final class WorkRefused extends \DomainException implements Refused
 {
-    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'estimate', 'date'];
+    public const array REASONS = ['unknown', 'not_allowed', 'name', 'client', 'client_unavailable', 'archived', 'parent', 'responsible', 'watcher', 'last_open', 'last_done', 'target_status', 'label_taken', 'label_restore_taken', 'comment_empty', 'comment_too_long', 'comment_not_yours', 'comment_deleted', 'comment_purged', 'task_not_yours', 'parent_in_trash', 'share_person', 'estimate', 'date'];
 
     /** What the person may not do, whatever they send: 403. */
     private const array FORBIDDEN = ['not_allowed', 'comment_not_yours', 'task_not_yours'];
@@ -30,7 +30,7 @@ final class WorkRefused extends \DomainException implements Refused
 
     /** The input field a reason is about, where it is always the same one. */
     private const array FIELDS = [
-        'client' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body', 'estimate' => 'estimateMinutes',
+        'client' => 'clientId', 'client_unavailable' => 'clientId', 'parent' => 'parentId', 'responsible' => 'responsibleId', 'comment_empty' => 'body', 'comment_too_long' => 'body', 'estimate' => 'estimateMinutes',
     ];
 
     /** For people and agents; never quoting what someone wrote. */
@@ -39,6 +39,7 @@ final class WorkRefused extends \DomainException implements Refused
         'not_allowed' => 'Only the owners and team members of the organisation may do this.',
         'name' => 'The name or title is empty or too long.',
         'client' => 'The client must be a contact of the address book.',
+        'client_unavailable' => 'This Foresi has no address book, so a project has no client; leave client_id out.',
         'archived' => 'The project is archived; restore it first.',
         'parent' => 'A subtask goes under a task of the same project that is not a subtask itself.',
         'responsible' => 'The responsible must be an active person of the organisation who sees the task; find them with foresi_list_project_people.',

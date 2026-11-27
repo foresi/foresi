@@ -10,7 +10,7 @@ namespace Foresi\Tests\Deals\Integration\Inbox;
 
 use Foresi\Deals\Domain\Deal;
 use Foresi\Deals\Integration\Inbox\CreateDealFromEmailPreFill;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactKind;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartySummary;
 use Foresi\Tests\Inbox\Support\ItemViews;

@@ -15,13 +15,14 @@ use Foresi\Shared\Application\View\FieldType;
 use Foresi\Shared\Application\View\ListDefinition;
 use Foresi\Shared\Application\View\ListDefinitionSource;
 use Foresi\Shared\Application\View\ViewFilter;
+use Foresi\Work\Contract\ProjectClients;
 
 /**
  * My unfinished tasks and the views they ship (spec D12): All, which every list starts
  * with, holds the tasks I am responsible for and those I watch; Assigned to me and
  * Watching are the tabs the list had, each the same tasks as before. The client of the
- * project, the select the list's sheet had, is a field of the filter sheet (D11). The list
- * counts nothing (D9).
+ * project, the select the list's sheet had, is a field of the filter sheet (D11), where the
+ * address book is installed (ProjectClients). The list counts nothing (D9).
  */
 final readonly class MyTaskLists implements ListDefinitionSource
 {
@@ -40,23 +41,29 @@ final readonly class MyTaskLists implements ListDefinitionSource
     /** What a client reference points to: the builder picks one with the contact picker. */
     public const string CONTACT = 'contact';
 
-    public function lists(): iterable
+    public function __construct(private ?ProjectClients $clients = null)
     {
-        yield self::list();
     }
 
-    public static function list(): ListDefinition
+    public function lists(): iterable
     {
+        yield $this->list();
+    }
+
+    public function list(): ListDefinition
+    {
+        $clients = $this->clients instanceof ProjectClients;
+
         return new ListDefinition(self::KEY, [
             new Field(self::INVOLVEMENT, FieldType::Enum, 'work.my_tasks.involvement', options: [self::RESPONSIBLE, self::WATCHER], optionLabels: [
                 self::RESPONSIBLE => 'work.my_tasks.involvement_option.'.self::RESPONSIBLE,
                 self::WATCHER => 'work.my_tasks.involvement_option.'.self::WATCHER,
             ]),
-            new Field(self::CLIENT, FieldType::Reference, 'work.my_tasks.client', source: self::CONTACT),
+            ...$clients ? [new Field(self::CLIENT, FieldType::Reference, 'work.my_tasks.client', source: self::CONTACT)] : [],
         ], [
             new DefaultView(ListDefinition::ALL, 'work.my_tasks.tab.all', showCount: false, position: 0),
             new DefaultView(self::ASSIGNED, 'work.my_tasks.tab.assigned', ViewFilter::all(new Condition(self::INVOLVEMENT, 'is', self::RESPONSIBLE)), showCount: false, position: 1),
             new DefaultView(self::WATCHING, 'work.my_tasks.tab.watching', ViewFilter::all(new Condition(self::INVOLVEMENT, 'is', self::WATCHER)), showCount: false, position: 2),
-        ], [self::CLIENT]);
+        ], $clients ? [self::CLIENT] : []);
     }
 }

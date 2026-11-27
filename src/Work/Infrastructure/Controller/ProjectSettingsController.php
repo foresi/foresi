@@ -21,6 +21,7 @@ use Foresi\Work\Application\StatusChoice;
 use Foresi\Work\Application\WorkQueries;
 use Foresi\Work\Application\WorkRefused;
 use Foresi\Work\Contract\Field\ProjectExtension;
+use Foresi\Work\Contract\ProjectClients;
 use Foresi\Work\Domain\StatusType;
 use Foresi\Work\Domain\WorkflowTemplate;
 use Foresi\Work\Infrastructure\Slot\ProjectPageSlots;
@@ -60,12 +61,14 @@ final class ProjectSettingsController extends AbstractController
         private readonly CustomFieldForm $customFields,
         private readonly ProjectPageSlots $pageSlots,
         private readonly ProjectTrashPage $trash,
+        private readonly ?ProjectClients $clients = null,
     ) {
     }
 
     /**
      * The page, and the save of its general part: the name, the client, the
-     * description and its custom fields under "Additional details".
+     * description and its custom fields under "Additional details". Without the
+     * address book the form has no client, and the save keeps the one the project has.
      */
     #[Route('/projects/{id}/settings', name: self::ROUTE, requirements: ['id' => Requirement::UUID_V7], methods: ['GET', 'POST'])]
     public function settings(string $id, Request $request): Response
@@ -81,6 +84,10 @@ final class ProjectSettingsController extends AbstractController
             $custom = $this->customFields->read(ProjectExtension::RECORD, $request, false);
             foreach (array_keys($values) as $field) {
                 $values[$field] = 'description' === $field ? $request->request->getString($field) : trim($request->request->getString($field));
+            }
+            if (!$this->clients instanceof ProjectClients) {
+                $values['clientId'] = $project->clientId ?? '';
+                $values['clientQuery'] = $project->clientName ?? '';
             }
             if ('' === $values['name']) {
                 $errors['name'] = $this->translator->trans('work.project.error.name_required');
@@ -107,6 +114,8 @@ final class ProjectSettingsController extends AbstractController
         return $this->render('@Work/projects/settings.html.twig', [
             'project' => $project,
             'values' => $values,
+            // The client field, only where the address book is installed.
+            'clientPicker' => $this->clients?->pickerUrl(),
             'customValues' => $custom?->values,
             'customErrors' => $custom->errors ?? [],
             // The cards other modules add after the general settings, such as the rate of the project's time.

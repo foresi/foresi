@@ -31,28 +31,21 @@ final class MembershipTest extends TestCase
         self::assertTrue(Id::isValid($membership->id()));
     }
 
-    public function testAGuestMembershipMustLinkAContact(): void
+    public function testAGuestMayRepresentNoContact(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessageIsOrContains('A guest membership must link the contact the person represents.');
-
-        new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Guest);
+        self::assertNull(new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Guest)->party());
     }
 
-    public function testAGuestCannotBeMadeWithoutAContact(): void
+    public function testARoleChangeSetsTheContactOrNone(): void
     {
         $membership = new Membership(new User('testing@example.com', 'hash', 'Example Company'), Role::Member);
 
-        try {
-            $membership->changeRole(Role::Guest, null);
-            self::fail('A guest without a contact was accepted.');
-        } catch (\InvalidArgumentException) {
-        }
+        $membership->changeRole(Role::Guest, null);
+        self::assertSame(Role::Guest, $membership->role());
+        self::assertNull($membership->party());
 
-        self::assertSame(Role::Member, $membership->role());
         $party = $this->contact();
         $membership->changeRole(Role::Guest, $party);
-        self::assertSame(Role::Guest, $membership->role());
         self::assertSame($party, $membership->party());
     }
 

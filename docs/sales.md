@@ -2,7 +2,7 @@
 
 The Sales module (`src/Deals`, id `deals`, scope `sales`) keeps the deals of the firm: what is being sold to a client, how far along it is, what it is worth, and whether it was won or lost. A deal has stages, lines copied from the catalog, links to the deals it follows from, and, when those modules are installed, its documents and activities.
 
-The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents and Activities are optional, and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Deals\Contract\SalesSlots`.
+The module is optional. It requires Shared, Party, Catalog, Identity, Instance, Audit and Ui; Documents, Activities and Contacts are optional (without Contacts a deal adds no new contact person to its client and links no contact page), and Sales never names a module that uses it (ADR 0033). Those modules plug into a deal through the slots in `Foresi\Deals\Contract\SalesSlots`.
 
 ## Staff only
 

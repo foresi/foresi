@@ -29,7 +29,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * and "New document" with the record's link filled in.
  *
  * Loaded by a Turbo frame (the request names it in its Turbo-Frame header, as
- * Party\Contract\ContactTabs::FRAME does), the answer is that frame alone;
+ * Contacts\Contract\ContactTabs::FRAME does), the answer is that frame alone;
  * without one the same address is a page of its own.
  */
 final class RecordDocumentsController extends AbstractController

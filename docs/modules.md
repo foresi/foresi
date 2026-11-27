@@ -21,7 +21,7 @@ You will build `acme/fleet`, the vehicles of a firm. When you are done it has:
 - a read tool `acme_fleet_list_vehicles`,
 - a scope `acme_fleet_vehicles`,
 - an event of its own, `acme-fleet.vehicle.added`,
-- a listener of Party's event `party.contact.archived`,
+- a listener of the address book's event `contacts.contact.archived`,
 - a setting, the most vehicles a firm keeps.
 
 You need a checkout of Foresi that runs (see [development.md](development.md)). The module goes in a directory of its own. Here it is `tests/Fixtures/modules/acme-fleet`, so you can compare each step with the real file.
@@ -39,6 +39,7 @@ A module is a Composer package of type `foresi-module`, and its `composer.json` 
     "require": {
         "php": ">=8.4",
         "foresi/module-api": "^1.7",
+        "foresi/contacts": "*",
         "foresi/identity": "*",
         "foresi/party": "*",
         "foresi/shared": "*",
@@ -361,7 +362,7 @@ final readonly class DropArchivedDriver implements DomainEventListener
 {
     public function listensTo(): string
     {
-        return 'party.contact.archived';
+        return 'contacts.contact.archived';
     }
 
     public function __invoke(RecordedEvent $event): void
@@ -602,7 +603,7 @@ Foresi checks the declarations when it first reads the fields and stops with a `
 
 To read and write the fields, inject `Foresi\Shared\Contract\Field\Fields`, never your entity's repository: `value($record, $id, $key)` and `values($record, $ids)` read them, and `write($record, $id, ['acme_fleet_industry' => 'logistics'])` sets them, null clearing a value, and refuses a value its kind does not take with an `InvalidArgumentException`. The caller's transaction flushes the write. The entity's row exists only while the record has a value: Foresi creates it with the first value and removes it with the last.
 
-Where a person sees and changes the fields, under "Additional details": the whole form and the detail of a contact, the form and the detail of a product, the dialogs and the side column of a deal, the sidebar of a task (each field saved on its own), and the new project dialog and the project's settings (the project's page shows none). Each input is the one of its kind: a text field, a number, a date, a date and time, a web address, a long text, a select, choice chips of a multi-select, a checkbox, and a picker of a contact or a person, which the filter sheet uses too. The record's update event (`party.contact.updated`, `sales.deal.updated`, `catalog.product.updated`, `work.task.updated`, `work.project.updated`) names the keys of the fields whose value changed in `customFields`, never the values.
+Where a person sees and changes the fields, under "Additional details": the whole form and the detail of a contact, the form and the detail of a product, the dialogs and the side column of a deal, the sidebar of a task (each field saved on its own), and the new project dialog and the project's settings (the project's page shows none). Each input is the one of its kind: a text field, a number, a date, a date and time, a web address, a long text, a select, choice chips of a multi-select, a checkbox, and a picker of a contact or a person, which the filter sheet uses too. The record's update event (`contacts.contact.updated`, `sales.deal.updated`, `catalog.product.updated`, `work.task.updated`, `work.project.updated`) names the keys of the fields whose value changed in `customFields`, never the values.
 
 Over the REST API and MCP (since 1.7), every contact, deal, task, project and product carries `custom_fields`, an object with each field the token's person sees by key, and null for one without a value: a select gives its option key, a multi-select a list of them, a date `YYYY-MM-DD`, a date and time ISO 8601 with an offset, a number a JSON number, a contact or a user its id. The create and update operations of the five records (`contacts.create`, `foresi_update_deal` and the others) take `custom_fields` with the keys to set; null clears one, and a key left out keeps its value. A create without a value for a required field is refused. A refusal is an invalid `custom_fields.<key>` with the reason `unknown_field`, `invalid_value` or `field_required`. `GET /api/v1/fields` and the MCP tool `foresi_list_fields` list the definitions, one record kind with `record`, each with its key, kind, label, options and flags; they only read, and nothing creates a field over the API. The OpenAPI document and the schemas of the MCP tools describe `custom_fields` from the definitions (`ContactCustomFields` and the like), and a filterable field is a field of the `filter` of the record's search tool and of its REST list.
 
@@ -686,7 +687,7 @@ What each minor version added:
 | 1.1 | `Foresi\ExchangeRate\Contract\RateRules` (`foresi.exchange_rate.rules`), the legal rate of a country; `PublishedRates::$base`, the currency a source's quotes are priced in (leaving it out is deprecated and means CZK). A module that uses them requires `^1.1`. |
 | 1.2 | Banking: the `StatementIntake` service, the one way bank movements enter, and the `StatementFormat` port for statement files, with their values (`BankStatement`, `StatementSequence`, `StatementFile`, `MovementProvenance`, `MovementChannel`, `MovementTrust`, `IntakeResult`) and the events `banking.statement.gap_detected` and `banking.statement.gap_closed`. A module that uses them requires `^1.2`. |
 | 1.3 | Custom fields (`Foresi\Shared\Contract\Field`): a module adds fields to a contact, a deal, a task, a project or a product through the records' extension interfaces (`ContactExtension`, `DealExtension`, `TaskExtension`, `ProjectExtension`, `ProductExtension`), see [Add fields to a record](#add-fields-to-a-record). A module that uses them requires `^1.3`. |
-| 1.4 | Custom fields on the records' dialogs and details, with `required` and `guests` enforced; `customFields`, the keys of the custom fields that changed, in `party.contact.updated`, `sales.deal.updated`, `catalog.product.updated` and `work.task.updated`; the event `work.project.updated` (`projectId`, `customFields`), recorded on every save of a project's name, client, description or custom fields. A module that reads them requires `^1.4`. |
+| 1.4 | Custom fields on the records' dialogs and details, with `required` and `guests` enforced; `customFields`, the keys of the custom fields that changed, in `contacts.contact.updated`, `sales.deal.updated`, `catalog.product.updated` and `work.task.updated`; the event `work.project.updated` (`projectId`, `customFields`), recorded on every save of a project's name, client, description or custom fields. A module that reads them requires `^1.4`. |
 | 1.5 | `Foresi\Shared\Contract\Operation\OperationObserver` (`foresi.shared.operation_observer`), told before and after every operation the runner runs; and Inbox's actions (`Foresi\Inbox\Contract\InboxAction`, `InboxActionInput`, `InboxActionCondition` with `foresi.inbox.action_condition`, `InboxPreFill` with `foresi.inbox.prefill`, and `PreFill`), see [Adding an action](inbox.md#adding-an-action). A module that uses them requires `^1.4`. |
 | 1.6 | Work for other modules (`Foresi\Work\Contract`): the `TaskIntake` service, which makes a task in the caller's transaction with Work's own checks, event and audit; the `TaskDirectory` service with `TaskSummary`, the tasks the person sees by id in one query, those in the trash flagged; and `TaskSlots::HEADER_FACTS` (`work.task.header_facts`), the facts under a task's header. A module that uses them requires `^1.6`. |
 | 1.7 | Custom fields over the REST API and MCP: `custom_fields` in the payloads of contacts, deals, tasks, projects and products and in their create and update operations, with the `api` flag honoured; `GET /api/v1/fields` and the MCP tool `foresi_list_fields`; the OpenAPI schemas of the fields, generated from the definitions. A module whose fields must reach the API requires `^1.7`. |
@@ -799,6 +800,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Banking | `BankMessageParser` (`foresi.banking.message_parser`); `StatementFormat` (`foresi.banking.statement_format`, since 1.2) and the `StatementIntake` service (since 1.2), see [bank pairing](bank-pairing.md#statements-and-other-channels) |
 | Calendar | `CalendarEntrySource` (`foresi.calendar.entry_source`) |
 | Cash flow | `CashFlowSource` (`foresi.cash_flow.source`) and its extension `UndatedFlowSource` (since 1.8), `BalanceSource` (`foresi.cash_flow.balance_source`), `PairableDocumentSource` (`foresi.cash_flow.pairable_documents`) |
+| Contacts | The address book, split off Party: the slots `ContactTabs::SLOT` (`party.contact_tabs`, tabs of a contact's page) and `ContactCards::SLOT` (`party.contact_cards`, cards of the contact's detail), `ContactListActions` (actions of the contact list), `ContactImportColumns` (`foresi.party.contact_import_columns`, columns of the contact import and export, with `ContactImportColumn`); the services `ContactPersonWrites`, `ContactCreation` (with `NewContact`) and `ContactsByEmail`; the events `contacts.contact.*` |
 | Documents | `DocumentLinkTarget` (`foresi.documents.link_target`), `DocumentVariableSource` (`foresi.documents.variable_source`) |
 | Exchange rates | `RateSource` (`foresi.exchange_rate.source`), `RateRules` (`foresi.exchange_rate.rules`) |
 | Inbox | `RecordSuggester` (`foresi.inbox.record_suggester`, since 1.2); the actions on an item (since 1.5): `InboxAction` (attribute) on an `InboxActionInput`, `InboxActionCondition` (`foresi.inbox.action_condition`), `InboxPreFill` (`foresi.inbox.prefill`) and `PreFill`, see [Adding an action](inbox.md#adding-an-action) |
@@ -806,7 +808,7 @@ Foresi's business modules have ports of their own in their `Contract\` namespace
 | Invoicing | `InvoicingCountry` (`foresi.invoicing.country`); the service `PartyInvoicingDefaults`, the invoicing defaults of a contact (due period, currency, document language, payment method, reverse charge, reminders, hourly rate), with `InvoicingDefaults`, `DocumentLanguage` and `PaymentMethod` (moved from Party's domain) |
 | Mail | `InboundPurpose` (`foresi.mail.inbound_purpose`) |
 | Margin | `MarginCostSource` (`foresi.margin.cost_source`), `MarginRevenueSource` (`foresi.margin.revenue_source`) |
-| Party | `BankAccountUsage` (`foresi.party.bank_account_usage`); what another module keeps for each contact: `ContactColumns` (`foresi.party.contact_columns`, columns of the contact list that sort and filter), `ContactImportColumns` (`foresi.party.contact_import_columns`, columns of the contact import and export, with `ContactImportColumn`), `ContactDueDays` (`foresi.party.contact_due_days`, the due period of `PartySummary`) and the slot `ContactCards::SLOT` (`party.contact_cards`, cards of the contact's detail), added with the move of the invoicing defaults to Invoicing |
+| Party | `BankAccountUsage` (`foresi.party.bank_account_usage`); what another module keeps for each contact: `ContactColumns` (`foresi.party.contact_columns`, columns of the contact list that sort and filter) and `ContactDueDays` (`foresi.party.contact_due_days`, the due period of `PartySummary`); `ContactPages`, the page of a contact in the address book, null without it (inject it nullable; Twig `contact_url()`, `contact_edit_url()`, `contact_new_url()`) |
 | Purchasing | `Reading\DocumentReader` (`foresi.purchasing.document_reader`) |
 | Taxes and contributions | `ActualAmountSource`, `ForecastAmountSource`, `LevyPaymentSource`, `PlannedLevySource`, `Regime` (`foresi.taxes_and_contributions.*`) |
 | Sales | `BillingDocumentSource` (`foresi.sales.billing_document_source`, since 1.8) |

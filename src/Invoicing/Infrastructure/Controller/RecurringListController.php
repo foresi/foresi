@@ -38,6 +38,7 @@ use Foresi\Invoicing\Domain\RecurringState;
 use Foresi\Invoicing\Infrastructure\Column\RecurringColumns;
 use Foresi\Invoicing\Infrastructure\Column\RecurringRow;
 use Foresi\Invoicing\Infrastructure\Form\AmountText;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Shared\Application\ActorRole;
 use Foresi\Shared\Application\TransactionalWork;
 use Foresi\Shared\Application\View\FilterRows;
@@ -103,6 +104,7 @@ final class RecurringListController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly UserRepository $users,
+        private readonly ?ContactPages $contactPages = null,
     ) {
     }
 
@@ -359,7 +361,7 @@ final class RecurringListController extends AbstractController
     {
         [$href, $action] = match (true) {
             'send.no_server' === $code => $this->owner->isOwner() ? [$this->generateUrl('app_firm_mail'), 'mail'] : [null, null],
-            \in_array($code, ['send.no_recipient', 'send.bad_address', 'invoice.problem.customer_address_incomplete', 'invoice.problem.customer_archived'], true) => [$this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]), 'contact'],
+            \in_array($code, ['send.no_recipient', 'send.bad_address', 'invoice.problem.customer_address_incomplete', 'invoice.problem.customer_archived'], true) => null === ($page = $this->contactPages?->urlFor($template->customer()->id())) ? [null, null] : [$page, 'contact'],
             str_starts_with($code, 'send.') => [$this->generateUrl('app_invoices', ['toSend' => 1]), 'to_send'],
             default => [$this->generateUrl('app_recurring_edit', ['id' => $template->id()]), 'edit'],
         };
@@ -574,7 +576,7 @@ final class RecurringListController extends AbstractController
         $cells = $working->display->cells(new RecurringRow(
             $template->name(),
             $customer,
-            $this->generateUrl('app_contact_show', ['id' => $template->customer()->id()]),
+            $this->contactPages?->urlFor($template->customer()->id()),
             $description,
             $this->schedule($template),
             $nextText,

@@ -20,6 +20,8 @@ use Foresi\Deals\Application\Api\TrashDealInput;
 use Foresi\Deals\Application\Api\UpdateDealInput;
 use Foresi\Deals\Application\Api\WinDealInput;
 use Foresi\Deals\Application\BillingEntryView;
+use Foresi\Deals\Application\ClientPersonRefused;
+use Foresi\Deals\Application\ClientPersons;
 use Foresi\Deals\Application\ContactPersonDraft;
 use Foresi\Deals\Application\DealDetail;
 use Foresi\Deals\Application\DealLinkView;
@@ -49,9 +51,8 @@ use Foresi\Deals\Infrastructure\Column\DealColumns;
 use Foresi\Deals\Infrastructure\Screen\DealScreen;
 use Foresi\Party\Application\PartyQuery;
 use Foresi\Party\Application\PartyRow;
-use Foresi\Party\Contract\ContactPersonRefused;
-use Foresi\Party\Contract\ContactPersonWrites;
-use Foresi\Party\Contract\Event\ContactKind;
+use Foresi\Party\Contract\ContactKind;
+use Foresi\Party\Contract\ContactPages;
 use Foresi\Party\Contract\PartyDirectory;
 use Foresi\Party\Contract\PartyPersonSummary;
 use Foresi\Party\Contract\PartySummary;
@@ -137,9 +138,10 @@ final class DealController extends AbstractController
         private readonly ViewBar $viewBar,
         private readonly FilterSheet $filterSheet,
         private readonly SlotRegistry $slots,
-        private readonly ContactPersonWrites $contactPersons,
         private readonly LineProjects $lineProjects,
         private readonly CustomFieldForm $customFields,
+        private readonly ?ClientPersons $clientPersons = null,
+        private readonly ?ContactPages $contactPages = null,
     ) {
     }
 
@@ -285,7 +287,7 @@ final class DealController extends AbstractController
                 } catch (SalesRefused $refused) {
                     $this->denyIfForbidden($refused);
                     $errors = $this->errors($refused);
-                } catch (ContactPersonRefused $refused) {
+                } catch (ClientPersonRefused $refused) {
                     $errors = $this->personErrors($refused, $person);
                 } catch (FieldRefused $refused) {
                     $custom = $custom->refused($refused->key, $this->screen->trans($refused->translationKey));
@@ -376,7 +378,7 @@ final class DealController extends AbstractController
                 } catch (SalesRefused $refused) {
                     $this->denyIfForbidden($refused);
                     $errors = $this->errors($refused);
-                } catch (ContactPersonRefused $refused) {
+                } catch (ClientPersonRefused $refused) {
                     $errors = $this->personErrors($refused, $person);
                 } catch (FieldRefused $refused) {
                     $custom = $custom->refused($refused->key, $this->screen->trans($refused->translationKey));
@@ -730,8 +732,10 @@ final class DealController extends AbstractController
     {
         $deal = $detail->deal;
         $persons = array_map(static fn (PartyPersonSummary $person): string => $person->displayName, $detail->contactPersons);
+        $client = $this->screen->client($deal->clientPartyId());
+        $clientPage = $this->contactPages?->urlFor($deal->clientPartyId(), ['tab' => 'deals']);
         $details = [
-            ['label' => $this->screen->trans('deals.deal.field.client'), 'value' => ['links' => [['text' => $this->screen->client($deal->clientPartyId()), 'href' => $this->generateUrl('app_contact_show', ['id' => $deal->clientPartyId(), 'tab' => 'deals'])]]]],
+            ['label' => $this->screen->trans('deals.deal.field.client'), 'value' => null === $clientPage ? $client : ['links' => [['text' => $client, 'href' => $clientPage]]]],
             ['label' => $this->screen->trans('deals.deal.field.contact_persons'), 'value' => [] === $persons ? null : implode(', ', $persons), 'empty' => $this->screen->trans('deals.deal.none.contact_persons')],
             ['label' => $this->screen->trans('deals.deal.field.owner'), 'value' => $this->screen->owner($deal->ownerUserId())],
         ];
@@ -1066,9 +1070,9 @@ final class DealController extends AbstractController
      */
     private function personsBlock(?PartySummary $client, array $person, array $errors): array
     {
-        $shown = $client instanceof PartySummary && ContactKind::Person !== $client->kind;
+        $shown = null !== $this->clientPersons && $client instanceof PartySummary && ContactKind::Person !== $client->kind;
         $candidates = [];
-        foreach ($shown ? $this->contactPersons->candidatesOf($client->id) : [] as $candidate) {
+        foreach ($shown ? $this->clientPersons->candidatesOf($client->id) : [] as $candidate) {
             $candidates[$candidate->id] = $candidate->displayName;
         }
         if ('' === $person['mode']) {
@@ -1132,7 +1136,7 @@ final class DealController extends AbstractController
      *
      * @return array<string, string> the message of each refused field of the person, by form field
      */
-    private function personErrors(ContactPersonRefused $refused, array $person): array
+    private function personErrors(ClientPersonRefused $refused, array $person): array
     {
         $errors = [];
         foreach ($refused->reasons as $field => $reason) {

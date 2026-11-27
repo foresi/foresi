@@ -2,7 +2,7 @@
 
 The Inbox module (`src/Inbox`, id `inbox`, package `foresi/inbox`, scopes `inbox:read` and `inbox:write`) gives every owner and member an e-mail address of their own in Foresi. Mail they forward to it becomes an **item** in their Inbox: Foresi finds the sender in the address book, shows the mail as plain text, and lets the person link it to the records it led to, such as a deal, and mark it done. It builds on [Mail](mail.md), which receives the mail, and on [Activities](activities.md), where a linked mail shows on the timeline of the record.
 
-The module is optional. It requires Shared, Instance, Identity, Audit, Mail, Party, Activities and Ui. Without a mail server for inbound mail (see [mail.md](mail.md#settings)) no address can be made and the Inbox stays empty.
+The module is optional. It requires Shared, Instance, Identity, Audit, Mail, Party, Activities and Ui; Contacts is optional. Without the address book no sender is matched to a contact and no contact is created from a message. Without a mail server for inbound mail (see [mail.md](mail.md#settings)) no address can be made and the Inbox stays empty.
 
 ## Who sees what
 

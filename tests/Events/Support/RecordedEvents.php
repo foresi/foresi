@@ -9,12 +9,12 @@ declare(strict_types=1);
 namespace Foresi\Tests\Events\Support;
 
 use Doctrine\DBAL\Connection;
+use Foresi\Contacts\Contract\Event\ContactArchived;
+use Foresi\Contacts\Contract\Event\ContactCreated;
+use Foresi\Contacts\Contract\Event\ContactKind;
+use Foresi\Contacts\Contract\Event\ContactRestored;
+use Foresi\Contacts\Contract\Event\ContactUpdated;
 use Foresi\Events\Infrastructure\Relay\EventRelay;
-use Foresi\Party\Contract\Event\ContactArchived;
-use Foresi\Party\Contract\Event\ContactCreated;
-use Foresi\Party\Contract\Event\ContactKind;
-use Foresi\Party\Contract\Event\ContactRestored;
-use Foresi\Party\Contract\Event\ContactUpdated;
 use Foresi\Shared\Contract\Event\DomainEventPayload;
 use Foresi\Shared\Contract\Event\EventRecorder;
 

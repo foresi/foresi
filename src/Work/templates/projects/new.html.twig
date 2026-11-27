@@ -33,7 +33,8 @@
         {% endif %}
 
         <twig:Ui:TextInput name="name" id="name" :label="'work.project.field.name'|trans" :value="values.name" :error="errors.name|default(null)" maxlength="200" required autocomplete="off" />
-        <twig:Ui:Combobox name="clientId" id="client" textName="clientQuery" :label="'work.project.field.client'|trans" :help="'work.project.field.client_help'|trans" :placeholder="'work.project.field.client_placeholder'|trans" :value="values.clientId" :text="values.clientQuery" :url="path('app_project_clients')" :emptyText="'work.project.field.client_empty'|trans" :error="errors.client|default(null)" />
+        {# The client, only where the address book is installed (Work's Contacts integration). #}
+        {% if clientPicker %}{{ include('@Work/projects/_client_field.html.twig') }}{% endif %}
         <twig:Ui:Textarea name="description" id="description" :label="'work.project.field.description'|trans" :value="values.description" :rows="3" />
         <twig:Ui:CustomFields :record="constant('Foresi\\Work\\Contract\\Field\\ProjectExtension::RECORD')" :values="customValues|default(null)" :errors="customErrors|default({})" :card="false" :heading="true" />
     </form>

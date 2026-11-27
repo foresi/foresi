@@ -15,8 +15,6 @@ use Foresi\Identity\Domain\InvitationToken;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Identity\Domain\Role;
 use Foresi\Identity\Domain\User;
-use Foresi\Party\Domain\Party;
-use Foresi\Party\Domain\PartyKind;
 use Foresi\Shared\Application\SystemMail;
 use Foresi\Shared\Application\SystemMailer;
 use Foresi\Shared\Application\SystemMailUnavailable;
@@ -107,19 +105,16 @@ final class PeopleTest extends WebTestCase
         self::assertSame([], $this->queuedMails());
     }
 
-    public function testAGuestNeedsAContact(): void
+    public function testAGuestIsInvitedWithoutAContact(): void
     {
         $this->signIn(self::OWNER);
 
         $this->invite('alex@example.com', 'Alex Example', 'guest');
 
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('main', 'Choose the contact the person represents.');
-
-        $party = $this->contact();
-        $this->invite('alex@example.com', 'Alex Example', 'guest', $party);
         self::assertResponseRedirects('/settings/people/invitations');
-        self::assertSame($party, $this->onlyInvitation()->party()?->id());
+        $invitation = $this->onlyInvitation();
+        self::assertSame(Role::Guest, $invitation->role());
+        self::assertNull($invitation->party());
     }
 
     public function testWithoutSystemMailTheOwnerGetsTheLink(): void
@@ -260,7 +255,6 @@ final class PeopleTest extends WebTestCase
         self::assertCount(3, $crawler->filter('tbody tr'));
         self::assertSelectorExists('a[href="/settings/people/invite"]');
         self::assertSelectorExists('[data-avatar-cell]');
-        self::assertSelectorTextContains('tbody', 'Alex Example');
         self::assertCount(1, $crawler->filter('#sidebar [data-nav-section] a[href="/settings/people"]'));
 
         $this->client->getCookieJar()->clear();
@@ -270,7 +264,7 @@ final class PeopleTest extends WebTestCase
         self::assertCount(3, $crawler->filter('tbody tr'));
         self::assertSelectorNotExists('a[href="/settings/people/invite"]');
         self::assertSelectorNotExists('[data-row-actions]');
-        foreach (['/settings/people/invitations', '/settings/people/invite', '/settings/people/contacts?q=Alex'] as $url) {
+        foreach (['/settings/people/invitations', '/settings/people/invite'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseStatusCodeSame(403, $url);
         }
@@ -281,18 +275,7 @@ final class PeopleTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
-    public function testTheContactPickerFindsContactsOfAnyKind(): void
-    {
-        $this->contact();
-        $this->signIn(self::OWNER);
-
-        $this->client->request('GET', '/settings/people/contacts?q=Alex');
-
-        self::assertResponseIsSuccessful();
-        self::assertSame(['results' => [['id' => $this->onlyContact(), 'label' => 'Alex Example', 'hint' => 'Person']]], json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR));
-    }
-
-    public function testARoleChangeToGuestNeedsAContact(): void
+    public function testAMemberBecomesAGuestWithoutAContact(): void
     {
         $this->fixtures->join($this->fixtures->user(self::MEMBER), Role::Member);
         $membership = $this->membershipOf(self::MEMBER);
@@ -300,16 +283,32 @@ final class PeopleTest extends WebTestCase
         $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
         self::assertResponseIsSuccessful();
 
-        $crawler = $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'guest']));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('main', 'Choose the contact the person represents.');
+        $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'guest']));
 
-        $party = $this->contact();
-        $this->client->submit($crawler->filter('form#person-form')->form(['role' => 'guest', 'contactId' => $party]));
         self::assertResponseRedirects('/settings/people');
         $changed = $this->em->find(Membership::class, $membership);
         self::assertSame(Role::Guest, $changed?->role());
-        self::assertSame($party, $changed->party()?->id());
+        self::assertNull($changed->party());
+    }
+
+    public function testAChangeWithoutTheContactFieldKeepsTheContact(): void
+    {
+        // As on an instance without the address book, whose form has no contact field.
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
+        $membership = $this->membershipOf('guest@example.com');
+        $contact = $this->em->find(Membership::class, $membership)?->party()?->id();
+        self::assertNotNull($contact);
+        $this->signIn(self::OWNER);
+        $crawler = $this->client->request('GET', '/settings/people/'.$membership.'/edit');
+        $token = (string) $crawler->filter('form#person-form input[name="_token"]')->attr('value');
+
+        $this->client->request('POST', '/settings/people/'.$membership.'/edit', ['_token' => $token, 'role' => 'member', 'rate' => '', 'rateCurrency' => 'CZK']);
+
+        self::assertResponseRedirects('/settings/people');
+        $this->em->clear();
+        $changed = $this->em->find(Membership::class, $membership);
+        self::assertSame(Role::Member, $changed?->role());
+        self::assertSame($contact, $changed->party()?->id());
     }
 
     public function testTheOwnerSetsTheHourlyRateOfAPerson(): void
@@ -413,12 +412,12 @@ final class PeopleTest extends WebTestCase
         $this->client->submit($crawler->filter('form button[type="submit"]')->form(['_username' => $email, '_password' => IdentityFixtures::PASSWORD]));
     }
 
-    private function invite(string $email, string $name, string $role = 'member', ?string $contact = null, string $locale = 'en'): \Symfony\Component\DomCrawler\Crawler
+    private function invite(string $email, string $name, string $role = 'member', string $locale = 'en'): \Symfony\Component\DomCrawler\Crawler
     {
         $crawler = $this->client->request('GET', '/settings/people/invite');
         self::assertResponseIsSuccessful();
 
-        $crawler = $this->client->submit($crawler->filter('form[action="/settings/people/invite"] button[type="submit"]')->form(['email' => $email, 'name' => $name, 'role' => $role, 'contactId' => $contact ?? '', 'locale' => $locale]));
+        $crawler = $this->client->submit($crawler->filter('form[action="/settings/people/invite"] button[type="submit"]')->form(['email' => $email, 'name' => $name, 'role' => $role, 'locale' => $locale]));
         $this->collectMails();
 
         return $crawler;
@@ -468,27 +467,9 @@ final class PeopleTest extends WebTestCase
         return $invitations[0];
     }
 
-    private function contact(): string
-    {
-        $party = new Party(PartyKind::Person, 'Alex Example', null, null, '');
-        $this->em->persist($party);
-        $this->em->flush();
-
-        return $party->id();
-    }
-
     private function membershipOf(string $email): string
     {
         $ids = $this->em->getConnection()->fetchFirstColumn('SELECT m.id FROM membership m JOIN app_user u ON u.id = m.user_id WHERE u.email = ?', [$email]);
-        self::assertCount(1, $ids);
-        self::assertIsString($ids[0]);
-
-        return $ids[0];
-    }
-
-    private function onlyContact(): string
-    {
-        $ids = $this->em->getConnection()->fetchFirstColumn('SELECT id FROM party');
         self::assertCount(1, $ids);
         self::assertIsString($ids[0]);
 

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Foresi\Tests\Import\Infrastructure;
 
 use Doctrine\DBAL\Connection;
+use Foresi\Contacts\Application\CreateParty;
 use Foresi\Import\Application\Imports;
 use Foresi\Import\Application\Message\RunImportChunk;
 use Foresi\Import\Application\Source\SourceSettings;
@@ -16,7 +17,6 @@ use Foresi\Import\Contract\SourceFormat;
 use Foresi\Import\Domain\Import;
 use Foresi\Import\Domain\ImportState;
 use Foresi\Import\Infrastructure\Source\OpenSpoutSourceReader;
-use Foresi\Party\Application\CreateParty;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\PartyKind;
 use Foresi\Party\Domain\PartyRole;
@@ -42,7 +42,7 @@ final class ImportControllerTest extends WebTestCase
 {
     use ClockSensitiveTrait;
 
-    private const string FIXTURE = __DIR__.'/../../Party/Fixtures/idoklad-contacts.csv';
+    private const string FIXTURE = __DIR__.'/../../Contacts/Fixtures/idoklad-contacts.csv';
 
     private KernelBrowser $client;
     private RunMessages $worker;
