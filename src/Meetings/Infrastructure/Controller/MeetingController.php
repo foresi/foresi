@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Meetings\Infrastructure\Controller;
 
+use Foresi\Meetings\Application\ActionItemReads;
 use Foresi\Meetings\Application\Api\CreateMeetingInput;
 use Foresi\Meetings\Application\Api\RestoreMeetingInput;
 use Foresi\Meetings\Application\Api\SetMinutesInput;
@@ -33,6 +34,7 @@ use Foresi\Meetings\Domain\MeetingSeries;
 use Foresi\Meetings\Domain\SeriesMember;
 use Foresi\Meetings\Infrastructure\Column\MeetingColumns;
 use Foresi\Meetings\Infrastructure\Screen\MeetingScreen;
+use Foresi\Meetings\Infrastructure\Screen\TaskPills;
 use Foresi\Meetings\Infrastructure\Target\ContactMeetingTarget;
 use Foresi\Meetings\Infrastructure\Target\ProjectMeetingTarget;
 use Foresi\Party\Application\PartyQuery;
@@ -109,6 +111,8 @@ final class MeetingController extends AbstractController
         private readonly CustomFieldForm $customFields,
         private readonly WorkQueries $work,
         private readonly PartyQuery $parties,
+        private readonly ActionItemReads $actionItems,
+        private readonly TaskPills $pills,
     ) {
     }
 
@@ -367,6 +371,8 @@ final class MeetingController extends AbstractController
         $series = $meeting->series();
         // An empty meeting of a series opens with the series' agenda template (Fellow's and Notion's meeting templates).
         $draft = $typed ?? ('' === $meeting->minutes() && $series instanceof MeetingSeries ? $series->agendaTemplate() : $meeting->minutes());
+        // Every task of the page in one read of Work: the pills, the action items and the carry-over.
+        $tasks = $this->actionItems->page($meeting, $meeting->minutes());
 
         return $this->render('@Meetings/meetings/show.html.twig', [
             'meeting' => $meeting,
@@ -375,6 +381,9 @@ final class MeetingController extends AbstractController
             'editing' => ($editing || null !== $typed) && !$meeting->isTrashed(),
             'draft' => $draft,
             'minutesError' => $minutesError,
+            'minutesHtml' => $this->pills->minutes($meeting->minutes(), $tasks->summaries),
+            'tasks' => $tasks,
+            'today' => $this->pills->today(),
             'history' => array_map($this->historyItem(...), $this->history->of($meeting->id())),
         ], new Response(status: $status));
     }

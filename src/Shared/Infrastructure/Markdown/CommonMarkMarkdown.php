@@ -57,6 +57,9 @@ final readonly class CommonMarkMarkdown implements Markdown
         $environment->addExtension(new TaskListExtension());
         $environment->addInlineParser(new MentionParser(), 100);
         $environment->addRenderer(Mention::class, new MentionRenderer());
+        // Before the bracket of a link (20): "[text](task:UUID)" is no link.
+        $environment->addInlineParser(new TaskReferenceParser(), 200);
+        $environment->addRenderer(TaskReference::class, new TaskReferenceRenderer());
         $environment->addEventListener(DocumentParsedEvent::class, static function (DocumentParsedEvent $event): void {
             foreach ($event->getDocument()->iterator() as $node) {
                 if ($node instanceof Heading) {
@@ -97,12 +100,13 @@ final readonly class CommonMarkMarkdown implements Markdown
             ->allowRelativeMedias()
             ->withAttributeSanitizer(new OwnAttachmentImages())
             ->withAttributeSanitizer(new MentionClass())
+            ->withAttributeSanitizer(new TaskReferenceId())
             ->allowElement('a', ['href'])
             ->forceAttribute('a', 'rel', 'noopener noreferrer nofollow')
             ->allowElement('input', ['type', 'checked', 'disabled'])
             ->forceAttribute('input', 'type', 'checkbox')
             ->forceAttribute('input', 'disabled', 'disabled')
-            ->allowElement('span', ['class']);
+            ->allowElement('span', ['class', TaskReferenceRenderer::ATTRIBUTE]);
         if ($images) {
             $config = $config->allowElement('img', ['src', 'alt']);
         }

@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Tests\Shared\Infrastructure\Markdown;
 
+use Foresi\Shared\Application\TaskReferenceSyntax;
 use Foresi\Shared\Infrastructure\Markdown\CommonMarkMarkdown;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 final class CommonMarkMarkdownTest extends TestCase
 {
     private const string MEMBERSHIP = '0190a8d2-1234-7abc-8def-0123456789ab';
+    private const string TASK = '0b6f6d1e-3c4a-4f7e-9d2a-5a1c2b3d4e5f';
 
     private CommonMarkMarkdown $markdown;
 
@@ -160,6 +162,38 @@ final class CommonMarkMarkdownTest extends TestCase
 
         self::assertStringNotContainsString('mention', $html);
         self::assertStringContainsString('<code>', $html);
+    }
+
+    public function testRendersATaskReferenceAsAPlaceholderWithItsTextOnly(): void
+    {
+        $html = $this->markdown->toHtml(sprintf('- [Send the offer](task:%s) by Friday', strtoupper(self::TASK)));
+
+        self::assertSame(sprintf('<ul>%s<li><span class="task-ref" data-task="%s">Send the offer</span> by Friday</li>%s</ul>', "\n", self::TASK, "\n"), $html);
+    }
+
+    public function testTheTextOfATaskReferenceIsEscapedAndUnescaped(): void
+    {
+        $html = $this->markdown->toHtml(sprintf('[Check \\[draft\\] <b>now</b>](task:%s)', self::TASK));
+
+        self::assertStringContainsString('>Check [draft] &lt;b&gt;now&lt;/b&gt;</span>', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertSame(sprintf('[Check \\[draft\\] \\\\ x](task:%s)', self::TASK), TaskReferenceSyntax::token("Check [draft] \\\nx ", strtoupper(self::TASK)));
+        self::assertSame([self::TASK], TaskReferenceSyntax::ids(sprintf('[a](task:%1$s) and [b](task:%1$s)', strtoupper(self::TASK))));
+    }
+
+    public function testATaskReferenceInCodeStaysCode(): void
+    {
+        $html = $this->markdown->toHtml(sprintf('`[Send](task:%s)`', self::TASK));
+
+        self::assertStringNotContainsString('task-ref', $html);
+        self::assertStringContainsString('<code>', $html);
+    }
+
+    public function testAPlaceholderCannotBeForgedInRawHtml(): void
+    {
+        $html = $this->markdown->toHtml('<span class="task-ref" data-task="x">fake</span> [a](task:not-a-uuid)');
+
+        self::assertStringNotContainsString('<span', $html);
     }
 
     public function testDeepNestingIsCapped(): void

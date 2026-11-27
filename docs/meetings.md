@@ -54,6 +54,11 @@ The person who created a meeting and the owners move it to the trash and restore
 
 - **New meeting** in the page header opens a dialog with the series, the title, the day, the time, the attendees and the linked project and contact. Picking a series ticks its default attendees.
 - The meeting page shows the attendees and the linked records under the header, and the minutes read as Markdown. **Edit the minutes** opens them in the Markdown editor in place, with a preview. **Edit** changes the rest; **⋯ → Move to trash** is in the header menu, and the page shows the history of the meeting.
+- **Create task** in the toolbar of the minutes' editor (or Ctrl/Cmd+Shift+K), for a selection on one line that is not a task's token yet, opens a dialog: the title is the selection, the project is the series' default, then a project the meeting links, then the one you last added a task to; the responsible person is one who sees the project, the attendees first; the due day; and, in a series for its members, **Private**, on when the project is seen by the whole firm. **Create** makes the task in Work and its link to the meeting at once, and the selection becomes the token `[selection](task:id)`; save the minutes as any change. A second click makes no second task.
+- In the minutes each token shows its text and a pill: the status coloured by its type, who is responsible, the due day marked when overdue, linked to the task. A task in the trash reads **In the trash**; a task you do not see, or one removed for good, shows the text alone. The token is plain text anywhere else Markdown shows (task descriptions, comments, mail).
+- **Action items** lists every task made from the meeting, also those whose token was taken out of the minutes: taking the token out keeps the task and its link. To drop one, complete or trash the task.
+- **Open from earlier meetings of this series** lists the open tasks (not done, not in the trash) of the meetings of the series held before this one, grouped by meeting, newest first: every open task of the previous meeting, and of older meetings only those overdue or due within 7 days of this meeting's day. Nothing is copied: a task done anywhere leaves the list. **All open tasks of this series (N)** opens the page of every open task of the series' meetings (`/meetings/series/{id}/open-tasks`), the ones that aged out of the section too. A one-off meeting has no such section.
+- The page of a task made from a meeting shows **From meeting** with the meeting linked, to a person who sees the meeting.
 - **Series** (`/meetings/series`) lists the active and the archived series, with who sees each, its members, how many meetings it has and the day of the last one. **New series** in the page header opens a dialog; **Edit** and **Archive** are in the menu of a row.
 - **Trash** (`/meetings/trash`) lists the meetings in the trash, each with **Restore**.
 
@@ -67,6 +72,7 @@ Changes record these events, version 1, with the id of the series or the meeting
 | `meetings.meeting.created`, `updated` | A meeting is created, or its title, day, time, attendees, links or custom fields change (`customFields` lists the keys of the custom fields that changed). |
 | `meetings.meeting.minutes_changed` | Its minutes are saved with a change, with the new version. |
 | `meetings.meeting.trashed`, `restored` | It is moved to the trash or restored. |
+| `meetings.action_item.created` | A task is made from its minutes, with the id of the task. The task records `work.task.created` too. |
 
 ## For other modules
 

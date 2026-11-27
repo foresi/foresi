@@ -1,0 +1,21 @@
+{# SPDX-License-Identifier: AGPL-3.0-only #}
+{#
+    Every open task of a series' meetings the person sees, by meeting, newest first: where "All open tasks of this
+    series" under a meeting's carry-over leads, the tasks the horizon rule left out included. Variables: series,
+    groups (list of Foresi\Meetings\Application\CarriedOver), today.
+#}
+{% extends '@Ui/layout/app.html.twig' %}
+
+{% set crumbs = [{label: 'nav.group.work'|trans}, {label: 'meetings.meetings.title'|trans, href: path('app_meetings_meetings')}, {label: 'meetings.series.title'|trans, href: path('app_meetings_series')}, {label: series.name}] %}
+
+{% block title %}{{ 'meetings.carry_over.all_title'|trans({series: series.name}) }}{% endblock %}
+
+{% block content %}
+    <div class="grid min-w-0 content-start gap-6" data-series-open-tasks>
+        {% for group in groups %}
+            {{ include('@Meetings/meetings/_task_group.html.twig', {group: group, today: today}) }}
+        {% else %}
+            <twig:Ui:EmptyState icon="square-check-big" :title="'meetings.carry_over.none'|trans" />
+        {% endfor %}
+    </div>
+{% endblock %}

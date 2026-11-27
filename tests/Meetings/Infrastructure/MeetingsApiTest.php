@@ -11,6 +11,7 @@ namespace Foresi\Tests\Meetings\Infrastructure;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\Membership;
 use Foresi\Meetings\Application\Api\ArchiveSeriesInput;
+use Foresi\Meetings\Application\Api\CreateActionItemInput;
 use Foresi\Meetings\Application\Api\CreateMeetingInput;
 use Foresi\Meetings\Application\Api\CreateSeriesInput;
 use Foresi\Meetings\Application\Api\RestoreMeetingInput;
@@ -40,7 +41,7 @@ final class MeetingsApiTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->writer = $this->issued([ApiScope::from('meetings:write')]);
+        $this->writer = $this->issued([ApiScope::from('meetings:write'), ApiScope::from('projects:write')]);
         $membership = $this->em()->getRepository(Membership::class)->findOneBy(['user' => $this->user->id()]);
         self::assertInstanceOf(Membership::class, $membership);
         $this->me = $membership->id();
@@ -112,6 +113,37 @@ final class MeetingsApiTest extends ApiTestCase
         self::assertSame(['Shipped the roof order.', 2], [$this->at('data', 'minutes'), $this->at('data', 'version')]);
     }
 
+    public function testAnActionItemOverMcpTakesTheQuoteOrIsAppended(): void
+    {
+        $project = $this->tool('foresi_create_project', ['name' => 'Website', 'idempotency_key' => 'create-website']);
+        $projectId = $this->in($project, 'structuredContent', 'data', 'id');
+        self::assertIsString($projectId);
+        $meeting = $this->tool('foresi_create_meeting', ['title' => 'Kick-off', 'held_on' => '2026-11-30', 'minutes' => "- Send the offer to Acme\n- Call the bank", 'idempotency_key' => 'create-kick-off']);
+        $meetingId = $this->in($meeting, 'structuredContent', 'data', 'id');
+        self::assertIsString($meetingId);
+
+        $quoted = $this->tool('foresi_create_meeting_action_item', ['meeting_id' => $meetingId, 'project_id' => $projectId, 'title' => 'Send the offer', 'quote' => 'Send the offer', 'idempotency_key' => 'offer']);
+        $taskId = $this->in($quoted, 'structuredContent', 'data', 'action_items', 0, 'task_id');
+        self::assertIsString($taskId);
+        self::assertSame("- [Send the offer](task:{$taskId}) to Acme\n- Call the bank", $this->in($quoted, 'structuredContent', 'data', 'minutes'));
+        self::assertSame([2, 'open', false], [$this->in($quoted, 'structuredContent', 'data', 'version'), $this->in($quoted, 'structuredContent', 'data', 'action_items', 0, 'status_type'), $this->in($quoted, 'structuredContent', 'data', 'action_items', 0, 'trashed')]);
+        $again = $this->tool('foresi_create_meeting_action_item', ['meeting_id' => $meetingId, 'project_id' => $projectId, 'title' => 'Send the offer', 'quote' => 'Send the offer', 'idempotency_key' => 'offer']);
+        self::assertSame($taskId, $this->in($again, 'structuredContent', 'data', 'action_items', 0, 'task_id'));
+
+        $appended = $this->tool('foresi_create_meeting_action_item', ['meeting_id' => $meetingId, 'project_id' => $projectId, 'title' => 'Book the venue', 'idempotency_key' => 'venue']);
+        $venueId = $this->in($appended, 'structuredContent', 'data', 'action_items', 1, 'task_id');
+        self::assertIsString($venueId);
+        self::assertSame("- [Send the offer](task:{$taskId}) to Acme\n- Call the bank\n- [Book the venue](task:{$venueId})\n", $this->in($appended, 'structuredContent', 'data', 'minutes'));
+
+        $missing = $this->in($this->mcp('tools/call', ['name' => 'foresi_create_meeting_action_item', 'arguments' => ['meeting_id' => $meetingId, 'project_id' => $projectId, 'title' => 'Again', 'quote' => 'Send the offer', 'idempotency_key' => 'again']]), 'result');
+        self::assertIsArray($missing);
+        self::assertTrue($missing['isError'] ?? false);
+        self::assertStringContainsString('quote_not_found', json_encode($missing, \JSON_THROW_ON_ERROR));
+
+        $this->get('/api/v1/meetings/'.$meetingId, secret: $this->writer);
+        self::assertSame([$taskId, $venueId], array_column($this->listed('data', 'action_items'), 'task_id'));
+    }
+
     public function testScopesDecideWhatATokenDoesAndAGuestHasNoTool(): void
     {
         $this->get('/api/v1/meetings', [], $this->secret);
@@ -126,7 +158,7 @@ final class MeetingsApiTest extends ApiTestCase
             self::assertInstanceOf(StaffOnlyTool::class, $read);
             self::assertTrue($read->staffOnly());
         }
-        foreach ([CreateSeriesInput::class, UpdateSeriesInput::class, ArchiveSeriesInput::class, CreateMeetingInput::class, UpdateMeetingInput::class, SetMinutesInput::class, TrashMeetingInput::class, RestoreMeetingInput::class] as $input) {
+        foreach ([CreateActionItemInput::class, CreateSeriesInput::class, UpdateSeriesInput::class, ArchiveSeriesInput::class, CreateMeetingInput::class, UpdateMeetingInput::class, SetMinutesInput::class, TrashMeetingInput::class, RestoreMeetingInput::class] as $input) {
             self::assertTrue(new \ReflectionClass($input)->getAttributes(Operation::class)[0]->newInstance()->staffOnly, $input);
         }
     }

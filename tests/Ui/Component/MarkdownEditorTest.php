@@ -97,6 +97,7 @@ final class MarkdownEditorTest extends KernelTestCase
     {
         yield 'a script as the preview' => [['previewUrl' => 'javascript:alert(1)']];
         yield 'a script as the people list' => [['mentionsUrl' => 'javascript:alert(1)']];
+        yield 'a script as the task dialog' => [['taskUrl' => 'javascript:alert(1)']];
         yield 'a script as the upload' => [['uploadUrl' => 'javascript:alert(1)', 'uploadKind' => 'task', 'uploadOwner' => 'x']];
         yield 'an upload without the kind' => [['uploadUrl' => '/attachments', 'uploadOwner' => 'x']];
         yield 'an upload without the record' => [['uploadUrl' => '/attachments', 'uploadKind' => 'task']];
@@ -112,6 +113,7 @@ final class MarkdownEditorTest extends KernelTestCase
         $editor = new MarkdownEditor(new ErrorFocus());
         $editor->previewUrl = $props['previewUrl'] ?? '/markdown/preview';
         $editor->mentionsUrl = $props['mentionsUrl'] ?? null;
+        $editor->taskUrl = $props['taskUrl'] ?? null;
         $editor->uploadUrl = $props['uploadUrl'] ?? null;
         $editor->uploadKind = $props['uploadKind'] ?? null;
         $editor->uploadOwner = $props['uploadOwner'] ?? null;

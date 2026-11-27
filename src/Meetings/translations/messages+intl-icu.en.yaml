@@ -135,6 +135,26 @@ meetings:
       not_series_member: Only the owners and the members of the series change it.
       not_found: The series cannot be found.
       forbidden: Only the owners and members of the firm keep its meetings.
+  action_item:
+    title: Action items
+    none: No task was created from this meeting yet.
+    new: Create task
+    created: 'The task “{title}” is created.'
+    private: Private task
+    private_help: Only the people it is shared with see it, and you.
+    apply: Offer the people of the project
+  carry_over:
+    title: Open from earlier meetings of this series
+    none: Nothing is open from earlier meetings.
+    all: "{count, plural, one {All open tasks of this series (#)} other {All open tasks of this series (#)}}"
+    all_title: 'Open tasks of {series}'
+  task:
+    in_trash: In the trash
+    open: 'Open the task {title}'
+    nobody: Nobody
+    overdue: 'Overdue {date}'
+  task_fact:
+    label: From meeting
   trash:
     title: Trash
     purge: Meetings in the trash are removed for good after {days} days.

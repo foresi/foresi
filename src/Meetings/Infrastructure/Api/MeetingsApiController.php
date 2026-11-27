@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Foresi\Meetings\Infrastructure\Api;
 
+use Foresi\Meetings\Application\ActionItemReads;
 use Foresi\Meetings\Application\MeetingReads;
 use Foresi\Meetings\Application\MeetingSearch;
 use Foresi\Meetings\Application\MeetingsRefused;
@@ -37,7 +38,7 @@ final readonly class MeetingsApiController
     public const string MEETINGS = 'api_v1_meetings_meetings';
     public const string MEETING = 'api_v1_meetings_meeting';
 
-    public function __construct(private ScopeGuard $scope, private SeriesReads $series, private MeetingReads $meetings)
+    public function __construct(private ScopeGuard $scope, private SeriesReads $series, private MeetingReads $meetings, private ActionItemReads $tasks)
     {
     }
 
@@ -109,7 +110,9 @@ final readonly class MeetingsApiController
     {
         $this->scope->require(self::READ_SCOPE);
 
-        return new JsonResponse(['data' => MeetingsJson::meeting($this->meetings->view($meetingId))]);
+        $view = $this->meetings->view($meetingId);
+
+        return new JsonResponse(['data' => MeetingsJson::meeting($view, $this->tasks->page($view->meeting, $view->meeting->minutes()))]);
     }
 
     /**
