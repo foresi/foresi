@@ -2,7 +2,8 @@
 {#
     The webhook endpoints of the organisation that the person may manage. A new endpoint opens in a
     dialog over the list; the row menu edits, pings, disables or enables and deletes, and deleting asks
-    first. Variables: columns, rows.
+    first. The endpoints are a list with views, search, filters, columns and widths
+    (docs/design/list-pages.md, rule 8). Variables: endpoints, the table ListTable gives.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -20,13 +21,25 @@
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
         {% endfor %}
     {% endfor %}
+    {% set t = endpoints %}
     <section class="grid gap-2" data-webhook-endpoints>
-        <twig:Ui:DataTable :caption="'webhooks.title'|trans" :columns="columns" :rows="rows" :actionToken="csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN'))">
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'webhooks.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_webhooks')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_webhooks')" :keep="t.keep"
+            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+        </twig:Ui:FilterBar>
+        <twig:Ui:DataTable :caption="'webhooks.title'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="csrf_token(constant('Foresi\\Webhooks\\Infrastructure\\Controller\\WebhookEndpointController::TOKEN'))">
             <twig:block name="empty">
-                <twig:Ui:EmptyState icon="send" :title="'webhooks.empty.title'|trans" :text="'webhooks.empty.text'|trans">
-                    <twig:Ui:Button variant="primary" icon="plus" :href="path('app_webhook_new')" data-dialog aria-haspopup="dialog">{{ 'webhooks.new'|trans }}</twig:Ui:Button>
-                </twig:Ui:EmptyState>
+                {% if t.filtered or t.view != '' %}
+                    <twig:Ui:EmptyState icon="search" :title="'webhooks.empty.filtered_title'|trans">
+                        <twig:Ui:Button :href="t.resetHref">{{ 'webhooks.empty.reset'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% else %}
+                    <twig:Ui:EmptyState icon="send" :title="'webhooks.empty.title'|trans" :text="'webhooks.empty.text'|trans">
+                        <twig:Ui:Button variant="primary" icon="plus" :href="path('app_webhook_new')" data-dialog aria-haspopup="dialog">{{ 'webhooks.new'|trans }}</twig:Ui:Button>
+                    </twig:Ui:EmptyState>
+                {% endif %}
             </twig:block>
         </twig:Ui:DataTable>
+        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
     </section>
 {% endblock %}

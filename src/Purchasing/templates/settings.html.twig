@@ -7,7 +7,8 @@
     names are the sender's text, escaped by Twig. Last, the sections other modules add
     (PurchasingSlots::SETTINGS_SECTIONS), such as the state of a reader, each a card of its own.
     Variables: address (OwnAddress or null), revealed (the full address or null), lastReceived (when mail last came, formatted, or null), unavailable (why no address can
-    be made here, or null), mailGuide, recentColumns, recent.
+    be made here, or null), mailGuide, hasRecent, recent (the recent e-mails as a list with views, search,
+    filters, columns and widths, docs/design/list-pages.md rule 8: the table ListTable gives).
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -97,10 +98,22 @@
 
         <section class="grid gap-2" aria-labelledby="capture-recent-title" data-capture-recent>
             <h2 id="capture-recent-title" class="m-0 text-body font-semibold text-ink">{{ 'purchasing.capture.recent.title'|trans }}</h2>
-            {% if recent is empty %}
+            {% if not hasRecent %}
                 <p class="m-0 text-small text-muted" data-capture-recent-empty>{{ 'purchasing.capture.recent.empty'|trans }}</p>
             {% else %}
-                <twig:Ui:DataTable :caption="'purchasing.capture.recent.title'|trans" :columns="recentColumns" :rows="recent" />
+                {% set t = recent %}
+                {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'purchasing.capture.recent.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_received_documents_settings')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+                <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_received_documents_settings')" :keep="t.keep"
+                    :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+                </twig:Ui:FilterBar>
+                <twig:Ui:DataTable :caption="'purchasing.capture.recent.title'|trans" :columns="t.columns" :rows="t.rows" :resizable="true" :widthsParam="t.widthsParam">
+                    <twig:block name="empty">
+                        <twig:Ui:EmptyState icon="search" :title="'purchasing.capture.recent.empty_filtered_title'|trans">
+                            <twig:Ui:Button :href="t.resetHref">{{ 'purchasing.capture.recent.reset'|trans }}</twig:Ui:Button>
+                        </twig:Ui:EmptyState>
+                    </twig:block>
+                </twig:Ui:DataTable>
+                {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
             {% endif %}
         </section>
 

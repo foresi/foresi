@@ -29,8 +29,10 @@ use Foresi\Shared\Domain\Id;
 use Foresi\TaxesAndContributions\Infrastructure\Events\TaxesEventAccess;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Tests\Webhooks\Support\DeliveryRows;
 use Foresi\Vat\Infrastructure\Events\VatEventAccess;
+use Foresi\Webhooks\Application\View\WebhookEndpointLists;
 use Foresi\Webhooks\Domain\DisabledReason;
 use Foresi\Webhooks\Domain\EndpointUrl;
 use Foresi\Webhooks\Domain\EventTypes;
@@ -52,6 +54,8 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
  */
 final class WebhookEndpointControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private const string TOKEN_ID = 'webhooks';
     private const string DIALOG = 'HTTP_X_FORESI_DIALOG';
 
@@ -98,6 +102,23 @@ final class WebhookEndpointControllerTest extends WebTestCase
         self::assertSame('danger', $delete->attr('data-confirm-tone'));
         self::assertNotNull($delete->attr('data-turbo-confirm'));
         self::assertStringNotContainsString('whsec_', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testTheEndpointsAreAListWithViews(): void
+    {
+        $this->signIn();
+        $this->stored('Accounting');
+        $this->stored('Billing', DisabledReason::Manual);
+        self::assertListWithViews(self::getContainer()->get(WebhookEndpointLists::class), 'webhooks.endpoints', ['url', 'description', 'disabled'], ['all' => false]);
+        $rows = static fn (Crawler $crawler): int => $crawler->filter('[data-webhook-endpoints] tbody tr[data-id]')->count();
+
+        $crawler = $this->client->request('GET', '/settings/webhooks');
+        self::assertSame(['url', 'description', 'events', 'status', 'created'], $crawler->filter('[data-webhook-endpoints] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-webhook-endpoints]', ['widths' => '']);
+
+        self::assertSame(2, $rows($crawler));
+        self::assertSame(1, $rows($this->client->request('GET', '/settings/webhooks?q=billing')));
+        self::assertSame(1, $rows(self::applyBuilder($this->client, '/settings/webhooks', 'description', 'Acc')));
     }
 
     public function testEmptyListAsksToAddAnEndpoint(): void

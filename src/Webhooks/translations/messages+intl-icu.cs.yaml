@@ -43,6 +43,8 @@ webhooks:
   empty:
     title: Žádné webhookové endpointy
     text: Endpoint dostává události vybraných modulů jako podepsané požadavky HTTPS.
+    filtered_title: Filtru nic neodpovídá
+    reset: Zrušit filtr
   detail:
     title: Endpoint
     previous_secret: Předchozí klíč podepisuje do
@@ -143,3 +145,7 @@ webhooks:
       manual: 'Endpoint na {host} byl vypnut a už nedostává žádné události.'
     pending: 'Doručení, která ještě čekají, skončí jako neúspěšná. Až bude příjemce zase fungovat, endpoint zapněte a zmeškané události doručte znovu.'
     open: Otevřít endpoint
+  views: Pohledy na endpointy
+  search: Hledat podle adresy nebo popisu
+  tab:
+    all: Vše

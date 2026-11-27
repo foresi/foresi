@@ -10,12 +10,14 @@ namespace Foresi\Tests\Party\Infrastructure;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Domain\Role;
+use Foresi\Party\Application\View\FirmVatLists;
 use Foresi\Party\Domain\Address;
 use Foresi\Party\Domain\LegalEntity;
 use Foresi\Party\Domain\RegistrationNumber;
 use Foresi\Party\Domain\VatId;
 use Foresi\Party\Domain\VatStatus;
 use Foresi\Tests\Identity\Support\SignedInBrowser;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Foresi\Ui\Contract\Dialog\DialogRequest;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -31,6 +33,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class FirmVatControllerTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private KernelBrowser $client;
     private SignedInBrowser $browser;
 
@@ -61,6 +65,21 @@ final class FirmVatControllerTest extends WebTestCase
         self::assertSelectorExists('#firm-vat-undated');
         self::assertSame([['Non-payer', 'from the start', 'until the next change']], $this->rows($crawler));
         self::assertCount(0, $crawler->filter('main [data-row-actions] form'), 'the only status is not removed');
+    }
+
+    public function testTheStatusesAreAListWithViews(): void
+    {
+        $this->signedIn(Role::Owner);
+        $values = $this->client->request('GET', '/settings/firm/vat/new')->filter('#firm-vat-form')->form()->getPhpValues();
+        $this->client->request('POST', '/settings/firm/vat/new', ['change' => 'registered:quarter', 'validFrom' => '2026-11-12'] + $values);
+        self::assertListWithViews(self::getContainer()->get(FirmVatLists::class), 'party.firm_vat', ['status', 'current'], ['all' => false]);
+
+        $crawler = $this->client->request('GET', '/settings/firm/vat');
+        self::assertSame(['status', 'from', 'until'], $crawler->filter('[data-firm-vat-statuses] colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column')));
+        self::assertListTable($crawler, '[data-firm-vat-statuses]', ['widths' => '']);
+
+        self::assertSame([['VAT payer, quarterly', 'Nov 12, 2026', 'until the next change']], $this->rows($this->client->request('GET', '/settings/firm/vat?q=quarterly')));
+        self::assertSame([['Non-payer', 'from the start', 'Nov 11, 2026']], $this->rows(self::applyBuilder($this->client, '/settings/firm/vat', 'status', 'Non')));
     }
 
     public function testTheOwnerAddsAChangeInTheDialog(): void

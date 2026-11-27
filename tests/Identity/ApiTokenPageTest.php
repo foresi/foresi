@@ -11,6 +11,7 @@ namespace Foresi\Tests\Identity;
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Application\ApiTokens;
 use Foresi\Identity\Application\UserRepository;
+use Foresi\Identity\Application\View\ApiTokenLists;
 use Foresi\Identity\Domain\ApiScope;
 use Foresi\Identity\Domain\ApiToken;
 use Foresi\Identity\Domain\ApiTokenSecret;
@@ -21,6 +22,7 @@ use Foresi\Identity\Domain\User;
 use Foresi\Identity\Infrastructure\Controller\ApiScopeOptions;
 use Foresi\Shared\Application\Sealer;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -33,6 +35,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class ApiTokenPageTest extends WebTestCase
 {
+    use ListPageAssertions;
+
     private const string OWNER = 'owner@example.com';
     private const string MEMBER = 'member@example.com';
     private const string TOKEN_ID = 'api_tokens';
@@ -70,6 +74,64 @@ final class ApiTokenPageTest extends WebTestCase
         // The settings are the one place: the account menu has no way of its own there.
         self::assertCount(0, $crawler->filter('[role="menu"] a[href="/settings/api"]'));
         self::assertSame(['/settings/api', '/settings/api/connect'], $crawler->filter('main nav[aria-label="API and MCP"] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')));
+    }
+
+    public function testEachOfTheFourTablesIsAListWithItsOwnSlot(): void
+    {
+        $lists = self::getContainer()->get(ApiTokenLists::class);
+        self::assertListWithViews($lists, 'identity.api_connections', ['name', 'verified'], ['all' => false]);
+        self::assertListWithViews($lists, 'identity.api_tokens', ['name', 'state'], ['all' => false]);
+        self::assertListWithViews($lists, 'identity.others_api_tokens', ['name', 'person', 'state'], ['all' => false]);
+        self::assertListWithViews($lists, 'identity.others_api_connections', ['name', 'person', 'verified'], ['all' => false]);
+        $this->signIn(self::OWNER, twoFactor: true);
+        $this->store(self::OWNER, 'Reporting', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
+        $this->store(self::OWNER, 'Backup', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
+        $this->store(self::MEMBER, 'Their script', new \DateTimeImmutable('-1 day'), new \DateTimeImmutable('+10 days'));
+        $this->connect(self::OWNER, new OAuthClient('foresi_client_mine', OAuthClientKind::Registered, 'My Agent', ['http://127.0.0.1/callback'], new \DateTimeImmutable('-1 day')));
+        $this->connect(self::MEMBER, new OAuthClient('foresi_client_theirs', OAuthClientKind::Registered, 'Their Agent', ['http://127.0.0.1/callback'], new \DateTimeImmutable('-1 day')));
+        $names = static fn (Crawler $crawler, string $scope): array => $crawler->filter($scope.' tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->children()->first()->text()));
+        $columns = static fn (Crawler $crawler, string $scope): array => $crawler->filter($scope.' colgroup col[data-column]')->each(static fn (Crawler $col): string => (string) $col->attr('data-column'));
+
+        $crawler = $this->client->request('GET', '/settings/api');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['name', 'verified', 'access', 'created', 'last_used'], $columns($crawler, '[data-api-connections="mine"]'));
+        self::assertSame(['name', 'access', 'token', 'created', 'expires', 'last_used'], $columns($crawler, '[data-api-tokens="mine"]'));
+        self::assertSame(['name', 'person', 'email', 'access', 'token', 'created', 'expires', 'last_used'], $columns($crawler, '[data-api-tokens="others"]'));
+        self::assertSame(['name', 'person', 'email', 'verified', 'access', 'created', 'last_used'], $columns($crawler, '[data-api-connections="others"]'));
+        self::assertListTable($crawler, '[data-api-connections="mine"]', ['widths' => '']);
+        self::assertListTable($crawler, '[data-api-tokens="mine"]', ['tokens' => ['widths' => '']], 'tokens[widths]');
+        self::assertListTable($crawler, '[data-api-tokens="others"]', ['others' => ['widths' => '']], 'others[widths]');
+        self::assertListTable($crawler, '[data-api-connections="others"]', ['others_apps' => ['widths' => '']], 'others_apps[widths]');
+
+        // An old name of a column still opens it; one table's columns leave the others'.
+        $crawler = $this->client->request('GET', '/settings/api?tokens[cols]=name,lastUsed');
+        self::assertSame(['name', 'last_used'], $columns($crawler, '[data-api-tokens="mine"]'));
+        self::assertSame(['name', 'person', 'email', 'access', 'token', 'created', 'expires', 'last_used'], $columns($crawler, '[data-api-tokens="others"]'));
+        self::assertSame(['tokens' => ['cols' => 'name,lastUsed'], 'others' => ['widths' => '']], self::queryOf((string) $crawler->filter('[data-api-tokens="others"] [data-column-picker-reset]')->attr('href')));
+
+        // The search and the builder of a table filter only its own rows.
+        $crawler = $this->client->request('GET', '/settings/api?tokens[q]=back');
+        self::assertSame(['Backup'], $names($crawler, '[data-api-tokens="mine"]'));
+        self::assertSame(['Their script'], $names($crawler, '[data-api-tokens="others"]'));
+        $crawler = self::applyBuilder($this->client, '/settings/api', 'name', 'Report', 'tokens');
+        self::assertSame(['Reporting'], $names($crawler, '[data-api-tokens="mine"]'));
+        $crawler = self::applyBuilder($this->client, '/settings/api', 'person', 'nobody', 'others');
+        self::assertSame([], $names($crawler, '[data-api-tokens="others"]'));
+        self::assertSame(['Backup', 'Reporting'], array_values(array_intersect(['Backup', 'Reporting'], $names($crawler, '[data-api-tokens="mine"]'))));
+    }
+
+    public function testAGuestsConnectedAppsAreTheListOfConnectedApps(): void
+    {
+        $this->fixtures->join($this->fixtures->user('guest@example.com'), Role::Guest);
+        $this->signIn('guest@example.com');
+        $this->connect('guest@example.com', new OAuthClient('foresi_client_guest', OAuthClientKind::Registered, 'Guest Agent', ['http://127.0.0.1/callback'], new \DateTimeImmutable('-1 day')));
+        $this->connect('guest@example.com', new OAuthClient('foresi_client_other', OAuthClientKind::Registered, 'Other Agent', ['http://127.0.0.1/callback'], new \DateTimeImmutable('-1 day')));
+
+        $crawler = $this->client->request('GET', '/connected-apps');
+        self::assertResponseIsSuccessful();
+        self::assertListTable($crawler, '[data-api-connections="mine"]', ['widths' => '']);
+        $crawler = self::applyBuilder($this->client, '/connected-apps', 'name', 'Guest');
+        self::assertSame(['Guest Agent'], $crawler->filter('[data-api-connections="mine"] tbody tr[data-id]')->each(static fn (Crawler $row): string => trim($row->filter('th, td')->first()->children()->first()->text())));
     }
 
     public function testAConnectedAppIsListedApartFromTheTokensAndIsDisconnected(): void

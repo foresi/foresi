@@ -4,7 +4,9 @@
     record that "Statuses" in the profile's header opens in a dialog (docs/design/overlays.md), as the
     history of a send; "Add a change" in its header loads the form in the same dialog, and saving
     comes back here. The same URL is a page. VAT payer is the firm's: its rows have no menu, and a
-    note links to the firm's VAT statuses. Variables: columns, groups.
+    note links to the firm's VAT statuses. The statuses are one list with views, search, filters, columns
+    and widths (docs/design/list-pages.md, rule 8), shown as a table per kind. Variables: statuses (the
+    list ListTable gives), groups (kind, title, firmVat, rows of its tables).
 #}
 {% extends '@Ui/layout/record.html.twig' %}
 
@@ -26,18 +28,30 @@
             <twig:Ui:Alert :tone="tone" class="mb-4">{{ message }}</twig:Ui:Alert>
         {% endfor %}
     {% endfor %}
+    {% set t = statuses %}
     <div class="grid gap-4" data-taxes-statuses>
         <p class="m-0 text-small text-muted">{{ 'taxes.profile.statuses_note'|trans }}</p>
+        {{ include('@Ui/components/_list_toolbar.html.twig', {toolbarTabs: t.tabs, toolbarMore: t.moreViews, toolbarLabel: 'taxes.profile.views'|trans, toolsFilter: t.id ~ '-filters', toolsSearch: t.search, toolsColumns: {id: t.id ~ '-columns', action: path('app_taxes_profile_statuses')}, picker: t.picker, pinnable: t.pinnable, manageViews: t.manageViews, viewBar: t.viewBar}) }}
+        <twig:Ui:FilterBar :id="t.id ~ '-filters'" :search="t.search" :action="path('app_taxes_profile_statuses')" :keep="t.keep"
+            :conditions="t.chips" :quick="t.quick" :viewBar="t.viewBar" :builder="t.builder" :empty="t.rows is empty">
+        </twig:Ui:FilterBar>
         {% for group in groups %}
             <div class="grid gap-2" data-taxes-kind="{{ group.kind }}">
                 <h3 class="m-0 text-small font-semibold text-ink">{{ group.title }}</h3>
                 {% if group.firmVat %}
                     <p class="m-0 text-small text-muted" data-taxes-firm-vat>{{ 'taxes.profile.firm_vat_note'|trans }} <a href="{{ group.firmVat }}" class="font-semibold text-current underline underline-offset-2 {{ constant('Foresi\\Ui\\Component\\Style::FOCUS') }}">{{ 'taxes.profile.firm_vat_link'|trans }}</a></p>
                 {% endif %}
-                <twig:Ui:DataTable :caption="group.title" :columns="columns" :rows="group.rows" :actionToken="token" />
+                <twig:Ui:DataTable :caption="group.title" :columns="t.columns" :rows="group.rows" :resizable="true" :widthsParam="t.widthsParam" :actionToken="token" />
             </div>
         {% else %}
-            <p class="m-0 text-text" data-taxes-statuses-empty>{{ 'taxes.profile.empty_text'|trans }}</p>
+            {% if t.filtered or t.view != '' %}
+                <twig:Ui:EmptyState icon="search" :title="'taxes.profile.empty.filtered_title'|trans">
+                    <twig:Ui:Button :href="t.resetHref">{{ 'taxes.profile.empty.reset'|trans }}</twig:Ui:Button>
+                </twig:Ui:EmptyState>
+            {% else %}
+                <p class="m-0 text-text" data-taxes-statuses-empty>{{ 'taxes.profile.empty_text'|trans }}</p>
+            {% endif %}
         {% endfor %}
+        {{ include('@Ui/components/_view_dialogs.html.twig', {viewBar: t.viewBar, manageViews: t.manageViews}) }}
     </div>
 {% endblock %}

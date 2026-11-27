@@ -10,6 +10,7 @@ namespace Foresi\Tests\Identity;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Foresi\Identity\Application\MembershipDirectory;
+use Foresi\Identity\Application\View\PeopleLists;
 use Foresi\Identity\Domain\Invitation;
 use Foresi\Identity\Domain\InvitationToken;
 use Foresi\Identity\Domain\Membership;
@@ -22,6 +23,7 @@ use Foresi\Shared\Application\SystemMailer;
 use Foresi\Shared\Application\SystemMailUnavailable;
 use Foresi\Tests\Identity\Support\IdentityFixtures;
 use Foresi\Tests\Shared\Infrastructure\Mail\RecordingSystemMailer;
+use Foresi\Tests\Ui\Support\ListPageAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -33,10 +35,12 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
  */
 final class PeopleTest extends WebTestCase
 {
+    use ListPageAssertions;
     private const string OWNER = 'owner@example.com';
     private const string MEMBER = 'member@example.com';
 
     private KernelBrowser $client;
+
     private EntityManagerInterface $em;
     private IdentityFixtures $fixtures;
 
@@ -53,13 +57,45 @@ final class PeopleTest extends WebTestCase
         $this->fixtures->join($this->fixtures->user(self::OWNER));
     }
 
+    public function testThePeopleAndTheInvitationsAreTwoViewsOfOneList(): void
+    {
+        self::assertListWithViews(self::getContainer()->get(PeopleLists::class), 'identity.people', ['name', 'email', 'role', 'invited'], ['all' => false, 'invitations' => true]);
+        $this->fixtures->join($this->fixtures->user('member@example.com'), Role::Member);
+        $this->signIn(self::OWNER);
+        $this->invite('jana@example.com', 'Jana Example');
+        $names = static fn (\Symfony\Component\DomCrawler\Crawler $crawler): array => $crawler->filter('[data-people] tbody tr[data-id]')->each(static fn (\Symfony\Component\DomCrawler\Crawler $row): string => (string) $row->attr('data-id'));
+        $columns = static fn (\Symfony\Component\DomCrawler\Crawler $crawler): array => $crawler->filter('[data-people] colgroup col[data-column]')->each(static fn (\Symfony\Component\DomCrawler\Crawler $col): string => (string) $col->attr('data-column'));
+
+        $crawler = $this->client->request('GET', '/settings/people');
+        self::assertSame(['name', 'email', 'role', 'contact', 'two_factor', 'status'], $columns($crawler));
+        self::assertCount(2, $names($crawler), 'The people, without the invitation.');
+        self::assertSame(['People', 'Invitations1'], $crawler->filter('[data-people] [data-list-toolbar] nav a')->each(static fn (\Symfony\Component\DomCrawler\Crawler $tab): string => str_replace(' ', '', trim($tab->text()))));
+        self::assertListTable($crawler, '[data-people]', ['widths' => '']);
+        // An old link names the two-factor column as it was called.
+        self::assertSame(['name', 'two_factor'], $columns($this->client->request('GET', '/settings/people?cols=name,twoFactor')));
+
+        $crawler = $this->client->request('GET', '/settings/people?view=invitations');
+        self::assertSame(['name', 'email', 'role', 'contact', 'expires'], $columns($crawler));
+        self::assertSame([$this->onlyInvitation()->id()], $names($crawler));
+        self::assertCount(1, $names($this->client->request('GET', '/settings/people?q=member')));
+        self::assertCount(1, $names(self::applyBuilder($this->client, '/settings/people', 'email', 'owner')));
+
+        // A member sees the people, and no invitations.
+        $this->client->getCookieJar()->clear();
+        $this->signIn('member@example.com');
+        $crawler = $this->client->request('GET', '/settings/people?view=invitations');
+        self::assertResponseIsSuccessful();
+        self::assertCount(2, $names($crawler));
+        self::assertStringNotContainsString('Invitations', $crawler->filter('[data-people] [data-list-toolbar]')->text());
+    }
+
     public function testTheOwnerInvitesAMemberByMail(): void
     {
         $this->signIn(self::OWNER);
 
         $this->invite('jana@example.com', 'Jana Example');
 
-        self::assertResponseRedirects('/settings/people/invitations');
+        self::assertResponseRedirects('/settings/people?view=invitations');
         $mails = $this->queuedMails();
         self::assertCount(1, $mails);
         self::assertSame('jana@example.com', $mails[0]->to);
@@ -118,7 +154,7 @@ final class PeopleTest extends WebTestCase
 
         $party = $this->contact();
         $this->invite('alex@example.com', 'Alex Example', 'guest', $party);
-        self::assertResponseRedirects('/settings/people/invitations');
+        self::assertResponseRedirects('/settings/people?view=invitations');
         self::assertSame($party, $this->onlyInvitation()->party()?->id());
     }
 
@@ -138,7 +174,7 @@ final class PeopleTest extends WebTestCase
         self::assertSame(InvitationToken::hash(basename($link)), $this->onlyInvitation()->tokenHash());
         // The link is shown once; it cannot be read back from its hash.
         $this->client->request('GET', '/settings/people/invitations/'.$this->onlyInvitation()->id().'/link');
-        self::assertResponseRedirects('/settings/people/invitations');
+        self::assertResponseRedirects('/settings/people?view=invitations');
     }
 
     public function testANewPersonSetsAPasswordJoinsOnceAndIsSignedIn(): void
@@ -227,17 +263,17 @@ final class PeopleTest extends WebTestCase
         $this->signIn(self::OWNER);
         $this->invite('jana@example.com', 'Jana Example');
         $first = $this->tokenOf($this->queuedMails()[0]);
-        $crawler = $this->client->request('GET', '/settings/people/invitations');
+        $crawler = $this->client->request('GET', '/settings/people?view=invitations');
         $id = $this->onlyInvitation()->id();
 
         $this->client->request('POST', '/settings/people/invitations/'.$id.'/resend', ['_token' => $this->actionToken($crawler)]);
-        self::assertResponseRedirects('/settings/people/invitations');
+        self::assertResponseRedirects('/settings/people?view=invitations');
         $this->collectMails();
         $second = $this->tokenOf($this->queuedMails()[1]);
         self::assertNotSame($first, $second);
 
         $this->client->request('POST', '/settings/people/invitations/'.$id.'/revoke', ['_token' => $this->actionToken($crawler)]);
-        self::assertResponseRedirects('/settings/people/invitations');
+        self::assertResponseRedirects('/settings/people?view=invitations');
         $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'No pending invitations');
 

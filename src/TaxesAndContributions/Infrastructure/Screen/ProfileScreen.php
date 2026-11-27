@@ -11,6 +11,7 @@ namespace Foresi\TaxesAndContributions\Infrastructure\Screen;
 use Foresi\Instance\Application\InstanceClock;
 use Foresi\Shared\Domain\Money;
 use Foresi\TaxesAndContributions\Application\ProfileReads;
+use Foresi\TaxesAndContributions\Application\View\ProfileStatusLists;
 use Foresi\TaxesAndContributions\Contract\Authority;
 use Foresi\TaxesAndContributions\Contract\AuthorityAccountView;
 use Foresi\TaxesAndContributions\Contract\ChildInput;
@@ -21,7 +22,9 @@ use Foresi\TaxesAndContributions\Contract\SpouseInput;
 use Foresi\TaxesAndContributions\Contract\StatusKind;
 use Foresi\TaxesAndContributions\Contract\StatusPeriod;
 use Foresi\TaxesAndContributions\Contract\YearInputsView;
+use Foresi\TaxesAndContributions\Infrastructure\Column\StatusRow;
 use Foresi\TaxesAndContributions\Infrastructure\Controller\ProfileController;
+use Foresi\Ui\Contract\WorkingState;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -62,69 +65,93 @@ final readonly class ProfileScreen
     }
 
     /**
-     * @return list<array<string, mixed>> the columns of Ui:DataTable
+     * The statuses of every kind that has one, in the order of StatusKind, oldest first, each
+     * until the day before the next of its kind: the records of the list the dialog shows.
+     *
+     * @return list<StatusRow>
      */
-    public function statusColumns(): array
+    public function statusRows(ProfileView $profile): array
+    {
+        $rows = [];
+        foreach (StatusKind::cases() as $kind) {
+            $periods = array_values(array_filter($profile->statuses, static fn (StatusPeriod $status): bool => $kind === $status->kind));
+            foreach ($periods as $index => $status) {
+                $next = $periods[$index + 1] ?? null;
+                $rows[] = new StatusRow($status->id, $kind, $this->statusValue($status), $this->from($status), $next instanceof StatusPeriod ? $this->day($next->validFrom->modify('-1 day')) : null);
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * A status as a row of Ui:DataTable. The VAT payer statuses are the firm's: read-only here.
+     *
+     * @return array<string, mixed>
+     */
+    public function statusRow(StatusRow $row, WorkingState $working): array
     {
         return [
-            ['key' => 'value', 'label' => $this->trans('taxes.profile.column.value'), 'truncate' => true],
-            ['key' => 'from', 'label' => $this->trans('taxes.profile.column.from')],
-            ['key' => 'until', 'label' => $this->trans('taxes.profile.column.until'), 'phone' => false],
+            'id' => $row->id,
+            'label' => $row->value,
+            'secondary' => $row->from,
+            'cells' => $working->display->cells($row),
+            'actions' => StatusKind::VatPayer === $row->kind ? [] : [[
+                'label' => $this->trans('taxes.profile.status.remove'),
+                'href' => $this->urls->generate(ProfileController::ROUTE.'_status_remove', ['id' => $row->id]),
+                'method' => 'POST',
+                'icon' => 'trash-2',
+                'confirm' => [
+                    'title' => $this->trans('taxes.profile.status.remove_title'),
+                    'text' => $this->trans('taxes.profile.status.remove_text'),
+                    'accept' => $this->trans('taxes.profile.status.remove'),
+                    'tone' => 'danger',
+                    // The list is a dialog over the profile: its host posts the form itself.
+                    'overlay' => true,
+                ],
+            ]],
         ];
     }
 
     /**
-     * The statuses of each kind that has one, in the order of StatusKind,
-     * oldest first, each until the day before the next of its kind. The VAT
-     * payer statuses are the firm's: read-only here, with a link to where the
-     * firm's VAT statuses change.
+     * The value of a field of the list on a status, as RowConditions compares it.
+     */
+    public function statusField(StatusRow $row, string $field): mixed
+    {
+        return match ($field) {
+            ProfileStatusLists::VALUE => $row->value,
+            ProfileStatusLists::KIND => $row->kind->value,
+            default => null,
+        };
+    }
+
+    /**
+     * The rows the list shows, a table per kind that has one in the order of StatusKind. The
+     * VAT payer's has a link to where the firm's VAT statuses change. A kind none of whose
+     * statuses the filter or search keeps is left out.
+     *
+     * @param list<StatusRow>            $records every status, as statusRows() gave them
+     * @param list<array<string, mixed>> $rows    the rows of the list that ListTable kept, by their id
      *
      * @return list<array{kind: string, title: string, rows: list<array<string, mixed>>, firmVat: ?string}>
      */
-    public function statusGroups(ProfileView $profile): array
+    public function statusGroups(array $records, array $rows): array
     {
+        $kinds = [];
+        foreach ($records as $record) {
+            $kinds[$record->id] = $record->kind;
+        }
         $groups = [];
         foreach (StatusKind::cases() as $kind) {
-            $periods = array_values(array_filter($profile->statuses, static fn (StatusPeriod $status): bool => $kind === $status->kind));
-            if ([] === $periods) {
+            $own = array_values(array_filter($rows, static fn (array $row): bool => \is_string($row['id']) && ($kinds[$row['id']] ?? null) === $kind));
+            if ([] === $own) {
                 continue;
-            }
-            $firm = StatusKind::VatPayer === $kind;
-            $rows = [];
-            foreach ($periods as $index => $status) {
-                $next = $periods[$index + 1] ?? null;
-                $value = $this->statusValue($status);
-                $from = $this->from($status);
-                $rows[] = [
-                    'id' => $status->id,
-                    'label' => $value,
-                    'secondary' => $from,
-                    'cells' => [
-                        'value' => $value,
-                        'from' => $from,
-                        'until' => $next instanceof StatusPeriod ? $this->day($next->validFrom->modify('-1 day')) : ['empty' => $this->trans('taxes.profile.until_next')],
-                    ],
-                    'actions' => $firm ? [] : [[
-                        'label' => $this->trans('taxes.profile.status.remove'),
-                        'href' => $this->urls->generate(ProfileController::ROUTE.'_status_remove', ['id' => $status->id]),
-                        'method' => 'POST',
-                        'icon' => 'trash-2',
-                        'confirm' => [
-                            'title' => $this->trans('taxes.profile.status.remove_title'),
-                            'text' => $this->trans('taxes.profile.status.remove_text'),
-                            'accept' => $this->trans('taxes.profile.status.remove'),
-                            'tone' => 'danger',
-                            // The list is a dialog over the profile: its host posts the form itself.
-                            'overlay' => true,
-                        ],
-                    ]],
-                ];
             }
             $groups[] = [
                 'kind' => $kind->value,
                 'title' => $this->trans('taxes.status.kind.'.$kind->value),
-                'rows' => $rows,
-                'firmVat' => $firm ? $this->urls->generate(self::FIRM_VAT_ROUTE) : null,
+                'rows' => $own,
+                'firmVat' => StatusKind::VatPayer === $kind ? $this->urls->generate(self::FIRM_VAT_ROUTE) : null,
             ];
         }
 

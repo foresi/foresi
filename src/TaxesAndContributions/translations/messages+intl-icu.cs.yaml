@@ -138,6 +138,7 @@ taxes:
       activityStart_help: Jen když jste začali podnikat v tomto roce.
       averageWageOverride: Vlastní průměrná mzda
       averageWageOverride_help: Prázdné použije zveřejněnou průměrnou mzdu.
+      kind: Druh stavu
     order:
       '1': První dítě
       '2': Druhé dítě
@@ -222,6 +223,13 @@ taxes:
       account_invalid: Zadejte číslo účtu, nejvýš 64 znaků.
       variable_symbol_invalid: Variabilní symbol má nejvýš 35 znaků.
       not_found: Stav už neexistuje.
+    views: Pohledy na stavy
+    search: Hledat podle stavu
+    tab:
+      all: Vše
+    empty:
+      filtered_title: Filtru nic neodpovídá
+      reset: Zrušit filtr
   page:
     years: Roky
     'yes': ano

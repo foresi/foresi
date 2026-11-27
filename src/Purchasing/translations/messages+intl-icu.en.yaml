@@ -365,6 +365,17 @@ purchasing:
         subject: "Subject"
         outcome: "Outcome"
         skipped: "Left out"
+      views: Views of the recent e-mails
+      search: Search by sender or subject
+      tab:
+        all: All
+      empty_filtered_title: Nothing matches the filter
+      reset: Clear the filter
+      outcome:
+        queued: Waiting
+        filed: Filed
+        nothing_accepted: No attachment we can read
+        failed: Failed
   skipped:
     inline_image: "{name} (image in the mail)"
     unsupported_type: "{name} (not a document)"

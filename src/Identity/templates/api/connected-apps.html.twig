@@ -2,7 +2,9 @@
 {#
     A guest's connected apps (ADR 0041): the MCP clients they connected with OAuth sign-in, each
     disconnected after a confirmation, and the address a client connects to. A guest has no
-    personal tokens and no settings; the organisation's people have this in Settings > API.
+    personal tokens and no settings; the organisation's people have this in Settings > API. The apps
+    are a list with views, columns and widths (docs/design/list-pages.md, rule 8). Variables: server,
+    connections, the table ListTable gives.
 #}
 {% extends '@Ui/layout/app.html.twig' %}
 
@@ -27,11 +29,10 @@
         </section>
         <section class="grid gap-2" aria-labelledby="connected-apps-title" data-api-connections="mine">
             <h2 id="connected-apps-title" class="m-0 text-heading font-semibold text-ink">{{ 'api_tokens.connections'|trans }}</h2>
-            <twig:Ui:DataTable :caption="'api_tokens.connections'|trans" :columns="columns" :rows="rows" :actionToken="token">
-                <twig:block name="empty">
-                    <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.connections_empty'|trans }}</p>
-                </twig:block>
-            </twig:Ui:DataTable>
+            {% set empty %}
+                <p class="m-0 rounded-panel border border-container bg-white px-4 py-3 text-small text-muted">{{ 'api_tokens.connections_empty'|trans }}</p>
+            {% endset %}
+            {{ include('@Identity/api/_table.html.twig', {t: connections, caption: 'api_tokens.connections'|trans, route: 'app_connected_apps', token: token, empty: empty}) }}
         </section>
     </div>
 {% endblock %}

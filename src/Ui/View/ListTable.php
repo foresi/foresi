@@ -78,11 +78,15 @@ final readonly class ListTable
      * @param \Closure(T): string                             $searched the text the search looks in
      * @param string|null                                     $hidden   a boolean field whose records show only while the filter names it, as a trash view does
      * @param \Closure(ViewFilter): array<string, mixed>|null $context  the columns' context of the filter shown, such as the trash
+     * @param \Closure(ListView): bool|null                   $offered  which views the person gets as tabs, such as the invitations only the owner keeps
      */
-    public function of(ListSlot $slot, ListDefinition $list, string $columns, string $route, string $id, array $records, \Closure $row, \Closure $valueOf, \Closure $searched, string $searchLabel, ?string $hidden = null, ?\Closure $context = null): ListTablePage
+    public function of(ListSlot $slot, ListDefinition $list, string $columns, string $route, string $id, array $records, \Closure $row, \Closure $valueOf, \Closure $searched, string $searchLabel, ?string $hidden = null, ?\Closure $context = null, ?\Closure $offered = null): ListTablePage
     {
         $input = $slot->input();
         $views = $this->listViews->of($list, $this->actorRole->userId());
+        if ($offered instanceof \Closure) {
+            $views = array_values(array_filter($views, $offered));
+        }
         $view = ListViews::chosen($views, $input->getString('view'));
         $shown = WorkingFilter::decode($input->getString(WorkingFilter::PARAM), $list) ?? $view->filter;
         $filterParam = WorkingFilter::param($shown, $view->filter);

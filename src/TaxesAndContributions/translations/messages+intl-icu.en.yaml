@@ -138,6 +138,7 @@ taxes:
       activityStart_help: Only when you started in this year.
       averageWageOverride: Own average wage
       averageWageOverride_help: Empty uses the published average wage.
+      kind: Kind of status
     order:
       '1': First child
       '2': Second child
@@ -222,6 +223,13 @@ taxes:
       account_invalid: Enter an account number of at most 64 characters.
       variable_symbol_invalid: A variable symbol has at most 35 characters.
       not_found: The status no longer exists.
+    views: Views of the statuses
+    search: Search by status
+    tab:
+      all: All
+    empty:
+      filtered_title: Nothing matches the filter
+      reset: Clear the filter
   page:
     years: Years
     'yes': 'yes'
