@@ -35,6 +35,9 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * later, or changes, such as a column added to a table of a baseline, are left
  * out of that comparison: such a database has never had them as the mapping
  * has them, and doctrine:migrations:migrate brings them there after the rebase.
+ * So are the tables such a migration changes only in this database, such as
+ * a column that the global history made, a baseline no longer makes and a
+ * later migration drops where it is there.
  */
 final readonly class MigrationRebase
 {
@@ -170,15 +173,38 @@ final readonly class MigrationRebase
 
     /**
      * The tables that migrations after the baselines create or change the
-     * columns of, played in order on an empty schema.
+     * columns of, played in order on an empty schema, and then on the schema
+     * of this database.
      *
      * @return list<string>
      */
     private function tablesAfterTheBaselines(): array
     {
-        $schema = new Schema();
+        $tables = $this->tablesChangedAfterTheBaselines(new Schema(), true);
+        $database = $this->entityManager->getConnection()->createSchemaManager()->introspectSchema();
+        try {
+            array_push($tables, ...$this->tablesChangedAfterTheBaselines($database, false));
+        } catch (\Throwable) {
+            // A migration that cannot be played on this schema leaves nothing out: the comparison stays strict.
+        }
+
+        return array_values(array_unique($tables));
+    }
+
+    /**
+     * The tables whose columns the migrations after the baselines change on
+     * the given schema, the baselines played first or not at all.
+     *
+     * @return list<string>
+     */
+    private function tablesChangedAfterTheBaselines(Schema $schema, bool $withTheBaselines): array
+    {
         $tables = [];
         foreach ($this->migrations->getMigrationRepository()->getMigrations()->getItems() as $available) {
+            $baseline = str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE);
+            if ($baseline && !$withTheBaselines) {
+                continue;
+            }
             $before = $this->columnsByTable($schema);
             $migration = $available->getMigration();
             $migration->up($schema);
@@ -186,7 +212,7 @@ final readonly class MigrationRebase
                 $schema = TableOwners::renamed($schema, $migration);
                 array_push($tables, ...array_values($migration->renamedTables()));
             }
-            if (str_ends_with((string) $available->getVersion(), '\\'.GlobalMigrationHistory::BASELINE)) {
+            if ($baseline) {
                 continue;
             }
             foreach ($this->columnsByTable($schema) as $table => $columns) {
